@@ -15,7 +15,8 @@ CREATE TABLE "allowance_catalogue" (
 	"bands" jsonb DEFAULT '[]' NOT NULL,
 	"eligibility" text DEFAULT '' NOT NULL,
 	"evidence" text DEFAULT 'NONE' NOT NULL,
-	"on_separation" boolean DEFAULT false NOT NULL
+	"on_separation" boolean DEFAULT false NOT NULL,
+	"fixed" boolean DEFAULT true NOT NULL
 );
 
 --> statement-breakpoint
@@ -505,7 +506,8 @@ CREATE TABLE "statutory_contributions" (
 	"shared_cap_group" text,
 	"project_relief_annually" boolean DEFAULT false NOT NULL,
 	"rules" jsonb DEFAULT '[]' NOT NULL,
-	"assessed_on" text DEFAULT '' NOT NULL
+	"assessed_on" text DEFAULT '' NOT NULL,
+	"ordinary_on" text DEFAULT '' NOT NULL
 );
 
 --> statement-breakpoint

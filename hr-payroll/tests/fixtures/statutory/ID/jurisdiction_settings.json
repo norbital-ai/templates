@@ -18,17 +18,17 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) * terms.basic_salary / terms.monthly_wage : 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
-			"overtime_when": "",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"bands": [
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && requested_by == \"EMPLOYER\"",
 					"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-2.0X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && requested_by == \"EMPLOYER\"",
 					"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 2.0"
 				},
@@ -109,8 +109,9 @@
 				"discharged_by": "REST_OR_OFF"
 			},
 			"holiday_rest_precedence": "REST_DAY",
-			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out.",
-			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0"
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. Applied 2026-09-18 (4): PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`).",
+			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
+			"normal_hours_follow_shift": true
 		},
 		"payroll": {
 			"currency": "IDR",
@@ -172,17 +173,17 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) * terms.basic_salary / terms.monthly_wage : 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
-			"overtime_when": "",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"bands": [
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && requested_by == \"EMPLOYER\"",
 					"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-2.0X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && requested_by == \"EMPLOYER\"",
 					"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 2.0"
 				},
@@ -263,8 +264,9 @@
 				"discharged_by": "REST_OR_OFF"
 			},
 			"holiday_rest_precedence": "REST_DAY",
-			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out.",
-			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0"
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. Applied 2026-09-18 (4): PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`).",
+			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
+			"normal_hours_follow_shift": true
 		},
 		"payroll": {
 			"currency": "IDR",
@@ -318,17 +320,17 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) * terms.basic_salary / terms.monthly_wage : 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
-			"overtime_when": "",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"bands": [
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && requested_by == \"EMPLOYER\"",
 					"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-2.0X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && requested_by == \"EMPLOYER\"",
 					"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 2.0"
 				},
@@ -409,8 +411,9 @@
 				"discharged_by": "REST_OR_OFF"
 			},
 			"holiday_rest_precedence": "REST_DAY",
-			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out.",
-			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0"
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. Applied 2026-09-18 (4): PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`).",
+			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
+			"normal_hours_follow_shift": true
 		},
 		"payroll": {
 			"currency": "IDR",

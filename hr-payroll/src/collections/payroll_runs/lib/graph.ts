@@ -86,6 +86,7 @@ export function payrollRunGraph(options: {
 				scheme_code: charge.contribution.row.code,
 				authority: charge.contribution.row.authority,
 				base_amount: charge.base,
+				...(charge.ordinary == null ? {} : { ordinary_amount: charge.ordinary }),
 				employee_amount: charge.employee,
 				employer_amount: charge.employer,
 				directed_amount: charge.directed,
@@ -119,6 +120,7 @@ export function payrollRunGraph(options: {
 				scheme_code: charge.contribution.row.code,
 				rule_when: charge.ruleReference,
 				base_amount: charge.base,
+				...(charge.ordinary == null ? {} : { ordinary_amount: charge.ordinary }),
 				employee_amount: charge.employee,
 				employer_amount: charge.employer,
 				inputs: charge.inputs.map((line) => ({

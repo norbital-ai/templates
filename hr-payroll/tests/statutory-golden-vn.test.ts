@@ -73,9 +73,9 @@ test('Vietnam — SI, HI, UI and the union fee under the 1 January 2026 version'
 });
 
 test('Vietnam — the contribution floor is the reference level (Law 41/2024 art.31(1)(đ))', () => {
-	// A wage under 2,340,000 contributes on 2,340,000 for SI, HI and the union fee; UI has no floor
-	// of its own and charges 1% of the wage. 2,340,000 × 8% = 187,200, × 17.5% = 409,500, × 1.5% =
-	// 35,100, × 3% = 70,200, × 2% = 46,800.
+	// A wage under 2,340,000 contributes on 2,340,000 for SI, HI, the union fee and, since Law
+	// 41/2024 art.31(1)(đ) makes the UI base the SI base, UI too. 2,340,000 × 8% = 187,200, × 17.5%
+	// = 409,500, × 1.5% = 35,100, × 3% = 70,200, × 2% = 46,800, × 1% = 23,400.
 	const january = assessStatutory({
 		code: 'VN',
 		period: '2026-01',
@@ -85,7 +85,7 @@ test('Vietnam — the contribution floor is the reference level (Law 41/2024 art
 	expectStatutory(january, 'VN-2M', 'SI', 187_200, 409_500);
 	expectStatutory(january, 'VN-2M', 'HI', 35_100, 70_200);
 	expectStatutory(january, 'VN-2M', 'UNION_FEE', 0, 46_800);
-	expectStatutory(january, 'VN-2M', 'UI', 20_000, 20_000);
+	expectStatutory(january, 'VN-2M', 'UI', 23_400, 23_400);
 	expectStatutory(january, 'VN-2M', 'PIT', 0, 0);
 	// From 1 July 2026 the floor is 2,530,000: × 8% = 202,400, × 17.5% = 442,750, × 1.5% = 37,950,
 	// × 3% = 75,900, × 2% = 50,600.
@@ -507,9 +507,17 @@ test('Vietnam — a part month prorates on working days, an allowance with it, a
 				evidence: 'NONE',
 				destination: 'PAY',
 				direction: 'ADD',
+				// Circular 06/2021 art.30(3): a mid-shift meal is outside the insurance salary.
+				fixed: false,
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
 				approval_id: null
 			});
+			// Circular 111/2013 art.2(2)(g.5): the meal is taxable above 730,000 a month. The bank's
+			// PIT row taxes every allowance a version carries; a version that adds a meal row states
+			// the cap beside it, as this world does.
+			for (const scheme of world.statutory_contributions)
+				if (scheme.code === 'PIT' && scheme.settings_id === VN_2026_JAN)
+					scheme.assessed_on = `${scheme.assessed_on} - (code('LUNCH') > 730000.0 ? 730000.0 : code('LUNCH'))`;
 			for (const [index, employment] of world.employments.entries())
 				world.allowances.push({
 					id: `d0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
@@ -598,15 +606,14 @@ test('Vietnam — a part month prorates on working days, an allowance with it, a
 	assert.deepEqual(facts('VN-NPL'), [22, 22, 0, 2_200_000]);
 	const absence = slips.get('VN-NPL')!.adjustments.find((row) => row.bucket === 'ABSENCE')!;
 	assert.deepEqual([absence.quantity, absence.amount], [1, 1_000_000]);
-	// No Vietnamese scheme opts an allowance in (`assessed_on` names no `catalog('ALLOWANCE')`):
-	// right for a mid-shift meal (Circular 06/2021 art.30(3) keeps it out of the insurance salary),
-	// and the PIT exemption of Circular 111/2013 art.2(2)(g.5) stops at 730,000 a month — the
-	// 1,470,000 above it is taxable and is not taxed here (README NOT APPLIED #21). Law 41/2024
-	// art.33(5): one unpaid working day is under the fourteen the cliff names, so the month insures
-	// on the whole contractual salary, 22,000,000 × 8% = 1,760,000 / 17.5% = 3,850,000.
+	// The mid-shift meal is `fixed: false`, so it is outside the insurance salary (Circular 06/2021
+	// art.30(3)) — `terms.fixed_allowances` does not carry it. Law 41/2024 art.33(5): one unpaid
+	// working day is under the fourteen the cliff names, so the month insures on the whole
+	// contractual salary, 22,000,000 × 8% = 1,760,000 / 17.5% = 3,850,000.
 	assert.deepEqual(charge(slips.get('VN-NPL')!, 'SI'), [22_000_000, 1_760_000, 3_850_000]);
-	// 22,000,000 − 2,310,000 − 15,500,000 = 4,190,000 × 5% = 209,500.
-	assert.deepEqual(charge(slips.get('VN-WHOLE')!, 'PIT'), [22_000_000, 209_500, 0]);
+	// PIT: the meal is salary income above 730,000 (art.2(2)(g.5)): 22,000,000 + 2,200,000 −
+	// 730,000 = 23,470,000; − 2,310,000 − 15,500,000 = 5,660,000 × 5% = 283,000.
+	assert.deepEqual(charge(slips.get('VN-WHOLE')!, 'PIT'), [23_470_000, 283_000, 0]);
 	// The đồng has no minor unit: a prorated base is a whole đồng, 20,000,000 × 10 ÷ 22 =
 	// 9,090,909.09 → 9,090,909, on the segment as on the line.
 	assert.deepEqual(prorated('VN-JOINER-20M'), [[10, 22, 9_090_909]]);

@@ -524,11 +524,14 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 	// still paid in March, it just does not become 5,000,000 more of THR.
 	assert.deepEqual(slip('ID-ONEOFF').thr, [20_000_000]);
 	assert.deepEqual(slip('ID-TWO-MONTHS').thr, [25_000_000]);
-	// PPh 21 is on gross, THR and the employer-borne premiums included (484,000 on 10,000,000);
-	// the BPJS bases are the wage alone.
+	// PPh 21 is on gross, THR and the employer-borne premiums included (484,000 on 10,000,000).
+	// PP 44/45/46 of 2015: the BPJS wage is upah pokok plus tunjangan tetap, so the standing house
+	// allowance is in the JHT base and the employer premiums PPh 21 adds rise with it (JKK 0.54% +
+	// JKM 0.3% on 5,000,000 = 42,000; Kesehatan is already at its 12,000,000 cap).
 	assert.equal(slip('ID-24M').base('PPH21'), 20_484_000);
 	assert.equal(slip('ID-24M').base('JHT'), 10_000_000);
-	assert.equal(slip('ID-FIXED').base('PPH21'), 50_648_000); // 25,000,000 + THR 25,000,000 + the employer premiums
+	assert.equal(slip('ID-FIXED').base('JHT'), 25_000_000);
+	assert.equal(slip('ID-FIXED').base('PPH21'), 50_690_000); // 25,000,000 + THR 25,000,000 + the employer premiums
 	// The open-ended standing allowance is paid as a March entry; the source row itself is never
 	// pinned, so April prices its own entry.
 	const fixedSlip = slips.find((row) => String(row.employment_id) === fixed.id)!;
@@ -646,6 +649,71 @@ test('Indonesia — the PP 35/2021 Pasal 31 ladder on an ordinary day, a rest da
 	assert.equal(charge('PPH21').base_amount, 17_300_000 + 4_450_000 + 685_870);
 	assert.equal(charge('JHT').base_amount, 17_300_000);
 	assert.equal(charge('KESEHATAN').base_amount, 17_300_000);
+});
+
+test('Indonesia — a holiday on a six-day worker’s shortest day prices its own five hours at 2× (Pasal 31(2)(b))', () => {
+	// PP 35/2021 Pasal 31(2)(b): where the week is six days, a holiday on the shortest working day
+	// pays five hours at 2×, the sixth at 3× and the seventh to ninth at 4×. The guards' week is
+	// five seven-hour days and a five-hour Saturday (40 hours); with `normal_hours_follow_shift`
+	// the Saturday's normal day is its own five hours, not the contract's average. Rp 17,300,000
+	// is Rp 100,000 an hour. Saturday 3 January 2026 is the holiday, worked 09:00–16:00 (seven).
+	const SHORT = 'c0000000-0000-4000-8000-0000000000d8';
+	const LONG = 'c0000000-0000-4000-8000-0000000000d7';
+	const { slips } = buildStatutory(
+		{
+			code: 'ID',
+			period: '2026-01',
+			region: 'Kabupaten Bekasi',
+			riskClass: 'III',
+			people: [{ key: 'ID-SAT', wage: 17_300_000, marital_status: 'SINGLE' }]
+		},
+		(world) => {
+			world.shift_definitions.push(
+				{
+					...world.shift_definitions[0]!,
+					id: LONG,
+					code: 'SEVEN',
+					name: 'Seven hours',
+					variant: { kind: 'WORK', start_time: '09:00', end_time: '17:00', break_minutes: 60 }
+				},
+				{
+					...world.shift_definitions[0]!,
+					id: SHORT,
+					code: 'FIVE',
+					name: 'Five hours',
+					variant: { kind: 'WORK', start_time: '09:00', end_time: '14:00', break_minutes: 0 }
+				}
+			);
+			world.shift_patterns[0]!.pattern.days = [
+				{ roster_code_id: LONG },
+				{ roster_code_id: LONG },
+				{ roster_code_id: LONG },
+				{ roster_code_id: LONG },
+				{ roster_code_id: LONG },
+				{ roster_code_id: SHORT },
+				{ roster_code_id: world.shift_definitions[1]!.id }
+			];
+			world.jurisdiction_holidays.push({
+				id: 'holiday-2026-01-03',
+				company_id: COMPANY_ID,
+				date: '2026-01-03',
+				name: 'A holiday on the short Saturday',
+				replaces: null,
+				source: null,
+				published_at: '2025-12-01T00:00:00.000Z',
+				approval_id: null
+			});
+			punchId(world, 'ID-SAT', '2026-01-03', '09:00', '16:00');
+		}
+	);
+	// UU 13/2003 Ps.79(2)(a): the thirty-minute break owed after four continuous hours is not
+	// working time, so seven clocked hours are six and a half payable: five at 2×, one at 3×,
+	// half an hour at 4×.
+	assert.deepEqual(workLinesId(slips.get('ID-SAT')!), [
+		['2026-01-03', 'OT-2.0X', 5, 1_000_000],
+		['2026-01-03', 'OT-3.0X', 1, 300_000],
+		['2026-01-03', 'OT-4.0X', 0.5, 200_000]
+	]);
 });
 
 test('Indonesia — a rest-day stint shorter than a normal day is priced on its payable hours, not the raw clock', () => {

@@ -63,6 +63,8 @@ type ContributionRead = {
 export type ContributionCharge = {
 	readonly contribution: ContributionConfig;
 	readonly base: number;
+	/** The ordinary part of the base, where the scheme states `ordinary_on`. */
+	readonly ordinary?: number;
 	readonly employee: number;
 	readonly employer: number;
 	/** The directed instalments added after the ladder; already inside `employee`. */
@@ -88,7 +90,12 @@ type SchemeAssessment = {
 	/** `contribution_id` → the employment's registration, or `null` where no row exists. */
 	readonly facts: ReadonlyMap<string, StatutoryFactStatus>;
 	/** `contribution_code` → what has already been charged this tax year. */
-	readonly yearToDate: (code: string) => { employee: number; employer: number; base: number };
+	readonly yearToDate: (code: string) => {
+		employee: number;
+		employer: number;
+		base: number;
+		ordinary: number;
+	};
 	/** component code → what earlier PAID payslips earned this tax year (BASIC always present). */
 	readonly yearEarned: ReadonlyMap<string, number>;
 	/** The period being settled: the shared six-member root. */
@@ -477,6 +484,21 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		const base = monthlyAssessed
 			? cents(evaluated.base * input.period.instalments, input.currency)
 			: evaluated.base;
+		// The ordinary part of the base, where the ceiling splits it (`ordinary_on`).
+		const ordinaryOn = (contribution.row.ordinary_on ?? '').trim();
+		const ordinary =
+			ordinaryOn === ''
+				? null
+				: assessedBase({
+						input,
+						contribution: {
+							...contribution,
+							row: { ...contribution.row, assessed_on: ordinaryOn }
+						},
+						accumulation: input.accumulation,
+						produced,
+						reads: reliefs
+					}).base;
 		const charge = (
 			employee: number,
 			employer: number,
@@ -490,6 +512,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			charges.push({
 				contribution,
 				base: chargeBase,
+				...(ordinary == null ? {} : { ordinary }),
 				employee,
 				employer,
 				directed,
@@ -585,7 +608,7 @@ export function contributeCompany(input: {
 	const produced = new Map<string, Produced>();
 	const assessment: SchemeAssessment = {
 		facts: input.facts ?? new Map(),
-		yearToDate: input.yearToDate ?? (() => ({ employee: 0, employer: 0, base: 0 })),
+		yearToDate: input.yearToDate ?? (() => ({ employee: 0, employer: 0, base: 0, ordinary: 0 })),
 		yearEarned: input.yearEarned ?? new Map(),
 		period: input.period,
 		currency: input.currency,

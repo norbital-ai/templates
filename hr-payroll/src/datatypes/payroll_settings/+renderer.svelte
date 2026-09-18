@@ -50,6 +50,20 @@
 				{current == null ? '—' : current.allowance_npl_prorates ? t('common.yes') : t('common.no')}
 			</span>
 		</div>
+		<div class="flex flex-col gap-0.5 text-xs">
+			<span class="text-muted-foreground">{t('component.final_pay_due_days')}</span>
+			<span class="text-sm">{current?.final_pay_due_days ?? '—'}</span>
+		</div>
+		<div class="flex flex-col gap-0.5 text-xs">
+			<span class="text-muted-foreground">{t('component.holiday_in_npl_unpaid')}</span>
+			<span class="text-sm"
+				>{current?.holiday_in_no_pay_leave_unpaid ? t('common.yes') : t('common.no')}</span
+			>
+		</div>
+		<div class="flex flex-col gap-0.5 text-xs">
+			<span class="text-muted-foreground">{t('component.short_day_is_half')}</span>
+			<span class="text-sm">{current?.short_day_is_half ? t('common.yes') : t('common.no')}</span>
+		</div>
 	</Grid>
 {:else if current != null}
 	<Grid gap="sm" minimum="compact" class="w-full">
@@ -106,6 +120,52 @@
 					{disabled}
 					onchange={(event) =>
 						emit({ ...current, allowance_npl_prorates: event.currentTarget.checked })}
+				/>
+			</Stack>
+		</label>
+		<label class="text-xs">
+			<Stack gap="xs">
+				<span class="text-muted-foreground">{t('component.final_pay_due_days')}</span>
+				<Input
+					class="h-8"
+					type="number"
+					min="1"
+					step="1"
+					value={current.final_pay_due_days ?? ''}
+					{disabled}
+					oninput={(event) =>
+						emit({
+							...current,
+							final_pay_due_days:
+								event.currentTarget.value.trim() === ''
+									? null
+									: Math.max(1, Math.trunc(Number(event.currentTarget.value)) || 1)
+						})}
+				/>
+			</Stack>
+		</label>
+		<label class="text-xs">
+			<Stack gap="xs">
+				<span class="text-muted-foreground">{t('component.holiday_in_npl_unpaid')}</span>
+				<input
+					type="checkbox"
+					class="h-4 w-4"
+					checked={current.holiday_in_no_pay_leave_unpaid ?? false}
+					{disabled}
+					onchange={(event) =>
+						emit({ ...current, holiday_in_no_pay_leave_unpaid: event.currentTarget.checked })}
+				/>
+			</Stack>
+		</label>
+		<label class="text-xs">
+			<Stack gap="xs">
+				<span class="text-muted-foreground">{t('component.short_day_is_half')}</span>
+				<input
+					type="checkbox"
+					class="h-4 w-4"
+					checked={current.short_day_is_half ?? false}
+					{disabled}
+					onchange={(event) => emit({ ...current, short_day_is_half: event.currentTarget.checked })}
 				/>
 			</Stack>
 		</label>

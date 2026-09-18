@@ -81,7 +81,9 @@ const ScheduleTermsSchema = Schema.Struct({
 	work_pattern: Schema.NullOr(workPatternValueSchema),
 	/** The pattern row's effective start, the day its cycle counts from. */
 	pattern_anchor: Schema.NullOr(Schema.String),
-	normal_daily_hours: Schema.Number
+	normal_daily_hours: Schema.Number,
+	/** `work_rules.normal_hours_follow_shift`: a shorter rostered shift is the day's normal day. */
+	normal_hours_follow_shift: Schema.optionalKey(Schema.Boolean)
 });
 type ScheduleTerms = Schema.Schema.Type<typeof ScheduleTermsSchema>;
 
@@ -245,7 +247,10 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			date,
 			dayType,
 			shift: assignmentCode?.shift ?? null,
-			normalHours: terms.normal_daily_hours,
+			normalHours:
+				terms.normal_hours_follow_shift === true && assignmentCode?.shift != null
+					? Math.min(terms.normal_daily_hours, assignmentCode.shift.paid_minutes / 60)
+					: terms.normal_daily_hours,
 			restDay: baseDayType === 'REST_DAY',
 			offDay: baseDayType === 'OFF_DAY'
 		});

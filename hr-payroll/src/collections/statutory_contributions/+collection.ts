@@ -21,7 +21,8 @@ const columns = {
 	shared_cap_group: true,
 	project_relief_annually: true,
 	rules: true,
-	assessed_on: true
+	assessed_on: true,
+	ordinary_on: true
 } as const;
 
 const LIMIT = 500;
@@ -81,6 +82,7 @@ export default defineCollection({
 				const fault = schemeFault({
 					rules,
 					assessed_on: assessedOn,
+					ordinary_on: String(row.ordinary_on ?? ''),
 					elections: row.elections ?? []
 				});
 				if (fault != null) refuse(fault);

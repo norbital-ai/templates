@@ -930,7 +930,9 @@ export function fixedAllowancesOn(requests: readonly PreparedPayRequest[], asOf:
 					request.window.end == null ||
 					request.window.end > month.end) &&
 				request.catalogueComponent.destination === 'PAY' &&
-				request.catalogueComponent.direction === 'ADD'
+				request.catalogueComponent.direction === 'ADD' &&
+				// Fixed by its catalogue row: a reimbursement or per-day allowance is not, whatever its window.
+				request.catalogueComponent.fixed !== false
 		)
 		.reduce((sum, request) => sum + Math.abs(decodeNumber(request.amount)), 0);
 }

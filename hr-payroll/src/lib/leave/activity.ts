@@ -63,7 +63,9 @@ export function measureLeaveDay(
 	context: LeaveContext,
 	rules: ReturnType<typeof leaveRules>,
 	date: string,
-	entries: readonly LeaveActivity[]
+	entries: readonly LeaveActivity[],
+	/** Read the roster through a public holiday: the day a no-pay range encloses and charges (s.88(2)). */
+	throughHoliday = false
 ) {
 	const settings = rules.settingsOn(date);
 	const resolved = resolveHolidays(context.holidays, rules.company.id, date, date);
@@ -93,7 +95,8 @@ export function measureLeaveDay(
 			period: paid.period,
 			evidence
 		};
-	if (resolved.has(date)) return { eligible: false as const, reason: 'HOLIDAY' as const, evidence };
+	if (resolved.has(date) && !throughHoliday)
+		return { eligible: false as const, reason: 'HOLIDAY' as const, evidence };
 	const term = rules.terms.find((row) => coversDate(row.effective_range, date));
 	if (!term) return { eligible: false as const, reason: 'NO_SCHEDULE' as const, evidence };
 	const override = context.workDays.find(
@@ -200,6 +203,28 @@ export function planLeaveActivity(
 	const allocations: LeaveAllocation[] = [];
 	const pooled: { window: LeaveWindow; date: string; days: number }[] = [];
 	let certificateRequired = false;
+	/**
+	 * The share of a charged day that counts in the pool this row draws from: all of it, or only
+	 * what lies beyond the row's own `consumes_after_days` in the leave year (TW menstrual leave:
+	 * three days a year outside the sick quota). Counted over the row's own approved days in the
+	 * window plus this entry's earlier charges.
+	 */
+	let poolExemptSpent = 0;
+	const poolShare = (date: string, days: number): number => {
+		const rule = rules.catalogueOn(date).entitlement;
+		const exempt = rule.consumes_after_days;
+		if (exempt == null) return days;
+		// The exemption is a year's, whatever window the row itself keeps (a monthly grant).
+		const year = leaveWindowOf(date, rule.year_start_month);
+		const own = activeTimeOff(sameLeave)
+			.flatMap((row) => row.charges)
+			.filter((row) => row.date >= year.start && row.date <= year.end)
+			.reduce((sum, row) => sum + row.days, 0);
+		const left = Math.max(0, exempt - own - poolExemptSpent);
+		const kept = Math.min(days, left);
+		poolExemptSpent += kept;
+		return days - kept;
+	};
 	const debit = (
 		window: LeaveWindow,
 		date: string,
@@ -224,20 +249,22 @@ export function planLeaveActivity(
 			pools.pool.rules.catalogueOn(date).entitlement.rolling_months == null
 		) {
 			const poolWindow = leaveWindowOf(date, pools.pool.rules.catalogueOn(date).entitlement);
-			allocations.push(
-				...allocateLeaveDays({
-					entries: [
-						...pools.pool.entries,
-						{ id, allocations, approval_id: 'planning', leave_code: rules.selected.code }
-					],
-					window: poolWindow,
-					date,
-					days,
-					entitlementAt: pools.pool.rules.entitlementAt,
-					basis,
-					pool: pools.pool.code
-				})
-			);
+			const pooledDays = poolShare(date, days);
+			if (pooledDays > 0)
+				allocations.push(
+					...allocateLeaveDays({
+						entries: [
+							...pools.pool.entries,
+							{ id, allocations, approval_id: 'planning', leave_code: rules.selected.code }
+						],
+						window: poolWindow,
+						date,
+						days: pooledDays,
+						entitlementAt: pools.pool.rules.entitlementAt,
+						basis,
+						pool: pools.pool.code
+					})
+				);
 		}
 	};
 	/** The person's active time off of this code under their other employments here. */
@@ -278,12 +305,17 @@ export function planLeaveActivity(
 		if (pool == null || first == null) return false;
 		const poolRule = pool.rules.catalogueOn(first.date).entitlement;
 		if (poolRule.rolling_months == null) return false;
+		// ponytail: a consumer's earlier days count in a rolling pool whole — no version pairs
+		// `consumes_after_days` with a rolling pool; split them by allocation if one does.
+		const pooledOf = new Map<string, number>();
+		for (const charge of charged) pooledOf.set(charge.date, poolShare(charge.date, charge.days));
+		poolExemptSpent = 0;
 		for (const charge of charged) {
 			const from = rollingFrom(charge.date, poolRule.rolling_months);
 			const already = chargedIn(activeTimeOff(pool.entries), from, charge.date);
 			const within = charged
 				.filter((row) => row.date >= from && row.date <= charge.date)
-				.reduce((sum, row) => sum + row.days, 0);
+				.reduce((sum, row) => sum + (pooledOf.get(row.date) ?? row.days), 0);
 			const granted = grantedDays(poolRule, pool.rules.personOn(charge.date));
 			if (already + within > granted + 1e-9)
 				refuse(
@@ -374,8 +406,17 @@ export function planLeaveActivity(
 				refuse('Leave must end after it starts.');
 			if (range.start.date < rules.hire || (rules.exit != null && range.end.date > rules.exit))
 				refuse('Time off must fall within the employment dates.');
-			for (const date of daysBetween(range.start.date, range.end.date)) {
-				const day = measureLeaveDay(context, rules, date, entries);
+			const dates = daysBetween(range.start.date, range.end.date);
+			// SG EA s.88(2): a public holiday enclosed by no-pay leave the employee asked for is not
+			// paid — where the version says so, a no-pay row charges the holiday too, read through
+			// the roster as the working day it would have been. The first and last day of the range
+			// are never such a holiday: the leave must stand on both sides of it.
+			const holidayUnpaid =
+				rules.selected.is_npl === true &&
+				rules.settingsOn(range.start.date).payroll.holiday_in_no_pay_leave_unpaid === true;
+			for (const date of dates) {
+				const enclosed = holidayUnpaid && date !== range.start.date && date !== range.end.date;
+				const day = measureLeaveDay(context, rules, date, entries, enclosed);
 				if (!day.eligible) {
 					if (day.reason === 'HOLIDAY' || day.reason === 'REST_OR_OFF') continue;
 					refuse(`Leave on ${date} cannot be approved: ${day.reason}.`);

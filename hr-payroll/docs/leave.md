@@ -28,15 +28,16 @@ immutable; changed rules require a successor revision. Codes identify leave type
 
 The entitlement definition contains:
 
-| Field              | Values and meaning                                                                                                                                                                               |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `availability`     | `UPFRONT`, `MONTHLY`, `UNLIMITED` or `PER_EVENT` (a grant per birth, adoption or bereavement the entry names; `lifetime_events` caps the grants over the employment).                            |
-| `year_start_month` | The first month of the annual leave window, including fiscal years.                                                                                                                              |
-| `proration`        | `NONE`, eligible `CALENDAR_MONTHS`, `COMPLETED_MONTHS` or eligible `CALENDAR_DAYS`.                                                                                                              |
-| `rolling_months`   | Measures the window over the trailing months ending on the day instead of the leave year (MY sick leave over 12, TW over 24).                                                                    |
-| `rounding`         | `HALF_DAY` (default) or `WHOLE_DAY`: a part-year grant rounds to the day, a half or more up (MY s.60E(1), SG s.88A(3)).                                                                          |
-| `lifetime_days`    | The most days of the leave a person may ever take, across years and their employments here; a number or an expression over the person (SG GPCL: `children.citizens * 42.0 + …`).                 |
-| `bands`            | Annual quantities by completed months of service on this contract; `days` is a number or an expression over `leave_day` (`leave.month_index`, `leave.day_index`, `leave.days`, the person root). |
+| Field                 | Values and meaning                                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `availability`        | `UPFRONT`, `MONTHLY`, `UNLIMITED` or `PER_EVENT` (a grant per birth, adoption or bereavement the entry names; `lifetime_events` caps the grants over the employment).                            |
+| `year_start_month`    | The first month of the annual leave window, including fiscal years.                                                                                                                              |
+| `proration`           | `NONE`, eligible `CALENDAR_MONTHS`, `COMPLETED_MONTHS` or eligible `CALENDAR_DAYS`.                                                                                                              |
+| `rolling_months`      | Measures the window over the trailing months ending on the day instead of the leave year (MY sick leave over 12, TW over 24).                                                                    |
+| `rounding`            | `HALF_DAY` (default) or `WHOLE_DAY`: a part-year grant rounds to the day, a half or more up (MY s.60E(1), SG s.88A(3)).                                                                          |
+| `lifetime_days`       | The most days of the leave a person may ever take, across years and their employments here; a number or an expression over the person (SG GPCL: `children.citizens * 42.0 + …`).                 |
+| `consumes_after_days` | Of a row that `consumes_code` another: the days a leave year that stay outside the pool; only days beyond them draw from it (TW menstrual leave: 3).                                             |
+| `bands`               | Annual quantities by completed months of service on this contract; `days` is a number or an expression over `leave_day` (`leave.month_index`, `leave.day_index`, `leave.days`, the person root). |
 
 The catalogue row beside it: `pay_fraction` (an expression over `leave_day`, the share of the day
 wage deducted — ID sick leave steps down by month), `paid_by: EMPLOYER | FUND` (a FUND day is
@@ -49,7 +50,8 @@ shared parental weeks this parent takes for the child and the days the mother wa
 elsewhere before the confinement — the last three recorded on the employee's child rows, since a
 tenant cannot see the other parent's employer or an earlier employer. Lifetime counts
 (`lifetime_events`, `lifetime_days`) run over the person's employments here, so a rehire does not
-reset them.
+reset them. Where the version says a public holiday enclosed by no-pay leave is unpaid (SG
+s.88(2)), a no-pay entry charges that holiday too, named by it.
 
 Queries select the rule and service band effective on the requested date, bounded by the source
 window and the contract's departure. Eligibility uses effective terms and applicable child facts.

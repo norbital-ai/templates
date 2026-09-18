@@ -431,7 +431,8 @@ export function prepareWorkContext(
 			normal_daily_hours: Math.min(
 				normalHoursCap,
 				workload.work_days > 0 ? workload.paid_minutes / workload.work_days / 60 : 8
-			)
+			),
+			normal_hours_follow_shift: configuration.work.normal_hours_follow_shift === true
 		};
 	};
 	const schedule = resolveSchedule({
@@ -473,12 +474,17 @@ export function prepareWorkContext(
 		// and the divisor alike (SG EA s.20A / MOM: the days required to work "include public
 		// holidays"; VN Decree 145/2020 art.54(1)(a) counts the same). One that falls on a rest day
 		// is neither.
-		const days = dates.filter((date) => {
+		// A day the contract requires five hours or fewer counts as half (SG EA s.20A(2)), where the
+		// version says so.
+		const halfShort = configuration.jurisdiction.payroll.short_day_is_half === true;
+		const days = dates.reduce((total, date) => {
 			const day = prorationSchedule.get(date);
-			return (
-				day?.dayType === 'ORDINARY' || (day?.dayType === 'PUBLIC_HOLIDAY' && day.shift != null)
-			);
-		}).length;
+			const working =
+				day?.dayType === 'ORDINARY' || (day?.dayType === 'PUBLIC_HOLIDAY' && day.shift != null);
+			if (!working) return total;
+			const short = halfShort && day?.shift != null && day.shift.paid_minutes <= 300;
+			return total + (short ? 0.5 : 1);
+		}, 0);
 		workingDaysCache.set(key, days);
 		return days;
 	};
@@ -760,9 +766,18 @@ export function calculateWorkAttendance(
 	// The regulated-overtime ceiling governs the overtime the Act pays. A salaried engineer outside
 	// the overtime rule has no regulated hours to cap, so the ceiling is not reported against them.
 	const calendarMonthOvertimeHours = new Map<string, number>();
+	// The wider count an ALL_OVERTIME_HOURS limit reads: rest-day and holiday hours beyond the
+	// normal day too (MOM on SG's 72-hour month). Reported, never funnelled.
+	const calendarMonthAllOvertimeHours = new Map<string, number>();
 	for (const day of paymentEligible ? overtimeDays : []) {
-		if (day.dayType !== 'ORDINARY' && day.dayType !== 'OFF_DAY') continue;
 		const calendarMonth = monthKey(day.date);
+		const regulated = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
+		const beyondNormal = regulated ? day.hours : Math.max(0, day.hours - day.normalHours);
+		calendarMonthAllOvertimeHours.set(
+			calendarMonth,
+			(calendarMonthAllOvertimeHours.get(calendarMonth) ?? 0) + beyondNormal
+		);
+		if (!regulated) continue;
 		calendarMonthOvertimeHours.set(
 			calendarMonth,
 			(calendarMonthOvertimeHours.get(calendarMonth) ?? 0) + day.hours
@@ -904,6 +919,7 @@ export function calculateWorkAttendance(
 		capturedWorkDayIds,
 		overtimeDays,
 		calendarMonthOvertimeHours,
+		calendarMonthAllOvertimeHours,
 		nightShiftHours,
 		/** The rostered days with no punch and no leave, for an allowance that loses unpaid days. */
 		absentDays,
@@ -1478,6 +1494,7 @@ export function validateWorkResult(options: {
 		configuration: { ...configuration, limits: measured.limits },
 		employeeNumber: bundle.employment.employee_number,
 		hoursByMonth: measured.calendarMonthOvertimeHours,
+		allHoursByMonth: measured.calendarMonthAllOvertimeHours,
 		priorHoursByMonth: options.priorOvertimeHours ?? new Map()
 	});
 	// The daily ceiling is the jurisdiction's, read from its regime where `period = 'DAY'`.
