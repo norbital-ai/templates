@@ -124,6 +124,7 @@ export type Person = {
 	readonly child_rows?: ReadonlyArray<{
 		readonly child_birthdate: string;
 		readonly citizenship?: string | null;
+		readonly relief_class?: string | null;
 	}>;
 };
 
@@ -213,7 +214,8 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 						child_birthdate: child.child_birthdate,
 						relationship: 'CHILD' as const,
 						effective_range: null,
-						citizenship: child.citizenship ?? null
+						citizenship: child.citizenship ?? null,
+						relief_class: child.relief_class ?? null
 					})),
 		approval_id: null
 	}));
@@ -471,9 +473,10 @@ export function assessStatutory(
 		})
 	);
 	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
-	return indexStatutory(
+	const built = buildPayrollRun(prepared);
+	const book = indexStatutory(
 		world.employments,
-		buildPayrollRun(prepared).payslip_payroll_run.map((payslip) => ({
+		built.payslip_payroll_run.map((payslip) => ({
 			employmentId: String(payslip.employment_id),
 			charges: payslip.statutory.map((charge) => ({
 				code: charge.scheme_code,
@@ -484,7 +487,27 @@ export function assessStatutory(
 			}))
 		}))
 	);
+	// The entity's own levies, charged once on the run, under the COMPANY key — where it has any.
+	if (built.company_charges.length > 0)
+		book.set(
+			COMPANY,
+			new Map(
+				built.company_charges.map((charge) => [
+					charge.scheme_code,
+					{
+						base: charge.base_amount,
+						employee: charge.employee_amount,
+						employer: charge.employer_amount,
+						band: charge.rule_when
+					}
+				])
+			)
+		);
+	return book;
 }
+
+/** The book's key for the COMPANY-scope schemes: one row for the run, on no payslip. */
+export const COMPANY = '__company__';
 
 /** One built payslip, keyed by the employee number the golden names. */
 export type BuiltPayslip = ReturnType<typeof buildPayrollRun>['payslip_payroll_run'][number];

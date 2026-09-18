@@ -1101,5 +1101,6 @@
 	"renderer.work_rules.wages_hint": "方案通过 minimum_wage(region) 读取的下限；applies_when 指明适用对象，scale 按人员系数换算。",
 	"app.scheduling.week_picker": "当月周次",
 	"app.scheduling.week_n": "第{n}周",
-	"component.period_week": "{month} · 第{n}周（{from} – {to}）"
+	"component.period_week": "{month} · 第{n}周（{from} – {to}）",
+	"employee_children.relief_class": "税务减免类别（STUDYING、TERTIARY、DISABLED、DISABLED_TERTIARY；留空按年龄）"
 }

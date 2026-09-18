@@ -23,6 +23,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+	COMPANY,
 	assessStatutory,
 	buildStatutory,
 	expectStatutory,
@@ -68,8 +69,11 @@ test('Vietnam — SI, HI, UI and the union fee under the 1 January 2026 version'
 	expectStatutory(book, 'VN-FOREIGN', 'HI', 300_000, 600_000);
 
 	// Union budget contribution: 2% of the social-insurance salary fund, employer only, same cap.
-	expectStatutory(book, 'VN-20M', 'UNION_FEE', 0, 400_000);
-	expectStatutory(book, 'VN-60M', 'UNION_FEE', 0, 936_000);
+	// Law on Trade Unions 2024 art.29(1)(b): the employer's 2% is on the establishment's SI salary
+	// fund — one company line, not a charge on any payslip: 20,000,000 + 46,800,000 + 46,800,000
+	// (capped) + 20,000,000 = 133,600,000 × 2% = 2,672,000.
+	expectStatutory(book, COMPANY, 'UNION_FEE', 0, 2_672_000);
+	assert.equal(book.get('VN-20M')!.get('UNION_FEE'), undefined);
 });
 
 test('Vietnam — the contribution floor is the reference level (Law 41/2024 art.31(1)(đ))', () => {
@@ -84,7 +88,7 @@ test('Vietnam — the contribution floor is the reference level (Law 41/2024 art
 	});
 	expectStatutory(january, 'VN-2M', 'SI', 187_200, 409_500);
 	expectStatutory(january, 'VN-2M', 'HI', 35_100, 70_200);
-	expectStatutory(january, 'VN-2M', 'UNION_FEE', 0, 46_800);
+	expectStatutory(january, COMPANY, 'UNION_FEE', 0, 46_800);
 	expectStatutory(january, 'VN-2M', 'UI', 23_400, 23_400);
 	expectStatutory(january, 'VN-2M', 'PIT', 0, 0);
 	// From 1 July 2026 the floor is 2,530,000: × 8% = 202,400, × 17.5% = 442,750, × 1.5% = 37,950,
@@ -97,7 +101,7 @@ test('Vietnam — the contribution floor is the reference level (Law 41/2024 art
 	});
 	expectStatutory(july, 'VN-2M', 'SI', 202_400, 442_750);
 	expectStatutory(july, 'VN-2M', 'HI', 37_950, 75_900);
-	expectStatutory(july, 'VN-2M', 'UNION_FEE', 0, 50_600);
+	expectStatutory(july, COMPANY, 'UNION_FEE', 0, 50_600);
 });
 
 test('Vietnam — the unemployment ceiling follows the company region (Decree 293/2025)', () => {
@@ -215,7 +219,8 @@ test('Vietnam — the 1 July 2026 version raises the ceiling and exempts the ove
 	// 2,530,000 = 50,600,000: 8% = 4,048,000 and 17.5% = 8,855,000; 1.5% = 759,000 and 3% = 1,518,000.
 	expectStatutory(book, 'VN-60M', 'SI', 4_048_000, 8_855_000);
 	expectStatutory(book, 'VN-60M', 'HI', 759_000, 1_518_000);
-	expectStatutory(book, 'VN-60M', 'UNION_FEE', 0, 1_012_000); // 2% × 50,600,000
+	// The fund: 20,000,000 + 46,800,000 + 50,600,000 (capped) + 20,000,000 = 137,400,000 × 2%.
+	expectStatutory(book, COMPANY, 'UNION_FEE', 0, 2_748_000);
 	// The regional minimum did not move on 1 July, so UI is unchanged.
 	expectStatutory(book, 'VN-60M', 'UI', 600_000, 600_000);
 
@@ -297,7 +302,8 @@ test('Vietnam — the December 2025 version, and the regional cap that moves off
 	expectStatutory(december, 'VN-20M', 'SI', 1_600_000, 3_500_000);
 	expectStatutory(december, 'VN-120M', 'SI', 3_744_000, 8_190_000);
 	expectStatutory(december, 'VN-120M', 'HI', 702_000, 1_404_000);
-	expectStatutory(december, 'VN-120M', 'UNION_FEE', 0, 936_000); // 2% × 46,800,000
+	// The fund over the three people: 20,000,000 + 46,800,000 + 46,800,000 (both capped) = 113,600,000 × 2%.
+	expectStatutory(december, COMPANY, 'UNION_FEE', 0, 2_272_000);
 
 	// Unemployment insurance is 1% each side, capped at twenty times the REGIONAL minimum wage.
 	// Region I is 4,960,000 to 31 December 2025 (Decree 74/2024) → cap 99,200,000 → 992,000, and
@@ -330,7 +336,7 @@ test('Vietnam — the đồng above the ceiling is charged on the ceiling', () =
 	// 20 × 2,530,000 = 50,600,000: SI 8% / 17.5%, HI 1.5% / 3%, union 2% employer, all on the cap.
 	expectStatutory(book, 'VN-50600000.01', 'SI', 4_048_000, 8_855_000);
 	expectStatutory(book, 'VN-50600000.01', 'HI', 759_000, 1_518_000);
-	expectStatutory(book, 'VN-50600000.01', 'UNION_FEE', 0, 1_012_000);
+	expectStatutory(book, COMPANY, 'UNION_FEE', 0, 1_012_000);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -392,7 +398,7 @@ const week = (
 };
 
 test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the art.109 break', () => {
-	const { slips, warnings } = buildStatutory(
+	const { slips, warnings, companyCharges } = buildStatutory(
 		{
 			code: 'VN',
 			period: '2026-01',
@@ -437,7 +443,7 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 	assert.deepEqual(charge(slip, 'SI'), [17_600_000, 1_408_000, 3_080_000]);
 	assert.deepEqual(charge(slip, 'HI'), [17_600_000, 264_000, 528_000]);
 	assert.deepEqual(charge(slip, 'UI'), [17_600_000, 176_000, 176_000]);
-	assert.deepEqual(charge(slip, 'UNION_FEE'), [17_600_000, 0, 352_000]);
+	assert.deepEqual(companyCharges.get('UNION_FEE'), [17_600_000, 352_000]);
 	// Law 04/2007 art.4(9) with Circular 111/2013 art.3(1)(i): only the part of the overtime wage
 	// paid above the ordinary rate is exempt on the January 2026 version — 150,000 + 850,000 +
 	// 1,600,000 + 300,000 + 750,000 = 3,650,000 here (`OVERTIME_PREMIUM`) — so the base is
@@ -447,7 +453,8 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 	assert.deepEqual(charge(slip, 'PIT'), [20_900_000, 177_600, 0]);
 	assert.equal(slip.total_deductions, 2_025_600); // 1,408,000 + 264,000 + 176,000 + 177,600
 	assert.equal(slip.net, 22_624_400); // 24,650,000 − 2,025,600
-	assert.equal(slip.employer_cost, 3_080_000 + 528_000 + 176_000 + 352_000);
+	// The union fund is the establishment’s line, not the payslip’s employer cost.
+	assert.equal(slip.employer_cost, 3_080_000 + 528_000 + 176_000);
 });
 
 test('Vietnam — from 1 July 2026 the overtime and night wage are outside PIT (Law 109/2025 art.4(8))', () => {

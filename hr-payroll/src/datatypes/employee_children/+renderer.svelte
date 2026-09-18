@@ -112,6 +112,17 @@
 				>
 				<label class="text-sm"
 					><Stack gap="xs"
+						>{t('employee_children.relief_class')}<Input
+							value={row.relief_class ?? ''}
+							{disabled}
+							placeholder="TERTIARY"
+							oninput={(event) =>
+								edit(index, { relief_class: event.currentTarget.value.trim() || null })}
+						/></Stack
+					></label
+				>
+				<label class="text-sm"
+					><Stack gap="xs"
 						>{t('employee_children.shared_parental_weeks')}<Input
 							type="number"
 							min="0"
