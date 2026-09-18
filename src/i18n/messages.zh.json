@@ -1070,5 +1070,15 @@
 	"renderer.work_rules.normal_hours": "正常工作日（小时，按人表达式；留空为班次时长）",
 	"renderer.work_rules.normal_hours_follow_shift": "较短的排班班次即为当日正常工时",
 	"leave.lifetime_days": "终身天数（数字或按人表达式；留空为不限）",
-	"leave.consumes_after_days": "每年不计入所引用假期池的天数"
+	"leave.consumes_after_days": "每年不计入所引用假期池的天数",
+	"renderer.statutory_fact_status.opening": "本年度前雇主",
+	"renderer.statutory_fact_status.opening_hint": "入职时申报的前雇主在本纳税年度内该方案下的计算基数、代扣与缴纳（如马来西亚TP3、菲律宾2316），作为年度期初余额读取。",
+	"renderer.statutory_fact_status.opening_year": "纳税年度",
+	"renderer.statutory_fact_status.opening_base": "入职前基数",
+	"renderer.statutory_fact_status.opening_employee": "已从雇员扣缴",
+	"renderer.statutory_fact_status.opening_employer": "雇主已缴",
+	"renderer.statutory_fact_status.opening_months": "在其他雇主受雇月数",
+	"renderer.statutory_fact_status.opening_reference": "表格",
+	"renderer.statutory_fact_status.add_opening": "新增前雇主",
+	"renderer.statutory_fact_status.remove_opening": "移除"
 }

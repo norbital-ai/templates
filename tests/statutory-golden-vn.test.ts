@@ -266,11 +266,13 @@ test('Vietnam — the December 2025 version, and the regional cap that moves off
 						base: [],
 						adjustments: [],
 						statutory: [
+							// The year's compulsory insurance is read from the slips, not multiplied from
+							// December's, so the earlier months carry their own (all under SI here).
 							{
 								scheme_code: 'SI',
-								employee_amount: 0,
+								employee_amount: monthly[0],
 								employer_amount: 0,
-								base_amount: 0,
+								base_amount: wage,
 								rule_when: null,
 								authority: null
 							},

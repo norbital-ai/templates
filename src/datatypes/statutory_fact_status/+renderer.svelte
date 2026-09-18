@@ -45,16 +45,34 @@
 		if (props.mode === 'edit') props.onValueChange(next);
 	}
 
-	/** The registered arm with one instalment row replaced, or the list without it. */
-	function editInstalment(index: number, change: Partial<Instalment> | null): void {
+	type Opening = NonNullable<Extract<Value, { kind: 'REGISTERED' }>['opening']>[number];
+	/**
+	 * The registered arm with one row of a list — the instalments or the earlier-employer openings —
+	 * replaced, or the list without it.
+	 */
+	type Registered = Extract<Value, { kind: 'REGISTERED' }>;
+	function editRow<Row extends Instalment | Opening>(
+		list: Row extends Instalment ? 'instalments' : 'opening',
+		index: number,
+		change: Partial<Row> | null
+	): void {
 		if (current?.kind !== 'REGISTERED') return;
-		const rows = current.instalments ?? [];
-		const instalments =
+		const rows = ((current as Registered)[list] ?? []) as readonly Row[];
+		const next =
 			change === null
-				? rows.filter((_, position) => position !== index)
-				: rows.map((row, position) => (position === index ? { ...row, ...change } : row));
-		emit({ ...current, instalments });
+				? rows.filter((_: Row, position: number) => position !== index)
+				: rows.map((row: Row, position: number) =>
+						position === index ? { ...row, ...change } : row
+					);
+		emit({ ...current, [list]: next });
 	}
+	const editInstalment = (index: number, change: Partial<Instalment> | null) =>
+		editRow('instalments', index, change);
+	const editOpening = (index: number, change: Partial<Opening> | null) =>
+		editRow('opening', index, change);
+
+	const numberOr = (text: string, fallback = 0) =>
+		text.trim() === '' ? fallback : Number(text) || fallback;
 
 	function defaultFor(kind: StatusKind): Value {
 		switch (kind) {
@@ -220,6 +238,122 @@
 										{ amount: 0, from: '', to: '', reference: '' }
 									]
 								})}>{t('renderer.statutory_fact_status.add_instalment')}</Button
+						></Cluster
+					>
+				</Stack>
+			</Column>
+			<Column span="all">
+				<Stack gap="sm">
+					<span class="text-sm font-medium">{t('renderer.statutory_fact_status.opening')}</span>
+					<p class="text-meta">{t('renderer.statutory_fact_status.opening_hint')}</p>
+					{#each current.opening ?? [] as row, index (index)}
+						<Grid gap="sm" minimum="compact" class="border-b border-border pb-3">
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.opening_year')}<Input
+										value={row.year}
+										placeholder="2026"
+										{disabled}
+										oninput={(event) =>
+											editOpening(index, { year: event.currentTarget.value.trim() })}
+									/></Stack
+								></label
+							>
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.opening_base')}<Input
+										type="number"
+										step="0.01"
+										value={row.base}
+										{disabled}
+										oninput={(event) =>
+											editOpening(index, { base: numberOr(event.currentTarget.value) })}
+									/></Stack
+								></label
+							>
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.opening_employee')}<Input
+										type="number"
+										step="0.01"
+										value={row.employee}
+										{disabled}
+										oninput={(event) =>
+											editOpening(index, { employee: numberOr(event.currentTarget.value) })}
+									/></Stack
+								></label
+							>
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.opening_employer')}<Input
+										type="number"
+										step="0.01"
+										value={row.employer}
+										{disabled}
+										oninput={(event) =>
+											editOpening(index, { employer: numberOr(event.currentTarget.value) })}
+									/></Stack
+								></label
+							>
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.opening_months')}<Input
+										type="number"
+										min="0"
+										step="1"
+										value={row.months ?? ''}
+										{disabled}
+										oninput={(event) =>
+											editOpening(index, {
+												months:
+													event.currentTarget.value.trim() === ''
+														? null
+														: Math.max(0, Math.trunc(numberOr(event.currentTarget.value)))
+											})}
+									/></Stack
+								></label
+							>
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.opening_reference')}<Input
+										value={row.reference}
+										placeholder="TP3 / 2316"
+										{disabled}
+										oninput={(event) =>
+											editOpening(index, { reference: event.currentTarget.value })}
+									/></Stack
+								></label
+							>
+							<Cluster>
+								<Button
+									variant="ghost"
+									size="sm"
+									{disabled}
+									onclick={() => editOpening(index, null)}
+									>{t('renderer.statutory_fact_status.remove_opening')}</Button
+								>
+							</Cluster>
+						</Grid>
+					{/each}
+					<Cluster
+						><Button
+							variant="outline"
+							size="sm"
+							{disabled}
+							onclick={() =>
+								emit({
+									...current,
+									opening: [
+										...(current.opening ?? []),
+										{
+											year: String(new Date().getFullYear()),
+											base: 0,
+											employee: 0,
+											employer: 0,
+											reference: ''
+										}
+									]
+								})}>{t('renderer.statutory_fact_status.add_opening')}</Button
 						></Cluster
 					>
 				</Stack>

@@ -1070,5 +1070,15 @@
 	"renderer.work_rules.normal_hours": "Normal day (hours, over the person; empty is the shift)",
 	"renderer.work_rules.normal_hours_follow_shift": "A shorter rostered shift is that day's normal day",
 	"leave.lifetime_days": "Lifetime days (a number or an expression over the person; empty is no cap)",
-	"leave.consumes_after_days": "Days a year outside the pool this row draws from"
+	"leave.consumes_after_days": "Days a year outside the pool this row draws from",
+	"renderer.statutory_fact_status.opening": "Earlier employer this year",
+	"renderer.statutory_fact_status.opening_hint": "What a previous employer paid and withheld under this scheme in the tax year, as declared on joining (MY TP3, PH 2316). Read as the year's opening balance.",
+	"renderer.statutory_fact_status.opening_year": "Tax year",
+	"renderer.statutory_fact_status.opening_base": "Base to the join date",
+	"renderer.statutory_fact_status.opening_employee": "Withheld from the employee",
+	"renderer.statutory_fact_status.opening_employer": "Employer's contribution",
+	"renderer.statutory_fact_status.opening_months": "Months employed elsewhere",
+	"renderer.statutory_fact_status.opening_reference": "Form",
+	"renderer.statutory_fact_status.add_opening": "Add earlier employer",
+	"renderer.statutory_fact_status.remove_opening": "Remove"
 }
