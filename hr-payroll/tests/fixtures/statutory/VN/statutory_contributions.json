@@ -148,7 +148,7 @@
 		"rules": [
 			{
 				"when": "period.last_of_year",
-				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) * year.months_employed - (11000000.0 + 4400000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) * year.months_employed - (11000000.0 + 4400000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
 			},
 			{
@@ -308,7 +308,7 @@
 		"rules": [
 			{
 				"when": "period.last_of_year",
-				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) * year.months_employed - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) * year.months_employed - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
 			},
 			{
@@ -468,7 +468,7 @@
 		"rules": [
 			{
 				"when": "period.last_of_year",
-				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) * year.months_employed - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) * year.months_employed - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
 			},
 			{

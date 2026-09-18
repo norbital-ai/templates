@@ -985,3 +985,60 @@ test('every sealed version of `MY` and `MY-nihon` is priced by a golden here', (
 	assertEveryVersionPriced('MY');
 	assertEveryVersionPriced('MY-nihon');
 });
+
+test('Malaysia — a mid-year joiner’s PCB reads the previous employer’s TP3 as the year’s opening', () => {
+	// MTD Specification 2026: a joiner declares on Form TP3 the year's accumulated remuneration
+	// (Y), EPF (K) and PCB (X) already paid by the earlier employer. The fact's `opening` carries
+	// them as the year to date this employer starts from, so June annualises the whole year:
+	// 25,005 already earned + 5,001 × (1 + 6 remaining) = 60,012 — the same as a January
+	// full-year MY-5001 — less the 549.50 already withheld, spread over the 7 payslips left.
+	// EPF relief: 2,805 declared + 561 this month, projected to the RM4,000 cap. SOCSO, EIS and
+	// (from June) SKBBK share the RM350 cap and are not projected: 126.25 + 50.50 declared plus
+	// 25.25 + 10.10 + 37.85 this month = 249.95.
+	// Chargeable = 60,012 − 4,000 − 249.95 − 9,000 = 46,762.05 → 600 + 11,762.05 × 6% =
+	// 1,305.723; − 549.50 = 756.223; ÷ 7 = 108.032 → 108.03 → 108.05.
+	const tp3 = (base: number, employee: number, employer: number, months?: number) => ({
+		kind: 'REGISTERED',
+		opening: [
+			{
+				year: '2026',
+				base,
+				employee,
+				employer,
+				...(months == null ? {} : { months }),
+				reference: 'TP3'
+			}
+		]
+	});
+	const book = assessStatutory({
+		code: 'MY',
+		period: '2026-06',
+		people: [
+			{
+				key: 'MY-TP3',
+				wage: 5001,
+				hire_date: '2026-06-01',
+				citizenship: 'CITIZEN',
+				registrations: {
+					...MY_LOCAL,
+					PCB: tp3(25_005, 549.5, 0, 5),
+					EPF: tp3(25_005, 2805, 3255),
+					SOCSO: tp3(25_005, 126.25, 441.75),
+					EIS: tp3(25_005, 50.5, 50.5)
+				}
+			},
+			// The same joiner with nothing declared: the engine sees June as the first month.
+			{
+				key: 'MY-FRESH',
+				wage: 5001,
+				hire_date: '2026-06-01',
+				citizenship: 'CITIZEN',
+				registrations: MY_LOCAL
+			}
+		]
+	});
+	expectStatutory(book, 'MY-TP3', 'PCB', 108.05, 0);
+	// Fresh: 5,001 × 7 = 35,007 annualised; EPF 561 × 7 = 3,927; the 350 pool; personal 9,000 →
+	// 21,730 in the 20,000–35,000 band: −650 + 1,730 × 3% = −598.10 → nothing withheld.
+	expectStatutory(book, 'MY-FRESH', 'PCB', 0, 0);
+});

@@ -527,7 +527,11 @@ counts rest-day and holiday hours beyond the normal day for its warning while th
 `OVERTIME_HOURS` count stays the one the monthly funnel — the only company policy in the engine —
 reads. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_is_half` carry SG s.88(2)
 and s.20A(2). A scheme whose ceiling splits ordinary from additional wages states `ordinary_on`,
-and `allowance_catalogue.fixed` says which allowances are wage-like (`terms.fixed_allowances`).
+and `allowance_catalogue.fixed` says which allowances are wage-like (`terms.fixed_allowances`). A person's year is
+the tenant's earlier slips (person-first: sibling employments in the company) plus what an earlier
+employer declared on the statutory fact (`opening[]` by scheme and tax year: base, employee,
+employer, ordinary, months — MY TP3, PH 2316), folded into `scheme.year_to_date`, the relief pools
+and `year.months_employed`; nothing else in a tenant can see a previous employer.
 
 Attendance overruns are priced and reported, never blocked and never discarded. Hours a schedule
 was never allowed to contain are still paid; that a run paid them is not proof the schedule

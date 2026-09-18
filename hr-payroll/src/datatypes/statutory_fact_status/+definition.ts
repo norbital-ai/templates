@@ -23,6 +23,30 @@ export const statutoryFactInstalmentSchema = Schema.Struct({
 	reference: Schema.String
 });
 
+/**
+ * What an earlier employer paid and withheld under this scheme in a tax year, as the person
+ * declared it on joining (MY Form TP3: accumulated remuneration, EPF and PCB paid; PH BIR 2316:
+ * the prior employer's income and tax withheld). Read as an opening balance of
+ * `scheme.year_to_date` and `year.months_employed` for that year; nothing else in the tenant can
+ * see a previous employer.
+ */
+export const statutoryFactOpeningSchema = Schema.Struct({
+	/** The tax year the figures belong to, as the version's `tax_year_start_month` labels it (`YYYY`). */
+	year: Schema.String.check(Schema.isMinLength(4)),
+	/** The base the earlier employer charged this scheme on in that year to the join date. */
+	base: Schema.Finite,
+	/** What the earlier employer withheld from the employee under this scheme. */
+	employee: Schema.Finite,
+	/** What the earlier employer contributed under this scheme. */
+	employer: Schema.Finite,
+	/** The ordinary part of `base`, where the scheme states `ordinary_on`. */
+	ordinary: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
+	/** Months employed elsewhere in that year before joining. */
+	months: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))),
+	/** The form the figures come from (TP3, 2316 …). */
+	reference: Schema.String
+});
+
 export const statutoryFactStatusValueSchema = Schema.Union([
 	Schema.Struct({
 		kind: Schema.Literal('REGISTERED'),
@@ -35,7 +59,9 @@ export const statutoryFactStatusValueSchema = Schema.Union([
 		/** The employment's elections under this scheme; keys the scheme row declares. */
 		elections: Schema.optionalKey(
 			Schema.Record(Schema.String, Schema.Union([Schema.Boolean, Schema.Finite, Schema.String]))
-		)
+		),
+		/** Earlier employers' figures under this scheme, by tax year, declared on joining. */
+		opening: Schema.optionalKey(Schema.Array(statutoryFactOpeningSchema))
 	}),
 	Schema.Struct({
 		kind: Schema.Literal('NOT_REGISTERED'),

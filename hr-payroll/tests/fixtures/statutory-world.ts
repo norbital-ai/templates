@@ -101,6 +101,16 @@ export type Person = {
 				readonly kind: string;
 				readonly rate_override?: number | null;
 				readonly elections?: Readonly<Record<string, boolean | number | string>>;
+				/** An earlier employer's figures for a tax year (MY TP3, PH 2316). */
+				readonly opening?: ReadonlyArray<{
+					readonly year: string;
+					readonly base: number;
+					readonly employee: number;
+					readonly employer: number;
+					readonly ordinary?: number | null;
+					readonly months?: number | null;
+					readonly reference: string;
+				}>;
 			}
 		>
 	>;
@@ -257,6 +267,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 					reference_number: 'FIXTURE',
 					rate_override: declared?.rate_override ?? null,
 					elections: declared?.elections ?? {},
+					...(declared?.opening == null ? {} : { opening: declared.opening }),
 					// The employment's first day is its registration day: registration history, not
 					// current age, is what the seniority limbs read.
 					since: person.hire_date ?? '2015-01-01',

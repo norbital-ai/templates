@@ -164,6 +164,7 @@ import {
 import {
 	closesTaxYear,
 	taxYearBounds,
+	taxYearOf,
 	type PayrollWindow
 } from '../../collections/payroll_runs/lib/period.js';
 import {
@@ -437,6 +438,19 @@ export function prepareContributionAssessment(options: {
 		if (!coversDate(fact.effective_range, asOf) || fact.status == null) continue;
 		facts.set(fact.statutory_contribution_id, fact.status);
 	}
+	const startMonth0 = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
+	const taxYear = taxYearOf(bundle.window.period, startMonth0);
+	/** An earlier employer's figures under a scheme for this tax year, where the fact declares them. */
+	const openingFor = (code: string) => {
+		const scheme = configuration.contributions.find((row) => row.row.code === code);
+		const status = scheme == null ? undefined : facts.get(scheme.row.id);
+		if (status?.kind !== 'REGISTERED') return null;
+		return (status.opening ?? []).find((row) => row.year === taxYear) ?? null;
+	};
+	const openingMonths = configuration.contributions.reduce(
+		(most, scheme) => Math.max(most, openingFor(scheme.row.code)?.months ?? 0),
+		0
+	);
 	const minimumWage = regionalMinimumWage(configuration);
 	const person = personContext({
 		employee: bundle.employee,
@@ -489,13 +503,25 @@ export function prepareContributionAssessment(options: {
 			}),
 			contributions: configuration.contributions,
 			facts,
-			yearToDate: (code) =>
-				options.yearToDate.get(`${bundle.employment.employee_id}:${code}`) ?? {
+			// This tenant's earlier slips plus what an earlier employer declared for the year (the
+			// fact's `opening`, MY TP3 / PH 2316): the person's year, not the contract's.
+			yearToDate: (code) => {
+				const own = options.yearToDate.get(`${bundle.employment.employee_id}:${code}`) ?? {
 					employee: 0,
 					employer: 0,
 					base: 0,
 					ordinary: 0
-				},
+				};
+				const opening = openingFor(code);
+				return opening == null
+					? own
+					: {
+							employee: own.employee + opening.employee,
+							employer: own.employer + opening.employer,
+							base: own.base + opening.base,
+							ordinary: own.ordinary + (opening.ordinary ?? 0)
+						};
+			},
 			yearEarned: options.yearEarned,
 			period: {
 				key: bundle.window.period,
@@ -521,7 +547,8 @@ export function prepareContributionAssessment(options: {
 			year: {
 				start: bounds.start,
 				end: bounds.end,
-				months_employed: employed ? completedMonths(from, addDays(through, 1)) : 0,
+				months_employed:
+					(employed ? completedMonths(from, addDays(through, 1)) : 0) + openingMonths,
 				days_employed: employed ? inclusiveDays(from, through) : 0
 			},
 			projection,

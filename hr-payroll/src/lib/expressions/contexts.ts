@@ -316,7 +316,11 @@ const yearFields = (prefix: string): ContextField[] =>
 const SCHEME_FIELDS: readonly ContextField[] = [
 	{ path: 'code', description: 'The scheme code' },
 	{ path: 'assessment_period', description: 'PAY_PERIOD | MONTH' },
-	{ path: 'year_to_date.base', description: 'Base already charged this tax year' },
+	{
+		path: 'year_to_date.base',
+		description:
+			'Base already charged this tax year: this employer’s earlier slips plus what an earlier employer declared on the fact (`opening`)'
+	},
 	{
 		path: 'year_to_date.ordinary',
 		description:
