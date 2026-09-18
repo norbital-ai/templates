@@ -206,6 +206,7 @@ CREATE TABLE "employment_terms" (
 	"payroll_group" text,
 	"grade" text,
 	"agreed_days_per_week" integer NOT NULL,
+	"ordinary_hours_per_week" integer,
 	"shift_pattern_id" uuid,
 	"effective_range" jsonb NOT NULL,
 	"summary" text GENERATED ALWAYS AS (COALESCE(job_title || ' · ', '') || employment_type) STORED
@@ -295,6 +296,7 @@ CREATE TABLE "leave_catalogue" (
 	"consumes_code" text,
 	"unit" text DEFAULT 'DAY' NOT NULL,
 	"can_encash" boolean DEFAULT true NOT NULL,
+	"encash_on_exit" boolean DEFAULT false NOT NULL,
 	"evidence_after_days" integer,
 	"entitlement" jsonb NOT NULL
 );
@@ -507,7 +509,10 @@ CREATE TABLE "statutory_contributions" (
 	"project_relief_annually" boolean DEFAULT false NOT NULL,
 	"rules" jsonb DEFAULT '[]' NOT NULL,
 	"assessed_on" text DEFAULT '' NOT NULL,
-	"ordinary_on" text DEFAULT '' NOT NULL
+	"ordinary_on" text DEFAULT '' NOT NULL,
+	"short_name" text,
+	"listing_order" integer,
+	"listing_group" text
 );
 
 --> statement-breakpoint

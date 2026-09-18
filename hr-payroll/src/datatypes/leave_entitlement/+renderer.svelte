@@ -42,7 +42,7 @@
 		}
 	);
 	const availabilityOptions = $derived(
-		(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT'] as const).map((value) => ({
+		(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT', 'CREDITED'] as const).map((value) => ({
 			value,
 			label: t(`leave.availability.${value}`)
 		}))

@@ -112,6 +112,11 @@
 					<Grid gap="md" minimum="card">
 						<Field name="is_npl" label={t('component.is_npl')} />
 						<Field name="can_encash" label={t('component.can_encash')} />
+						<Field
+							name="encash_on_exit"
+							label={t('component.encash_on_exit')}
+							description={t('component.encash_on_exit_hint')}
+						/>
 						<Field name="paid_by" label={t('component.paid_by')} />
 						<Field name="unit" label={t('component.leave_unit')} />
 						<Field name="consumes_code" label={t('component.consumes_code')} />

@@ -117,6 +117,19 @@ their own rows with an `original_date`. Work applies explicit rest/holiday prece
 inventing personal substitute holidays; a SUBSTITUTE row's `given_to` is evaluated per person
 (pattern plus `work_days` plus Leave).
 
+### No figure of the engine's
+
+Every figure and every code-keyed decision lives on a version's row, never in the engine. What the
+engine used to infer it now reads: the row that off-boarding pays out is `leave_catalogue.encash_on_exit`,
+not a code prefix; a day-in-lieu row is `entitlement.availability: CREDITED`, not a code; a scheme's
+printed name, its place in the entity's listing and the column it folds into are
+`statutory_contributions.short_name`, `listing_order` and `listing_group`, frozen on each charge; a
+daily, hourly or weekly basic becomes a month on the version's `ordinary_divisor_days`; a contract
+with no roster is measured on its own `employment_terms.ordinary_hours_per_week` or the version's
+`normal_hours`, and a contract stating neither is refused by name rather than priced on a figure of
+the engine's. Codes are named freely inside a version's own CEL (`code('ANNUAL_LEAVE')`,
+`catalog('ALLOWANCE', {exclude: ['bonus']})`); the rule is that the engine's source names none.
+
 ## Payroll flow
 
 ```mermaid

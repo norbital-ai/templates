@@ -85,6 +85,9 @@ export function payrollRunGraph(options: {
 			statutory: payslip.charges.map((charge) => ({
 				scheme_code: charge.contribution.row.code,
 				authority: charge.contribution.row.authority,
+				label: charge.contribution.row.short_name ?? null,
+				listing_order: charge.contribution.row.listing_order ?? null,
+				listing_group: charge.contribution.row.listing_group ?? null,
 				base_amount: charge.base,
 				...(charge.ordinary == null ? {} : { ordinary_amount: charge.ordinary }),
 				employee_amount: charge.employee,

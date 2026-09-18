@@ -2343,6 +2343,19 @@
       "table": "employment_terms"
     },
     {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ordinary_hours_per_week",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": false,
@@ -3302,6 +3315,19 @@
       "generated": null,
       "identity": null,
       "name": "can_encash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_catalogue"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "encash_on_exit",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_catalogue"
@@ -5578,6 +5604,45 @@
       "generated": null,
       "identity": null,
       "name": "ordinary_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "short_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "listing_order",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "listing_group",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"

@@ -22,6 +22,10 @@ export const payslipStatutoryValueSchema = Schema.Struct({
 	scheme_code: Schema.NonEmptyString,
 	/** The authority the scheme's charge answers to, frozen for the reading auditor. */
 	authority: Schema.NullOr(Schema.String),
+	/** The scheme row's listing at settlement: its short name, its place, the column it folds into. */
+	label: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	listing_order: Schema.optionalKey(Schema.NullOr(Schema.Int)),
+	listing_group: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** The wage the scheme was charged on. */
 	base_amount: Schema.Finite,
 	/** The ordinary part of it, where the scheme states `ordinary_on`; summed into `year_to_date.ordinary`. */

@@ -100,7 +100,8 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{
 		path: 'terms.monthly_basic',
-		description: 'The basic as a month: a daily rate × 313 ÷ 12, an hourly one × 8 × 313 ÷ 12'
+		description:
+			'The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week'
 	},
 	{
 		path: 'terms.fixed_allowances',

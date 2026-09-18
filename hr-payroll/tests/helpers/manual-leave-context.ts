@@ -79,6 +79,7 @@ export function leaveContext(): LeaveContext {
 				name: 'Annual leave',
 				is_npl: false,
 				can_encash: true,
+				encash_on_exit: true,
 				evidence_after_days: null,
 				eligibility: '',
 				entitlement: {

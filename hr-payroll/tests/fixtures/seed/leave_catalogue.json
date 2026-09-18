@@ -18,7 +18,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff5",
@@ -39,7 +40,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff9",
@@ -56,6 +58,7 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	}
 ]

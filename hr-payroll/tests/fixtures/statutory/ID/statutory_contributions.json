@@ -16,7 +16,10 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 21,
+		"listing_group": null
 	},
 	{
 		"id": "a42ee1d4-776e-4b2e-943c-6e240e132645",
@@ -40,7 +43,10 @@
 				"employer": "round_unit(210948.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 22,
+		"listing_group": null
 	},
 	{
 		"id": "5e3ac325-b154-42a9-9fc1-6d6c28f36fff",
@@ -79,7 +85,10 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 23,
+		"listing_group": null
 	},
 	{
 		"id": "4dcef5fc-93b3-4a01-b2f8-385e4a58f122",
@@ -98,7 +107,10 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 24,
+		"listing_group": null
 	},
 	{
 		"id": "4bf3843b-8734-408a-9735-6cd35bcede91",
@@ -128,7 +140,10 @@
 				"key": "extra_members",
 				"type": "number"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 25,
+		"listing_group": null
 	},
 	{
 		"id": "302ab052-abe0-4266-bcd0-aacb86d23c84",
@@ -147,7 +162,10 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 26,
+		"listing_group": null
 	},
 	{
 		"id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
@@ -797,7 +815,10 @@
 				"key": "ptkp",
 				"type": "string"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 27,
+		"listing_group": null
 	},
 	{
 		"id": "1fc84b08-22b6-4d48-a2c4-e909eb29c62d",
@@ -816,7 +837,10 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 21,
+		"listing_group": null
 	},
 	{
 		"id": "5d9cfe95-6ca8-4e8f-84a3-3113b8adba36",
@@ -840,7 +864,10 @@
 				"employer": "round_unit(210948.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 22,
+		"listing_group": null
 	},
 	{
 		"id": "ed8a3f29-c3c9-4dd0-b151-504d3902920e",
@@ -879,7 +906,10 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 23,
+		"listing_group": null
 	},
 	{
 		"id": "5cdd1702-5407-4fe3-a29a-5cd8c5b7da20",
@@ -898,7 +928,10 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 24,
+		"listing_group": null
 	},
 	{
 		"id": "b662790f-0fee-4d21-8373-7b318a5d8ddd",
@@ -928,7 +961,10 @@
 				"key": "extra_members",
 				"type": "number"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 25,
+		"listing_group": null
 	},
 	{
 		"id": "395ef462-7094-451a-902f-573ee961bec8",
@@ -947,7 +983,10 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 26,
+		"listing_group": null
 	},
 	{
 		"id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
@@ -1597,7 +1636,10 @@
 				"key": "ptkp",
 				"type": "string"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 27,
+		"listing_group": null
 	},
 	{
 		"id": "e8af2b2c-4f82-409f-a794-f817c435054b",
@@ -1616,7 +1658,10 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 21,
+		"listing_group": null
 	},
 	{
 		"id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
@@ -1640,7 +1685,10 @@
 				"employer": "round_unit(221726.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 22,
+		"listing_group": null
 	},
 	{
 		"id": "87c1513c-2c16-41a0-8812-d611049699a3",
@@ -1679,7 +1727,10 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 23,
+		"listing_group": null
 	},
 	{
 		"id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
@@ -1698,7 +1749,10 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 24,
+		"listing_group": null
 	},
 	{
 		"id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
@@ -1728,7 +1782,10 @@
 				"key": "extra_members",
 				"type": "number"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 25,
+		"listing_group": null
 	},
 	{
 		"id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
@@ -1747,7 +1804,10 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'pick': ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 26,
+		"listing_group": null
 	},
 	{
 		"id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
@@ -2397,6 +2457,9 @@
 				"key": "ptkp",
 				"type": "string"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 27,
+		"listing_group": null
 	}
 ]

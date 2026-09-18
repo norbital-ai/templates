@@ -146,7 +146,9 @@ import {
 	type PayrollReadApi,
 	type ReadLog
 } from '../../collections/payroll_runs/lib/api.js';
+import type { PersonInput } from '../../collections/payroll_runs/lib/eligibility.js';
 import { realignStatutoryFacts } from '../../collections/payroll_runs/lib/statutory-facts.js';
+import { ordinaryDivisorDays } from '../../collections/payroll_runs/lib/ordinary-rate.js';
 import { live, coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
@@ -312,6 +314,29 @@ export function contributionYearToDate(options: {
 	return totals;
 }
 
+/**
+ * The version's ordinary-rate divisor over a person whose basic is not stated monthly — what turns
+ * a daily, hourly or weekly rate into `terms.monthly_basic`. A monthly rate needs none, and a
+ * divisor that cannot be read yet (the week not measured) leaves the basic as stated.
+ */
+function divisorFor(
+	configuration: Pick<Configuration, 'work'>,
+	input: PersonInput,
+	employeeNumber: string
+): number | null {
+	const frequency = input.terms?.pay_frequency ?? 'MONTHLY';
+	if (frequency !== 'DAILY' && frequency !== 'HOURLY' && frequency !== 'WEEKLY') return null;
+	try {
+		return ordinaryDivisorDays({
+			expression: configuration.work.ordinary_divisor_days,
+			person: personContext(input),
+			employeeNumber
+		});
+	} catch {
+		return null;
+	}
+}
+
 /** Whether the version's wages order covers this person (`wages.applies_when`; empty is everyone). */
 export function minimumWageCovers(
 	configuration: Pick<Configuration, 'jurisdiction'>,
@@ -380,14 +405,23 @@ export function minimumWageIssues(options: {
 			bundle.terms.at(-1);
 		if (term == null) continue;
 		const basic = decodeNumber((term.base_salary as { value?: unknown } | null)?.value ?? 0);
-		const person = personContext({
+		const input = {
 			employee: bundle.employee,
 			employment: stint(bundle.employment),
 			fixedAllowances: fixedAllowancesOn(bundle.payRequests, asOf),
 			terms: term,
+			week: {
+				ordinary_hours_per_week: decodeNumber(term.ordinary_hours_per_week ?? 0),
+				working_days_per_week: decodeNumber(term.agreed_days_per_week)
+			},
 			children: bundle.children,
 			company: configuration.company,
 			asOf
+		};
+		// The version's divisor turns a daily or hourly rate into the month the floor is stated in.
+		const person = personContext({
+			...input,
+			divisorDays: divisorFor(configuration, input, bundle.employment.employee_number)
 		});
 		if (!minimumWageCovers(configuration, person)) continue;
 		// A daily or hourly rate is compared as the month it makes (313 days ÷ 12).
@@ -452,7 +486,7 @@ export function prepareContributionAssessment(options: {
 		0
 	);
 	const minimumWage = regionalMinimumWage(configuration);
-	const person = personContext({
+	const personInput = {
 		employee: bundle.employee,
 		employment: { ...stint(bundle.employment), risk_class: configuration.company.risk_class },
 		fixedAllowances: fixedAllowancesOn(bundle.payRequests, asOf),
@@ -461,6 +495,7 @@ export function prepareContributionAssessment(options: {
 			bundle.terms.at(-1) ??
 			null,
 		children: bundle.children,
+		week: measured.week,
 		company: {
 			...configuration.company,
 			headcount,
@@ -478,6 +513,10 @@ export function prepareContributionAssessment(options: {
 			};
 		}),
 		asOf
+	};
+	const person = personContext({
+		...personInput,
+		divisorDays: divisorFor(configuration, personInput, bundle.employment.employee_number)
 	});
 	const covered = minimumWageCovers(configuration, person);
 	// The floor is the region's wage where the order covers this person — at the order's own share

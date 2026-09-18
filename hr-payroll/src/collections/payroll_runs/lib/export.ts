@@ -631,11 +631,11 @@ export function payslipPdf(options: {
 		),
 		'',
 		'Statutory | Employee | Employer',
-		...[...payslip.contributions]
-			.toSorted(([a], [b]) => bySchemeListing(a, b))
+		...[...payslip.contributions.values()]
+			.toSorted(bySchemeListing)
 			.map(
-				([code, amounts]) =>
-					`${schemeLabel(code)} | ${amounts.employee.toFixed(2)} | ${amounts.employer.toFixed(2)}`
+				(amounts) =>
+					`${schemeLabel(amounts)} | ${amounts.employee.toFixed(2)} | ${amounts.employer.toFixed(2)}`
 			),
 		'',
 		`Gross: ${payslip.gross.toFixed(2)} ${payslip.currency}`,

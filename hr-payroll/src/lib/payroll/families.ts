@@ -177,7 +177,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			schedule: new Map(),
 			limits: [],
 			periodWorkingDays: 0,
-			periodUnpaidDays: 0
+			periodUnpaidDays: 0,
+			week: { ordinary_hours_per_week: 0, working_days_per_week: 0 }
 		};
 	}
 	const work = prepareWorkContext({ bundle, configuration, salary: options.salary, employed });
@@ -430,7 +431,11 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		schedule,
 		limits: workAttendance.limits,
 		periodWorkingDays: subject.period.working_days,
-		periodUnpaidDays: unpaidDaysIn(options.salary)
+		periodUnpaidDays: unpaidDaysIn(options.salary),
+		week: {
+			ordinary_hours_per_week: rateTerms.ordinary_hours_per_week,
+			working_days_per_week: rateTerms.working_days_per_week
+		}
 	};
 }
 

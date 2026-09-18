@@ -22,7 +22,10 @@ const columns = {
 	project_relief_annually: true,
 	rules: true,
 	assessed_on: true,
-	ordinary_on: true
+	ordinary_on: true,
+	short_name: true,
+	listing_order: true,
+	listing_group: true
 } as const;
 
 const LIMIT = 500;

@@ -25,6 +25,7 @@ const columns = {
 	payroll_group: true,
 	grade: true,
 	agreed_days_per_week: true,
+	ordinary_hours_per_week: true,
 	shift_pattern_id: true,
 	effective_range: true
 } as const;

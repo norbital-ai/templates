@@ -20,14 +20,6 @@ import {
 	type PersonInput
 } from '../../collections/payroll_runs/lib/eligibility.js';
 
-/**
- * The leave type off-in-lieu days are recorded under. Its catalogue row is
- * `availability: UNLIMITED` with no bands, and HR records every movement by hand — an ADJUSTMENT
- * to grant, a TIME_OFF to take, a REVERSAL to return — so the computed entitlement is zero and
- * the approved entries are the whole balance.
- */
-const LIEU_LEAVE_CODE = 'PUBLIC_HOLIDAY_IN_LIEU';
-
 type ReadTables =
 	| 'employments'
 	| 'employees'
@@ -146,6 +138,7 @@ export type LeaveContext = {
 		| 'evidence_after_days'
 		| 'is_npl'
 		| 'can_encash'
+		| 'encash_on_exit'
 		| 'pay_fraction'
 		| 'paid_by'
 		| 'consumes_code'
@@ -382,6 +375,7 @@ export function readLeaveContext(
 						evidence_after_days: true,
 						is_npl: true,
 						can_encash: true,
+						encash_on_exit: true,
 						pay_fraction: true,
 						paid_by: true,
 						consumes_code: true,
@@ -830,21 +824,6 @@ export function leaveRules(
 		const key = `${window.start}/${window.end}/${date}`;
 		const known = amounts.get(key);
 		if (known) return known;
-		// Earned by credit only: no schedule grants days, so the meter starts at zero and every
-		// debit must be funded by a posted lieu credit in the same window. `opening` is unread
-		// downstream; the window start stands in for it.
-		if (selected.code === LIEU_LEAVE_CODE) {
-			const zeroed = {
-				window,
-				opening: window.start,
-				unlimited: false,
-				entitlement: 0,
-				earned: 0,
-				available: 0
-			};
-			amounts.set(key, zeroed);
-			return zeroed;
-		}
 		// An ended employee can settle old days later using the source period's final rule.
 		const asOf = [date, window.end, ...(exit == null ? [] : [exit])].toSorted()[0]!;
 		const ruleDate = asOf < window.start ? window.start : asOf;

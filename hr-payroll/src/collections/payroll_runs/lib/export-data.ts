@@ -27,7 +27,7 @@ import { encashmentCode } from '../../../lib/leave/payroll.js';
 import { PAGE_LIMIT, withReadLog } from './api.js';
 import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';
-import type { ReportLine, ReportPayslip } from './report.js';
+import type { ReportContribution, ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import {
 	patternAnchor,
@@ -446,14 +446,16 @@ export function loadRunExports(
 						}))
 					)
 				];
-				const contributionTotals = new Map<
-					string,
-					{ base: number; employee: number; employer: number }
-				>();
+				const contributionTotals = new Map<string, ReportContribution>();
 				for (const charge of payslip.statutory) {
 					// One entry per scheme, both shares on it, named by its code — so there is no second
-					// row to pair with and no base to guard against double-counting.
+					// row to pair with and no base to guard against double-counting. The listing the
+					// version froze on the charge rides with it.
 					contributionTotals.set(charge.scheme_code, {
+						scheme_code: charge.scheme_code,
+						label: charge.label ?? null,
+						listing_order: charge.listing_order ?? null,
+						listing_group: charge.listing_group ?? null,
 						base: decodeNumber(charge.base_amount),
 						employee: decodeNumber(charge.employee_amount),
 						employer: decodeNumber(charge.employer_amount)

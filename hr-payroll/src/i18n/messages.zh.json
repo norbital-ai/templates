@@ -1080,5 +1080,10 @@
 	"renderer.statutory_fact_status.opening_months": "在其他雇主受雇月数",
 	"renderer.statutory_fact_status.opening_reference": "表格",
 	"renderer.statutory_fact_status.add_opening": "新增前雇主",
-	"renderer.statutory_fact_status.remove_opening": "移除"
+	"renderer.statutory_fact_status.remove_opening": "移除",
+	"leave.availability.CREDITED": "仅凭调整记入",
+	"component.encash_on_exit": "离职时折现",
+	"component.encash_on_exit_hint": "离职流程将此假期的剩余余额生成为折现（各司法辖区的年假折现规则）。",
+	"component.ordinary_hours_per_week": "每周正常工时",
+	"component.ordinary_hours_per_week_hint": "合同约定的每周工时；由排班计量时留空。无排班的人员和按小时计薪时读取。"
 }

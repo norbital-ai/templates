@@ -100,6 +100,9 @@ export function computedEntitlement(options: {
 	// would print a 0.00 row for a leave type the person cannot take at all.
 	const empty = { window, opening, unlimited: false, entitlement: 0, earned: 0, available: 0 };
 	if (opening == null || through < opening) return empty;
+	// Earned by credit only: no rule grants days, so every debit must be funded by a posted
+	// credit in the same window.
+	if (rule.availability === 'CREDITED') return empty;
 	// The entitlement matrix: top-down, the first band whose predicate holds on the entitlement
 	// date is the grant; nobody matched is no days.
 	const target = grantedDays(rule, options.personOn(through));

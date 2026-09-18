@@ -321,7 +321,10 @@
 				"employer": "round_cent(2000.00)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 1,
+		"listing_group": null
 	},
 	{
 		"id": "e9c61f12-1e9f-54cf-b31a-bbd0edf01642",
@@ -485,7 +488,10 @@
 				"employer": "round_cent(1500.00)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 2,
+		"listing_group": null
 	},
 	{
 		"id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
@@ -514,7 +520,10 @@
 				"employer": "30.0"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 3,
+		"listing_group": null
 	},
 	{
 		"id": "be6660b4-fcaf-4cc5-a5da-301f66ef3e41",
@@ -548,7 +557,10 @@
 				"employer": "round_cent(2500.0)"
 			}
 		],
-		"assessed_on": "person.terms.basic_salary / period.instalments"
+		"assessed_on": "person.terms.basic_salary / period.instalments",
+		"short_name": "PhilHealth",
+		"listing_order": 4,
+		"listing_group": null
 	},
 	{
 		"id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
@@ -577,7 +589,10 @@
 				"employer": "round_cent(200.0)"
 			}
 		],
-		"assessed_on": "person.terms.basic_salary / period.instalments + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'BACKPAY_ADD_WAGES']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "person.terms.basic_salary / period.instalments + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'BACKPAY_ADD_WAGES']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": "Pag-IBIG",
+		"listing_order": 5,
+		"listing_group": null
 	},
 	{
 		"id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
@@ -656,7 +671,10 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - annual_exempt(code('meal'), year.earned.meal, 0.3 * person.wage_floor * 12.0) + code('THIRTEENTH_MONTH_PAY') + code('bonus') - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - annual_exempt(code('meal'), year.earned.meal, 0.3 * person.wage_floor * 12.0) + code('THIRTEENTH_MONTH_PAY') + code('bonus') - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 6,
+		"listing_group": null
 	},
 	{
 		"id": "f3469881-d554-5a44-a85c-18478d228217",
@@ -980,7 +998,10 @@
 				"employer": "round_cent(2000.00)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 1,
+		"listing_group": null
 	},
 	{
 		"id": "e4493167-ed29-5166-b64d-38f9ade9182f",
@@ -1144,7 +1165,10 @@
 				"employer": "round_cent(1500.00)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 2,
+		"listing_group": null
 	},
 	{
 		"id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
@@ -1173,7 +1197,10 @@
 				"employer": "30.0"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 3,
+		"listing_group": null
 	},
 	{
 		"id": "dc14c8f0-ddf3-5a91-9eb3-89eaa6977cd0",
@@ -1207,7 +1234,10 @@
 				"employer": "round_cent(2500.0)"
 			}
 		],
-		"assessed_on": "person.terms.basic_salary / period.instalments"
+		"assessed_on": "person.terms.basic_salary / period.instalments",
+		"short_name": "PhilHealth",
+		"listing_order": 4,
+		"listing_group": null
 	},
 	{
 		"id": "a423b464-8df4-5426-8c48-3941dcdfb301",
@@ -1236,7 +1266,10 @@
 				"employer": "round_cent(200.0)"
 			}
 		],
-		"assessed_on": "person.terms.basic_salary / period.instalments + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'BACKPAY_ADD_WAGES']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "person.terms.basic_salary / period.instalments + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'BACKPAY_ADD_WAGES']}) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": "Pag-IBIG",
+		"listing_order": 5,
+		"listing_group": null
 	},
 	{
 		"id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
@@ -1315,6 +1348,9 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - annual_exempt(code('meal'), year.earned.meal, 0.3 * person.wage_floor * 12.0) + code('THIRTEENTH_MONTH_PAY') + code('bonus') - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - annual_exempt(code('meal'), year.earned.meal, 0.3 * person.wage_floor * 12.0) + code('THIRTEENTH_MONTH_PAY') + code('bonus') - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 6,
+		"listing_group": null
 	}
 ]

@@ -261,6 +261,9 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		company_charges: companyCharges.map((charge) => ({
 			scheme_code: charge.contribution.row.code,
 			authority: charge.contribution.row.authority,
+			label: charge.contribution.row.short_name ?? null,
+			listing_order: charge.contribution.row.listing_order ?? null,
+			listing_group: charge.contribution.row.listing_group ?? null,
 			base_amount: charge.base,
 			employee_amount: charge.employee,
 			employer_amount: charge.employer,
