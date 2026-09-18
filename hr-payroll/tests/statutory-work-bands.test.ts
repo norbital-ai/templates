@@ -257,15 +257,18 @@ test('Philippines — the night differential follows the day’s own rate', () =
 	}
 });
 
-test('Vietnam — from 1 July 2026 the overtime wage is outside personal income tax', () => {
+test('Vietnam — from the 2026 tax year the overtime wage is outside personal income tax', () => {
 	// Law 109/2025/QH15 art.4(8): "Tiền lương làm việc ban đêm, làm thêm giờ" is exempt income —
 	// the whole overtime wage, where Law 04/2007 exempted only the part above the ordinary rate.
-	const [, before, after] = settingsVersions('VN');
+	// Art.29(2): the salary-income rules apply "từ kỳ tính thuế năm 2026" — both 2026 versions.
+	const [december, january, july] = settingsVersions('VN');
 	const pit = (version) =>
 		contributionSchemes('VN').find((row) => row.settings_id === version.id && row.code === 'PIT');
-	assert.equal(after.effective_range.start.slice(0, 10), '2026-07-01');
+	assert.equal(january.effective_range.start.slice(0, 10), '2026-01-01');
+	assert.equal(july.effective_range.start.slice(0, 10), '2026-07-01');
 	const chargesOvertime = (version) =>
 		assessedOnMentions(pit(version).assessed_on).reserved.includes('OVERTIME');
-	assert.equal(chargesOvertime(after), false);
-	assert.equal(chargesOvertime(before), true);
+	assert.equal(chargesOvertime(december), true);
+	assert.equal(chargesOvertime(january), false);
+	assert.equal(chargesOvertime(july), false);
 });

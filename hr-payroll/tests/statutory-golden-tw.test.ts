@@ -906,3 +906,82 @@ test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,
 	// 600,000 × 12 = 7,200,000 − 600,000 = 6,600,000 → 1,126,900 + 1,410,000 × 40% = 1,690,900 ÷ 12 = 140,908.
 	assert.equal(evaluateNumber(expressionEngine, rung, context(600_000, 0)), 140_908);
 });
+
+test('Taiwan — the second review: 災保 has no grade under the basic wage, the 勞退 table reaches down to 1,500, 28,590 is a 115年 part-time grade, and a bonus is withheld on only from the 起扣點', () => {
+	const bonusOf = (world: PayrollWorld, key: string, amount: number) => {
+		const bonus = world.allowance_catalogue.find(
+			(row) =>
+				row.code === 'bonus' &&
+				row.settings_id ===
+					settingsVersions('TW').find((v) => String(v.effective_range.start).startsWith('2026-01'))!
+						.id
+		)!;
+		const employment = world.employments.find((row) => row.employee_number === key)!;
+		world.allowances.push({
+			id: `d0000000-0000-4000-8000-0000000${key.length}${amount}`.slice(0, 36).padEnd(36, '0'),
+			employment_id: employment.id,
+			catalogue_id: bonus.id,
+			amount,
+			effective_from: '2026-01-01',
+			effective_to: '2026-01-31',
+			reason: 'bonus',
+			evidence_file: null,
+			as_adjustment_entry: false,
+			approval_id: null
+		});
+	};
+	const book = assessStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: [
+				{ key: 'TW-PT-12000', wage: 12_000, citizenship: 'CITIZEN', employment_type: 'PART_TIME' },
+				{ key: 'TW-PT-28000', wage: 28_000, citizenship: 'CITIZEN', employment_type: 'PART_TIME' },
+				{ key: 'TW-PT-5000', wage: 5_000, citizenship: 'CITIZEN', employment_type: 'PART_TIME' },
+				{
+					key: 'TW-BONUS-60000',
+					wage: 40_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: false } }
+					}
+				},
+				{
+					key: 'TW-BONUS-5PCT',
+					wage: 50_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+					}
+				},
+				// A migrant worker on a work permit is outside the 勞退 new scheme (勞退條例 §7(1)).
+				{ key: 'TW-MIGRANT', wage: 30_000, citizenship: 'FOREIGNER', pass_type: 'WORK_PERMIT' }
+			]
+		},
+		(world) => {
+			bonusOf(world, 'TW-BONUS-60000', 60_000);
+			bonusOf(world, 'TW-BONUS-5PCT', 60_000);
+		}
+	);
+	// 災保法 §17(5): the lowest 災保 grade is the basic wage — a part-timer at 12,000 insures at
+	// 29,500: class 1, 29,500 × 0.25% = 74 (not 12,540 × 0.25% = 31).
+	assert.equal(book.get('TW-PT-12000')!.get('OCC_INJURY')!.base, 29_500);
+	expectStatutory(book, 'TW-PT-12000', 'OCC_INJURY', 0, 74);
+	// 115年 分級表 備註二: 27,601–28,590 is the 28,590 grade — 勞保 28,590 × 11.5% × 20% = 658 /
+	// × 70% = 2,301; 就保 57 / 200; 勞退 1,715.
+	assert.equal(book.get('TW-PT-28000')!.get('LI')!.base, 28_590);
+	expectStatutory(book, 'TW-PT-28000', 'LI', 658, 2301);
+	expectStatutory(book, 'TW-PT-28000', 'EI', 57, 200);
+	expectStatutory(book, 'TW-PT-28000', 'LABOR_PENSION', 0, 1715);
+	// 勞退月提繳分級表 第1組: 4,501–6,000 is the 6,000 grade, 6% = 360; 勞保 keeps its 11,100 floor.
+	assert.equal(book.get('TW-PT-5000')!.get('LABOR_PENSION')!.base, 6_000);
+	expectStatutory(book, 'TW-PT-5000', 'LABOR_PENSION', 0, 360);
+	assert.equal(book.get('TW-PT-5000')!.get('LI')!.base, 11_100);
+	// 薪資所得扣繳辦法 §7(2)(1): a 60,000 bonus is under the 115年 起扣點 of 90,501, so nothing is
+	// withheld on it under either election; §2(1) proviso: it never joins the monthly 5% base —
+	// 50,000 × 5% = 2,500 on the salary alone.
+	expectStatutory(book, 'TW-BONUS-60000', 'INCOME_TAX', 0, 0);
+	expectStatutory(book, 'TW-BONUS-5PCT', 'INCOME_TAX', 2500, 0);
+	assert.equal(book.get('TW-MIGRANT')!.get('LABOR_PENSION'), undefined);
+});
