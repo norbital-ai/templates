@@ -444,20 +444,20 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 	assert.deepEqual(charge(slip, 'HI'), [17_600_000, 264_000, 528_000]);
 	assert.deepEqual(charge(slip, 'UI'), [17_600_000, 176_000, 176_000]);
 	assert.deepEqual(companyCharges.get('UNION_FEE'), [17_600_000, 352_000]);
-	// Law 04/2007 art.4(9) with Circular 111/2013 art.3(1)(i): only the part of the overtime wage
-	// paid above the ordinary rate is exempt on the January 2026 version — 150,000 + 850,000 +
-	// 1,600,000 + 300,000 + 750,000 = 3,650,000 here (`OVERTIME_PREMIUM`) — so the base is
-	// 17,600,000 + 6,950,000 − 3,650,000 = 20,900,000 and the tax (20,900,000 − 1,848,000 −
-	// 15,500,000) × 5% = 177,600. The night premium is the whole of its line and is outside the
-	// base on every version.
-	assert.deepEqual(charge(slip, 'PIT'), [20_900_000, 177_600, 0]);
-	assert.equal(slip.total_deductions, 2_025_600); // 1,408,000 + 264,000 + 176,000 + 177,600
-	assert.equal(slip.net, 22_624_400); // 24,650,000 − 2,025,600
+	// Law 109/2025 art.4(8), in force for salary income "từ kỳ tính thuế năm 2026" (art.29(2)):
+	// overtime and night pay are exempt whole, so the January 2026 base is the salary alone —
+	// 17,600,000 — and the tax (17,600,000 − 1,848,000 − 15,500,000) × 5% = 12,600. (Law 04/2007
+	// art.4(9) exempted only the part above the ordinary rate; that is the December 2025 version.)
+	// Decree 253/2026 art.26(3): the part of overtime beyond the art.107 limits is taxable — the
+	// sixth hour here — which no assessment can separate without a funnel; the run reports it.
+	assert.deepEqual(charge(slip, 'PIT'), [17_600_000, 12_600, 0]);
+	assert.equal(slip.total_deductions, 1_860_600); // 1,408,000 + 264,000 + 176,000 + 12,600
+	assert.equal(slip.net, 22_789_400); // 24,650,000 − 1,860,600
 	// The union fund is the establishment’s line, not the payslip’s employer cost.
 	assert.equal(slip.employer_cost, 3_080_000 + 528_000 + 176_000);
 });
 
-test('Vietnam — from 1 July 2026 the overtime and night wage are outside PIT (Law 109/2025 art.4(8))', () => {
+test('Vietnam — on the July 2026 version too, the overtime and night wage are outside PIT (Law 109/2025 art.4(8))', () => {
 	// July 2026 has 23 weekdays, the holiday on Wednesday the 1st among them: 23 × 8 × 100,000.
 	const { slips } = buildStatutory(
 		{

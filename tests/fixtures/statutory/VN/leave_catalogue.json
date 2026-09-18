@@ -672,6 +672,10 @@
 			"proration": "NONE",
 			"bands": [
 				{
+					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] && event.child_index >= 2",
+					"days": 240
+				},
+				{
 					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 					"days": 210
 				},
@@ -709,6 +713,10 @@
 				},
 				{
 					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
+					"days": 10
+				},
+				{
+					"eligibility": "event.child_index >= 2",
 					"days": 10
 				},
 				{
