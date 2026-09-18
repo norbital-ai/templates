@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "46c0c513-706d-4259-b1c2-e48ae982ad46",
+  "id": "8f883880-cffd-4701-a3e3-653652f14460",
   "prevIds": [
-    "7801aa46-5e7c-4ccc-bc8a-dbdeec198560"
+    "bc57d321-2957-4fa7-8a68-47e003598696"
   ],
   "version": "8",
   "ddl": [
@@ -14,7 +14,13 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "allowance_requests",
+      "name": "allowance_entries",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "allowances",
       "entityType": "tables",
       "schema": "public"
     },
@@ -104,43 +110,19 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "payment_catalogue",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "payment_requests",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
       "name": "payroll_runs",
       "entityType": "tables",
       "schema": "public"
     },
     {
       "isRlsEnabled": false,
-      "name": "payslip_allowance_request_inputs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "payslip_leave_inputs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "payslip_loan_repayment_inputs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
       "name": "payslips",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "rosters",
       "entityType": "tables",
       "schema": "public"
     },
@@ -159,12 +141,6 @@
     {
       "isRlsEnabled": false,
       "name": "statutory_contributions",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "work_catalogue",
       "entityType": "tables",
       "schema": "public"
     },
@@ -259,7 +235,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", ''))",
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", '') || ' ' || coalesce(\"name\", ''))",
         "type": "stored"
       },
       "identity": null,
@@ -297,12 +273,51 @@
     {
       "type": "text",
       "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "authority",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "nature",
+      "name": "destination",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "direction",
       "entityType": "columns",
       "schema": "public",
       "table": "allowance_catalogue"
@@ -312,23 +327,10 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "'[]'",
       "generated": null,
       "identity": null,
-      "name": "contribution_treatments",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "allowance_catalogue"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "sequence",
+      "name": "bands",
       "entityType": "columns",
       "schema": "public",
       "table": "allowance_catalogue"
@@ -360,27 +362,14 @@
       "table": "allowance_catalogue"
     },
     {
-      "type": "text",
+      "type": "boolean",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "'PAYROLL'",
+      "default": "false",
       "generated": null,
       "identity": null,
-      "name": "settlement",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "allowance_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "cap",
+      "name": "on_separation",
       "entityType": "columns",
       "schema": "public",
       "table": "allowance_catalogue"
@@ -396,7 +385,7 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
       "type": "timestamp with time zone",
@@ -409,7 +398,7 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
       "type": "timestamp with time zone",
@@ -422,7 +411,7 @@
       "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
       "type": "tstzrange",
@@ -435,7 +424,7 @@
       "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
       "type": "integer",
@@ -448,7 +437,7 @@
       "name": "row_version",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
       "type": "uuid",
@@ -461,7 +450,33 @@
       "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "derived_from_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payslip_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
     },
     {
       "type": "uuid",
@@ -474,7 +489,7 @@
       "name": "employment_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
       "type": "uuid",
@@ -484,10 +499,101 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "allowance_catalogue_id",
+      "name": "catalogue_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "from",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "to",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "basis",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "days",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "denominator",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "unpaid_days",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "contract_amount",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_entries"
     },
     {
       "type": "numeric",
@@ -500,20 +606,163 @@
       "name": "amount",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
-      "type": "jsonb",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "recurrence",
+      "name": "employment_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowances"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "catalogue_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "amount",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_from",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_to",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "''",
+      "generated": null,
+      "identity": null,
+      "name": "reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowances"
     },
     {
       "type": "jsonb",
@@ -526,7 +775,7 @@
       "name": "evidence_file",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowances"
     },
     {
       "type": "boolean",
@@ -539,7 +788,7 @@
       "name": "as_adjustment_entry",
       "entityType": "columns",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowances"
     },
     {
       "type": "uuid",
@@ -626,7 +875,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", ''))",
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", '') || ' ' || coalesce(\"name\", ''))",
         "type": "stored"
       },
       "identity": null,
@@ -664,12 +913,38 @@
     {
       "type": "text",
       "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "claim_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "nature",
+      "name": "destination",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "claim_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "direction",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_catalogue"
@@ -679,23 +954,10 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "'[]'",
       "generated": null,
       "identity": null,
-      "name": "contribution_treatments",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "claim_catalogue"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "sequence",
+      "name": "bands",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_catalogue"
@@ -722,32 +984,6 @@
       "generated": null,
       "identity": null,
       "name": "evidence",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "claim_catalogue"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'PAYROLL'",
-      "generated": null,
-      "identity": null,
-      "name": "settlement",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "claim_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "cap",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_catalogue"
@@ -851,7 +1087,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "claim_catalogue_id",
+      "name": "catalogue_id",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_requests"
@@ -942,20 +1178,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "settled_payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "claim_requests"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "settled_period",
+      "name": "payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_requests"
@@ -1122,6 +1345,19 @@
     {
       "type": "text",
       "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'FIRST'",
+      "generated": null,
+      "identity": null,
+      "name": "semi_monthly_statutory_cutoff",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
@@ -1148,6 +1384,19 @@
     {
       "type": "jsonb",
       "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'{}'",
+      "generated": null,
+      "identity": null,
+      "name": "facts",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
@@ -1167,6 +1416,19 @@
       "generated": null,
       "identity": null,
       "name": "workbook_layout",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "disbursement_account",
       "entityType": "columns",
       "schema": "public",
       "table": "companies"
@@ -1344,6 +1606,19 @@
       "table": "employees"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "disabled",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -1378,6 +1653,19 @@
       "generated": null,
       "identity": null,
       "name": "spouse_status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "children",
       "entityType": "columns",
       "schema": "public",
       "table": "employees"
@@ -1666,7 +1954,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "employment_id",
+      "name": "employee_id",
       "entityType": "columns",
       "schema": "public",
       "table": "employment_statutory_facts"
@@ -1873,6 +2161,32 @@
       "table": "employment_terms"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pass_type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax_residency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
@@ -1938,6 +2252,19 @@
       "table": "employment_terms"
     },
     {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "notice_days",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -1985,6 +2312,19 @@
       "generated": null,
       "identity": null,
       "name": "grade",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "agreed_days_per_week",
       "entityType": "columns",
       "schema": "public",
       "table": "employment_terms"
@@ -2165,14 +2505,14 @@
       "table": "employments"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "integer",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "1",
       "generated": null,
       "identity": null,
-      "name": "hire_date",
+      "name": "contract_number",
       "entityType": "columns",
       "schema": "public",
       "table": "employments"
@@ -2204,19 +2544,6 @@
       "table": "employments"
     },
     {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "exit_date",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employments"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -2237,20 +2564,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "exit_note",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employments"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'[]'",
-      "generated": null,
-      "identity": null,
-      "name": "children",
+      "name": "comments",
       "entityType": "columns",
       "schema": "public",
       "table": "employments"
@@ -2409,7 +2723,20 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "original_date",
+      "name": "replaces",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_holidays"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'EVERYONE'",
+      "generated": null,
+      "identity": null,
+      "name": "given_to",
       "entityType": "columns",
       "schema": "public",
       "table": "jurisdiction_holidays"
@@ -2626,53 +2953,14 @@
       "table": "jurisdiction_settings"
     },
     {
-      "type": "text",
+      "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "currency",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_settings"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "tax_year_start_month",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_settings"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "480",
-      "generated": null,
-      "identity": null,
-      "name": "utc_offset_minutes",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_settings"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 1,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "research_urls",
+      "name": "payroll",
       "entityType": "columns",
       "schema": "public",
       "table": "jurisdiction_settings"
@@ -2680,12 +2968,51 @@
     {
       "type": "jsonb",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "research_notes",
+      "name": "wages",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_settings"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sources",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_settings"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "work_rules",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_settings"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "facts",
       "entityType": "columns",
       "schema": "public",
       "table": "jurisdiction_settings"
@@ -2699,19 +3026,6 @@
       "generated": null,
       "identity": null,
       "name": "change_summary",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_settings"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "minimum_wages",
       "entityType": "columns",
       "schema": "public",
       "table": "jurisdiction_settings"
@@ -2863,19 +3177,6 @@
       "table": "leave_catalogue"
     },
     {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "is_statutory",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "leave_catalogue"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -2902,14 +3203,79 @@
       "table": "leave_catalogue"
     },
     {
-      "type": "jsonb",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
+      "dimensions": 0,
+      "default": "'NONE'",
+      "generated": null,
+      "identity": null,
+      "name": "evidence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_catalogue"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_npl",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "''",
+      "generated": null,
+      "identity": null,
+      "name": "pay_fraction",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'EMPLOYER'",
+      "generated": null,
+      "identity": null,
+      "name": "paid_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "entitlement",
+      "name": "consumes_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'DAY'",
+      "generated": null,
+      "identity": null,
+      "name": "unit",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_catalogue"
@@ -2922,20 +3288,7 @@
       "default": "true",
       "generated": null,
       "identity": null,
-      "name": "paid",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "leave_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "treatments",
+      "name": "can_encash",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_catalogue"
@@ -2948,7 +3301,20 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "requires_certificate_after_days",
+      "name": "evidence_after_days",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_catalogue"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "entitlement",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_catalogue"
@@ -3038,7 +3404,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce(((event ->> 'kind') || ' · ' || coalesce(event #>> '{range,start,date}', event ->> 'effective_on')), ''))",
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"summary\", ''))",
         "type": "stored"
       },
       "identity": null,
@@ -3068,7 +3434,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "leave_catalogue_id",
+      "name": "catalogue_id",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_entries"
@@ -3082,19 +3448,6 @@
       "generated": null,
       "identity": null,
       "name": "leave_code",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "leave_entries"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "event",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_entries"
@@ -3152,17 +3505,14 @@
       "table": "leave_entries"
     },
     {
-      "type": "text",
+      "type": "boolean",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "event ->> 'kind'",
-        "type": "stored"
-      },
+      "default": "false",
+      "generated": null,
       "identity": null,
-      "name": "kind",
+      "name": "as_adjustment_entry",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_entries"
@@ -3173,42 +3523,7 @@
       "notNull": false,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "bolt_instant(coalesce(event ->> 'effective_on', event #>> '{range,start,date}'))",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "effective_on",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "leave_entries"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "bolt_instant(event ->> 'due_on')",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "due_on",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "leave_entries"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "bolt_instant(event #>> '{range,start,date}')",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
       "name": "from_date",
       "entityType": "columns",
@@ -3221,28 +3536,9 @@
       "notNull": false,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "bolt_instant(event #>> '{range,end,date}')",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
       "name": "to_date",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "leave_entries"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "coalesce(event ->> 'chargeable_days', event ->> 'days')::numeric",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "days",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_entries"
@@ -3253,10 +3549,7 @@
       "notNull": false,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "(event #>> '{range,start,half}') = 'SECOND'",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
       "name": "half_day_start",
       "entityType": "columns",
@@ -3269,10 +3562,7 @@
       "notNull": false,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "(event #>> '{range,end,half}') = 'FIRST'",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
       "name": "half_day_end",
       "entityType": "columns",
@@ -3280,17 +3570,40 @@
       "table": "leave_entries"
     },
     {
-      "type": "text",
+      "type": "numeric",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "event ->> 'reason'",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
-      "name": "reason",
+      "name": "days",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "hours",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "encash_days",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_entries"
@@ -3301,12 +3614,87 @@
       "notNull": false,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "(event ->> 'entry_id')::uuid",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
       "name": "reversal_of_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "due_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "destination_from",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "destination_to",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "available_from",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "expires_on",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_entries"
@@ -3317,12 +3705,87 @@
       "notNull": false,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "(event ->> 'kind') || ' · ' || coalesce(event #>> '{range,start,date}', event ->> 'effective_on')",
-        "type": "stored"
-      },
+      "generated": null,
+      "identity": null,
+      "name": "reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "event_kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "event_relationship",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "event_child_index",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "event_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
       "identity": null,
       "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_entries"
@@ -3412,7 +3875,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", ''))",
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", '') || ' ' || coalesce(\"name\", ''))",
         "type": "stored"
       },
       "identity": null,
@@ -3448,14 +3911,53 @@
       "table": "loan_catalogue"
     },
     {
-      "type": "jsonb",
+      "type": "text",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "contribution_treatments",
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "loan_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'NET'",
+      "generated": null,
+      "identity": null,
+      "name": "destination",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "loan_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "'SUBTRACT'",
+      "generated": null,
+      "identity": null,
+      "name": "direction",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "loan_catalogue"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "bands",
       "entityType": "columns",
       "schema": "public",
       "table": "loan_catalogue"
@@ -3487,14 +3989,14 @@
       "table": "loan_catalogue"
     },
     {
-      "type": "integer",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "''",
       "generated": null,
       "identity": null,
-      "name": "sequence",
+      "name": "eligibility",
       "entityType": "columns",
       "schema": "public",
       "table": "loan_catalogue"
@@ -3504,10 +4006,10 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "''",
+      "default": "'NONE'",
       "generated": null,
       "identity": null,
-      "name": "eligibility",
+      "name": "evidence",
       "entityType": "columns",
       "schema": "public",
       "table": "loan_catalogue"
@@ -3651,6 +4153,32 @@
       "generated": null,
       "identity": null,
       "name": "sequence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "loan_repayments"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "as_adjustment_entry",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "loan_repayments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "loan_repayments"
@@ -3841,425 +4369,6 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "tsvector",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", ''))",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "search_document",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "settings_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "code",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "nature",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "contribution_treatments",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "sequence",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "''",
-      "generated": null,
-      "identity": null,
-      "name": "eligibility",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'NONE'",
-      "generated": null,
-      "identity": null,
-      "name": "evidence",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'PAYROLL'",
-      "generated": null,
-      "identity": null,
-      "name": "settlement",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "cap",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "employment_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payment_catalogue_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "amount",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "effective_on",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "reason",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "evidence_file",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "as_adjustment_entry",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "pay_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "settled_payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "settled_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
       "table": "payroll_runs"
     },
     {
@@ -4377,32 +4486,6 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "lifecycle",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payroll_runs"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'[]'",
-      "generated": null,
-      "identity": null,
-      "name": "withheld",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payroll_runs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
       "name": "configuration_hash",
       "entityType": "columns",
       "schema": "public",
@@ -4487,394 +4570,43 @@
       "table": "payroll_runs"
     },
     {
-      "type": "uuid",
+      "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "gen_random_uuid()",
+      "default": "'[]'",
       "generated": null,
       "identity": null,
-      "name": "id",
+      "name": "calculation_trace",
       "entityType": "columns",
       "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "allowance_request_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "leave_entry_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
+      "table": "payroll_runs"
     },
     {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "'[]'",
       "generated": null,
       "identity": null,
-      "name": "charges",
+      "name": "company_charges",
       "entityType": "columns",
       "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "gross_amount",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "pay_items",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "loan_repayment_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
+      "table": "payroll_runs"
     },
     {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "''",
       "generated": null,
       "identity": null,
-      "name": "period",
+      "name": "warnings",
       "entityType": "columns",
       "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
+      "table": "payroll_runs"
     },
     {
       "type": "uuid",
@@ -5062,6 +4794,19 @@
       "table": "payslips"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'DRAFT'",
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
@@ -5150,6 +4895,110 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "shift_definitions"
     },
     {
@@ -5224,7 +5073,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", '') || ' ' || coalesce(\"name\", '') || ' ' || coalesce(\"settings_code\", ''))",
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", '') || ' ' || coalesce(\"name\", ''))",
         "type": "stored"
       },
       "identity": null,
@@ -5234,14 +5083,14 @@
       "table": "shift_definitions"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "settings_code",
+      "name": "company_id",
       "entityType": "columns",
       "schema": "public",
       "table": "shift_definitions"
@@ -5383,7 +5232,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", '') || ' ' || coalesce(\"name\", '') || ' ' || coalesce(\"settings_code\", ''))",
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"code\", '') || ' ' || coalesce(\"name\", ''))",
         "type": "stored"
       },
       "identity": null,
@@ -5393,14 +5242,14 @@
       "table": "shift_patterns"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "settings_code",
+      "name": "company_id",
       "entityType": "columns",
       "schema": "public",
       "table": "shift_patterns"
@@ -5591,19 +5440,6 @@
       "table": "statutory_contributions"
     },
     {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "true",
-      "generated": null,
-      "identity": null,
-      "name": "is_statutory",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -5612,19 +5448,6 @@
       "generated": null,
       "identity": null,
       "name": "authority",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "rounding",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"
@@ -5637,20 +5460,7 @@
       "default": "'PAY_PERIOD'",
       "generated": null,
       "identity": null,
-      "name": "assessed",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 1,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "relief_for",
+      "name": "assessment_period",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"
@@ -5660,36 +5470,10 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "''",
+      "default": "'EMPLOYMENT'",
       "generated": null,
       "identity": null,
-      "name": "eligibility",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "sequence",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 1,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "special_rules",
+      "name": "assessment_scope",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"
@@ -5702,153 +5486,23 @@
       "default": "'[]'",
       "generated": null,
       "identity": null,
-      "name": "bands",
+      "name": "elections",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
     },
     {
       "type": "integer",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "approval_id",
+      "name": "employee_share_annual_cap",
       "entityType": "columns",
       "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "settings_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "proration",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "ordinary_rate",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "regime",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "treatments",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_catalogue"
+      "table": "statutory_contributions"
     },
     {
       "type": "text",
@@ -5858,10 +5512,49 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "authority",
+      "name": "shared_cap_group",
       "entityType": "columns",
       "schema": "public",
-      "table": "work_catalogue"
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "project_relief_annually",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "rules",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "''",
+      "generated": null,
+      "identity": null,
+      "name": "assessed_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
     },
     {
       "type": "uuid",
@@ -5981,32 +5674,6 @@
       "table": "work_days"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "assignment_code",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_days"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "planned_origin",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_days"
-    },
-    {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": false,
@@ -6020,14 +5687,14 @@
       "table": "work_days"
     },
     {
-      "type": "integer",
+      "type": "text",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
-      "default": "0",
+      "default": null,
       "generated": null,
       "identity": null,
-      "name": "break_minutes",
+      "name": "requested_by",
       "entityType": "columns",
       "schema": "public",
       "table": "work_days"
@@ -6040,46 +5707,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "holiday_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_days"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'PAY'",
-      "generated": null,
-      "identity": null,
-      "name": "compensation",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_days"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "settled_payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_days"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "settled_period",
+      "name": "payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "work_days"
@@ -6137,7 +5765,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "(coalesce(\"code\", '')) gin_trgm_ops",
+          "value": "(coalesce(\"code\", '') || ' ' || coalesce(\"name\", '')) gin_trgm_ops",
           "isExpression": true,
           "asc": true,
           "nullsFirst": false,
@@ -6158,7 +5786,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "allowance_catalogue_id",
+          "value": "derived_from_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -6170,10 +5798,10 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "allowance_requests_allowance_catalogue_id_idx",
+      "name": "allowance_entries_derived_from_id_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
       "nameExplicit": true,
@@ -6191,10 +5819,115 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "allowance_requests_employment_id_idx",
+      "name": "allowance_entries_employment_id_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "from",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "allowance_entries_from_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "payslip_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "allowance_entries_payslip_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "catalogue_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "allowances_catalogue_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "effective_from",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "allowances_effective_from_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "employment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "allowances_employment_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "allowances"
     },
     {
       "nameExplicit": false,
@@ -6249,7 +5982,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "(coalesce(\"code\", '')) gin_trgm_ops",
+          "value": "(coalesce(\"code\", '') || ' ' || coalesce(\"name\", '')) gin_trgm_ops",
           "isExpression": true,
           "asc": true,
           "nullsFirst": false,
@@ -6326,7 +6059,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "claim_catalogue_id",
+          "value": "catalogue_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -6338,7 +6071,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "claim_requests_claim_catalogue_id_idx",
+      "name": "claim_requests_catalogue_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "claim_requests"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "payslip_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "claim_requests_payslip_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "claim_requests"
@@ -6555,41 +6309,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "employment_terms"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "company_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "employee_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "hire_date",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employments_company_id_employee_number_hire_date_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employments"
     },
     {
       "nameExplicit": true,
@@ -6973,6 +6692,27 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "payslip_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "leave_entries_payslip_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "search_document",
           "isExpression": false,
           "asc": true,
@@ -7064,7 +6804,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "(coalesce(\"code\", '')) gin_trgm_ops",
+          "value": "(coalesce(\"code\", '') || ' ' || coalesce(\"name\", '')) gin_trgm_ops",
           "isExpression": true,
           "asc": true,
           "nullsFirst": false,
@@ -7126,6 +6866,27 @@
       "method": "btree",
       "concurrently": false,
       "name": "loan_repayments_employment_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "loan_repayments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "payslip_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "loan_repayments_payslip_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "loan_repayments"
@@ -7213,153 +6974,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "loans"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "settings_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payment_catalogue_settings_id_code_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "search_document",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payment_catalogue_search_document_gin_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "(coalesce(\"code\", '')) gin_trgm_ops",
-          "isExpression": true,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payment_catalogue_search_text_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "employment_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "pay_period",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payment_requests_employment_id_pay_period_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "employment_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "effective_on",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payment_requests_employment_id_effective_on_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "payment_catalogue_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payment_requests_payment_catalogue_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_requests"
     },
     {
       "nameExplicit": false,
@@ -7456,90 +7070,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "payslip_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "allowance_request_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_allowance_request_inputs_payslip_id_allowance_request_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payslip_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "leave_entry_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_leave_inputs_payslip_id_leave_entry_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payslip_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "loan_repayment_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_loan_repayment_inputs_payslip_id_loan_repayment_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "payroll_run_id",
           "isExpression": false,
           "asc": true,
@@ -7610,7 +7140,35 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "settings_code",
+          "value": "employment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "period",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "rosters_employment_id_period_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "company_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -7629,7 +7187,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "shift_definitions_settings_code_code_index",
+      "name": "shift_definitions_company_id_code_index",
       "entityType": "indexes",
       "schema": "public",
       "table": "shift_definitions"
@@ -7659,7 +7217,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "(coalesce(\"code\", '') || ' ' || coalesce(\"name\", '') || ' ' || coalesce(\"settings_code\", '')) gin_trgm_ops",
+          "value": "(coalesce(\"code\", '') || ' ' || coalesce(\"name\", '')) gin_trgm_ops",
           "isExpression": true,
           "asc": true,
           "nullsFirst": false,
@@ -7680,7 +7238,7 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "settings_code",
+          "value": "company_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -7699,7 +7257,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "shift_patterns_settings_code_code_index",
+      "name": "shift_patterns_company_id_code_index",
       "entityType": "indexes",
       "schema": "public",
       "table": "shift_patterns"
@@ -7729,7 +7287,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "(coalesce(\"code\", '') || ' ' || coalesce(\"name\", '') || ' ' || coalesce(\"settings_code\", '')) gin_trgm_ops",
+          "value": "(coalesce(\"code\", '') || ' ' || coalesce(\"name\", '')) gin_trgm_ops",
           "isExpression": true,
           "asc": true,
           "nullsFirst": false,
@@ -7820,27 +7378,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "settings_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "work_catalogue_settings_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "employment_id",
           "isExpression": false,
           "asc": true,
@@ -7906,6 +7443,40 @@
     {
       "nameExplicit": true,
       "columns": [
+        "payslip_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "payslips",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "allowance_entries_payslip_id_payslips_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "derived_from_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "allowances",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "allowance_entries_derived_from_id_allowances_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "allowance_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "employment_id"
       ],
       "schemaTo": "public",
@@ -7915,15 +7486,15 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
-      "name": "allowance_requests_employment_id_employments_fk",
+      "name": "allowance_entries_employment_id_employments_fk",
       "entityType": "fks",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
     },
     {
       "nameExplicit": true,
       "columns": [
-        "allowance_catalogue_id"
+        "catalogue_id"
       ],
       "schemaTo": "public",
       "tableTo": "allowance_catalogue",
@@ -7932,10 +7503,44 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
-      "name": "allowance_requests_allowance_catalogue_id_allowance_catalogue_fk",
+      "name": "allowance_entries_catalogue_id_allowance_catalogue_fk",
       "entityType": "fks",
       "schema": "public",
-      "table": "allowance_requests"
+      "table": "allowance_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "allowances_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "allowances"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "catalogue_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "allowance_catalogue",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "allowances_catalogue_id_allowance_catalogue_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "allowances"
     },
     {
       "nameExplicit": true,
@@ -7974,7 +7579,24 @@
     {
       "nameExplicit": true,
       "columns": [
-        "claim_catalogue_id"
+        "payslip_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "payslips",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "claim_requests_payslip_id_payslips_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "claim_requests"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "catalogue_id"
       ],
       "schemaTo": "public",
       "tableTo": "claim_catalogue",
@@ -7983,7 +7605,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
-      "name": "claim_requests_claim_catalogue_id_claim_catalogue_fk",
+      "name": "claim_requests_catalogue_id_claim_catalogue_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "claim_requests"
@@ -7991,16 +7613,16 @@
     {
       "nameExplicit": true,
       "columns": [
-        "employment_id"
+        "employee_id"
       ],
       "schemaTo": "public",
-      "tableTo": "employments",
+      "tableTo": "employees",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "employment_statutory_facts_employment_id_employments_fk",
+      "name": "employment_statutory_facts_employee_id_employees_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "employment_statutory_facts"
@@ -8144,7 +7766,24 @@
     {
       "nameExplicit": true,
       "columns": [
-        "leave_catalogue_id"
+        "payslip_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "payslips",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "leave_entries_payslip_id_payslips_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "leave_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "catalogue_id"
       ],
       "schemaTo": "public",
       "tableTo": "leave_catalogue",
@@ -8153,7 +7792,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
-      "name": "leave_entries_leave_catalogue_id_leave_catalogue_fk",
+      "name": "leave_entries_catalogue_id_leave_catalogue_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "leave_entries"
@@ -8212,6 +7851,23 @@
     {
       "nameExplicit": true,
       "columns": [
+        "payslip_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "payslips",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "loan_repayments_payslip_id_payslips_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "loan_repayments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "loan_id"
       ],
       "schemaTo": "public",
@@ -8263,57 +7919,6 @@
     {
       "nameExplicit": true,
       "columns": [
-        "settings_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "jurisdiction_settings",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payment_catalogue_settings_id_jurisdiction_settings_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "employment_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "employments",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "payment_requests_employment_id_employments_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payment_catalogue_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payment_catalogue",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "payment_requests_payment_catalogue_id_payment_catalogue_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
         "company_id"
       ],
       "schemaTo": "public",
@@ -8344,108 +7949,6 @@
       "entityType": "fks",
       "schema": "public",
       "table": "payroll_runs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payslip_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslips",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_allowance_request_inputs_payslip_id_payslips_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "allowance_request_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "allowance_requests",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "payslip_allowance_request_inputs_allowance_request_id_allowance_requests_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payslip_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslips",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_leave_inputs_payslip_id_payslips_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "leave_entry_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "leave_entries",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "payslip_leave_inputs_leave_entry_id_leave_entries_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_leave_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payslip_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslips",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_loan_repayment_inputs_payslip_id_payslips_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "loan_repayment_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "loan_repayments",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "payslip_loan_repayment_inputs_loan_repayment_id_loan_repayments_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs"
     },
     {
       "nameExplicit": true,
@@ -8484,6 +7987,57 @@
     {
       "nameExplicit": true,
       "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "rosters_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "shift_definitions_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "shift_patterns_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "shift_patterns"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "settings_id"
       ],
       "schemaTo": "public",
@@ -8501,33 +8055,16 @@
     {
       "nameExplicit": true,
       "columns": [
-        "settings_id"
+        "payslip_id"
       ],
       "schemaTo": "public",
-      "tableTo": "jurisdiction_settings",
+      "tableTo": "payslips",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "work_catalogue_settings_id_jurisdiction_settings_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "work_catalogue"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "holiday_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "jurisdiction_holidays",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "work_days_holiday_id_jurisdiction_holidays_fk",
+      "onDelete": "SET NULL",
+      "name": "work_days_payslip_id_payslips_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "work_days"
@@ -8581,9 +8118,19 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "allowance_requests_pkey",
+      "name": "allowance_entries_pkey",
       "schema": "public",
-      "table": "allowance_requests",
+      "table": "allowance_entries",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "allowances_pkey",
+      "schema": "public",
+      "table": "allowances",
       "entityType": "pks"
     },
     {
@@ -8731,26 +8278,6 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "payment_catalogue_pkey",
-      "schema": "public",
-      "table": "payment_catalogue",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "payment_requests_pkey",
-      "schema": "public",
-      "table": "payment_requests",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
       "name": "payroll_runs_pkey",
       "schema": "public",
       "table": "payroll_runs",
@@ -8761,39 +8288,19 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "payslip_allowance_request_inputs_pkey",
-      "schema": "public",
-      "table": "payslip_allowance_request_inputs",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "payslip_leave_inputs_pkey",
-      "schema": "public",
-      "table": "payslip_leave_inputs",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "payslip_loan_repayment_inputs_pkey",
-      "schema": "public",
-      "table": "payslip_loan_repayment_inputs",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
       "name": "payslips_pkey",
       "schema": "public",
       "table": "payslips",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "rosters_pkey",
+      "schema": "public",
+      "table": "rosters",
       "entityType": "pks"
     },
     {
@@ -8824,16 +8331,6 @@
       "name": "statutory_contributions_pkey",
       "schema": "public",
       "table": "statutory_contributions",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "work_catalogue_pkey",
-      "schema": "public",
-      "table": "work_catalogue",
       "entityType": "pks"
     },
     {
