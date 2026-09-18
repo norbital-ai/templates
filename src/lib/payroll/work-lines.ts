@@ -89,7 +89,7 @@ export function workPayItems(
 	// Regulations 1980 reg.4 104 hours refused the whole run — and s.60A(3)(a) still owes those
 	// hours at 1.5× whatever the employer's own breach.
 	const monthlyCeiling = work.limits.some(
-		(limit) => limit.period === 'MONTH' && limit.measure === 'OVERTIME_HOURS'
+		(limit) => limit.measure === 'OVERTIME_HOURS' && limit.period === 'MONTH'
 	);
 	for (const band of work.bands) {
 		add(OVERTIME_LINE, band.label);

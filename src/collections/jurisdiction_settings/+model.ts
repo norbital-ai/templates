@@ -2,7 +2,7 @@ import { custom, defineModel, instant, sql, text, uuid } from '@norbital-ai/bolt
 
 /**
  * A settings lineage versions the family catalogues used by its companies. The settings root
- * identifies its payroll facts, minimum wages and work rules; holidays belong to the employing
+ * identifies its payroll facts and work rules (the minimum wage by region among them); holidays belong to the employing
  * entity, not to this lineage.
  *
  * A sealed version and its child catalogues are immutable. A successor clones them into a draft.
@@ -24,14 +24,12 @@ export default defineModel(
 		cloned_from_id: uuid(),
 		/** Currency, IANA timezone and the month the tax year opens; see `datatypes/payroll_settings`. */
 		payroll: custom('payroll_settings').notNull(),
-		/** Region → monthly minimum wage in this version's currency; see `datatypes/wages`. */
-		wages: custom('wages').notNull(),
 		/**
 		 * The official pages this version was transcribed from. The statutory drift automation reads
 		 * them monthly for the version in force and proposes a draft when a statutory row differs.
 		 */
 		sources: custom('sources').notNull(),
-		/** Salary, overtime, incentive, limit and break rules; see `datatypes/work_rules`. */
+		/** Salary, overtime, incentive, limit, break and minimum-wage rules; see `datatypes/work_rules`. */
 		work_rules: custom('work_rules').notNull(),
 		/**
 		 * The entity facts this version's rules read as `person.company.facts.<key>`, each key and
@@ -50,7 +48,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'One version of a jurisdiction settings lineage: payroll facts, minimum wages and work rules, owning its family catalogues and schemes. Holidays belong to the entity that observes them. Sealed versions of one code never overlap; a sealed version and all its children are immutable and can only be voided.',
+			'One version of a jurisdiction settings lineage: payroll facts and work rules (minimum wages among them), owning its family catalogues and schemes. Holidays belong to the entity that observes them. Sealed versions of one code never overlap; a sealed version and all its children are immutable and can only be voided.',
 		recordLabel: 'name',
 		icon: 'lucide:globe',
 		indexes: [{ columns: ['code'] }, { columns: ['code', 'sealed_at'] }],

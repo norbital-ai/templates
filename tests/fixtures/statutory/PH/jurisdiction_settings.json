@@ -96,6 +96,12 @@
 					"max_hours": 8,
 					"unit": "WORKED_HOURS",
 					"authority": "Labor Code of the Philippines art.83"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST_OR_OFF"
 				}
 			],
 			"breaks": [
@@ -110,10 +116,6 @@
 					"counts_as_worked_time": false
 				}
 			],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 6,
-				"discharged_by": "REST_OR_OFF"
-			},
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -131,7 +133,16 @@
 						"days": 30.4167
 					}
 				}
-			]
+			],
+			"wages": {
+				"by_region": {
+					"IV-A": 15650.0,
+					"NCR": 18127.92
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
+				"authority": " Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75)."
+			}
 		},
 		"payroll": {
 			"currency": "PHP",
@@ -139,15 +150,6 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
 			"final_pay_due_days": 30
-		},
-		"wages": {
-			"by_region": {
-				"IV-A": 15650.0,
-				"NCR": 18127.92
-			},
-			"applies_when": "employment.type != \"INTERN\"",
-			"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
-			"authority": " Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75)."
 		},
 		"sources": {
 			"urls": [
@@ -267,6 +269,12 @@
 					"max_hours": 8,
 					"unit": "WORKED_HOURS",
 					"authority": "Labor Code of the Philippines art.83"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST_OR_OFF"
 				}
 			],
 			"breaks": [
@@ -281,10 +289,6 @@
 					"counts_as_worked_time": false
 				}
 			],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 6,
-				"discharged_by": "REST_OR_OFF"
-			},
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -302,7 +306,16 @@
 						"days": 30.4167
 					}
 				}
-			]
+			],
+			"wages": {
+				"by_region": {
+					"IV-A": 15650.0,
+					"NCR": 18127.92
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
+				"authority": " Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75)."
+			}
 		},
 		"payroll": {
 			"currency": "PHP",
@@ -310,15 +323,6 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
 			"final_pay_due_days": 30
-		},
-		"wages": {
-			"by_region": {
-				"IV-A": 15650.0,
-				"NCR": 18127.92
-			},
-			"applies_when": "employment.type != \"INTERN\"",
-			"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
-			"authority": " Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75)."
 		},
 		"sources": {
 			"urls": [

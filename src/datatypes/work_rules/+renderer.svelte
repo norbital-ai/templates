@@ -24,6 +24,8 @@
 	import type { NightPremium } from '../../lib/payroll/work-rules-values.js';
 	import { workRulesValueSchema } from './+definition.js';
 	import ProrationBasisRenderer from '../proration_basis/+renderer.svelte';
+	import WagesRenderer from '../wages/+renderer.svelte';
+	import { isRestLimit, type WorkHoursLimit, type WorkRestLimit } from './+definition.js';
 	import ExpressionCell from '../../lib/ui/expression-cell.svelte';
 	import ExpressionField from '../../lib/ui/expression-field.svelte';
 	import ExpressionFields from '../../lib/ui/expression-fields.svelte';
@@ -32,7 +34,7 @@
 	import type { RendererProps } from './$types.js';
 
 	type WorkRules = Schema.Schema.Type<typeof workRulesValueSchema>;
-	type WorkLimit = WorkRules['limits'][number];
+	type WorkLimit = WorkHoursLimit;
 	type WorkBreak = WorkRules['breaks'][number];
 
 	let props: RendererProps = $props();
@@ -171,17 +173,33 @@
 		authority: string;
 	};
 	const projectLimits = (rules: WorkRules | null): LimitRow[] =>
-		(rules?.limits ?? []).map((limit, index) => ({
-			id: String(index),
-			key: limit.key,
-			period: limit.period,
-			measure: limit.measure,
-			max_hours: limit.max_hours,
-			unit: limit.unit,
-			when: limit.when ?? '',
-			authority: limit.authority ?? ''
-		}));
+		(rules?.limits ?? [])
+			.filter((limit): limit is WorkLimit => !isRestLimit(limit))
+			.map((limit, index) => ({
+				id: String(index),
+				key: limit.key,
+				period: limit.period,
+				measure: limit.measure,
+				max_hours: limit.max_hours,
+				unit: limit.unit,
+				when: limit.when ?? '',
+				authority: limit.authority ?? ''
+			}));
 	let limitRows = $state<LimitRow[]>([]);
+	/** The consecutive-work-days limit — the weekly rest rule — kept beside the hours matrix. */
+	const restLimit = $derived(current?.limits.find(isRestLimit) ?? null);
+	function editRest(change: Partial<WorkRestLimit>): void {
+		if (current == null) return;
+		const rest: WorkRestLimit = restLimit ?? {
+			key: 'weekly_rest',
+			measure: 'CONSECUTIVE_WORK_DAYS',
+			max_days: 6,
+			discharged_by: 'REST'
+		};
+		edit({
+			limits: [...current.limits.filter((limit) => !isRestLimit(limit)), { ...rest, ...change }]
+		});
+	}
 	watch(
 		() => current,
 		(rules) => {
@@ -239,15 +257,18 @@
 		limitRows = rows;
 		if (current == null) return;
 		edit({
-			limits: rows.map((row) => ({
-				key: row.key,
-				period: row.period,
-				measure: row.measure,
-				max_hours: row.max_hours,
-				unit: row.unit,
-				...(row.when.trim() === '' ? {} : { when: row.when }),
-				...(row.authority.trim() === '' ? {} : { authority: row.authority })
-			}))
+			limits: [
+				...rows.map((row) => ({
+					key: row.key,
+					period: row.period,
+					measure: row.measure,
+					max_hours: row.max_hours,
+					unit: row.unit,
+					...(row.when.trim() === '' ? {} : { when: row.when }),
+					...(row.authority.trim() === '' ? {} : { authority: row.authority })
+				})),
+				...(restLimit == null ? [] : [restLimit])
+			]
 		});
 	}
 
@@ -363,7 +384,9 @@
 		<!-- Scalars, in one compact labelled grid. -->
 		<Grid gap="sm" minimum="compact">
 			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground">{t('renderer.work_rules.proration')}</span>
+				<span class="text-muted-foreground" title={t('renderer.work_rules.proration_hint')}
+					>{t('renderer.work_rules.proration')}</span
+				>
 				<ProrationBasisRenderer
 					mode="edit"
 					field={{ name: 'proration', type: 'proration_basis' }}
@@ -404,37 +427,6 @@
 					searchable={false}
 					onValueChange={(holiday_rest_precedence) => {
 						if (holiday_rest_precedence) edit({ holiday_rest_precedence });
-					}}
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground">{t('renderer.work_rules.consecutive_days')}</span>
-				<Input
-					type="number"
-					min="1"
-					max="30"
-					step="1"
-					value={current.weekly_rest_rule.max_consecutive_work_days}
-					{disabled}
-					oninput={(event) =>
-						edit({
-							weekly_rest_rule: {
-								...current.weekly_rest_rule,
-								max_consecutive_work_days: numberFrom(event.currentTarget.value, 6)
-							}
-						})}
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground">{t('renderer.work_rules.discharged_by')}</span>
-				<Combobox
-					options={restOptions}
-					value={current.weekly_rest_rule.discharged_by}
-					{disabled}
-					searchable={false}
-					onValueChange={(discharged_by) => {
-						if (discharged_by)
-							edit({ weekly_rest_rule: { ...current.weekly_rest_rule, discharged_by } });
 					}}
 				/>
 			</label>
@@ -546,6 +538,101 @@
 					authority: ''
 				})}
 				onChange={commitLimits}
+			/>
+			<!-- The weekly rest rule is the consecutive-work-days limit: the roster gate judges it, no band reads it. -->
+			<Grid gap="sm" minimum="compact" class="rounded-md border border-border p-2">
+				<label class="flex flex-col gap-1 text-xs">
+					<span class="text-muted-foreground">{t('renderer.work_rules.consecutive_days')}</span>
+					<Input
+						type="number"
+						min="1"
+						max="30"
+						step="1"
+						value={restLimit?.max_days ?? ''}
+						{disabled}
+						placeholder="6"
+						oninput={(event) => editRest({ max_days: numberFrom(event.currentTarget.value, 6) })}
+					/>
+				</label>
+				<label class="flex flex-col gap-1 text-xs">
+					<span class="text-muted-foreground">{t('renderer.work_rules.discharged_by')}</span>
+					<Combobox
+						options={restOptions}
+						value={restLimit?.discharged_by ?? 'REST'}
+						{disabled}
+						searchable={false}
+						onValueChange={(discharged_by) => {
+							if (discharged_by) editRest({ discharged_by });
+						}}
+					/>
+				</label>
+				<label class="flex flex-col gap-1 text-xs">
+					<span class="text-muted-foreground">{t('renderer.work_rules.suspended_by_leave')}</span>
+					<Input
+						value={(restLimit?.suspended_by_leave ?? []).join(', ')}
+						{disabled}
+						placeholder="MATERNITY_LEAVE, MEDICAL_LEAVE"
+						oninput={(event) => {
+							const codes = event.currentTarget.value
+								.split(',')
+								.map((code) => code.trim())
+								.filter((code) => code !== '');
+							editRest({ suspended_by_leave: codes.length === 0 ? undefined : codes });
+						}}
+					/>
+				</label>
+				<label class="flex flex-col gap-1 text-xs">
+					<span class="text-muted-foreground">{t('renderer.work_rules.rest_average')}</span>
+					<Input
+						value={restLimit?.average == null
+							? ''
+							: `${restLimit.average.rest_days} / ${restLimit.average.days}`}
+						{disabled}
+						placeholder="4 / 30"
+						title={t('renderer.work_rules.rest_average_hint')}
+						oninput={(event) => {
+							const match = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(event.currentTarget.value);
+							editRest({
+								average:
+									match == null
+										? undefined
+										: {
+												...(restLimit?.average ?? {}),
+												rest_days: Number(match[1]),
+												days: Number(match[2])
+											}
+							});
+						}}
+					/>
+				</label>
+				<label class="flex flex-col gap-1 text-xs">
+					<span class="text-muted-foreground">{t('renderer.work_rules.limit_when')}</span>
+					<Input
+						value={restLimit?.average?.when ?? ''}
+						{disabled}
+						placeholder="has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
+						oninput={(event) => {
+							if (restLimit?.average == null) return;
+							const when = event.currentTarget.value.trim();
+							editRest({ average: { ...restLimit.average, ...(when === '' ? {} : { when }) } });
+						}}
+					/>
+				</label>
+			</Grid>
+		</Stack>
+
+		<!-- Minimum wage by region: who the order covers and the floor a scheme reads through `minimum_wage(region)`. -->
+		<Stack gap="xs">
+			<span class="text-sm font-semibold">{t('renderer.work_rules.wages')}</span>
+			<p class="text-meta">{t('renderer.work_rules.wages_hint')}</p>
+			<WagesRenderer
+				mode={props.mode === 'edit' ? 'edit' : 'display'}
+				field={{ name: 'wages', type: 'wages' }}
+				value={current.wages}
+				{disabled}
+				onValueChange={(next) => {
+					if (next != null) edit({ wages: next });
+				}}
 			/>
 		</Stack>
 

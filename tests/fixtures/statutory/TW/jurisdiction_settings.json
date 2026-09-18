@@ -102,6 +102,12 @@
 					"max_hours": 40,
 					"unit": "WORKED_HOURS",
 					"authority": "勞基法 §30(1): normal hours may not exceed eight a day and forty a week — the hours past forty in a week are overtime whatever the day’s length."
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST"
 				}
 			],
 			"breaks": [
@@ -116,25 +122,21 @@
 					"counts_as_worked_time": false
 				}
 			],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 6,
-				"discharged_by": "REST"
-			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
-			"normal_hours": "8.0"
+			"normal_hours": "8.0",
+			"wages": {
+				"by_region": {
+					"Taiwan": 28590
+				},
+				"applies_when": "employment.type != \"INTERN\""
+			}
 		},
 		"payroll": {
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false
-		},
-		"wages": {
-			"by_region": {
-				"Taiwan": 28590
-			},
-			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -277,6 +279,12 @@
 					"max_hours": 40,
 					"unit": "WORKED_HOURS",
 					"authority": "勞基法 §30(1): normal hours may not exceed eight a day and forty a week — the hours past forty in a week are overtime whatever the day’s length."
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST"
 				}
 			],
 			"breaks": [
@@ -291,25 +299,21 @@
 					"counts_as_worked_time": false
 				}
 			],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 6,
-				"discharged_by": "REST"
-			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
-			"normal_hours": "8.0"
+			"normal_hours": "8.0",
+			"wages": {
+				"by_region": {
+					"Taiwan": 29500
+				},
+				"applies_when": "employment.type != \"INTERN\""
+			}
 		},
 		"payroll": {
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false
-		},
-		"wages": {
-			"by_region": {
-				"Taiwan": 29500
-			},
-			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -457,6 +461,12 @@
 					"max_hours": 40,
 					"unit": "WORKED_HOURS",
 					"authority": "勞基法 §30(1): normal hours may not exceed eight a day and forty a week — the hours past forty in a week are overtime whatever the day’s length."
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST"
 				}
 			],
 			"breaks": [
@@ -471,25 +481,21 @@
 					"counts_as_worked_time": false
 				}
 			],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 6,
-				"discharged_by": "REST"
-			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
-			"normal_hours": "8.0"
+			"normal_hours": "8.0",
+			"wages": {
+				"by_region": {
+					"Taiwan": 29500
+				},
+				"applies_when": "employment.type != \"INTERN\""
+			}
 		},
 		"payroll": {
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false
-		},
-		"wages": {
-			"by_region": {
-				"Taiwan": 29500
-			},
-			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [

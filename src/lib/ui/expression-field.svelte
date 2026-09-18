@@ -3,12 +3,13 @@
 	 * The one CEL expression control outside a matrix — used as a `Field` renderer, so its label,
 	 * description tooltip, history and errors stay the form field's, exactly as for a text input.
 	 *
-	 * A matrix row is one fixed-height line and uses `expression-cell.svelte`; this one owns the
-	 * line under the control: the same sentence the transform would refuse with. The Fields list a
+	 * A matrix row is one fixed-height line and uses `expression-cell.svelte`; this one is a code
+	 * editor (a scheme's base or a long predicate wraps over several lines) and owns the line under
+	 * the control: the same sentence the transform would refuse with. The Fields list a
 	 * writer needs is part of the field's description tooltip (`descriptionExtra`), not a link
 	 * under the input, so the control keeps one shape everywhere.
 	 */
-	import { Input } from '@norbital-ai/ui/input';
+	import { CodeEditor } from '@norbital-ai/ui/code-editor';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { compileExpression } from '../expressions/compile.js';
@@ -59,12 +60,15 @@
 	{#if mode === 'display'}
 		<span class="block min-w-0 font-mono text-xs break-words">{text === '' ? '—' : text}</span>
 	{:else}
-		<Input
-			class="h-8 font-mono text-xs"
+		<CodeEditor
+			class="text-xs"
 			value={text}
-			{disabled}
-			{placeholder}
-			oninput={(event) => onValueChange?.(event.currentTarget.value)}
+			language="javascript"
+			readonly={disabled}
+			invalid={fault != null}
+			minHeight="2.25rem"
+			ariaLabel={placeholder ?? contract}
+			onValueChange={(next) => onValueChange?.(next)}
 		/>
 		<p class="text-meta">{contract}</p>
 		{#if fault != null}

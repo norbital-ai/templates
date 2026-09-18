@@ -80,7 +80,7 @@ The predicate facts a statute keys on are columns: `employees.marital_status` (`
 `MARRIED`), `employees.spouse_status` (`NONE` | `WITHOUT_INCOME` | `WITH_INCOME`),
 `employees.solo_parent`, `employees.race` and `employees.religion` (only where a fund is
 selected by them), `employment_terms.residency_since`, `companies.region`, which names the row of
-`jurisdiction_settings.wages.by_region` a scheme's floor or cap reads, and `companies.facts`, the
+`jurisdiction_settings.work_rules.wages.by_region` a scheme's floor or cap reads, and `companies.facts`, the
 entity facts under the keys its settings version declares. What an employment has elected or
 been directed under one scheme is on its `employment_statutory_facts` row: `since`, `elections`
 under the keys the scheme row declares, and the authority's `instalments`. A fact that is

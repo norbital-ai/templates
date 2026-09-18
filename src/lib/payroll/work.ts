@@ -139,7 +139,8 @@ export function prepareWorkCatalogue(options: {
 		return {
 			work,
 			holidayRestPrecedence: work.holiday_rest_precedence,
-			limits: work.limits,
+			// The hours limits payroll reports on; the rest-days limit is judged at the roster gate.
+			limits: work.limits.filter((limit) => limit.measure !== 'CONSECUTIVE_WORK_DAYS'),
 			breaks: work.breaks,
 			nightPremium: work.night_premium ?? null,
 			shiftById: new Map(shifts.map((row) => [row.id, row])),

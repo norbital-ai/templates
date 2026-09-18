@@ -554,7 +554,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		if (input.minimumWage == null && mentionsMinimumWage(expressions))
 			refuse(
 				`${code} bounds its base by the regional minimum wage, but the company's region has ` +
-					'none in this settings version. Set companies.region and jurisdiction_settings.wages.by_region.'
+					'none in this settings version. Set companies.region and jurisdiction_settings.work_rules.wages.by_region.'
 			);
 
 		const context = {

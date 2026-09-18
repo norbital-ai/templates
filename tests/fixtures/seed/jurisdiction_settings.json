@@ -18,9 +18,6 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false
 		},
-		"wages": {
-			"by_region": {}
-		},
 		"sources": {
 			"urls": []
 		},
@@ -53,15 +50,20 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 104,
 					"unit": "WORKED_HOURS"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 12,
+					"discharged_by": "REST_OR_OFF"
 				}
 			],
 			"breaks": [],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 12,
-				"discharged_by": "REST_OR_OFF"
-			},
 			"authority": "Public fixture: ordinary-day overtime at 1.5x (Employment Act 1955 s.60A(3)(a) shape)",
-			"holiday_rest_precedence": "REST_DAY"
+			"holiday_rest_precedence": "REST_DAY",
+			"wages": {
+				"by_region": {}
+			}
 		}
 	}
 ]

@@ -39,7 +39,7 @@ const PROVENANCE = new Set([
 ]);
 
 /** Root scalars worth comparing; name and source lists are identity and provenance, not the law. */
-const ROOT_DIFF_FIELDS = ['payroll', 'wages', 'work_rules'] as const;
+const ROOT_DIFF_FIELDS = ['payroll', 'work_rules'] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	value != null && typeof value === 'object' && !Array.isArray(value);

@@ -19,7 +19,11 @@
  * would charge a schedule for a law the version never transcribed.
  */
 
-import type { WorkLimit } from '../../datatypes/work_rules/+definition.js';
+import {
+	isRestLimit,
+	type WorkHoursLimit as WorkLimit,
+	type WorkLimit as AnyWorkLimit
+} from '../../datatypes/work_rules/+definition.js';
 import { weekStart } from '../../collections/payroll_runs/lib/dates.js';
 import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 
@@ -29,14 +33,17 @@ import { isEligible, type PersonContext } from '../../collections/payroll_runs/l
  * nobody's.
  */
 export function applicableLimits(
-	limits: readonly WorkLimit[],
+	limits: readonly AnyWorkLimit[],
 	person: PersonContext | null
 ): readonly WorkLimit[] {
-	return limits.filter((limit) => {
-		const when = (limit.when ?? '').trim();
-		if (when === '') return true;
-		return person != null && isEligible(when, person);
-	});
+	// The consecutive-work-days limit is the weekly rest rule, judged by its own gate.
+	return limits
+		.filter((limit): limit is WorkLimit => !isRestLimit(limit))
+		.filter((limit) => {
+			const when = (limit.when ?? '').trim();
+			if (when === '') return true;
+			return person != null && isEligible(when, person);
+		});
 }
 
 const DAY_MS = 86_400_000;
@@ -129,10 +136,11 @@ function quarterBounds(date: string): { readonly start: string; readonly end: st
  */
 export function projectionBounds(
 	dates: readonly string[],
-	limits: readonly WorkLimit[]
+	limits: readonly AnyWorkLimit[]
 ): { readonly start: string; readonly end: string } | null {
-	if (dates.length === 0 || limits.length === 0) return null;
-	const width = Math.max(...limits.map((limit) => PERIOD_RANK[limit.period]));
+	const hours = limits.filter((limit): limit is WorkLimit => !isRestLimit(limit));
+	if (dates.length === 0 || hours.length === 0) return null;
+	const width = Math.max(...hours.map((limit) => PERIOD_RANK[limit.period]));
 	const sorted = [...dates].toSorted();
 	const first = sorted[0]!;
 	const last = sorted.at(-1)!;
@@ -152,11 +160,12 @@ export function projectionBounds(
  * limit subtracts the break the shift grants, every other limit states its figure directly.
  */
 export function evaluatedLimits(
-	limits: readonly WorkLimit[],
+	limits: readonly AnyWorkLimit[],
 	breakMinutes: number
 ): Record<string, number> {
 	const evaluated: Record<string, number> = {};
 	for (const limit of limits) {
+		if (isRestLimit(limit)) continue;
 		evaluated[limit.key] =
 			limit.period === 'DAY' && limit.unit === 'CLOCK_HOURS'
 				? Math.max(0, limit.max_hours - breakMinutes / 60)

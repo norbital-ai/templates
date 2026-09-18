@@ -88,7 +88,6 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'sources',
 		'void_reason',
 		'voided_at',
-		'wages',
 		'work_rules'
 	]);
 	for (const hidden of ['sealed_at', 'voided_at', 'void_reason', 'cloned_from_id'])

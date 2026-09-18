@@ -359,7 +359,7 @@ export function minimumWageCovers(
 	configuration: Pick<Configuration, 'jurisdiction'>,
 	person: PersonContext
 ): boolean {
-	return isEligible(configuration.jurisdiction.wages?.applies_when ?? '', person);
+	return isEligible(configuration.jurisdiction.work_rules.wages?.applies_when ?? '', person);
 }
 
 /** The share of the region's wage this person's floor is (`wages.scale`; absent is the whole). */
@@ -367,7 +367,7 @@ function minimumWageScale(
 	configuration: Pick<Configuration, 'jurisdiction'>,
 	person: PersonContext
 ): number {
-	const scale = (configuration.jurisdiction.wages?.scale ?? '').trim();
+	const scale = (configuration.jurisdiction.work_rules.wages?.scale ?? '').trim();
 	return scale === '' ? 1 : evaluatePersonNumber(scale, person);
 }
 
@@ -463,7 +463,7 @@ function regionalMinimumWage(
 ): number | null {
 	const region = configuration.company.region;
 	if (region == null || region === '') return null;
-	const wage = configuration.jurisdiction.wages?.by_region?.[region];
+	const wage = configuration.jurisdiction.work_rules.wages?.by_region?.[region];
 	return wage == null ? null : decodeNumber(wage);
 }
 

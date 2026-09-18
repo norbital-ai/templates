@@ -56,7 +56,7 @@ const nihon = {
 			counts_as_worked_time: null
 		}
 	],
-	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	wages: { by_region: {} },
 	holiday_rest_precedence: 'SUBSTITUTE'
 };
 

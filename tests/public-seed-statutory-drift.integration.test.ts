@@ -251,9 +251,9 @@ test(
 				[PUB_URL, PUB_DOWN_URL, JURISDICTION_ID]
 			);
 			await session.query(
-				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, payroll, wages, sources, work_rules, effective_range)
+				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, payroll, sources, work_rules, effective_range)
 				 select $1, 'PUB2', 'TEST-JUR', 'Second fixture lineage', '2020-01-01T00:00:00.000Z',
-				        payroll, wages, jsonb_build_object('urls', jsonb_build_array($2::text)), work_rules, $3::jsonb
+				        payroll, jsonb_build_object('urls', jsonb_build_array($2::text)), work_rules, $3::jsonb
 				   from jurisdiction_settings where id = $4`,
 				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }, JURISDICTION_ID]
 			);

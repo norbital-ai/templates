@@ -764,16 +764,21 @@ test('Indonesia — the 30-minute break after four continuous hours governs ever
 test('Indonesia — the overtime ceilings are 4 hours a day and 18 a week (PP 35/2021 Pasal 26(1))', () => {
 	for (const version of settingsVersions('ID')) {
 		const limits = Object.fromEntries(
-			version.work_rules.limits.map((limit) => [
-				`${limit.period}:${limit.measure}`,
-				limit.max_hours
-			])
+			version.work_rules.limits
+				.filter((limit) => limit.measure !== 'CONSECUTIVE_WORK_DAYS')
+				.map((limit) => [`${limit.period}:${limit.measure}`, limit.max_hours])
 		);
 		assert.deepEqual(limits, { 'DAY:OVERTIME_HOURS': 4, 'WEEK:OVERTIME_HOURS': 18 });
-		assert.deepEqual(version.work_rules.weekly_rest_rule, {
-			max_consecutive_work_days: 6,
-			discharged_by: 'REST_OR_OFF'
-		});
+		// The weekly rest rule is the consecutive-work-days limit (UU 13/2003 art.79(2)(b)).
+		assert.deepEqual(
+			version.work_rules.limits.find((limit) => limit.measure === 'CONSECUTIVE_WORK_DAYS'),
+			{
+				key: 'weekly_rest',
+				measure: 'CONSECUTIVE_WORK_DAYS',
+				max_days: 6,
+				discharged_by: 'REST_OR_OFF'
+			}
+		);
 		assert.equal(version.work_rules.night_premium ?? null, null);
 	}
 });

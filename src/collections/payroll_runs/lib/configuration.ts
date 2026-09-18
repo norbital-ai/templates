@@ -47,7 +47,11 @@ export type ComponentDefinition =
 	| { readonly source: 'ABSENCE'; readonly unit: 'MONEY' };
 
 export type CatalogueComponent = FamilyPayItem & { readonly definition: ComponentDefinition };
-export type WorkLimit = Work['limits'][number];
+/** An hours ceiling; the consecutive-work-days rest limit is the roster gate's alone. */
+export type WorkLimit = Exclude<
+	Work['limits'][number],
+	{ readonly measure: 'CONSECUTIVE_WORK_DAYS' }
+>;
 type WorkBreak = Work['breaks'][number];
 export type NightPremium = NonNullable<Work['night_premium']>;
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
@@ -259,7 +263,7 @@ function configurationSnapshot(
 		pay_calendar: [configuration.company.pay_cutoff_day, configuration.company.pay_frequency],
 		// The region and the wage it names bound a scheme's base, so they move the hash like a band.
 		region: configuration.company.region ?? null,
-		wages: configuration.jurisdiction.wages,
+		wages: configuration.jurisdiction.work_rules.wages,
 		contributions: configuration.contributions.map((entry) => ({
 			code: entry.row.code,
 			assessment_period: entry.row.assessment_period,

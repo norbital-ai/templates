@@ -93,12 +93,20 @@ test('the coverage predicate compiles over the person and empty covers everyone'
 		null
 	);
 	const jurisdiction = {
-		wages: { by_region: { 'DKI Jakarta': 5_729_876 }, applies_when: 'employment.type != "INTERN"' }
+		work_rules: {
+			wages: {
+				by_region: { 'DKI Jakarta': 5_729_876 },
+				applies_when: 'employment.type != "INTERN"'
+			}
+		}
 	};
 	assert.equal(minimumWageCovers({ jurisdiction }, person('PERMANENT')), true);
 	assert.equal(minimumWageCovers({ jurisdiction }, person('INTERN')), false);
 	assert.equal(
-		minimumWageCovers({ jurisdiction: { wages: { by_region: {} } } }, person('INTERN')),
+		minimumWageCovers(
+			{ jurisdiction: { work_rules: { wages: { by_region: {} } } } },
+			person('INTERN')
+		),
 		true
 	);
 });
@@ -106,7 +114,9 @@ test('the coverage predicate compiles over the person and empty covers everyone'
 test('a covered person under the wage is a warning on the run; an intern is not', () => {
 	const configuration = {
 		jurisdiction: {
-			wages: { by_region: { Malaysia: 1700 }, applies_when: 'employment.type != "INTERN"' }
+			work_rules: {
+				wages: { by_region: { Malaysia: 1700 }, applies_when: 'employment.type != "INTERN"' }
+			}
 		},
 		company: { id: 'co', region: 'Malaysia' }
 	};

@@ -256,7 +256,6 @@ test(
 							sealed_at: new Date().toISOString(),
 							jurisdiction_code: 'TEST-JUR',
 							payroll: draft.payroll,
-							wages: draft.wages,
 							sources: draft.sources,
 							work_rules: draft.work_rules,
 							effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }

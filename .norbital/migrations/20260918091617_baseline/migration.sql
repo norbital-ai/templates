@@ -266,7 +266,6 @@ CREATE TABLE "jurisdiction_settings" (
 	"void_reason" text,
 	"cloned_from_id" uuid,
 	"payroll" jsonb NOT NULL,
-	"wages" jsonb NOT NULL,
 	"sources" jsonb NOT NULL,
 	"work_rules" jsonb NOT NULL,
 	"facts" jsonb DEFAULT '[]' NOT NULL,

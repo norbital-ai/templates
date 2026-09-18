@@ -177,7 +177,12 @@ const ROOT_CHANGES: ReadonlyArray<Row> = [
 	{ jurisdiction_code: 'TEST-OTHER' },
 	{ name: 'Public fixture profile (edited)' },
 	{ work_rules: { ...structuredClone(SEEDED_WORK_RULES), authority: 'Edited under seal' } },
-	{ wages: { by_region: { 'EDIT-REGION': 1234 } } },
+	{
+		work_rules: {
+			...structuredClone(SEEDED_WORK_RULES),
+			wages: { by_region: { 'EDIT-REGION': 1234 } }
+		}
+	},
 	{ sources: { urls: ['https://example.test/law'] } },
 	{
 		payroll: {

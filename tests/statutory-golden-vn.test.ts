@@ -116,7 +116,7 @@ test('Vietnam — the unemployment ceiling follows the company region (Decree 29
 	}
 	// The wages orders exclude a vocational trainee (Labour Code art.61); everyone else is covered.
 	for (const version of settingsVersions('VN'))
-		assert.equal(version.wages.applies_when, 'employment.type != "INTERN"');
+		assert.equal(version.work_rules.wages.applies_when, 'employment.type != "INTERN"');
 });
 
 test('Vietnam — monthly PIT withholding on the 1 January 2026 scale', () => {

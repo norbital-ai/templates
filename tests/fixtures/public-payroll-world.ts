@@ -69,7 +69,9 @@ const WORK_RULES = {
 		}
 	],
 	breaks: [{ when: 'consecutive_hours > 5.0', owed_minutes: '30.0', counts_as_worked_time: false }],
-	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	// No region is named, so the wages map is empty and a scheme's `minimum_wage(region)` has
+	// nothing to read.
+	wages: { by_region: {} },
 	holiday_rest_precedence: 'REST_DAY'
 };
 
@@ -136,9 +138,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 					tax_year_start_month: 1,
 					allowance_npl_prorates: false
 				},
-				// No region is named, so the wages map is empty and a scheme's
-				// `minimum_wage(region)` has nothing to read.
-				wages: { by_region: {} },
 				sources: { urls: [] },
 				effective_range: RANGE,
 				work_rules: structuredClone(WORK_RULES),
