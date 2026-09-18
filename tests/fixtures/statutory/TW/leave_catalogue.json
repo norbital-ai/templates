@@ -174,7 +174,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (喪假)",
-		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death.",
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death. Applied 2026-09-19 (2): 勞工請假規則 §3: eight days for a parent, step- or adoptive parent or spouse; six for a grandparent, child, or the spouse’s parent, step- or adoptive parent; three for a great-grandparent, sibling or the spouse’s grandparent — and no days for any other relationship.",
 		"eligibility": "event.kind == \"DEATH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -182,15 +182,15 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"SPOUSE\"]",
+					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"ADOPTIVE_PARENT\", \"SPOUSE\"]",
 					"days": 8
 				},
 				{
-					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\"]",
+					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\", \"STEPPARENT_IN_LAW\", \"ADOPTIVE_PARENT_IN_LAW\"]",
 					"days": 6
 				},
 				{
-					"eligibility": "",
+					"eligibility": "event.relationship in [\"GREAT_GRANDPARENT\", \"SIBLING\", \"GRANDPARENT_IN_LAW\"]",
 					"days": 3
 				}
 			]
@@ -221,7 +221,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (產假)",
-		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`).",
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`). Applied 2026-09-19 (2): 勞基法 §50(2): full pay after six months’ service, half before, for the eight weeks and the four-week leave for a miscarriage after three months of pregnancy; 性別平等工作法 §15(1): the one-week and five-day leaves for an earlier miscarriage are leave the employer need not pay.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE_3M\", \"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -248,7 +248,7 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5",
+		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
 		"encash_on_exit": false
 	},
 	{
@@ -558,7 +558,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (喪假)",
-		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death.",
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death. Applied 2026-09-19 (2): 勞工請假規則 §3: eight days for a parent, step- or adoptive parent or spouse; six for a grandparent, child, or the spouse’s parent, step- or adoptive parent; three for a great-grandparent, sibling or the spouse’s grandparent — and no days for any other relationship.",
 		"eligibility": "event.kind == \"DEATH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -566,15 +566,15 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"SPOUSE\"]",
+					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"ADOPTIVE_PARENT\", \"SPOUSE\"]",
 					"days": 8
 				},
 				{
-					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\"]",
+					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\", \"STEPPARENT_IN_LAW\", \"ADOPTIVE_PARENT_IN_LAW\"]",
 					"days": 6
 				},
 				{
-					"eligibility": "",
+					"eligibility": "event.relationship in [\"GREAT_GRANDPARENT\", \"SIBLING\", \"GRANDPARENT_IN_LAW\"]",
 					"days": 3
 				}
 			]
@@ -605,7 +605,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (產假)",
-		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`).",
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`). Applied 2026-09-19 (2): 勞基法 §50(2): full pay after six months’ service, half before, for the eight weeks and the four-week leave for a miscarriage after three months of pregnancy; 性別平等工作法 §15(1): the one-week and five-day leaves for an earlier miscarriage are leave the employer need not pay.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE_3M\", \"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -632,7 +632,7 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5",
+		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
 		"encash_on_exit": false
 	},
 	{
@@ -977,7 +977,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (喪假)",
-		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death.",
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death. Applied 2026-09-19 (2): 勞工請假規則 §3: eight days for a parent, step- or adoptive parent or spouse; six for a grandparent, child, or the spouse’s parent, step- or adoptive parent; three for a great-grandparent, sibling or the spouse’s grandparent — and no days for any other relationship.",
 		"eligibility": "event.kind == \"DEATH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -985,15 +985,15 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"SPOUSE\"]",
+					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"ADOPTIVE_PARENT\", \"SPOUSE\"]",
 					"days": 8
 				},
 				{
-					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\"]",
+					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\", \"STEPPARENT_IN_LAW\", \"ADOPTIVE_PARENT_IN_LAW\"]",
 					"days": 6
 				},
 				{
-					"eligibility": "",
+					"eligibility": "event.relationship in [\"GREAT_GRANDPARENT\", \"SIBLING\", \"GRANDPARENT_IN_LAW\"]",
 					"days": 3
 				}
 			]
@@ -1024,7 +1024,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (產假)",
-		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`).",
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`). Applied 2026-09-19 (2): 勞基法 §50(2): full pay after six months’ service, half before, for the eight weeks and the four-week leave for a miscarriage after three months of pregnancy; 性別平等工作法 §15(1): the one-week and five-day leaves for an earlier miscarriage are leave the employer need not pay.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE_3M\", \"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1051,7 +1051,7 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5",
+		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
 		"encash_on_exit": false
 	},
 	{
@@ -1273,6 +1273,108 @@
 				}
 			]
 		},
+		"encash_on_exit": false
+	},
+	{
+		"id": "49d54f17-b90c-51d8-8b1c-c5c890a1b2d7",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "OFFICIAL_LEAVE",
+		"name": "公假 (official leave)",
+		"authority": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "82e584b0-a979-5b95-a0da-79feedc0ffee",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "JOB_SEARCH_LEAVE",
+		"name": "謀職假 (job-search leave)",
+		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "62c3050e-2a29-5bce-8d2b-5ffecb87afed",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "OFFICIAL_LEAVE",
+		"name": "公假 (official leave)",
+		"authority": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "c31fa128-c4ef-5cbd-a829-fb096e203c2c",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "JOB_SEARCH_LEAVE",
+		"name": "謀職假 (job-search leave)",
+		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8d70ab20-61cb-5ce0-936f-c35918907c94",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "OFFICIAL_LEAVE",
+		"name": "公假 (official leave)",
+		"authority": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "96c40f43-4607-5a27-b57c-c6cb427a2478",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "JOB_SEARCH_LEAVE",
+		"name": "謀職假 (job-search leave)",
+		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
 		"encash_on_exit": false
 	}
 ]

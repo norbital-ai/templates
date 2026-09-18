@@ -192,6 +192,8 @@ export function assessCompanyContributions(options: {
 	readonly window: PayrollWindow;
 	readonly period: string;
 	readonly accumulations: readonly AccumulatedPayslip[];
+	/** Every employment charge of the run: a company levy reads their sums as `produced.<code>`. */
+	readonly charges: readonly ContributionCharge[];
 }): ContributionCharge[] {
 	const { configuration, gathered, window, period } = options;
 	const companySchemes = configuration.contributions.filter(
@@ -249,8 +251,23 @@ export function assessCompanyContributions(options: {
 		minimumWage,
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 		yearToDate,
-		yearEarned
+		yearEarned,
+		produced: producedSums(options.charges)
 	});
+}
+
+/** The run's employment charges summed by scheme — the entity's base, employee and employer. */
+function producedSums(charges: readonly ContributionCharge[]) {
+	const sums = new Map<string, { base: number; employee: number; employer: number }>();
+	for (const charge of charges) {
+		const code = charge.contribution.row.code;
+		const sum = sums.get(code) ?? { base: 0, employee: 0, employer: 0 };
+		sum.base += charge.base;
+		sum.employee += charge.employee;
+		sum.employer += charge.employer;
+		sums.set(code, sum);
+	}
+	return sums;
 }
 export function prepareContributionCatalogue(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };

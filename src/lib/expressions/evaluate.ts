@@ -9,7 +9,7 @@
 
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
 import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
-import { childUnder } from './child-under.js';
+import { childCitizensUnder, childUnder } from './child-under.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -24,23 +24,33 @@ export type ExpressionEngine = {
 	readonly minimumWage: (region: string) => number;
 	/** The signed total of one catalogue code this payslip, or 0 where the payslip has none. */
 	readonly code?: (code: string) => number;
-	/** `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick } | { exclude })`, signed by each row. */
+	/** `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick } | { exclude } | { fixed })`, signed by each row. */
 	readonly catalog?: (
 		catalogue: string,
-		selection?: { readonly pick?: readonly string[]; readonly exclude?: readonly string[] }
+		selection?: {
+			readonly pick?: readonly string[];
+			readonly exclude?: readonly string[];
+			readonly fixed?: boolean;
+		}
 	) => number;
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
 
 /** The second argument of `catalog`, as the AST hands it over: a `{ pick | exclude }` map. */
-function catalogSelection(value: unknown): { pick?: string[]; exclude?: string[] } {
-	const selection = value as { pick?: unknown; exclude?: unknown } | null | undefined;
+function catalogSelection(value: unknown): {
+	pick?: string[];
+	exclude?: string[];
+	fixed?: boolean;
+} {
+	const selection = value as
+		{ pick?: unknown; exclude?: unknown; fixed?: unknown } | null | undefined;
 	const list = (candidate: unknown): string[] =>
 		Array.isArray(candidate) ? candidate.map(String) : [];
 	return {
 		...(selection?.pick == null ? {} : { pick: list(selection.pick) }),
-		...(selection?.exclude == null ? {} : { exclude: list(selection.exclude) })
+		...(selection?.exclude == null ? {} : { exclude: list(selection.exclude) }),
+		...(selection?.fixed == null ? {} : { fixed: Boolean(selection.fixed) })
 	};
 }
 
@@ -83,6 +93,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 		}
 	],
 	['map.under(int): int', childUnder],
+	['map.citizens_under(int): int', childCitizensUnder],
 	['map.days(string): double', () => 0],
 	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
 	[

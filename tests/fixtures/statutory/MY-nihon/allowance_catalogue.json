@@ -29,7 +29,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "0247f143-27d8-5725-879b-ec6daf6d21be",
@@ -45,7 +46,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "81277ef9-a189-5899-9715-f2f45e7c26dd",
@@ -61,7 +63,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "497ad32c-b463-523b-bd62-a65dcb551fb9",
@@ -93,7 +96,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "14f8f2c0-e531-5303-a7e4-2b2b1acd5dff",
@@ -109,7 +113,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "6891a62b-a528-5d83-86de-f6bb062855cf",
@@ -125,7 +130,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "4fd08c8d-4531-5576-b16a-f16bbdc871e5",
@@ -157,7 +163,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "98f2b585-059b-5906-a1d2-5006f6d704f3",
@@ -173,7 +180,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "18815b85-b148-5744-b219-3bc7c39f6562",
@@ -189,7 +197,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "6079a9bf-a843-5d85-9f68-4c4faaf05aa8",
@@ -205,7 +214,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "5c2bf993-2791-52da-aad0-818d645dfb5a",
@@ -221,7 +231,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "e0a7077d-a559-50e7-9a87-f76cc91b5d42",
@@ -237,15 +248,16 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "1ae82969-72cf-53ad-b9a9-15390ca98e78",
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct.",
-		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && terms.statutory_wages <= 4000.0",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -256,15 +268,16 @@
 				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "365e5404-bd27-558f-9c42-f5ae38f3d27b",
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"DISMISSAL\"] && terms.notice_days > 0",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -272,18 +285,19 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.notice_days * person.terms.basic_salary / 26.0)",
+				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "d636ca4f-fb43-5bfa-9700-85bfa786e01e",
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct.",
-		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && terms.statutory_wages <= 4000.0",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -294,15 +308,16 @@
 				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "2325884c-3ac5-58d3-a576-907187b1b193",
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"DISMISSAL\"] && terms.notice_days > 0",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -310,18 +325,19 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.notice_days * person.terms.basic_salary / 26.0)",
+				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "fe908050-b908-5c1c-87b7-79b66f4d234d",
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct.",
-		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && terms.statutory_wages <= 4000.0",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -332,15 +348,16 @@
 				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "f562c9a6-661f-5fbf-9ef3-746d064a8f60",
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"DISMISSAL\"] && terms.notice_days > 0",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -348,9 +365,10 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.notice_days * person.terms.basic_salary / 26.0)",
+				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	}
 ]

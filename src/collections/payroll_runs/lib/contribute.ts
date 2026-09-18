@@ -148,6 +148,8 @@ type ContributeInput = SchemeAssessment & {
 
 /** Everything one scheme produced, so the schemes that read it can find it. */
 type Produced = {
+	/** The base the charge was assessed on, 0 where no rule held. */
+	readonly base: number;
 	readonly employee: number;
 	readonly employer: number;
 };
@@ -288,8 +290,11 @@ function producedObject(
 ): Record<string, Record<string, unknown>> {
 	const object: Record<string, Record<string, unknown>> = {};
 	for (const code of codes) {
-		const result = produced.get(code) ?? { employee: 0, employer: 0 };
+		const result = produced.get(code) ?? { base: 0, employee: 0, employer: 0 };
 		object[code] = {
+			// The base the producer was charged on this period — a graded insured amount (TW NHI,
+			// LI) that another scheme measures its own threshold or levy against.
+			base: result.base,
 			employee: reads.get(code) ?? Math.max(0, result.employee),
 			// This period's own share, never the year's: a per-period withholding table (PH Annex E,
 			// VN art.7) relieves the contribution deducted from this pay, and the annual read above
@@ -460,7 +465,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		if (monthlyAssessed && input.period.index !== carrying) {
 			// The other instalment of a month the carrying one charges: nothing is due, and no
 			// formula is even read.
-			produced.set(code, { employee: 0, employer: 0 });
+			produced.set(code, { base: 0, employee: 0, employer: 0 });
 			charges.push({
 				contribution,
 				base: 0,
@@ -508,7 +513,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			directed = 0,
 			lines: readonly ContributionLine[] = evaluated.selected
 		) => {
-			produced.set(code, { employee, employer });
+			produced.set(code, { base: chargeBase, employee, employer });
 			charges.push({
 				contribution,
 				base: chargeBase,
@@ -561,7 +566,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		if (rule == null) {
 			// No rule matches: the scheme charges nothing and appears on no payslip, but a consumer
 			// that names it reads zero rather than a missing row.
-			produced.set(code, { employee: 0, employer: 0 });
+			produced.set(code, { base: 0, employee: 0, employer: 0 });
 			continue;
 		}
 		const directed = directedFor(status, input.period.key, input.currency);
@@ -603,9 +608,11 @@ export function contributeCompany(input: {
 	readonly yearToDate?: SchemeAssessment['yearToDate'];
 	readonly facts?: SchemeAssessment['facts'];
 	readonly yearEarned?: SchemeAssessment['yearEarned'];
+	/** The employment schemes' sums over the run, readable as `produced.<code>.base|employee|employer`. */
+	readonly produced?: ReadonlyMap<string, Produced>;
 }): ContributionCharge[] {
 	const charges: ContributionCharge[] = [];
-	const produced = new Map<string, Produced>();
+	const produced = new Map<string, Produced>(input.produced ?? []);
 	const assessment: SchemeAssessment = {
 		facts: input.facts ?? new Map(),
 		yearToDate: input.yearToDate ?? (() => ({ employee: 0, employer: 0, base: 0, ordinary: 0 })),
@@ -640,7 +647,7 @@ export function contributeCompany(input: {
 		};
 		const rule = selectRule(contribution.row.rules, context, engine);
 		if (rule == null) {
-			produced.set(contribution.row.code, { employee: 0, employer: 0 });
+			produced.set(contribution.row.code, { base: 0, employee: 0, employer: 0 });
 			continue;
 		}
 		const employee = evaluateNumber(engine, rule.employee, context);
@@ -650,7 +657,7 @@ export function contributeCompany(input: {
 					`this one charges ${employee}.`
 			);
 		const employer = cents(evaluateNumber(engine, rule.employer, context), input.currency);
-		produced.set(contribution.row.code, { employee: 0, employer });
+		produced.set(contribution.row.code, { base: evaluated.base, employee: 0, employer });
 		charges.push({
 			contribution,
 			base: evaluated.base,

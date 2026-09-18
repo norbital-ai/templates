@@ -678,7 +678,7 @@
 		"id": "7a9279fd-7afa-5917-ad54-bbdf9e630950",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-18\" && employment.exit_date < \"2026-03-13\"))",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\" && employment.exit_date < \"2026-03-21\"))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
@@ -690,14 +690,14 @@
 			}
 		],
 		"on_separation": true,
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it.",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
 		"fixed": false
 	},
 	{
 		"id": "d21a02ca-669c-5295-8f16-124fa8d4143d",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-18\" && employment.exit_date < \"2026-03-13\"))",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\" && employment.exit_date < \"2026-03-21\"))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
@@ -709,14 +709,14 @@
 			}
 		],
 		"on_separation": true,
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it.",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
 		"fixed": false
 	},
 	{
 		"id": "6905cf49-a5ed-5833-ad3d-d08074b60c4e",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-18\" && employment.exit_date < \"2026-03-13\"))",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\" && employment.exit_date < \"2026-03-21\"))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
@@ -728,7 +728,7 @@
 			}
 		],
 		"on_separation": true,
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it.",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
 		"fixed": false
 	},
 	{
@@ -736,8 +736,8 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
-		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)).",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"]",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -745,7 +745,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : 1.0))",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason == \"DISMISSAL\" ? 0.5 : 1.0))",
 				"limit": null
 			}
 		],
@@ -756,8 +756,8 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
-		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"] && employment.service_months >= 36",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -776,8 +776,8 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "PKWT_COMPENSATION",
 		"name": "Uang kompensasi PKWT (fixed-term compensation)",
-		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends.",
-		"eligibility": "employment.type == \"CONTRACT\" && employment.exit_reason == \"END_OF_CONTRACT\" && employment.service_months >= 1",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends. Applied 2026-09-19 (2): PP 35/2021 art.15(1): compensation at the end of a fixed-term contract; art.17: where either party ends it before its term, compensation for the period served; art.15(5): a foreign worker on a fixed term is outside it.",
+		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -796,8 +796,8 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
-		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)).",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"]",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -805,7 +805,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : 1.0))",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason == \"DISMISSAL\" ? 0.5 : 1.0))",
 				"limit": null
 			}
 		],
@@ -816,8 +816,8 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
-		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"] && employment.service_months >= 36",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -836,8 +836,8 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "PKWT_COMPENSATION",
 		"name": "Uang kompensasi PKWT (fixed-term compensation)",
-		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends.",
-		"eligibility": "employment.type == \"CONTRACT\" && employment.exit_reason == \"END_OF_CONTRACT\" && employment.service_months >= 1",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends. Applied 2026-09-19 (2): PP 35/2021 art.15(1): compensation at the end of a fixed-term contract; art.17: where either party ends it before its term, compensation for the period served; art.15(5): a foreign worker on a fixed term is outside it.",
+		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -856,8 +856,8 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
-		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)).",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"]",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -865,7 +865,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : 1.0))",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason == \"DISMISSAL\" ? 0.5 : 1.0))",
 				"limit": null
 			}
 		],
@@ -876,8 +876,8 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
-		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"] && employment.service_months >= 36",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -896,8 +896,8 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "PKWT_COMPENSATION",
 		"name": "Uang kompensasi PKWT (fixed-term compensation)",
-		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends.",
-		"eligibility": "employment.type == \"CONTRACT\" && employment.exit_reason == \"END_OF_CONTRACT\" && employment.service_months >= 1",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends. Applied 2026-09-19 (2): PP 35/2021 art.15(1): compensation at the end of a fixed-term contract; art.17: where either party ends it before its term, compensation for the period served; art.15(5): a foreign worker on a fixed term is outside it.",
+		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",

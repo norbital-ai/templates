@@ -15,15 +15,16 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "e7bd562e-914a-5133-9367-aced76ce3c9f",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "SEVERANCE_PAY",
 		"name": "資遣費 (severance pay)",
-		"authority": "勞退條例 §12(1): a worker under the new pension system dismissed under 勞基法 §11, §13 proviso or §14 is paid half a month’s average wage for every year of service, pro rata for a part year, up to six months’ wages.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\"]",
+		"authority": "勞退條例 §12(1): a worker under the new pension system dismissed under 勞基法 §11, §13 proviso or §14 is paid half a month’s average wage for every year of service, pro rata for a part year, up to six months’ wages. Applied 2026-09-19 (2): 勞退條例 §12 / 勞基法 §11, §17: severance is owed on a termination by the employer under §11 (redundancy; `exit_reason == \"REDUNDANCY\"`); a fixed-term contract that ends on its date owes none (§18).",
+		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -34,7 +35,8 @@
 				"amount": "round_unit(person.terms.monthly_wage * (0.5 * person.employment.service_months / 12.0 > 6.0 ? 6.0 : 0.5 * person.employment.service_months / 12.0))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "cbbb1203-bb6b-55d9-9908-3d3037175da9",
@@ -52,15 +54,16 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "d1caef0a-220b-56a4-baa5-cdb53435f23b",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "SEVERANCE_PAY",
 		"name": "資遣費 (severance pay)",
-		"authority": "勞退條例 §12(1): a worker under the new pension system dismissed under 勞基法 §11, §13 proviso or §14 is paid half a month’s average wage for every year of service, pro rata for a part year, up to six months’ wages.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\"]",
+		"authority": "勞退條例 §12(1): a worker under the new pension system dismissed under 勞基法 §11, §13 proviso or §14 is paid half a month’s average wage for every year of service, pro rata for a part year, up to six months’ wages. Applied 2026-09-19 (2): 勞退條例 §12 / 勞基法 §11, §17: severance is owed on a termination by the employer under §11 (redundancy; `exit_reason == \"REDUNDANCY\"`); a fixed-term contract that ends on its date owes none (§18).",
+		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -71,7 +74,8 @@
 				"amount": "round_unit(person.terms.monthly_wage * (0.5 * person.employment.service_months / 12.0 > 6.0 ? 6.0 : 0.5 * person.employment.service_months / 12.0))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "8d023584-6ed0-50de-823d-c7e7e17395f0",
@@ -89,15 +93,16 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "83947473-bf48-53eb-8c46-227c07ba0379",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "SEVERANCE_PAY",
 		"name": "資遣費 (severance pay)",
-		"authority": "勞退條例 §12(1): a worker under the new pension system dismissed under 勞基法 §11, §13 proviso or §14 is paid half a month’s average wage for every year of service, pro rata for a part year, up to six months’ wages.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\"]",
+		"authority": "勞退條例 §12(1): a worker under the new pension system dismissed under 勞基法 §11, §13 proviso or §14 is paid half a month’s average wage for every year of service, pro rata for a part year, up to six months’ wages. Applied 2026-09-19 (2): 勞退條例 §12 / 勞基法 §11, §17: severance is owed on a termination by the employer under §11 (redundancy; `exit_reason == \"REDUNDANCY\"`); a fixed-term contract that ends on its date owes none (§18).",
+		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -108,6 +113,7 @@
 				"amount": "round_unit(person.terms.monthly_wage * (0.5 * person.employment.service_months / 12.0 > 6.0 ? 6.0 : 0.5 * person.employment.service_months / 12.0))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	}
 ]

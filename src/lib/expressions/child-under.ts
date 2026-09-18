@@ -12,7 +12,15 @@
  * both register it.
  */
 export function childUnder(children: unknown, age: unknown): bigint {
-	const ages = (children as { ages?: unknown }).ages;
+	return countUnder((children as { ages?: unknown }).ages, age);
+}
+
+/** `children.citizens_under(n)` — of the children recorded as citizens, how many are under `n`. */
+export function childCitizensUnder(children: unknown, age: unknown): bigint {
+	return countUnder((children as { citizen_ages?: unknown }).citizen_ages, age);
+}
+
+function countUnder(ages: unknown, age: unknown): bigint {
 	const limit = Number(age);
 	if (!Array.isArray(ages)) return 0n;
 	return BigInt(ages.filter((value) => Number(value) < limit).length);

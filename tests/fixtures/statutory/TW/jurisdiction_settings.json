@@ -94,6 +94,14 @@
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
 					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
+				},
+				{
+					"key": "weekly_normal",
+					"period": "WEEK",
+					"measure": "NORMAL_HOURS",
+					"max_hours": 40,
+					"unit": "WORKED_HOURS",
+					"authority": "勞基法 §30(1): normal hours may not exceed eight a day and forty a week — the hours past forty in a week are overtime whatever the day’s length."
 				}
 			],
 			"breaks": [
@@ -130,13 +138,26 @@
 		},
 		"sources": {
 			"urls": [
-				"https://www.mol.gov.tw/1607/1632/1640/76053/",
-				"https://www.bli.gov.tw/Files/24801",
-				"https://www.bli.gov.tw/Files/24831",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030006",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030020",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050021",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050031",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340003",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340028",
+				"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
 				"https://data.gov.tw/dataset/20251",
-				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe"
+				"https://www.bli.gov.tw/Files/24801",
+				"https://www.bli.gov.tw/Files/24804",
+				"https://www.bli.gov.tw/Files/24831",
+				"https://www.mol.gov.tw/1607/1632/1640/76053/",
+				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe",
+				"https://www.dgpa.gov.tw/information?uid=41&pid=12573"
 			],
-			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or beside it for the browser.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
 		},
 		"facts": [
 			{
@@ -248,6 +269,14 @@
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
 					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
+				},
+				{
+					"key": "weekly_normal",
+					"period": "WEEK",
+					"measure": "NORMAL_HOURS",
+					"max_hours": 40,
+					"unit": "WORKED_HOURS",
+					"authority": "勞基法 §30(1): normal hours may not exceed eight a day and forty a week — the hours past forty in a week are overtime whatever the day’s length."
 				}
 			],
 			"breaks": [
@@ -284,22 +313,31 @@
 		},
 		"sources": {
 			"urls": [
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030006",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030020",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050021",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050031",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340003",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340028",
+				"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
+				"https://data.gov.tw/dataset/20251",
+				"https://www.bli.gov.tw/Files/25659",
+				"https://www.bli.gov.tw/Files/25664",
+				"https://www.bli.gov.tw/Files/25669",
+				"https://www.bli.gov.tw/Files/25697",
+				"https://www.bli.gov.tw/Files/25709",
+				"https://www.bli.gov.tw/0011588.html",
+				"https://www.bli.gov.tw/0014162.htm",
 				"https://www.mol.gov.tw/1607/1632/1633/",
 				"https://www.mol.gov.tw/1607/1632/1633/84947/post",
-				"https://www.bli.gov.tw/0011588.html",
-				"https://www.bli.gov.tw/0106148.html",
-				"https://www.bli.gov.tw/0014162.htm",
-				"https://www.bli.gov.tw/Files/25664",
-				"https://www.bli.gov.tw/Files/25709",
-				"https://data.gov.tw/dataset/20251",
-				"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
-				"https://law-out.mof.gov.tw/LawContent.aspx?id=FL005962",
-				"https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=N0030006",
-				"https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=13",
-				"https://www.dgpa.gov.tw/information?uid=41&pid=12573",
+				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe",
 				"https://www.dgpa.gov.tw/information?uid=30&pid=12982"
 			],
-			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or beside it for the browser.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
 		},
 		"facts": [
 			{
@@ -411,6 +449,14 @@
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
 					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
+				},
+				{
+					"key": "weekly_normal",
+					"period": "WEEK",
+					"measure": "NORMAL_HOURS",
+					"max_hours": 40,
+					"unit": "WORKED_HOURS",
+					"authority": "勞基法 §30(1): normal hours may not exceed eight a day and forty a week — the hours past forty in a week are overtime whatever the day’s length."
 				}
 			],
 			"breaks": [
@@ -447,22 +493,31 @@
 		},
 		"sources": {
 			"urls": [
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030006",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030020",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050021",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050031",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060001",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340003",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340028",
+				"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
+				"https://data.gov.tw/dataset/20251",
+				"https://www.bli.gov.tw/Files/25659",
+				"https://www.bli.gov.tw/Files/25664",
+				"https://www.bli.gov.tw/Files/25669",
+				"https://www.bli.gov.tw/Files/25697",
+				"https://www.bli.gov.tw/Files/25709",
+				"https://www.bli.gov.tw/0011588.html",
+				"https://www.bli.gov.tw/0014162.htm",
 				"https://www.mol.gov.tw/1607/1632/1633/",
 				"https://www.mol.gov.tw/1607/1632/1633/84947/post",
-				"https://www.bli.gov.tw/0011588.html",
-				"https://www.bli.gov.tw/0106148.html",
-				"https://www.bli.gov.tw/0014162.htm",
-				"https://www.bli.gov.tw/Files/25664",
-				"https://www.bli.gov.tw/Files/25709",
-				"https://data.gov.tw/dataset/20251",
-				"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
-				"https://law-out.mof.gov.tw/LawContent.aspx?id=FL005962",
-				"https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=N0030006",
-				"https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=13",
-				"https://www.dgpa.gov.tw/information?uid=41&pid=12573",
-				"https://www.dgpa.gov.tw/information?uid=30&pid=12982"
+				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe",
+				"https://www.dgpa.gov.tw/information?uid=41&pid=12573"
 			],
-			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or beside it for the browser.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
 		},
 		"facts": [
 			{

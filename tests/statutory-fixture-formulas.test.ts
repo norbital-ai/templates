@@ -48,7 +48,9 @@ test('every fixture formula names a row of its own settings version, and no sche
 					mentions.reserved.length > 0 ||
 						mentions.codes.length > 0 ||
 						mentions.catalogues.length > 0 ||
-						/person\.terms\.(basic_salary|monthly_wage|statutory_wages)/.test(formula),
+						/person\.terms\.(basic_salary|monthly_basic|monthly_wage|statutory_wages)|produced\./.test(
+							formula
+						),
 					`${lineage} ${scheme.code}: charges nothing`
 				);
 				for (const code of [...mentions.codes, ...mentions.yearEarned]) {

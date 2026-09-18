@@ -161,15 +161,42 @@ test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemp
 		period: '2026-01',
 		riskClass: '1',
 		people: [
-			{ key: 'TW-28590', wage: 28_590, citizenship: 'CITIZEN' },
-			{ key: 'TW-40000', wage: 40_000, citizenship: 'CITIZEN' },
-			{ key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' }
+			{
+				key: 'TW-28590',
+				wage: 28_590,
+				citizenship: 'CITIZEN',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			},
+			{
+				key: 'TW-40000',
+				wage: 40_000,
+				citizenship: 'CITIZEN',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			},
+			{
+				key: 'TW-60000',
+				wage: 60_000,
+				citizenship: 'CITIZEN',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			},
+			{ key: 'TW-60000-TABLE', wage: 60_000, citizenship: 'CITIZEN' }
 		]
 	});
 
-	// 所得稅法 §88 with 各類所得扣繳率標準 §2(1): a resident may elect withholding at 5% of the
-	// full month's payment. §13 then exempts any payment whose WITHHOLDING AMOUNT does not exceed
-	// NT$2,000 — the seed declares exactly this as `<= 2000` on the resident scheme.
+	// 所得稅法 §88 with 各類所得扣繳率標準 §2(1)(1): monthly salary is withheld by the 扣繳稅額表
+	// unless the recipient elects 5% of the full month's payment (`five_percent_withholding`).
+	// §13 then exempts any payment whose WITHHOLDING AMOUNT does not exceed NT$2,000 — the seed
+	// declares exactly this as `<= 2000` on the resident scheme.
+	//
+	// Without the election the table reads 60,000: the bracket's lower bound 59,501 × 12 =
+	// 714,012 − 600,000 = 114,012 × 5% = 5,700.60 ÷ 12 = 475.05 → 470, under 2,000 → nothing.
+	expectStatutory(book, 'TW-60000-TABLE', 'INCOME_TAX', 0, 0);
 	//
 	// 5% × 28,590 = 1,429.50, below the threshold: nothing is withheld.
 	expectStatutory(book, 'TW-28590', 'INCOME_TAX', 0, 0);
@@ -359,8 +386,22 @@ test('Taiwan — the pension and health ceilings sit far above the labour-insura
 		period: '2026-01',
 		riskClass: '1',
 		people: [
-			{ key: 'TW-160000', wage: 160_000, citizenship: 'CITIZEN' },
-			{ key: 'TW-313001', wage: 313_001, citizenship: 'CITIZEN' }
+			{
+				key: 'TW-160000',
+				wage: 160_000,
+				citizenship: 'CITIZEN',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			},
+			{
+				key: 'TW-313001',
+				wage: 313_001,
+				citizenship: 'CITIZEN',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			}
 		]
 	});
 	expectStatutory(book, 'TW-160000', 'LABOR_PENSION', 0, 9000); // 150,000 × 6%
@@ -478,12 +519,21 @@ const THIRD = 'OT-1.3333333333333333X';
 const TWO_THIRDS = 'OT-1.6666666666666667X';
 
 test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 doubles a holiday', () => {
-	const { slips, warnings } = buildStatutory(
+	const { slips, warnings, companyCharges } = buildStatutory(
 		{
 			code: 'TW',
 			period: '2026-01',
 			riskClass: '1',
-			people: [{ key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' }]
+			people: [
+				{
+					key: 'TW-60000',
+					wage: 60_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+					}
+				}
+			]
 		},
 		(world) => {
 			world.jurisdiction_holidays.push(holiday('2026-01-01', '開國紀念日'));
@@ -518,24 +568,30 @@ test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 do
 		'DAILY_WORK_LIMIT_EXCEEDED: TW-60000 worked 13.00 hours on 2026-01-13, above the 12-hour daily limit. ' +
 			'The run will still be built; correct the attendance for that day, or record why the hours stand.'
 	]);
-	// Every insurance reads BASE + OVERTIME: 60,000 + 7,583.35 = 67,583.35 insures at the 69,800
-	// grade — 勞退 4,188, NHI 3,608.66 → 1,082.60 → 1,083 / 3,377.71 → 3,378, 職災 174.50 → 175; the
-	// 5% election is on the whole payment, 3,379.17. (勞保條例 §14 declares the grade on the
-	// 月薪資總額 and re-declares it when wages change; the month-by-month reading is the sealed
-	// approximation — README NOT APPLIED #16.)
+	// 勞保條例 §14 / 勞退條例 §14 / 健保法 §19: the insured amount is the declared grade of the
+	// contractual monthly wage, 60,000, and a month's overtime does not re-declare it — each
+	// scheme is assessed on its grade itself: 勞退 60,800 × 6% = 3,648; NHI 60,800 × 5.17% × 30%
+	// = 943.01 → 943, the insuring unit's 60,800 × 5.17% × 60% × 1.56 = 2,942.28 → 2,942; 職災
+	// 60,800 × 0.25% = 152. Income tax reads the whole payment: the 5% election, 3,379.17.
 	assert.equal(slip.gross, 67_583.35);
-	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [67_583.35, 0, 4188]);
-	assert.deepEqual(charge(slip, 'NHI'), [67_583.35, 1083, 3378]);
-	assert.deepEqual(charge(slip, 'OCC_INJURY'), [67_583.35, 0, 175]);
+	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [60_800, 0, 3648]);
+	assert.deepEqual(charge(slip, 'NHI'), [60_800, 943, 2942]);
+	assert.deepEqual(charge(slip, 'OCC_INJURY'), [60_800, 0, 152]);
 	assert.deepEqual(charge(slip, 'INCOME_TAX'), [67_583.35, 3379.17, 0]);
-	assert.deepEqual(charge(slip, 'LI'), [67_583.35, 1053, 3687]);
+	assert.deepEqual(charge(slip, 'LI'), [45_800, 1053, 3687]); // the 勞保 ceiling grade
 	// net = gross − every employee leg; employer cost = Σ employer legs (settle.ts).
-	assert.equal(slip.total_deductions, 5607.17); // 1,053 + 92 + 1,083 + 3,379.17
-	assert.equal(slip.net, 61_976.18); // 67,583.35 − 5,607.17
-	// 健保法 §34: the employer's supplementary premium, 2.11% of the month's pay above the insured
-	// amount — 7,583.35 × 2.11% = 160 — rides beside the five schemes.
-	assert.deepEqual(charge(slip, 'NHI_SUPPLEMENT'), [67_583.35, 0, 160]);
-	assert.equal(slip.employer_cost, 11_909); // 3,687 + 321 + 3,378 + 4,188 + 175 + 160
+	assert.equal(slip.total_deductions, 5467.17); // 1,053 + 92 + 943 + 3,379.17
+	assert.equal(slip.net, 62_116.18); // 67,583.35 − 5,467.17
+	// 健保法 §34: the insuring unit's supplementary premium is 2.11% of the month's total pay
+	// above the insured amounts, netted over the establishment — a company-scope charge on no
+	// payslip: (67,583.35 − 60,800) × 2.11% = 143.13 → 143. The insured's own supplement (§31) is
+	// on a bonus over four times the grade, and there is none this month.
+	assert.deepEqual(companyCharges.get('NHI_SUPPLEMENT_EMPLOYER'), [67_583.35, 143]);
+	assert.equal(
+		slip.statutory.find((row) => row.scheme_code === 'NHI_SUPPLEMENT'),
+		undefined
+	);
+	assert.equal(slip.employer_cost, 10_750); // 3,687 + 321 + 2,942 + 3,648 + 152; the §34 levy rides on the run
 });
 
 test('Taiwan — a part month prorates on calendar days, an allowance with it, and 事假 leaves the allowance whole', () => {
@@ -547,7 +603,14 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 			period: '2026-01',
 			riskClass: '1',
 			people: [
-				{ key: 'TW-WHOLE', wage: 40_000, citizenship: 'CITIZEN' },
+				{
+					key: 'TW-WHOLE',
+					wage: 40_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+					}
+				},
 				{ key: 'TW-NPL', wage: 40_000, citizenship: 'CITIZEN' },
 				{ key: 'TW-JOINER', wage: 40_000, citizenship: 'CITIZEN', hire_date: '2026-01-16' },
 				{ key: 'TW-LEAVER', wage: 40_000, citizenship: 'CITIZEN', exit_date: '2026-01-15' }
@@ -664,9 +727,10 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	assert.deepEqual([absence.quantity, absence.amount], [1, 1290.32]);
 	assert.equal(slips.get('TW-NPL')!.gross, 40_000 - 1290.32 + 3100);
 	// 勞基法 §2(3): a recurring 交通津貼 is 工資, so it is in the insured wage and the taxable pay:
-	// the 事假 month insures 38,709.68 + 3,100 = 41,809.68 at grade 42,000 (× 11.5% = 4,830 →
-	// 966 / 3,381), and the whole month's 薪資所得 is 43,100.
-	assert.deepEqual(charge(slips.get('TW-NPL')!, 'LI'), [41_809.68, 966, 3381]);
+	// the contractual 40,000 + 3,100 = 43,100 insures at grade 43,900 (× 11.5% = 5,048.50 →
+	// 1,010 / 3,534), and a day of 事假 does not re-declare the grade; the whole month's 薪資所得
+	// is 43,100.
+	assert.deepEqual(charge(slips.get('TW-NPL')!, 'LI'), [43_900, 1010, 3534]);
 	// 43,100 of 薪資所得 is over the 5% election's threshold, so 2,155 is withheld where 40,000 alone was not.
 	assert.deepEqual(charge(slips.get('TW-WHOLE')!, 'INCOME_TAX'), [43_100, 2155, 0]);
 
@@ -681,14 +745,14 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	// together, each scheme rounded once from the rate after the day fraction: 勞保 40,100 × 11.5%
 	// × 20% × 16/30 = 491.89 → 492 and × 70% = 1,721.63 → 1,722; 就保 40,100 × 1% × 20% × 16/30 =
 	// 42.77 → 43 and × 70% = 149.71 → 150.
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LI'), [43_100, 539, 1885]);
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'EI'), [43_100, 47, 164]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LI'), [43_900, 539, 1885]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'EI'), [43_900, 47, 164]);
 	// 勞退條例 §14 on the same thirty-day month: 40,100 × 6% = 2,406 × 16/30 = 1,283.2 → 1,283.
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LABOR_PENSION'), [43_100, 0, 1405]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LABOR_PENSION'), [43_900, 0, 1405]);
 	// 健保法 §30: a whole-month premium at the declared grade, billed to the unit the person is
 	// insured with at month end — the joiner's employer pays January whole (622 / 1,940), the
 	// leaver's pays nothing and carries no 健保 row at all.
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'NHI'), [43_100, 681, 2124]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'NHI'), [43_900, 681, 2124]);
 	assert.equal(
 		slips.get('TW-LEAVER')!.statutory.find((entry) => entry.scheme_code === 'NHI'),
 		undefined
@@ -696,9 +760,9 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	// The leaver's fifteen enrolled days — BLI's 15-day row at 40,100 is 501 / 1,754 combined
 	// (Files/24807): 勞保 461.15 → 461 / 1,614.025 → 1,614; 就保 40.1 → 40 / 280.7 × ½ = 140.35 →
 	// 140, where the whole-month row 281 halved would round to 141; 勞退 2,406 × 15/30 = 1,203.
-	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LI'), [43_100, 505, 1767]);
-	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'EI'), [43_100, 44, 154]);
-	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LABOR_PENSION'), [43_100, 0, 1317]);
+	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LI'), [43_900, 505, 1767]);
+	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'EI'), [43_900, 44, 154]);
+	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LABOR_PENSION'), [43_900, 0, 1317]);
 });
 
 test('every sealed version of `TW` is priced by a golden here', () => {
@@ -721,11 +785,19 @@ test('Taiwan — a part-timer insures at the part-time grades, the worker’s vo
 				citizenship: 'CITIZEN',
 				registrations: {
 					LABOR_PENSION: { kind: 'REGISTERED', elections: { voluntary_rate: 6 } },
-					INCOME_TAX: { kind: 'REGISTERED', elections: { table_withholding: true } }
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: false } }
 				}
 			},
 			// A foreigner who has declared residency (183 days present) is withheld as a resident.
-			{ key: 'TW-DOMICILED', wage: 50_000, citizenship: 'FOREIGNER', tax_residency: 'RESIDENT' }
+			{
+				key: 'TW-DOMICILED',
+				wage: 50_000,
+				citizenship: 'FOREIGNER',
+				tax_residency: 'RESIDENT',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			}
 		]
 	});
 	// 12,000 sits in the 12,540 part-time grade: 勞保 12,540 × 11.5% × 20% = 288 / × 70% = 1,009;
@@ -763,10 +835,10 @@ test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,
 	) as { from: number; to: number; withhold: number[] }[];
 	const rung = contributionSchemes('TW')
 		.find((row) => row.code === 'INCOME_TAX' && row.settings_id === settingsVersions('TW')[1]!.id)!
-		.rules.find((row) => row.employee.includes('table_withholding'))!.employee;
+		.rules.find((row) => row.employee.includes('five_percent_withholding'))!.employee;
 	const context = (base: number, dependants: number) => ({
 		base,
-		scheme: { elections: { table_withholding: true }, rate_override: 0 },
+		scheme: { elections: { five_percent_withholding: false }, rate_override: 0 },
 		person: { employee: { dependents_count: dependants } },
 		produced: { LABOR_PENSION: { employee: 0 } }
 	});

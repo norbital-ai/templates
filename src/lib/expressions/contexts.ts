@@ -134,6 +134,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'children.count', description: 'Recorded children on the rule date' },
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
 	{ path: 'children.citizens', description: 'Children recorded as citizens' },
+	{ path: 'children.citizens_under(n)', description: 'Of them, those under n completed years' },
 	{ path: 'company.region', description: 'Employing entity region' },
 	{ path: 'company.headcount', description: 'Active employments in the entity' },
 	{ path: 'company.headcount_citizens', description: 'Of them, the citizens' },
@@ -235,7 +236,7 @@ const PERSON_BLANK = {
 		ordinary_hours_per_week: 0,
 		working_days_per_week: 0
 	},
-	children: { count: 0, ages: [], citizens: 0 },
+	children: { count: 0, ages: [], citizens: 0, citizen_ages: [] },
 	company: { region: '', headcount: 1, headcount_citizens: 1, facts: {} },
 	wage_floor: 0,
 	period: { working_days: 22, unpaid_days: 0 },
@@ -363,7 +364,12 @@ const PRODUCED_FIELDS: readonly ContextField[] = [
 		description:
 			'The employee share charged this period alone, floored at zero — the relief a per-period withholding table subtracts'
 	},
-	{ path: 'employer', description: 'The employer share' }
+	{ path: 'employer', description: 'The employer share' },
+	{
+		path: 'base',
+		description:
+			'The base the producer was charged on this period — a graded insured amount another scheme measures against; on the company site, the sum over the run'
+	}
 ];
 
 const producedFields = (prefix: string): ContextField[] =>
@@ -633,7 +639,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			since_months: 0,
 			elections: {}
 		},
-		produced: { EPF: { employee: 0, employee_this_period: 0, employer: 0 } },
+		produced: { EPF: { base: 0, employee: 0, employee_this_period: 0, employer: 0 } },
 		BASE: 0,
 		OVERTIME: 0,
 		NIGHT_PREMIUM: 0,
@@ -672,7 +678,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			since_months: 0,
 			elections: {}
 		},
-		produced: { EPF: { employee: 0, employee_this_period: 0, employer: 0 } },
+		produced: { EPF: { base: 0, employee: 0, employee_this_period: 0, employer: 0 } },
 		base: 0
 	}
 };

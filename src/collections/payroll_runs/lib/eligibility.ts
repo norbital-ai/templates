@@ -22,7 +22,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
 import { completedMonths, completedYears } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
-import { childUnder } from '../../../lib/expressions/child-under.js';
+import { childCitizensUnder, childUnder } from '../../../lib/expressions/child-under.js';
 import { roundMoney } from './rounding.js';
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
@@ -116,6 +116,8 @@ export type PersonContext = {
 		readonly ages: readonly number[];
 		/** Children recorded as citizens of the jurisdiction (`employee_children[].citizenship`). */
 		readonly citizens: number;
+		/** Their completed years; `children.citizens_under(age)` counts these. */
+		readonly citizen_ages: readonly number[];
 	};
 	readonly company: {
 		readonly region: string;
@@ -365,7 +367,10 @@ export function personContext(input: PersonInput): PersonContext {
 		children: {
 			count: ages.length,
 			ages,
-			citizens: children.filter((child) => child.citizenship === 'CITIZEN').length
+			citizens: children.filter((child) => child.citizenship === 'CITIZEN').length,
+			citizen_ages: children
+				.filter((child) => child.citizenship === 'CITIZEN')
+				.map((child) => completedYears(dateKey(child.child_birthdate), input.asOf))
 		},
 		company: {
 			region: input.company?.region ?? '',
@@ -421,7 +426,9 @@ const engine = ROUNDING.reduce(
 		registry.registerFunction(name, `${name}(dyn): double`, (value: unknown) =>
 			roundMoney(Number(value), mode)
 		),
-	createReckonEngine().registerFunction('under', 'map.under(int): int', childUnder)
+	createReckonEngine()
+		.registerFunction('under', 'map.under(int): int', childUnder)
+		.registerFunction('citizens_under', 'map.citizens_under(int): int', childCitizensUnder)
 );
 
 function evaluate(expression: string, context: PersonContext): unknown {

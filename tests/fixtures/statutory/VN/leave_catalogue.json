@@ -38,7 +38,7 @@
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (Nghỉ ốm đau)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -46,15 +46,15 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\" && facts.SI.since_months >= 360",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] && facts.SI.since_months >= 360",
 					"days": 70
 				},
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\" && facts.SI.since_months >= 180",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] && facts.SI.since_months >= 180",
 					"days": 50
 				},
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"]",
 					"days": 40
 				},
 				{
@@ -82,8 +82,8 @@
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] && facts.SI.since_months >= 6",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -329,7 +329,7 @@
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (Nghỉ ốm đau)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -337,15 +337,15 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\" && facts.SI.since_months >= 360",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] && facts.SI.since_months >= 360",
 					"days": 70
 				},
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\" && facts.SI.since_months >= 180",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] && facts.SI.since_months >= 180",
 					"days": 50
 				},
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"]",
 					"days": 40
 				},
 				{
@@ -373,8 +373,8 @@
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] && facts.SI.since_months >= 6",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -620,7 +620,7 @@
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (Nghỉ ốm đau)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -628,15 +628,15 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\" && facts.SI.since_months >= 360",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] && facts.SI.since_months >= 360",
 					"days": 70
 				},
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\" && facts.SI.since_months >= 180",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] && facts.SI.since_months >= 180",
 					"days": 50
 				},
 				{
-					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"eligibility": "employment.classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"]",
 					"days": 40
 				},
 				{
@@ -664,8 +664,8 @@
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] && facts.SI.since_months >= 6",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
