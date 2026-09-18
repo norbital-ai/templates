@@ -228,8 +228,7 @@ test('Philippines — the night differential follows the day’s own rate', () =
 		overtimeHours: dayType === 'ORDINARY' ? 2 : 10,
 		normalHours: 8,
 		breakMinutes: 60,
-		holidayKind:
-			dayType === 'PUBLIC_HOLIDAY' || dayType === 'SPECIAL_HOLIDAY' ? dayType : '',
+		holidayKind: dayType === 'PUBLIC_HOLIDAY' || dayType === 'SPECIAL_HOLIDAY' ? dayType : '',
 		holidayName: '',
 		consecutiveHours: 4,
 		continuousAttendance: false,

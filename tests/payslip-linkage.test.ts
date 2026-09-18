@@ -609,7 +609,13 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 	const holidays = new Map([
 		[
 			'2026-03-10',
-			{ id: 'hol-s', jurisdiction_code: 'MY', date: '2026-03-10', name: 'Special', kind: 'SPECIAL_HOLIDAY' }
+			{
+				id: 'hol-s',
+				jurisdiction_code: 'MY',
+				date: '2026-03-10',
+				name: 'Special',
+				kind: 'SPECIAL_HOLIDAY'
+			}
 		]
 	]);
 	const rules = [
