@@ -33,7 +33,7 @@
 		})
 	);
 
-	type Scheme = NonNullable<typeof schemesQuery>['current'][number];
+	type Scheme = NonNullable<NonNullable<typeof schemesQuery>['current']>[number];
 	type Node = {
 		readonly row: Scheme;
 		readonly reads: readonly string[];
