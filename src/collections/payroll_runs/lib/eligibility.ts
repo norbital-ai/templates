@@ -125,6 +125,8 @@ export type PersonContext = {
 		readonly citizen_ages: readonly number[];
 		/** Each child's relief class — the declared one, else MINOR under 18 / ADULT; `children.classed(x)` counts these. */
 		readonly classes: readonly string[];
+		/** Confinements: the children's distinct dates of birth (twins are one). */
+		readonly births: number;
 	};
 	readonly company: {
 		readonly region: string;
@@ -385,7 +387,8 @@ export function personContext(input: PersonInput): PersonContext {
 				(child) =>
 					(child.relief_class ?? '').trim() ||
 					(completedYears(dateKey(child.child_birthdate), input.asOf) < 18 ? 'MINOR' : 'ADULT')
-			)
+			),
+			births: new Set(children.map((child) => dateKey(child.child_birthdate))).size
 		},
 		company: {
 			region: input.company?.region ?? '',

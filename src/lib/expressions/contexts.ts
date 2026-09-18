@@ -156,6 +156,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
 	{ path: 'children.citizens', description: 'Children recorded as citizens' },
+	{
+		path: 'children.births',
+		description:
+			'Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement)'
+	},
 	{ path: 'children.citizens_under(n)', description: 'Of them, those under n completed years' },
 	{
 		path: 'children.classed(x)',
@@ -263,7 +268,7 @@ const PERSON_BLANK = {
 		ordinary_hours_per_week: 0,
 		working_days_per_week: 0
 	},
-	children: { count: 0, ages: [], citizens: 0, citizen_ages: [], classes: [] },
+	children: { count: 0, ages: [], citizens: 0, citizen_ages: [], classes: [], births: 0 },
 	company: { region: '', headcount: 1, headcount_citizens: 1, facts: {} },
 	wage_floor: 0,
 	period: { working_days: 22, unpaid_days: 0 },

@@ -92,9 +92,9 @@ const BASIC = {
 
 const PATTERN = {
 	expectation: {
-		kind: 'GUARANTEED_SCHEDULE',
 		days_per_week: 6,
-		paid_minutes_per_week: 2700
+		minimum_paid_minutes_per_week: 2700,
+		maximum_paid_minutes_per_week: null
 	}
 };
 

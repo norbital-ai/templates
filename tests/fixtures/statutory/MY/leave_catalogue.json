@@ -54,7 +54,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 >= 90.0 ? 1.0 : 0.0)",
 		"encash_on_exit": false
 	},
 	{
@@ -271,7 +271,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 >= 90.0 ? 1.0 : 0.0)",
 		"encash_on_exit": false
 	},
 	{
@@ -488,7 +488,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 >= 90.0 ? 1.0 : 0.0)",
 		"encash_on_exit": false
 	},
 	{

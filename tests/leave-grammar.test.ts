@@ -34,7 +34,7 @@ const catalogue = (
 	});
 };
 
-test('a PER_EVENT row grants its band per entry, reads the event, and stops at the lifetime cap', () => {
+test('a PER_EVENT row grants its band per event, reads the event, and stops at the lifetime cap', () => {
 	const context = leaveContext();
 	catalogue(context, {
 		id: id(20),
@@ -54,6 +54,7 @@ test('a PER_EVENT row grants its band per entry, reads the event, and stops at t
 	const birth = (from: string, to: string, extra: Record<string, unknown> = {}) => ({
 		...timeOff(from, to),
 		event_kind: 'BIRTH',
+		event_date: from,
 		...extra
 	});
 	const plan = planLeaveActivity(
@@ -74,8 +75,26 @@ test('a PER_EVENT row grants its band per entry, reads the event, and stops at t
 				id(31)
 			)
 		),
-		/grants 5 days for this event; 6 were requested/
+		/grants 5 days for this event; 0 are already taken and this would add 6/
 	);
+	// The grant is the event's, not the entry's: a second entry for the same birth (the twin's,
+	// or the rest of the five filed apart) draws on what the first left — MSF: multiple births
+	// carry one entitlement.
+	context.entries.push({ ...plan, id: id(30), approval_id: null });
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{
+					...submission(birth('2026-03-09', '2026-03-09', { event_date: '2026-03-02' }), 'B2b'),
+					catalogue_id: id(20)
+				},
+				id(36)
+			)
+		),
+		/grants 5 days for this event; 5 are already taken and this would add 1/
+	);
+	context.entries.pop();
 	// Twins read the event: ten days.
 	assert.equal(
 		planLeaveActivity(

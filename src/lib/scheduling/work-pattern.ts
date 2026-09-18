@@ -124,12 +124,13 @@ export function patternWorkload(
 ): PatternWorkload | null {
 	if (pattern == null) return null;
 	if ('expectation' in pattern) {
-		if (pattern.expectation.kind === 'AS_ASSIGNED') return null;
+		const guaranteed = pattern.expectation.minimum_paid_minutes_per_week;
+		if (guaranteed == null) return null;
 		return {
 			work_days: pattern.expectation.days_per_week,
-			paid_minutes: pattern.expectation.paid_minutes_per_week,
+			paid_minutes: guaranteed,
 			reference_days: 7,
-			average_weekly_paid_minutes: pattern.expectation.paid_minutes_per_week
+			average_weekly_paid_minutes: guaranteed
 		};
 	}
 

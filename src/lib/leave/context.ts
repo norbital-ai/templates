@@ -271,7 +271,10 @@ export function readLeaveContext(
 						charges: true,
 						allocations: true,
 						approval_id: true,
-						payslip_id: true
+						payslip_id: true,
+						event_kind: true,
+						event_relationship: true,
+						event_date: true
 					},
 					limit: LIMIT
 				}),

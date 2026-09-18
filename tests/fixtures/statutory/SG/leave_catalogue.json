@@ -145,7 +145,7 @@
 		},
 		"is_npl": false,
 		"can_encash": false,
-		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.count >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
+		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.births >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
 		"encash_on_exit": false
 	},
 	{
@@ -491,7 +491,7 @@
 		},
 		"is_npl": false,
 		"can_encash": false,
-		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.count >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
+		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.births >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
 		"encash_on_exit": false
 	},
 	{
@@ -803,7 +803,7 @@
 		},
 		"is_npl": false,
 		"can_encash": false,
-		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.count >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
+		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.births >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
 		"encash_on_exit": false
 	},
 	{
@@ -1119,7 +1119,7 @@
 		},
 		"is_npl": false,
 		"can_encash": false,
-		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.count >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
+		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.births >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
 		"encash_on_exit": false
 	},
 	{

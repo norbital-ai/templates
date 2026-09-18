@@ -136,8 +136,8 @@ test(
 					COMPANY_ID,
 					{
 						expectation: {
-							kind: 'AS_ASSIGNED',
 							days_per_week: 5,
+							minimum_paid_minutes_per_week: null,
 							maximum_paid_minutes_per_week: null
 						}
 					},

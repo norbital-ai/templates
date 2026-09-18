@@ -782,9 +782,10 @@ test('Philippines — the statutory leave ladder on every version', () => {
 	// gynaecological-surgery leave are grants per event (RA 11210 s.3: 60 days for a miscarriage;
 	// RA 8187 s.2: the first four deliveries; RA 9710 s.18: two months per surgery).
 	const expected: Record<string, [string, [string, number][]]> = {
-		// RA 10361 s.29 gives a kasambahay the five days too, so DOMESTIC is not excluded.
+		// RA 10361 s.29 gives a kasambahay the five days on their own row (never encashed), so
+		// DOMESTIC leaves this one.
 		ANNUAL_LEAVE: [
-			'employment.classification != "MANAGERIAL" && !(terms.statutory_work_category in ["FIELD_PERSONNEL", "PAID_BY_RESULTS"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)',
+			'employment.type != "DOMESTIC" && employment.classification != "MANAGERIAL" && !(terms.statutory_work_category in ["FIELD_PERSONNEL", "PAID_BY_RESULTS"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)',
 			[['employment.service_months >= 12', 5]]
 		],
 		MATERNITY_LEAVE: [
@@ -1069,16 +1070,47 @@ test('Philippines — a minimum-wage earner’s overtime and night differential 
 			code: 'PH',
 			period: '2026-01',
 			people: [
-				// ₱15,650 is ₱600 × 313 ÷ 12: the IVA-22 floor itself, so a minimum-wage earner.
-				{ key: 'PH-MWE', wage: 15_650 },
+				// ₱13,050 is ₱600 × 261 ÷ 12: the IVA-22 floor on the five-day factor the fixture's
+				// pattern works (`wages.scale`), so a minimum-wage earner.
+				{ key: 'PH-MWE', wage: 13_050 },
 				{ key: 'PH-APPRENTICE', wage: 12_000, employment_type: 'APPRENTICE' }
 			]
 		},
 		(world) => punchPh(world, 'PH-MWE', '2026-01-05', '08:00', '20:00') // eleven net hours, three of overtime
 	);
 	// The whole compensation of a minimum-wage earner — basic, overtime, night differential — is
-	// exempt; the WTAX base is nothing and nothing is withheld.
-	expectStatutory(book, 'PH-MWE', 'WTAX', 0, 0);
+	// exempt; the WTAX base is nothing, so the scheme is skipped outright.
+	expectStatutorySkipped(book, 'PH-MWE', 'WTAX');
+	// Wage Order NCR-28 (s.2: ₱695 + ₱60 = ₱755 non-agriculture; s.7: fifteen days after its
+	// 11 September 2026 publication): from 26 September 2026 the NCR floor is 755 × 313 ÷ 12 =
+	// 19,692.92 (313 factor). A version is read at the period's end, so a ₱16,000 earner — above
+	// the NCR-26 floor on the fixture's five-day factor (₱695 × 261 ÷ 12 = 15,116.25) — is
+	// withheld on in August and is a minimum-wage earner in September, when the floor is ₱755 ×
+	// 261 ÷ 12 = 16,421.25 (RA 9504: at or below the statutory minimum).
+	assert.deepEqual(
+		settingsVersions('PH')
+			.filter((version) => String(version.effective_range.start).slice(0, 10) >= '2026-04-01')
+			.map((version) => [
+				String(version.effective_range.start).slice(0, 10),
+				version.work_rules.wages.by_region['NCR']
+			]),
+		[
+			['2026-04-01', 18_127.92],
+			['2026-09-26', 19_692.92]
+		]
+	);
+	for (const [period, withheld] of [
+		['2026-08', 1],
+		['2026-09', 0]
+	] as const) {
+		const ncr = assessStatutory({
+			code: 'PH',
+			period,
+			region: 'NCR',
+			people: [{ key: 'PH-NCR-MWE', wage: 16_000 }]
+		});
+		assert.equal((ncr.get('PH-NCR-MWE')!.get('WTAX')?.base ?? 0) > 0, withheld === 1, period);
+	}
 	// An apprentice at ₱12,000 is above three quarters of the ₱15,650 floor (₱11,737.50): no warning.
 	const { warnings } = buildStatutory({
 		code: 'PH',

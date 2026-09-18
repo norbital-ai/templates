@@ -56,9 +56,9 @@ test('one seven-day cycle normalizes a fixed five-day employment', () => {
 test('an expectation projects no cycle and states its own amount', () => {
 	const pattern = {
 		expectation: {
-			kind: 'GUARANTEED_SCHEDULE',
 			days_per_week: 3,
-			paid_minutes_per_week: 1440
+			minimum_paid_minutes_per_week: 1440,
+			maximum_paid_minutes_per_week: null
 		}
 	};
 	assert.equal(patternRosterCodeId(pattern, '2026-08-04', '2026-08-03'), null);
@@ -136,7 +136,11 @@ test('the roster codes a pattern names are listed once each; an expectation name
 	assert.deepEqual(patternRosterCodeIds(twoOnTwoOff), [DAY, OFF]);
 	assert.deepEqual(
 		patternRosterCodeIds({
-			expectation: { kind: 'AS_ASSIGNED', days_per_week: 5, maximum_paid_minutes_per_week: null }
+			expectation: {
+				days_per_week: 5,
+				minimum_paid_minutes_per_week: null,
+				maximum_paid_minutes_per_week: null
+			}
 		}),
 		[]
 	);
@@ -171,7 +175,11 @@ test('the days a week live in the pattern: a cycle averages its weeks, a declara
 	assert.equal(
 		patternDaysPerWeek(
 			{
-				expectation: { kind: 'GUARANTEED_SCHEDULE', days_per_week: 6, paid_minutes_per_week: 2700 }
+				expectation: {
+					days_per_week: 6,
+					minimum_paid_minutes_per_week: 2700,
+					maximum_paid_minutes_per_week: null
+				}
 			},
 			codes
 		),

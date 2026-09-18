@@ -364,9 +364,27 @@ export function planLeaveActivity(
 				date: fields.event_date
 			});
 			const granted = grantedDays(rule, person);
-			if (quantity > granted + 1e-9)
+			// The grant is the event's, not the entry's: a second entry for the same event — the
+			// twin's, or the rest of a grant filed in two blocks — draws on what the first left.
+			// Twins are one birth (MSF: multiple births carry one entitlement), so the event is its
+			// kind, relationship and date, not the child; an entry that names no date is its own event.
+			const sameEvent = (row: LeaveActivity) =>
+				fields.event_date != null &&
+				row.event_kind === (fields.event_kind ?? null) &&
+				row.event_relationship === (fields.event_relationship ?? null) &&
+				dateKey(row.event_date) === dateKey(fields.event_date);
+			const alreadyForEvent = activeTimeOff(sameLeave)
+				.filter(
+					(row) =>
+						row.leave_code === rules.selected.code &&
+						row.employment_id === input.employment_id &&
+						sameEvent(row)
+				)
+				.flatMap((row) => row.charges)
+				.reduce((sum, row) => sum + row.days, 0);
+			if (alreadyForEvent + quantity > granted + 1e-9)
 				refuse(
-					`${rules.selected.code} grants ${granted} days for this event; ${quantity} were requested.`
+					`${rules.selected.code} grants ${granted} days for this event; ${alreadyForEvent} are already taken and this would add ${quantity}.`
 				);
 			// Counted over the person: this employment's entries and their other employments' here.
 			const taken =
