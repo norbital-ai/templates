@@ -8,11 +8,13 @@ const columns = {
 	settings_id: true,
 	code: true,
 	name: true,
+	authority: true,
 	destination: true,
 	direction: true,
 	bands: true,
 	eligibility: true,
-	evidence: true
+	evidence: true,
+	on_separation: true
 } as const;
 
 /**

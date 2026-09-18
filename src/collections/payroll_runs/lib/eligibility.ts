@@ -23,6 +23,7 @@ import { completedMonths, completedYears } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
 import { childUnder } from '../../../lib/expressions/child-under.js';
+import { roundMoney } from './rounding.js';
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
 export type PersonContext = {
@@ -38,6 +39,8 @@ export type PersonContext = {
 		/** Recorded dependants, the count statutory relief and household schemes charge for. */
 		readonly dependents_count: number;
 		readonly solo_parent: boolean;
+		/** `employees.disabled`: a statute that grants a disabled worker more reads this. */
+		readonly disabled: boolean;
 		readonly race: string;
 		readonly religion: string;
 		/**
@@ -61,9 +64,21 @@ export type PersonContext = {
 		readonly exit_date: string;
 		/** `employments.exit_reason`, or empty while the stint is open or unrecorded. */
 		readonly exit_reason: string;
+		/**
+		 * Rostered working days with an empty punch — absent without leave — in the twelve months
+		 * to the rule date, where the caller counted them (the leave context does; payroll reads 0).
+		 * MY s.60E(1)(b) forfeits annual leave past 10% of the year's working days.
+		 */
+		readonly absent_days_12m: number;
 	};
 	readonly terms: {
 		readonly basic_salary: number;
+		/**
+		 * The basic as a month: the contracted figure for a monthly or semi-monthly contract, a
+		 * daily rate × 313 ÷ 12, an hourly rate × 8 × 313 ÷ 12, a weekly wage × 52 ÷ 12 — what a
+		 * monthly floor or ceiling is compared against.
+		 */
+		readonly monthly_basic: number;
 		/** Standing PAY allowances in force on the rule date; 0 where the caller knows none. */
 		readonly fixed_allowances: number;
 		/** Basic plus the fixed allowances: "one month's wage" where a statute says so. */
@@ -76,6 +91,14 @@ export type PersonContext = {
 		readonly department: string;
 		readonly payroll_group: string;
 		readonly grade: string;
+		/** `MONTHLY` | `SEMI_MONTHLY` | `WEEKLY` | `DAILY` | `HOURLY`: a day factor or a rest-day rule that turns on the pay basis reads this. */
+		readonly pay_frequency: string;
+		/** The foreigner's work pass (`employment_terms.pass_type`), or empty. */
+		readonly pass_type: string;
+		/** `RESIDENT` | `NON_RESIDENT` where declared on the contract, else empty: citizenship decides. */
+		readonly tax_residency: string;
+		/** Notice days the contract states, 0 when none. */
+		readonly notice_days: number;
 		/**
 		 * The working week this contract actually works, derived from the roster rather than typed.
 		 *
@@ -91,11 +114,15 @@ export type PersonContext = {
 		readonly count: number;
 		/** Completed years of each child on the rule date; `children.under(age)` counts these. */
 		readonly ages: readonly number[];
+		/** Children recorded as citizens of the jurisdiction (`employee_children[].citizenship`). */
+		readonly citizens: number;
 	};
 	readonly company: {
 		readonly region: string;
 		/** Active employments in the entity; the run supplies it where it knows one. */
 		readonly headcount: number;
+		/** Of them, the citizens; the run supplies it, else the headcount. */
+		readonly headcount_citizens: number;
 		/** Entity facts the version declares: sector, overtime consent, establishment tests. */
 		readonly facts: Readonly<Record<string, string | number | boolean>>;
 	};
@@ -105,10 +132,33 @@ export type PersonContext = {
 	 */
 	readonly wage_floor: number;
 	/** The pay month, where a rate divisor turns on it; zero outside payroll. */
-	readonly period: { readonly working_days: number };
+	readonly period: { readonly working_days: number; readonly unpaid_days: number };
+	/**
+	 * The employment's statutory facts by scheme code, where the caller supplied them: whether it
+	 * is registered and for how many completed months. A leave rule that turns on insurance years
+	 * (VN sick leave) or on a contribution test (PH maternity) reads `facts.SI.since_months`.
+	 */
+	readonly facts: Readonly<
+		Record<string, { readonly registered: boolean; readonly since_months: number }>
+	>;
+	/**
+	 * The event a per-event leave answers to, where the rule is read for one entry: empty
+	 * otherwise. A band that grants sixty days for a miscarriage and one hundred and five for a
+	 * birth reads `event.kind`; bereavement tiers read `event.relationship`.
+	 */
+	readonly event: {
+		readonly kind: string;
+		readonly relationship: string;
+		readonly child_index: number;
+		readonly date: string;
+		/** The named child's recorded citizenship, or empty. */
+		readonly child_citizenship: string;
+		/** The named child's completed years on the rule date, or -1 when no child is named. */
+		readonly child_age: number;
+	};
 };
 
-type PersonInput = {
+export type PersonInput = {
 	readonly employee: {
 		readonly gender?: string | null;
 		readonly date_of_birth?: string | null;
@@ -117,6 +167,7 @@ type PersonInput = {
 		readonly spouse_status?: string | null;
 		readonly dependents_count?: unknown;
 		readonly solo_parent?: boolean | null;
+		readonly disabled?: boolean | null;
 		readonly race?: string | null;
 		readonly religion?: string | null;
 	} | null;
@@ -126,6 +177,8 @@ type PersonInput = {
 		readonly exit_reason?: string | null;
 		/** The entity's statutory risk class, where a regime prices one. */
 		readonly risk_class?: string | null;
+		/** Unauthorised absences in the twelve months to `asOf`, where counted. */
+		readonly absent_days_12m?: number | null;
 	};
 	/** Standing PAY allowances in force on `asOf`, summed; see `fixedAllowancesOn`. */
 	readonly fixedAllowances?: number | null;
@@ -139,6 +192,10 @@ type PersonInput = {
 		readonly payroll_group?: string | null;
 		readonly grade?: string | null;
 		readonly residency_since?: string | null;
+		readonly pay_frequency?: string | null;
+		readonly pass_type?: string | null;
+		readonly tax_residency?: string | null;
+		readonly notice_days?: unknown;
 	} | null;
 	/**
 	 * The working week the roster produced, where one has been measured. Separate from `terms`
@@ -152,6 +209,7 @@ type PersonInput = {
 	readonly company?: {
 		readonly region?: string | null;
 		readonly headcount?: number | null;
+		readonly headcount_citizens?: number | null;
 		readonly facts?: Readonly<Record<string, string | number | boolean>> | null;
 	} | null;
 	/** The statutory wage comparand this run derived, where one is known. */
@@ -159,11 +217,44 @@ type PersonInput = {
 	/** The region's minimum wage where the wages order covers this person; 0 when it does not. */
 	readonly wageFloor?: number | null;
 	/** The pay month's scheduled working days, where a run knows them. */
-	readonly period?: { readonly working_days?: number | null } | null;
-	readonly children?: ReadonlyArray<{ readonly child_birthdate: string }>;
+	readonly period?: {
+		readonly working_days?: number | null;
+		readonly unpaid_days?: number | null;
+	} | null;
+	readonly children?: ReadonlyArray<{
+		readonly child_birthdate: string;
+		readonly citizenship?: string | null;
+	}>;
+	/** Statutory facts by scheme code, in force on `asOf`; absent reads as no facts. */
+	readonly facts?: ReadonlyArray<{
+		readonly code: string;
+		readonly registered: boolean;
+		readonly since?: string | null;
+	}> | null;
+	/** The event one per-event entry answers to; absent reads as none. */
+	readonly event?: {
+		readonly kind?: string | null;
+		readonly relationship?: string | null;
+		readonly child_index?: unknown;
+		readonly date?: string | null;
+	} | null;
 	/** The rule date: service, age and children are measured on it. */
 	readonly asOf: string;
 };
+
+/** A contracted basic as a month, by the cadence it is stated in. */
+function monthlyBasic(basic: number, frequency: string | null | undefined): number {
+	switch (frequency) {
+		case 'DAILY':
+			return (basic * 313) / 12;
+		case 'HOURLY':
+			return (basic * 8 * 313) / 12;
+		case 'WEEKLY':
+			return (basic * 52) / 12;
+		default:
+			return basic;
+	}
+}
 
 /** Whole calendar months between two days: the year and month difference, days ignored. */
 function wholeMonthsBetween(start: string, end: string): number {
@@ -182,10 +273,12 @@ export function personContext(input: PersonInput): PersonContext {
 	const basic = salary == null ? 0 : decodeNumber(salary.value);
 	const fixed = decodeNumber(input.fixedAllowances ?? 0);
 	const exit = dateKey(input.employment.exit_date);
-	const ages = (input.children ?? [])
-		.map((child) => dateKey(child.child_birthdate))
-		.filter((birth) => birth !== '' && birth <= input.asOf)
-		.map((birth) => completedYears(birth, input.asOf));
+	const children = (input.children ?? []).filter((child) => {
+		const birth = dateKey(child.child_birthdate);
+		return birth !== '' && birth <= input.asOf;
+	});
+	const ages = children.map((child) => completedYears(dateKey(child.child_birthdate), input.asOf));
+	const named = children[decodeNumber(input.event?.child_index ?? 0) - 1];
 	return {
 		employee: {
 			gender: input.employee?.gender ?? '',
@@ -203,6 +296,7 @@ export function personContext(input: PersonInput): PersonContext {
 			spouse_status: input.employee?.spouse_status ?? '',
 			dependents_count: decodeNumber(input.employee?.dependents_count ?? 0),
 			solo_parent: input.employee?.solo_parent === true,
+			disabled: input.employee?.disabled === true,
 			race: input.employee?.race ?? '',
 			religion: input.employee?.religion ?? '',
 			// Calendar months, not anniversary-exact ones: CPF's SPR second year begins on the first
@@ -219,10 +313,12 @@ export function personContext(input: PersonInput): PersonContext {
 			service_years: start === '' ? 0 : completedYears(start, input.asOf),
 			service_start: start,
 			exit_date: exit,
-			exit_reason: input.employment.exit_reason ?? ''
+			exit_reason: input.employment.exit_reason ?? '',
+			absent_days_12m: decodeNumber(input.employment.absent_days_12m ?? 0)
 		},
 		terms: {
 			basic_salary: basic,
+			monthly_basic: monthlyBasic(basic, input.terms?.pay_frequency),
 			fixed_allowances: fixed,
 			monthly_wage: basic + fixed,
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
@@ -231,22 +327,72 @@ export function personContext(input: PersonInput): PersonContext {
 			department: input.terms?.department ?? '',
 			payroll_group: input.terms?.payroll_group ?? '',
 			grade: input.terms?.grade ?? '',
+			pay_frequency: input.terms?.pay_frequency ?? '',
+			pass_type: input.terms?.pass_type ?? '',
+			tax_residency: input.terms?.tax_residency ?? '',
+			notice_days: decodeNumber(input.terms?.notice_days ?? 0),
 			ordinary_hours_per_week: input.week?.ordinary_hours_per_week ?? 0,
 			working_days_per_week: input.week?.working_days_per_week ?? 0
 		},
-		children: { count: ages.length, ages },
+		children: {
+			count: ages.length,
+			ages,
+			citizens: children.filter((child) => child.citizenship === 'CITIZEN').length
+		},
 		company: {
 			region: input.company?.region ?? '',
 			headcount: decodeNumber(input.company?.headcount ?? 1),
+			headcount_citizens: decodeNumber(
+				input.company?.headcount_citizens ?? input.company?.headcount ?? 1
+			),
 			facts: input.company?.facts ?? {}
 		},
 		wage_floor: decodeNumber(input.wageFloor ?? 0),
-		period: { working_days: decodeNumber(input.period?.working_days ?? 0) }
+		period: {
+			working_days: decodeNumber(input.period?.working_days ?? 0),
+			unpaid_days: decodeNumber(input.period?.unpaid_days ?? 0)
+		},
+		event: {
+			kind: input.event?.kind ?? '',
+			relationship: input.event?.relationship ?? '',
+			child_index: decodeNumber(input.event?.child_index ?? 0),
+			date: dateKey(input.event?.date),
+			child_citizenship: named?.citizenship ?? '',
+			child_age: named == null ? -1 : completedYears(dateKey(named.child_birthdate), input.asOf)
+		},
+		facts: Object.fromEntries(
+			(input.facts ?? []).map((fact) => {
+				const since = dateKey(fact.since);
+				return [
+					fact.code,
+					{
+						registered: fact.registered,
+						since_months:
+							since === '' || since > input.asOf ? 0 : completedMonths(since, input.asOf)
+					}
+				];
+			})
+		)
 	};
 }
 
 /** `children.under(n)`: see `lib/expressions/child-under.ts` for why the count is a BigInt. */
-const engine = createReckonEngine().registerFunction('under', 'map.under(int): int', childUnder);
+/** The rounding functions a person-site number may use: a seniority ladder's `floor_unit`. */
+const ROUNDING = [
+	['round_cent', 'NEAREST_CENT'],
+	['truncate_cent', 'TRUNCATE_CENT'],
+	['up_5_cents', 'UP_5_CENTS'],
+	['round_unit', 'NEAREST_UNIT'],
+	['floor_unit', 'FLOOR_UNIT'],
+	['up_to_unit', 'UP_TO_UNIT']
+] as const;
+const engine = ROUNDING.reduce(
+	(registry, [name, mode]) =>
+		registry.registerFunction(name, `${name}(dyn): double`, (value: unknown) =>
+			roundMoney(Number(value), mode)
+		),
+	createReckonEngine().registerFunction('under', 'map.under(int): int', childUnder)
+);
 
 function evaluate(expression: string, context: PersonContext): unknown {
 	const definition: ComputationDefinition = {
@@ -262,6 +408,19 @@ function evaluate(expression: string, context: PersonContext): unknown {
 			catch: (error) => error
 		})
 	).outputs.eligible;
+}
+
+/** A number over the person: a leave ladder's `days`, a wages order's `scale`. */
+export function evaluatePersonNumber(expression: string, context: PersonContext): number {
+	return decodeNumber(evaluate(expression, context));
+}
+
+/** A number over the person and one more root beside them: a leave day's `pay_fraction`. */
+export function evaluateNumberOver(
+	expression: string,
+	context: PersonContext & Record<string, unknown>
+): number {
+	return decodeNumber(evaluate(expression, context));
 }
 
 /** Whether the person satisfies the expression. `''` is everyone. */

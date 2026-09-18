@@ -40,6 +40,13 @@ export const workLimitValueSchema = Schema.Struct({
 	 * figure directly.
 	 */
 	unit: Schema.Literals(['WORKED_HOURS', 'CLOCK_HOURS']),
+	/**
+	 * Who the limit governs, over the person; absent or empty is everyone. A sector's own yearly
+	 * ceiling (VN art.107(3): 300 hours) or a consented variant (TW §32(2): 54 a month) is a limit
+	 * with a predicate, judged per person at the roster gate and at payroll; a pattern, which
+	 * belongs to no one person, is judged against the unconditional limits only.
+	 */
+	when: Schema.optionalKey(Schema.String),
 	authority: Schema.optionalKey(Schema.String)
 });
 export type WorkLimit = Schema.Schema.Type<typeof workLimitValueSchema>;
@@ -104,12 +111,40 @@ export const workRulesValueSchema = Schema.Struct({
 	ordinary_divisor_days: cel,
 	/** Boolean over the person: who the overtime ladder covers. Empty is everyone. */
 	overtime_when: Schema.String,
+	/**
+	 * The statute's normal day in hours, over the person; absent or empty is the shift's own
+	 * length. A shift longer than it is a normal day plus overtime (MY s.60A(1): 8, or 9 under
+	 * the proviso's 45-hour week; SG s.38(1): 9 on a week of five days or fewer, else 8; PH
+	 * art.83: 8). A shift shorter than it is the normal day.
+	 */
+	normal_hours: Schema.optionalKey(Schema.String),
 	bands: Schema.Array(workRateBandValueSchema),
 	limits: Schema.Array(workLimitValueSchema),
 	breaks: Schema.Array(workBreakValueSchema),
 	weekly_rest_rule: Schema.Struct({
 		max_consecutive_work_days: Schema.Int.check(Schema.isGreaterThan(0)),
-		discharged_by: Schema.Literals(['REST', 'REST_OR_OFF'])
+		discharged_by: Schema.Literals(['REST', 'REST_OR_OFF']),
+		/**
+		 * Leave codes whose approved days suspend the rule (MY s.59(1A): a rest day is not owed
+		 * while on maternity, sick or disablement leave): a day under such leave breaks the run
+		 * of worked days the way a rest day does. Absent is none.
+		 */
+		suspended_by_leave: Schema.optionalKey(Schema.Array(Schema.String)),
+		/**
+		 * The averaging arm: a run longer than the ceiling stands where the `days`-day span ending
+		 * on its last day still holds `rest_days` rest days (VN art.111(1): at least four a month
+		 * where the work cannot be weekly). Absent is a strict weekly ceiling.
+		 */
+		average: Schema.optionalKey(
+			Schema.NullOr(
+				Schema.Struct({
+					days: Schema.Int.check(Schema.isGreaterThan(0)),
+					rest_days: Schema.Int.check(Schema.isGreaterThan(0)),
+					/** Who the arm applies to, over the person (an entity fact for the work cycles that cannot rest weekly); absent is everyone. */
+					when: Schema.optionalKey(Schema.String)
+				})
+			)
+		)
 	}),
 	/** The instrument the rules transcribe; quoted by refusals. */
 	authority: Schema.optionalKey(Schema.String),
@@ -149,7 +184,15 @@ export const workRulesValueSchema = Schema.Struct({
 			...rules.breaks.flatMap((brk, index) => [
 				faultIn(brk.when, 'work_day', 'boolean', `Break ${index + 1}`),
 				faultIn(brk.owed_minutes, 'work_day', 'minutes', `Break ${index + 1} owed minutes`)
-			])
+			]),
+			(rules.normal_hours ?? '').trim() === ''
+				? null
+				: faultIn(rules.normal_hours ?? '', 'person', 'hours', 'Normal hours'),
+			...rules.limits.map((limit) =>
+				(limit.when ?? '').trim() === ''
+					? null
+					: faultIn(limit.when ?? '', 'person', 'boolean', `Limit ${limit.key}`)
+			)
 		];
 		return faults.find((fault) => fault != null) ?? true;
 	})

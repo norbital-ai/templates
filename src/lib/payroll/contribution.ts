@@ -167,6 +167,7 @@ import {
 	type PayrollWindow
 } from '../../collections/payroll_runs/lib/period.js';
 import {
+	evaluatePersonNumber,
 	isEligible,
 	personContext,
 	type PersonContext
@@ -200,7 +201,11 @@ export function assessCompanyContributions(options: {
 		employee: null,
 		employment: { service_start: '' },
 		terms: null,
-		company: { ...configuration.company, headcount: gathered.headcount },
+		company: {
+			...configuration.company,
+			headcount: gathered.headcount,
+			headcount_citizens: gathered.headcountCitizens
+		},
 		asOf: window.salary.end
 	});
 	const covered = minimumWageCovers(configuration, entity);
@@ -309,6 +314,45 @@ export function minimumWageCovers(
 	return isEligible(configuration.jurisdiction.wages?.applies_when ?? '', person);
 }
 
+/** The share of the region's wage this person's floor is (`wages.scale`; absent is the whole). */
+function minimumWageScale(
+	configuration: Pick<Configuration, 'jurisdiction'>,
+	person: PersonContext
+): number {
+	const scale = (configuration.jurisdiction.wages?.scale ?? '').trim();
+	return scale === '' ? 1 : evaluatePersonNumber(scale, person);
+}
+
+/**
+ * A leaver whose final pay falls due before this run's pay date (`payroll.final_pay_due_days`).
+ * A warning: the run still pays on its date, and the operator reads who is owed sooner.
+ */
+export function finalPayIssues(options: {
+	readonly configuration: Configuration;
+	readonly bundles: readonly EmploymentBundle[];
+	readonly payDate: string;
+}): RunIssue[] {
+	const due = options.configuration.jurisdiction.payroll.final_pay_due_days;
+	if (due == null) return [];
+	const issues: RunIssue[] = [];
+	for (const bundle of options.bundles) {
+		const exit = employmentDates(bundle.employment).exit;
+		if (exit == null) continue;
+		const deadline = addDays(exit, due);
+		if (options.payDate <= deadline) continue;
+		issues.push({
+			code: 'FINAL_PAY_LATE',
+			severity: 'WARNING',
+			message:
+				`${bundle.employment.employee_number} left on ${exit}; the final pay is due within ${due} ` +
+				`days, by ${deadline}, and this run pays on ${options.payDate}.`,
+			collection: 'employments',
+			recordId: bundle.employment.id
+		});
+	}
+	return issues;
+}
+
 /**
  * A covered person contracted below the region's minimum wage. A warning, not a refusal: the
  * payroll still pays what the contract says, and the operator reads who is underpaid against
@@ -330,7 +374,6 @@ export function minimumWageIssues(options: {
 			bundle.terms.at(-1);
 		if (term == null) continue;
 		const basic = decodeNumber((term.base_salary as { value?: unknown } | null)?.value ?? 0);
-		if (!(basic < wage)) continue;
 		const person = personContext({
 			employee: bundle.employee,
 			employment: stint(bundle.employment),
@@ -341,11 +384,13 @@ export function minimumWageIssues(options: {
 			asOf
 		});
 		if (!minimumWageCovers(configuration, person)) continue;
+		// A daily or hourly rate is compared as the month it makes (313 days ÷ 12).
+		if (!(person.terms.monthly_basic < wage * minimumWageScale(configuration, person))) continue;
 		issues.push({
 			code: 'MINIMUM_WAGE_BELOW',
 			severity: 'WARNING',
 			message:
-				`${bundle.employment.employee_number} is contracted at ${basic} a month, below the ` +
+				`${bundle.employment.employee_number} is contracted at ${person.terms.monthly_basic} a month, below the ` +
 				`${configuration.company.region ?? ''} minimum wage of ${wage} the version states. ` +
 				'The run pays the contract; raise the terms or record why the wage stands.',
 			collection: 'employment_terms',
@@ -371,7 +416,8 @@ export function prepareContributionAssessment(options: {
 	readonly projection: ContractAssessment['calculation']['projection'];
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
 	readonly headcount: number;
-	/** component code → what this employee's earlier paid payslips earned this tax year. */
+	readonly headcountCitizens?: number;
+	/** component code → what this employee's earlier payslips earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, number>;
 }): ContractAssessment {
 	const { measured, configuration, projection, headcount } = options;
@@ -393,15 +439,29 @@ export function prepareContributionAssessment(options: {
 			bundle.terms.at(-1) ??
 			null,
 		children: bundle.children,
-		company: { ...configuration.company, headcount },
-		// The pay month's working days, so a scheme can count the unpaid ones (VN art.33(5)).
-		period: { working_days: measured.periodWorkingDays },
+		company: {
+			...configuration.company,
+			headcount,
+			headcount_citizens: options.headcountCitizens ?? headcount
+		},
+		// The pay month's working days and the employed ones it did not pay, so a scheme can count
+		// the days without wages (VN art.33(5): fourteen or more in the month contribute nothing).
+		period: { working_days: measured.periodWorkingDays, unpaid_days: measured.periodUnpaidDays },
+		facts: configuration.contributions.map((scheme) => {
+			const status = facts.get(scheme.row.id);
+			return {
+				code: scheme.row.code,
+				registered: status?.kind === 'REGISTERED',
+				since: status?.kind === 'REGISTERED' ? (status.since ?? null) : null
+			};
+		}),
 		asOf
 	});
 	const covered = minimumWageCovers(configuration, person);
-	// The floor is the region's wage where the order covers this person, and 0 where it does not;
-	// the person root carries both, so a formula may read either.
-	const floor = covered ? (minimumWage ?? 0) : 0;
+	// The floor is the region's wage where the order covers this person — at the order's own share
+	// of it for an apprentice — and 0 where it does not; the person root carries both, so a formula
+	// may read either.
+	const floor = covered ? (minimumWage ?? 0) * minimumWageScale(configuration, person) : 0;
 	const startMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
 	const bounds = taxYearBounds(bundle.window.period, startMonth);
 	const dates = employmentDates(bundle.employment);
@@ -416,7 +476,8 @@ export function prepareContributionAssessment(options: {
 		window: bundle.window,
 		calculation: {
 			accumulation: accumulatePayslip({
-				items: [...measured.base, ...measured.adjustments]
+				items: [...measured.base, ...measured.adjustments],
+				ordinaryHour: measured.ordinaryHourlyRate
 			}),
 			contributions: configuration.contributions,
 			facts,

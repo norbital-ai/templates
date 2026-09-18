@@ -73,6 +73,7 @@
 						{/if}
 						<Field name="code" label={t('component.code')} />
 						<Field name="name" label={t('component.name')} />
+						<Field name="authority" label={t('component.authority')} />
 						<Field name="destination" label={t('component.destination')} />
 						{#if takesDirection(form.values().destination)}
 							<Field name="direction" label={t('component.direction')} />
@@ -118,6 +119,11 @@
 					<p class="text-meta">{t('component.catalogue_section_limits_hint')}</p>
 					<Grid gap="md" minimum="card">
 						<Field name="evidence" label={t('component.evidence')} />
+						<Field
+							name="on_separation"
+							label={t('component.on_separation')}
+							description={t('component.on_separation_hint')}
+						/>
 						<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
 					</Grid>
 				</Stack>

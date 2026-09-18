@@ -59,6 +59,10 @@ const children = {
 				evidence: true,
 				is_npl: true,
 				can_encash: true,
+				pay_fraction: true,
+				paid_by: true,
+				consumes_code: true,
+				unit: true,
 				evidence_after_days: true,
 				entitlement: true
 			}
@@ -97,11 +101,13 @@ const children = {
 			columns: {
 				code: true,
 				name: true,
+				authority: true,
 				destination: true,
 				direction: true,
 				bands: true,
 				eligibility: true,
-				evidence: true
+				evidence: true,
+				on_separation: true
 			}
 		}
 	}

@@ -137,10 +137,10 @@ test('the payroll engine measures two rehire contracts but charges one contribut
  * second time, single-use entries paid twice, year-to-date reset to nothing. The history is the
  * paid slips, and it is read off them.
  */
-test('a half-paid earlier run still contributes the slips that were paid', async () => {
+test('a person’s held earlier slip is history the next period stands on', async () => {
 	const world = rehireWorld();
-	// One earlier run, reading DRAFT because a colleague is still held, holding this person's
-	// paid slip.
+	// One earlier run, reading DRAFT because this person is still held. The slip counts: it
+	// cannot be deleted from under the next period's slip, and it is paid before that slip is.
 	world.payroll_runs.push({
 		id: 'january',
 		company_id: COMPANY_ID,
@@ -148,25 +148,14 @@ test('a half-paid earlier run still contributes the slips that were paid', async
 		lifecycle: 'DRAFT'
 	});
 	world.payslips.push({
-		id: 'january-paid',
+		id: 'january-held',
 		payroll_run_id: 'january',
 		employment_id: EMPLOYMENT_ID,
 		base: [],
 		adjustments: [],
-		paid_at: '2026-01-31',
-		statutory: [
-			{ scheme_code: 'PUB-FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
-		]
-	});
-	world.payslips.push({
-		id: 'january-held',
-		payroll_run_id: 'january',
-		employment_id: 'colleague-contract',
-		base: [],
-		adjustments: [],
 		paid_at: null,
 		statutory: [
-			{ scheme_code: 'PUB-FIXED', employee_amount: 99, employer_amount: 99, base_amount: 9999 }
+			{ scheme_code: 'PUB-FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
 		]
 	});
 	const prepared = await Effect.runPromise(
@@ -175,19 +164,19 @@ test('a half-paid earlier run still contributes the slips that were paid', async
 	assert.deepEqual(
 		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB-FIXED`),
 		{ employee: 30, employer: 60, base: 1000 },
-		'the paid slip is history even though its run reads DRAFT'
+		'the held slip is history: February is paid only after it is'
 	);
 });
 
-test('rehire gathers prior paid YTD across old contracts while excluding another entity and drafts', async () => {
+test('rehire gathers prior YTD across old contracts while excluding another entity', async () => {
 	const world = rehireWorld();
 	world.employments.push({
 		...world.employments[0],
 		id: 'other-entity-contract',
 		company_id: 'other-company'
 	});
-	// History is the *slip's* payment, not the run's summary. `old-draft` contributes nothing
-	// because its slip was never paid, which is the same guarantee the old lifecycle filter gave.
+	// History is every slip of the person at this company: the unpaid `old-draft` slip counts,
+	// because nothing can delete it from under February and it is paid before February is.
 	for (const [id, company, lifecycle, paid_at] of [
 		['old-paid', COMPANY_ID, 'PAID', '2026-01-31'],
 		['old-draft', COMPANY_ID, 'DRAFT', null],
@@ -209,11 +198,11 @@ test('rehire gathers prior paid YTD across old contracts while excluding another
 	const prepared = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-02' })
 	);
-	assert.deepEqual(prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB-FIXED`), {
-		employee: 30,
-		employer: 60,
-		base: 1000
-	});
+	assert.deepEqual(
+		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB-FIXED`),
+		{ employee: 60, employer: 120, base: 2000 },
+		'the paid and the unpaid slip of this company count; the other entity’s does not'
+	);
 	assert.deepEqual(
 		prepared.gathered.bundles.map((bundle) => bundle.employment.id),
 		['new-contract']

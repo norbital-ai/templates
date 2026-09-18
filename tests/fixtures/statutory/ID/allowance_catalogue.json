@@ -679,5 +679,176 @@
 				"limit": null
 			}
 		]
+	},
+	{
+		"id": "2cbb52d9-ae7d-5bb4-a459-731cc93799c1",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PESANGON",
+		"name": "Uang pesangon (severance pay)",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : 1.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "0497b4dd-be21-52c8-b1f2-87a7df6b3275",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "UPMK",
+		"name": "Uang penghargaan masa kerja (service award)",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"] && employment.service_months >= 36",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 36 ? 0.0 : person.employment.service_months < 72 ? 2.0 : person.employment.service_months < 108 ? 3.0 : person.employment.service_months < 144 ? 4.0 : person.employment.service_months < 180 ? 5.0 : person.employment.service_months < 216 ? 6.0 : person.employment.service_months < 252 ? 7.0 : person.employment.service_months < 288 ? 8.0 : 10.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "c746e6e3-c341-56aa-9004-1ee481f71f07",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PKWT_COMPENSATION",
+		"name": "Uang kompensasi PKWT (fixed-term compensation)",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends.",
+		"eligibility": "employment.type == \"CONTRACT\" && employment.exit_reason == \"END_OF_CONTRACT\" && employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "c7c0212e-551f-5349-bb41-77fe682a24ed",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "PESANGON",
+		"name": "Uang pesangon (severance pay)",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : 1.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "4c2f2cbe-49e3-5e93-b246-6f7efa5a1263",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "UPMK",
+		"name": "Uang penghargaan masa kerja (service award)",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"] && employment.service_months >= 36",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 36 ? 0.0 : person.employment.service_months < 72 ? 2.0 : person.employment.service_months < 108 ? 3.0 : person.employment.service_months < 144 ? 4.0 : person.employment.service_months < 180 ? 5.0 : person.employment.service_months < 216 ? 6.0 : person.employment.service_months < 252 ? 7.0 : person.employment.service_months < 288 ? 8.0 : 10.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "c173c367-fbd7-5f19-9307-eb5f71c9b693",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "PKWT_COMPENSATION",
+		"name": "Uang kompensasi PKWT (fixed-term compensation)",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends.",
+		"eligibility": "employment.type == \"CONTRACT\" && employment.exit_reason == \"END_OF_CONTRACT\" && employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "ec6e7587-3175-5004-9cb8-1fb3c56b4cd2",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "PESANGON",
+		"name": "Uang pesangon (severance pay)",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : 1.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "1ed91405-a972-5865-b8be-86f68f9dafe5",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "UPMK",
+		"name": "Uang penghargaan masa kerja (service award)",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\"] && employment.service_months >= 36",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 36 ? 0.0 : person.employment.service_months < 72 ? 2.0 : person.employment.service_months < 108 ? 3.0 : person.employment.service_months < 144 ? 4.0 : person.employment.service_months < 180 ? 5.0 : person.employment.service_months < 216 ? 6.0 : person.employment.service_months < 252 ? 7.0 : person.employment.service_months < 288 ? 8.0 : 10.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "36b35377-87c7-526c-afdd-0e69ef598fa7",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "PKWT_COMPENSATION",
+		"name": "Uang kompensasi PKWT (fixed-term compensation)",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends.",
+		"eligibility": "employment.type == \"CONTRACT\" && employment.exit_reason == \"END_OF_CONTRACT\" && employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		]
 	}
 ]

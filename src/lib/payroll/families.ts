@@ -174,7 +174,9 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			calendarMonthOvertimeHours: new Map(),
 			currency,
 			schedule: new Map(),
-			periodWorkingDays: 0
+			limits: [],
+			periodWorkingDays: 0,
+			periodUnpaidDays: 0
 		};
 	}
 	const work = prepareWorkContext({ bundle, configuration, salary: options.salary, employed });
@@ -419,7 +421,9 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		calendarMonthOvertimeHours,
 		currency,
 		schedule,
-		periodWorkingDays: subject.period.working_days
+		limits: workAttendance.limits,
+		periodWorkingDays: subject.period.working_days,
+		periodUnpaidDays: unpaidDaysIn(options.salary)
 	};
 }
 
@@ -649,7 +653,7 @@ export function prepareFamilyHistory(
 }
 
 /**
- * What each employee's earlier paid payslips earned this tax year, by component code: the base
+ * What each employee's earlier payslips earned this tax year, by component code: the base
  * lines and every earning or non-wage payment adjustment. The year axis a scheduled
  * occurrence's amount and a base entry's annual exemption read.
  */
@@ -712,7 +716,7 @@ function yearContextOf(input: {
 }
 
 /**
- * Regulated overtime hours earlier PAID payslips settled: employee id → calendar month → hours.
+ * Regulated overtime hours earlier payslips settled: employee id → calendar month → hours.
  * Regulated is ordinary/off-day overtime — the same counter the monthly ceiling reads — identified
  * by the OVERTIME line the band carries. Rest-day and holiday work is outside every hours ceiling.
  */
@@ -859,6 +863,7 @@ export function calculateFamilyAssessments(options: {
 			projection,
 			yearToDate: gathered.yearToDate,
 			headcount: gathered.headcount,
+			headcountCitizens: gathered.headcountCitizens,
 			yearEarned
 		})
 	}));

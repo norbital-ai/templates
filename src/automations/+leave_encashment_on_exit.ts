@@ -1,7 +1,9 @@
 import { defineAutomation, refuse, type AutomationApi } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { stint } from '../lib/employment-contract.js';
-import { readLeaveContext } from '../lib/leave/context.js';
+import { personAt, readLeaveContext, type LeaveContext } from '../lib/leave/context.js';
+import { settingsInForce } from '../lib/jurisdiction_settings.js';
+import { isEligible } from '../collections/payroll_runs/lib/eligibility.js';
 import { exitEncashments, NO_AUTOMATIC_ENCASHMENT_EXIT } from '../lib/leave/exit-encashment.js';
 import { leaveBalanceSummaries } from '../lib/leave/summary.js';
 
@@ -51,19 +53,76 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 			),
 			reason: `Unused leave on departure ${exit_date}; raised for HR review.`
 		});
-		if (submissions.length === 0)
+		// The payments the law owes on separation: every `on_separation` allowance row of the
+		// version in force on the last day whose eligibility holds over the leaver then, raised as
+		// one standing row on that day (its band prices the amount from the person), unless a row
+		// of that catalogue already stands on the day.
+		const separation = yield* separationPayments(api, context, employmentId, exit_date);
+		if (submissions.length === 0 && separation.length === 0)
 			return { employment_id: employmentId, status: 'nothing_to_encash' as const, raised: [] };
-		yield* api.progress({ progress: 0.6, text: `Raising ${submissions.length} encashment(s)` });
-		const rows = yield* api.collection.leave_entries.createMany(submissions);
+		yield* api.progress({
+			progress: 0.6,
+			text: `Raising ${submissions.length} encashment(s), ${separation.length} separation payment(s)`
+		});
+		const rows =
+			submissions.length === 0 ? [] : yield* api.collection.leave_entries.createMany(submissions);
+		if (separation.length > 0) yield* api.collection.allowances.createMany(separation);
 		return {
 			employment_id: employmentId,
 			status: 'raised' as const,
-			raised: rows.map((row) => ({
-				code: row.leave_code,
-				days: row.encash_days ?? 0,
-				reference: row.reference
-			}))
+			raised: [
+				...rows.map((row) => ({
+					code: row.leave_code,
+					days: row.encash_days ?? 0,
+					reference: row.reference
+				})),
+				...separation.map((row) => ({ code: row.reason, days: 0, reference: row.reason }))
+			]
 		};
+	});
+
+/** The separation-pay rows the version owes this leaver, as allowance rows to create. */
+const separationPayments = (
+	api: AutomationApi,
+	context: LeaveContext,
+	employmentId: string,
+	exitDate: string
+) =>
+	Effect.gen(function* () {
+		const employment = context.employments.find((row) => row.id === employmentId);
+		const company = context.companies.find((row) => row.id === employment?.company_id);
+		if (employment == null || company == null) return [];
+		const version = settingsInForce(context.versions, company.settings_code, exitDate);
+		if (version == null) return [];
+		const [catalogue, standing] = yield* Effect.all([
+			api.db.allowance_catalogue.findMany({
+				where: { settings_id: { eq: version.id }, on_separation: { eq: true } },
+				columns: { id: true, code: true, eligibility: true },
+				limit: 200
+			}),
+			api.db.allowances.findMany({
+				where: { employment_id: { eq: employmentId } },
+				columns: { catalogue_id: true, effective_from: true },
+				limit: 2000
+			})
+		]);
+		if (catalogue.length === 0) return [];
+		return catalogue.flatMap((row) => {
+			if (standing.some((existing) => existing.catalogue_id === row.id)) return [];
+			if (!isEligible(row.eligibility, personAt(context, employmentId, exitDate))) return [];
+			return [
+				{
+					employment_id: employmentId,
+					catalogue_id: row.id,
+					amount: 0,
+					effective_from: exitDate,
+					effective_to: exitDate,
+					reason: `${row.code} on departure ${exitDate}; raised for HR review.`,
+					evidence_file: null,
+					as_adjustment_entry: false
+				}
+			];
+		});
 	});
 
 export default defineAutomation(
@@ -76,7 +135,7 @@ export default defineAutomation(
 		output: OutputSchema,
 		policies: ['leave_encashment_on_exit_automation'],
 		description:
-			'When an employment contract closes, raises one ENCASHMENT leave entry per encashable leave type for the leaver’s unused balance on the last day, held for the HR Manager to approve into the next payroll or reject. Keyed per contract, so it never raises twice; a dismissal raises nothing.',
+			'When an employment contract closes, raises one ENCASHMENT leave entry per encashable leave type for the leaver’s unused balance on the last day, and one standing row per separation payment the version owes them (termination benefits, severance, notice in lieu), all held for the HR Manager to approve into the next payroll or reject. Keyed per contract, so it never raises twice; a dismissal raises no encashment.',
 		handler: (api, { args, scope }) =>
 			runLeaveEncashmentOnExit(api, args.employment_id ?? scope.incoming_record.id)
 	}

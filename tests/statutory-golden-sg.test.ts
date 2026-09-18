@@ -370,7 +370,14 @@ const holiday = (date: string, name: string) => ({
 	approval_id: null
 });
 /** A punch from `start` to `end` on `date`, in the jurisdiction's own +08:00 frame. */
-const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+const punch = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	end: string,
+	requestedBy: 'EMPLOYER' | 'EMPLOYEE' | null = null
+) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
@@ -378,6 +385,20 @@ const punch = (world: PayrollWorld, key: string, date: string, start: string, en
 		work_date: date,
 		shift_definition_id: null,
 		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		requested_by: requestedBy,
+		approval_id: null
+	});
+};
+/** A day read and found empty: the calendar's own record of a day nobody worked. */
+const emptyDay = (world: PayrollWorld, key: string, date: string) => {
+	const employment = world.employments.find((row) => row.employee_number === key)!;
+	world.work_days.push({
+		id: `wd-${key}-${date}`,
+		employment_id: employment.id,
+		work_date: date,
+		shift_definition_id: null,
+		worked_intervals: [],
+		requested_by: null,
 		approval_id: null
 	});
 };
@@ -471,6 +492,156 @@ test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day
 	assert.equal(slips.get('SG-CLERK-OVER')!.gross, 2860);
 	assert.deepEqual(workLines(slips.get('SG-WORKMAN-OVER')!), []);
 	assert.equal(slips.get('SG-WORKMAN-OVER')!.gross, 4576);
+});
+
+test('Singapore — s.38(1) caps the normal week at 44 hours, and a rest-day hour is paid whole or part (s.37(3)(c)(ii))', () => {
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			// A non-workman at $2,288: 12.00 an hour (Fourth Schedule), and on a six-day week
+			// 12 × 2,288 ÷ (52 × 6) = 88.00 a day (Third Schedule).
+			people: [{ key: 'SG-SIX-DAY', wage: 2288, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			// Six 8-hour days a week: the contract's normal week is 48 hours, four beyond s.38(1).
+			const pattern = world.shift_patterns[0]!;
+			const [monday, , , , , , sunday] = pattern.pattern.days;
+			pattern.pattern = { days: [monday!, monday!, monday!, monday!, monday!, monday!, sunday!] };
+			world.employment_terms[0]!.agreed_days_per_week = 6;
+			for (const day of ['05', '06', '07', '08', '09', '10'])
+				punch(world, 'SG-SIX-DAY', `2026-01-${day}`, '09:00', '18:00'); // eight hours net
+			punch(world, 'SG-SIX-DAY', '2026-01-11', '09:00', '18:15'); // Sunday rest day: 9h15
+		}
+	);
+	// Monday to Saturday are each a normal 8-hour day; the 45th to 48th hour of the week fall on
+	// Saturday and are overtime of that day at s.38(4)'s 1.5×: 4 × 12.00 × 1.5 = 72.00. The rest
+	// day: 9h15 with no shift is all work, two days' pay for the first eight (176.00), and the
+	// 1h15 beyond the normal day is "each hour or part thereof" — two hours × 12.00 × 1.5 = 36.00.
+	assert.deepEqual(workLines(slips.get('SG-SIX-DAY')!), [
+		['2026-01-10', 'OT-1.5X', 4, 72],
+		['2026-01-11', 'OT-1.5X', 1.25, 36],
+		['2026-01-11', 'OT-2.0X', 8, 176]
+	]);
+	assert.equal(slips.get('SG-SIX-DAY')!.gross, 2288 + 72 + 36 + 176);
+});
+
+test('Singapore — rest-day work at the employee’s request pays half (s.37(2)), and a holiday on a non-working day pays a day (s.88)', () => {
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			// $2,288: 12.00 an hour, 105.60 a day on a five-day week.
+			people: [{ key: 'SG-REQ', wage: 2288, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			// Saturday is the five-day week's OFF day (neither a working day nor the rest day).
+			const OFF = 'c0000000-0000-4000-8000-0000000000d4';
+			world.shift_definitions.push({
+				...world.shift_definitions[1]!,
+				id: OFF,
+				code: 'OFF',
+				name: 'Off',
+				variant: { kind: 'OFF' }
+			});
+			world.shift_patterns[0]!.pattern.days[5] = { roster_code_id: OFF };
+			world.jurisdiction_holidays.push(holiday('2026-01-10', 'A Saturday holiday'));
+			punch(world, 'SG-REQ', '2026-01-04', '09:00', '16:00'); // Sunday, the employer's
+			punch(world, 'SG-REQ', '2026-01-11', '09:00', '13:00', 'EMPLOYEE'); // Sunday, four hours
+			punch(world, 'SG-REQ', '2026-01-18', '09:00', '16:00', 'EMPLOYEE'); // Sunday, seven hours
+			// Saturday the 10th is the OFF day and a public holiday: the day is read and found empty,
+			// and the calendar raises the extra day's salary.
+			emptyDay(world, 'SG-REQ', '2026-01-10');
+		}
+	);
+	// s.37(2)(a): up to half the normal hours at the employee's request, half a day's pay = 52.80;
+	// (b) more than half, one day's = 105.60. s.37(3)(b) at the employer's: two days' = 211.20.
+	// s.88: the Saturday holiday on a non-working day is an extra day's salary, 105.60.
+	assert.deepEqual(workLines(slips.get('SG-REQ')!), [
+		['2026-01-04', 'OT-2.0X', 7, 211.2],
+		['2026-01-10', 'PH-NON-WORKING-DAY', 0, 105.6],
+		['2026-01-11', 'OT-0.5X', 4, 52.8],
+		['2026-01-18', 'OT-1.0X', 7, 105.6]
+	]);
+});
+
+test('Singapore — the normal day is nine hours on a five-day week (s.38(1)), a longer shift is a normal day plus overtime', () => {
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [{ key: 'SG-LONG', wage: 2288, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			// A ten-hour shift, 09:00–20:00 with an hour's break, on the five-day week: the normal
+			// day is s.38(1)'s nine, so the tenth hour of every day is overtime.
+			world.shift_definitions[0]!.variant = {
+				kind: 'WORK',
+				start_time: '09:00',
+				end_time: '20:00',
+				break_minutes: 60
+			};
+			punch(world, 'SG-LONG', '2026-01-05', '09:00', '20:00');
+		}
+	);
+	// 12 × 2,288 ÷ (52 × 44) = 12.00 an hour; one hour beyond nine at 1.5× = 18.00.
+	assert.deepEqual(workLines(slips.get('SG-LONG')!), [['2026-01-05', 'OT-1.5X', 1, 18]]);
+});
+
+test('Singapore — a bonus is an Additional Wage under the 102,000 ceiling, and an Employment Pass holder is inside SINDA', () => {
+	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [
+				{ key: 'SG-BONUS', wage: 6000, citizenship: 'CITIZEN' },
+				{
+					key: 'SG-EP',
+					wage: 4000,
+					citizenship: 'FOREIGNER',
+					race: 'INDIAN',
+					pass_type: 'EMPLOYMENT_PASS'
+				},
+				{
+					key: 'SG-WP',
+					wage: 4000,
+					citizenship: 'FOREIGNER',
+					race: 'INDIAN',
+					pass_type: 'WORK_PERMIT'
+				}
+			]
+		},
+		(world) => {
+			const bonus = world.allowance_catalogue.find(
+				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
+			)!;
+			const employment = world.employments.find((row) => row.employee_number === 'SG-BONUS')!;
+			world.allowances.push({
+				id: 'd0000000-0000-4000-8000-0000000000b0',
+				employment_id: employment.id,
+				catalogue_id: bonus.id,
+				amount: 120_000,
+				effective_from: '2026-01-01',
+				effective_to: '2026-01-31',
+				reason: 'annual bonus',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+		}
+	);
+	// Ordinary Wages 6,000 under the 8,000 ceiling; the 120,000 bonus is an Additional Wage
+	// capped at 102,000 less the Ordinary Wages of the year to date (none before January): the
+	// CPF base is 108,000. 20% = 21,600 (floored); 37% = 39,960; employer 18,360.
+	assert.deepEqual(scheme(slips.get('SG-BONUS')!, 'CPF'), [108_000, 21_600, 18_360]);
+	// SINDA reaches an Employment Pass holder of Indian descent ($4,000: the "over $2,500 up to
+	// $4,500" rung, $7) and not a Work Permit holder.
+	assert.deepEqual(scheme(slips.get('SG-EP')!, 'SINDA'), [4000, 7, 0]);
+	assert.equal(
+		slips.get('SG-WP')!.statutory.find((row) => row.scheme_code === 'SINDA'),
+		undefined
+	);
 });
 
 test('Singapore — s.20A prices an incomplete month and an unpaid day on the month’s working days', () => {

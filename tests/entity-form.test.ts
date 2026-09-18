@@ -212,12 +212,15 @@ test('the terms fields are Pay, Shift assignment, Standing, Organisation and Per
 		'employment_type',
 		'grade',
 		'job_title',
+		'notice_days',
+		'pass_type',
 		'pay_frequency',
 		'payroll_group',
 		'residency_since',
 		'residency_status',
 		'shift_pattern_id',
 		'statutory_work_category',
+		'tax_residency',
 		'work_classification'
 	]);
 	assert.deepEqual(sectionTitles(fields), [

@@ -68,8 +68,14 @@ test('a spent balance, a posted exit reference, a non-encashable row or a non-an
 });
 
 /** The automation's api over one in-memory context: reads answer from it, writes are recorded. */
-const harness = (context: LeaveContext, exitReason: string | null) => {
+const harness = (
+	context: LeaveContext,
+	exitReason: string | null,
+	separation: readonly Record<string, unknown>[] = [],
+	standing: readonly Record<string, unknown>[] = []
+) => {
 	const writes: Record<string, unknown>[] = [];
+	const raisedAllowances: Record<string, unknown>[] = [];
 	const employment = {
 		...context.employments[0]!,
 		employee_number: 'E-1',
@@ -91,9 +97,20 @@ const harness = (context: LeaveContext, exitReason: string | null) => {
 			shift_patterns: rows(context.patterns),
 			shift_definitions: rows(context.shifts),
 			jurisdiction_holidays: rows([]),
-			payslips: rows([])
+			payslips: rows([]),
+			statutory_contributions: rows([]),
+			employment_statutory_facts: rows([]),
+			allowance_catalogue: rows(separation),
+			allowances: rows(standing)
 		},
 		collection: {
+			allowances: {
+				createMany: (inputs: Record<string, unknown>[]) =>
+					Effect.sync(() => {
+						raisedAllowances.push(...inputs);
+						return inputs;
+					})
+			},
 			leave_entries: {
 				createMany: (inputs: Record<string, unknown>[]) =>
 					Effect.sync(() => {
@@ -108,13 +125,19 @@ const harness = (context: LeaveContext, exitReason: string | null) => {
 			}
 		}
 	} as unknown as Parameters<typeof runLeaveEncashmentOnExit>[0];
-	return { api, writes };
+	return { api, writes, raisedAllowances };
 };
-const run = (context: LeaveContext, exitReason: string | null) => {
-	const { api, writes } = harness(context, exitReason);
+const run = (
+	context: LeaveContext,
+	exitReason: string | null,
+	separation: readonly Record<string, unknown>[] = [],
+	standing: readonly Record<string, unknown>[] = []
+) => {
+	const { api, writes, raisedAllowances } = harness(context, exitReason, separation, standing);
 	return Effect.runPromise(runLeaveEncashmentOnExit(api, id(1))).then((result) => ({
 		result,
-		writes
+		writes,
+		raisedAllowances
 	}));
 };
 
@@ -145,4 +168,39 @@ test('closing a contract raises the held encashment once; a dismissal or an open
 	const open = await run(leaveContext(), null);
 	assert.equal(open.result.status, 'open');
 	assert.equal(open.writes.length, 0);
+});
+
+test('off-boarding raises the separation payments the version owes the leaver, once, where their eligibility holds', async () => {
+	const rows = [
+		{
+			id: id(95),
+			code: 'TERMINATION_BENEFIT',
+			eligibility: 'employment.exit_reason == "REDUNDANCY" && employment.service_months >= 12'
+		},
+		{ id: id(96), code: 'NOTICE_IN_LIEU', eligibility: 'terms.notice_days > 0' }
+	];
+	// A leaver made redundant after a year: the termination benefit is owed, notice in lieu is
+	// not (the contract states no notice), and the encashment rides beside it.
+	const redundant = await run(closed(leaveContext()), 'REDUNDANCY', rows);
+	assert.equal(redundant.result.status, 'raised');
+	assert.deepEqual(
+		redundant.raisedAllowances.map((row) => [
+			row.catalogue_id,
+			row.effective_from,
+			row.effective_to,
+			row.amount
+		]),
+		[[id(95), EXIT, EXIT, 0]]
+	);
+	assert.deepEqual(
+		redundant.result.raised.map((row) => row.code),
+		['ANNUAL', `TERMINATION_BENEFIT on departure ${EXIT}; raised for HR review.`]
+	);
+	// A resignation owes neither; and a row already standing on the day is not raised again.
+	const resigned = await run(closed(leaveContext()), 'RESIGNATION', rows);
+	assert.deepEqual(resigned.raisedAllowances, []);
+	const again = await run(closed(leaveContext()), 'REDUNDANCY', rows, [
+		{ catalogue_id: id(95), effective_from: EXIT }
+	]);
+	assert.deepEqual(again.raisedAllowances, []);
 });

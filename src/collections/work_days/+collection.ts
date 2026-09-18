@@ -17,6 +17,7 @@ import {
 } from '../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 import {
+	applicableLimits,
 	plannedDay,
 	projectedLimitBreaches,
 	projectionBounds,
@@ -24,6 +25,7 @@ import {
 	type SchedulePlanDay
 } from '../../lib/scheduling/work-limits.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
+import { isEligible, personContext } from '../payroll_runs/lib/eligibility.js';
 import {
 	assertNotCaptured,
 	assertNotSettled,
@@ -200,15 +202,25 @@ export default defineCollection({
 									where: { id: { in: employmentIds } },
 									columns: { id: true, company_id: true, employee_number: true },
 									// The lineage rides the employment, so the entity is one source, not a
-									// company query of its own.
-									with: { employment_company: { columns: { id: true, settings_code: true } } },
+									// company query of its own; its facts decide a conditional limit.
+									with: {
+										employment_company: {
+											columns: { id: true, settings_code: true, region: true, facts: true }
+										}
+									},
 									limit: employmentIds.length
 								}),
 						none
 							? Effect.succeed([])
 							: db.employment_terms.findMany({
 									where: { employment_id: { in: employmentIds } },
-									columns: { employment_id: true, shift_pattern_id: true, effective_range: true },
+									columns: {
+										employment_id: true,
+										shift_pattern_id: true,
+										effective_range: true,
+										employment_type: true,
+										work_classification: true
+									},
 									limit: QUERY_LIMIT
 								}),
 						none
@@ -239,6 +251,7 @@ export default defineCollection({
 									},
 									columns: {
 										employment_id: true,
+										leave_code: true,
 										from_date: true,
 										to_date: true,
 										half_day_start: true,
@@ -481,7 +494,22 @@ export default defineCollection({
 					// The hour ceilings are a schedule gate too: a pattern or roster whose projection
 					// breaches any limit is refused here. Payroll still reports an attendance overrun
 					// and prices it; a plan the law forbids is never written.
-					const limits = version.work_rules?.limits ?? [];
+					// A conditional limit is judged over what the gate knows of the person: the
+					// contract's type and classification and the entity's facts.
+					const judged = termsByEmployment
+						.get(employmentId)
+						?.find((candidate) => coversDate(candidate.effective_range, firstChange.work_date));
+					const entity = employmentById.get(employmentId)?.employment_company;
+					const limits = applicableLimits(
+						version.work_rules?.limits ?? [],
+						personContext({
+							employee: null,
+							employment: { service_start: '' },
+							terms: judged ?? null,
+							company: entity == null ? null : { region: entity.region, facts: entity.facts },
+							asOf: firstChange.work_date
+						})
+					);
 					if (limits.length > 0) {
 						const window = projectionBounds(
 							own.map((change) => change.work_date),
@@ -540,6 +568,24 @@ export default defineCollection({
 						plannedByDate.set(storedKey.slice(employmentId.length + 1), shiftId);
 					}
 					for (const change of own) plannedByDate.set(change.work_date, change.shift_definition_id);
+					// A day under leave the rule names (maternity, sick) is no worked day: it suspends
+					// the rest-day count the way a rest day discharges it.
+					const suspendedDates = new Set<string>();
+					const suspending = new Set(rule.suspended_by_leave ?? []);
+					if (suspending.size > 0)
+						for (const request of leaveByEmployment.get(employmentId) ?? [])
+							if (
+								suspending.has(request.leave_code) &&
+								request.from_date != null &&
+								request.to_date != null
+							)
+								for (
+									let date = dateKey(request.from_date);
+									date <= dateKey(request.to_date);
+									date = addDays(date, 1)
+								)
+									if (leaveCoverage(request, date).fullDay) suspendedDates.add(date);
+					const averageWhen = (rule.average?.when ?? '').trim();
 					assertRunHasRestDay({
 						employeeNumber,
 						rule,
@@ -549,7 +595,20 @@ export default defineCollection({
 						changedDates: new Set(own.map((change) => change.work_date)),
 						terms: termsByEmployment.get(employmentId) ?? [],
 						patternById,
-						codeKindById
+						codeKindById,
+						suspendedDates,
+						averaging:
+							averageWhen === '' ||
+							isEligible(
+								averageWhen,
+								personContext({
+									employee: null,
+									employment: { service_start: '' },
+									terms: judged ?? null,
+									company: entity == null ? null : { region: entity.region, facts: entity.facts },
+									asOf: firstChange.work_date
+								})
+							)
 					});
 					// The break obligation is a schedule gate: a plan whose shift grants less break
 					// than the rules owe is refused here, never priced around at payroll.

@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import model from './+model.js';
 import { compileEligibility } from '../payroll_runs/lib/eligibility.js';
+import { compileExpression } from '../../lib/expressions/compile.js';
 import { refuseUnlessDraftOnBoth, versionsById } from '../../lib/settings_seal.js';
 
 const columns = {
@@ -13,6 +14,10 @@ const columns = {
 	evidence: true,
 	is_npl: true,
 	can_encash: true,
+	pay_fraction: true,
+	paid_by: true,
+	consumes_code: true,
+	unit: true,
 	evidence_after_days: true,
 	entitlement: true
 } as const;
@@ -48,7 +53,25 @@ export default defineCollection({
 					for (const band of row.entitlement?.bands ?? []) {
 						const bandProblem = compileEligibility(band.eligibility);
 						if (bandProblem != null) refuse(`Entitlement band: ${bandProblem}`);
+						if (typeof band.days === 'string') {
+							const daysProblem = compileExpression({
+								expression: band.days,
+								site: 'person',
+								type: 'days'
+							});
+							if (daysProblem != null) refuse(`Entitlement days: ${daysProblem}`);
+						}
 					}
+					if ((row.pay_fraction ?? '').trim() !== '') {
+						const fractionProblem = compileExpression({
+							expression: row.pay_fraction,
+							site: 'leave_day',
+							type: 'number'
+						});
+						if (fractionProblem != null) refuse(`Pay fraction: ${fractionProblem}`);
+					}
+					if (row.consumes_code != null && row.consumes_code === row.code)
+						refuse('A leave row cannot draw from its own pool; leave `consumes_code` empty.');
 					return input;
 				})
 		)

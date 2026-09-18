@@ -1,3 +1,4 @@
+import { EMPTY_OF } from '../../../lib/expressions/compile.js';
 import type { HolidaySnapshot } from '../../../datatypes/holiday_snapshots/+definition.js';
 /**
  * Resolve the governing settings and family definitions once for the run. Holidays publish
@@ -206,7 +207,17 @@ export function pickConfiguration(
 		);
 
 		const configuration = {
-			company,
+			// Every fact the version declares reads as its type's empty until the entity states it:
+			// a rule may name `company.facts.<key>` without guarding it.
+			company: {
+				...company,
+				facts: {
+					...Object.fromEntries(
+						(jurisdiction.facts ?? []).map((fact) => [fact.key, EMPTY_OF[fact.type]])
+					),
+					...(company.facts ?? {})
+				}
+			},
 			jurisdiction,
 			lineageVersions: live(versionRows),
 			...familyConfiguration,
@@ -288,7 +299,16 @@ function configurationSnapshot(
 			observation: configuration.holidays.get(date) ?? null
 		})),
 		leave_catalogue: configuration.catalogueLeaves
-			.map((row) => [row.code, row.entitlement, row.is_npl, row.can_encash])
+			.map((row) => [
+				row.code,
+				row.entitlement,
+				row.is_npl,
+				row.can_encash,
+				row.pay_fraction,
+				row.paid_by,
+				row.consumes_code,
+				row.unit
+			])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// Codes are configuration because their polymorphic variant decides whether a scheduled day
 		// is work, protected rest or another off day, and a WORK code owns its clock window.

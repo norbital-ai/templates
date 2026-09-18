@@ -17,6 +17,8 @@ export type LeaveEntryActivity = {
 	readonly half_day_start?: boolean | null;
 	readonly half_day_end?: boolean | null;
 	readonly days?: number | null;
+	/** Hours, on a row taken by the hour; null elsewhere. */
+	readonly hours?: number | null;
 	readonly encash_days?: number | null;
 	/** The reversal marker; a plain row it is absent or false. */
 	readonly as_adjustment_entry?: boolean;
@@ -28,6 +30,10 @@ export type LeaveEntryActivity = {
 	readonly available_from?: string | null;
 	readonly expires_on?: string | null;
 	readonly reason?: string | null;
+	readonly event_kind?: string | null;
+	readonly event_relationship?: string | null;
+	readonly event_child_index?: number | null;
+	readonly event_date?: string | null;
 	readonly charges?: readonly LeaveCharge[];
 };
 
@@ -63,7 +69,8 @@ export function normaliseLeaveDays<T extends LeaveEntryActivity>(row: T): T {
 		destination_from: leaveDayOf(row.destination_from),
 		destination_to: leaveDayOf(row.destination_to),
 		available_from: leaveDayOf(row.available_from),
-		expires_on: leaveDayOf(row.expires_on)
+		expires_on: leaveDayOf(row.expires_on),
+		event_date: leaveDayOf(row.event_date)
 	} as T;
 }
 
@@ -76,6 +83,7 @@ export function normaliseLeaveDays<T extends LeaveEntryActivity>(row: T): T {
 		half_day_start: false,
 		half_day_end: false,
 		days: null,
+		hours: null,
 		encash_days: null,
 		as_adjustment_entry: false,
 		reversal_of_id: null,
@@ -85,7 +93,11 @@ export function normaliseLeaveDays<T extends LeaveEntryActivity>(row: T): T {
 		destination_to: null,
 		available_from: null,
 		expires_on: null,
-		reason: null
+		reason: null,
+		event_kind: null,
+		event_relationship: null,
+		event_child_index: null,
+		event_date: null
 	} as const;
 }
 
@@ -97,6 +109,7 @@ export function emptyActivityFields() {
 		half_day_start: null,
 		half_day_end: null,
 		days: null,
+		hours: null,
 		encash_days: null,
 		as_adjustment_entry: false,
 		reversal_of_id: null,
@@ -106,6 +119,10 @@ export function emptyActivityFields() {
 		destination_to: null,
 		available_from: null,
 		expires_on: null,
-		reason: null
+		reason: null,
+		event_kind: null,
+		event_relationship: null,
+		event_child_index: null,
+		event_date: null
 	} as const;
 }

@@ -223,11 +223,12 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 
 	// 28,590 is the first grade of this version, where 29,500 is the first grade of the next.
 	// Labour insurance 11.5%, split 20% insured / 70% insured unit: 28,590 × 11.5% = 3,287.85 →
-	// 657.57 → 658 / 2,301.50 → 2,302 (against 679 / 2,375 on the 民國115年 floor grade).
-	expectStatutory(book, 'TW-28590', 'LI', 658, 2302);
+	// 657.57 → 658 / 2,301.495 → 2,301 (against 679 / 2,375 on the 民國115年 floor grade); the
+	// Bureau's 114年 table (Files/24813, 30-day row) prints 658 / 2,301.
+	expectStatutory(book, 'TW-28590', 'LI', 658, 2301);
 	// Employment insurance 1% on the same ladder and split: 285.90 → 57.18 → 57 / 200.13 → 200.
 	// BLI's 114年 combined row for 28,590 is 715 / 2,501 (still printed as a part-time grade on
-	// the 115年 table): 658 + 57 and 2,302 + 200 (Files/25697).
+	// the 115年 table): 658 + 57 and 2,301 + 200 (Files/25697).
 	expectStatutory(book, 'TW-28590', 'EI', 57, 200);
 	// Health insurance 5.17%, insured 30%, insured unit 60% × (1 + 0.56): 28,590 × 5.17% =
 	// 1,478.10 → 443.43 → 443, and 1,478.10 × 0.936 = 1,383.50 → 1,384.
@@ -528,7 +529,10 @@ test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 do
 	// net = gross − every employee leg; employer cost = Σ employer legs (settle.ts).
 	assert.equal(slip.total_deductions, 5607.17); // 1,053 + 92 + 1,083 + 3,379.17
 	assert.equal(slip.net, 61_976.18); // 67,583.35 − 5,607.17
-	assert.equal(slip.employer_cost, 11_749); // 3,687 + 321 + 3,378 + 4,188 + 175
+	// 健保法 §34: the employer's supplementary premium, 2.11% of the month's pay above the insured
+	// amount — 7,583.35 × 2.11% = 160 — rides beside the five schemes.
+	assert.deepEqual(charge(slip, 'NHI_SUPPLEMENT'), [67_583.35, 0, 160]);
+	assert.equal(slip.employer_cost, 11_909); // 3,687 + 321 + 3,378 + 4,188 + 175 + 160
 });
 
 test('Taiwan — a part month prorates on calendar days, an allowance with it, and 事假 leaves the allowance whole', () => {
@@ -664,8 +668,9 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	// The part month. 勞保施行細則 §28-1 counts the premium per enrolled day on a thirty-day month at
 	// the DECLARED grade, 40,100 — the contract's 40,000, never the prorated 20,645.16 that would
 	// fall to the floor grade. BLI Files/25697, 16-day row: 勞工 535 / 單位 1,872 for 勞保+就保
-	// together, each scheme rounded on its own: 勞保 922 × 16/30 = 491.73 → 492 and 3,228 × 16/30 =
-	// 1,721.6 → 1,722; 就保 80 × 16/30 = 42.67 → 43 and 281 × 16/30 = 149.87 → 150.
+	// together, each scheme rounded once from the rate after the day fraction: 勞保 40,100 × 11.5%
+	// × 20% × 16/30 = 491.89 → 492 and × 70% = 1,721.63 → 1,722; 就保 40,100 × 1% × 20% × 16/30 =
+	// 42.77 → 43 and × 70% = 149.71 → 150.
 	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LI'), [40_000, 492, 1722]);
 	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'EI'), [40_000, 43, 150]);
 	// 勞退條例 §14 on the same thirty-day month: 40,100 × 6% = 2,406 × 16/30 = 1,283.2 → 1,283.
@@ -678,9 +683,11 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 		slips.get('TW-LEAVER')!.statutory.find((entry) => entry.scheme_code === 'NHI'),
 		undefined
 	);
-	// The leaver's fifteen enrolled days: 勞保 922 × 15/30 = 461 / 3,228 × 15/30 = 1,614; 勞退
-	// 2,406 × 15/30 = 1,203.
+	// The leaver's fifteen enrolled days — BLI's 15-day row at 40,100 is 501 / 1,754 combined
+	// (Files/24807): 勞保 461.15 → 461 / 1,614.025 → 1,614; 就保 40.1 → 40 / 280.7 × ½ = 140.35 →
+	// 140, where the whole-month row 281 halved would round to 141; 勞退 2,406 × 15/30 = 1,203.
 	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LI'), [40_000, 461, 1614]);
+	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'EI'), [40_000, 40, 140]);
 	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LABOR_PENSION'), [40_000, 0, 1203]);
 });
 
@@ -689,4 +696,41 @@ test('every sealed version of `TW` is priced by a golden here', () => {
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
 	// by nothing and stays green.
 	assertEveryVersionPriced('TW');
+});
+
+test('Taiwan — a part-timer insures at the part-time grades, the worker’s voluntary pension is outside tax, and the table election withholds nothing under NT$90,501', () => {
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		people: [
+			{ key: 'TW-PART', wage: 12_000, citizenship: 'CITIZEN', employment_type: 'PART_TIME' },
+			{
+				key: 'TW-VOL',
+				wage: 40_000,
+				citizenship: 'CITIZEN',
+				registrations: {
+					LABOR_PENSION: { kind: 'REGISTERED', elections: { voluntary_rate: 6 } },
+					INCOME_TAX: { kind: 'REGISTERED', elections: { table_withholding: true } }
+				}
+			},
+			// A foreigner who has declared residency (183 days present) is withheld as a resident.
+			{ key: 'TW-DOMICILED', wage: 50_000, citizenship: 'FOREIGNER', tax_residency: 'RESIDENT' }
+		]
+	});
+	// 12,000 sits in the 12,540 part-time grade: 勞保 12,540 × 11.5% × 20% = 288 / × 70% = 1,009;
+	// 就保 12,540 × 1% × 20% = 25 / 88; 勞退 12,540 × 6% = 752.
+	expectStatutory(book, 'TW-PART', 'LI', 288, 1009);
+	expectStatutory(book, 'TW-PART', 'EI', 25, 88);
+	expectStatutory(book, 'TW-PART', 'LABOR_PENSION', 0, 752);
+	// 勞退條例 §14(3): a 6% voluntary contribution on the 40,100 grade, 2,406, beside the employer's.
+	expectStatutory(book, 'TW-VOL', 'LABOR_PENSION', 2406, 2406);
+	// The table election: 40,000 a month annualises to 480,000, under the 464,000 exemption and
+	// deductions by too little to reach NT$2,000 a month — nothing is withheld, where the 5%
+	// election would have taken 2,000 (less the voluntary contribution, §14(4)).
+	expectStatutory(book, 'TW-VOL', 'INCOME_TAX', 0, 0);
+	// 所得稅法 §7(3): a foreigner resident 183 days is withheld on the resident ladder, 5% of
+	// 50,000 = 2,500, not the non-resident 18%.
+	expectStatutory(book, 'TW-DOMICILED', 'INCOME_TAX', 2500, 0);
+	assert.equal(book.get('TW-DOMICILED')!.get('INCOME_TAX_NON_RESIDENT'), undefined);
 });

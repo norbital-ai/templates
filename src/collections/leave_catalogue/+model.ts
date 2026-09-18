@@ -35,6 +35,30 @@ export default defineModel(
 		/** An unpaid day is deducted at the ordinary day wage as `NO_PAY_LEAVE`. */
 		is_npl: boolean().notNull().default(false),
 		/**
+		 * The share of the day wage the employer pays for a day of this leave, over the person and
+		 * the leave (`leave.month_index`, `leave.day_index`, `leave.days`): `0.5` is half pay (TW
+		 * 病假), `leave.month_index <= 4 ? 1.0 : leave.month_index <= 8 ? 0.75 : …` the Indonesian
+		 * sick scale. Empty is the whole wage, or none where `is_npl`; the unpaid share is deducted
+		 * as `NO_PAY_LEAVE`.
+		 */
+		pay_fraction: text().notNull().default(''),
+		/**
+		 * Who pays the leave: the employer through payroll, or a social-insurance FUND outside it
+		 * (VN sick, maternity and paternity). A FUND day is no wage from the employer — deducted
+		 * like an unpaid day and counted among the month's unpaid days — and the employer's claim
+		 * on the fund is not a payroll line.
+		 */
+		paid_by: enums(['EMPLOYER', 'FUND']).notNull().default('EMPLOYER'),
+		/**
+		 * The leave code whose pool a day of this leave also draws from: hospitalisation leave that
+		 * includes the outpatient days (SG s.89), family-care leave counted inside personal leave
+		 * (TW 性平法 §20), joint leave set against annual leave (ID cuti bersama). Null draws from
+		 * this row alone.
+		 */
+		consumes_code: text(),
+		/** The unit the leave is taken in: whole and half days, or hours (TW from 2026-01-01). */
+		unit: enums(['DAY', 'HOUR']).notNull().default('DAY'),
+		/**
 		 * Whether the remaining balance of this row may be encashed. A statute that makes a row
 		 * non-convertible says so here; an `is_npl` row is never encashable.
 		 */

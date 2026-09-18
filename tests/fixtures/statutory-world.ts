@@ -105,7 +105,16 @@ export type Person = {
 		>
 	>;
 	/** The cadence the contract is paid on; `MONTHLY` unless stated. */
-	readonly pay_frequency?: 'MONTHLY' | 'SEMI_MONTHLY';
+	readonly pay_frequency?: 'MONTHLY' | 'SEMI_MONTHLY' | 'DAILY' | 'HOURLY';
+	readonly employment_type?: string;
+	readonly pass_type?: string | null;
+	readonly tax_residency?: string | null;
+	readonly disabled?: boolean;
+	/** Recorded children with their own facts, where `children` (a count) is not enough. */
+	readonly child_rows?: ReadonlyArray<{
+		readonly child_birthdate: string;
+		readonly citizenship?: string | null;
+	}>;
 };
 
 export type WorldOptions = {
@@ -123,6 +132,8 @@ export type WorldOptions = {
 	/** VN and ID band their minimum wage by region; `companies.region` picks it. */
 	readonly region?: string | null;
 	readonly riskClass?: string | null;
+	/** The entity's recorded facts (`company.facts.<key>`), where a rule turns on one. */
+	readonly companyFacts?: Readonly<Record<string, string | number | boolean>>;
 	/**
 	 * Pads the world to this many employments, so a HEADCOUNT band (Malaysia's HRDF) is reached.
 	 * `gathered.headcount` counts everyone the company employs in the month, so the padding is
@@ -181,10 +192,19 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		marital_status: person.marital_status ?? 'SINGLE',
 		spouse_status: person.spouse_status ?? 'NONE',
 		solo_parent: person.solo_parent ?? false,
+		disabled: person.disabled ?? false,
 		race: person.race ?? null,
 		religion: person.religion ?? null,
 		dependents_count: person.children ?? 0,
-		children: childrenOf(person.children ?? 0, period),
+		children:
+			person.child_rows == null
+				? childrenOf(person.children ?? 0, period)
+				: person.child_rows.map((child) => ({
+						child_birthdate: child.child_birthdate,
+						relationship: 'CHILD' as const,
+						effective_range: null,
+						citizenship: child.citizenship ?? null
+					})),
 		approval_id: null
 	}));
 
@@ -205,9 +225,12 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		pay_frequency: person.pay_frequency ?? 'MONTHLY',
 		work_classification: person.work_classification ?? 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
-		employment_type: 'PERMANENT',
+		employment_type: person.employment_type ?? 'PERMANENT',
 		residency_status: person.citizenship ?? null,
 		residency_since: person.residency_since ?? null,
+		pass_type: person.pass_type ?? null,
+		tax_residency: person.tax_residency ?? null,
+		notice_days: null,
 		department: null,
 		job_title: 'Fixture',
 		grade: person.grade ?? null,
@@ -254,8 +277,11 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				registration_number: `${code}-0001`,
 				pay_cutoff_day: 21,
 				pay_frequency: options.payFrequency ?? 'MONTHLY',
-				region: options.region ?? null,
+				// A Philippine entity is in CALABARZON unless the test says otherwise: the wage order the
+				// seeded salaries are built on (IVA-22), and the floor RA 9504's exemption reads.
+				region: options.region ?? (code === 'PH' ? 'IV-A' : null),
 				risk_class: options.riskClass ?? null,
+				facts: options.companyFacts ?? {},
 				effective_range: RANGE,
 				approval_id: null
 			}

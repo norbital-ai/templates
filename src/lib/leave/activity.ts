@@ -3,21 +3,22 @@ import { fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
 import type { LeaveActivity } from './pending.js';
 import type { LeaveAllocation } from '../../datatypes/leave_allocations/+definition.js';
 import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
-import { daysBetween } from '../../collections/payroll_runs/lib/dates.js';
+import { addDays, daysBetween, monthDay } from '../../collections/payroll_runs/lib/dates.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { dateKey } from '../iso-day.js';
 import { pointNumber, type HalfDayRange } from '../half-day.js';
 import { resolveHolidays } from '../holiday-calendar.js';
 import { patternAnchor, patternRosterCodeId, termPatternRow } from '../scheduling/work-pattern.js';
-import { rosterCodeKind, workWindowHalves } from '../scheduling/roster-code.js';
+import { rosterCodeKind, workWindow, workWindowHalves } from '../scheduling/roster-code.js';
+import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
 import { payrollWindows, lockStateForDate } from '../scheduling/lock.js';
 import {
 	allocateLeaveDays,
 	assertLeaveBalanceIntegrity,
 	reverseLeaveAllocations
 } from './balance.js';
-import { assertLeaveWindow, leaveWindowOf, type LeaveWindow } from './entitlement.js';
-import { leaveRules, type LeaveContext } from './context.js';
+import { assertLeaveWindow, grantedDays, leaveWindowOf, type LeaveWindow } from './entitlement.js';
+import { leavePool, leaveRules, type LeaveContext } from './context.js';
 import {
 	emptyActivityFields,
 	leaveActivityOf,
@@ -149,11 +150,22 @@ export function planLeaveActivity(
 	id: string,
 	entries: readonly LeaveActivity[] = context.entries
 ) {
-	const rules = leaveRules(context, input.employment_id, input.catalogue_id);
-	if (!input.reference.trim()) refuse('A leave entry needs a unique supporting reference.');
-	const sameLeave = entries.filter(
-		(row) => row.employment_id === input.employment_id && row.leave_code === rules.selected.code
+	const rules = leaveRules(
+		context,
+		input.employment_id,
+		input.catalogue_id,
+		input.event_kind == null && input.event_relationship == null && input.event_child_index == null
+			? undefined
+			: {
+					kind: input.event_kind,
+					relationship: input.event_relationship,
+					child_index: input.event_child_index,
+					date: input.event_date
+				}
 	);
+	if (!input.reference.trim()) refuse('A leave entry needs a unique supporting reference.');
+	const pools = leavePool(context, input.employment_id, rules, entries);
+	const sameLeave = pools.own;
 	if (
 		entries.some(
 			(row) => row.employment_id === input.employment_id && row.reference === input.reference
@@ -167,6 +179,7 @@ export function planLeaveActivity(
 		half_day_start: input.half_day_start ?? null,
 		half_day_end: input.half_day_end ?? null,
 		days: input.days ?? null,
+		hours: input.hours ?? null,
 		encash_days: input.encash_days ?? null,
 		as_adjustment_entry: input.as_adjustment_entry ?? false,
 		reversal_of_id: input.reversal_of_id ?? null,
@@ -176,10 +189,15 @@ export function planLeaveActivity(
 		destination_to: input.destination_to ?? null,
 		available_from: input.available_from ?? null,
 		expires_on: input.expires_on ?? null,
-		reason: input.reason ?? null
+		reason: input.reason ?? null,
+		event_kind: input.event_kind ?? null,
+		event_relationship: input.event_relationship ?? null,
+		event_child_index: input.event_child_index ?? null,
+		event_date: input.event_date ?? null
 	};
 	const charges: LeaveCharge[] = [];
 	const allocations: LeaveAllocation[] = [];
+	const pooled: { window: LeaveWindow; date: string; days: number }[] = [];
 	let certificateRequired = false;
 	const debit = (
 		window: LeaveWindow,
@@ -198,6 +216,82 @@ export function planLeaveActivity(
 				basis
 			})
 		);
+		// The same day also counts inside the pool this row draws from.
+		if (pools.pool != null) {
+			const poolWindow = leaveWindowOf(date, pools.pool.rules.catalogueOn(date).entitlement);
+			allocations.push(
+				...allocateLeaveDays({
+					entries: [
+						...pools.pool.entries,
+						{ id, allocations, approval_id: 'planning', leave_code: rules.selected.code }
+					],
+					window: poolWindow,
+					date,
+					days,
+					entitlementAt: pools.pool.rules.entitlementAt,
+					basis,
+					pool: pools.pool.code
+				})
+			);
+		}
+	};
+	/**
+	 * A grant that is not an annual pool is judged on the entry itself: a PER_EVENT row against
+	 * the days its bands grant for this event and the events a lifetime allows; a rolling-window
+	 * row against the days already charged in the months before each charge.
+	 */
+	const judgeUnpooled = (charged: readonly LeaveCharge[], quantity: number): boolean => {
+		const first = charged[0];
+		if (first == null) return false;
+		const rule = rules.catalogueOn(first.date).entitlement;
+		if (rule.availability === 'PER_EVENT') {
+			const person = rules.personOn(first.date, {
+				kind: fields.event_kind,
+				relationship: fields.event_relationship,
+				child_index: fields.event_child_index,
+				date: fields.event_date
+			});
+			const granted = grantedDays(rule, person);
+			if (quantity > granted + 1e-9)
+				refuse(
+					`${rules.selected.code} grants ${granted} days for this event; ${quantity} were requested.`
+				);
+			const taken = activeTimeOff(sameLeave).filter(
+				(row) => row.leave_code === rules.selected.code && row.employment_id === input.employment_id
+			).length;
+			// ponytail: counted on this employment; a rehire's earlier contract is not read here.
+			if (rule.lifetime_events != null && taken >= rule.lifetime_events)
+				refuse(
+					`${rules.selected.code} is granted for ${rule.lifetime_events} events in a lifetime; this would be event ${taken + 1}.`
+				);
+			return true;
+		}
+		if (rule.rolling_months != null) {
+			for (const charge of charged) {
+				const from = addDays(
+					monthDay(
+						Number(charge.date.slice(0, 4)),
+						Number(charge.date.slice(5, 7)) - 1 - rule.rolling_months,
+						Number(charge.date.slice(8, 10))
+					),
+					1
+				);
+				const already = activeTimeOff(sameLeave)
+					.flatMap((row) => row.charges)
+					.filter((row) => row.date >= from && row.date <= charge.date)
+					.reduce((sum, row) => sum + row.days, 0);
+				const within = charged
+					.filter((row) => row.date >= from && row.date <= charge.date)
+					.reduce((sum, row) => sum + row.days, 0);
+				const granted = grantedDays(rule, rules.personOn(charge.date));
+				if (already + within > granted + 1e-9)
+					refuse(
+						`${rules.selected.code} allows ${granted} days in any ${rule.rolling_months} months; ${already} are already taken in the ${rule.rolling_months} months before ${charge.date}.`
+					);
+			}
+			return true;
+		}
+		return false;
 	};
 	const activity: LeaveActivityKind = leaveActivityOf(fields);
 	switch (activity) {
@@ -222,7 +316,12 @@ export function planLeaveActivity(
 						refuse(`Leave overlaps an approved or pending ${half.toLowerCase()} half on ${date}.`);
 					halves += 1;
 				}
-				const days = halves === 2 ? 1 : 0.5;
+				const days =
+					day.catalogue.unit === 'HOUR' && fields.hours != null
+						? hourlyShare(fields.hours, range, day.shift.variant)
+						: halves === 2
+							? 1
+							: 0.5;
 				charges.push({
 					date,
 					days,
@@ -232,10 +331,13 @@ export function planLeaveActivity(
 					shift_definition_id: day.shift.id,
 					work_day_id: day.workDay?.id ?? null
 				});
-				debit(leaveWindowOf(date, day.catalogue.entitlement), date, days, 'available');
+				pooled.push({ window: leaveWindowOf(date, day.catalogue.entitlement), date, days });
 			}
 			if (charges.length === 0) refuse('The range contains no eligible scheduled work time.');
 			const quantity = charges.reduce((sum, row) => sum + row.days, 0);
+			if (!judgeUnpooled(charges, quantity))
+				for (const debitOf of pooled)
+					debit(debitOf.window, debitOf.date, debitOf.days, 'available');
 			certificateRequired = charges.some((row) => {
 				const threshold = context.catalogues.find(
 					(catalogue) => catalogue.id === row.catalogue_id
@@ -414,6 +516,16 @@ export function planLeaveActivity(
 		windows,
 		rules.entitlementAt
 	);
+	if (pools.pool != null)
+		assertLeaveBalanceIntegrity(
+			[
+				...pools.pool.entries,
+				{ id, ...fields, allocations, approval_id: null, leave_code: rules.selected.code }
+			],
+			windows,
+			pools.pool.rules.entitlementAt,
+			pools.pool.code
+		);
 	return {
 		employment_id: input.employment_id,
 		catalogue_id: rules.selected.id,
@@ -427,6 +539,19 @@ export function planLeaveActivity(
 		payslip_id: null,
 		certificateRequired
 	};
+}
+
+/**
+ * The share of a day some hours of leave are: the hours over the shift's paid hours, to the
+ * eighth (an hour of an eight-hour day), never more than the day. One day at a time: hourly
+ * leave over a range is refused, because the hours name one shift.
+ */
+function hourlyShare(hours: number, range: HalfDayRange, variant: RosterCodeVariant): number {
+	if (range.start.date !== range.end.date)
+		refuse('Leave by the hour is taken one day at a time: name the day and its hours.');
+	if (!Number.isFinite(hours) || hours <= 0) refuse('Leave by the hour needs the hours.');
+	const paidHours = (workWindow(variant)?.paid_minutes ?? 480) / 60;
+	return Math.min(1, Math.max(0.125, Math.round((hours / paidHours) * 8) / 8));
 }
 
 /** The record label the ledger and pickers read: the activity and the day it turns on. */

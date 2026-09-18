@@ -1029,5 +1029,21 @@
 	"component.entry_unpaid_days": "扣除无薪假天数",
 	"component.allowance_npl_prorates": "无薪假按比例扣减津贴",
 	"common.yes": "是",
-	"common.no": "否"
+	"common.no": "否",
+	"leave.hours": "小時數",
+	"leave.event_kind": "事由",
+	"leave.event_relationship": "對象關係",
+	"leave.event_child_index": "第幾名子女",
+	"leave.event_date": "事由日期",
+	"component.on_separation": "离职时发放",
+	"component.on_separation_hint": "离职流程为符合资格的离职者生成此津贴行，金额由人事填写。",
+	"component.paid_by": "給付方",
+	"component.leave_unit": "請假單位",
+	"component.consumes_code": "同時計入（假別代碼）",
+	"component.pay_fraction": "給薪比例（空白＝全薪；依人員與請假日）",
+	"component.disabled": "身心障礙者",
+	"component.pass_type": "工作准證",
+	"component.tax_residency": "稅務居民身分（申報）",
+	"component.notice_days": "預告期（日）",
+	"component.requested_by": "休息日出勤由誰提出"
 }

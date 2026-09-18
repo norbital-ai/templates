@@ -189,16 +189,18 @@ context reads it as `terms.grade` beside department, service months and the rest
 
 One expression language, CEL, is what every catalogue row, band, rate and scheme speaks, and each
 site has one documented context compiled at write time by `lib/expressions` (`contexts.ts` is the
-one source; the Fields panel renders it). **Five sites, one subject each:** `person` (catalogue
-eligibility, a scheme's person conditions, `wages.applies_when`, `catalogue_schedule.when`),
-`entry` (catalogue bands and entitlement amounts), `work_day` (work bands, breaks, limits, the
-night premium, `overtime_when`), `assessment` (`statutory_contributions.assessed_on`) and `scheme`
-(contribution rules). **Six roots, one meaning each,** with the same members on every site that
+one source; the Fields panel renders it). **Six sites, one subject each:** `person` (catalogue
+eligibility, a scheme's person conditions, `wages.applies_when` and `wages.scale`,
+`work_rules.normal_hours`, `limits[].when`, `weekly_rest_rule.average.when`), `entry` (catalogue
+bands and entitlement amounts), `work_day` (work bands, breaks, limits, the night premium,
+`overtime_when`), `leave_day` (a leave band's `days` and a row's `pay_fraction`: `leave.month_index`,
+`leave.day_index`, `leave.days` over the person root), `assessment`
+(`statutory_contributions.assessed_on`) and `scheme` (contribution rules). **Six roots, one meaning each,** with the same members on every site that
 carries them: `person` (the employee, contract and employer on the rule date), `period` (key, start,
 end, index, instalments, last_of_year, days_employed — the pay month's days the employment covered
 on the proration basis, the payslip's segments summed — and days_in_month), `year` (the tax year:
 start, end, months_employed,
-days_employed, `earned.<code>` over earlier PAID payslips), `scheme` (code, assessment_period,
+days_employed, `earned.<code>` over earlier payslips), `scheme` (code, assessment_period,
 year_to_date.\*, projection.\*, rate_override, since, since_months, `elections.<key>`),
 `produced` (`<code>.employee`, `<code>.employee_this_period`, `<code>.employer` of every scheme already charged) and `limits`
 (the version's evaluated hour ceilings). A site's subject is bare — the person object on `person`,
@@ -206,13 +208,17 @@ the day on `work_day`, `base` on `scheme`, the six reserved money lines on `asse
 everything else is rooted; on every site but `person` the person sits under `person.`.
 
 The `person` root: `employee.gender`, `age`, `age_months`, `citizenship`, `marital_status`,
-`spouse_status`, `dependents_count`, `solo_parent`, `race`, `religion`, `residency_months`;
-`employment.type`, `classification`, `risk_class`, `service_months`, `service_years`,
-`service_start`, `exit_date`, `exit_reason`; `terms.basic_salary`, `fixed_allowances`,
-`monthly_wage`, `statutory_wages`, `workman`, `statutory_work_category`, `department`,
-`payroll_group`, `grade`, `ordinary_hours_per_week`, `working_days_per_week`; `children.count`,
-`children.under(n)`; `company.region`, `company.headcount`, `company.facts.<key>`; `wage_floor`;
-`period.working_days`. Empty is everyone; an unrecorded fact reads as empty, false or zero — there
+`spouse_status`, `dependents_count`, `solo_parent`, `race`, `religion`, `residency_months`,
+`disabled`; `employment.type`, `classification`, `risk_class`, `service_months`, `service_years`,
+`service_start`, `exit_date`, `exit_reason`, `absent_days_12m`; `terms.basic_salary`,
+`monthly_basic`, `fixed_allowances`, `monthly_wage`, `statutory_wages`, `workman`,
+`statutory_work_category`, `department`, `payroll_group`, `grade`, `ordinary_hours_per_week`,
+`working_days_per_week`, `pay_frequency`, `pass_type`, `tax_residency`, `notice_days`;
+`children.count`, `children.citizens`, `children.under(n)`; `company.region`, `company.headcount`,
+`company.headcount_citizens`, `company.facts.<key>`; `facts.<CODE>.registered`,
+`facts.<CODE>.since_months` (the person's fact under a scheme); `event.kind`, `relationship`,
+`child_citizenship`, `child_age`, `date` (the leave entry's event, on a leave rule); `wage_floor`;
+`period.working_days`, `period.unpaid_days`. Empty is everyone; an unrecorded fact reads as empty, false or zero — there
 is no null — and never claims anything. Race and religion are captured only where a statutory fund
 is selected by them.
 
@@ -272,7 +278,8 @@ a person left off a list is indistinguishable from a person nobody thought of. T
 exclusion list and no per-run withholding input. A person whose pay has to wait is held at the
 slip: `status ON_HOLD` keeps the slip in its run and keeps the sources it consumed locked, while
 leaving it out of every bank file and the workbook. It can be released back to `DRAFT`, or
-deleted — which releases its own sources — and a `PAID` slip is terminal and never deletable. A run
+deleted — which releases its own sources, unless the person has a later slip standing on it — and
+a `PAID` slip is terminal and never deletable. A run
 has no status of its own: the Payroll page rolls its slips up (paid, held, draft counts) when it
 lists them.
 
@@ -281,8 +288,10 @@ from empty, never back — the one column of an immutable output row that may mo
 Marking the run paid stamps `paid_at` on each unpaid slip, and a slip can be paid without its
 neighbours. **Locking follows the person, not the run**: a payroll
 window is settled for an employment, so a colleague's held payslip does not keep this person's day
-open and a colleague's payment does not close it. History reads the paid slips themselves, so a
-half-paid earlier run still contributes the slips that were paid.
+open and a colleague's payment does not close it. History reads every earlier slip of the person,
+paid or not: payment is ordered per person, an earlier run is not deletable under a later sibling,
+and an earlier unpaid slip is not deletable while the person has a later one — so what a later
+slip counted will have been paid before that slip is.
 
 A draft is a frozen calculation. Replacing it means deleting it and creating another. A run whose
 slips are all paid is immutable; a run holding any paid slip refuses deletion, while its drafts
@@ -440,8 +449,11 @@ holiday on the next working day of the window.
 Overtime is derived from clock intervals against the effective schedule. Open, reversed or
 overlapping intervals cannot be priced. Source columns labelled OT hours or incentive OT are not
 payroll inputs. Early-arrival handling, shift boundaries and unpaid breaks are applied by the dated
-calculation. Payable overtime is floored to half-hour units: 1.99 becomes 1.5; 2.49 becomes 2.0.
-There is no round-up or automatic one-hour minimum.
+calculation. Payable overtime is exact to the minute the punches were made in: no statute states a
+coarser unit, so 1.99 h pays 1.99 h. There is no automatic one-hour minimum; a jurisdiction that
+pays "each hour or part thereof" (Singapore's rest day, s.37(3)(c)(ii)) rounds in its own band with
+`up_to_unit(hours)`. A version's `WEEK NORMAL_HOURS` limit (Singapore's 44, s.38(1)) is read by
+payroll: normal-day hours past it in a Monday-to-Sunday week are overtime of the day they fall on.
 
 An annualised hourly-rate configuration uses:
 
@@ -489,7 +501,20 @@ reads the slice actually consumed as `hours`), and one component is emitted per 
 — so `OVERTIME 1.0/1.5/2.0/3.0` and `INCENTIVE` each settle as their own payslip line. A band's
 `funnel_above_hours` routes the portion of its slice above it to the `INCENTIVE` line at the band's
 own award: a three-times holiday hour funnels as `INCENTIVE` at three times, not at a
-fixed multiple. Jurisdictions without a funnel simply state their statutory ladder.
+fixed multiple. Jurisdictions without a funnel simply state their statutory ladder. A band reads
+the day as `rest_day`, `off_day`, `holiday.kind`, `night_hours` and `requested_by` (who asked for
+rest-day work, the MY s.60(3) axis), and a band whose `take_hours` is zero on an unworked day
+prices the day by amount alone — the PH art.94 unworked regular holiday. `work_rules.normal_hours`
+caps the normal day over the person (SG s.38(1): 9 on a five-day week) so a longer shift is normal
+hours plus overtime; a `WEEK NORMAL_HOURS` limit turns the week's hours above it into overtime on
+the day that crosses it (SG 44, MY 45). `limits[].when` scopes a limit to the people it governs
+(a sector's yearly ceiling, a consented monthly variant); the roster gate judges a pattern against
+the unconditional limits and a person against the applicable ones, and payroll reports the same set.
+`weekly_rest_rule.suspended_by_leave` lets an approved day of the named codes break a run of worked
+days the way a rest day does (MY s.59(1A)); `average {days, rest_days, when}` admits the averaging
+arm (VN art.111(1): four rest days a month where the work cannot rest weekly). Overtime is derived
+to the minute (`roundMinute`), and `payroll.final_pay_due_days` raises `FINAL_PAY_LATE` on a run
+whose pay date falls after a leaver's final pay is due.
 
 Attendance overruns are priced and reported, never blocked and never discarded. Hours a schedule
 was never allowed to contain are still paid; that a run paid them is not proof the schedule
@@ -588,7 +613,7 @@ Different entities remain separate assessments. Conflicting salary windows, proj
 registration statuses or rate overrides refuse the grouped calculation rather than selecting one
 contract's interpretation. Company headcount counts distinct employees, not contract rows.
 
-YTD is calculated from earlier PAID results in the tax year for the relevant person/entity/scheme.
+YTD is calculated from every earlier slip in the tax year for the relevant person/entity/scheme.
 It is not a mutable accumulator. Proration rows explain base wages and do not contribute a second
 amount. A correction is a new approved family entry in a later regular payroll, with a reference to
 the original output and contract. Paid configuration, links and output remain unchanged.
@@ -681,7 +706,7 @@ rules produce no assessment.
 
 `restBreakAssessment` reads worked intervals, qualifying gaps and recorded break minutes.
 `deriveDailyOvertime` reduces raw payable overtime by a quantified break shortfall only when the
-configured rule explicitly has `counts_as_worked_time: false`, before applying the half-hour floor.
+configured rule explicitly has `counts_as_worked_time: false`.
 A true or null `counts_as_worked_time` causes no additional reduction, and a recorded break is not
 deducted twice. A null minimum duration or an open interval leaves the shortfall unquantified. The
 implementation's strict consecutive-hours comparison and lack of a recorded continuous-attendance

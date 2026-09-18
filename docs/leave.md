@@ -28,12 +28,21 @@ immutable; changed rules require a successor revision. Codes identify leave type
 
 The entitlement definition contains:
 
-| Field              | Values and meaning                                                                  |
-| ------------------ | ----------------------------------------------------------------------------------- |
-| `availability`     | `UPFRONT`, `MONTHLY` or `UNLIMITED`.                                                |
-| `year_start_month` | The first month of the annual leave window, including fiscal years.                 |
-| `proration`        | `NONE`, eligible `CALENDAR_MONTHS`, `COMPLETED_MONTHS` or eligible `CALENDAR_DAYS`. |
-| `bands`            | Annual quantities by completed months of service on this contract.                  |
+| Field              | Values and meaning                                                                                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `availability`     | `UPFRONT`, `MONTHLY`, `UNLIMITED` or `PER_EVENT` (a grant per birth, adoption or bereavement the entry names; `lifetime_events` caps the grants over the employment).                            |
+| `year_start_month` | The first month of the annual leave window, including fiscal years.                                                                                                                              |
+| `proration`        | `NONE`, eligible `CALENDAR_MONTHS`, `COMPLETED_MONTHS` or eligible `CALENDAR_DAYS`.                                                                                                              |
+| `rolling_months`   | Measures the window over the trailing months ending on the day instead of the leave year (MY sick leave over 12, TW over 24).                                                                    |
+| `bands`            | Annual quantities by completed months of service on this contract; `days` is a number or an expression over `leave_day` (`leave.month_index`, `leave.day_index`, `leave.days`, the person root). |
+
+The catalogue row beside it: `pay_fraction` (an expression over `leave_day`, the share of the day
+wage deducted — ID sick leave steps down by month), `paid_by: EMPLOYER | FUND` (a FUND day is
+deducted from the wage and reimbursed by the fund outside payroll), `consumes_code` (the row draws
+from another row's pool — TW menstrual leave inside sick leave — and the pool's summary shows its
+consumers), `unit: DAY | HOUR` (an hourly row's entry states `hours`, charged in eighths of a day).
+An entry taken for an event carries `event_kind`, `event_relationship`, `event_child_index` and
+`event_date`; the leave rules read them as `event.*` and the named child's citizenship and age.
 
 Queries select the rule and service band effective on the requested date, bounded by the source
 window and the contract's departure. Eligibility uses effective terms and applicable child facts.

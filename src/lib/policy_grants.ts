@@ -1,4 +1,4 @@
-import { approveBy, noApproval, type PolicyDecisionApi } from '@norbital-ai/bolt/authoring';
+import { approveBy, noApproval, refuse, type PolicyDecisionApi } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Policy } from '../access/policies/$types.js';
 import { leaveActivityOf, type LeaveEntryActivity } from './leave/activity-fields.js';
@@ -251,12 +251,48 @@ const unpaidLatestRun = (
 		return true;
 	});
 
-/** A paid payslip is money that left the building. */
-const unpaidPayslip = ({
-	record
-}: {
-	readonly record: { readonly status: string; readonly paid_at?: unknown };
-}) => record.status !== 'PAID' && record.paid_at == null;
+/**
+ * A paid payslip is money that left the building, and an unpaid one is history the person's later
+ * slips stand on: a later period's year-to-date and PCB read every earlier slip of the person,
+ * paid or not, because payment is ordered per person. Deleting the earlier slip from under a
+ * later one would leave that later slip counting money that was never paid, so the later slip
+ * goes first.
+ */
+const deletablePayslip = (
+	{
+		record
+	}: {
+		readonly record: {
+			readonly id: string;
+			readonly status: string;
+			readonly paid_at?: unknown;
+			readonly payroll_run_id: string;
+			readonly employment_id: string;
+		};
+	},
+	api: PolicyDecisionApi
+) =>
+	Effect.gen(function* () {
+		if (record.status === 'PAID' || record.paid_at != null) return false;
+		const run = yield* api.db.payroll_runs.findFirst({
+			where: { id: { eq: record.payroll_run_id } },
+			columns: { period: true }
+		});
+		if (run == null) return true;
+		const later = yield* api.db.payslips.findFirst({
+			where: {
+				employment_id: { eq: record.employment_id },
+				payslip_payroll_run: { some: { period: { gt: run.period } } }
+			},
+			columns: { id: true },
+			with: { payslip_payroll_run: { columns: { period: true } } }
+		});
+		if (later != null)
+			refuse(
+				`This person's ${later.payslip_payroll_run?.period} payslip stands on this one. Delete that later payslip first.`
+			);
+		return true;
+	});
 
 const SUBJECT_EMAIL = { $subject: 'email' } as const;
 
@@ -388,7 +424,7 @@ export const leaveCalendarGrants = (ownCompany = false): Grants =>
  */
 export const payrollRunCascadeGrants = (): Grants =>
 	mergeGrants(
-		grantOn('payslips', 'delete', { authorize: unpaidPayslip }),
+		grantOn('payslips', 'delete', { authorize: deletablePayslip }),
 		grantsOn('allowance_entries', ['delete'])
 	);
 
@@ -675,8 +711,22 @@ const LEAVE_ENTRY_FIELDS = [
 	'destination_to',
 	'available_from',
 	'expires_on',
-	'reason'
+	'reason',
+	'hours',
+	'event_kind',
+	'event_relationship',
+	'event_child_index',
+	'event_date'
 ] as const;
+
+/** The separation payment off-boarding raises: a standing allowance row on the last day, held for the HR Manager. */
+export const separationPaymentGrant = (): Grants =>
+	grantOn('allowances', 'mutate.new', {
+		approval: {
+			flow: () => approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
+			superceded_by: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM]
+		}
+	});
 
 /** One grant owns every HR Leave category; its approval route depends on the submitted activity. */
 export const hrLeaveEntryGrant = (reviewManual: boolean): Grants =>

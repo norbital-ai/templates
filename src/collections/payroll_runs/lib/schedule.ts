@@ -54,6 +54,14 @@ export type ScheduledDay = {
 	readonly clampStart: string | null;
 	/** Contracted average hours for one working day, derived from the embedded pattern. */
 	readonly normalHours: number;
+	/**
+	 * Whether the roster made this the person's weekly rest day, whatever holiday precedence then
+	 * called it: a holiday that falls on the rest day is priced by a compounded band (PH 260%,
+	 * VN 300%) that reads `rest_day` beside `day_type`.
+	 */
+	readonly restDay: boolean;
+	/** Whether the roster left the day unassigned (OFF) before any holiday was overlaid on it. */
+	readonly offDay: boolean;
 };
 
 const WeeklyHoursTermsSchema = Schema.Struct({
@@ -163,6 +171,8 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		dayType: DayType;
 		shift: ScheduledShift | null;
 		normalHours: number;
+		restDay: boolean;
+		offDay: boolean;
 	}[] = [];
 	const precedence = options.configuration.holidayRestPrecedence;
 	if (precedence !== 'REST_DAY' && precedence !== 'PUBLIC_HOLIDAY' && precedence !== 'SUBSTITUTE')
@@ -223,7 +233,10 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			if (precedence === 'SUBSTITUTE') {
 				dayType = 'REST_DAY';
 				if (!substitutedFrom.has(date)) carried.push(holidayDayType(holiday));
-			} else dayType = precedence;
+			} else
+				// The holiday's own kind wins over the rest day: a special day stays special (and
+				// `rest_day` says it was the rest day, for the compounded band).
+				dayType = precedence === 'PUBLIC_HOLIDAY' ? holidayDayType(holiday) : precedence;
 		} else if (!holiday && baseDayType === 'ORDINARY' && carried.length > 0)
 			dayType = carried.shift()!;
 		if (clampStart == null && baseDayType === 'ORDINARY' && assignmentCode?.shift)
@@ -232,7 +245,9 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			date,
 			dayType,
 			shift: assignmentCode?.shift ?? null,
-			normalHours: terms.normal_daily_hours
+			normalHours: terms.normal_daily_hours,
+			restDay: baseDayType === 'REST_DAY',
+			offDay: baseDayType === 'OFF_DAY'
 		});
 	}
 
@@ -243,7 +258,9 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			dayType: day.dayType,
 			shift: day.shift,
 			clampStart: day.shift?.start_time ?? clampStart,
-			normalHours: day.normalHours
+			normalHours: day.normalHours,
+			restDay: day.restDay,
+			offDay: day.offDay
 		});
 	}
 	return resolved;

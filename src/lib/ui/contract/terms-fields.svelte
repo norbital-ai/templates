@@ -86,6 +86,9 @@
 			<Field name="work_classification" label={t('component.classification')} />
 			<Field name="statutory_work_category" label={t('component.statutory_work_category')} />
 			<Field name="grade" label={t('component.grade')} />
+			<Field name="pass_type" label={t('component.pass_type')} />
+			<Field name="tax_residency" label={t('component.tax_residency')} />
+			<Field name="notice_days" label={t('component.notice_days')} />
 		</Grid>
 	</FormSection>
 

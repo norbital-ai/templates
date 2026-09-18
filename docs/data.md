@@ -61,8 +61,10 @@ that does not merge their leave balances or source obligations.
 
 A contract owns its dated terms: `employment_terms` rows, one in force on any date, carry the
 engagement's pay (`base_salary`, `pay_frequency`), standing (`residency_status`, `residency_since`,
-`work_classification`, `statutory_work_category`, `employment_type`, `grade`), organisation
-(`department`, `job_title`, `payroll_group`) and shift assignment. The contract is the unit the
+`work_classification`, `statutory_work_category`, `employment_type`, `grade`, `pass_type`,
+`tax_residency`, `notice_days` — declared standing the statutory rules read, never derived),
+organisation (`department`, `job_title`, `payroll_group`) and shift assignment; a contract change
+carries the three declared facts to the successor row unchanged. The contract is the unit the
 profile shows and the engine reads; a revision is a new dated row under the same contract, never a
 second contract. The shift assignment is `employment_terms.agreed_days_per_week` (integer 1–7,
 required — the proration divisor `src/lib/payroll/work.ts` / `proration.ts` read) and the optional

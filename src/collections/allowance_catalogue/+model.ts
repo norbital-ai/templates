@@ -1,4 +1,4 @@
-import { custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import { boolean, custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -7,6 +7,8 @@ export default defineModel(
 		/** The catalogue's stable code, and the display name beside it. */
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }),
+		/** The section of law the row transcribes; a row that cites one is statutory. */
+		authority: text(),
 		/**
 		 * Where the line settles: `PAY` earns or reduces gross, `NET` pays or deducts outside it,
 		 * `EMPLOYER` costs the employer alone, `DISPLAY` is printed without money.
@@ -21,7 +23,14 @@ export default defineModel(
 		/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 		eligibility: text().notNull().default(''),
 		/** Whether a request against this line must, may or need not attach proof. */
-		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE')
+		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
+		/**
+		 * A payment the law owes on separation (termination benefits, separation or retirement pay,
+		 * severance, notice in lieu): off-boarding raises one standing row of it for the leaver on
+		 * the last day, where the row's eligibility holds over them then — held for HR like the
+		 * encashment. The band prices it from the person (service years, monthly wage, notice days).
+		 */
+		on_separation: boolean().notNull().default(false)
 	},
 	{
 		description:

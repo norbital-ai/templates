@@ -29,7 +29,8 @@ const RETURNS: Readonly<Record<ExpressionType, string>> = {
 	money: 'a money amount',
 	hours: 'a number of hours',
 	minutes: 'a number of minutes',
-	days: 'a number of days'
+	days: 'a number of days',
+	number: 'a number'
 };
 
 /**

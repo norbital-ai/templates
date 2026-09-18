@@ -57,6 +57,14 @@ export type WorkBandDay = {
 	readonly monthOvertimeHours: number;
 	readonly consecutiveHours: number;
 	readonly continuousAttendance: boolean;
+	/** The roster's weekly rest day, whatever holiday precedence called the day. */
+	readonly restDay: boolean;
+	/** The roster's unassigned day (OFF) before a holiday was overlaid on it. */
+	readonly offDay: boolean;
+	/** Hours inside the regime's night window, 0 where the version prices none. */
+	readonly nightHours: number;
+	/** `work_days.requested_by`: EMPLOYER unless the row says EMPLOYEE. */
+	readonly requestedBy: string;
 };
 
 export type WorkBandRates = {
@@ -100,6 +108,10 @@ function contextOf(options: {
 		month_overtime_hours: day.monthOvertimeHours,
 		consecutive_hours: day.consecutiveHours,
 		continuous_attendance: day.continuousAttendance,
+		rest_day: day.restDay ?? false,
+		off_day: day.offDay ?? false,
+		night_hours: day.nightHours ?? 0,
+		requested_by: day.requestedBy ?? 'EMPLOYER',
 		roster_code: day.rosterCode,
 		break_minutes: day.breakMinutes,
 		ordinary_hour: rates.ordinaryHour,
@@ -136,6 +148,32 @@ export function priceWorkDay(options: {
 	// or a holiday the whole day is overtime, already floored and net of the unpaid statutory
 	// break, and a slice past that priced the break shortfall the statute says is not work.
 	const payable = isOrdinary(day) ? day.workedHours : day.overtimeHours;
+	// A day with nothing worked is priced by amount, not by the hour: the first band that holds
+	// over it and takes no hours (`take_hours` 0) pays what it states — an unworked regular
+	// holiday's day wage (PH art.94), a holiday on a non-working day (SG s.88). A band that takes
+	// hours prices attendance and is not read here.
+	if (payable <= 0) {
+		const band = work.bands.find(
+			(candidate) =>
+				evaluateBoolean(engine, candidate.when, context) &&
+				evaluateNumber(engine, candidate.take_hours, context) <= 0
+		);
+		if (band == null) return [];
+		const amount = Math.max(0, evaluateNumber(engine, band.price_amount, { ...context, hours: 0 }));
+		return amount > 0
+			? [
+					{
+						workDayId: day.workDayId,
+						line: OVERTIME_LINE,
+						label: band.label,
+						hours: 0,
+						amount,
+						rate: 0,
+						ruleKey: `${OVERTIME_LINE}:${band.label}`
+					}
+				]
+			: [];
+	}
 	let cursor = 0;
 	for (const band of work.bands) {
 		if (cursor >= payable) break;

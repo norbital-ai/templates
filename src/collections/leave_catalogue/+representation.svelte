@@ -112,6 +112,16 @@
 					<Grid gap="md" minimum="card">
 						<Field name="is_npl" label={t('component.is_npl')} />
 						<Field name="can_encash" label={t('component.can_encash')} />
+						<Field name="paid_by" label={t('component.paid_by')} />
+						<Field name="unit" label={t('component.leave_unit')} />
+						<Field name="consumes_code" label={t('component.consumes_code')} />
+						<Field
+							name="pay_fraction"
+							label={t('component.pay_fraction')}
+							renderer={ExpressionField}
+							rendererProps={{ site: 'leave_day', type: 'number' }}
+							placeholder="leave.month_index <= 4 ? 1.0 : 0.75"
+						/>
 						<Field name="evidence" label={t('component.evidence')} />
 						<Field
 							name="evidence_after_days"

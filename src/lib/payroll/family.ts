@@ -206,8 +206,12 @@ export type MeasuredEmployment = {
 	readonly calendarMonthOvertimeHours: ReadonlyMap<string, number>;
 	readonly currency: string;
 	readonly schedule: ReadonlyMap<IsoDate, ScheduledDay>;
+	/** The version's limits that govern this person, the conditional ones (`limits[].when`) judged. */
+	readonly limits: Configuration['limits'];
 	/** The pay month's scheduled working days — what `person.period.working_days` reads. */
 	readonly periodWorkingDays: number;
+	/** Employed working days the run did not pay — what `person.period.unpaid_days` reads. */
+	readonly periodUnpaidDays: number;
 };
 
 /** The window-shaped arguments `measureEmployment` hands its helpers. */
@@ -223,11 +227,11 @@ export type MeasureEmploymentOptions = {
 	readonly headcount: number;
 	/** `component_entry_id` → what earlier PAID runs already took from it. See `gather.ts`. */
 	readonly consumedEntries: ReadonlyMap<string, number>;
-	/** component code → what earlier PAID payslips of this employee earned this tax year. */
+	/** component code → what earlier payslips of this employee earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, number>;
 	/** Calculate a deferred period's wages without settling manual money again. */
 	readonly deferredWagesOnly?: boolean;
-	/** Regulated overtime hours earlier PAID payslips settled, by calendar month: the cap counts them. */
+	/** Regulated overtime hours earlier payslips settled, by calendar month: the cap counts them. */
 	readonly priorOvertimeHours?: ReadonlyMap<string, number>;
 };
 
@@ -252,7 +256,7 @@ export type YearContext = {
 	readonly months_employed: number;
 	readonly days_employed: number;
 	readonly last_of_year: boolean;
-	/** Component code → the amount, prior paid payslips plus this run's own lines; `BASIC` always. */
+	/** Component code → the amount, prior payslips plus this run's own lines; `BASIC` always. */
 	readonly earned: Readonly<Record<string, number>>;
 };
 

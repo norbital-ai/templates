@@ -22,14 +22,25 @@ export const wagesValueSchema = Schema.Struct({
 	 * wage is not floored for them, while `minimum_wage(region)` still states the table for the
 	 * ceilings that read it.
 	 */
-	applies_when: Schema.optionalKey(Schema.String)
+	applies_when: Schema.optionalKey(Schema.String),
+	/**
+	 * The share of the region's wage a covered person's floor is, over the person; absent is the
+	 * whole wage. An apprentice or learner the order covers at 75% (PH Labor Code art.61, art.75)
+	 * reads `wage_floor` as three quarters of the table while `minimum_wage(region)` still
+	 * states the table.
+	 */
+	scale: Schema.optionalKey(Schema.String)
 }).check(
 	Schema.makeFilter((wages) => {
-		const fault = compileExpression({
-			expression: wages.applies_when,
-			site: 'person',
-			type: 'boolean'
-		});
+		const fault =
+			compileExpression({
+				expression: wages.applies_when,
+				site: 'person',
+				type: 'boolean'
+			}) ??
+			(wages.scale == null || wages.scale.trim() === ''
+				? null
+				: compileExpression({ expression: wages.scale, site: 'person', type: 'number' }));
 		return fault == null || `Minimum wage coverage: ${fault}`;
 	})
 );

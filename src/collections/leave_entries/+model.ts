@@ -2,8 +2,10 @@ import {
 	boolean,
 	custom,
 	defineModel,
+	enums,
 	file,
 	instant,
+	integer,
 	numeric,
 	text,
 	uuid
@@ -41,6 +43,8 @@ export default defineModel(
 		 * Reversal: the days of the source entry, nullable.
 		 */
 		days: numeric(),
+		/** Time off on a row taken by the hour (`leave_catalogue.unit = HOUR`): the hours, one day at a time; the charge is their share of the day. */
+		hours: numeric(),
 		/**
 		 * The days an encashment entry converts to money; null on every other activity. The engine
 		 * prices them at the ordinary day wage as `ENCASHMENT`.
@@ -60,6 +64,17 @@ export default defineModel(
 		/** Carry-forward: the last day they remain valid. */
 		expires_on: instant({ precision: 'day' }),
 		reason: text(),
+		/**
+		 * The event a per-event leave answers to, where the row's entitlement is PER_EVENT: what
+		 * happened (`event.kind`: BIRTH, MISCARRIAGE, SURGERY, MULTIPLE_BIRTH, ADOPTION, MARRIAGE,
+		 * DEATH, HOSPITALISATION…), to whom (`event.relationship`: SPOUSE, CHILD, PARENT,
+		 * GRANDPARENT, SIBLING…), which child (`event.child_index`, 1-based, into the employee's
+		 * recorded children) and when. The bands read them; a lifetime cap counts the events.
+		 */
+		event_kind: text(),
+		event_relationship: text(),
+		event_child_index: integer(),
+		event_date: instant({ precision: 'day' }),
 		/** The activity and the day it turns on, composed by the planner; the ledger's record label. */
 		summary: text({ search: true }),
 		/**

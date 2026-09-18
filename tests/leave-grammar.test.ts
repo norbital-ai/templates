@@ -1,0 +1,396 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { planLeaveActivity } from '../src/lib/leave/activity.ts';
+import { leaveBalanceSummaries } from '../src/lib/leave/summary.ts';
+import { approve, id, leaveContext, submission, timeOff } from './helpers/manual-leave-context.ts';
+import { refusalMessage } from './fixtures/memory-payroll-api.ts';
+
+/**
+ * The leave grammar the statutory gaps needed, exercised through the planner: a grant per event
+ * with a lifetime cap, a day that counts in two pools, a pool measured over a rolling window,
+ * leave by the hour, and an entitlement ladder written as a number over the person.
+ */
+const refusalOf = (run: () => unknown): string => {
+	try {
+		run();
+		return '';
+	} catch (error) {
+		return refusalMessage(error);
+	}
+};
+const catalogue = (
+	context: ReturnType<typeof leaveContext>,
+	row: Partial<ReturnType<typeof leaveContext>['catalogues'][number]> & { id: string; code: string }
+) => {
+	context.catalogues.push({
+		settings_id: id(6),
+		name: row.code,
+		is_npl: false,
+		can_encash: false,
+		evidence_after_days: null,
+		eligibility: '',
+		entitlement: { availability: 'UPFRONT', proration: 'NONE', year_start_month: 1, bands: [] },
+		...row
+	});
+};
+
+test('a PER_EVENT row grants its band per entry, reads the event, and stops at the lifetime cap', () => {
+	const context = leaveContext();
+	catalogue(context, {
+		id: id(20),
+		code: 'PATERNITY',
+		eligibility: 'event.kind == "BIRTH"',
+		entitlement: {
+			availability: 'PER_EVENT',
+			proration: 'NONE',
+			year_start_month: 1,
+			lifetime_events: 2,
+			bands: [
+				{ eligibility: 'event.kind == "BIRTH" && event.relationship == "TWINS"', days: 10 },
+				{ eligibility: '', days: 5 }
+			]
+		}
+	});
+	const birth = (from: string, to: string, extra: Record<string, unknown> = {}) => ({
+		...timeOff(from, to),
+		event_kind: 'BIRTH',
+		...extra
+	});
+	const plan = planLeaveActivity(
+		context,
+		{ ...submission(birth('2026-03-02', '2026-03-06'), 'B1'), catalogue_id: id(20) },
+		id(30)
+	);
+	assert.equal(plan.days, 5);
+	assert.equal(plan.event_kind, 'BIRTH');
+	// No annual pool: a per-event entry allocates nothing.
+	assert.deepEqual(plan.allocations, []);
+	// Six days for a single birth is over the band.
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{ ...submission(birth('2026-03-02', '2026-03-07'), 'B2'), catalogue_id: id(20) },
+				id(31)
+			)
+		),
+		/grants 5 days for this event; 6 were requested/
+	);
+	// Twins read the event: ten days.
+	assert.equal(
+		planLeaveActivity(
+			context,
+			{
+				...submission(birth('2026-03-02', '2026-03-11', { event_relationship: 'TWINS' }), 'B3'),
+				catalogue_id: id(20)
+			},
+			id(32)
+		).days,
+		10
+	);
+	// Two births taken; the third is over the lifetime.
+	context.entries.push({ ...plan, id: id(30), approval_id: null });
+	context.entries.push({
+		...planLeaveActivity(
+			context,
+			{ ...submission(birth('2027-05-03', '2027-05-07'), 'B4'), catalogue_id: id(20) },
+			id(33)
+		),
+		id: id(33),
+		approval_id: null
+	});
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{ ...submission(birth('2028-05-01', '2028-05-05'), 'B5'), catalogue_id: id(20) },
+				id(34)
+			)
+		),
+		/granted for 2 events in a lifetime; this would be event 3/
+	);
+	// A row that needs an event refuses an entry without one.
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{ ...submission(timeOff('2026-06-01', '2026-06-02'), 'B6'), catalogue_id: id(20) },
+				id(35)
+			)
+		),
+		/cannot be approved/
+	);
+});
+
+test('a row that consumes another draws on both pools, and the pool row shows what its consumers took', () => {
+	const context = leaveContext();
+	// Fourteen outpatient days inside sixty of hospitalisation: an outpatient day counts in both.
+	catalogue(context, {
+		id: id(21),
+		code: 'HOSPITAL',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			bands: [{ eligibility: '', days: 60 }]
+		}
+	});
+	catalogue(context, {
+		id: id(22),
+		code: 'OUTPATIENT',
+		consumes_code: 'HOSPITAL',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			bands: [{ eligibility: '', days: 14 }]
+		}
+	});
+	const plan = planLeaveActivity(
+		context,
+		{ ...submission(timeOff('2026-02-02', '2026-02-06'), 'O1'), catalogue_id: id(22) },
+		id(40)
+	);
+	assert.equal(plan.days, 5);
+	// One allocation per day per pool: five against its own row, five against the pool.
+	const byPool = (pool: string | null) =>
+		plan.allocations
+			.filter((row) => (row.pool ?? null) === pool)
+			.reduce((sum, row) => sum + row.days, 0);
+	assert.equal(byPool(null), -5);
+	assert.equal(byPool('HOSPITAL'), -5);
+	context.entries.push({ ...plan, id: id(40), approval_id: null });
+	const summaries = leaveBalanceSummaries(context, id(1), '2026-03-01');
+	const balance = (code: string) => summaries.find((row) => row.code === code)!.balance;
+	assert.equal(balance('OUTPATIENT'), 9);
+	assert.equal(balance('HOSPITAL'), 55, 'the pool shows the outpatient days its consumer took');
+	// Fifteen outpatient days are over the row's own fourteen even with fifty-five in the pool.
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{ ...submission(timeOff('2026-03-02', '2026-03-13'), 'O2'), catalogue_id: id(22) },
+				id(41)
+			)
+		),
+		/Insufficient leave/
+	);
+});
+
+test('a rolling-window row is measured over the months before each charge, not a leave year', () => {
+	const context = leaveContext();
+	// Three days in any three months.
+	catalogue(context, {
+		id: id(23),
+		code: 'ROLLING',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			rolling_months: 3,
+			bands: [{ eligibility: '', days: 3 }]
+		}
+	});
+	const take = (from: string, to: string, n: number) =>
+		planLeaveActivity(
+			context,
+			{ ...submission(timeOff(from, to), `R${n}`), catalogue_id: id(23) },
+			id(n)
+		);
+	context.entries.push({ ...take('2026-01-05', '2026-01-07', 50), id: id(50), approval_id: null });
+	// A fourth day inside the three months is refused; the same day three months on is not,
+	// though it crosses no leave-year boundary.
+	assert.match(
+		refusalOf(() => take('2026-03-02', '2026-03-02', 51)),
+		/allows 3 days in any 3 months/
+	);
+	assert.equal(take('2026-04-08', '2026-04-08', 52).days, 1);
+});
+
+test('leave by the hour is a share of the shift, to the eighth, one day at a time', () => {
+	const context = leaveContext();
+	catalogue(context, {
+		id: id(24),
+		code: 'HOURLY',
+		unit: 'HOUR',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			bands: [{ eligibility: '', days: 7 }]
+		}
+	});
+	// Two hours of an eight-hour day (09:00–18:00 with an hour's break) is a quarter of it.
+	const plan = planLeaveActivity(
+		context,
+		{ ...submission({ ...timeOff('2026-02-03'), hours: 2 }, 'H1'), catalogue_id: id(24) },
+		id(60)
+	);
+	assert.equal(plan.days, 0.25);
+	assert.deepEqual(
+		plan.charges.map((row) => row.days),
+		[0.25]
+	);
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{
+					...submission({ ...timeOff('2026-02-03', '2026-02-04'), hours: 2 }, 'H2'),
+					catalogue_id: id(24)
+				},
+				id(61)
+			)
+		),
+		/one day at a time/
+	);
+});
+
+test('an entitlement band may be a number over the person: a seniority ladder with no top', () => {
+	const context = leaveContext();
+	// Twelve days, one more for every five years of service; the fixture's contract began 2025-01-01.
+	catalogue(context, {
+		id: id(25),
+		code: 'LADDER',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			bands: [{ eligibility: '', days: '12.0 + floor_unit(employment.service_months / 60.0)' }]
+		}
+	});
+	context.employments[0]!.effective_range = { start: '2010-01-01', end: null };
+	context.terms[0]!.effective_range = { start: '2010-01-01', end: null };
+	const summaries = leaveBalanceSummaries(context, id(1), '2026-06-01');
+	assert.equal(summaries.find((row) => row.code === 'LADDER')!.entitlement, 15);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// The deducted share of a charged day: `pay_fraction`, `paid_by: FUND`, and what counts unpaid.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+import {
+	withLeaveDeductionEligibility,
+	calculateLeavePayroll,
+	unpaidLeaveDays
+} from '../src/lib/leave/payroll.ts';
+
+test('a part-paid row deducts the unpaid share, a fund-paid row the whole day, and both count as unpaid days', () => {
+	const context = leaveContext();
+	const employee = { ...context.employees[0]!, children: [] };
+	const term = context.terms[0]!;
+	const rows = {
+		SICK: {
+			...context.catalogues[0]!,
+			id: id(70),
+			code: 'SICK',
+			is_npl: false,
+			paid_by: 'EMPLOYER',
+			pay_fraction: 'leave.month_index <= 1 ? 1.0 : 0.75'
+		},
+		FUND: {
+			...context.catalogues[0]!,
+			id: id(71),
+			code: 'FUND',
+			is_npl: false,
+			paid_by: 'FUND',
+			pay_fraction: ''
+		},
+		PAID: {
+			...context.catalogues[0]!,
+			id: id(72),
+			code: 'PAID',
+			is_npl: false,
+			paid_by: 'EMPLOYER',
+			pay_fraction: ''
+		}
+	} as const;
+	const entry = (n: number, row: (typeof rows)[keyof typeof rows], dates: readonly string[]) => ({
+		id: id(n),
+		employment_id: id(1),
+		catalogue_id: row.id,
+		leave_code: row.code,
+		reference: `E${n}`,
+		from_date: dates[0]!,
+		to_date: dates.at(-1)!,
+		half_day_start: false,
+		half_day_end: false,
+		days: dates.length,
+		hours: null,
+		encash_days: null,
+		as_adjustment_entry: false,
+		reversal_of_id: null,
+		effective_on: dates[0]!,
+		due_on: null,
+		destination_from: null,
+		destination_to: null,
+		available_from: null,
+		expires_on: null,
+		reason: null,
+		event_kind: null,
+		event_relationship: null,
+		event_child_index: null,
+		event_date: null,
+		charges: dates.map((date) => ({
+			date,
+			days: 1,
+			catalogue_id: row.id,
+			employment_term_id: term.id,
+			holiday_id: null,
+			shift_definition_id: id(8),
+			work_day_id: null
+		})),
+		allocations: [],
+		approval_id: null,
+		payslip_id: null
+	});
+	// A sick spell from 2 February into March: the February days are in month one, the March
+	// ones in month two, at 75%; the run reads the March window.
+	const gathered = {
+		entries: [
+			entry(80, rows.SICK, ['2026-03-02', '2026-03-03', '2026-04-01']),
+			entry(81, rows.FUND, ['2026-04-02']),
+			entry(82, rows.PAID, ['2026-04-03'])
+		],
+		catalogues: Object.values(rows),
+		captures: []
+	};
+	const prepared = withLeaveDeductionEligibility(gathered, {
+		employment: context.employments[0]!,
+		employee: employee as never,
+		company: {
+			id: id(3),
+			name: 'Fixture',
+			settings_code: 'TEST',
+			region: null,
+			facts: {}
+		} as never,
+		terms: [term as never]
+	});
+	assert.deepEqual(prepared.deductionShare, {
+		[`${id(80)}/2026-03-02`]: 0,
+		[`${id(80)}/2026-03-03`]: 0,
+		[`${id(80)}/2026-04-01`]: 0.25,
+		[`${id(81)}/2026-04-02`]: 1
+	});
+	// The whole spell settles in the window that holds all of it.
+	const window = { start: '2026-03-01', end: '2026-04-30' };
+	const settled = calculateLeavePayroll({
+		prepared,
+		window,
+		dueThrough: '2026-04-30',
+		currency: 'MYR',
+		absenceRate: () => 100,
+		ordinaryDayRate: () => 100
+	});
+	const items = settled.captures.flatMap((capture) =>
+		capture.pay_items.map((item) => [item.code, item.amount])
+	);
+	// A quarter of the second-month sick day, the whole fund-paid day, nothing for the paid one.
+	assert.deepEqual(items, [
+		['SICK', 25],
+		['FUND', 100]
+	]);
+	// The unpaid days a jurisdiction counts (VN art.33(5)): the shares, not the calendar days.
+	assert.equal(unpaidLeaveDays(prepared, { start: '2026-04-01', end: '2026-04-30' }), 1.25);
+});

@@ -61,6 +61,11 @@ export function addDays(date: IsoDate, days: number): IsoDate {
 	return dayString(dayNumber(date) + days);
 }
 
+/** The Monday that opens the week a date falls in: the week every weekly measure is taken over. */
+export function weekStart(date: IsoDate): IsoDate {
+	return addDays(date, -((new Date(`${date}T00:00:00.000Z`).getUTCDay() + 6) % 7));
+}
+
 /** Number of calendar days in the month a date falls in. */
 export function monthDays(date: IsoDate): number {
 	const year = decodeNumber(date.slice(0, 4));

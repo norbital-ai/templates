@@ -378,6 +378,7 @@ function assessedBase(options: {
 		BASE: options.accumulation.reserved.BASE,
 		OVERTIME: options.accumulation.reserved.OVERTIME,
 		NIGHT_PREMIUM: options.accumulation.reserved.NIGHT_PREMIUM,
+		OVERTIME_PREMIUM: options.accumulation.reserved.OVERTIME_PREMIUM,
 		ABSENCE: options.accumulation.reserved.ABSENCE,
 		NO_PAY_LEAVE: options.accumulation.reserved.NO_PAY_LEAVE,
 		ENCASHMENT: options.accumulation.reserved.ENCASHMENT

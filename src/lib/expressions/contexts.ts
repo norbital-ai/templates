@@ -20,9 +20,10 @@
  * write when the site does not declare it.
  */
 
-export type ExpressionSite = 'person' | 'entry' | 'work_day' | 'assessment' | 'scheme';
+export type ExpressionSite =
+	'person' | 'entry' | 'work_day' | 'assessment' | 'scheme' | 'leave_day';
 /** What an expression returns: a boolean, or a number in the unit its field is named for. */
-export type ExpressionType = 'boolean' | 'money' | 'hours' | 'minutes' | 'days';
+export type ExpressionType = 'boolean' | 'money' | 'hours' | 'minutes' | 'days' | 'number';
 
 type ContextField = {
 	readonly path: string;
@@ -64,6 +65,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'employee.spouse_status', description: 'NONE | WITHOUT_INCOME | WITH_INCOME' },
 	{ path: 'employee.dependents_count', description: 'Dependants recorded for statutory reliefs' },
 	{ path: 'employee.solo_parent', description: 'Solo-parent flag' },
+	{ path: 'employee.disabled', description: 'Disability flag' },
 	{ path: 'employee.race', description: 'Recorded race' },
 	{ path: 'employee.religion', description: 'Recorded religion' },
 	{
@@ -71,7 +73,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		description:
 			'Whole calendar months since residency began, for a ladder that moves the month after an anniversary'
 	},
-	{ path: 'employment.type', description: 'Employment type from the effective terms' },
+	{
+		path: 'employment.type',
+		description:
+			'PERMANENT | CONTRACT | PROBATION | INTERN | CONSULTANT | PART_TIME | APPRENTICE | DOMESTIC'
+	},
 	{ path: 'employment.classification', description: 'Work classification' },
 	{ path: 'employment.risk_class', description: 'The employment risk class, or empty' },
 	{ path: 'employment.service_months', description: 'Completed months since the stint began' },
@@ -83,7 +89,19 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		description:
 			'RESIGNATION | DISMISSAL | REDUNDANCY | RETIREMENT | END_OF_CONTRACT | MUTUAL | DEATH, or empty'
 	},
-	{ path: 'terms.basic_salary', description: 'Contracted monthly base salary' },
+	{
+		path: 'employment.absent_days_12m',
+		description:
+			'Rostered days with an empty punch in the twelve months to the rule date (leave rules only)'
+	},
+	{
+		path: 'terms.basic_salary',
+		description: 'Contracted base salary, in the cadence it is stated'
+	},
+	{
+		path: 'terms.monthly_basic',
+		description: 'The basic as a month: a daily rate × 313 ÷ 12, an hourly one × 8 × 313 ÷ 12'
+	},
 	{
 		path: 'terms.fixed_allowances',
 		description: 'Standing PAY allowances in force on the rule date'
@@ -99,12 +117,25 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'terms.department', description: 'Department' },
 	{ path: 'terms.payroll_group', description: 'Payroll group' },
 	{ path: 'terms.grade', description: 'Grade' },
+	{ path: 'terms.pay_frequency', description: 'MONTHLY | SEMI_MONTHLY | WEEKLY | DAILY | HOURLY' },
+	{
+		path: 'terms.pass_type',
+		description: 'EMPLOYMENT_PASS | S_PASS | WORK_PERMIT | OTHER, or empty'
+	},
+	{
+		path: 'terms.tax_residency',
+		description:
+			'RESIDENT | NON_RESIDENT declared on the contract, or empty for the citizenship default'
+	},
+	{ path: 'terms.notice_days', description: 'Notice days the contract states, 0 when none' },
 	{ path: 'terms.ordinary_hours_per_week', description: 'Roster-measured working week, hours' },
 	{ path: 'terms.working_days_per_week', description: 'Roster-measured working week, days' },
 	{ path: 'children.count', description: 'Recorded children on the rule date' },
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
+	{ path: 'children.citizens', description: 'Children recorded as citizens' },
 	{ path: 'company.region', description: 'Employing entity region' },
 	{ path: 'company.headcount', description: 'Active employments in the entity' },
+	{ path: 'company.headcount_citizens', description: 'Of them, the citizens' },
 	{
 		path: 'company.facts.<key>',
 		description: 'Entity facts the version declares: sector, establishment tests'
@@ -113,7 +144,40 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'wage_floor',
 		description: 'The region’s minimum wage, or 0 when the wages order excludes this person'
 	},
-	{ path: 'period.working_days', description: 'Scheduled working days of the pay month' }
+	{
+		path: 'facts.<CODE>.registered',
+		description: 'Whether the employment is registered with the scheme of that code'
+	},
+	{
+		path: 'facts.<CODE>.since_months',
+		description:
+			'Completed months since the employment registered with that scheme, 0 when unrecorded'
+	},
+	{
+		path: 'event.kind',
+		description:
+			'The per-event leave’s event: BIRTH | MISCARRIAGE | ADOPTION | MARRIAGE | DEATH | …, or empty'
+	},
+	{ path: 'event.relationship', description: 'Whose event: SPOUSE | CHILD | PARENT | …, or empty' },
+	{
+		path: 'event.child_index',
+		description: 'Which recorded child the event concerns, 1-based; 0 when none'
+	},
+	{ path: 'event.date', description: 'The day of the event, or empty' },
+	{
+		path: 'event.child_citizenship',
+		description: 'The named child’s recorded citizenship, or empty'
+	},
+	{
+		path: 'event.child_age',
+		description: 'The named child’s completed years, -1 when none is named'
+	},
+	{ path: 'period.working_days', description: 'Scheduled working days of the pay month' },
+	{
+		path: 'period.unpaid_days',
+		description:
+			'Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch'
+	}
 ];
 
 const PERSON_BLANK = {
@@ -126,6 +190,7 @@ const PERSON_BLANK = {
 		spouse_status: '',
 		dependents_count: 0,
 		solo_parent: false,
+		disabled: false,
 		race: '',
 		religion: '',
 		residency_months: 0
@@ -138,10 +203,12 @@ const PERSON_BLANK = {
 		service_years: 0,
 		service_start: '',
 		exit_date: '',
-		exit_reason: ''
+		exit_reason: '',
+		absent_days_12m: 0
 	},
 	terms: {
 		basic_salary: 0,
+		monthly_basic: 0,
 		fixed_allowances: 0,
 		monthly_wage: 0,
 		workman: false,
@@ -150,13 +217,26 @@ const PERSON_BLANK = {
 		department: '',
 		payroll_group: '',
 		grade: '',
+		pay_frequency: '',
+		pass_type: '',
+		tax_residency: '',
+		notice_days: 0,
 		ordinary_hours_per_week: 0,
 		working_days_per_week: 0
 	},
-	children: { count: 0, ages: [] },
-	company: { region: '', headcount: 1, facts: {} },
+	children: { count: 0, ages: [], citizens: 0 },
+	company: { region: '', headcount: 1, headcount_citizens: 1, facts: {} },
 	wage_floor: 0,
-	period: { working_days: 22 }
+	period: { working_days: 22, unpaid_days: 0 },
+	facts: {},
+	event: {
+		kind: '',
+		relationship: '',
+		child_index: 0,
+		date: '',
+		child_citizenship: '',
+		child_age: -1
+	}
 };
 
 const personFields = (prefix: string): ContextField[] =>
@@ -338,6 +418,21 @@ const PERSON_CONTEXT: ExpressionContext = {
 	blank: personBlank()
 };
 
+const LEAVE_DAY_CONTEXT: ExpressionContext = {
+	site: 'leave_day',
+	description: 'One charged day of leave: the person that day, and where in the leave it falls.',
+	fields: [
+		...PERSON_ROOT_FIELDS,
+		{ path: 'leave.month_index', description: 'Which month of the leave the day is in, from 1' },
+		{ path: 'leave.day_index', description: 'Which calendar day of the leave, from 1' },
+		{ path: 'leave.days', description: 'The days the whole entry charges' }
+	],
+	bare: ['wage_floor'],
+	open: ['company.facts'],
+	functions: functionsFor('person'),
+	blank: { ...personBlank(), leave: { month_index: 1, day_index: 1, days: 1 } }
+};
+
 const ENTRY_CONTEXT: ExpressionContext = {
 	site: 'entry',
 	description: 'One catalogue entry as the run collects it: band amounts and the charged days.',
@@ -402,6 +497,14 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		{ path: 'month_overtime_hours', description: 'Overtime hours already counted this month' },
 		{ path: 'consecutive_hours', description: 'Longest unbroken work run in the day' },
 		{ path: 'continuous_attendance', description: 'Work that must be carried on continuously' },
+		{ path: 'rest_day', description: 'The roster’s weekly rest day, whatever the holiday made it' },
+		{ path: 'off_day', description: 'The roster left the day unassigned before the holiday' },
+		{
+			path: 'night_hours',
+			description:
+				'Hours inside the night window, 0 where none is declared; a break rule reads it too'
+		},
+		{ path: 'requested_by', description: 'EMPLOYER | EMPLOYEE: who asked for rest-day work' },
 		{ path: 'roster_code', description: 'The roster code that planned the day' },
 		{ path: 'break_minutes', description: 'Break the shift grants' },
 		{ path: 'ordinary_hour', description: 'Ordinary hour rate' },
@@ -424,6 +527,10 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'month_overtime_hours',
 		'consecutive_hours',
 		'continuous_attendance',
+		'rest_day',
+		'off_day',
+		'night_hours',
+		'requested_by',
 		'roster_code',
 		'break_minutes',
 		'ordinary_hour',
@@ -446,6 +553,10 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		month_overtime_hours: 20,
 		consecutive_hours: 4,
 		continuous_attendance: false,
+		rest_day: false,
+		off_day: false,
+		night_hours: 0,
+		requested_by: 'EMPLOYER',
 		roster_code: 'AM0830',
 		break_minutes: 60,
 		ordinary_hour: 25.5,
@@ -462,6 +573,11 @@ const RESERVED_LINES: readonly ContextField[] = [
 	{ path: 'BASE', description: 'The salary line' },
 	{ path: 'OVERTIME', description: 'Every overtime and incentive line' },
 	{ path: 'NIGHT_PREMIUM', description: 'The night premium line' },
+	{
+		path: 'OVERTIME_PREMIUM',
+		description:
+			'The part of every overtime line above the ordinary hour: amount less hours × ordinary hour'
+	},
 	{ path: 'ABSENCE', description: 'Unexplained absence and every unpaid leave day' },
 	{ path: 'NO_PAY_LEAVE', description: 'Unpaid leave days' },
 	{ path: 'ENCASHMENT', description: 'Every encashed leave day' }
@@ -499,6 +615,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		BASE: 0,
 		OVERTIME: 0,
 		NIGHT_PREMIUM: 0,
+		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
 		ENCASHMENT: 0
@@ -543,7 +660,8 @@ export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionCont
 	entry: ENTRY_CONTEXT,
 	work_day: WORK_DAY_CONTEXT,
 	assessment: ASSESSMENT_CONTEXT,
-	scheme: SCHEME_CONTEXT
+	scheme: SCHEME_CONTEXT,
+	leave_day: LEAVE_DAY_CONTEXT
 };
 
 /** Every open key an expression names under one prefix, as the compiler and builders fill them. */

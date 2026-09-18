@@ -8,9 +8,9 @@
  * roles keep one import.
  */
 
-import { addDays, monthBounds } from '../collections/payroll_runs/lib/dates.js';
+import { addDays, monthBounds, weekStart } from '../collections/payroll_runs/lib/dates.js';
 
-export { addDays, monthBounds };
+export { addDays, monthBounds, weekStart };
 
 /** `YYYY-MM` for a payroll month. */
 export function isYearMonth(value: string): boolean {

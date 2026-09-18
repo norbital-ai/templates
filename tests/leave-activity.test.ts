@@ -46,6 +46,7 @@ describe('leave activity fields', () => {
 			half_day_start: false,
 			half_day_end: false,
 			days: null,
+			hours: null,
 			encash_days: null,
 			as_adjustment_entry: false,
 			reversal_of_id: null,
@@ -55,7 +56,11 @@ describe('leave activity fields', () => {
 			destination_to: null,
 			available_from: null,
 			expires_on: null,
-			reason: null
+			reason: null,
+			event_kind: null,
+			event_relationship: null,
+			event_child_index: null,
+			event_date: null
 		});
 	});
 

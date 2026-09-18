@@ -1,4 +1,9 @@
-import { grantsOn, hrLeaveEntryGrant, mergeGrants } from '../../lib/policy_grants.js';
+import {
+	grantsOn,
+	hrLeaveEntryGrant,
+	mergeGrants,
+	separationPaymentGrant
+} from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
 /**
@@ -27,7 +32,14 @@ export default {
 		grantsOn('payroll_runs', ['read']),
 		grantsOn('payslips', ['read']),
 		grantsOn('leave_entries', ['read']),
-		hrLeaveEntryGrant(true)
+		// A leave rule may read the employment's statutory facts (`person.facts.<CODE>`).
+		grantsOn('statutory_contributions', ['read']),
+		grantsOn('employment_statutory_facts', ['read']),
+		hrLeaveEntryGrant(true),
+		// The separation payments the version owes a leaver: read the rows, raise the standing row.
+		grantsOn('allowance_catalogue', ['read']),
+		grantsOn('allowances', ['read']),
+		separationPaymentGrant()
 	),
 	limits: { 'collections.*': { window: '1 min', limit: 600, key: 'subject' } }
 } satisfies Policy;

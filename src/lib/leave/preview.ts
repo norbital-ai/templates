@@ -3,7 +3,13 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import { calendarDay } from '../iso-day.js';
 import { pointNumber } from '../half-day.js';
 import { calendarDaysThrough, leaveCalendarGridBounds } from './calendar-grid.js';
-import { readLeaveContext, leaveRules, type LeaveContext, type LeaveReadApi } from './context.js';
+import {
+	readLeaveContext,
+	leavePool,
+	leaveRules,
+	type LeaveContext,
+	type LeaveReadApi
+} from './context.js';
 import { measureLeaveDay, planLeaveActivity } from './activity.js';
 import { leaveBalanceAt, assertLeaveBalanceIntegrity } from './balance.js';
 import { leaveWindowOf } from './entitlement.js';
@@ -72,9 +78,7 @@ export function evaluateLeavePreview(
 	if (!window) refuse('Choose a calendar month or a leave range.');
 	const rules = leaveRules(context, input.employment_id, input.catalogue_id);
 	const entries = context.entries.filter((row) => row.id !== input.exclude_entry_id);
-	const sameLeave = entries.filter(
-		(row) => row.employment_id === input.employment_id && row.leave_code === rules.selected.code
-	);
+	const sameLeave = leavePool(context, input.employment_id, rules, entries).own;
 	const availability: Record<string, LeaveDayPreview> = {};
 	const dates = calendarDaysThrough(window.start, window.end);
 	for (const date of dates) {
