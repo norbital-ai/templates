@@ -21,6 +21,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
 	assessStatutory,
@@ -29,10 +30,12 @@ import {
 	expectStatutorySkipped,
 	assertEveryVersionPriced,
 	settingsVersions,
+	contributionSchemes,
 	COMPANY_ID,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 
 test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 民國115年 tables', () => {
 	const book = assessStatutory({
@@ -732,12 +735,58 @@ test('Taiwan — a part-timer insures at the part-time grades, the worker’s vo
 	expectStatutory(book, 'TW-PART', 'LABOR_PENSION', 0, 752);
 	// 勞退條例 §14(3): a 6% voluntary contribution on the 40,100 grade, 2,406, beside the employer's.
 	expectStatutory(book, 'TW-VOL', 'LABOR_PENSION', 2406, 2406);
-	// The table election: 40,000 a month annualises to 480,000, under the 464,000 exemption and
-	// deductions by too little to reach NT$2,000 a month — nothing is withheld, where the 5%
-	// election would have taken 2,000 (less the voluntary contribution, §14(4)).
+	// §14(4): the voluntary contribution is outside the taxable salary — once: the income-tax base
+	// is 40,000 − 2,406 = 37,594 (it was subtracted twice until 2026-09-19).
+	assert.equal(book.get('TW-VOL')!.get('INCOME_TAX')!.base, 37_594);
+	// The table election: 37,594 sits under the table's first withholding bracket (90,501), so
+	// nothing is withheld, where the 5% election would have taken 1,880 → under 2,000 → nothing too.
 	expectStatutory(book, 'TW-VOL', 'INCOME_TAX', 0, 0);
 	// 所得稅法 §7(3): a foreigner resident 183 days is withheld on the resident ladder, 5% of
 	// 50,000 = 2,500, not the non-resident 18%.
 	expectStatutory(book, 'TW-DOMICILED', 'INCOME_TAX', 2500, 0);
 	assert.equal(book.get('TW-DOMICILED')!.get('INCOME_TAX_NON_RESIDENT'), undefined);
+});
+
+test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,080 cells reproduces from the rung', () => {
+	// 財政部 台財稅字第11404675280號函 (4 Dec 2025), the table and its 說明: the bracket's lower bound
+	// × 12, less 101,000 for the taxpayer and each of the spouse and dependants, the married
+	// standard deduction 272,000 and the salary special deduction 227,000, at the 115年度 brackets,
+	// ÷ 12, cut to the ten dollars; NT$2,000 or under withholds nothing. The fixture is the
+	// table as printed (25 pages, 80,001 to 500,000 in steps of 500, twelve dependant columns),
+	// read from the PDF, not derived. The rung is evaluated the way the run evaluates it, on a wage
+	// at the top of each bracket, so the anchor to the bracket's lower bound is what is tested.
+	const table = JSON.parse(
+		readFileSync(
+			new URL('./fixtures/statutory/TW/withholding-table-115.json', import.meta.url),
+			'utf8'
+		)
+	) as { from: number; to: number; withhold: number[] }[];
+	const rung = contributionSchemes('TW')
+		.find((row) => row.code === 'INCOME_TAX' && row.settings_id === settingsVersions('TW')[1]!.id)!
+		.rules.find((row) => row.employee.includes('table_withholding'))!.employee;
+	const context = (base: number, dependants: number) => ({
+		base,
+		scheme: { elections: { table_withholding: true }, rate_override: 0 },
+		person: { employee: { dependents_count: dependants } },
+		produced: { LABOR_PENSION: { employee: 0 } }
+	});
+	let cells = 0;
+	for (const row of table)
+		for (const [dependants, expected] of row.withhold.entries()) {
+			cells += 1;
+			for (const wage of [row.from, row.to])
+				assert.equal(
+					evaluateNumber(expressionEngine, rung, context(wage, dependants)),
+					expected,
+					`${row.from}–${row.to}, ${dependants} dependants, wage ${wage}`
+				);
+		}
+	assert.equal(cells, 10_080);
+	// The six cells the ten-dollar cut lands exactly on 2,000: the 說明's "不超過2,000元" withholds
+	// nothing, and 2,010 is the first figure withheld.
+	assert.equal(evaluateNumber(expressionEngine, rung, context(90_250, 0)), 0);
+	assert.equal(evaluateNumber(expressionEngine, rung, context(90_750, 0)), 2020);
+	// Above the table: the same formula on the salary itself, to the dollar (說明 (三)).
+	// 600,000 × 12 = 7,200,000 − 600,000 = 6,600,000 → 1,126,900 + 1,410,000 × 40% = 1,690,900 ÷ 12 = 140,908.
+	assert.equal(evaluateNumber(expressionEngine, rung, context(600_000, 0)), 140_908);
 });
