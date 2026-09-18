@@ -104,6 +104,15 @@ export const workRulesValueSchema = Schema.Struct({
 	 */
 	proration: prorationBasisValueSchema,
 	/**
+	 * Arms over the person, in order, each naming its own basis; the first whose `when` holds
+	 * replaces `proration` for that person (PH Handbook ch.2: a monthly-paid employee's part month
+	 * and absence on the 365 factor, 30.4167 a month, while the daily-paid keep 261 or 313).
+	 * Absent or empty is `proration` for everyone.
+	 */
+	proration_by: Schema.optionalKey(
+		Schema.Array(Schema.Struct({ when: cel, basis: prorationBasisValueSchema }))
+	),
+	/**
 	 * Days over the person: the statutory divisor the monthly wage is spread over to price one
 	 * ordinary day, e.g. `26.0` (Malaysia), `period.working_days` (Vietnam), or a ternary over the
 	 * week shape (the Philippines). The hour is that day over the contract's normal daily hours.
@@ -192,7 +201,16 @@ export const workRulesValueSchema = Schema.Struct({
 				(limit.when ?? '').trim() === ''
 					? null
 					: faultIn(limit.when ?? '', 'person', 'boolean', `Limit ${limit.key}`)
-			)
+			),
+			...(rules.proration_by ?? []).map((arm, index) =>
+				faultIn(arm.when, 'person', 'boolean', `Proration arm ${index + 1}`)
+			),
+			...(['ordinary_add', 'overtime_add'] as const).map((key) => {
+				const add = rules.night_premium?.[key];
+				return typeof add === 'string'
+					? faultIn(add, 'work_day', 'number', `Night premium ${key}`)
+					: null;
+			})
 		];
 		return faults.find((fault) => fault != null) ?? true;
 	})

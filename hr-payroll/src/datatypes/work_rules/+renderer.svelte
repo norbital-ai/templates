@@ -167,6 +167,7 @@
 		measure: WorkLimit['measure'];
 		max_hours: number;
 		unit: WorkLimit['unit'];
+		when: string;
 		authority: string;
 	};
 	const projectLimits = (rules: WorkRules | null): LimitRow[] =>
@@ -177,6 +178,7 @@
 			measure: limit.measure,
 			max_hours: limit.max_hours,
 			unit: limit.unit,
+			when: limit.when ?? '',
 			authority: limit.authority ?? ''
 		}));
 	let limitRows = $state<LimitRow[]>([]);
@@ -187,6 +189,11 @@
 		},
 		{ lazy: false }
 	);
+	/** A night add: a figure where the text is one, else the expression over the work day. */
+	const percentAddFrom = (text: string): number | string => {
+		const trimmed = text.trim();
+		return trimmed !== '' && Number.isFinite(Number(trimmed)) ? Number(trimmed) : trimmed;
+	};
 	const limitColumns: MatrixColumn<LimitRow>[] = [
 		{ key: 'key', label: t('renderer.work_rules.key'), field: fieldOf('key', 'text'), width: 150 },
 		{
@@ -216,6 +223,12 @@
 			width: 150
 		},
 		{
+			key: 'when',
+			label: t('renderer.work_rules.limit_when'),
+			field: fieldOf('when', 'text'),
+			width: 220
+		},
+		{
 			key: 'authority',
 			label: t('component.authority'),
 			field: fieldOf('authority', 'text'),
@@ -232,7 +245,61 @@
 				measure: row.measure,
 				max_hours: row.max_hours,
 				unit: row.unit,
+				...(row.when.trim() === '' ? {} : { when: row.when }),
 				...(row.authority.trim() === '' ? {} : { authority: row.authority })
+			}))
+		});
+	}
+
+	/* ── Proration arms ────────────────────────────────────────────────────────────────────── */
+	type ProrationArmRow = { id: string; when: string; by: string; days: number };
+	const projectArms = (rules: WorkRules | null): ProrationArmRow[] =>
+		(rules?.proration_by ?? []).map((arm, index) => ({
+			id: String(index),
+			when: arm.when,
+			by: arm.basis.by,
+			days: arm.basis.by === 'FIXED_DAYS' ? arm.basis.days : 0
+		}));
+	let armRows = $state<ProrationArmRow[]>([]);
+	watch(
+		() => current,
+		(rules) => {
+			armRows = projectArms(rules);
+		},
+		{ lazy: false }
+	);
+	const armColumns: MatrixColumn<ProrationArmRow>[] = [
+		{
+			key: 'when',
+			label: t('renderer.work_rules.limit_when'),
+			field: fieldOf('when', 'text'),
+			width: 260
+		},
+		{
+			key: 'by',
+			label: t('renderer.work_rules.proration'),
+			field: fieldOf('by', 'enum', { values: ['CALENDAR_DAYS', 'WORKING_DAYS', 'FIXED_DAYS'] }),
+			width: 160
+		},
+		{
+			key: 'days',
+			label: t('renderer.work_rules.fixed_days'),
+			field: fieldOf('days', 'number'),
+			width: 100
+		}
+	];
+	function commitArms(rows: ProrationArmRow[]): void {
+		armRows = rows;
+		if (current == null) return;
+		edit({
+			proration_by: rows.map((row) => ({
+				when: row.when,
+				basis:
+					row.by === 'FIXED_DAYS'
+						? { by: 'FIXED_DAYS' as const, days: row.days }
+						: row.by === 'WORKING_DAYS'
+							? { by: 'WORKING_DAYS' as const }
+							: { by: 'CALENDAR_DAYS' as const }
 			}))
 		});
 	}
@@ -454,9 +521,33 @@
 					measure: 'TOTAL_WORK_HOURS' as const,
 					max_hours: 12,
 					unit: 'WORKED_HOURS' as const,
+					when: '',
 					authority: ''
 				})}
 				onChange={commitLimits}
+			/>
+		</Stack>
+
+		<!-- Proration arms: who prorates on another basis than the default. -->
+		<Stack gap="xs">
+			<span class="text-sm font-semibold">{t('renderer.work_rules.proration_by')}</span>
+			<p class="text-meta">{t('renderer.work_rules.proration_by_hint')}</p>
+			<MatrixRenderer
+				{disabled}
+				{readonly}
+				bind:rows={armRows}
+				columns={armColumns}
+				allowAddRows={!disabled}
+				bounded={false}
+				getRowId={(row) => String(row.id)}
+				addRowLabel={t('renderer.work_rules.add_proration_arm')}
+				createRow={() => ({
+					id: String(armRows.length),
+					when: '',
+					by: 'FIXED_DAYS',
+					days: 30.4167
+				})}
+				onChange={commitArms}
 			/>
 		</Stack>
 
@@ -526,25 +617,19 @@
 					<label class="flex flex-col gap-1 text-xs">
 						<span class="text-muted-foreground">{t('renderer.work_rules.night_ordinary_add')}</span>
 						<Input
-							type="number"
-							min="0"
-							step="0.01"
-							value={current.night_premium.ordinary_add}
+							value={String(current.night_premium.ordinary_add)}
 							{disabled}
 							oninput={(event) =>
-								editNight({ ordinary_add: numberFrom(event.currentTarget.value, 0) })}
+								editNight({ ordinary_add: percentAddFrom(event.currentTarget.value) })}
 						/>
 					</label>
 					<label class="flex flex-col gap-1 text-xs">
 						<span class="text-muted-foreground">{t('renderer.work_rules.night_overtime_add')}</span>
 						<Input
-							type="number"
-							min="0"
-							step="0.01"
-							value={current.night_premium.overtime_add}
+							value={String(current.night_premium.overtime_add)}
 							{disabled}
 							oninput={(event) =>
-								editNight({ overtime_add: numberFrom(event.currentTarget.value, 0) })}
+								editNight({ overtime_add: percentAddFrom(event.currentTarget.value) })}
 						/>
 					</label>
 				</Grid>

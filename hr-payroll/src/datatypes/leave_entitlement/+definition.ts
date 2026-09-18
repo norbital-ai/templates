@@ -26,6 +26,11 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 * such span (TW hospitalised sickness: one year within two, `24`). Absent is the leave year.
 	 */
 	rolling_months: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
+	/**
+	 * How a prorated grant rounds: to the half day (the default), or to the whole day with a half
+	 * or more rounding up (MY EA s.60E(1); SG EA s.88A(3)).
+	 */
+	rounding: Schema.optionalKey(Schema.NullOr(Schema.Literals(['HALF_DAY', 'WHOLE_DAY']))),
 	bands: Schema.Array(
 		Schema.Struct({
 			/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */

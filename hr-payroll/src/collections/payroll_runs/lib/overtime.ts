@@ -222,7 +222,13 @@ export function nightWindowHours(
 	entry: WorkDayLike,
 	window: Pick<NightPremium, 'from' | 'to'>,
 	shift: ScheduledDay['shift'],
-	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES
+	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES,
+	/**
+	 * On a day with no shift (a rest day, a holiday) the first this many worked hours are the
+	 * ordinary night hours and the rest overtime — the split the bands price the day on (PH
+	 * art.93: 130% for eight hours, 169% beyond, the night add on each at 10%).
+	 */
+	normalHours = 0
 ): { readonly ordinary: number; readonly overtime: number } {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const from = clockMinutes(window.from);
@@ -232,7 +238,20 @@ export function nightWindowHours(
 	const nightEnd = midnight(workDate, utcOffsetMinutes) + to * MINUTE_MS;
 	const intervals = normalizedWorkedIntervals(entry);
 	const night = overlapHours(intervals, nightStart, nightEnd);
-	if (shift == null) return { ordinary: 0, overtime: night };
+	if (shift == null) {
+		if (!(normalHours > 0)) return { ordinary: 0, overtime: night };
+		// The first `normalHours` of the clock, in order, cut where the allowance runs out.
+		let left = normalHours * HOUR_MS;
+		const first: Interval[] = [];
+		for (const interval of [...intervals].sort((a, b) => a.start - b.start)) {
+			if (left <= 0) break;
+			const take = Math.min(left, interval.end - interval.start);
+			first.push({ start: interval.start, end: interval.start + take });
+			left -= take;
+		}
+		const ordinary = overlapHours(first, nightStart, nightEnd);
+		return { ordinary, overtime: night - ordinary };
+	}
 	const start = clockMinutes(shift.start_time);
 	let end = clockMinutes(shift.end_time);
 	if (shift.crosses_midnight || end <= start) end += 1440;

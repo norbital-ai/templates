@@ -668,8 +668,10 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 		assert.equal(divisor('MONTHLY', 40, 5), 30.4167);
 		assert.equal(divisor('', 40, 5), 21.75);
 		assert.equal(divisor('', 48, 6), 26.0833);
-		// An absent day on the 261 factor: ₱30,000 × 12 ÷ 261 = ₱1,379.31.
-		assert.equal(
+		// Handbook ch.2 §E on the salary line too (`proration_by`): a daily-paid employee’s absent
+		// day on the 261 factor is ₱30,000 × 12 ÷ 261 = ₱1,379.31; a monthly-paid one’s (payroll
+		// group MONTHLY) is ÷ 30.4167 = ₱986.30, and their part month prorates on the same divisor.
+		const absent = (payroll_group) =>
 			absenceDayRate({
 				terms: {
 					base_salary: { value: 30_000, currency: 'PHP' },
@@ -678,11 +680,20 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 					working_days_per_week: 5
 				},
 				work: version.work_rules,
+				person: personContext({
+					employee: null,
+					employment: { service_start: '2020-01-01' },
+					terms: { base_salary: { value: 30_000, currency: 'PHP' }, payroll_group },
+					asOf: '2026-02-28'
+				}),
 				period: { start: '2026-02-01', end: '2026-02-28' },
 				workingDaysIn: () => 20
-			}),
-			1379.31
-		);
+			});
+		assert.equal(absent('BI-MONTHLY'), 1379.31);
+		assert.equal(absent('MONTHLY'), 986.3);
+		assert.deepEqual(version.work_rules.proration_by, [
+			{ when: 'terms.payroll_group == "MONTHLY"', basis: { by: 'FIXED_DAYS', days: 30.4167 } }
+		]);
 	}
 });
 

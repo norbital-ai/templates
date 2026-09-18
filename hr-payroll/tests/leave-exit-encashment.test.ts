@@ -203,4 +203,22 @@ test('off-boarding raises the separation payments the version owes the leaver, o
 		{ catalogue_id: id(95), effective_from: EXIT }
 	]);
 	assert.deepEqual(again.raisedAllowances, []);
+	// A payment owed in a window before a dated event (ID THR for a leaver in the thirty days
+	// before Idulfitri, Permenaker 6/2016 art.7(1)): the eligibility compares the exit day.
+	const thr = [
+		{
+			id: id(97),
+			code: 'THR',
+			eligibility: 'employment.exit_date >= "2026-06-01" && employment.exit_date < "2026-07-01"'
+		}
+	];
+	const inWindow = await run(closed(leaveContext()), 'RESIGNATION', thr);
+	assert.deepEqual(
+		inWindow.raisedAllowances.map((row) => row.catalogue_id),
+		[id(97)]
+	);
+	const outside = await run(closed(leaveContext()), 'RESIGNATION', [
+		{ ...thr[0], eligibility: 'employment.exit_date >= "2026-07-01"' }
+	]);
+	assert.deepEqual(outside.raisedAllowances, []);
 });

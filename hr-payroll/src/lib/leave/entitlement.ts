@@ -141,8 +141,12 @@ export function computedEntitlement(options: {
 			}
 		}
 	};
-	const entitlement = roundHalfDay(target * fraction(end));
-	const earned = roundHalfDay(target * fraction(through));
+	// The statute's own rounding of a part-year grant: MY s.60E(1) and SG s.88A(3) disregard a
+	// fraction under a half and count a half or more as a day; elsewhere the half day stands.
+	const round = (value: number): number =>
+		rule.rounding === 'WHOLE_DAY' ? Math.floor(value + 0.5 + 1e-9) : roundHalfDay(value);
+	const entitlement = round(target * fraction(end));
+	const earned = round(target * fraction(through));
 	const releasedThrough =
 		through === monthBounds(through.slice(0, 7)).end
 			? through
@@ -150,6 +154,6 @@ export function computedEntitlement(options: {
 	const available =
 		rule.availability === 'UPFRONT' || rule.proration === 'NONE'
 			? entitlement
-			: roundHalfDay(target * fraction(releasedThrough));
+			: round(target * fraction(releasedThrough));
 	return { window, opening, unlimited: false, entitlement, earned, available };
 }

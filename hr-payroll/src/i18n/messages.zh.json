@@ -1045,5 +1045,16 @@
 	"component.pass_type": "工作准證",
 	"component.tax_residency": "稅務居民身分（申報）",
 	"component.notice_days": "預告期（日）",
-	"component.requested_by": "休息日出勤由誰提出"
+	"component.requested_by": "休息日出勤由誰提出",
+	"renderer.work_rules.limit_when": "适用条件（按人；留空为所有人）",
+	"renderer.work_rules.proration_by": "按人分摊基准",
+	"renderer.work_rules.proration_by_hint": "按顺序判断：首个条件成立的分支替代该人的默认基准。",
+	"renderer.work_rules.add_proration_arm": "新增分支",
+	"renderer.work_rules.fixed_days": "固定天数",
+	"leave.availability.PER_EVENT": "按事件",
+	"leave.rounding": "不足一年时的取整",
+	"leave.rounding.HALF_DAY": "半天",
+	"leave.rounding.WHOLE_DAY": "整天（半天及以上进位）",
+	"leave.rolling_months": "滚动窗口（月；留空为假期年度）",
+	"leave.lifetime_events": "终身事件数（留空为不限）"
 }

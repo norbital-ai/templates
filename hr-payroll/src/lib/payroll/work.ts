@@ -52,7 +52,13 @@ import {
 	nightWindowHours,
 	type DailyOvertime
 } from '../../collections/payroll_runs/lib/overtime.js';
-import { INCENTIVE_LINE, OVERTIME_LINE, priceWorkDay, type WorkBandDay } from './work-bands.js';
+import {
+	INCENTIVE_LINE,
+	OVERTIME_LINE,
+	nightAddsFor,
+	priceWorkDay,
+	type WorkBandDay
+} from './work-bands.js';
 import {
 	absenceDayRate,
 	ordinaryDayWage,
@@ -489,13 +495,6 @@ export function prepareWorkContext(
 	 * Rounded to the cent before it is multiplied by the day count, not after, which is what the
 	 * source system does and what reproduces its figures exactly.
 	 */
-	const absenceDayWage = absenceDayRate({
-		terms: rateTerms,
-		work: configuration.work,
-		period: options.salary,
-		workingDaysIn
-	});
-
 	const subject = personContext({
 		employee: bundle.employee,
 		employment: stint(bundle.employment),
@@ -516,6 +515,13 @@ export function prepareWorkContext(
 		// The pay month's working days, so a divisor expression can name `period.working_days`.
 		period: { working_days: workingDaysIn(monthBounds(monthKey(options.salary.start))) },
 		asOf: options.salary.end
+	});
+	const absenceDayWage = absenceDayRate({
+		terms: rateTerms,
+		work: configuration.work,
+		person: subject,
+		period: options.salary,
+		workingDaysIn
 	});
 
 	// The overtime hour is the jurisdiction's ordinary hourly rate and nothing a company chooses:
@@ -550,7 +556,13 @@ export function prepareWorkContext(
 			if (hours == null) throw new Error('Hourly Leave requires its captured working shift.');
 			return (terms.base_salary.value * hours.paid_minutes) / 60;
 		}
-		return absenceDayRate({ terms, work: configuration.work, period, workingDaysIn });
+		return absenceDayRate({
+			terms,
+			work: configuration.work,
+			person: subject,
+			period,
+			workingDaysIn
+		});
 	};
 
 	return {
@@ -701,7 +713,8 @@ export function calculateWorkAttendance(
 								clocked,
 								configuration.nightPremium,
 								day.dayType === 'ORDINARY' ? day.shift : null,
-								offset
+								offset,
+								derived.normalHours
 							);
 							return night.ordinary + night.overtime;
 						})(),
@@ -811,17 +824,35 @@ export function calculateWorkAttendance(
 					if (date < overtimeAttendance.start || date > overtimeAttendance.end) return [];
 					const day = schedule.get(date);
 					const priced = day;
+					const bandDay = pricedBandDays.find((row) => row.workDayId === entry.id);
 					const night = nightWindowHours(
 						entry,
 						nightPremium,
 						priced != null && priced.dayType === 'ORDINARY' ? priced.shift : null,
-						offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date)
+						offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date),
+						bandDay?.normalHours ?? priced?.normalHours ?? 0
 					);
 					// Overtime hours add nothing where the person is outside statutory overtime pay.
 					const overtime = paymentEligible ? night.overtime : 0;
-					return night.ordinary + overtime > 0
-						? [{ id: entry.id, ordinary: night.ordinary, overtime }]
-						: [];
+					if (night.ordinary + overtime <= 0) return [];
+					// The adds follow the day where the version says so; a day the bands never saw
+					// (outside the overtime window, or an ineligible person) reads the plain figures.
+					const adds =
+						bandDay == null
+							? {
+									ordinary:
+										typeof nightPremium.ordinary_add === 'number' ? nightPremium.ordinary_add : 0,
+									overtime:
+										typeof nightPremium.overtime_add === 'number' ? nightPremium.overtime_add : 0
+								}
+							: nightAddsFor({
+									work: { ...configuration.work, limits },
+									premium: nightPremium,
+									person: subject,
+									day: bandDay,
+									rates: { ordinaryHour: hourlyRate, ordinaryDay: dayWage, dayWage }
+								});
+					return [{ id: entry.id, ordinary: night.ordinary, overtime, adds }];
 				});
 	const nightShiftHours = nightDays.reduce((total, day) => total + day.ordinary + day.overtime, 0);
 	const capped = funnelMonthlyOvertime({
@@ -941,6 +972,16 @@ function measureWorkComponent(
 		): void => {
 			const segment = prorationSegment({
 				work: options.configuration.work,
+				// The basis is the person's: read over the terms row this segment prices.
+				person: personContext({
+					employee: options.bundle.employee,
+					employment: stint(options.bundle.employment),
+					fixedAllowances: fixedAllowancesOn(options.bundle.payRequests, options.salary.end),
+					terms,
+					children: options.bundle.children,
+					company: options.configuration.company,
+					asOf: options.salary.end
+				}),
 				period: options.salary,
 				covered,
 				workingDaysIn: options.workingDaysIn,
@@ -1195,6 +1236,7 @@ function measureNightPremium(options: {
 		readonly id: string;
 		readonly ordinary: number;
 		readonly overtime: number;
+		readonly adds: { readonly ordinary: number; readonly overtime: number };
 	}[];
 	readonly hourlyRate: number;
 	readonly catalogueComponents: readonly CatalogueComponent[];
@@ -1207,10 +1249,10 @@ function measureNightPremium(options: {
 	);
 	if (component == null) throw new Error('Work catalogue is missing its night premium output.');
 	if (!isEligible(component.eligibility, options.subject)) return [];
-	const { ordinary_add, overtime_add } = options.premium;
 	return options.days.flatMap((day) => {
 		const amount = cents(
-			options.hourlyRate * ((day.ordinary * ordinary_add + day.overtime * overtime_add) / 100),
+			options.hourlyRate *
+				((day.ordinary * day.adds.ordinary + day.overtime * day.adds.overtime) / 100),
 			options.currency
 		);
 		if (amount === 0) return [];

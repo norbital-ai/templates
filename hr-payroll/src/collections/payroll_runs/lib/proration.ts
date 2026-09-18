@@ -23,6 +23,7 @@
 
 import { Schema } from 'effect';
 import type { Work } from './configuration.js';
+import { isEligible, type PersonContext } from './eligibility.js';
 import {
 	inclusiveDays,
 	intersectDays,
@@ -36,9 +37,23 @@ import { decodeNumber } from '@norbital-ai/std/json';
 const DayWindowSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
 type DayWindow = Schema.Schema.Type<typeof DayWindowSchema>;
 
-/** What `prorationSegment` needs: the work's basis, the period and the span covered. */
+/**
+ * The basis this person prorates on: the first `proration_by` arm whose predicate holds over
+ * them, else the version's `proration` (PH Handbook ch.2: the monthly-paid on 365/12, the
+ * daily-paid on 261 or 313).
+ */
+export function prorationBasisFor(
+	work: Pick<Work, 'proration' | 'proration_by'>,
+	person: PersonContext
+): Work['proration'] {
+	for (const arm of work.proration_by ?? []) if (isEligible(arm.when, person)) return arm.basis;
+	return work.proration;
+}
+
+/** What `prorationSegment` needs: the work's basis, the period, the person and the span covered. */
 type ProrationFractionOptions = {
 	readonly work: Work;
+	readonly person: PersonContext;
 	readonly period: DayWindow;
 	readonly covered: DayWindow | null;
 	readonly workingDaysIn: (window: DayWindow) => number;
@@ -71,7 +86,7 @@ export function prorationSegment(options: ProrationFractionOptions): {
 	readonly denominator: number;
 } | null {
 	if (options.covered == null) return null;
-	const basis = options.work.proration;
+	const basis = prorationBasisFor(options.work, options.person);
 	if (basis == null)
 		throw new Error(
 			`The Work catalogue of settings version ${options.work.settings_id} states no proration basis.`

@@ -1045,5 +1045,16 @@
 	"component.pass_type": "Work pass",
 	"component.tax_residency": "Tax residency (declared)",
 	"component.notice_days": "Notice period (days)",
-	"component.requested_by": "Rest-day work requested by"
+	"component.requested_by": "Rest-day work requested by",
+	"renderer.work_rules.limit_when": "Applies when (over the person; empty is everyone)",
+	"renderer.work_rules.proration_by": "Proration by person",
+	"renderer.work_rules.proration_by_hint": "Arms in order: the first whose condition holds replaces the default basis for that person.",
+	"renderer.work_rules.add_proration_arm": "Add arm",
+	"renderer.work_rules.fixed_days": "Fixed days",
+	"leave.availability.PER_EVENT": "Per event",
+	"leave.rounding": "Rounding of a part-year grant",
+	"leave.rounding.HALF_DAY": "Half day",
+	"leave.rounding.WHOLE_DAY": "Whole day (half or more rounds up)",
+	"leave.rolling_months": "Rolling window (months; empty is the leave year)",
+	"leave.lifetime_events": "Lifetime events (empty is unlimited)"
 }
