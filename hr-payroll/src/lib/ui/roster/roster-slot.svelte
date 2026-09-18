@@ -5,9 +5,10 @@
 	tint and the code; the fill is a bar that runs along the bottom of the slot to the length of the
 	shift and spills past it as the extra, so what the clock did is read against what was planned
 	without a key: a full green bar is a day worked to plan, a bar that stops short is a short day,
-	a bar with an overflow segment and `+13%` is a long one, a moving bar is a clock still running,
-	and the destructive fill is a reviewed work day nobody clocked. Every state also says itself in
-	the accessible name, which is the tooltip's sentence, so nothing here depends on colour alone.
+	a bar with an overflow segment is a long one, a moving bar is a clock still running, and the
+	destructive fill is a reviewed work day nobody clocked. The line under the code is the hours
+	worked to the half hour. Every state also says itself in the accessible name, so nothing here
+	depends on colour alone.
 
 	`dense` is the board: two lines in a 36px cell. Otherwise the calendar tile, with room for the
 	date, the punch window and the hours.
@@ -17,7 +18,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import {
-		extraLabel,
+		halfHoursLabel,
 		punchTimeCue,
 		slotCode,
 		slotFill,
@@ -26,22 +27,12 @@
 		type SlotState
 	} from './roster-month.js';
 
-	let {
-		day,
-		dense = true,
-		hours
-	}: {
-		day: DayFacts | undefined;
-		dense?: boolean;
-		/** The calendar's hours formatter; the board prints none. */
-		hours?: (minutes: number) => string;
-	} = $props();
+	let { day, dense = true }: { day: DayFacts | undefined; dense?: boolean } = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
 	const state = $derived(slotState(day));
 	const fill = $derived(slotFill(day));
 	const code = $derived(slotCode(day, dense));
-	const extra = $derived(extraLabel(fill));
 
 	/**
 	 * The state's tint. Work is the plain card; everything that is not work is quieter, and a
@@ -74,17 +65,15 @@
 	/**
 	 * The second line of a dense cell is the clock, and only the clock: what actually happened. A
 	 * plan alone prints its code and nothing under it — thirty identical shift windows across a
-	 * row say nothing the code does not, and the window is one hover away.
+	 * row say nothing the code does not, and the window is in the day sheet.
 	 */
 	const cue = $derived(
 		fill.kind === 'AWOL'
 			? t('roster.absent')
 			: fill.kind === 'CLOCKED'
-				? // Hours and the extra, not the punch window: `8:21p–8:30p +13%` does not fit sixty
-					// pixels, `9.5h +13%` does, and the window is in the tooltip and the day sheet.
-					// Past ten hours the tenth goes too: `10.6h+21%` truncates to `10.6h+2…` and the
-					// extra is the point of the line.
-					`${(fill.workedMinutes / 60).toFixed(fill.workedMinutes < 600 ? 1 : 0).replace(/\.0$/, '')}h${extra}`
+				? // The hours to the half hour, not the punch window: `8:21p–8:30p` does not fit sixty
+					// pixels, `8.5h` does, and the window is in the day sheet.
+					halfHoursLabel(fill.workedMinutes)
 				: fill.kind === 'OPEN'
 					? (punchTimeCue(day) ?? '')
 					: ''
@@ -100,7 +89,7 @@
 	)}
 	data-slot-state={state}
 	data-slot-fill={fill.kind}
-	title={t(stateLabelKey[state])}
+	aria-label={t(stateLabelKey[state])}
 >
 	{#if dense}
 		<span class="block truncate text-xs leading-4">{code}</span>
@@ -128,7 +117,7 @@
 				{fill.first}–{fill.last}
 			</span>
 			<span class="block truncate text-micro leading-3 tabular-nums">
-				{hours == null ? '' : hours(fill.workedMinutes)}{extra !== '' ? ` ${extra}` : ''}
+				{halfHoursLabel(fill.workedMinutes)}
 			</span>
 		{:else if fill.kind === 'OPEN'}
 			<span class="block truncate text-micro leading-4 tabular-nums">{fill.since}</span>

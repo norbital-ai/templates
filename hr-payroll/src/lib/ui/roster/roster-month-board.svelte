@@ -10,7 +10,7 @@
 	Planned and actual are shown in the same cell on purpose. Kept apart they are two screens nobody
 	cross-references, which is how a rostered shift with nobody clocked onto it survives until payroll.
 	The cell is `roster-slot.svelte`: one state, one fill, the same drawing the employee's calendar
-	uses; the tooltip carries where the plan came from and what the clock said in words.
+	uses; the day sheet, one click away, carries where the plan came from and what the clock said.
 
 	── SCROLL ────────────────────────────────────────────────────────────────────────────────────────
 	The board is a scrollport, built the way `CollectionTable` builds one: a `Cover` whose middle row
@@ -38,7 +38,6 @@
 
 <script lang="ts">
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
-	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Number as EffectNumber } from 'effect';
@@ -51,14 +50,10 @@
 		DAY_MARK_KEY,
 		HOLIDAY_PRESENTATION,
 		LOCK_RAIL_PRESENTATION,
-		STATUS_PRESENTATION,
-		describeClockLayer,
 		describeDay,
-		describePlanLayer,
 		holidayTitle,
 		lockRung,
 		lockRungFreezes,
-		lockRungSourceLock,
 		monthDays,
 		personDayKey,
 		type DayFacts,
@@ -67,7 +62,7 @@
 	} from './roster-month.js';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
 	import RosterSlot from './roster-slot.svelte';
-	import { sourceLockReason, type SettlementClaim } from '../../scheduling/lock.js';
+	import type { SettlementClaim } from '../../scheduling/lock.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 
 	type Person = { readonly id: string; readonly number: string; readonly name: string };
@@ -225,21 +220,6 @@
 		);
 	}
 
-	/**
-	 * Why this day refuses a write, in the operator's words — `sourceLockReason` composes it.
-	 *
-	 * No new sentences are written here. `SETTLED` names the period holding the record and says
-	 * both ways out of it; `PAID_DAY` says the day is inside a paid period and corrections are
-	 * adjustments. The advisory draft-window rung has no refusal to explain, so it borrows the note
-	 * the cell already carried.
-	 */
-	function lockNote(day: DayFacts | undefined): string | null {
-		if (day == null) return null;
-		const claim = day.workDayId == null ? null : (settlementClaims.get(day.workDayId) ?? null);
-		const lock = lockRungSourceLock(day, claim);
-		return lock == null ? null : sourceLockReason(lock, t);
-	}
-
 	/* ── THE SWAP GESTURE ──────────────────────────────────────────────────────────────────────
 		Two cells, one transaction. A cell is armed — by dragging it, or by pressing `x` on it, or by
 		the day sheet's own Swap button writing `swapSource` — and the second cell completes the pair.
@@ -332,53 +312,6 @@
 		if (movement == null) return;
 		event.preventDefault();
 		focusCell(personIndex + movement[0], dayIndex + movement[1]);
-	}
-
-	/** The plan line of the tooltip, layer first: "Base from pattern AM-2x2" or "Rostered override, imported". */
-	function scheduleSummary(day: DayFacts): string {
-		if (day.status === 'BEFORE_START' || day.status === 'EXITED') {
-			return t(STATUS_PRESENTATION[day.status].labelKey);
-		}
-		return describePlanLayer(day, t);
-	}
-
-	/** The clock line of the tooltip: "Clocked 08:31 to 17:02", the open clock, AWOL, or no entries. */
-	function attendanceSummary(day: DayFacts): string {
-		const clock = describeClockLayer(day, t);
-		return day.clockedIn && day.withinCutoff ? `${clock} · ${t('roster.in_pay_period')}` : clock;
-	}
-
-	/**
-	 * Everything else worth saying about a day, as one line.
-	 *
-	 * This used to end with `component.lock_date_passed` on every past day that was not settled,
-	 * which said a day was locked for having gone by. That was never true of attendance and is the
-	 * exact false refusal `docs/scheduling.md` set out to remove — a past
-	 * day is the *normal* day to be correcting a punch on. The lock line now comes from the ladder,
-	 * which answers the same question from the payroll runs rather than from the calendar.
-	 */
-	function dayNotes(day: DayFacts): string | null {
-		const rung = rungOf(day);
-		const notes = [
-			day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,
-			day.leaveCode == null
-				? null
-				: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
-			day.pendingLeave ? t('roster.pending_leave') : null,
-			day.plannedOT ? t('roster.planned_ot') : null,
-			...day.conflicts.map((conflict) => t(CONFLICT_PRESENTATION[conflict].labelKey)),
-			// The refusal sentence when there is one; otherwise the draft window's advisory note.
-			lockNote(day) ??
-				(rung === 'IN_DRAFT_RUN' && day.lock.kind === 'IN_WINDOW'
-					? t('roster.in_payroll_window', { period: day.lock.period })
-					: null),
-			// `component.hours_short` already exists and reads "{hours} hr" — a second key saying the
-			// same thing in the same place is one more string to translate and keep in step.
-			day.workedMinutes == null
-				? null
-				: t('component.hours_short', { hours: (day.workedMinutes / 60).toFixed(2) })
-		].filter((part): part is string => part != null);
-		return notes.length === 0 ? null : notes.join(' · ');
 	}
 </script>
 
@@ -556,158 +489,104 @@
 												day?.lock.kind === 'SETTLED' && 'border-r-2 border-r-brand/60'
 											)}
 										>
-											<Tooltip side="top" sideOffset={4} contentClass="max-w-80">
-												{#snippet trigger({ props })}
-													<button
-														{...props}
-														type="button"
-														aria-label={describeDay(day, `${person.name} · ${date}`, t)}
-														aria-haspopup={cellOpenable ? 'dialog' : undefined}
-														tabindex={activeCellKey === personDayKey(person.id, date) ? 0 : -1}
-														data-roster-cell={`${personIndex}:${dayIndex}`}
-														draggable={swappable && cellEditable}
+											<button
+												type="button"
+												aria-label={describeDay(day, `${person.name} · ${date}`, t)}
+												aria-haspopup={cellOpenable ? 'dialog' : undefined}
+												tabindex={activeCellKey === personDayKey(person.id, date) ? 0 : -1}
+												data-roster-cell={`${personIndex}:${dayIndex}`}
+												draggable={swappable && cellEditable}
+												class={cn(
+													'relative block h-9 w-full min-w-12 rounded-sm p-0 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+													day == null && 'bg-muted/20',
+													// The lock rail: a channel of its own, drawn as an inset left border so it
+													// composes with the status fill and the holiday tint instead of replacing
+													// either. Every class is a literal variant in LOCK_RAIL_PRESENTATION.
+													LOCK_RAIL_PRESENTATION[rung].railClassName,
+													cellOpenable
+														? 'cursor-pointer hover:ring-1 hover:ring-ring'
+														: 'cursor-default',
+													// Two literal variants, not one assembled from a condition: the armed cell
+													// is the loud one and a legal partner is the quiet one, and both have to
+													// survive Tailwind's source scan.
+													armed && 'ring-2 ring-brand ring-offset-2',
+													swapTarget && 'ring-2 ring-brand/50',
+													quietPast(day) && 'opacity-70'
+												)}
+												onclick={() => {
+													// An armed swap consumes the next compatible click; the day sheet is
+													// still one click away, on any cell that is not a legal partner.
+													if (swapTarget) {
+														completeSwap({ employmentId: person.id, date });
+														return;
+													}
+													if (armed) {
+														swapSource = null;
+														return;
+													}
+													if (cellOpenable) onSelectDay?.(person.id, date);
+												}}
+												onfocus={() => (requestedCellKey = personDayKey(person.id, date))}
+												onkeydown={(event) => {
+													if (
+														swappable &&
+														cellEditable &&
+														(event.key === 'x' || event.key === 'X')
+													) {
+														event.preventDefault();
+														if (swapTarget) completeSwap({ employmentId: person.id, date });
+														else if (armed) swapSource = null;
+														else armSwap({ employmentId: person.id, date });
+														return;
+													}
+													handleCellKeydown(event, personIndex, dayIndex);
+												}}
+												ondragstart={(event) => {
+													if (!swappable || !cellEditable) return;
+													armSwap({ employmentId: person.id, date });
+													// Firefox refuses to start a drag without payload; the pair is read
+													// from `swapSource`, so the value itself is only ever a marker.
+													event.dataTransfer?.setData('text/plain', personDayKey(person.id, date));
+												}}
+												ondragover={(event) => {
+													if (swapTarget) event.preventDefault();
+												}}
+												ondrop={(event) => {
+													if (!swapTarget) return;
+													event.preventDefault();
+													completeSwap({ employmentId: person.id, date });
+												}}
+												ondragend={() => {
+													// Only clear an arming this drag created. A `swapSource` set from the
+													// day sheet survives, because the operator armed it deliberately.
+													if (armed) swapSource = null;
+												}}
+											>
+												{#if firstConflict != null}
+													<span
 														class={cn(
-															'relative block h-9 w-full min-w-12 rounded-sm p-0 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-															day == null && 'bg-muted/20',
-															// The lock rail: a channel of its own, drawn as an inset left border so it
-															// composes with the status fill and the holiday tint instead of replacing
-															// either. Every class is a literal variant in LOCK_RAIL_PRESENTATION.
-															LOCK_RAIL_PRESENTATION[rung].railClassName,
-															cellOpenable
-																? 'cursor-pointer hover:ring-1 hover:ring-ring'
-																: 'cursor-default',
-															// Two literal variants, not one assembled from a condition: the armed cell
-															// is the loud one and a legal partner is the quiet one, and both have to
-															// survive Tailwind's source scan.
-															armed && 'ring-2 ring-brand ring-offset-2',
-															swapTarget && 'ring-2 ring-brand/50',
-															quietPast(day) && 'opacity-70'
+															'absolute top-0.5 right-0.5 size-1.5 rounded-full',
+															CONFLICT_PRESENTATION[firstConflict].className
 														)}
-														onclick={() => {
-															// An armed swap consumes the next compatible click; the day sheet is
-															// still one click away, on any cell that is not a legal partner.
-															if (swapTarget) {
-																completeSwap({ employmentId: person.id, date });
-																return;
-															}
-															if (armed) {
-																swapSource = null;
-																return;
-															}
-															if (cellOpenable) onSelectDay?.(person.id, date);
-														}}
-														onfocus={() => (requestedCellKey = personDayKey(person.id, date))}
-														onkeydown={(event) => {
-															if (
-																swappable &&
-																cellEditable &&
-																(event.key === 'x' || event.key === 'X')
-															) {
-																event.preventDefault();
-																if (swapTarget) completeSwap({ employmentId: person.id, date });
-																else if (armed) swapSource = null;
-																else armSwap({ employmentId: person.id, date });
-																return;
-															}
-															handleCellKeydown(event, personIndex, dayIndex);
-														}}
-														ondragstart={(event) => {
-															if (!swappable || !cellEditable) return;
-															armSwap({ employmentId: person.id, date });
-															// Firefox refuses to start a drag without payload; the pair is read
-															// from `swapSource`, so the value itself is only ever a marker.
-															event.dataTransfer?.setData(
-																'text/plain',
-																personDayKey(person.id, date)
-															);
-														}}
-														ondragover={(event) => {
-															if (swapTarget) event.preventDefault();
-														}}
-														ondrop={(event) => {
-															if (!swapTarget) return;
-															event.preventDefault();
-															completeSwap({ employmentId: person.id, date });
-														}}
-														ondragend={() => {
-															// Only clear an arming this drag created. A `swapSource` set from the
-															// day sheet survives, because the operator armed it deliberately.
-															if (armed) swapSource = null;
-														}}
+														title={t(CONFLICT_PRESENTATION[firstConflict].labelKey)}
+													></span>
+												{/if}
+												{#if LOCK_RAIL_PRESENTATION[rung].padlock !== ''}
+													<!--
+												The padlock is a second, redundant channel for the two rungs that
+												actually refuse a write. Colour alone is not an accessible way to say
+												"locked", and the rail is four values on one narrow strip.
+											-->
+													<span
+														class="absolute top-0.5 left-0.5 text-[0.5rem] leading-none"
+														aria-hidden="true"
+														title={t(LOCK_RAIL_PRESENTATION[rung].labelKey)}
 													>
-														{#if firstConflict != null}
-															<span
-																class={cn(
-																	'absolute top-0.5 right-0.5 size-1.5 rounded-full',
-																	CONFLICT_PRESENTATION[firstConflict].className
-																)}
-																title={t(CONFLICT_PRESENTATION[firstConflict].labelKey)}
-															></span>
-														{/if}
-														{#if LOCK_RAIL_PRESENTATION[rung].padlock !== ''}
-															<!--
-														The padlock is a second, redundant channel for the two rungs that
-														actually refuse a write. Colour alone is not an accessible way to say
-														"locked", and the rail is four values on one narrow strip.
-													-->
-															<span
-																class="absolute top-0.5 left-0.5 text-[0.5rem] leading-none"
-																aria-hidden="true"
-																title={t(LOCK_RAIL_PRESENTATION[rung].labelKey)}
-															>
-																{LOCK_RAIL_PRESENTATION[rung].padlock}
-															</span>
-														{/if}
-														<RosterSlot {day} dense />
-													</button>
-												{/snippet}
-												{#snippet content()}
-													{#if day != null}
-														<Stack gap="sm" class="min-w-64 max-w-80 text-xs">
-															<div class="border-b border-primary-foreground/15 pb-2">
-																<p class="font-semibold">{person.name}</p>
-																<p class="font-mono text-micro text-primary-foreground/65">
-																	{person.number} · {date}
-																</p>
-															</div>
-															<Stack
-																gap="md"
-																class="relative pl-5 before:absolute before:top-1 before:bottom-1 before:left-1.5 before:w-px before:bg-primary-foreground/20"
-															>
-																<div class="relative">
-																	<span
-																		class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-brand"
-																	></span>
-																	<p class="text-overline text-primary-foreground/55">
-																		{t('roster.timeline_schedule')}
-																	</p>
-																	<p class="leading-4">{scheduleSummary(day)}</p>
-																</div>
-																<div class="relative">
-																	<span
-																		class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-success"
-																	></span>
-																	<p class="text-overline text-primary-foreground/55">
-																		{t('roster.timeline_attendance')}
-																	</p>
-																	<p class="leading-4">{attendanceSummary(day)}</p>
-																</div>
-																{#if dayNotes(day) != null}
-																	<div class="relative">
-																		<span
-																			class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-info"
-																		></span>
-																		<p class="text-overline text-primary-foreground/55">
-																			{t('roster.timeline_notes')}
-																		</p>
-																		<p class="leading-4">{dayNotes(day)}</p>
-																	</div>
-																{/if}
-															</Stack>
-														</Stack>
-													{/if}
-												{/snippet}
-											</Tooltip>
+														{LOCK_RAIL_PRESENTATION[rung].padlock}
+													</span>
+												{/if}
+												<RosterSlot {day} dense />
+											</button>
 										</td>
 									{/each}
 								</tr>
