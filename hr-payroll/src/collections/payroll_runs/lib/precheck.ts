@@ -121,6 +121,7 @@ export function payrollRunPrecheck(options: {
 					shift_definition_id: day.shift_definition_id
 				}))
 			})),
+			holidayDates: new Set(options.configuration.holidays.keys()),
 			...rosteredWorkCodeMaps([...options.configuration.shiftById.values()])
 		})
 	);

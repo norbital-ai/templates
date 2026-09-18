@@ -6,8 +6,9 @@
 	shift and spills past it as the extra, so what the clock did is read against what was planned
 	without a key: a full green bar is a day worked to plan, a bar that stops short is a short day,
 	a bar with an overflow segment is a long one, a moving bar is a clock still running, and the
-	destructive fill is a reviewed work day nobody clocked. The line under the code is the hours
-	worked to the half hour. Every state also says itself in the accessible name, so nothing here
+	destructive fill is a reviewed work day nobody clocked. The line under the code is the clock
+	against the plan to the half hour: `+1h` over, `−0.5h` under, the hours themselves when it met
+	the plan. Every state also says itself in the accessible name, so nothing here
 	depends on colour alone.
 
 	`dense` is the board: two lines in a 36px cell. Otherwise the calendar tile, with room for the
@@ -20,6 +21,7 @@
 	import {
 		halfHoursLabel,
 		punchTimeCue,
+		signedHalfHoursLabel,
 		slotCode,
 		slotFill,
 		slotState,
@@ -71,9 +73,12 @@
 		fill.kind === 'AWOL'
 			? t('roster.absent')
 			: fill.kind === 'CLOCKED'
-				? // The hours to the half hour, not the punch window: `8:21p–8:30p` does not fit sixty
-					// pixels, `8.5h` does, and the window is in the day sheet.
-					halfHoursLabel(fill.workedMinutes)
+				? // Over or under the plan to the half hour, not the punch window: `8:21p–8:30p` does
+					// not fit sixty pixels, `+0.5h` does, and the window is in the day sheet. To plan is
+					// the hours themselves.
+					Math.round(fill.deltaMinutes / 30) === 0
+					? halfHoursLabel(fill.workedMinutes)
+					: signedHalfHoursLabel(fill.deltaMinutes)
 				: fill.kind === 'OPEN'
 					? (punchTimeCue(day) ?? '')
 					: ''
@@ -97,6 +102,8 @@
 			class={cn(
 				'block truncate text-[0.625rem] leading-3',
 				fill.kind === 'NONE' ? 'text-muted-foreground/70' : 'text-foreground',
+				fill.kind === 'CLOCKED' && fill.short && 'text-warning',
+				fill.kind === 'CLOCKED' && Math.round(fill.deltaMinutes / 30) > 0 && 'text-brand',
 				fill.kind === 'AWOL' && 'text-destructive'
 			)}
 		>
@@ -117,7 +124,9 @@
 				{fill.first}–{fill.last}
 			</span>
 			<span class="block truncate text-micro leading-3 tabular-nums">
-				{halfHoursLabel(fill.workedMinutes)}
+				{halfHoursLabel(fill.workedMinutes)}{Math.round(fill.deltaMinutes / 30) === 0
+					? ''
+					: ` (${signedHalfHoursLabel(fill.deltaMinutes)})`}
 			</span>
 		{:else if fill.kind === 'OPEN'}
 			<span class="block truncate text-micro leading-4 tabular-nums">{fill.since}</span>

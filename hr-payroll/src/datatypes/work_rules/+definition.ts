@@ -177,15 +177,11 @@ export const workRulesValueSchema = Schema.Struct({
 	 * The statute's normal day in hours, over the person; absent or empty is the shift's own
 	 * length. A shift longer than it is a normal day plus overtime (MY s.60A(1): 8, or 9 under
 	 * the proviso's 45-hour week; SG s.38(1): 9 on a week of five days or fewer, else 8; PH
-	 * art.83: 8). A shift shorter than it is the normal day.
+	 * art.83: 8). A rostered shift shorter than it is that day's normal day — overtime is the
+	 * hours beyond the normal hours of work, and a short day's normal hours are its own (ID PP
+	 * 35/2021 art.31(2)(b): a six-day worker's five-hour Saturday prices its holiday tiers on five).
 	 */
 	normal_hours: Schema.optionalKey(Schema.String),
-	/**
-	 * The normal day on a rostered day is that day's own shift where it is shorter than the
-	 * contract's day (ID PP 35/2021 art.31(2)(b): a six-day worker's shortest day prices its
-	 * holiday tiers on its own five hours). Absent or false is the contract's day everywhere.
-	 */
-	normal_hours_follow_shift: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	bands: Schema.Array(workRateBandValueSchema),
 	limits: Schema.Array(Schema.Union([workLimitValueSchema, workRestLimitValueSchema])),
 	breaks: Schema.Array(workBreakValueSchema),

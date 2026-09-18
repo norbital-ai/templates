@@ -2,8 +2,8 @@
 	/**
 	 * A named pattern's shape: either a repeating day cycle of roster codes (one row per day in a
 	 * matrix), anchored at the pattern row's effective start, or a roster-assigned expectation
-	 * where no cycle can be generated. There is no type selector and no anchor date to type — the
-	 * value is what it is, and the row already states when it begins.
+	 * where no cycle can be generated. The shape selector switches between the two; there is no
+	 * anchor date to type — the row already states when it begins.
 	 */
 	import { Result, Schema } from 'effect';
 	import { client } from '../../lib/workspace-client.js';
@@ -49,6 +49,31 @@
 		{ value: 'WEEK' as const, label: 'WEEK' },
 		{ value: 'MONTH' as const, label: 'MONTH' }
 	];
+
+	/* ── shape ─────────────────────────────────────────────────────────────────────────────── */
+	type Shape = 'CYCLE' | 'GUARANTEED_SCHEDULE' | 'AS_ASSIGNED';
+	const shapeOptions = $derived<{ value: Shape; label: string }[]>([
+		{ value: 'CYCLE', label: t('renderer.work_pattern.shape_cycle') },
+		{ value: 'GUARANTEED_SCHEDULE', label: t('renderer.work_pattern.shape_rostered') },
+		{ value: 'AS_ASSIGNED', label: t('renderer.work_pattern.shape_as_assigned') }
+	]);
+	const shape = $derived<Shape>(
+		current == null || 'days' in current ? 'CYCLE' : current.expectation.kind
+	);
+	function switchShape(next: Shape): void {
+		if (next === shape) return;
+		if (next === 'CYCLE') {
+			if (codeIds.length > 0) emit({ days: [{ roster_code_id: codeIds[0]! }] });
+			return;
+		}
+		const period = expectation?.period ?? 'WEEK';
+		emit({
+			expectation:
+				next === 'GUARANTEED_SCHEDULE'
+					? { kind: next, period, required_work_days: 6, required_paid_minutes: 2700 }
+					: { kind: next, period, maximum_paid_minutes: null }
+		});
+	}
 
 	function emit(value: Value): void {
 		if (props.mode === 'edit') props.onValueChange(value);
@@ -120,102 +145,121 @@
 
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
-{:else if expectation != null}
-	<Stack gap="sm">
-		<p class="text-meta">{t('renderer.work_pattern.expectation_hint')}</p>
-		<Grid gap="sm" minimum="compact">
-			<label class="text-xs">
-				<Stack gap="xs">
-					<span class="text-muted-foreground">{t('renderer.work_pattern.period')}</span>
-					<Combobox
-						options={periodOptions}
-						value={expectation.period}
-						{disabled}
-						searchable={false}
-						onValueChange={(period) => {
-							if (period) editExpectation({ period });
-						}}
-					/>
-				</Stack>
-			</label>
-			{#if expectation.kind === 'GUARANTEED_SCHEDULE'}
-				<label class="text-xs">
-					<Stack gap="xs">
-						<span class="text-muted-foreground">{t('renderer.work_pattern.required_days')}</span>
-						<Input
-							class="h-8"
-							type="number"
-							min="0"
-							step="0.5"
-							value={expectation.required_work_days}
-							{disabled}
-							oninput={(event) =>
-								editExpectation({
-									kind: 'GUARANTEED_SCHEDULE',
-									required_work_days: numberFrom(event.currentTarget.value, 0)
-								})}
-						/>
-					</Stack>
-				</label>
-				<label class="text-xs">
-					<Stack gap="xs">
-						<span class="text-muted-foreground">{t('renderer.work_pattern.required_minutes')}</span>
-						<Input
-							class="h-8"
-							type="number"
-							min="0"
-							step="1"
-							value={expectation.required_paid_minutes}
-							{disabled}
-							oninput={(event) =>
-								editExpectation({
-									kind: 'GUARANTEED_SCHEDULE',
-									required_paid_minutes: numberFrom(event.currentTarget.value, 0)
-								})}
-						/>
-					</Stack>
-				</label>
-			{:else}
-				<label class="text-xs">
-					<Stack gap="xs">
-						<span class="text-muted-foreground">{t('renderer.work_pattern.maximum_minutes')}</span>
-						<Input
-							class="h-8"
-							type="number"
-							min="0"
-							step="1"
-							value={expectation.maximum_paid_minutes ?? ''}
-							{disabled}
-							oninput={(event) =>
-								editExpectation({
-									kind: 'AS_ASSIGNED',
-									maximum_paid_minutes: nullableNumberFrom(event.currentTarget.value)
-								})}
-						/>
-					</Stack>
-				</label>
-			{/if}
-		</Grid>
-	</Stack>
 {:else}
-	<div class="flex flex-col gap-2">
-		{#if codeIds.length === 0}
-			<p class="text-meta">{t('renderer.work_pattern.no_codes')}</p>
+	<Stack gap="sm">
+		<label class="text-xs">
+			<Stack gap="xs">
+				<span class="text-muted-foreground">{t('renderer.work_pattern.shape')}</span>
+				<Combobox
+					options={shapeOptions}
+					value={shape}
+					{disabled}
+					searchable={false}
+					onValueChange={(next) => {
+						if (next) switchShape(next);
+					}}
+				/>
+			</Stack>
+		</label>
+		{#if expectation != null}
+			<p class="text-meta">{t('renderer.work_pattern.expectation_hint')}</p>
+			<Grid gap="sm" minimum="compact">
+				<label class="text-xs">
+					<Stack gap="xs">
+						<span class="text-muted-foreground">{t('renderer.work_pattern.period')}</span>
+						<Combobox
+							options={periodOptions}
+							value={expectation.period}
+							{disabled}
+							searchable={false}
+							onValueChange={(period) => {
+								if (period) editExpectation({ period });
+							}}
+						/>
+					</Stack>
+				</label>
+				{#if expectation.kind === 'GUARANTEED_SCHEDULE'}
+					<label class="text-xs">
+						<Stack gap="xs">
+							<span class="text-muted-foreground">{t('renderer.work_pattern.required_days')}</span>
+							<Input
+								class="h-8"
+								type="number"
+								min="0"
+								step="0.5"
+								value={expectation.required_work_days}
+								{disabled}
+								oninput={(event) =>
+									editExpectation({
+										kind: 'GUARANTEED_SCHEDULE',
+										required_work_days: numberFrom(event.currentTarget.value, 0)
+									})}
+							/>
+						</Stack>
+					</label>
+					<label class="text-xs">
+						<Stack gap="xs">
+							<span class="text-muted-foreground"
+								>{t('renderer.work_pattern.required_minutes')}</span
+							>
+							<Input
+								class="h-8"
+								type="number"
+								min="0"
+								step="1"
+								value={expectation.required_paid_minutes}
+								{disabled}
+								oninput={(event) =>
+									editExpectation({
+										kind: 'GUARANTEED_SCHEDULE',
+										required_paid_minutes: numberFrom(event.currentTarget.value, 0)
+									})}
+							/>
+						</Stack>
+					</label>
+				{:else}
+					<label class="text-xs">
+						<Stack gap="xs">
+							<span class="text-muted-foreground">{t('renderer.work_pattern.maximum_minutes')}</span
+							>
+							<Input
+								class="h-8"
+								type="number"
+								min="0"
+								step="1"
+								value={expectation.maximum_paid_minutes ?? ''}
+								{disabled}
+								oninput={(event) =>
+									editExpectation({
+										kind: 'AS_ASSIGNED',
+										maximum_paid_minutes: nullableNumberFrom(event.currentTarget.value)
+									})}
+							/>
+						</Stack>
+					</label>
+				{/if}
+			</Grid>
 		{:else}
-			<MatrixRenderer
-				bind:rows={dayRows}
-				columns={dayColumns}
-				{disabled}
-				bounded={false}
-				getRowId={(row) => row.id}
-				addRowLabel={t('renderer.work_pattern.add_day')}
-				createRow={() => ({
-					id: String(dayRows.length),
-					roster_code_id: codeIds[0] ?? '',
-					company_id: companyId
-				})}
-				onChange={commitDays}
-			/>
+			<div class="flex flex-col gap-2">
+				{#if codeIds.length === 0}
+					<p class="text-meta">{t('renderer.work_pattern.no_codes')}</p>
+				{:else}
+					<MatrixRenderer
+						bind:rows={dayRows}
+						columns={dayColumns}
+						{disabled}
+						bounded={false}
+						getRowId={(row) => row.id}
+						addRowLabel={t('renderer.work_pattern.add_day')}
+						createRow={() => ({
+							id: String(dayRows.length),
+							roster_code_id: codeIds[0] ?? '',
+							company_id: companyId
+						})}
+						onChange={commitDays}
+					/>
+				{/if}
+			</div>
 		{/if}
-	</div>
+	</Stack>
 {/if}

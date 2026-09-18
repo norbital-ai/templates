@@ -407,18 +407,6 @@
 				/>
 			</label>
 			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground"
-					>{t('renderer.work_rules.normal_hours_follow_shift')}</span
-				>
-				<input
-					type="checkbox"
-					class="h-4 w-4"
-					checked={current.normal_hours_follow_shift ?? false}
-					{disabled}
-					onchange={(event) => edit({ normal_hours_follow_shift: event.currentTarget.checked })}
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-xs">
 				<span class="text-muted-foreground">{t('renderer.work_rules.precedence_label')}</span>
 				<Combobox
 					options={precedenceOptions}

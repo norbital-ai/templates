@@ -64,7 +64,7 @@ test('a six-day roster with one holiday meets a 6-days-a-week guarantee over a l
 	assert.deepEqual(issues, []);
 });
 
-test('a roster genuinely short of the guarantee is still refused', () => {
+test('a roster genuinely short of the guarantee warns, and the run proceeds', () => {
 	const workDays = Array.from({ length: 28 }, (_, offset) => ({
 		work_date: `${day(offset)}T00:00:00.000Z`,
 		shift_definition_id: offset % 7 >= 5 ? 'rest' : 'work' // five-day weeks against a six-day promise
@@ -98,5 +98,58 @@ test('a roster genuinely short of the guarantee is still refused', () => {
 	});
 	assert.equal(issues.length, 1);
 	assert.equal(issues[0].code, 'WORKLOAD_BELOW_TERMS');
+	assert.equal(issues[0].severity, 'WARNING');
 	assert.match(issues[0].message, /20 work day\(s\).*below the employment terms of 24 day\(s\)/);
+});
+
+test('a public holiday inside the window meets the guarantee as a paid day', () => {
+	// Four six-day weeks with two Thursdays coded REST for the holidays the calendar names:
+	// 22 rostered work days and two holidays are the 24 the guarantee owes.
+	const holidays = new Set(['2025-12-25', '2026-01-01']);
+	const workDays = Array.from({ length: 28 }, (_, offset) => ({
+		work_date: `${day(offset)}T00:00:00.000Z`,
+		shift_definition_id: offset % 7 === 6 || holidays.has(day(offset)) ? 'rest' : 'work'
+	}));
+	const employments = [
+		{
+			id: 'e1',
+			employee_number: 'X',
+			terms: [
+				{
+					id: 't1',
+					pay_frequency: 'MONTHLY',
+					work_pattern: {
+						expectation: {
+							kind: 'GUARANTEED_SCHEDULE',
+							period: 'WEEK',
+							required_work_days: 6,
+							required_paid_minutes: 2700
+						}
+					},
+					effective_range: { start: '2023-05-15T00:00:00.000Z', end: '9999-12-31T00:00:00.000Z' }
+				}
+			],
+			workDays
+		}
+	];
+	const window = { start: '2025-12-21', end: '2026-01-17' };
+	assert.equal(
+		validateRosteredExpectations({
+			period: '2026-01',
+			window,
+			employments,
+			...rosteredWorkCodeMaps(codes)
+		}).length,
+		1
+	);
+	assert.deepEqual(
+		validateRosteredExpectations({
+			period: '2026-01',
+			window,
+			employments,
+			holidayDates: holidays,
+			...rosteredWorkCodeMaps(codes)
+		}),
+		[]
+	);
 });
