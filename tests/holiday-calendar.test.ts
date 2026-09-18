@@ -7,7 +7,7 @@ const holiday = (changes: Partial<HolidayRow> = {}): HolidayRow => ({
 	company_id: '11111111-1111-4111-8111-111111111111',
 	date: '2026-01-01',
 	name: 'Festival',
-	kind: 'PUBLIC',
+	kind: 'PUBLIC_HOLIDAY',
 	replaces: null,
 	published_at: '2025-12-01T00:00:00Z',
 	...changes
@@ -36,15 +36,15 @@ test('a published holiday is used; an unpublished one is not there; a range with
 	assert.deepEqual([...resolved.keys()], ['2026-01-01']);
 	assert.equal(resolved.get('2026-01-01')!.name, 'Festival');
 	// The kind rides the snapshot: a run prices a SPECIAL day on its own ladder from this copy.
-	assert.equal(resolved.get('2026-01-01')!.kind, 'PUBLIC');
+	assert.equal(resolved.get('2026-01-01')!.kind, 'PUBLIC_HOLIDAY');
 	assert.equal(
 		resolveHolidays(
-			[holiday({ kind: 'SPECIAL' })],
+			[holiday({ kind: 'SPECIAL_HOLIDAY' })],
 			'11111111-1111-4111-8111-111111111111',
 			'2026-01-01',
 			'2026-01-31'
 		).get('2026-01-01')!.kind,
-		'SPECIAL'
+		'SPECIAL_HOLIDAY'
 	);
 });
 

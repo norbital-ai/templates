@@ -171,7 +171,6 @@ CREATE TABLE "employment_statutory_facts" (
 			END || ' · from ' || LEFT(effective_range ->> 'start', 10)), ''))) STORED,
 	"employee_id" uuid NOT NULL,
 	"statutory_contribution_id" uuid NOT NULL,
-	"supersedes_fact_id" uuid,
 	"status" jsonb NOT NULL,
 	"effective_range" jsonb NOT NULL,
 	"summary" text GENERATED ALWAYS AS (CASE status ->> 'kind'
@@ -243,7 +242,7 @@ CREATE TABLE "jurisdiction_holidays" (
 	"company_id" uuid NOT NULL,
 	"date" timestamp with time zone NOT NULL,
 	"name" text NOT NULL,
-	"kind" text DEFAULT 'PUBLIC' NOT NULL,
+	"kind" text DEFAULT 'PUBLIC_HOLIDAY' NOT NULL,
 	"replaces" timestamp with time zone,
 	"given_to" text DEFAULT 'EVERYONE' NOT NULL,
 	"source" text,

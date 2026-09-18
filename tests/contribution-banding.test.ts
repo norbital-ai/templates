@@ -151,7 +151,7 @@ const charge = (
 		yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
 		yearEarned: new Map(),
 		period: PERIOD,
-		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 3, days_employed: 90 },
+		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 3 },
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 		person: NOBODY,
 		minimumWage: null,
@@ -402,7 +402,7 @@ test('the calculation trace keeps each selected line and the reads a charge made
 		yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
 		yearEarned: new Map(),
 		period: PERIOD,
-		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 1, days_employed: 31 },
+		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 1 },
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 		person: NOBODY,
 		minimumWage: null
@@ -538,7 +538,7 @@ test('a company-assessed scheme is charged once on the run, and its employee exp
 			accumulation: accumulationOf(3000),
 			contributions,
 			period: PERIOD,
-			year: { start: '2026-01-01', end: '2026-12-31', months_employed: 0, days_employed: 0 },
+			year: { start: '2026-01-01', end: '2026-12-31', months_employed: 0 },
 			person: withHeadcount(5),
 			minimumWage: null,
 			projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 }
@@ -564,7 +564,7 @@ test('the company context sums every payslip and reads the entity roots', () => 
 		accumulation: accumulationOf(3000),
 		contributions: [levy],
 		period: PERIOD,
-		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 0, days_employed: 0 },
+		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 0 },
 		person: withHeadcount(5),
 		minimumWage: null,
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 }

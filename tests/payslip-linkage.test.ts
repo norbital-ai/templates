@@ -609,7 +609,7 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 	const holidays = new Map([
 		[
 			'2026-03-10',
-			{ id: 'hol-s', jurisdiction_code: 'MY', date: '2026-03-10', name: 'Special', kind: 'SPECIAL' }
+			{ id: 'hol-s', jurisdiction_code: 'MY', date: '2026-03-10', name: 'Special', kind: 'SPECIAL_HOLIDAY' }
 		]
 	]);
 	const rules = [
@@ -646,7 +646,7 @@ test('SUBSTITUTE precedence keeps the rest day and observes the holiday on the n
 				jurisdiction_code: 'MY',
 				date: '2026-03-15',
 				name: 'Sunday festival',
-				kind: 'PUBLIC'
+				kind: 'PUBLIC_HOLIDAY'
 			}
 		]
 	]);
@@ -694,7 +694,7 @@ test('a holiday the calendar substitutes itself is observed once, not twice', ()
 				jurisdiction_code: 'MY',
 				date: '2026-03-15',
 				name: 'Sunday festival',
-				kind: 'PUBLIC'
+				kind: 'PUBLIC_HOLIDAY'
 			}
 		],
 		[

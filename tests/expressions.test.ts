@@ -20,13 +20,13 @@ test('every site compiles expressions over its own context', () => {
 		['entry', 'entry.days * rates.ordinary_day', 'money'],
 		['entry', 'leave.days("ANNUAL_LEAVE") > 0 && entry.captures.remaining > 0', 'boolean'],
 		['entry', 'entry.amount * period.instalments', 'money'],
-		['work_day', 'total_work_hours > limits.daily_total', 'boolean'],
+		['work_day', 'worked_hours > limits.daily_total', 'boolean'],
 		[
 			'work_day',
-			'(total_work_hours > limits.daily_total ? total_work_hours - limits.daily_total : 0.0) * ordinary_hour',
+			'(worked_hours > limits.daily_total ? worked_hours - limits.daily_total : 0.0) * ordinary_hour',
 			'money'
 		],
-		['work_day', 'day_type == "PUBLIC_HOLIDAY" && break_minutes < 30', 'boolean'],
+		['work_day', 'day_type == "PUBLIC_HOLIDAY" && night_hours > 0.0', 'boolean'],
 		['assessment', "BASE + catalog('ALLOWANCE', {'pick': ['SUA', 'BPAYBS']}) - ABSENCE", 'money'],
 		['assessment', "code('BPAYBS') + annual_exempt(100.0, 0.0, 90000.0)", 'money'],
 		['assessment', 'year.earned.BASIC + ENCASHMENT - NO_PAY_LEAVE', 'money'],
@@ -134,8 +134,8 @@ test('the runtime closures compute what the seeds name', () => {
 	assert.equal(run('ladder(base, [1000.0, 5000.0, 10000.0])', { base: 12000 }), 10000);
 	assert.equal(run('minimum_wage(region) * 0.5', { region: 'I' }), 850);
 	assert.equal(
-		run('total_work_hours > limits.daily_total ? total_work_hours - limits.daily_total : 0.0', {
-			total_work_hours: 13,
+		run('worked_hours > limits.daily_total ? worked_hours - limits.daily_total : 0.0', {
+			worked_hours: 13,
 			limits: { daily_total: 11 }
 		}),
 		2

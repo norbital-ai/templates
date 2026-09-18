@@ -39,7 +39,7 @@ const RETURNS: Readonly<Record<ExpressionType, string>> = {
  *
  * No custom binary `min`/`max`: cel-js refuses a `(dyn, dyn)` overload beside its own
  * `(dyn, string)` one, and its aggregate forms already cover lists. Clamp with a ternary
- * (`total_work_hours > limits.daily_total ? total_work_hours - limits.daily_total : 0`).
+ * (`worked_hours > limits.daily_total ? worked_hours - limits.daily_total : 0`).
  */
 
 /** Dotted paths as written, with `(args)` and `<key>` suffixes stripped. */

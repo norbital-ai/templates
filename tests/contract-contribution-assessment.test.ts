@@ -76,7 +76,7 @@ function contract(
 				monthlyOn: 'FIRST',
 				lastOfYear: true
 			},
-			year: { start: '2026-01-01', end: '2026-12-31', months_employed: 12, days_employed: 365 },
+			year: { start: '2026-01-01', end: '2026-12-31', months_employed: 12 },
 			projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 			person: NOBODY,
 			minimumWage: null,

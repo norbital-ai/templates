@@ -51,10 +51,8 @@ export type WorkBandDay = {
 	 */
 	readonly overtimeHours: number;
 	readonly breakMinutes: number;
-	readonly rosterCode: string;
 	readonly holidayKind: string;
 	readonly holidayName: string;
-	readonly monthOvertimeHours: number;
 	readonly consecutiveHours: number;
 	readonly continuousAttendance: boolean;
 	/** The roster's weekly rest day, whatever holiday precedence called the day. */
@@ -69,7 +67,6 @@ export type WorkBandDay = {
 
 export type WorkBandRates = {
 	readonly ordinaryHour: number;
-	readonly ordinaryDay: number;
 	readonly dayWage: number;
 };
 
@@ -103,19 +100,14 @@ function contextOf(options: {
 			: day.normalHours > 0
 				? Math.min(1, day.overtimeHours / day.normalHours)
 				: 0,
-		total_work_hours: day.workedHours,
 		overtime_hours: day.overtimeHours,
-		month_overtime_hours: day.monthOvertimeHours,
 		consecutive_hours: day.consecutiveHours,
 		continuous_attendance: day.continuousAttendance,
 		rest_day: day.restDay ?? false,
 		off_day: day.offDay ?? false,
 		night_hours: day.nightHours ?? 0,
 		requested_by: day.requestedBy ?? 'EMPLOYER',
-		roster_code: day.rosterCode,
-		break_minutes: day.breakMinutes,
 		ordinary_hour: rates.ordinaryHour,
-		ordinary_day: rates.ordinaryDay,
 		day_wage: rates.dayWage,
 		// The slice a band consumed, for `price_amount`; zero until a band has one.
 		hours: 0,

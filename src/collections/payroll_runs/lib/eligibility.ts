@@ -58,8 +58,6 @@ export type PersonContext = {
 		readonly service_months: number;
 		/** Completed years of service on the rule date; separation payments count in these. */
 		readonly service_years: number;
-		/** First day of the stint, `YYYY-MM-DD`; service is measured from it. */
-		readonly service_start: string;
 		/** Last day of work, or empty while the stint is open. */
 		readonly exit_date: string;
 		/** `employments.exit_reason`, or empty while the stint is open or unrecorded. */
@@ -88,6 +86,7 @@ export type PersonContext = {
 		readonly statutory_work_category: string;
 		/** Basic plus every other cash payment for work settling in the run; 0 outside payroll. */
 		readonly statutory_wages: number;
+		/** Department and grade: an employer's own catalogue row may tier on them; no statute does. */
 		readonly department: string;
 		readonly payroll_group: string;
 		readonly grade: string;
@@ -341,7 +340,6 @@ export function personContext(input: PersonInput): PersonContext {
 			risk_class: input.employment.risk_class ?? '',
 			service_months: start === '' ? 0 : completedMonths(start, input.asOf),
 			service_years: start === '' ? 0 : completedYears(start, input.asOf),
-			service_start: start,
 			exit_date: exit,
 			exit_reason: input.employment.exit_reason ?? '',
 			absent_days_12m: decodeNumber(input.employment.absent_days_12m ?? 0)

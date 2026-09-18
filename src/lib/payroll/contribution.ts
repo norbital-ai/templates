@@ -246,7 +246,7 @@ export function assessCompanyContributions(options: {
 			daysInMonth: monthDays(window.salary.start)
 		},
 		currency: configuration.jurisdiction.payroll.currency,
-		year: { start: bounds.start, end: bounds.end, months_employed: 0, days_employed: 0 },
+		year: { start: bounds.start, end: bounds.end, months_employed: 0 },
 		person: { ...entity, wage_floor: covered ? (minimumWage ?? 0) : 0 },
 		minimumWage,
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
@@ -604,8 +604,7 @@ export function prepareContributionAssessment(options: {
 				start: bounds.start,
 				end: bounds.end,
 				months_employed:
-					(employed ? completedMonths(from, addDays(through, 1)) : 0) + openingMonths,
-				days_employed: employed ? inclusiveDays(from, through) : 0
+					(employed ? completedMonths(from, addDays(through, 1)) : 0) + openingMonths
 			},
 			projection,
 			person: { ...person, wage_floor: floor },

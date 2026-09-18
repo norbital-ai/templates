@@ -737,10 +737,8 @@ export function calculateWorkAttendance(
 			normalHours: derived.normalHours,
 			overtimeHours: derived.hours,
 			breakMinutes: clocked.break_minutes,
-			rosterCode: day.shift?.code ?? '',
 			holidayKind: configuration.holidays.get(workDate)?.kind ?? '',
 			holidayName: configuration.holidays.get(workDate)?.name ?? '',
-			monthOvertimeHours: 0,
 			consecutiveHours: derived.restBreak?.longestRunHours ?? 0,
 			continuousAttendance: false,
 			restDay: day.restDay,
@@ -780,20 +778,8 @@ export function calculateWorkAttendance(
 		...subject,
 		terms: { ...subject.terms, statutory_wages: statutoryWages.value }
 	});
-	// The running month counter a band reads as `month_overtime_hours`: regulated OT so far this
-	// calendar month, including this day.
-	const monthRunning = new Map<string, number>();
-	const bandDaysWithMonths = [...bandDays]
-		.toSorted((left, right) => (left.date < right.date ? -1 : left.date > right.date ? 1 : 0))
-		.map((day) => {
-			const month = monthKey(day.date);
-			const regulated = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
-			const next = (monthRunning.get(month) ?? 0) + (regulated ? day.overtimeHours : 0);
-			monthRunning.set(month, next);
-			return { ...day, monthOvertimeHours: next };
-		});
 	const pricedBandDays = paymentEligible
-		? bandDaysWithMonths.filter(
+		? bandDays.filter(
 				(day) => day.date >= overtimeAttendance.start && day.date <= overtimeAttendance.end
 			)
 		: [];
@@ -899,7 +885,7 @@ export function calculateWorkAttendance(
 									premium: nightPremium,
 									person: subject,
 									day: bandDay,
-									rates: { ordinaryHour: hourlyRate, ordinaryDay: dayWage, dayWage }
+									rates: { ordinaryHour: hourlyRate, dayWage }
 								});
 					return [{ id: entry.id, ordinary: night.ordinary, overtime, adds }];
 				});
@@ -909,7 +895,7 @@ export function calculateWorkAttendance(
 			work: { ...configuration.work, limits },
 			person: subject,
 			days: pricedBandDays,
-			rates: { ordinaryHour: hourlyRate, ordinaryDay: dayWage, dayWage },
+			rates: { ordinaryHour: hourlyRate, dayWage },
 			catalogueComponents: configuration.catalogueComponents,
 			currency: options.work.currency
 		}),
@@ -1181,7 +1167,7 @@ function measureWorkComponent(
 			// A regular holiday not worked is still a paid day for the daily-paid (PH art.94: 100% of
 			// the daily wage); an empty punch on it records nothing to deduct.
 			const holidayUnit =
-				options.configuration.holidays.get(date)?.kind === 'PUBLIC' &&
+				options.configuration.holidays.get(date)?.kind === 'PUBLIC_HOLIDAY' &&
 				(intervals == null || intervals.length === 0);
 			const hours =
 				actual != null && intervals != null && !holidayUnit
@@ -1335,7 +1321,6 @@ function measureWorkBands(options: {
 	readonly days: readonly WorkBandDay[];
 	readonly rates: {
 		readonly ordinaryHour: number;
-		readonly ordinaryDay: number;
 		readonly dayWage: number;
 	};
 	readonly catalogueComponents: readonly CatalogueComponent[];

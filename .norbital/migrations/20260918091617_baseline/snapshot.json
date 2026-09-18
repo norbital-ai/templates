@@ -1986,19 +1986,6 @@
       "table": "employment_statutory_facts"
     },
     {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "supersedes_fact_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_statutory_facts"
-    },
-    {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
@@ -2733,7 +2720,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "'PUBLIC'",
+      "default": "'PUBLIC_HOLIDAY'",
       "generated": null,
       "identity": null,
       "name": "kind",

@@ -555,24 +555,6 @@ test('no team holder receives the same operation from two policies', () => {
 	assert.deepEqual(conflicts, []);
 });
 
-test('no human policy may author the system-only statutory predecessor instruction', () => {
-	for (const policy of policies) {
-		for (const coordinate of ['mutate.new', 'mutate.existing']) {
-			for (const grant of grantsFor(policy, 'employment_statutory_facts', coordinate)) {
-				assert.ok(
-					Array.isArray(grant.fields),
-					`${nameOf(policy)} ${coordinate} needs a field mask`
-				);
-				assert.equal(
-					grant.fields.includes('supersedes_fact_id'),
-					false,
-					`${nameOf(policy)} ${coordinate} exposes the system transition instruction`
-				);
-			}
-		}
-	}
-});
-
 test('a rank whose app shows captures reads the settlement ledger masked to the claim', () => {
 	// The transforms that refuse a settled record read the ledger as the workspace, so no policy holds a
 	// grant for their sake. The grants below exist for the apps: My attendance and My leave mark a
