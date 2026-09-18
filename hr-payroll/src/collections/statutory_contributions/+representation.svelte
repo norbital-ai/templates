@@ -18,6 +18,7 @@
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import FormSection from '../../lib/ui/form-section.svelte';
+	import ExpressionField from '../../lib/ui/expression-field.svelte';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -92,11 +93,22 @@
 					title={t('component.scheme_section_assessed_on')}
 					hint={t('component.scheme_section_assessed_on_hint')}
 				>
-					<Field name="assessed_on" label={t('component.scheme_assessed_on')} />
+					<Field
+						name="assessed_on"
+						label={t('component.scheme_assessed_on')}
+						renderer={ExpressionField}
+						rendererProps={{ site: 'assessment', type: 'number' }}
+					/>
 					<Field
 						name="ordinary_on"
 						label={t('component.scheme_ordinary_on')}
 						description={t('component.scheme_ordinary_on_hint')}
+						renderer={ExpressionField}
+						rendererProps={{
+							site: 'assessment',
+							type: 'number',
+							empty: t('component.scheme_ordinary_on_empty')
+						}}
 					/>
 				</FormSection>
 
@@ -114,6 +126,17 @@
 						/>
 						<Field name="shared_cap_group" label={t('component.shared_cap_group')} />
 						<Field name="project_relief_annually" label={t('component.project_relief_annually')} />
+					</Grid>
+				</FormSection>
+
+				<FormSection
+					title={t('component.scheme_section_listing')}
+					hint={t('component.scheme_section_listing_hint')}
+				>
+					<Grid gap="sm" minimum="compact">
+						<Field name="short_name" label={t('component.scheme_short_name')} />
+						<Field name="listing_order" label={t('component.scheme_listing_order')} />
+						<Field name="listing_group" label={t('component.scheme_listing_group')} />
 					</Grid>
 				</FormSection>
 

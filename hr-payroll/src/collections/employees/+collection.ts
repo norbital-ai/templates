@@ -16,6 +16,7 @@ const columns = {
 	nationality: true,
 	identity_number: true,
 	dependents_count: true,
+	disabled: true,
 	email: true,
 	phone: true,
 	address: true,

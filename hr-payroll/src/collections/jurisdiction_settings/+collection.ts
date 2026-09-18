@@ -22,7 +22,6 @@ const columns = {
 	void_reason: true,
 	cloned_from_id: true,
 	payroll: true,
-	wages: true,
 	sources: true,
 	work_rules: true,
 	facts: true,
@@ -321,7 +320,7 @@ export default defineCollection({
 					refuse('Only a sealed version can be voided; delete a draft instead.');
 				if (row.payroll?.currency == null || !String(row.jurisdiction_code ?? '').trim())
 					refuse('Settings require a currency and payroll jurisdiction.');
-				for (const [region, wage] of Object.entries(row.wages?.by_region ?? {}))
+				for (const [region, wage] of Object.entries(row.work_rules?.wages?.by_region ?? {}))
 					if (!(Number(wage) > 0))
 						refuse(`The minimum wage of region ${region} must be a positive amount.`);
 				if (row.sealed_at == null) return input;

@@ -40,7 +40,7 @@ import {
 	type PlanChange,
 	type StatutoryWeeklyRestRule
 } from './lib/schedule-rules.js';
-import type { WorkRules } from '../../datatypes/work_rules/+definition.js';
+import { isRestLimit, type WorkRules } from '../../datatypes/work_rules/+definition.js';
 
 /** Which person, which day, the plan and the clock. `payslip_id` is the payroll run's pin. */
 const columns = {
@@ -53,7 +53,7 @@ const columns = {
 const QUERY_LIMIT = 20_000;
 /**
  * How far either side of a touched month the roster is read, so a consecutive-work run that starts
- * in the previous month is seen whole. It is the schema's ceiling on `max_consecutive_work_days`
+ * in the previous month is seen whole. It is the schema's ceiling on the rest limit's `max_days`
  * (30) plus one, which makes it provably sufficient for every rule the schema can express.
  */
 const REST_RUN_PAD_DAYS = 31;
@@ -69,8 +69,7 @@ type SettingsVersionRow = {
 	readonly approval_id: string | null;
 	readonly effective_range: unknown;
 	readonly work_rules?: {
-		readonly weekly_rest_rule: StatutoryWeeklyRestRule;
-		readonly limits?: WorkRules['limits'];
+		readonly limits: WorkRules['limits'];
 		readonly authority?: string | null;
 		readonly breaks?: readonly {
 			readonly when: string;
@@ -560,7 +559,9 @@ export default defineCollection({
 							if (breach != null) refuse(breach.message);
 						}
 					}
-					const rule: StatutoryWeeklyRestRule | undefined = version.work_rules?.weekly_rest_rule;
+					// The weekly rest rule is the version's consecutive-work-days limit, judged per person.
+					const rule: StatutoryWeeklyRestRule | undefined =
+						version.work_rules?.limits.find(isRestLimit);
 					if (rule == null) continue;
 					const plannedByDate = new Map<string, string | null>();
 					for (const [storedKey, shiftId] of storedByKey) {

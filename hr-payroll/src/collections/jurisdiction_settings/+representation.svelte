@@ -6,7 +6,7 @@
 	 * are sealed with it.
 	 *
 	 * The Settings app shows one semantic group at a time, so the form takes the group it is drawn
-	 * for: `GENERAL` is the version's own facts (identity, payroll, wages, sources, change note) and
+	 * for: `GENERAL` is the version's own facts (identity, payroll, sources, change note) and
 	 * `WORK_RULES` is the day-pricing rules. Every mutable field is still declared exactly once in
 	 * every mode — the CollectionForm contract — and the work-rules group is folded back in when the
 	 * record is being created, where a caller has no second surface to set it from.
@@ -130,11 +130,6 @@
 						<Grid gap="sm" minimum="panel">
 							<Field name="payroll" />
 							<Field
-								name="wages"
-								label={t('component.minimum_wage_by_region')}
-								description={t('component.minimum_wage_by_region_hint')}
-							/>
-							<Field
 								name="facts"
 								label={t('component.entity_facts')}
 								description={t('component.entity_facts_hint')}
@@ -172,7 +167,6 @@
 				<Field name="name" hidden />
 				<Field name="effective_range" hidden />
 				<Field name="payroll" hidden />
-				<Field name="wages" hidden />
 				<Field name="change_summary" hidden />
 				<Field name="sources" hidden />
 				<Field name="facts" hidden />

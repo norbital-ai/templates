@@ -637,7 +637,9 @@ test('Philippines — Labor Code arts. 87, 93 and 94 premiums on every version',
 		// Art.83 and art.85: the eight-hour day and the unpaid hour for meals; art.91: one rest day
 		// in seven.
 		assert.deepEqual(
-			version.work_rules.limits.map((limit) => [limit.measure, limit.max_hours]),
+			version.work_rules.limits
+				.filter((limit) => limit.measure !== 'CONSECUTIVE_WORK_DAYS')
+				.map((limit) => [limit.measure, limit.max_hours]),
 			[['NORMAL_HOURS', 8]]
 		);
 		// Art.85: the 60-minute unpaid meal period, and the 20-minute compensable one where the
@@ -646,7 +648,11 @@ test('Philippines — Labor Code arts. 87, 93 and 94 premiums on every version',
 			{ when: 'continuous_attendance', owed_minutes: '20.0', counts_as_worked_time: true },
 			{ when: 'true', owed_minutes: '60.0', counts_as_worked_time: false }
 		]);
-		assert.equal(version.work_rules.weekly_rest_rule.max_consecutive_work_days, 6);
+		assert.equal(
+			version.work_rules.limits.find((limit) => limit.measure === 'CONSECUTIVE_WORK_DAYS')
+				?.max_days,
+			6
+		);
 	}
 });
 

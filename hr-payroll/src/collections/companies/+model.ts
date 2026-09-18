@@ -42,7 +42,7 @@ export default defineModel(
 		 */
 		risk_class: text(),
 		/**
-		 * The region the entity sits in, as `jurisdiction_settings.wages.by_region` names it. A scheme's
+		 * The region the entity sits in, as `jurisdiction_settings.work_rules.wages.by_region` names it. A scheme's
 		 * `FLOOR:MINIMUM_WAGE` / `CAP:MINIMUM_WAGE_X:<n>` rule reads that wage; predicates read
 		 * `company.region`. Empty where the jurisdiction states no regional wage.
 		 */

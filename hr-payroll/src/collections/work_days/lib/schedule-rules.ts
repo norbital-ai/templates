@@ -13,9 +13,9 @@ import {
 	termPatternRow,
 	type ShiftPatternLike
 } from '../../../lib/scheduling/work-pattern.js';
-import type { WorkRules } from '../../../datatypes/work_rules/+definition.js';
+import type { WorkRestLimit } from '../../../datatypes/work_rules/+definition.js';
 
-export type StatutoryWeeklyRestRule = WorkRules['weekly_rest_rule'];
+export type StatutoryWeeklyRestRule = WorkRestLimit;
 
 export type PlanChange = {
 	readonly employment_id: string;
@@ -155,11 +155,11 @@ export function assertRunHasRestDay(options: {
 			runEnd != null &&
 			discharged.filter((date) => date > addDays(runEnd!, -rule.average!.days) && date <= runEnd!)
 				.length >= rule.average.rest_days;
-		if (touched && length > rule.max_consecutive_work_days && !averaged)
+		if (touched && length > rule.max_days && !averaged)
 			refuse(
 				`Roster change for ${employeeNumber} is refused: ${runStart} to ${runEnd} would be ` +
 					`${length} consecutive worked day(s) with no rest day inside them. This jurisdiction ` +
-					`allows ${rule.max_consecutive_work_days}${authority ? ` (${authority})` : ''}. Give the run a rest day — ` +
+					`allows ${rule.max_days}${authority ? ` (${authority})` : ''}. Give the run a rest day — ` +
 					`swap one of those days for a ${rule.discharged_by === 'REST' ? 'REST' : 'REST or OFF'} ` +
 					`code in the same write — or move the work outside it.`
 			);

@@ -42,7 +42,7 @@ const base = {
 	proration: { by: 'CALENDAR_DAYS' as const },
 	limits: limits(),
 	breaks: [],
-	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' as const },
+	wages: { by_region: {} },
 	holiday_rest_precedence: 'SUBSTITUTE' as const
 };
 

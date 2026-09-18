@@ -28,7 +28,9 @@ const codeKindById = new Map([
 ]);
 
 const rule = (over = {}) => ({
-	max_consecutive_work_days: 6,
+	key: 'weekly_rest',
+	measure: 'CONSECUTIVE_WORK_DAYS' as const,
+	max_days: 6,
 	discharged_by: 'REST_OR_OFF',
 	...over
 });
@@ -76,7 +78,7 @@ test('a run longer than the jurisdiction allows is refused, and names what to do
 });
 
 test('the same run under a jurisdiction that allows twelve passes', () => {
-	judge('WWWWWWW', '2026-03-02', { rule: { max_consecutive_work_days: 12 } })();
+	judge('WWWWWWW', '2026-03-02', { rule: { max_days: 12 } })();
 });
 
 test('a rest day inside the run breaks it, however long the roster is', () => {

@@ -77,7 +77,7 @@ has already seen. The window is read half-open — `[start, end)` — so a versi
 start day up to, but not including, its end; the end is the first day its successor governs, and the
 display prints the last governed day. `change_summary` records, in the operator's words, what the
 version changes against its predecessor; the engine never reads it. The Settings app's **Compare
-snapshots** tab diffs two versions of one lineage: the settings fields (`payroll`, `wages`,
+snapshots** tab diffs two versions of one lineage: the settings fields (`payroll`,
 `work_rules`, `sources`, `facts`) and every catalogue that hangs off a version — Contribution,
 Leave, Claim, Allowance and Loan — matched by `code` with leaf-level changes, additions and removals.
 Holidays are entity-owned, so they are not part of a lineage diff.
@@ -204,7 +204,7 @@ One expression language, CEL, is what every catalogue row, band, rate and scheme
 site has one documented context compiled at write time by `lib/expressions` (`contexts.ts` is the
 one source; the Fields panel renders it). **Six sites, one subject each:** `person` (catalogue
 eligibility, a scheme's person conditions, `wages.applies_when` and `wages.scale`,
-`work_rules.normal_hours`, `limits[].when`, `weekly_rest_rule.average.when`), `entry` (catalogue
+`work_rules.normal_hours`, `limits[].when`, the rest limit's `average.when`), `entry` (catalogue
 bands and entitlement amounts), `work_day` (work bands, breaks, limits, the night premium,
 `overtime_when`), `leave_day` (a leave band's `days` and a row's `pay_fraction`: `leave.month_index`,
 `leave.day_index`, `leave.days` over the person root), `assessment`
@@ -525,7 +525,7 @@ hours plus overtime; a `WEEK NORMAL_HOURS` limit turns the week's hours above it
 the day that crosses it (SG 44, MY 45). `limits[].when` scopes a limit to the people it governs
 (a sector's yearly ceiling, a consented monthly variant); the roster gate judges a pattern against
 the unconditional limits and a person against the applicable ones, and payroll reports the same set.
-`weekly_rest_rule.suspended_by_leave` lets an approved day of the named codes break a run of worked
+the consecutive-work-days limit's `suspended_by_leave` lets an approved day of the named codes break a run of worked
 days the way a rest day does (MY s.59(1A)); `average {days, rest_days, when}` admits the averaging
 arm (VN art.111(1): four rest days a month where the work cannot rest weekly). Overtime is derived
 to the minute (`roundMinute`), and `payroll.final_pay_due_days` raises `FINAL_PAY_LATE` on a run
@@ -607,7 +607,7 @@ unknown producer or a loop when the rule is written. There is no `sequence` colu
 `scheme_reliefs` junction. The three relief-pool columns (`employee_share_annual_cap`,
 `shared_cap_group`, `project_relief_annually`) stay columns: an annual cap shared by a set of
 producers is pool state read at the mention, not an order to declare. `minimum_wage(region)` reads
-the company's region's wage in `jurisdiction_settings.wages.by_region`; a company in a region the
+the company's region's wage in `jurisdiction_settings.work_rules.wages.by_region`; a company in a region the
 version names no wage for stops the run under such a scheme.
 
 The employment's standing with a scheme is one `employment_statutory_facts` row: `NOT_REGISTERED`

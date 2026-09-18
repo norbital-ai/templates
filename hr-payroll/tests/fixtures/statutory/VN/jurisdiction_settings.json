@@ -94,6 +94,17 @@
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector",
 					"authority": "Labour Code 2019 art.107(3): up to 300 overtime hours a year in textiles, garments, footwear, electronics, seafood and agricultural processing, salt, electricity and water supply"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"average": {
+						"days": 30,
+						"rest_days": 4,
+						"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
+					}
 				}
 			],
 			"breaks": [
@@ -118,15 +129,6 @@
 					"counts_as_worked_time": false
 				}
 			],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 6,
-				"discharged_by": "REST",
-				"average": {
-					"days": 30,
-					"rest_days": 4,
-					"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
-				}
-			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -135,7 +137,16 @@
 				"overtime_add": 50
 			},
 			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). Applied 2026-09-19 (2): art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day.",
-			"normal_hours": "8.0"
+			"normal_hours": "8.0",
+			"wages": {
+				"by_region": {
+					"I": 4960000,
+					"II": 4410000,
+					"III": 3860000,
+					"IV": 3450000
+				},
+				"applies_when": "employment.type != \"INTERN\""
+			}
 		},
 		"payroll": {
 			"currency": "VND",
@@ -143,15 +154,6 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
 			"final_pay_due_days": 14
-		},
-		"wages": {
-			"by_region": {
-				"I": 4960000,
-				"II": 4410000,
-				"III": 3860000,
-				"IV": 3450000
-			},
-			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -272,6 +274,17 @@
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector",
 					"authority": "Labour Code 2019 art.107(3): up to 300 overtime hours a year in textiles, garments, footwear, electronics, seafood and agricultural processing, salt, electricity and water supply"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"average": {
+						"days": 30,
+						"rest_days": 4,
+						"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
+					}
 				}
 			],
 			"breaks": [
@@ -296,15 +309,6 @@
 					"counts_as_worked_time": false
 				}
 			],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 6,
-				"discharged_by": "REST",
-				"average": {
-					"days": 30,
-					"rest_days": 4,
-					"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
-				}
-			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -313,7 +317,16 @@
 				"overtime_add": 50
 			},
 			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). Applied 2026-09-19 (2): art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day.",
-			"normal_hours": "8.0"
+			"normal_hours": "8.0",
+			"wages": {
+				"by_region": {
+					"I": 5310000,
+					"II": 4730000,
+					"III": 4140000,
+					"IV": 3700000
+				},
+				"applies_when": "employment.type != \"INTERN\""
+			}
 		},
 		"payroll": {
 			"currency": "VND",
@@ -321,15 +334,6 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
 			"final_pay_due_days": 14
-		},
-		"wages": {
-			"by_region": {
-				"I": 5310000,
-				"II": 4730000,
-				"III": 4140000,
-				"IV": 3700000
-			},
-			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -451,6 +455,17 @@
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector",
 					"authority": "Labour Code 2019 art.107(3): up to 300 overtime hours a year in textiles, garments, footwear, electronics, seafood and agricultural processing, salt, electricity and water supply"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"average": {
+						"days": 30,
+						"rest_days": 4,
+						"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
+					}
 				}
 			],
 			"breaks": [
@@ -475,15 +490,6 @@
 					"counts_as_worked_time": false
 				}
 			],
-			"weekly_rest_rule": {
-				"max_consecutive_work_days": 6,
-				"discharged_by": "REST",
-				"average": {
-					"days": 30,
-					"rest_days": 4,
-					"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
-				}
-			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -492,7 +498,16 @@
 				"overtime_add": 50
 			},
 			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). Applied 2026-09-19 (2): art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day.",
-			"normal_hours": "8.0"
+			"normal_hours": "8.0",
+			"wages": {
+				"by_region": {
+					"I": 5310000,
+					"II": 4730000,
+					"III": 4140000,
+					"IV": 3700000
+				},
+				"applies_when": "employment.type != \"INTERN\""
+			}
 		},
 		"payroll": {
 			"currency": "VND",
@@ -500,15 +515,6 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
 			"final_pay_due_days": 14
-		},
-		"wages": {
-			"by_region": {
-				"I": 5310000,
-				"II": 4730000,
-				"III": 4140000,
-				"IV": 3700000
-			},
-			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [

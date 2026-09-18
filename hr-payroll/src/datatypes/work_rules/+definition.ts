@@ -5,6 +5,7 @@ import { compileExpression } from '../../lib/expressions/compile.js';
 import type { ExpressionSite, ExpressionType } from '../../lib/expressions/contexts.js';
 import { openKeyMentions } from '../../lib/expressions/contexts.js';
 import { prorationBasisValueSchema } from '../proration_basis/+definition.js';
+import { wagesValueSchema } from '../wages/+definition.js';
 
 /**
  * The work rules of one settings version.
@@ -21,9 +22,11 @@ import { prorationBasisValueSchema } from '../proration_basis/+definition.js';
  * - `overtime_when` says who the overtime ladder covers, over the person; empty is everyone.
  * - `bands` price the day, in order; each band consumes hours and may funnel the slice above a
  *   named limit to the INCENTIVE line at its own award.
- * - `limits` are enforced when schedules are written; their evaluated values are readable in
- *   expressions as `limits.<key>`.
+ * - `limits` are enforced when schedules are written; an hours limit's evaluated value is
+ *   readable in expressions as `limits.<key>`, and the consecutive-work-days limit is the weekly
+ *   rest rule the roster gate judges.
  * - `breaks` state what the law owes; the shift's `break_minutes` is what it grants.
+ * - `wages` is the minimum wage by region and who it covers.
  */
 
 const cel = Schema.String.check(Schema.isMinLength(1));
@@ -60,7 +63,46 @@ export const workLimitValueSchema = Schema.Struct({
 	when: Schema.optionalKey(Schema.String),
 	authority: Schema.optionalKey(Schema.String)
 });
-export type WorkLimit = Schema.Schema.Type<typeof workLimitValueSchema>;
+export type WorkHoursLimit = Schema.Schema.Type<typeof workLimitValueSchema>;
+
+/**
+ * The weekly rest rule as a limit: at most `max_days` consecutive worked days, the run broken by
+ * a rest day (REST) or by a rest day or an unrostered day (REST_OR_OFF). Judged at the roster
+ * gate, not read as `limits.<key>` by a band.
+ */
+export const workRestLimitValueSchema = Schema.Struct({
+	key: Schema.String.check(Schema.isMinLength(1)),
+	measure: Schema.Literal('CONSECUTIVE_WORK_DAYS'),
+	max_days: Schema.Int.check(Schema.isGreaterThan(0)),
+	discharged_by: Schema.Literals(['REST', 'REST_OR_OFF']),
+	/**
+	 * Leave codes whose approved days suspend the rule (MY s.59(1A): a rest day is not owed
+	 * while on maternity, sick or disablement leave): a day under such leave breaks the run
+	 * of worked days the way a rest day does. Absent is none.
+	 */
+	suspended_by_leave: Schema.optionalKey(Schema.Array(Schema.String)),
+	/**
+	 * The averaging arm: a run longer than the ceiling stands where the `days`-day span ending
+	 * on its last day still holds `rest_days` rest days (VN art.111(1): at least four a month
+	 * where the work cannot be weekly). Absent is a strict weekly ceiling.
+	 */
+	average: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				days: Schema.Int.check(Schema.isGreaterThan(0)),
+				rest_days: Schema.Int.check(Schema.isGreaterThan(0)),
+				/** Who the arm applies to, over the person (an entity fact for the work cycles that cannot rest weekly); absent is everyone. */
+				when: Schema.optionalKey(Schema.String)
+			})
+		)
+	),
+	when: Schema.optionalKey(Schema.String),
+	authority: Schema.optionalKey(Schema.String)
+});
+export type WorkRestLimit = Schema.Schema.Type<typeof workRestLimitValueSchema>;
+export type WorkLimit = WorkHoursLimit | WorkRestLimit;
+export const isRestLimit = (limit: WorkLimit): limit is WorkRestLimit =>
+	limit.measure === 'CONSECUTIVE_WORK_DAYS';
 
 export const workBreakValueSchema = Schema.Struct({
 	/** Boolean over the work day: the consecutive-hours or OT-length condition. */
@@ -145,33 +187,10 @@ export const workRulesValueSchema = Schema.Struct({
 	 */
 	normal_hours_follow_shift: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	bands: Schema.Array(workRateBandValueSchema),
-	limits: Schema.Array(workLimitValueSchema),
+	limits: Schema.Array(Schema.Union([workLimitValueSchema, workRestLimitValueSchema])),
 	breaks: Schema.Array(workBreakValueSchema),
-	weekly_rest_rule: Schema.Struct({
-		max_consecutive_work_days: Schema.Int.check(Schema.isGreaterThan(0)),
-		discharged_by: Schema.Literals(['REST', 'REST_OR_OFF']),
-		/**
-		 * Leave codes whose approved days suspend the rule (MY s.59(1A): a rest day is not owed
-		 * while on maternity, sick or disablement leave): a day under such leave breaks the run
-		 * of worked days the way a rest day does. Absent is none.
-		 */
-		suspended_by_leave: Schema.optionalKey(Schema.Array(Schema.String)),
-		/**
-		 * The averaging arm: a run longer than the ceiling stands where the `days`-day span ending
-		 * on its last day still holds `rest_days` rest days (VN art.111(1): at least four a month
-		 * where the work cannot be weekly). Absent is a strict weekly ceiling.
-		 */
-		average: Schema.optionalKey(
-			Schema.NullOr(
-				Schema.Struct({
-					days: Schema.Int.check(Schema.isGreaterThan(0)),
-					rest_days: Schema.Int.check(Schema.isGreaterThan(0)),
-					/** Who the arm applies to, over the person (an entity fact for the work cycles that cannot rest weekly); absent is everyone. */
-					when: Schema.optionalKey(Schema.String)
-				})
-			)
-		)
-	}),
+	/** Region → monthly minimum wage in the version's currency, and who the order covers. */
+	wages: wagesValueSchema,
 	/** The instrument the rules transcribe; quoted by refusals. */
 	authority: Schema.optionalKey(Schema.String),
 	night_premium: Schema.optionalKey(Schema.NullOr(nightPremiumValueSchema)),
@@ -219,6 +238,7 @@ export const workRulesValueSchema = Schema.Struct({
 					? null
 					: faultIn(limit.when ?? '', 'person', 'boolean', `Limit ${limit.key}`)
 			),
+
 			...(rules.proration_by ?? []).map((arm, index) =>
 				faultIn(arm.when, 'person', 'boolean', `Proration arm ${index + 1}`)
 			),
@@ -237,7 +257,7 @@ export type WorkRules = Schema.Schema.Type<typeof workRulesValueSchema>;
 export default defineCustomType({
 	name: 'work_rules',
 	description:
-		'One version’s work rules: proration, the ordinary-rate divisor and overtime eligibility as expressions over the person, the ordered bands that price a day (including the incentive funnel), the limits schedules must respect, the breaks the law owes, the weekly rest rule, the night premium and holiday/rest precedence.',
+		'One version’s work rules: proration, the ordinary-rate divisor and overtime eligibility as expressions over the person, the ordered bands that price a day (including the incentive funnel), the limits schedules must respect (hours, and the consecutive-work-days rest rule), the breaks the law owes, the minimum wage by region, the night premium and holiday/rest precedence.',
 	schema: Schema.toStandardSchemaV1(workRulesValueSchema, {
 		parseOptions: { onExcessProperty: 'error' }
 	})

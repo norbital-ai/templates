@@ -463,8 +463,8 @@ test('Taiwan — one national minimum wage, 28,590 in 2025 and 29,500 from 2026 
 	// Malaysian lineage states its national floor. 技術生 (LSA §64–69) are outside §21.
 	const floors = settingsVersions('TW').map((version) => [
 		version.effective_range.start.slice(0, 10),
-		version.wages.by_region,
-		version.wages.applies_when
+		version.work_rules.wages.by_region,
+		version.work_rules.wages.applies_when
 	]);
 	assert.deepEqual(floors, [
 		['2025-12-01', { Taiwan: 28_590 }, 'employment.type != "INTERN"'],
