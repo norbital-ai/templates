@@ -4,7 +4,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SSS",
 		"name": "Social Security System",
-		"authority": "Republic Act 11199 (Social Security Act of 2018) s.4(a)(9) and s.18, with the SSS Schedule of Contributions",
+		"authority": "Republic Act 11199 (Social Security Act of 2018) s.4(a)(9) and s.18, with the SSS Schedule of Contributions Applied 2026-09-18: the Regular SS programme is capped at the ₱20,000 monthly salary credit (₱1,000 / ₱2,000); the excess to ₱35,000 is the SSS_MPF scheme.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -172,153 +172,317 @@
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99",
-				"employee": "round_cent(1025.0)",
-				"employer": "round_cent(2050.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 21249.99",
-				"employee": "round_cent(1050.0)",
-				"employer": "round_cent(2100.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 21249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 21749.99",
-				"employee": "round_cent(1075.0)",
-				"employer": "round_cent(2150.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 21749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 22249.99",
-				"employee": "round_cent(1100.0)",
-				"employer": "round_cent(2200.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 22249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 22749.99",
-				"employee": "round_cent(1125.0)",
-				"employer": "round_cent(2250.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 22749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 23249.99",
-				"employee": "round_cent(1150.0)",
-				"employer": "round_cent(2300.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 23249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 23749.99",
-				"employee": "round_cent(1175.0)",
-				"employer": "round_cent(2350.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 23749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24249.99",
-				"employee": "round_cent(1200.0)",
-				"employer": "round_cent(2400.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24749.99",
-				"employee": "round_cent(1225.0)",
-				"employer": "round_cent(2450.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 25249.99",
-				"employee": "round_cent(1250.0)",
-				"employer": "round_cent(2500.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 25249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 25749.99",
-				"employee": "round_cent(1275.0)",
-				"employer": "round_cent(2550.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 25749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26249.99",
-				"employee": "round_cent(1300.0)",
-				"employer": "round_cent(2600.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26749.99",
-				"employee": "round_cent(1325.0)",
-				"employer": "round_cent(2650.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 27249.99",
-				"employee": "round_cent(1350.0)",
-				"employer": "round_cent(2700.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 27249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 27749.99",
-				"employee": "round_cent(1375.0)",
-				"employer": "round_cent(2750.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 27749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28249.99",
-				"employee": "round_cent(1400.0)",
-				"employer": "round_cent(2800.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28749.99",
-				"employee": "round_cent(1425.0)",
-				"employer": "round_cent(2850.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 29249.99",
-				"employee": "round_cent(1450.0)",
-				"employer": "round_cent(2900.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 29249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 29749.99",
-				"employee": "round_cent(1475.0)",
-				"employer": "round_cent(2950.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 29749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30249.99",
-				"employee": "round_cent(1500.0)",
-				"employer": "round_cent(3000.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30749.99",
-				"employee": "round_cent(1525.0)",
-				"employer": "round_cent(3050.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 31249.99",
-				"employee": "round_cent(1550.0)",
-				"employer": "round_cent(3100.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 31249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 31749.99",
-				"employee": "round_cent(1575.0)",
-				"employer": "round_cent(3150.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 31749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32249.99",
-				"employee": "round_cent(1600.0)",
-				"employer": "round_cent(3200.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32749.99",
-				"employee": "round_cent(1625.0)",
-				"employer": "round_cent(3250.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 33249.99",
-				"employee": "round_cent(1650.0)",
-				"employer": "round_cent(3300.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 33249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 33749.99",
-				"employee": "round_cent(1675.0)",
-				"employer": "round_cent(3350.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 33749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 34249.99",
-				"employee": "round_cent(1700.0)",
-				"employer": "round_cent(3400.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 34249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 34749.99",
-				"employee": "round_cent(1725.0)",
-				"employer": "round_cent(3450.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 34749.99",
-				"employee": "round_cent(1750.0)",
-				"employer": "round_cent(3500.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
+			}
+		],
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+	},
+	{
+		"id": "e9c61f12-1e9f-54cf-b31a-bbd0edf01642",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "SSS_MPF",
+		"name": "SSS Mandatory Provident Fund (WISP)",
+		"authority": "RA 11199 s.4(a)(2) with SSS Circular 2024-006 §II.B.2: the contribution on the monthly salary credit above ₱20,000 (to ₱35,000) is remitted to the Mandatory Provident Fund (WISP), the Regular SS programme taking the first ₱20,000; the same 5% / 10% split, attributed to the fund the R-3/R-5 name. Applied 2026-09-18.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99",
+				"employee": "round_cent(25.00)",
+				"employer": "round_cent(50.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 21249.99",
+				"employee": "round_cent(50.00)",
+				"employer": "round_cent(100.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 21249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 21749.99",
+				"employee": "round_cent(75.00)",
+				"employer": "round_cent(150.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 21749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 22249.99",
+				"employee": "round_cent(100.00)",
+				"employer": "round_cent(200.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 22249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 22749.99",
+				"employee": "round_cent(125.00)",
+				"employer": "round_cent(250.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 22749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 23249.99",
+				"employee": "round_cent(150.00)",
+				"employer": "round_cent(300.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 23249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 23749.99",
+				"employee": "round_cent(175.00)",
+				"employer": "round_cent(350.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 23749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24249.99",
+				"employee": "round_cent(200.00)",
+				"employer": "round_cent(400.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24749.99",
+				"employee": "round_cent(225.00)",
+				"employer": "round_cent(450.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 25249.99",
+				"employee": "round_cent(250.00)",
+				"employer": "round_cent(500.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 25249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 25749.99",
+				"employee": "round_cent(275.00)",
+				"employer": "round_cent(550.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 25749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26249.99",
+				"employee": "round_cent(300.00)",
+				"employer": "round_cent(600.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26749.99",
+				"employee": "round_cent(325.00)",
+				"employer": "round_cent(650.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 27249.99",
+				"employee": "round_cent(350.00)",
+				"employer": "round_cent(700.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 27249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 27749.99",
+				"employee": "round_cent(375.00)",
+				"employer": "round_cent(750.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 27749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28249.99",
+				"employee": "round_cent(400.00)",
+				"employer": "round_cent(800.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28749.99",
+				"employee": "round_cent(425.00)",
+				"employer": "round_cent(850.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 29249.99",
+				"employee": "round_cent(450.00)",
+				"employer": "round_cent(900.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 29249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 29749.99",
+				"employee": "round_cent(475.00)",
+				"employer": "round_cent(950.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 29749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30249.99",
+				"employee": "round_cent(500.00)",
+				"employer": "round_cent(1000.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30749.99",
+				"employee": "round_cent(525.00)",
+				"employer": "round_cent(1050.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 31249.99",
+				"employee": "round_cent(550.00)",
+				"employer": "round_cent(1100.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 31249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 31749.99",
+				"employee": "round_cent(575.00)",
+				"employer": "round_cent(1150.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 31749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32249.99",
+				"employee": "round_cent(600.00)",
+				"employer": "round_cent(1200.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32749.99",
+				"employee": "round_cent(625.00)",
+				"employer": "round_cent(1250.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 33249.99",
+				"employee": "round_cent(650.00)",
+				"employer": "round_cent(1300.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 33249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 33749.99",
+				"employee": "round_cent(675.00)",
+				"employer": "round_cent(1350.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 33749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 34249.99",
+				"employee": "round_cent(700.00)",
+				"employer": "round_cent(1400.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 34249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 34749.99",
+				"employee": "round_cent(725.00)",
+				"employer": "round_cent(1450.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 34749.99",
+				"employee": "round_cent(750.00)",
+				"employer": "round_cent(1500.00)"
 			}
 		],
 		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
@@ -357,7 +521,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "PHIC",
 		"name": "PhilHealth",
-		"authority": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2019-0009 and Advisory 2025-0002 — one 5% premium on the monthly basic salary, floor PHP 10,000, ceiling PHP 100,000, then split: employee = truncate_cent(premium / 2), employer = premium - employee (the published employer table; a half-centavo premium such as basic 15,819 -> 790.95 gives 395.47 / 395.48, not 395.48 twice). The base is the BASIC line, which Advisory 2025-0002 ¶3 keeps whole against undertime, tardiness, leave without pay and absences (the ABSENCE and NO_PAY_LEAVE lines are not subtracted). NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
+		"authority": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2019-0009 and Advisory 2025-0002 — one 5% premium on the monthly basic salary, floor PHP 10,000, ceiling PHP 100,000, then split: employee = truncate_cent(premium / 2), employer = premium - employee (the published employer table; a half-centavo premium such as basic 15,819 -> 790.95 gives 395.47 / 395.48, not 395.48 twice). The base is the BASIC line, which Advisory 2025-0002 ¶3 keeps whole against undertime, tardiness, leave without pay and absences (the ABSENCE and NO_PAY_LEAVE lines are not subtracted). NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month. Applied 2026-09-18: PhilHealth Advisory 2025-0002 ¶3 keys the premium off the basic monthly salary stated in the contract, whole for a mid-month hire or leaver (`person.terms.basic_salary`). Applied 2026-09-18: PhilHealth Advisory 2025-0002 ¶3 keys the premium off the basic monthly salary stated in the contract, whole for a mid-month hire or leaver (`person.terms.basic_salary`).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -384,14 +548,14 @@
 				"employer": "round_cent(2500.0)"
 			}
 		],
-		"assessed_on": "BASE + code('BACKPAY_BASIC')"
+		"assessed_on": "person.terms.basic_salary / period.instalments"
 	},
 	{
 		"id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "HDMF",
 		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
-		"authority": "Republic Act 9679 s.7 with HDMF Circular 460 — 1%/2% employee, 2% employer, monthly compensation ceiling PHP 10,000. NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
+		"authority": "Republic Act 9679 s.7 with HDMF Circular 460 — 1%/2% employee, 2% employer, monthly compensation ceiling PHP 10,000. NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month. Applied 2026-09-18: HDMF Circular 460 keys the contribution off the contractual monthly compensation, whole for a mid-month hire or leaver (`person.terms.basic_salary`, the standing allowances beside it).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -413,14 +577,14 @@
 				"employer": "round_cent(200.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'BACKPAY_ADD_WAGES']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "person.terms.basic_salary / period.instalments + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'BACKPAY_ADD_WAGES']}) - ABSENCE - NO_PAY_LEAVE"
 	},
 	{
 		"id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "WTAX",
 		"name": "Withholding Tax on Compensation",
-		"authority": "NIRC 1997 s.79 with s.24(A)(2)(a) as amended by RA 10963 (TRAIN), Revenue Regulations 11-2018 — revised withholding tax table effective 1 January 2023. The NIRC s.32(B)(7)(e) PHP 90,000 exemption for 13th-month pay is `annual_exempt(code('THIRTEENTH_MONTH_PAY'), year.earned.THIRTEENTH_MONTH_PAY, 90000.0)` in the formula. RR 2-98 s.2.78.1(A)(3)(d) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026): a rice subsidy of up to PHP 2,500 a month is a de minimis benefit outside compensation; the company's `meal` row is that subsidy (its sheet: \"MEAL (RICE SUBSIDY)\", with any excess booked as `allowance`), so the formula takes it out of the base up to PHP 30,000 a year — `annual_exempt(code('meal'), year.earned.meal, 30000.0)`, the monthly ceiling stated as its annual sum, exact for a level subsidy and reconciled by the year-end rung otherwise. The `bonus` allowance shares that ceiling and is not yet pooled with it (gap 105). The monthly and semi-monthly rungs relieve the SSS, PhilHealth and Pag-IBIG employee shares deducted in the same period (`produced.<code>.employee_this_period`, RR 2-98 s.2.78.1(B) as amended); only the year-end rung reads the year's shares. The SEMI-MONTHLY column (₱10,417 / 16,667 / 33,333 / 83,333 / 333,333; ₱937.50 / 4,270.70 / 16,770.70 / 91,770.70) governs a base paid in two instalments (`period.instalments == 2`); the MONTHLY column everything else.",
+		"authority": "NIRC 1997 s.79 with s.24(A)(2)(a) as amended by RA 10963 (TRAIN), Revenue Regulations 11-2018 — revised withholding tax table effective 1 January 2023. The NIRC s.32(B)(7)(e) PHP 90,000 exemption for 13th-month pay is `annual_exempt(code('THIRTEENTH_MONTH_PAY'), year.earned.THIRTEENTH_MONTH_PAY, 90000.0)` in the formula. RR 2-98 s.2.78.1(A)(3)(d) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026): a rice subsidy of up to PHP 2,500 a month is a de minimis benefit outside compensation; the company's `meal` row is that subsidy (its sheet: \"MEAL (RICE SUBSIDY)\", with any excess booked as `allowance`), so the formula takes it out of the base up to PHP 30,000 a year — `annual_exempt(code('meal'), year.earned.meal, 30000.0)`, the monthly ceiling stated as its annual sum, exact for a level subsidy and reconciled by the year-end rung otherwise. The `bonus` allowance shares that ceiling and is not yet pooled with it (gap 105). The monthly and semi-monthly rungs relieve the SSS, PhilHealth and Pag-IBIG employee shares deducted in the same period (`produced.<code>.employee_this_period`, RR 2-98 s.2.78.1(B) as amended); only the year-end rung reads the year's shares. The SEMI-MONTHLY column (₱10,417 / 16,667 / 33,333 / 83,333 / 333,333; ₱937.50 / 4,270.70 / 16,770.70 / 91,770.70) governs a base paid in two instalments (`period.instalments == 2`); the MONTHLY column everything else. Applied 2026-09-18: RA 9504 (RR 11-2018): a statutory minimum-wage earner (basic at or below the region’s floor) is withheld on neither the basic wage, overtime, night shift differential nor holiday pay; the ₱90,000 exclusion is one pool across 13th-month pay and the bonus (NIRC s.32(B)(7)(e)); the de minimis meal allowance is exempt to 30% of the basic minimum wage (RR 29-2025); the MPF employee share relieves the taxable base beside the Regular SS share.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -428,78 +592,78 @@
 		"rules": [
 			{
 				"when": "period.last_of_year",
-				"employee": "round_cent(progressive((((scheme.year_to_date.base + base) - (produced.SSS.employee + produced.PHIC.employee + produced.HDMF.employee)) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SSS.employee + produced.PHIC.employee + produced.HDMF.employee)) : 0.0), [0.0,0.0,0.0,250000.0,0.0,15.0,400000.0,22500.0,20.0,800000.0,102500.0,25.0,2000000.0,402500.0,30.0,8000000.0,2202500.0,35.0]) - scheme.year_to_date.employee)",
+				"employee": "round_cent(progressive((((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) > 0.0 ? ((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) : 0.0), [0.0,0.0,0.0,250000.0,0.0,15.0,400000.0,22500.0,20.0,800000.0,102500.0,25.0,2000000.0,402500.0,30.0,8000000.0,2202500.0,35.0]) - scheme.year_to_date.employee)",
 				"employer": "0.0"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 0.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 10417.0",
-				"employee": "round_cent((0.0) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 0.0) * 0.0 / 100.0)",
+				"employee": "round_cent((0.0) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 0.0) * 0.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 10417.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 16667.0",
-				"employee": "round_cent((0.0) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 10417.0) * 15.0 / 100.0)",
+				"employee": "round_cent((0.0) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 10417.0) * 15.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 16667.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 33333.0",
-				"employee": "round_cent((937.5) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 16667.0) * 20.0 / 100.0)",
+				"employee": "round_cent((937.5) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 16667.0) * 20.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 33333.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 83333.0",
-				"employee": "round_cent((4270.7) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 33333.0) * 25.0 / 100.0)",
+				"employee": "round_cent((4270.7) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 33333.0) * 25.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 83333.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 333333.0",
-				"employee": "round_cent((16770.7) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 83333.0) * 30.0 / 100.0)",
+				"employee": "round_cent((16770.7) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 83333.0) * 30.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 333333.0",
-				"employee": "round_cent((91770.7) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 333333.0) * 35.0 / 100.0)",
+				"employee": "round_cent((91770.7) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 333333.0) * 35.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 0.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 20833.0",
-				"employee": "round_cent((0.0) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 0.0) * 0.0 / 100.0)",
+				"employee": "round_cent((0.0) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 0.0) * 0.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 20833.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 33333.0",
-				"employee": "round_cent((0.0) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 20833.0) * 15.0 / 100.0)",
+				"employee": "round_cent((0.0) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 20833.0) * 15.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 33333.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 66667.0",
-				"employee": "round_cent((1875.0) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 33333.0) * 20.0 / 100.0)",
+				"employee": "round_cent((1875.0) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 33333.0) * 20.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 66667.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 166667.0",
-				"employee": "round_cent((8541.8) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 66667.0) * 25.0 / 100.0)",
+				"employee": "round_cent((8541.8) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 66667.0) * 25.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 166667.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 666667.0",
-				"employee": "round_cent((33541.8) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 166667.0) * 30.0 / 100.0)",
+				"employee": "round_cent((33541.8) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 166667.0) * 30.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 666667.0",
-				"employee": "round_cent((183541.8) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 666667.0) * 35.0 / 100.0)",
+				"employee": "round_cent((183541.8) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 666667.0) * 35.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - annual_exempt(code('meal'), year.earned.meal, 30000.0) + code('THIRTEENTH_MONTH_PAY') - annual_exempt(code('THIRTEENTH_MONTH_PAY'), year.earned.THIRTEENTH_MONTH_PAY, 90000.0) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT']}) + ENCASHMENT - annual_exempt(code('meal'), year.earned.meal, 0.3 * person.wage_floor * 12.0) + code('THIRTEENTH_MONTH_PAY') + code('bonus') - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ABSENCE - NO_PAY_LEAVE"
 	},
 	{
 		"id": "f3469881-d554-5a44-a85c-18478d228217",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SSS",
 		"name": "Social Security System",
-		"authority": "Republic Act 11199 (Social Security Act of 2018) s.4(a)(9) and s.18, with the SSS Schedule of Contributions",
+		"authority": "Republic Act 11199 (Social Security Act of 2018) s.4(a)(9) and s.18, with the SSS Schedule of Contributions Applied 2026-09-18: the Regular SS programme is capped at the ₱20,000 monthly salary credit (₱1,000 / ₱2,000); the excess to ₱35,000 is the SSS_MPF scheme.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -667,153 +831,317 @@
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99",
-				"employee": "round_cent(1025.0)",
-				"employer": "round_cent(2050.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 21249.99",
-				"employee": "round_cent(1050.0)",
-				"employer": "round_cent(2100.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 21249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 21749.99",
-				"employee": "round_cent(1075.0)",
-				"employer": "round_cent(2150.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 21749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 22249.99",
-				"employee": "round_cent(1100.0)",
-				"employer": "round_cent(2200.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 22249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 22749.99",
-				"employee": "round_cent(1125.0)",
-				"employer": "round_cent(2250.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 22749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 23249.99",
-				"employee": "round_cent(1150.0)",
-				"employer": "round_cent(2300.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 23249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 23749.99",
-				"employee": "round_cent(1175.0)",
-				"employer": "round_cent(2350.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 23749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24249.99",
-				"employee": "round_cent(1200.0)",
-				"employer": "round_cent(2400.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24749.99",
-				"employee": "round_cent(1225.0)",
-				"employer": "round_cent(2450.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 25249.99",
-				"employee": "round_cent(1250.0)",
-				"employer": "round_cent(2500.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 25249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 25749.99",
-				"employee": "round_cent(1275.0)",
-				"employer": "round_cent(2550.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 25749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26249.99",
-				"employee": "round_cent(1300.0)",
-				"employer": "round_cent(2600.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26749.99",
-				"employee": "round_cent(1325.0)",
-				"employer": "round_cent(2650.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 27249.99",
-				"employee": "round_cent(1350.0)",
-				"employer": "round_cent(2700.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 27249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 27749.99",
-				"employee": "round_cent(1375.0)",
-				"employer": "round_cent(2750.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 27749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28249.99",
-				"employee": "round_cent(1400.0)",
-				"employer": "round_cent(2800.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28749.99",
-				"employee": "round_cent(1425.0)",
-				"employer": "round_cent(2850.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 29249.99",
-				"employee": "round_cent(1450.0)",
-				"employer": "round_cent(2900.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 29249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 29749.99",
-				"employee": "round_cent(1475.0)",
-				"employer": "round_cent(2950.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 29749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30249.99",
-				"employee": "round_cent(1500.0)",
-				"employer": "round_cent(3000.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30749.99",
-				"employee": "round_cent(1525.0)",
-				"employer": "round_cent(3050.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 31249.99",
-				"employee": "round_cent(1550.0)",
-				"employer": "round_cent(3100.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 31249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 31749.99",
-				"employee": "round_cent(1575.0)",
-				"employer": "round_cent(3150.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 31749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32249.99",
-				"employee": "round_cent(1600.0)",
-				"employer": "round_cent(3200.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32749.99",
-				"employee": "round_cent(1625.0)",
-				"employer": "round_cent(3250.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 33249.99",
-				"employee": "round_cent(1650.0)",
-				"employer": "round_cent(3300.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 33249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 33749.99",
-				"employee": "round_cent(1675.0)",
-				"employer": "round_cent(3350.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 33749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 34249.99",
-				"employee": "round_cent(1700.0)",
-				"employer": "round_cent(3400.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 34249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 34749.99",
-				"employee": "round_cent(1725.0)",
-				"employer": "round_cent(3450.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 34749.99",
-				"employee": "round_cent(1750.0)",
-				"employer": "round_cent(3500.0)"
+				"employee": "round_cent(1000.00)",
+				"employer": "round_cent(2000.00)"
+			}
+		],
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+	},
+	{
+		"id": "e4493167-ed29-5166-b64d-38f9ade9182f",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "SSS_MPF",
+		"name": "SSS Mandatory Provident Fund (WISP)",
+		"authority": "RA 11199 s.4(a)(2) with SSS Circular 2024-006 §II.B.2: the contribution on the monthly salary credit above ₱20,000 (to ₱35,000) is remitted to the Mandatory Provident Fund (WISP), the Regular SS programme taking the first ₱20,000; the same 5% / 10% split, attributed to the fund the R-3/R-5 name. Applied 2026-09-18.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99",
+				"employee": "round_cent(25.00)",
+				"employer": "round_cent(50.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 21249.99",
+				"employee": "round_cent(50.00)",
+				"employer": "round_cent(100.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 21249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 21749.99",
+				"employee": "round_cent(75.00)",
+				"employer": "round_cent(150.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 21749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 22249.99",
+				"employee": "round_cent(100.00)",
+				"employer": "round_cent(200.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 22249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 22749.99",
+				"employee": "round_cent(125.00)",
+				"employer": "round_cent(250.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 22749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 23249.99",
+				"employee": "round_cent(150.00)",
+				"employer": "round_cent(300.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 23249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 23749.99",
+				"employee": "round_cent(175.00)",
+				"employer": "round_cent(350.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 23749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24249.99",
+				"employee": "round_cent(200.00)",
+				"employer": "round_cent(400.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24749.99",
+				"employee": "round_cent(225.00)",
+				"employer": "round_cent(450.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 25249.99",
+				"employee": "round_cent(250.00)",
+				"employer": "round_cent(500.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 25249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 25749.99",
+				"employee": "round_cent(275.00)",
+				"employer": "round_cent(550.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 25749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26249.99",
+				"employee": "round_cent(300.00)",
+				"employer": "round_cent(600.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26749.99",
+				"employee": "round_cent(325.00)",
+				"employer": "round_cent(650.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 27249.99",
+				"employee": "round_cent(350.00)",
+				"employer": "round_cent(700.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 27249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 27749.99",
+				"employee": "round_cent(375.00)",
+				"employer": "round_cent(750.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 27749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28249.99",
+				"employee": "round_cent(400.00)",
+				"employer": "round_cent(800.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28749.99",
+				"employee": "round_cent(425.00)",
+				"employer": "round_cent(850.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 29249.99",
+				"employee": "round_cent(450.00)",
+				"employer": "round_cent(900.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 29249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 29749.99",
+				"employee": "round_cent(475.00)",
+				"employer": "round_cent(950.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 29749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30249.99",
+				"employee": "round_cent(500.00)",
+				"employer": "round_cent(1000.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30749.99",
+				"employee": "round_cent(525.00)",
+				"employer": "round_cent(1050.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 31249.99",
+				"employee": "round_cent(550.00)",
+				"employer": "round_cent(1100.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 31249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 31749.99",
+				"employee": "round_cent(575.00)",
+				"employer": "round_cent(1150.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 31749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32249.99",
+				"employee": "round_cent(600.00)",
+				"employer": "round_cent(1200.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32749.99",
+				"employee": "round_cent(625.00)",
+				"employer": "round_cent(1250.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 33249.99",
+				"employee": "round_cent(650.00)",
+				"employer": "round_cent(1300.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 33249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 33749.99",
+				"employee": "round_cent(675.00)",
+				"employer": "round_cent(1350.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 33749.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 34249.99",
+				"employee": "round_cent(700.00)",
+				"employer": "round_cent(1400.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 34249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 34749.99",
+				"employee": "round_cent(725.00)",
+				"employer": "round_cent(1450.00)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 34749.99",
+				"employee": "round_cent(750.00)",
+				"employer": "round_cent(1500.00)"
 			}
 		],
 		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
@@ -852,7 +1180,7 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "PHIC",
 		"name": "PhilHealth",
-		"authority": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2019-0009 and Advisory 2025-0002 — one 5% premium on the monthly basic salary, floor PHP 10,000, ceiling PHP 100,000, then split: employee = truncate_cent(premium / 2), employer = premium - employee (the published employer table; a half-centavo premium such as basic 15,819 -> 790.95 gives 395.47 / 395.48, not 395.48 twice). The base is the BASIC line, which Advisory 2025-0002 ¶3 keeps whole against undertime, tardiness, leave without pay and absences (the ABSENCE and NO_PAY_LEAVE lines are not subtracted). NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
+		"authority": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2019-0009 and Advisory 2025-0002 — one 5% premium on the monthly basic salary, floor PHP 10,000, ceiling PHP 100,000, then split: employee = truncate_cent(premium / 2), employer = premium - employee (the published employer table; a half-centavo premium such as basic 15,819 -> 790.95 gives 395.47 / 395.48, not 395.48 twice). The base is the BASIC line, which Advisory 2025-0002 ¶3 keeps whole against undertime, tardiness, leave without pay and absences (the ABSENCE and NO_PAY_LEAVE lines are not subtracted). NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month. Applied 2026-09-18: PhilHealth Advisory 2025-0002 ¶3 keys the premium off the basic monthly salary stated in the contract, whole for a mid-month hire or leaver (`person.terms.basic_salary`). Applied 2026-09-18: PhilHealth Advisory 2025-0002 ¶3 keys the premium off the basic monthly salary stated in the contract, whole for a mid-month hire or leaver (`person.terms.basic_salary`).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -879,14 +1207,14 @@
 				"employer": "round_cent(2500.0)"
 			}
 		],
-		"assessed_on": "BASE + code('BACKPAY_BASIC')"
+		"assessed_on": "person.terms.basic_salary / period.instalments"
 	},
 	{
 		"id": "a423b464-8df4-5426-8c48-3941dcdfb301",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "HDMF",
 		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
-		"authority": "Republic Act 9679 s.7 with HDMF Circular 460 — 1%/2% employee, 2% employer, monthly compensation ceiling PHP 10,000. NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
+		"authority": "Republic Act 9679 s.7 with HDMF Circular 460 — 1%/2% employee, 2% employer, monthly compensation ceiling PHP 10,000. NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month. Applied 2026-09-18: HDMF Circular 460 keys the contribution off the contractual monthly compensation, whole for a mid-month hire or leaver (`person.terms.basic_salary`, the standing allowances beside it).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -908,14 +1236,14 @@
 				"employer": "round_cent(200.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'BACKPAY_ADD_WAGES']}) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "person.terms.basic_salary / period.instalments + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'BACKPAY_ADD_WAGES']}) - ABSENCE - NO_PAY_LEAVE"
 	},
 	{
 		"id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "WTAX",
 		"name": "Withholding Tax on Compensation",
-		"authority": "NIRC 1997 s.79 with s.24(A)(2)(a) as amended by RA 10963 (TRAIN), Revenue Regulations 11-2018 — revised withholding tax table effective 1 January 2023. The NIRC s.32(B)(7)(e) PHP 90,000 exemption for 13th-month pay is `annual_exempt(code('THIRTEENTH_MONTH_PAY'), year.earned.THIRTEENTH_MONTH_PAY, 90000.0)` in the formula. RR 2-98 s.2.78.1(A)(3)(d) as amended by RR 11-2018: a rice subsidy of up to PHP 2,000 a month is a de minimis benefit outside compensation; the company's `meal` row is that subsidy (its sheet: \"MEAL (RICE SUBSIDY)\"), so the formula takes it out of the base up to PHP 24,000 a year — `annual_exempt(code('meal'), year.earned.meal, 24000.0)`, the monthly ceiling stated as its annual sum. The `bonus` allowance shares that ceiling and is not yet pooled with it (gap 105). The monthly and semi-monthly rungs relieve the SSS, PhilHealth and Pag-IBIG employee shares deducted in the same period (`produced.<code>.employee_this_period`, RR 2-98 s.2.78.1(B) as amended); only the year-end rung reads the year's shares. The SEMI-MONTHLY column (₱10,417 / 16,667 / 33,333 / 83,333 / 333,333; ₱937.50 / 4,270.70 / 16,770.70 / 91,770.70) governs a base paid in two instalments (`period.instalments == 2`); the MONTHLY column everything else.",
+		"authority": "NIRC 1997 s.79 with s.24(A)(2)(a) as amended by RA 10963 (TRAIN), Revenue Regulations 11-2018 — revised withholding tax table effective 1 January 2023. The NIRC s.32(B)(7)(e) PHP 90,000 exemption for 13th-month pay is `annual_exempt(code('THIRTEENTH_MONTH_PAY'), year.earned.THIRTEENTH_MONTH_PAY, 90000.0)` in the formula. RR 2-98 s.2.78.1(A)(3)(d) as amended by RR 11-2018: a rice subsidy of up to PHP 2,000 a month is a de minimis benefit outside compensation; the company's `meal` row is that subsidy (its sheet: \"MEAL (RICE SUBSIDY)\"), so the formula takes it out of the base up to PHP 24,000 a year — `annual_exempt(code('meal'), year.earned.meal, 24000.0)`, the monthly ceiling stated as its annual sum. The `bonus` allowance shares that ceiling and is not yet pooled with it (gap 105). The monthly and semi-monthly rungs relieve the SSS, PhilHealth and Pag-IBIG employee shares deducted in the same period (`produced.<code>.employee_this_period`, RR 2-98 s.2.78.1(B) as amended); only the year-end rung reads the year's shares. The SEMI-MONTHLY column (₱10,417 / 16,667 / 33,333 / 83,333 / 333,333; ₱937.50 / 4,270.70 / 16,770.70 / 91,770.70) governs a base paid in two instalments (`period.instalments == 2`); the MONTHLY column everything else. Applied 2026-09-18: RA 9504 (RR 11-2018): a statutory minimum-wage earner (basic at or below the region’s floor) is withheld on neither the basic wage, overtime, night shift differential nor holiday pay; the ₱90,000 exclusion is one pool across 13th-month pay and the bonus (NIRC s.32(B)(7)(e)); the de minimis meal allowance is exempt to 30% of the basic minimum wage (RR 29-2025); the MPF employee share relieves the taxable base beside the Regular SS share.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -923,70 +1251,70 @@
 		"rules": [
 			{
 				"when": "period.last_of_year",
-				"employee": "round_cent(progressive((((scheme.year_to_date.base + base) - (produced.SSS.employee + produced.PHIC.employee + produced.HDMF.employee)) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SSS.employee + produced.PHIC.employee + produced.HDMF.employee)) : 0.0), [0.0,0.0,0.0,250000.0,0.0,15.0,400000.0,22500.0,20.0,800000.0,102500.0,25.0,2000000.0,402500.0,30.0,8000000.0,2202500.0,35.0]) - scheme.year_to_date.employee)",
+				"employee": "round_cent(progressive((((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) > 0.0 ? ((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) : 0.0), [0.0,0.0,0.0,250000.0,0.0,15.0,400000.0,22500.0,20.0,800000.0,102500.0,25.0,2000000.0,402500.0,30.0,8000000.0,2202500.0,35.0]) - scheme.year_to_date.employee)",
 				"employer": "0.0"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 0.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 10417.0",
-				"employee": "round_cent((0.0) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 0.0) * 0.0 / 100.0)",
+				"employee": "round_cent((0.0) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 0.0) * 0.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 10417.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 16667.0",
-				"employee": "round_cent((0.0) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 10417.0) * 15.0 / 100.0)",
+				"employee": "round_cent((0.0) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 10417.0) * 15.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 16667.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 33333.0",
-				"employee": "round_cent((937.5) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 16667.0) * 20.0 / 100.0)",
+				"employee": "round_cent((937.5) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 16667.0) * 20.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 33333.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 83333.0",
-				"employee": "round_cent((4270.7) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 33333.0) * 25.0 / 100.0)",
+				"employee": "round_cent((4270.7) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 33333.0) * 25.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 83333.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 333333.0",
-				"employee": "round_cent((16770.7) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 83333.0) * 30.0 / 100.0)",
+				"employee": "round_cent((16770.7) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 83333.0) * 30.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "period.instalments == 2 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 333333.0",
-				"employee": "round_cent((91770.7) + (((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 333333.0) * 35.0 / 100.0)",
+				"employee": "round_cent((91770.7) + (((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0))) - 333333.0) * 35.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 0.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 20833.0",
-				"employee": "round_cent((0.0) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 0.0) * 0.0 / 100.0)",
+				"employee": "round_cent((0.0) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 0.0) * 0.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 20833.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 33333.0",
-				"employee": "round_cent((0.0) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 20833.0) * 15.0 / 100.0)",
+				"employee": "round_cent((0.0) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 20833.0) * 15.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 33333.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 66667.0",
-				"employee": "round_cent((1875.0) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 33333.0) * 20.0 / 100.0)",
+				"employee": "round_cent((1875.0) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 33333.0) * 20.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 66667.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 166667.0",
-				"employee": "round_cent((8541.8) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 66667.0) * 25.0 / 100.0)",
+				"employee": "round_cent((8541.8) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 66667.0) * 25.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 166667.0 && (((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) <= 666667.0",
-				"employee": "round_cent((33541.8) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 166667.0) * 30.0 / 100.0)",
+				"employee": "round_cent((33541.8) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 166667.0) * 30.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			},
 			{
 				"when": "(((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) > 666667.0",
-				"employee": "round_cent((183541.8) + ((((base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - (produced.SSS.employee_this_period + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 666667.0) * 35.0 / 100.0)",
+				"employee": "round_cent((183541.8) + ((((base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) > 0.0 ? (base) - ((produced.SSS.employee_this_period + produced.SSS_MPF.employee_this_period) + produced.PHIC.employee_this_period + produced.HDMF.employee_this_period) : 0.0)) - 666667.0) * 35.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - annual_exempt(code('meal'), year.earned.meal, 24000.0) + code('THIRTEENTH_MONTH_PAY') - annual_exempt(code('THIRTEENTH_MONTH_PAY'), year.earned.THIRTEENTH_MONTH_PAY, 90000.0) - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + NIGHT_PREMIUM + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY']}) + ENCASHMENT - annual_exempt(code('meal'), year.earned.meal, 0.3 * person.wage_floor * 12.0) + code('THIRTEENTH_MONTH_PAY') + code('bonus') - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ABSENCE - NO_PAY_LEAVE"
 	}
 ]

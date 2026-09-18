@@ -1,5 +1,5 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
-import { leaveRules, type LeaveContext } from './context.js';
+import { leavePool, leaveRules, type LeaveContext } from './context.js';
 import { leaveWindowOf } from './entitlement.js';
 import { leaveBalanceAt } from './balance.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
@@ -29,16 +29,16 @@ export function leaveBalanceSummaries(context: LeaveContext, employmentId: strin
 		.toSorted((a, b) => a.code.localeCompare(b.code))
 		.flatMap((catalogue) => {
 			const rules = leaveRules(context, employmentId, catalogue.id);
+			// The row as a pool: its own entries and what its consumers took inside it.
+			const entries = leavePool(context, employmentId, rules).asPool;
 			const window = leaveWindowOf(through, catalogue.entitlement);
-			const entries = context.entries.filter(
-				(row) => row.employment_id === employmentId && row.leave_code === catalogue.code
-			);
 			const entitlement = rules.entitlementAt(window, asOf);
 			const summary = leaveBalanceAt({
 				entries,
 				window,
 				date: asOf,
-				entitlementAt: rules.entitlementAt
+				entitlementAt: rules.entitlementAt,
+				pool: catalogue.code
 			});
 			if (
 				!hasSomethingToShow({

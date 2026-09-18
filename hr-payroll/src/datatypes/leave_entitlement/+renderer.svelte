@@ -10,7 +10,7 @@
 	import type { RendererProps } from './$types.js';
 	import type { LeaveEntitlement } from './+definition.js';
 
-	type Band = { readonly id: string; readonly eligibility: string; readonly days: number };
+	type Band = { readonly id: string; readonly eligibility: string; readonly days: number | string };
 
 	let props: RendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -26,8 +26,9 @@
 		{
 			key: 'days',
 			label: t('component.days'),
-			field: { name: 'days', kind: 'numeric', nullable: false } satisfies CollectionField,
-			width: 110
+			// A figure, or a number over the person (`12.0 + floor_unit(employment.service_months / 60.0)`).
+			field: { name: 'days', kind: 'text', nullable: false } satisfies CollectionField,
+			width: 220
 		}
 	] satisfies readonly MatrixColumn<Band>[];
 	const disabled = $derived(props.mode !== 'edit' || props.disabled);
@@ -124,7 +125,15 @@
 			onChange={(next) =>
 				emit({
 					...current,
-					bands: next.map(({ eligibility, days }) => ({ eligibility, days: Number(days) || 0 }))
+					bands: next.map(({ eligibility, days }) => ({
+						eligibility,
+						days:
+							String(days).trim() === ''
+								? 0
+								: Number.isFinite(Number(days))
+									? Number(days)
+									: String(days)
+					}))
 				})}
 		/>
 	{/if}

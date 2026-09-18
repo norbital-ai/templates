@@ -37,14 +37,16 @@ import {
 	overlapsRange,
 	readRange
 } from '../../collections/payroll_runs/lib/effective.js';
-import { addDays } from '../period.js';
+import { addDays, weekStart } from '../period.js';
 import {
+	evaluatePersonNumber,
 	isEligible,
 	personContext,
 	type PersonContext
 } from '../../collections/payroll_runs/lib/eligibility.js';
 import { stint } from '../employment-contract.js';
 import {
+	dailyWorkedHours,
 	deriveDailyOvertime,
 	ordinaryWorkedHours,
 	nightWindowHours,
@@ -59,8 +61,10 @@ import {
 	type RateTerms
 } from '../../collections/payroll_runs/lib/ordinary-rate.js';
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
+import { fixedAllowancesOn } from './money.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
+import { applicableLimits } from '../scheduling/work-limits.js';
 import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
 import { PAY_FREQUENCIES, type PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 import {
@@ -381,6 +385,27 @@ export function prepareWorkContext(
 		end: monthBounds(monthKey(attendance.end)).end
 	};
 	const attendanceDays = daysBetween(complianceWindow.start, complianceWindow.end);
+	// The statute's normal day, where the version states one (`work_rules.normal_hours`): a shift
+	// longer than it is a normal day plus overtime. Read over the person on the closing terms.
+	const normalHoursRule = (configuration.work.normal_hours ?? '').trim();
+	const normalHoursCap =
+		normalHoursRule === ''
+			? Number.POSITIVE_INFINITY
+			: evaluatePersonNumber(
+					normalHoursRule,
+					personContext({
+						employee: bundle.employee,
+						employment: stint(bundle.employment),
+						terms: closingTerms,
+						week: {
+							ordinary_hours_per_week: rateTerms.ordinary_hours_per_week,
+							working_days_per_week: rateTerms.working_days_per_week
+						},
+						children: bundle.children,
+						company: configuration.company,
+						asOf: options.salary.end
+					})
+				);
 	const scheduleTermsAt = (date: IsoDate) => {
 		const row =
 			bundle.termsHistory.find((candidate) => coversDate(candidate.effective_range, date)) ??
@@ -397,8 +422,10 @@ export function prepareWorkContext(
 			pattern_anchor: patternAnchor(patternRow),
 			// A rostered zero carries no weekly pattern; the day length falls back to the same
 			// neutral eight hours the rate terms resolve against.
-			normal_daily_hours:
+			normal_daily_hours: Math.min(
+				normalHoursCap,
 				workload.work_days > 0 ? workload.paid_minutes / workload.work_days / 60 : 8
+			)
 		};
 	};
 	const schedule = resolveSchedule({
@@ -472,6 +499,9 @@ export function prepareWorkContext(
 	const subject = personContext({
 		employee: bundle.employee,
 		employment: stint(bundle.employment),
+		// The standing allowances in force, so a divisor can price the hour over the monthly wage
+		// (ID PP 35/2021 art.32: 1/173 of basic plus fixed allowances).
+		fixedAllowances: fixedAllowancesOn(bundle.payRequests, options.salary.end),
 		terms: closingTerms,
 		// The working week the roster produced, so a rate row can turn on it. The Philippine day
 		// factor is 261 annual days for a five-day week and 313 for a six-day one, which is
@@ -573,9 +603,24 @@ export function calculateWorkAttendance(
 	const overtimeAttendance = attendance;
 	const overtimeDays: DailyOvertime[] = [];
 	const bandDays: WorkBandDay[] = [];
-	for (const entry of attendedDays) {
-		const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
-		if (workDate < complianceWindow.start || workDate > complianceWindow.end) continue;
+	const clockedDays = attendedDays
+		.map((entry) => ({ entry, workDate: requiredDateKey(entry.work_date, 'work_days.work_date') }))
+		.filter(
+			({ workDate }) => workDate >= complianceWindow.start && workDate <= complianceWindow.end
+		)
+		.toSorted((left, right) => (left.workDate < right.workDate ? -1 : 1));
+	// The limits that govern this person: a conditional one (`limits[].when`) applies only where
+	// its predicate holds over them.
+	const limits = applicableLimits(configuration.limits, subject);
+	// The week's normal hours, where the version caps them (a `WEEK NORMAL_HOURS` limit: Singapore's
+	// 44, s.38(1)). Hours inside the normal day but past the cap are overtime of the day they fall
+	// on — a week of six 8-hour days earns its 45th to 48th hour at the ordinary-day band. The
+	// running sum reads the days in order, Monday to Sunday, the week the schedule gate measures.
+	const weeklyNormalCap =
+		limits.find((limit) => limit.period === 'WEEK' && limit.measure === 'NORMAL_HOURS')
+			?.max_hours ?? null;
+	const weekNormalRunning = new Map<string, number>();
+	for (const { entry, workDate } of clockedDays) {
 		const day = schedule.get(workDate);
 		if (!day) continue;
 		// Attendance is priced as it happened: the break rule belongs to the schedule gate
@@ -586,14 +631,50 @@ export function calculateWorkAttendance(
 			...entry,
 			break_minutes: derivedBreakMinutes(entry.worked_intervals, day.shift?.break_minutes ?? 0)
 		};
-		const derived = deriveDailyOvertime(
+		const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate);
+		const daily = deriveDailyOvertime(
 			clocked,
 			day,
 			configuration.breaks,
-			offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate)
+			offset,
+			configuration.nightPremium,
+			subject
 		);
+		const worked = daily?.totalWorkHours ?? dailyWorkedHours(clocked, day, offset);
+		let weeklyExcess = 0;
+		if (weeklyNormalCap != null && day.dayType === 'ORDINARY') {
+			const withinNormal = Math.min(Math.max(0, worked), day.normalHours);
+			const week = weekStart(workDate);
+			const running = (weekNormalRunning.get(week) ?? 0) + withinNormal;
+			weekNormalRunning.set(week, running);
+			weeklyExcess = Math.min(withinNormal, Math.max(0, running - weeklyNormalCap));
+		}
+		// An unworked holiday the person's calendar recorded (a day read and found empty) is a
+		// band day of zero hours: the first band that holds prices it by amount — a regular
+		// holiday's day wage (PH art.94), a holiday on a non-working day (SG s.88).
+		const unworkedHoliday =
+			daily == null &&
+			worked <= 0 &&
+			(day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY');
+		const derived =
+			daily == null
+				? weeklyExcess > 0 || unworkedHoliday
+					? {
+							date: workDate,
+							workDayId: entry.id,
+							dayType: day.dayType,
+							hours: weeklyExcess,
+							normalHours: day.normalHours,
+							totalWorkHours: worked,
+							breakMinutes: clocked.break_minutes,
+							restBreak: null,
+							restBreakDeductedHours: 0
+						}
+					: null
+				: { ...daily, hours: daily.hours + weeklyExcess };
 		if (!derived) continue;
-		overtimeDays.push(derived);
+		// A zero-hour holiday day is a band day, never an overtime day.
+		if (derived.hours > 0) overtimeDays.push(derived);
 		bandDays.push({
 			workDayId: derived.workDayId,
 			date: derived.date,
@@ -609,7 +690,22 @@ export function calculateWorkAttendance(
 			holidayName: configuration.holidays.get(workDate)?.name ?? '',
 			monthOvertimeHours: 0,
 			consecutiveHours: derived.restBreak?.longestRunHours ?? 0,
-			continuousAttendance: false
+			continuousAttendance: false,
+			restDay: day.restDay,
+			offDay: day.offDay,
+			nightHours:
+				configuration.nightPremium == null
+					? 0
+					: (() => {
+							const night = nightWindowHours(
+								clocked,
+								configuration.nightPremium,
+								day.dayType === 'ORDINARY' ? day.shift : null,
+								offset
+							);
+							return night.ordinary + night.overtime;
+						})(),
+			requestedBy: entry.requested_by ?? 'EMPLOYER'
 		});
 	}
 	// The wage the ceiling is measured against is derived per Employment Act 1955 s.2 as narrowed by
@@ -730,7 +826,7 @@ export function calculateWorkAttendance(
 	const nightShiftHours = nightDays.reduce((total, day) => total + day.ordinary + day.overtime, 0);
 	const capped = funnelMonthlyOvertime({
 		rows: measureWorkBands({
-			work: configuration.work,
+			work: { ...configuration.work, limits },
 			person: subject,
 			days: pricedBandDays,
 			rates: { ordinaryHour: hourlyRate, ordinaryDay: dayWage, dayWage },
@@ -738,7 +834,7 @@ export function calculateWorkAttendance(
 			currency: options.work.currency
 		}),
 		days: pricedBandDays,
-		limits: configuration.limits,
+		limits,
 		prior: options.priorOvertimeHours ?? new Map(),
 		catalogueComponents: configuration.catalogueComponents,
 		currency: options.work.currency
@@ -779,7 +875,9 @@ export function calculateWorkAttendance(
 		calendarMonthOvertimeHours,
 		nightShiftHours,
 		/** The rostered days with no punch and no leave, for an allowance that loses unpaid days. */
-		absentDays
+		absentDays,
+		/** The limits that govern this person, the conditional ones judged. */
+		limits
 	};
 }
 
@@ -989,8 +1087,13 @@ function measureWorkComponent(
 			const scheduledHours = shift.paid_minutes / 60;
 			// Leave covers its reserved share of ordinary hours, including an explicitly empty punch.
 			// Work includes those units; unpaid Leave deducts its own share once at the actual rate.
+			// A regular holiday not worked is still a paid day for the daily-paid (PH art.94: 100% of
+			// the daily wage); an empty punch on it records nothing to deduct.
+			const holidayUnit =
+				options.configuration.holidays.get(date)?.kind === 'PUBLIC' &&
+				(intervals == null || intervals.length === 0);
 			const hours =
-				actual != null && intervals != null
+				actual != null && intervals != null && !holidayUnit
 					? Math.min(
 							scheduledHours,
 							ordinaryWorkedHours(
@@ -1318,19 +1421,19 @@ export function validateWorkInputs(options: {
 
 /**
  * Work reports statutory daily, monthly, quarterly and yearly limits from its measured attendance.
- * A quarter or a year is counted to date: what earlier PAID payslips of this person settled for
+ * A quarter or a year is counted to date: what earlier payslips of this person settled for
  * the same months, plus this run.
  */
 export function validateWorkResult(options: {
 	readonly configuration: Configuration;
 	readonly measured: MeasuredEmployment;
-	/** Regulated overtime hours earlier PAID payslips settled, by calendar month. */
+	/** Regulated overtime hours earlier payslips settled, by calendar month. */
 	readonly priorOvertimeHours?: ReadonlyMap<string, number>;
 }): RunIssue[] {
 	const { configuration, measured } = options;
 	const { bundle } = measured;
 	const issues: RunIssue[] = validateOvertimeLimits({
-		configuration,
+		configuration: { ...configuration, limits: measured.limits },
 		employeeNumber: bundle.employment.employee_number,
 		hoursByMonth: measured.calendarMonthOvertimeHours,
 		priorHoursByMonth: options.priorOvertimeHours ?? new Map()
@@ -1346,7 +1449,7 @@ export function validateWorkResult(options: {
 	const ownDays = measured.overtimeDays.filter(
 		(day) => day.date >= attendance.start && day.date <= attendance.end
 	);
-	for (const limit of configuration.limits) {
+	for (const limit of measured.limits) {
 		if (limit.period !== 'DAY') continue;
 		if (limit.measure === 'TOTAL_WORK_HOURS')
 			issues.push(

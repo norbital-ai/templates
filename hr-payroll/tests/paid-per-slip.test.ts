@@ -32,11 +32,18 @@ function world(runs, slips) {
 			if ('in' in condition) return condition.in.includes(value);
 			if ('isNull' in condition) return condition.isNull === (value == null);
 			if ('isNotNull' in condition) return condition.isNotNull === (value != null);
+			// The relation predicate the delete guard uses: a slip whose run's period is beyond one.
+			if ('some' in condition)
+				return match(runs.find((run) => run.id === row.payroll_run_id) ?? {}, condition.some);
+			if ('gt' in condition) return value > condition.gt;
 			return true;
 		});
 	const table = (rows, nest = (row) => row) => ({
 		findMany: ({ where }) => Effect.succeed(rows.filter((row) => match(row, where)).map(nest)),
-		findFirst: ({ where }) => Effect.succeed(rows.find((row) => match(row, where)))
+		findFirst: ({ where }) => {
+			const row = rows.find((row) => match(row, where));
+			return Effect.succeed(row === undefined ? undefined : nest(row));
+		}
 	});
 	return {
 		api: {
@@ -148,12 +155,19 @@ test('a slip is created by its run, never standing alone', async () => {
 	);
 });
 
-test('a paid slip cannot be deleted, whatever its run reports', () => {
+test('a paid slip cannot be deleted, and an unpaid one only while no later slip stands on it', async () => {
 	const authorize = payrollRunCascadeGrants().payslips.delete.authorize;
-	assert.equal(
-		authorize({ record: slip('slip-a', RUN, 'emp-a', { status: 'PAID', paid_at: '2026-02-28' }) }),
-		false
-	);
-	// An unpaid slip still leaves with its draft recalculation.
-	assert.equal(authorize({ record: slip('slip-a', RUN, 'emp-a') }), true);
+	const slips = [
+		slip('jan-a', EARLIER, 'emp-a'),
+		slip('feb-a', RUN, 'emp-a'),
+		slip('jan-b', EARLIER, 'emp-b', { status: 'PAID', paid_at: '2026-01-31' }),
+		slip('feb-b', RUN, 'emp-b')
+	];
+	const { api } = world([EARLIER, RUN], slips);
+	const decide = (record) => Effect.runPromise(authorize({ record }, { db: api }));
+	assert.equal(await decide(slips[2]), false, 'paid is money that left the building');
+	// February's slip counted January's held one as history; January goes only after February.
+	assert.match(await refusalOf(() => decide(slips[0])), /2026-02 payslip stands on this one/);
+	assert.equal(await decide(slips[1]), true, 'the latest unpaid slip of a person leaves freely');
+	assert.equal(await decide(slips[3]), true);
 });

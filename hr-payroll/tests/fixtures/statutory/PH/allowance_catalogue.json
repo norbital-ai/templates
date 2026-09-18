@@ -430,5 +430,81 @@
 				"limit": null
 			}
 		]
+	},
+	{
+		"id": "617ae8c6-9874-5f5b-808e-f6bc96bedf7a",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year.",
+		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "4197dd92-b948-5d01-976b-1407bddf2a5e",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year.",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employee.age <= 65 && employment.service_months >= 60",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.basic_salary * 12.0 / 313.0) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "10327012-fd88-50a4-9d23-4c41c671146a",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year.",
+		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "89806dd6-8b4d-57bf-ae48-eae34f21a970",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year.",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employee.age <= 65 && employment.service_months >= 60",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.basic_salary * 12.0 / 313.0) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		]
 	}
 ]

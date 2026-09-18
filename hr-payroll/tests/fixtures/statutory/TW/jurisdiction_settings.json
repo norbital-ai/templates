@@ -18,7 +18,7 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
-			"overtime_when": "",
+			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
 					"label": "OT-1.3333333333333333X",
@@ -76,7 +76,8 @@
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 46,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)"
 				},
 				{
 					"key": "quarterly_ot",
@@ -84,9 +85,23 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 138,
 					"unit": "WORKED_HOURS"
+				},
+				{
+					"key": "monthly_ot_consent",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 54,
+					"unit": "WORKED_HOURS",
+					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
+					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
 				}
 			],
 			"breaks": [
+				{
+					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"owed_minutes": "30.0",
+					"counts_as_worked_time": true
+				},
 				{
 					"when": "consecutive_hours >= 4.0",
 					"owed_minutes": "30.0",
@@ -98,7 +113,8 @@
 				"discharged_by": "REST"
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday."
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
+			"normal_hours": "8.0"
 		},
 		"payroll": {
 			"currency": "TWD",
@@ -121,7 +137,21 @@
 				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe"
 			],
 			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
-		}
+		},
+		"facts": [
+			{
+				"key": "overtime_consent",
+				"type": "boolean"
+			},
+			{
+				"key": "shift_or_continuous_work",
+				"type": "boolean"
+			},
+			{
+				"key": "responsibility_system",
+				"type": "boolean"
+			}
+		]
 	},
 	{
 		"id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
@@ -142,7 +172,7 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
-			"overtime_when": "",
+			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
 					"label": "OT-1.3333333333333333X",
@@ -200,7 +230,8 @@
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 46,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)"
 				},
 				{
 					"key": "quarterly_ot",
@@ -208,9 +239,23 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 138,
 					"unit": "WORKED_HOURS"
+				},
+				{
+					"key": "monthly_ot_consent",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 54,
+					"unit": "WORKED_HOURS",
+					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
+					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
 				}
 			],
 			"breaks": [
+				{
+					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"owed_minutes": "30.0",
+					"counts_as_worked_time": true
+				},
 				{
 					"when": "consecutive_hours >= 4.0",
 					"owed_minutes": "30.0",
@@ -222,7 +267,8 @@
 				"discharged_by": "REST"
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday."
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
+			"normal_hours": "8.0"
 		},
 		"payroll": {
 			"currency": "TWD",
@@ -254,7 +300,21 @@
 				"https://www.dgpa.gov.tw/information?uid=30&pid=12982"
 			],
 			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
-		}
+		},
+		"facts": [
+			{
+				"key": "overtime_consent",
+				"type": "boolean"
+			},
+			{
+				"key": "shift_or_continuous_work",
+				"type": "boolean"
+			},
+			{
+				"key": "responsibility_system",
+				"type": "boolean"
+			}
+		]
 	},
 	{
 		"id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
@@ -275,7 +335,7 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
-			"overtime_when": "",
+			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
 					"label": "OT-1.3333333333333333X",
@@ -333,7 +393,8 @@
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 46,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)"
 				},
 				{
 					"key": "quarterly_ot",
@@ -341,9 +402,23 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 138,
 					"unit": "WORKED_HOURS"
+				},
+				{
+					"key": "monthly_ot_consent",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 54,
+					"unit": "WORKED_HOURS",
+					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
+					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
 				}
 			],
 			"breaks": [
+				{
+					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"owed_minutes": "30.0",
+					"counts_as_worked_time": true
+				},
 				{
 					"when": "consecutive_hours >= 4.0",
 					"owed_minutes": "30.0",
@@ -355,7 +430,8 @@
 				"discharged_by": "REST"
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday."
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
+			"normal_hours": "8.0"
 		},
 		"payroll": {
 			"currency": "TWD",
@@ -387,6 +463,20 @@
 				"https://www.dgpa.gov.tw/information?uid=30&pid=12982"
 			],
 			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
-		}
+		},
+		"facts": [
+			{
+				"key": "overtime_consent",
+				"type": "boolean"
+			},
+			{
+				"key": "shift_or_continuous_work",
+				"type": "boolean"
+			},
+			{
+				"key": "responsibility_system",
+				"type": "boolean"
+			}
+		]
 	}
 ]

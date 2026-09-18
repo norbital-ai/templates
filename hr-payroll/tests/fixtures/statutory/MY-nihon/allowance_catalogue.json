@@ -238,5 +238,119 @@
 				"limit": null
 			}
 		]
+	},
+	{
+		"id": "1ae82969-72cf-53ad-b9a9-15390ca98e78",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "TERMINATION_BENEFIT",
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && terms.statutory_wages <= 4000.0",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "365e5404-bd27-558f-9c42-f5ae38f3d27b",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "NOTICE_IN_LIEU",
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"DISMISSAL\"] && terms.notice_days > 0",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.notice_days * person.terms.basic_salary / 26.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "d636ca4f-fb43-5bfa-9700-85bfa786e01e",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "TERMINATION_BENEFIT",
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && terms.statutory_wages <= 4000.0",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "2325884c-3ac5-58d3-a576-907187b1b193",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "NOTICE_IN_LIEU",
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"DISMISSAL\"] && terms.notice_days > 0",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.notice_days * person.terms.basic_salary / 26.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "fe908050-b908-5c1c-87b7-79b66f4d234d",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "TERMINATION_BENEFIT",
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && terms.statutory_wages <= 4000.0",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "f562c9a6-661f-5fbf-9ef3-746d064a8f60",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "NOTICE_IN_LIEU",
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"DISMISSAL\"] && terms.notice_days > 0",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.notice_days * person.terms.basic_salary / 26.0)",
+				"limit": null
+			}
+		]
 	}
 ]

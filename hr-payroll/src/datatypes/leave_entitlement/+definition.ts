@@ -10,14 +10,28 @@ import { Schema } from 'effect';
  * tier is `employment.service_months >= 24`; a grade tier is `terms.grade == "M1"`.
  */
 export const leaveEntitlementValueSchema = Schema.Struct({
-	availability: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED']),
+	/**
+	 * `PER_EVENT` is a grant per occurrence rather than per year: every entry is its own pool of
+	 * `days`, read against the person and the entry's `event.*`, and `lifetime_events` caps how
+	 * many such entries an employee may ever take (PH paternity: the first four deliveries; MY:
+	 * five confinements).
+	 */
+	availability: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT']),
 	year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
 	proration: Schema.Literals(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS']),
+	/** The most PER_EVENT entries of this leave an employee may take in a lifetime; absent is no cap. */
+	lifetime_events: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
+	/**
+	 * A window measured back from the day rather than a leave year: the `days` may be taken in any
+	 * such span (TW hospitalised sickness: one year within two, `24`). Absent is the leave year.
+	 */
+	rolling_months: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	bands: Schema.Array(
 		Schema.Struct({
 			/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 			eligibility: Schema.String,
-			days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
+			/** The grant, or a number over the person: a seniority ladder with no top (VN art.114: `12.0 + floor_unit(employment.service_months / 60.0)`). */
+			days: Schema.Union([Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), Schema.String])
 		})
 	)
 });

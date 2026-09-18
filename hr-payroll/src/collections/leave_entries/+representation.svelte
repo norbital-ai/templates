@@ -66,6 +66,11 @@
 			<Field name="available_from" hidden />
 			<Field name="expires_on" hidden />
 			<Field name="reason" hidden />
+			<Field name="hours" hidden />
+			<Field name="event_kind" hidden />
+			<Field name="event_relationship" hidden />
+			<Field name="event_child_index" hidden />
+			<Field name="event_date" hidden />
 			<Stack gap="lg">
 				<FormSection
 					first

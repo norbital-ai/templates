@@ -21,6 +21,18 @@
 			"overtime_when": "",
 			"bands": [
 				{
+					"label": "OT-3.0X-STATUTORY-DAY",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
+				},
+				{
+					"label": "OT-3.0X-STATUTORY-DAY",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
+				},
+				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
@@ -30,25 +42,25 @@
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "hours * ordinary_hour * 2.0"
+					"price_amount": "hours * ordinary_hour * 2.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.2"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "hours * ordinary_hour * 3.0"
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 2.0"
+					"price_amount": "hours * ordinary_hour * 2.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.2"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 3.0"
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				}
 			],
 			"limits": [
@@ -71,10 +83,30 @@
 					"period": "YEAR",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 200,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector)"
+				},
+				{
+					"key": "yearly_ot_sector",
+					"period": "YEAR",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 300,
+					"unit": "WORKED_HOURS",
+					"when": "has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector",
+					"authority": "Labour Code 2019 art.107(3): up to 300 overtime hours a year in textiles, garments, footwear, electronics, seafood and agricultural processing, salt, electricity and water supply"
 				}
 			],
 			"breaks": [
+				{
+					"when": "consecutive_hours >= 6.0 && night_hours > 0.0 && continuous_attendance",
+					"owed_minutes": "45.0",
+					"counts_as_worked_time": true
+				},
+				{
+					"when": "consecutive_hours >= 6.0 && night_hours > 0.0",
+					"owed_minutes": "45.0",
+					"counts_as_worked_time": false
+				},
 				{
 					"when": "consecutive_hours >= 6.0 && continuous_attendance",
 					"owed_minutes": "30.0",
@@ -88,7 +120,12 @@
 			],
 			"weekly_rest_rule": {
 				"max_consecutive_work_days": 6,
-				"discharged_by": "REST"
+				"discharged_by": "REST",
+				"average": {
+					"days": 30,
+					"rest_days": 4,
+					"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
+				}
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
@@ -97,13 +134,15 @@
 				"ordinary_add": 30,
 				"overtime_add": 50
 			},
-			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
+			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`).",
+			"normal_hours": "8.0"
 		},
 		"payroll": {
 			"currency": "VND",
 			"timezone": "Asia/Ho_Chi_Minh",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_due_days": 14
 		},
 		"wages": {
 			"by_region": {
@@ -121,7 +160,21 @@
 				"https://baochinhphu.vn/tang-luong-co-so-len-muc-234-trieu-dong-thang-tu-01-7-2024-102240701113637498.htm"
 			],
 			"instructions": "vanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403)."
-		}
+		},
+		"facts": [
+			{
+				"key": "overtime_300h_sector",
+				"type": "boolean"
+			},
+			{
+				"key": "rest_averaged_monthly",
+				"type": "boolean"
+			},
+			{
+				"key": "occupational_accident_reduced",
+				"type": "boolean"
+			}
+		]
 	},
 	{
 		"id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
@@ -145,6 +198,18 @@
 			"overtime_when": "",
 			"bands": [
 				{
+					"label": "OT-3.0X-STATUTORY-DAY",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
+				},
+				{
+					"label": "OT-3.0X-STATUTORY-DAY",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
+				},
+				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
@@ -154,25 +219,25 @@
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "hours * ordinary_hour * 2.0"
+					"price_amount": "hours * ordinary_hour * 2.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.2"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "hours * ordinary_hour * 3.0"
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 2.0"
+					"price_amount": "hours * ordinary_hour * 2.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.2"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 3.0"
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				}
 			],
 			"limits": [
@@ -195,10 +260,30 @@
 					"period": "YEAR",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 200,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector)"
+				},
+				{
+					"key": "yearly_ot_sector",
+					"period": "YEAR",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 300,
+					"unit": "WORKED_HOURS",
+					"when": "has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector",
+					"authority": "Labour Code 2019 art.107(3): up to 300 overtime hours a year in textiles, garments, footwear, electronics, seafood and agricultural processing, salt, electricity and water supply"
 				}
 			],
 			"breaks": [
+				{
+					"when": "consecutive_hours >= 6.0 && night_hours > 0.0 && continuous_attendance",
+					"owed_minutes": "45.0",
+					"counts_as_worked_time": true
+				},
+				{
+					"when": "consecutive_hours >= 6.0 && night_hours > 0.0",
+					"owed_minutes": "45.0",
+					"counts_as_worked_time": false
+				},
 				{
 					"when": "consecutive_hours >= 6.0 && continuous_attendance",
 					"owed_minutes": "30.0",
@@ -212,7 +297,12 @@
 			],
 			"weekly_rest_rule": {
 				"max_consecutive_work_days": 6,
-				"discharged_by": "REST"
+				"discharged_by": "REST",
+				"average": {
+					"days": 30,
+					"rest_days": 4,
+					"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
+				}
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
@@ -221,13 +311,15 @@
 				"ordinary_add": 30,
 				"overtime_add": 50
 			},
-			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
+			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`).",
+			"normal_hours": "8.0"
 		},
 		"payroll": {
 			"currency": "VND",
 			"timezone": "Asia/Ho_Chi_Minh",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_due_days": 14
 		},
 		"wages": {
 			"by_region": {
@@ -247,7 +339,21 @@
 				"https://vanban.chinhphu.vn/?classid=1&docid=216495&pageid=27160"
 			],
 			"instructions": "vanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403)."
-		}
+		},
+		"facts": [
+			{
+				"key": "overtime_300h_sector",
+				"type": "boolean"
+			},
+			{
+				"key": "rest_averaged_monthly",
+				"type": "boolean"
+			},
+			{
+				"key": "occupational_accident_reduced",
+				"type": "boolean"
+			}
+		]
 	},
 	{
 		"id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
@@ -271,6 +377,18 @@
 			"overtime_when": "",
 			"bands": [
 				{
+					"label": "OT-3.0X-STATUTORY-DAY",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
+				},
+				{
+					"label": "OT-3.0X-STATUTORY-DAY",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
+				},
+				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
@@ -280,25 +398,25 @@
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "hours * ordinary_hour * 2.0"
+					"price_amount": "hours * ordinary_hour * 2.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.2"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "hours * ordinary_hour * 3.0"
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 2.0"
+					"price_amount": "hours * ordinary_hour * 2.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.2"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 3.0"
+					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				}
 			],
 			"limits": [
@@ -321,10 +439,30 @@
 					"period": "YEAR",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 200,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector)"
+				},
+				{
+					"key": "yearly_ot_sector",
+					"period": "YEAR",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 300,
+					"unit": "WORKED_HOURS",
+					"when": "has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector",
+					"authority": "Labour Code 2019 art.107(3): up to 300 overtime hours a year in textiles, garments, footwear, electronics, seafood and agricultural processing, salt, electricity and water supply"
 				}
 			],
 			"breaks": [
+				{
+					"when": "consecutive_hours >= 6.0 && night_hours > 0.0 && continuous_attendance",
+					"owed_minutes": "45.0",
+					"counts_as_worked_time": true
+				},
+				{
+					"when": "consecutive_hours >= 6.0 && night_hours > 0.0",
+					"owed_minutes": "45.0",
+					"counts_as_worked_time": false
+				},
 				{
 					"when": "consecutive_hours >= 6.0 && continuous_attendance",
 					"owed_minutes": "30.0",
@@ -338,7 +476,12 @@
 			],
 			"weekly_rest_rule": {
 				"max_consecutive_work_days": 6,
-				"discharged_by": "REST"
+				"discharged_by": "REST",
+				"average": {
+					"days": 30,
+					"rest_days": 4,
+					"when": "has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
+				}
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
@@ -347,13 +490,15 @@
 				"ordinary_add": 30,
 				"overtime_add": 50
 			},
-			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
+			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`).",
+			"normal_hours": "8.0"
 		},
 		"payroll": {
 			"currency": "VND",
 			"timezone": "Asia/Ho_Chi_Minh",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_due_days": 14
 		},
 		"wages": {
 			"by_region": {
@@ -377,6 +522,20 @@
 				"https://vanban.chinhphu.vn/?classid=1&docid=218008&orggroupid=1&pageid=27160"
 			],
 			"instructions": "vanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403)."
-		}
+		},
+		"facts": [
+			{
+				"key": "overtime_300h_sector",
+				"type": "boolean"
+			},
+			{
+				"key": "rest_averaged_monthly",
+				"type": "boolean"
+			},
+			{
+				"key": "occupational_accident_reduced",
+				"type": "boolean"
+			}
+		]
 	}
 ]

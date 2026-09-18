@@ -11,7 +11,11 @@ import {
 	monthDay
 } from '../../collections/payroll_runs/lib/dates.js';
 import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
-import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import {
+	evaluatePersonNumber,
+	isEligible,
+	type PersonContext
+} from '../../collections/payroll_runs/lib/eligibility.js';
 
 /** One inclusive window of leave days: the annual period a credit belongs to. */
 export const leaveWindowSchema = Schema.Struct({ start: calendarDay, end: calendarDay });
@@ -47,6 +51,19 @@ export function assertLeaveWindow(
 		);
 }
 
+/**
+ * The days the matrix grants this person: top-down, the first band whose predicate holds, its
+ * `days` a figure or a number over the person (a seniority ladder with no top). Nobody matched
+ * is no days.
+ */
+export function grantedDays(rule: Pick<LeaveEntitlement, 'bands'>, person: PersonContext): number {
+	const band = rule.bands.find((candidate) => isEligible(candidate.eligibility, person));
+	if (band == null) return 0;
+	return typeof band.days === 'string'
+		? Math.max(0, evaluatePersonNumber(band.days, person))
+		: band.days;
+}
+
 /** An as-of query over effective rules and employment facts; this creates no records. */
 export function computedEntitlement(options: {
 	readonly rule: LeaveEntitlement;
@@ -71,7 +88,9 @@ export function computedEntitlement(options: {
 	const end =
 		options.exitDate != null && options.exitDate < window.end ? options.exitDate : window.end;
 	const through = options.asOf < end ? options.asOf : end;
-	const unlimited = rule.availability === 'UNLIMITED';
+	// A per-event grant is no annual pool: every entry is measured against `grantedDays` on its
+	// own, so the pool reads as unmetered here.
+	const unlimited = rule.availability === 'UNLIMITED' || rule.availability === 'PER_EVENT';
 	// A full grant or unmetered entitlement needs eligibility through the query date only.
 	// Prorated upfront grants also project the remaining eligible part of the annual window.
 	const projectionEnd = unlimited || rule.proration === 'NONE' ? through : end;
@@ -83,8 +102,7 @@ export function computedEntitlement(options: {
 	if (opening == null || through < opening) return empty;
 	// The entitlement matrix: top-down, the first band whose predicate holds on the entitlement
 	// date is the grant; nobody matched is no days.
-	const person = options.personOn(through);
-	const target = rule.bands.find((band) => isEligible(band.eligibility, person))?.days ?? 0;
+	const target = grantedDays(rule, options.personOn(through));
 	if (unlimited)
 		return { window, opening, unlimited: true, entitlement: null, earned: null, available: null };
 	const eligible = new Set(active);

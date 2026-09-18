@@ -21,6 +21,9 @@ export type ChangeTermsFacts = {
 	readonly grade: string | null;
 	readonly agreed_days_per_week: number;
 	readonly shift_pattern_id: string | null;
+	readonly pass_type: string | null;
+	readonly tax_residency: string | null;
+	readonly notice_days: number | null;
 };
 
 /**

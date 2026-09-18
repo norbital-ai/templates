@@ -11,7 +11,13 @@ import { Schema } from 'effect';
 export const employeeChildSchema = Schema.Struct({
 	child_birthdate: Schema.String,
 	relationship: Schema.Literals(['CHILD', 'STEPCHILD', 'ADOPTED', 'LEGAL_WARD']),
-	effective_range: Schema.NullOr(instantRangeValueSchema)
+	effective_range: Schema.NullOr(instantRangeValueSchema),
+	/**
+	 * The child's own citizenship where a statute turns on it (SG Government-Paid leave: the
+	 * child is a Singapore citizen); absent is unrecorded. Read as `event.child_citizenship` on
+	 * the per-event entry that names the child, and counted by `children.citizens`.
+	 */
+	citizenship: Schema.optionalKey(Schema.NullOr(Schema.String))
 }).check(
 	Schema.makeFilter(
 		(row) => isCalendarDate(row.child_birthdate) || 'Enter a valid child birth date.'

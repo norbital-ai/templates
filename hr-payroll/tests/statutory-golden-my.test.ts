@@ -897,6 +897,87 @@ test('MY-nihon — a deferred rostered joiner is paid their arrears without a ro
 	assert.equal(slip.gross, 2248.39);
 });
 
+test('Malaysia — HRD Corp counts Malaysian employees alone, and zakat is set off against the MTD', () => {
+	const book = assessStatutory({
+		code: 'MY',
+		period: '2026-01',
+		people: [
+			{
+				key: 'MY-ZAKAT',
+				wage: 25_000,
+				citizenship: 'CITIZEN',
+				registrations: { ...MY_LOCAL, PCB: { kind: 'REGISTERED', elections: { zakat: 100 } } }
+			},
+			{ key: 'MY-CITIZEN', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+			...Array.from({ length: 9 }, (_, index) => ({
+				key: `MY-FW-${index}`,
+				wage: 2000,
+				citizenship: 'FOREIGNER' as const,
+				registrations: {
+					EPF: OUT,
+					EPF_PR: OUT,
+					EIS: OUT,
+					PCB: OUT,
+					SOCSO: OUT,
+					SKBBK: OUT,
+					HRDF: OUT
+				}
+			}))
+		]
+	});
+	// Eleven on the books, two of them Malaysian: PSMB Act 2001 s.13 and the Registration Order
+	// count Malaysian employees, so the employer is under the five-employee threshold and no levy
+	// is due — where the whole headcount would have read the compulsory 1% band.
+	expectStatutory(book, 'MY-CITIZEN', 'HRDF', 0, 0);
+	// r.3(3A): the RM100 zakat paid through the employer comes off the month's MTD, 4,678.30 −
+	// 100 = 4,578.30.
+	expectStatutory(book, 'MY-ZAKAT', 'PCB', 4578.3, 0);
+});
+
+test('Malaysia — the normal day is at most nine hours under the s.60A(1) proviso, and a daily-rated rest day pays one or two days’ wages (s.60(3)(a))', () => {
+	const { slips } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-01',
+			people: [
+				{ key: 'MY-TEN', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL },
+				// RM100 a day, daily-rated: rest-day work pays whole days, not the monthly halves.
+				{
+					key: 'MY-DAILY',
+					wage: 100,
+					pay_frequency: 'DAILY',
+					citizenship: 'CITIZEN',
+					statutory_work_category: 'MANUAL_LABOUR',
+					registrations: REGISTERED_LOCAL
+				}
+			]
+		},
+		(world) => {
+			// A ten-hour shift (09:00–20:00 with an hour's break) on the five-day week: the contract
+			// agrees a 50-hour week, so the proviso's nine-hour day does not apply and the normal
+			// day is eight — two hours of every shift are overtime.
+			world.shift_definitions[0]!.variant = {
+				kind: 'WORK',
+				start_time: '09:00',
+				end_time: '20:00',
+				break_minutes: 60
+			};
+			punch(world, 'MY-TEN', '2026-01-05', '09:00', '20:00');
+			punch(world, 'MY-DAILY', '2026-01-04', '09:00', '13:00'); // Sunday rest day, four hours
+			punch(world, 'MY-DAILY', '2026-01-11', '09:00', '16:00'); // Sunday rest day, seven hours
+		}
+	);
+	// 2,600 ÷ 26 = 100.00 a day; over the ten-hour normal day the hour is 10.00: two hours at 1.5×.
+	assert.deepEqual(workLines(slips.get('MY-TEN')!), [['2026-01-05', 'WORKDAY-OT-1.5X', 2, 30]]);
+	// s.60(3)(a): a daily-rated employee's rest-day work pays one day's wages up to half the
+	// normal hours and two days' wages beyond — 100 and 200 — where a monthly-rated one gets half
+	// and one.
+	assert.deepEqual(workLines(slips.get('MY-DAILY')!), [
+		['2026-01-04', 'RESTDAY-ONE-DAY-PAY', 4, 100],
+		['2026-01-11', 'RESTDAY-TWO-DAYS-PAY', 7, 200]
+	]);
+});
+
 test('every sealed version of `MY` and `MY-nihon` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced

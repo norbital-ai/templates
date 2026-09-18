@@ -43,7 +43,7 @@ import {
 } from './dates.js';
 import { requestIsDue, type PreparedPayRequest } from '../../../lib/payroll/money.js';
 import type { PreparedLoan, LoanRepayment } from '../../../lib/payroll/loan.js';
-import { effectiveWithin, live, overlapsRange } from './effective.js';
+import { coversDate, effectiveWithin, live, overlapsRange } from './effective.js';
 import {
 	hasLeavePayment,
 	withLeaveDeductionEligibility,
@@ -141,14 +141,16 @@ export type GatheredRun = {
 	readonly bundles: readonly EmploymentBundle[];
 	/** Active employments in the company at the period end — the HEADCOUNT band selector. */
 	readonly headcount: number;
+	/** Of them, the citizens (`residency_status` other than FOREIGNER): MY HRD Corp counts and levies these alone. */
+	readonly headcountCitizens: number;
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
-	/** employee id → component code → what earlier PAID payslips earned this tax year. */
+	/** employee id → component code → what the person's earlier payslips earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, ReadonlyMap<string, number>>;
-	/** employee id → calendar month → regulated overtime hours earlier PAID payslips settled. */
+	/** employee id → calendar month → regulated overtime hours earlier payslips settled. */
 	readonly priorOvertimeHours: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/**
-	 * pay request id → what earlier PAID runs actually took from it.
+	 * pay request id → what earlier runs took from it.
 	 *
 	 * A one-off entry is single-use — one standing/paid payslip captures it and later runs
 	 * exclude it — so this map is the defence-in-depth ceiling rather than the working answer.
@@ -311,14 +313,20 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		// pays it nothing, and a headcount-banded contribution for everyone else must not move
 		// between the halves. A deferred joining period pays nobody and is not counted.
 		const month = monthBounds(periodMonth(period));
-		const headcount = new Set(
-			touching
-				.filter((row) => {
-					const dates = employmentDates(row);
-					if (dates.hire > month.end || (dates.exit != null && dates.exit < month.start))
-						return false;
-					return settlementByEmployment.get(row.id)?.deferral == null;
-				})
+		const onTheBooks = touching.filter((row) => {
+			const dates = employmentDates(row);
+			if (dates.hire > month.end || (dates.exit != null && dates.exit < month.start)) return false;
+			return settlementByEmployment.get(row.id)?.deferral == null;
+		});
+		const headcount = new Set(onTheBooks.map((row) => row.employee_id)).size;
+		const headcountCitizens = new Set(
+			onTheBooks
+				.filter((row) =>
+					(termsByEmployment.get(row.id) ?? []).some(
+						(term) =>
+							coversDate(term.effective_range, month.end) && term.residency_status !== 'FOREIGNER'
+					)
+				)
 				.map((row) => row.employee_id)
 		).size;
 		const employmentIds = employments.map((row) => row.id);
@@ -326,6 +334,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			return {
 				bundles: [],
 				headcount,
+				headcountCitizens,
 				yearToDate: new Map(),
 				yearEarned: new Map(),
 				priorOvertimeHours: new Map(),
@@ -426,7 +435,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			});
 		}
 
-		return { bundles, headcount, ...prior };
+		return { bundles, headcount, headcountCitizens, ...prior };
 	});
 }
 
@@ -441,9 +450,9 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
  *    employment, which zeroed the year-to-date mid-year and reset the PCB projection and both
  *    relief pools with it. The 2026 population has no transfers, so fixing it moves nothing today
  *    and stops misstating tax the first time someone moves (decision L34 / risk register #11).
- * 2. **Draft runs no longer count.** There was no lifecycle predicate at all, so an abandoned draft
- *    fed the next period's projection and nothing recomputed it when the draft was discarded. Only
- *    `PAID` runs are year-to-date (decision L35 / risk register #8).
+ * 2. **Every earlier slip counts, paid or not.** An abandoned draft once fed the next period's
+ *    projection; today no earlier run or slip can be deleted from under a later one, and payment
+ *    is ordered per person, so what stands is what will have been paid.
  *
  * ## Year-to-date is a sum over payslips alone
  *
@@ -485,16 +494,15 @@ function gatherPriorSettlement(
 		 * in February. One read answers both questions; only the summing differs.
 		 */
 		/**
-		 * Every earlier run, and the *paid slips* inside them — not every earlier PAID run.
+		 * Every earlier run, and every slip inside them, paid or not.
 		 *
-		 * The lifecycle predicate that used to sit here was the fix for abandoned drafts feeding the
-		 * next period's projection, and it was right while a run was the unit of payment. It is
-		 * wrong now that a slip is: `lifecycle` is a reading of the slips, so a run where nine
-		 * people are paid and one is not reads `DRAFT`, and this filter would drop all nine — their
-		 * loan instalments would be recovered a second time, their single-use entries paid twice and
-		 * their year-to-date reset. Filtering the slips by their own `paid_at` (below) keeps the
-		 * original guarantee exactly — an abandoned draft has no paid slips — and stops one person's
-		 * held payslip rewriting nine colleagues' history.
+		 * A slip is history from the moment its run stands, because nothing can take it away from
+		 * under this one: an earlier run is not deletable while a later sibling exists, an earlier
+		 * slip is not deletable while the person has a later one, and payment is ordered per person
+		 * — so by the time this period's slip is paid, every earlier slip it counted has been. That
+		 * is exactly the "accumulated remuneration paid in previous months" the PCB schedule reads,
+		 * where a slip built while the person's January was still held used to under-project the
+		 * year and could not be rebuilt once January was paid.
 		 */
 		const priorRunRows = yield* db.payroll_runs.findMany({
 			where: { company_id: { eq: options.companyId }, period: { lt: options.period } },
@@ -538,10 +546,7 @@ function gatherPriorSettlement(
 		const priorPayslips = yield* db.payslips.findMany({
 			where: {
 				payroll_run_id: { in: priorRuns.map((run) => run.id) },
-				employment_id: { in: siblingEmployments.map((row) => row.id) },
-				// The money actually paid. A slip still held back is not history yet, and the next run
-				// re-derives its period from the contract exactly as it always did.
-				paid_at: { isNotNull: true }
+				employment_id: { in: siblingEmployments.map((row) => row.id) }
 			},
 			limit: PAGE_LIMIT
 		});

@@ -9,6 +9,7 @@ import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 import {
 	plannedDay,
+	applicableLimits,
 	projectedLimitBreaches,
 	type RosterCodeFacts,
 	type SchedulePlanDay
@@ -141,7 +142,7 @@ export default defineCollection({
 					settingsCode,
 					start
 				);
-				const limits = version?.work_rules?.limits ?? [];
+				const limits = applicableLimits(version?.work_rules?.limits ?? [], null);
 				if (limits.length === 0) return input;
 				const codeById = new Map<string, RosterCodeFacts>();
 				for (const code of codes) {

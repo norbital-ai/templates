@@ -183,7 +183,7 @@ test('Indonesia — an unrecorded PTKP status withholds as TK/0', () => {
 		...idWorld('2026-01'),
 		people: [{ key: 'ID-BLANK-15M', wage: 15_000_000, marital_status: '' }]
 	});
-	expectStatutory(book, 'ID-BLANK-15M', 'PPH21', 900_000, 0);
+	expectStatutory(book, 'ID-BLANK-15M', 'PPH21', 1_092_420, 0);
 });
 
 test('Indonesia — the JP ceiling moves on 1 March 2026', () => {
@@ -208,16 +208,18 @@ test('Indonesia — PPh 21 monthly withholding on the TER A and TER C ladders', 
 	//
 	// TER A covers TK/0, TK/1 and K/0. Bracket 1 runs to 5,400,000 at 0.00%.
 	expectStatutory(book, 'ID-5M', 'PPH21', 0, 0);
-	// 15,000,000 is in TER A bracket 13,750,001–15,100,000 at 6.00% → 900,000.
-	expectStatutory(book, 'ID-15M', 'PPH21', 900_000, 0);
+	// PMK 168/2023 art.5(1): the employer-borne JKK (0.54%, class II), JKM (0.30%) and BPJS
+	// Kesehatan (4%) premiums are part of the gross — 15,000,000 + 81,000 + 525,000 = 15,606,000,
+	// in TER A bracket 15,100,001–16,950,000 at 7.00% → 1,092,420.
+	expectStatutory(book, 'ID-15M', 'PPH21', 1_092_420, 0);
 	// 25,000,000 is in TER A bracket 24,150,001–26,450,000 at 10.00% → 2,500,000.
-	expectStatutory(book, 'ID-25M', 'PPH21', 2_500_000, 0);
+	expectStatutory(book, 'ID-25M', 'PPH21', 2569000, 0);
 
 	// TER C covers K/3 (PTKP 72,000,000).
 	// 15,000,000 is in bracket 14,150,001–15,550,000 at 5.00% → 750,000.
-	expectStatutory(book, 'ID-C-15M', 'PPH21', 750_000, 0);
+	expectStatutory(book, 'ID-C-15M', 'PPH21', 936360, 0);
 	// 25,000,000 is in bracket 22,700,001–26,600,000 at 9.00% → 2,250,000.
-	expectStatutory(book, 'ID-C-25M', 'PPH21', 2_250_000, 0);
+	expectStatutory(book, 'ID-C-25M', 'PPH21', 2312100, 0);
 });
 
 test('Indonesia — the rupiah above a TER bracket, or a BPJS ceiling, is charged on the next row', () => {
@@ -230,8 +232,9 @@ test('Indonesia — the rupiah above a TER bracket, or a BPJS ceiling, is charge
 			{ key: 'ID-12000000.01', wage: 12_000_000.01, marital_status: 'SINGLE' }
 		]
 	});
-	// TER A "5,400,001 – 5,650,000 → 0.25%": 0.25% × 5,400,000.01 = 13,500.00.
-	expectStatutory(book, 'ID-5400000.01', 'PPH21', 13_500, 0);
+	// With the employer premiums in the gross (PMK 168/2023 art.5(1)) the 5,400,000.01 wage is a
+	// 5,674,555.01 gross, in TER A "5,650,001 – 5,950,000 → 0.50%": 28,372.78 → 28,373.
+	expectStatutory(book, 'ID-5400000.01', 'PPH21', 28_373, 0);
 	// JP above the 11,086,300 ceiling charges on the ceiling: 110,863 / 221,726.
 	expectStatutory(book, 'ID-11086300.01', 'JP', 110_863, 221_726);
 	// Kesehatan above the Rp12,000,000 cap: 120,000 / 480,000.
@@ -353,13 +356,14 @@ test('Indonesia — December is the annual reckoning against the year the TER al
 		}
 	});
 
-	// ID-15M: PKP = 180,000,000 − 6,000,000 − JP 1,319,578 − JHT 3,600,000 − 54,000,000 =
-	// 115,080,422 → 115,080,000 (art.17(4)). Annual tax = 5% × 60,000,000 + 15% × 55,080,000 =
-	// 11,262,000. December = 11,262,000 − 9,900,000 = 1,362,000.
-	expectStatutory(book, 'ID-15M', 'PPH21', 1_362_000, 0);
+	// ID-15M: the eleven slips on file carry 15,000,000 each and December 15,606,000 (the employer
+	// premiums in the gross, PMK 168/2023 art.5(1)): PKP = 180,606,000 − 6,000,000 − JP 1,319,578 −
+	// JHT 3,600,000 − 54,000,000 = 115,686,422 → 115,686,000 (art.17(4)). Annual tax = 5% ×
+	// 60,000,000 + 15% × 55,686,000 = 11,352,900. December = 11,352,900 − 9,900,000 = 1,452,900.
+	expectStatutory(book, 'ID-15M', 'PPH21', 1_452_900, 0);
 	// ID-5M: PKP = 60,000,000 − 3,000,000 − 600,000 − 1,200,000 − 54,000,000 = 1,200,000 →
 	// 60,000; the TER withheld nothing all year, so December charges the whole annual figure.
-	expectStatutory(book, 'ID-5M', 'PPH21', 60_000, 0);
+	expectStatutory(book, 'ID-5M', 'PPH21', 72850, 0);
 });
 
 test('Indonesia — a married woman is TK/0 unless the PTKP election combines her husband’s income', () => {
@@ -387,8 +391,8 @@ test('Indonesia — a married woman is TK/0 unless the PTKP election combines he
 	});
 	// Without the certificate she is TK/0, TER category A: 15,000,000 withholds 900,000. With it the
 	// married ladder applies (K/3, category C): 750,000.
-	expectStatutory(book, 'ID-W-15M', 'PPH21', 900_000, 0);
-	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', 750_000, 0);
+	expectStatutory(book, 'ID-W-15M', 'PPH21', 1_092_420, 0);
+	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', 936360, 0);
 });
 
 test('every sealed version of `ID` is priced by a golden here', () => {
@@ -520,10 +524,11 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 	// still paid in March, it just does not become 5,000,000 more of THR.
 	assert.deepEqual(slip('ID-ONEOFF').thr, [20_000_000]);
 	assert.deepEqual(slip('ID-TWO-MONTHS').thr, [25_000_000]);
-	// PPh 21 is on gross, THR included; the BPJS bases are the wage alone.
-	assert.equal(slip('ID-24M').base('PPH21'), 20_000_000);
+	// PPh 21 is on gross, THR and the employer-borne premiums included (484,000 on 10,000,000);
+	// the BPJS bases are the wage alone.
+	assert.equal(slip('ID-24M').base('PPH21'), 20_484_000);
 	assert.equal(slip('ID-24M').base('JHT'), 10_000_000);
-	assert.equal(slip('ID-FIXED').base('PPH21'), 50_000_000);
+	assert.equal(slip('ID-FIXED').base('PPH21'), 50_648_000); // 25,000,000 + THR 25,000,000 + the employer premiums
 	// The open-ended standing allowance is paid as a March entry; the source row itself is never
 	// pinned, so April prices its own entry.
 	const fixedSlip = slips.find((row) => String(row.employment_id) === fixed.id)!;
@@ -631,11 +636,14 @@ test('Indonesia — the PP 35/2021 Pasal 31 ladder on an ordinary day, a rest da
 		['2026-01-10', 'OT-3.0X', 1, 300_000],
 		['2026-01-17', 'OT-2.0X', 3, 600_000]
 	]);
-	// PPh 21 reads the overtime (PMK 168/2023 Ps.15, gross); the BPJS bases are the wage alone
-	// (PP 44/2015 Ps.19(2), PP 45/2015 Ps.29(1): upah pokok + tunjangan tetap).
+	// PPh 21 reads the overtime (PMK 168/2023 Ps.15, gross) and the employer-borne JKK (1.27%,
+	// class III), JKM (0.30%) and BPJS Kesehatan (4% of 17,300,000) premiums beside it
+	// (Ps.5(1)): 219,710 + 51,900 + 692,000 = 685,870 with JKK at 0.24%… the run's own class
+	// decides; here 17,300,000 × (0.24% + 0.30%) + 4% × 17,300,000 = 685,870. The BPJS bases are
+	// the wage alone (PP 44/2015 Ps.19(2), PP 45/2015 Ps.29(1): upah pokok + tunjangan tetap).
 	const charge = (code: string) =>
 		slips.get('ID-OT')!.statutory.find((row) => row.scheme_code === code)!;
-	assert.equal(charge('PPH21').base_amount, 17_300_000 + 4_450_000);
+	assert.equal(charge('PPH21').base_amount, 17_300_000 + 4_450_000 + 685_870);
 	assert.equal(charge('JHT').base_amount, 17_300_000);
 	assert.equal(charge('KESEHATAN').base_amount, 17_300_000);
 });
@@ -652,9 +660,12 @@ test('Indonesia — a rest-day stint shorter than a normal day is priced on its 
 		(world) => punchId(world, 'ID-OT', '2026-01-10', '09:00', '13:20') // Saturday: 4h20 clocked
 	);
 	// UU 13/2003 Ps.79(2)(a): 4h20 crosses four continuous hours, so the thirty-minute break the day
-	// owed and did not take is not working time; 3h50 floors to 3.5 payable hours at Pasal 31(3)'s
-	// 2× = 700,000. The bands consume the payable hours, never the raw clock (4.33 h, 866,667).
-	assert.deepEqual(workLinesId(slips.get('ID-OT')!), [['2026-01-10', 'OT-2.0X', 3.5, 700_000]]);
+	// owed and did not take is not working time; 3h50 is the payable time, to the minute, at Pasal
+	// 31(3)'s 2× = 766,666.67. The bands consume the payable hours, never the raw clock (4.33 h,
+	// 866,667).
+	assert.deepEqual(workLinesId(slips.get('ID-OT')!), [
+		['2026-01-10', 'OT-2.0X', 23 / 6, 766_666.67]
+	]);
 });
 
 test('Indonesia — the 30-minute break after four continuous hours governs every worker (UU 13/2003 Ps.79(2)(a))', () => {
@@ -735,9 +746,24 @@ test('Indonesia — the statutory leave ladder on every version', () => {
 			rows.find((row) => row.code === 'MENSTRUAL_LEAVE')?.entitlement.availability,
 			'MONTHLY'
 		);
+		// UU 4/2024 art.4(3): the birth is the event, and a complicated one grants up to three
+		// further months at 75% from the fifth.
+		const maternity = rows.find((row) => row.code === 'MATERNITY_LEAVE')!;
 		assert.equal(
-			rows.find((row) => row.code === 'MATERNITY_LEAVE')?.eligibility,
-			'employee.gender == "FEMALE"'
+			maternity.eligibility,
+			'employee.gender == "FEMALE" && event.kind in ["BIRTH", "BIRTH_COMPLICATION"]'
 		);
+		assert.equal(maternity.entitlement.availability, 'PER_EVENT');
+		assert.deepEqual(maternity.entitlement.bands[0], {
+			eligibility: 'event.kind == "BIRTH_COMPLICATION"',
+			days: 182
+		});
+		// Ps.93(3): the sick-pay scale rides the row as its pay fraction; cuti bersama draws on
+		// the annual leave.
+		assert.match(
+			rows.find((row) => row.code === 'MEDICAL_LEAVE')!.pay_fraction,
+			/leave\.month_index <= 4 \? 1\.0/
+		);
+		assert.equal(rows.find((row) => row.code === 'JOINT_LEAVE')!.consumes_code, 'ANNUAL_LEAVE');
 	}
 });

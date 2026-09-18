@@ -271,8 +271,12 @@ test('hr_manager and senior management create and delete payroll runs without a 
 			);
 			assert.equal(may(policy, collection, 'delete'), true, `${nameOf(policy)} ${collection}`);
 			const [slipDelete] = grantsFor(policy, collection, 'delete');
-			assert.equal(slipDelete.authorize({ record: { status: 'PAID', paid_at: 'x' } }), false);
-			assert.equal(slipDelete.authorize({ record: { status: 'DRAFT', paid_at: null } }), true);
+			// The decision reads the person's later slips; `paid-per-slip.test.ts` exercises it.
+			assert.equal(
+				typeof slipDelete.authorize,
+				'function',
+				`${nameOf(policy)} slip delete decides`
+			);
 		}
 
 		// A completed run stays readable: the creator and HR Manager both see it after it lands.
@@ -409,7 +413,12 @@ test('manual Leave categories require HR authority, while time off retains its r
 			'destination_to',
 			'available_from',
 			'expires_on',
-			'reason'
+			'reason',
+			'hours',
+			'event_kind',
+			'event_relationship',
+			'event_child_index',
+			'event_date'
 		]);
 	}
 });

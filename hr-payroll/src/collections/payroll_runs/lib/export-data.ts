@@ -274,7 +274,7 @@ export function loadRunExports(
 					destination: 'PAY',
 					family: 'LEAVE'
 				});
-				if (row.is_npl)
+				if (row.is_npl || row.paid_by === 'FUND' || row.pay_fraction.trim() !== '')
 					componentByCode.set(row.code, {
 						calculationSource: 'DERIVED',
 						bucket: 'ABSENCE',

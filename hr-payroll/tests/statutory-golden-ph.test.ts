@@ -70,8 +70,10 @@ test('Philippines — SSS, EC, PhilHealth, Pag-IBIG and the monthly withholding 
 	// (the Regular SS / MPF split of Circular 2024-006 §II.B.2 is a remittance attribution the
 	// seed does not carry — bank README NOT APPLIED #3 — so one employer figure is asserted).
 	expectStatutory(book, 'PH-4000', 'SSS', 250, 500);
-	expectStatutory(book, 'PH-30000', 'SSS', 1500, 3000);
-	expectStatutory(book, 'PH-40000', 'SSS', 1750, 3500);
+	expectStatutory(book, 'PH-30000', 'SSS', 1000, 2000);
+	expectStatutory(book, 'PH-30000', 'SSS_MPF', 500, 1000);
+	expectStatutory(book, 'PH-40000', 'SSS', 1000, 2000);
+	expectStatutory(book, 'PH-40000', 'SSS_MPF', 750, 1500);
 
 	// Employees' Compensation: employer only, ₱10 for MSC 14,500 and below and ₱30 from MSC 15,000
 	// — the seeded seam sits at compensation 14,750.
@@ -144,7 +146,8 @@ test('Philippines — February relieves February’s contributions, not the year
 			});
 		}
 	);
-	expectStatutory(book, 'PH-30000', 'SSS', 1500, 3000);
+	expectStatutory(book, 'PH-30000', 'SSS', 1000, 2000);
+	expectStatutory(book, 'PH-30000', 'SSS_MPF', 500, 1000);
 	expectStatutory(book, 'PH-30000', 'WTAX', 1007.55, 0);
 });
 
@@ -152,12 +155,14 @@ test('Philippines — the December 2025 version prices the same schedules', () =
 	// The bank cuts a second version on 2026-01-01 that adds a payment code and moves no statutory
 	// value: every schedule below is the one the 2026-01 golden prices.
 	const book = assessStatutory({ code: 'PH', period: '2025-12', people: PH_PEOPLE });
-	expectStatutory(book, 'PH-30000', 'SSS', 1500, 3000);
+	expectStatutory(book, 'PH-30000', 'SSS', 1000, 2000);
+	expectStatutory(book, 'PH-30000', 'SSS_MPF', 500, 1000);
 	expectStatutory(book, 'PH-30000', 'SSS_EC', 0, 30);
 	expectStatutory(book, 'PH-30000', 'PHIC', 750, 750);
 	expectStatutory(book, 'PH-30000', 'HDMF', 200, 200);
 	expectStatutory(book, 'PH-4000', 'SSS', 250, 500);
-	expectStatutory(book, 'PH-40000', 'SSS', 1750, 3500);
+	expectStatutory(book, 'PH-40000', 'SSS', 1000, 2000);
+	expectStatutory(book, 'PH-40000', 'SSS_MPF', 750, 1500);
 });
 
 test('Philippines — a half-centavo PhilHealth premium is split employee-down, employer-up (OPSPH010)', () => {
@@ -215,7 +220,8 @@ test('Philippines — the rice subsidy is de minimis and outside withholding (RR
 		// SSS and Pag-IBIG read the allowances, subsidy included (36,000 → MSC 35,000; the 10,000
 		// fund-salary ceiling); PhilHealth reads the basic alone.
 		expectStatutoryBase(book, 'OPSPH003', 'SSS', 36_000);
-		expectStatutory(book, 'OPSPH003', 'SSS', 1750, 3500);
+		expectStatutory(book, 'OPSPH003', 'SSS', 1000, 2000);
+		expectStatutory(book, 'OPSPH003', 'SSS_MPF', 750, 1500);
 		expectStatutory(book, 'OPSPH003', 'PHIC', 800, 800);
 		expectStatutory(book, 'OPSPH003', 'HDMF', 200, 200);
 		expectStatutoryBase(book, 'OPSPH003', 'WTAX', 34_700);
@@ -245,7 +251,8 @@ test('Philippines — a wage on an SSS bracket floor insures at that bracket, ne
 	// 14,750 is the floor of MSC 15,000, where EC steps from ₱10 to ₱30.
 	expectStatutory(book, 'PH-14750', 'SSS', 750, 1500);
 	expectStatutory(book, 'PH-14750', 'SSS_EC', 0, 30);
-	expectStatutory(book, 'PH-30250', 'SSS', 1525, 3050);
+	expectStatutory(book, 'PH-30250', 'SSS', 1000, 2000);
+	expectStatutory(book, 'PH-30250', 'SSS_MPF', 525, 1050);
 	// PhilHealth "10,000.01 to 99,999.99" and Pag-IBIG "over ₱1,500": the first centavo over the
 	// floor is charged on the higher row.
 	expectStatutory(book, 'PH-10000.01', 'PHIC', 250, 250);
@@ -263,7 +270,8 @@ test('Philippines — a semi-monthly company: the monthly schemes once a month, 
 		payFrequency: 'SEMI_MONTHLY',
 		people: [{ key: 'PH-M-43000', wage: 43_000 }]
 	});
-	expectStatutory(monthly, 'PH-M-43000', 'SSS', 1750, 3500);
+	expectStatutory(monthly, 'PH-M-43000', 'SSS', 1000, 2000);
+	expectStatutory(monthly, 'PH-M-43000', 'SSS_MPF', 750, 1500);
 	expectStatutory(monthly, 'PH-M-43000', 'SSS_EC', 0, 30);
 	expectStatutory(monthly, 'PH-M-43000', 'PHIC', 1075, 1075);
 	expectStatutory(monthly, 'PH-M-43000', 'HDMF', 200, 200);
@@ -280,7 +288,8 @@ test('Philippines — a semi-monthly company: the monthly schemes once a month, 
 		payFrequency: 'SEMI_MONTHLY',
 		people: [person]
 	});
-	expectStatutory(first, 'PH-S-30000', 'SSS', 1500, 3000);
+	expectStatutory(first, 'PH-S-30000', 'SSS', 1000, 2000);
+	expectStatutory(first, 'PH-S-30000', 'SSS_MPF', 500, 1000);
 	expectStatutory(first, 'PH-S-30000', 'PHIC', 750, 750);
 	expectStatutory(first, 'PH-S-30000', 'HDMF', 200, 200);
 	// 15,000 − 2,450 = 12,550, in the ₱10,417–16,666 rung: 15% × (12,550 − 10,417) = 319.95.
@@ -617,7 +626,12 @@ test('Philippines — Labor Code arts. 87, 93 and 94 premiums on every version',
 			['OT-1.69X', 2, 338]
 		]);
 		// Art.82: managerial employees are outside Title I, so outside the premiums.
-		assert.equal(version.work_rules.overtime_when, 'employment.classification != "MANAGERIAL"');
+		// Art.82: managerial staff, domestic helpers, field personnel and workers paid by results are
+		// outside the hours-of-work rules.
+		assert.equal(
+			version.work_rules.overtime_when,
+			'employment.classification != "MANAGERIAL" && employment.type != "DOMESTIC" && !(terms.statutory_work_category in ["FIELD_PERSONNEL", "PAID_BY_RESULTS"])'
+		);
 		// Art.94(b) over art.93: a regular holiday on a rest day is priced as the holiday.
 		assert.equal(version.work_rules.holiday_rest_precedence, 'PUBLIC_HOLIDAY');
 		// Art.83 and art.85: the eight-hour day and the unpaid hour for meals; art.91: one rest day
@@ -626,7 +640,10 @@ test('Philippines — Labor Code arts. 87, 93 and 94 premiums on every version',
 			version.work_rules.limits.map((limit) => [limit.measure, limit.max_hours]),
 			[['NORMAL_HOURS', 8]]
 		);
+		// Art.85: the 60-minute unpaid meal period, and the 20-minute compensable one where the
+		// work is continuous.
 		assert.deepEqual(version.work_rules.breaks, [
+			{ when: 'continuous_attendance', owed_minutes: '20.0', counts_as_worked_time: true },
 			{ when: 'true', owed_minutes: '60.0', counts_as_worked_time: false }
 		]);
 		assert.equal(version.work_rules.weekly_rest_rule.max_consecutive_work_days, 6);
@@ -674,27 +691,32 @@ test('Philippines — the statutory leave ladder on every version', () => {
 	// days, 120 for a solo parent), RA 8187 s.2 (paternity 7 days, married male), RA 8972 s.8 as
 	// amended by RA 11861 (solo parent 7 days after six months), RA 9262 s.43 (VAWC 10 days),
 	// RA 9710 s.18 (special leave for women 60 days after six months).
+	// Art.82 / Handbook ch.7 §B take SIL away from field personnel, workers paid by results,
+	// domestic helpers and an establishment of fewer than ten; maternity, paternity and the
+	// gynaecological-surgery leave are grants per event (RA 11210 s.3: 60 days for a miscarriage;
+	// RA 8187 s.2: the first four deliveries; RA 9710 s.18: two months per surgery).
 	const expected: Record<string, [string, [string, number][]]> = {
 		ANNUAL_LEAVE: [
-			'employment.classification != "MANAGERIAL"',
+			'employment.classification != "MANAGERIAL" && employment.type != "DOMESTIC" && !(terms.statutory_work_category in ["FIELD_PERSONNEL", "PAID_BY_RESULTS"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)',
 			[['employment.service_months >= 12', 5]]
 		],
 		MATERNITY_LEAVE: [
-			'employee.gender == "FEMALE"',
+			'employee.gender == "FEMALE" && event.kind in ["BIRTH", "MISCARRIAGE"] && facts.SSS.since_months >= 3',
 			[
+				['event.kind == "MISCARRIAGE"', 60],
 				['employee.solo_parent', 120],
 				['', 105]
 			]
 		],
 		PATERNITY_LEAVE: [
-			'employee.gender == "MALE" && employee.marital_status == "MARRIED"',
+			'employee.gender == "MALE" && employee.marital_status == "MARRIED" && event.kind == "BIRTH"',
 			[['', 7]]
 		],
 		SOLO_PARENT_LEAVE: ['employee.solo_parent', [['employment.service_months >= 6', 7]]],
 		VAWC_LEAVE: ['employee.gender == "FEMALE"', [['', 10]]],
 		SPECIAL_LEAVE_FOR_WOMEN: [
-			'employee.gender == "FEMALE"',
-			[['employment.service_months >= 6', 60]]
+			'employee.gender == "FEMALE" && event.kind == "SURGERY" && employment.service_months >= 6',
+			[['', 60]]
 		]
 	};
 	for (const version of settingsVersions('PH')) {
@@ -710,6 +732,11 @@ test('Philippines — the statutory leave ladder on every version', () => {
 			);
 			assert.equal(row.is_npl, false, `${code} is paid`);
 		}
+		assert.equal(
+			rows.find((row) => row.code === 'PATERNITY_LEAVE')!.entitlement.lifetime_events,
+			4
+		);
+		assert.equal(rows.find((row) => row.code === 'SOLO_PARENT_LEAVE')!.evidence, 'REQUIRED');
 	}
 });
 
@@ -877,4 +904,131 @@ test('Philippines — an allowance loses the unpaid days of the window it covers
 		Array.from({ length: 4 }, () => [1, 719.54])
 	);
 	assert.deepEqual(absences('PH-ABSENT'), [[1, 719.54]]);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Compounded day types, the minimum-wage earner, the apprentice floor, the daily factor.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A punch from `start` to `end` on `date`, in Manila's +08:00 frame. */
+const punchPh = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+	const employment = world.employments.find((row) => row.employee_number === key)!;
+	world.work_days.push({
+		id: `wd-${key}-${date}`,
+		employment_id: employment.id,
+		work_date: date,
+		shift_definition_id: null,
+		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		requested_by: null,
+		approval_id: null
+	});
+};
+const workLinesPh = (
+	slip: ReturnType<typeof buildStatutory>['slips'] extends Map<string, infer S> ? S : never
+) =>
+	slip.adjustments
+		.filter((row) => row.family === 'WORK_DAY')
+		.map((row) => [row.source_id.slice(-10), row.label, row.quantity, row.amount] as const)
+		.toSorted((left, right) => left[0].localeCompare(right[0]) || left[1].localeCompare(right[1]));
+
+test('Philippines — a regular holiday worked on the rest day is 260% and 338%, a special day 150% and 195% (Handbook ch.3 §D, ch.4 §C)', () => {
+	const { slips } = buildStatutory(
+		{ code: 'PH', period: '2026-01', people: [{ key: 'PH-COMP', wage: 21_750 }] },
+		(world) => {
+			// Sunday the 4th is the rest day and a regular holiday; Sunday the 11th a special day.
+			world.jurisdiction_holidays.push(
+				{
+					id: 'h-1',
+					company_id: COMPANY_ID,
+					date: '2026-01-04',
+					name: 'Regular',
+					kind: 'PUBLIC',
+					replaces: null,
+					given_to: null,
+					source: null,
+					published_at: '2025-12-01T00:00:00.000Z',
+					approval_id: null
+				},
+				{
+					id: 'h-2',
+					company_id: COMPANY_ID,
+					date: '2026-01-11',
+					name: 'Special',
+					kind: 'SPECIAL',
+					replaces: null,
+					given_to: null,
+					source: null,
+					published_at: '2025-12-01T00:00:00.000Z',
+					approval_id: null
+				}
+			);
+			punchPh(world, 'PH-COMP', '2026-01-04', '08:00', '19:00'); // eleven hours, ten net of the meal period
+			punchPh(world, 'PH-COMP', '2026-01-11', '08:00', '17:00'); // nine hours, eight net
+		}
+	);
+	// 21,750 ÷ 21.75 = 1,000 a day, 125.00 an hour. Regular holiday on the rest day: 8 × 125 × 2.6
+	// = 2,600 and 2 × 125 × 3.38 = 845; the special day on the rest day: 8 × 125 × 1.5 = 1,500.
+	assert.deepEqual(workLinesPh(slips.get('PH-COMP')!), [
+		['2026-01-04', 'OT-2.6X-REST', 8, 2600],
+		['2026-01-04', 'OT-3.38X-REST', 2, 845],
+		['2026-01-11', 'OT-1.5X-REST', 8, 1500]
+	]);
+});
+
+test('Philippines — a minimum-wage earner’s overtime and night differential are outside withholding (RA 9504), and an apprentice’s floor is 75% of the wage', () => {
+	const book = assessStatutory(
+		{
+			code: 'PH',
+			period: '2026-01',
+			people: [
+				// ₱15,650 is ₱600 × 313 ÷ 12: the IVA-22 floor itself, so a minimum-wage earner.
+				{ key: 'PH-MWE', wage: 15_650 },
+				{ key: 'PH-APPRENTICE', wage: 12_000, employment_type: 'APPRENTICE' }
+			]
+		},
+		(world) => punchPh(world, 'PH-MWE', '2026-01-05', '08:00', '20:00') // eleven net hours, three of overtime
+	);
+	// The whole compensation of a minimum-wage earner — basic, overtime, night differential — is
+	// exempt; the WTAX base is nothing and nothing is withheld.
+	expectStatutory(book, 'PH-MWE', 'WTAX', 0, 0);
+	// An apprentice at ₱12,000 is above three quarters of the ₱15,650 floor (₱11,737.50): no warning.
+	const { warnings } = buildStatutory({
+		code: 'PH',
+		period: '2026-01',
+		people: [
+			{ key: 'PH-APPRENTICE', wage: 12_000, employment_type: 'APPRENTICE' },
+			{ key: 'PH-UNDER', wage: 12_000 }
+		]
+	});
+	// Art.61: an apprentice may be paid 75% of the minimum wage — ₱11,737.50 — so ₱12,000 is
+	// lawful for the apprentice and under the floor for anyone else.
+	assert.ok(!warnings.some((warning) => warning.includes('PH-APPRENTICE')), warnings.join(' | '));
+	assert.ok(
+		warnings.some((warning) => warning.includes('PH-UNDER')),
+		warnings.join(' | ')
+	);
+});
+
+test('Philippines — a daily-paid employee’s hour is the day over eight, whatever the week (Handbook ch.2)', () => {
+	const { slips, warnings } = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-01',
+			people: [{ key: 'PH-DAILY-6', wage: 600, pay_frequency: 'DAILY' }]
+		},
+		(world) => {
+			const terms = world.employment_terms.find(
+				(row) =>
+					row.employment_id ===
+					world.employments.find((e) => e.employee_number === 'PH-DAILY-6')!.id
+			)!;
+			terms.agreed_days_per_week = 6;
+			world.shift_patterns[0]!.pattern.days[5] = world.shift_patterns[0]!.pattern.days[0]!;
+			punchPh(world, 'PH-DAILY-6', '2026-01-05', '09:00', '20:00'); // two hours beyond eight
+		}
+	);
+	// A daily-paid worker's hour is the day over eight — 75.00 — whatever the factor; the factor
+	// decides the monthly-paid divisor. Two hours at 125%: 187.50.
+	assert.deepEqual(workLinesPh(slips.get('PH-DAILY-6')!), [['2026-01-05', 'OT-1.25X', 2, 187.5]]);
+	assert.deepEqual(warnings, []);
 });

@@ -20,6 +20,24 @@
  */
 
 import type { WorkLimit } from '../../datatypes/work_rules/+definition.js';
+import { weekStart } from '../../collections/payroll_runs/lib/dates.js';
+import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
+
+/**
+ * The limits that govern one person: every unconditional limit, and every conditional one whose
+ * predicate holds over them. With no person, the unconditional limits alone — a pattern is
+ * nobody's.
+ */
+export function applicableLimits(
+	limits: readonly WorkLimit[],
+	person: PersonContext | null
+): readonly WorkLimit[] {
+	return limits.filter((limit) => {
+		const when = (limit.when ?? '').trim();
+		if (when === '') return true;
+		return person != null && isEligible(when, person);
+	});
+}
 
 const DAY_MS = 86_400_000;
 
@@ -82,11 +100,6 @@ function dateMs(date: string): number {
 
 function addDays(date: string, days: number): string {
 	return new Date(dateMs(date) + days * DAY_MS).toISOString().slice(0, 10);
-}
-
-function weekStart(date: string): string {
-	const day = (new Date(dateMs(date)).getUTCDay() + 6) % 7;
-	return addDays(date, -day);
 }
 
 function daysInMonth(year: number, month: number): number {

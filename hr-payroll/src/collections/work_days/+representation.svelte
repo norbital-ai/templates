@@ -98,6 +98,7 @@
 					hint={t('component.work_day_actual_description')}
 				>
 					<Field name="worked_intervals" label={t('component.worked_intervals')} />
+					<Field name="requested_by" label={t('component.requested_by')} />
 				</FormSection>
 			</Stack>
 		{/snippet}

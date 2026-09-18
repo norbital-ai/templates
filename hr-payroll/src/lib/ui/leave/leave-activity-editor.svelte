@@ -269,6 +269,65 @@
 					{t('component.leave_certificate_required')}
 				</p>{/if}
 		</Column>
+		{#if catalogue?.unit === 'HOUR'}
+			<label class="text-sm font-medium"
+				><Stack gap="xs">
+					{t('leave.hours')}
+					<Input
+						type="number"
+						step="0.5"
+						min="0.5"
+						value={fields.hours ?? ''}
+						{disabled}
+						oninput={(event) => emit({ hours: numberFrom(event.currentTarget.value, 0) || null })}
+					/>
+				</Stack></label
+			>
+		{/if}
+		{#if catalogue?.entitlement?.availability === 'PER_EVENT'}
+			<!-- A grant per event: what happened, to whom, which child, when — the bands read these. -->
+			<label class="text-sm font-medium"
+				><Stack gap="xs">
+					{t('leave.event_kind')}
+					<Input
+						value={fields.event_kind ?? ''}
+						{disabled}
+						placeholder="BIRTH"
+						oninput={(event) =>
+							emit({ event_kind: event.currentTarget.value.trim().toUpperCase() || null })}
+					/>
+				</Stack></label
+			>
+			<label class="text-sm font-medium"
+				><Stack gap="xs">
+					{t('leave.event_relationship')}
+					<Input
+						value={fields.event_relationship ?? ''}
+						{disabled}
+						placeholder="SPOUSE"
+						oninput={(event) =>
+							emit({ event_relationship: event.currentTarget.value.trim().toUpperCase() || null })}
+					/>
+				</Stack></label
+			>
+			<label class="text-sm font-medium"
+				><Stack gap="xs">
+					{t('leave.event_child_index')}
+					<Input
+						type="number"
+						step="1"
+						min="1"
+						value={fields.event_child_index ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ event_child_index: numberFrom(event.currentTarget.value, 0) || null })}
+					/>
+				</Stack></label
+			>
+			{@render dateField(t('leave.event_date'), fields.event_date ?? '', (event_date) => {
+				emit({ event_date: event_date || null });
+			})}
+		{/if}
 	{:else}
 		{@render dateField(t('component.effective_date'), fields.effective_on ?? '', (effective_on) => {
 			emit({ effective_on });

@@ -119,7 +119,9 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "0.5",
+		"consumes_code": "HOSPITALISED_SICK_LEAVE"
 	},
 	{
 		"id": "1fc284f7-9314-5b2b-bddf-0f45fae11b8f",
@@ -148,9 +150,9 @@
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (婚假)",
 		"authority": "勞工請假規則第2條 — 8 days on full wages.",
-		"eligibility": "",
+		"eligibility": "event.kind == \"MARRIAGE\"",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
@@ -168,16 +170,24 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (喪假)",
-		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
-		"eligibility": "",
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death.",
+		"eligibility": "event.kind == \"DEATH\"",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "",
+					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"SPOUSE\"]",
 					"days": 8
+				},
+				{
+					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\"]",
+					"days": 6
+				},
+				{
+					"eligibility": "",
+					"days": 3
 				}
 			]
 		},
@@ -205,13 +215,25 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (產假)",
-		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
-		"eligibility": "employee.gender == \"FEMALE\"",
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE_3M\", \"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"]",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_3M\"",
+					"days": 28
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_2M\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_2M\"",
+					"days": 5
+				},
 				{
 					"eligibility": "",
 					"days": 56
@@ -219,7 +241,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5"
 	},
 	{
 		"id": "8e05b3b6-2f9c-566f-bcca-02902fa8397b",
@@ -282,14 +305,15 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "0.5"
 	},
 	{
 		"id": "ffc8911e-0bad-5bdc-9339-23021f1f1cc8",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "FAMILY_CARE_LEAVE",
 		"name": "Family care leave (家庭照顧假)",
-		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
+		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours). Applied 2026-09-18: the seven days count inside the fourteen of personal leave (性平法 §20; `consumes_code`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -303,7 +327,8 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"consumes_code": "PERSONAL_LEAVE"
 	},
 	{
 		"id": "30b5eb1d-4a1a-508a-84be-618062035a50",
@@ -462,7 +487,9 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "0.5",
+		"consumes_code": "HOSPITALISED_SICK_LEAVE"
 	},
 	{
 		"id": "00426d95-6082-575b-b15d-32b00ae495cc",
@@ -483,7 +510,8 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"unit": "HOUR"
 	},
 	{
 		"id": "3b6ce88a-c096-5ecd-9c76-5312a89058b5",
@@ -491,9 +519,9 @@
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (婚假)",
 		"authority": "勞工請假規則第2條 — 8 days on full wages.",
-		"eligibility": "",
+		"eligibility": "event.kind == \"MARRIAGE\"",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
@@ -511,16 +539,24 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (喪假)",
-		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
-		"eligibility": "",
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death.",
+		"eligibility": "event.kind == \"DEATH\"",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "",
+					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"SPOUSE\"]",
 					"days": 8
+				},
+				{
+					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\"]",
+					"days": 6
+				},
+				{
+					"eligibility": "",
+					"days": 3
 				}
 			]
 		},
@@ -548,13 +584,25 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (產假)",
-		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
-		"eligibility": "employee.gender == \"FEMALE\"",
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE_3M\", \"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"]",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_3M\"",
+					"days": 28
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_2M\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_2M\"",
+					"days": 5
+				},
 				{
 					"eligibility": "",
 					"days": 56
@@ -562,7 +610,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5"
 	},
 	{
 		"id": "c8c04e77-8066-5736-91c6-d3be7948b8fb",
@@ -625,14 +674,15 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "0.5"
 	},
 	{
 		"id": "7941601d-d57d-5f64-9bc0-9ec481fde3c0",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "FAMILY_CARE_LEAVE",
 		"name": "Family care leave (家庭照顧假)",
-		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
+		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours). Applied 2026-09-18: the seven days count inside the fourteen of personal leave (性平法 §20; `consumes_code`), and from 1 January 2026 may be taken by the hour (`unit: HOUR`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -646,7 +696,9 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"consumes_code": "PERSONAL_LEAVE",
+		"unit": "HOUR"
 	},
 	{
 		"id": "3de20385-72c8-55c9-b5d3-8e30a3cbd877",
@@ -837,7 +889,9 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "0.5",
+		"consumes_code": "HOSPITALISED_SICK_LEAVE"
 	},
 	{
 		"id": "bd212789-1381-52de-8f02-070a237377e6",
@@ -858,7 +912,8 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"unit": "HOUR"
 	},
 	{
 		"id": "0b85f046-2728-59f8-a40b-fe0836519e73",
@@ -866,9 +921,9 @@
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (婚假)",
 		"authority": "勞工請假規則第2條 — 8 days on full wages.",
-		"eligibility": "",
+		"eligibility": "event.kind == \"MARRIAGE\"",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
@@ -886,16 +941,24 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (喪假)",
-		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
-		"eligibility": "",
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. Applied 2026-09-18: eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death.",
+		"eligibility": "event.kind == \"DEATH\"",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "",
+					"eligibility": "event.relationship in [\"PARENT\", \"STEPPARENT\", \"SPOUSE\"]",
 					"days": 8
+				},
+				{
+					"eligibility": "event.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\"]",
+					"days": 6
+				},
+				{
+					"eligibility": "",
+					"days": 3
 				}
 			]
 		},
@@ -923,13 +986,25 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (產假)",
-		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
-		"eligibility": "employee.gender == \"FEMALE\"",
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. Applied 2026-09-18: a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE_3M\", \"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"]",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_3M\"",
+					"days": 28
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_2M\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_2M\"",
+					"days": 5
+				},
 				{
 					"eligibility": "",
 					"days": 56
@@ -937,7 +1012,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5"
 	},
 	{
 		"id": "278e44a0-e7cf-5d40-adcf-ae41a30ac0d8",
@@ -1000,14 +1076,15 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"pay_fraction": "0.5"
 	},
 	{
 		"id": "a0c1f56e-0dfd-5027-bb78-3f3eee02112f",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "FAMILY_CARE_LEAVE",
 		"name": "Family care leave (家庭照顧假)",
-		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
+		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours). Applied 2026-09-18: the seven days count inside the fourteen of personal leave (性平法 §20; `consumes_code`), and from 1 January 2026 may be taken by the hour (`unit: HOUR`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1021,7 +1098,9 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"consumes_code": "PERSONAL_LEAVE",
+		"unit": "HOUR"
 	},
 	{
 		"id": "77641e3c-1200-5003-a97d-21fa0f476ed1",
@@ -1075,5 +1154,74 @@
 		},
 		"is_npl": false,
 		"can_encash": true
+	},
+	{
+		"id": "b93c2077-de82-58f1-bc8e-ae2c178aeaf7",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "HOSPITALISED_SICK_LEAVE",
+		"name": "住院傷病假 (hospitalised sickness leave)",
+		"authority": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). Applied 2026-09-18 as a rolling twenty-four-month pool of 365 days the outpatient row draws on too.",
+		"eligibility": "",
+		"is_npl": false,
+		"can_encash": false,
+		"pay_fraction": "leave.day_index <= 30 ? 0.5 : 0.0",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"rolling_months": 24,
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 365
+				}
+			]
+		}
+	},
+	{
+		"id": "5c06d207-a7e7-5b38-af9f-d15e0e0d2d02",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "HOSPITALISED_SICK_LEAVE",
+		"name": "住院傷病假 (hospitalised sickness leave)",
+		"authority": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). Applied 2026-09-18 as a rolling twenty-four-month pool of 365 days the outpatient row draws on too.",
+		"eligibility": "",
+		"is_npl": false,
+		"can_encash": false,
+		"pay_fraction": "leave.day_index <= 30 ? 0.5 : 0.0",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"rolling_months": 24,
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 365
+				}
+			]
+		}
+	},
+	{
+		"id": "d079f3a3-74a9-5d35-9f63-03754aa2aeec",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "HOSPITALISED_SICK_LEAVE",
+		"name": "住院傷病假 (hospitalised sickness leave)",
+		"authority": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). Applied 2026-09-18 as a rolling twenty-four-month pool of 365 days the outpatient row draws on too.",
+		"eligibility": "",
+		"is_npl": false,
+		"can_encash": false,
+		"pay_fraction": "leave.day_index <= 30 ? 0.5 : 0.0",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"rolling_months": 24,
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 365
+				}
+			]
+		}
 	}
 ]

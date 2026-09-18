@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expressions/evaluate.js';
 
@@ -67,6 +68,10 @@ const restBreakInputSchema = Schema.Struct({
 	 * exception nobody asserted is not available.
 	 */
 	continuousAttendance: Schema.optional(Schema.Boolean),
+	/** Hours inside the night window, for a rule that owes a longer break at night (VN art.109(1)). */
+	nightHours: Schema.optional(Schema.Number),
+	/** The person, for a rule that turns on an entity fact (TW §35 proviso); absent reads no facts. */
+	person: Schema.optional(Schema.Any),
 	/** The day's derived overtime hours, which a rule's obligation may read. */
 	overtimeHours: Schema.optional(Schema.NullOr(Schema.Number))
 });
@@ -159,20 +164,23 @@ export function selectBreakRule(
 		readonly consecutiveHours: number;
 		readonly overtimeHours: number;
 		readonly continuousAttendance: boolean;
+		/** Hours inside the night window; 0 where none is declared or the caller has not measured it. */
+		readonly nightHours?: number;
+		/** The person the day belongs to, for a rule that turns on them or their entity's facts. */
+		readonly person?: PersonContext | null;
 	}
 ): SelectedBreakRule | null {
+	const context = {
+		...(facts.person ?? { company: { facts: {} } }),
+		consecutive_hours: facts.consecutiveHours,
+		overtime_hours: facts.overtimeHours,
+		continuous_attendance: facts.continuousAttendance,
+		night_hours: facts.nightHours ?? 0
+	};
 	for (const rule of breaks ?? []) {
-		const matches = evaluateBoolean(expressionEngine, rule.when, {
-			consecutive_hours: facts.consecutiveHours,
-			overtime_hours: facts.overtimeHours,
-			continuous_attendance: facts.continuousAttendance
-		});
+		const matches = evaluateBoolean(expressionEngine, rule.when, context);
 		if (!matches) continue;
-		const owed = evaluateNumber(expressionEngine, rule.owed_minutes, {
-			consecutive_hours: facts.consecutiveHours,
-			overtime_hours: facts.overtimeHours,
-			continuous_attendance: facts.continuousAttendance
-		});
+		const owed = evaluateNumber(expressionEngine, rule.owed_minutes, context);
 		return {
 			when: rule.when,
 			minimum_minutes: Number.isFinite(owed) ? owed : null,
@@ -209,7 +217,9 @@ export function restBreakAssessment(input: RestBreakInput): RestBreakAssessment 
 	const rule = selectBreakRule(input.breaks, {
 		consecutiveHours: Math.round((longestRunMinutes / 60) * 10_000) / 10_000,
 		overtimeHours: input.overtimeHours ?? 0,
-		continuousAttendance: input.continuousAttendance ?? false
+		continuousAttendance: input.continuousAttendance ?? false,
+		nightHours: input.nightHours ?? 0,
+		person: input.person ?? null
 	});
 	const threshold = rule?.minimum_minutes ?? 0;
 	let observedBreakMinutes = 0;

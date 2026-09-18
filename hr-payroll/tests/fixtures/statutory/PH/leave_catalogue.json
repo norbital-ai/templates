@@ -59,10 +59,10 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Republic Act 8187 sec. 3",
-		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\"",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`).",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind == \"BIRTH\"",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
@@ -70,7 +70,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"lifetime_events": 4
 		},
 		"is_npl": false,
 		"can_encash": true
@@ -80,15 +81,15 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SPECIAL_LEAVE_FOR_WOMEN",
 		"name": "Special leave for women (gynaecological surgery)",
-		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012",
-		"eligibility": "employee.gender == \"FEMALE\"",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "employment.service_months >= 6",
+					"eligibility": "",
 					"days": 60
 				}
 			]
@@ -118,8 +119,8 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95",
-		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`).",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -155,13 +156,17 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3",
-		"eligibility": "employee.gender == \"FEMALE\"",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"days": 60
+				},
 				{
 					"eligibility": "employee.solo_parent",
 					"days": 120
@@ -214,7 +219,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SOLO_PARENT_LEAVE",
 		"name": "Parental leave for solo parents",
-		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act)",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`).",
 		"eligibility": "employee.solo_parent",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -229,7 +234,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": false
+		"can_encash": false,
+		"evidence": "REQUIRED"
 	},
 	{
 		"id": "6c4dfeaa-e449-4057-a5cd-1f7292c23777",
@@ -307,10 +313,10 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Republic Act 8187 sec. 3",
-		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\"",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`).",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind == \"BIRTH\"",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
@@ -318,7 +324,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"lifetime_events": 4
 		},
 		"is_npl": false,
 		"can_encash": true
@@ -328,15 +335,15 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SPECIAL_LEAVE_FOR_WOMEN",
 		"name": "Special leave for women (gynaecological surgery)",
-		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012",
-		"eligibility": "employee.gender == \"FEMALE\"",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "employment.service_months >= 6",
+					"eligibility": "",
 					"days": 60
 				}
 			]
@@ -366,8 +373,8 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95",
-		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`).",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -403,13 +410,17 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3",
-		"eligibility": "employee.gender == \"FEMALE\"",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
 		"entitlement": {
-			"availability": "UPFRONT",
+			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"days": 60
+				},
 				{
 					"eligibility": "employee.solo_parent",
 					"days": 120
@@ -462,7 +473,7 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SOLO_PARENT_LEAVE",
 		"name": "Parental leave for solo parents",
-		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act)",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`).",
 		"eligibility": "employee.solo_parent",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -477,7 +488,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": false
+		"can_encash": false,
+		"evidence": "REQUIRED"
 	},
 	{
 		"id": "fec62c00-6026-5bd8-b1db-e66cfbdef574",

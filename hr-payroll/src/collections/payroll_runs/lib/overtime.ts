@@ -12,7 +12,7 @@
  * overtime punch, overtime state or payable overtime field to drift from those observations. On an
  * ordinary day, overtime is the observed work, measured from the shift start, in excess of the
  * contract's normal hours. On a REST, OFF or observed public holiday, every observed worked hour is
- * overtime. The result is floored to the half hour below, with no one-hour minimum.
+ * overtime. The result is exact to the minute, with no one-hour minimum and no coarser floor.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  * REST-DAY AND PUBLIC-HOLIDAY WORK IS PRICED BY STATUTE, FROM THE SEEDED RULES.
@@ -60,13 +60,14 @@
 
 import { Schema } from 'effect';
 import type { NightPremium } from '../../../lib/payroll/work-rules-values.js';
+import type { PersonContext } from './eligibility.js';
 import {
 	restBreakAssessment,
 	type BreakRuleLike,
 	type RestBreakAssessment
 } from '../../../lib/scheduling/rest-break.js';
 import { requiredDateKey, type IsoDate } from './dates.js';
-import { floorHalfHour } from './rounding.js';
+import { roundMinute } from './rounding.js';
 import { type DayType, type ScheduledDay } from './schedule.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { clockMinutes } from '../../../lib/scheduling/roster-code.js';
@@ -251,7 +252,7 @@ export type DailyOvertime = {
 	readonly workDayId: string;
 	readonly dayType: DayType;
 	/**
-	 * Floored to the half hour, and already net of any unpaid statutory break shortfall. Never
+	 * Exact to the minute, and already net of any unpaid statutory break shortfall. Never
 	 * negative, never zero — a zero day is dropped, including a day whose whole overrun was consumed
 	 * by a break it was owed and did not take.
 	 */
@@ -293,22 +294,37 @@ export type DailyOvertime = {
  * exactly what it computed before. Omitted, null and empty are one statement: no rule governs, so
  * nothing is assessed and nothing is deducted.
  */
-export function deriveDailyOvertime(
+/**
+ * The day's total worked hours, net of the recorded break. An early clock-in is not work on any
+ * day that carries a shift: the total is measured from the shift start (owner's rule, 2026-09-16),
+ * on a rostered rest day or holiday as on an ordinary one.
+ */
+export function dailyWorkedHours(
 	entry: WorkDayLike,
 	day: ScheduledDay,
-	breaks?: readonly BreakRuleLike[] | null,
 	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES
-): DailyOvertime | null {
+): number {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
-	if (day.dayType === 'ORDINARY' && day.shift == null) return null;
-	// An early clock-in is not work on any day that carries a shift: the day's total is measured
-	// from the shift start (owner's rule, 2026-09-16), on a rostered rest day or holiday as on an
-	// ordinary one.
 	const shiftStart =
 		day.shift == null
 			? Number.NEGATIVE_INFINITY
 			: midnight(workDate, utcOffsetMinutes) + clockMinutes(day.shift.start_time) * MINUTE_MS;
-	const totalWorkHours = clockedWorkHours(entry, shiftStart);
+	return clockedWorkHours(entry, shiftStart);
+}
+
+export function deriveDailyOvertime(
+	entry: WorkDayLike,
+	day: ScheduledDay,
+	breaks?: readonly BreakRuleLike[] | null,
+	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES,
+	/** The regime's night window, so a break rule may read `night_hours`; absent reads 0. */
+	night?: Pick<NightPremium, 'from' | 'to'> | null,
+	/** The person, so a break rule may read their entity's facts; absent reads none. */
+	person?: PersonContext | null
+): DailyOvertime | null {
+	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
+	if (day.dayType === 'ORDINARY' && day.shift == null) return null;
+	const totalWorkHours = dailyWorkedHours(entry, day, utcOffsetMinutes);
 	// Overtime on an ordinary day is work in excess of the normal hours (EA s.60A(3), and every
 	// other regime's "beyond the normal day"), not the clock-out past the shift end: a two-hour-late
 	// arrival that stays two hours late worked a normal day and earns nothing beyond it, where the
@@ -318,7 +334,7 @@ export function deriveDailyOvertime(
 		day.dayType === 'ORDINARY' ? Math.max(0, totalWorkHours - day.normalHours) : totalWorkHours;
 
 	/**
-	 * The rest break is assessed from the punches and deducted **before** the half-hour floor.
+	 * The rest break is assessed from the punches and deducted from the raw overrun.
 	 *
 	 * The assessment reads `worked_intervals`, not `raw`: the trigger is consecutive hours, and the
 	 * excess this function computes is a different quantity that discards the normal day. A day of
@@ -331,22 +347,28 @@ export function deriveDailyOvertime(
 	 * an entry that recorded its full statutory break deducts nothing further here — it was deducted
 	 * once already, and taking the requirement again would charge a half-hour break as a full hour.
 	 *
-	 * Deducting before the floor keeps the floor doing one job. Flooring first and subtracting after
-	 * would produce payable figures off the half hour, which no other path in this engine can emit.
-	 *
 	 * `continuousAttendance` is not passed: no column records whether the work must be carried on
 	 * continuously, and the proviso is an exception nobody has asserted. Claiming it here would
 	 * silently swap Malaysia's five-hour rule for its eight-hour one on every day in the workspace.
 	 */
+	const nightHours =
+		night == null
+			? 0
+			: (() => {
+					const measured = nightWindowHours(entry, night, day.shift, utcOffsetMinutes);
+					return measured.ordinary + measured.overtime;
+				})();
 	const restBreak = restBreakAssessment({
 		intervals: entry.worked_intervals ?? [],
 		breakMinutes: entry.break_minutes ?? 0,
 		breaks,
-		overtimeHours: raw
+		overtimeHours: raw,
+		nightHours,
+		person: person ?? null
 	});
 	const restBreakDeductedHours =
 		restBreak.rule?.counts_as_worked_time === false ? (restBreak.shortfallMinutes ?? 0) / 60 : 0;
-	const hours = floorHalfHour(Math.max(0, raw - restBreakDeductedHours));
+	const hours = roundMinute(Math.max(0, raw - restBreakDeductedHours));
 	if (hours <= 0) return null;
 	return {
 		date: workDate,

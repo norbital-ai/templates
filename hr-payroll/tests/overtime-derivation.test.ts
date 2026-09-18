@@ -18,7 +18,7 @@ import {
 	deriveDailyOvertime,
 	ordinaryWorkedHours
 } from '../src/collections/payroll_runs/lib/overtime.ts';
-import { floorHalfHour } from '../src/collections/payroll_runs/lib/rounding.ts';
+import { roundMinute } from '../src/collections/payroll_runs/lib/rounding.ts';
 
 /** 08:30–17:30 with an hour's scheduled break. */
 const DAY_SHIFT = {
@@ -81,31 +81,34 @@ test('recorded ordinary hours price undertime once and exclude hours priced as o
 });
 
 test('an ordinary day is observed work in excess of the normal hours', () => {
-	// Out at 20:45 — 11h15m worked net of the break, 3h15m beyond the normal eight, floored to 3h.
+	// Out at 20:45 — 11h15m worked net of the break, 3h15m beyond the normal eight.
 	const day = deriveDailyOvertime(
 		entry({ worked_intervals: [interval('08:30', '20:45')] }),
 		scheduled()
 	);
-	assert.equal(day.hours, 3);
+	assert.equal(day.hours, 3.25);
 	assert.equal(day.dayType, 'ORDINARY');
 	assert.equal(day.date, '2026-03-10');
 	assert.equal(day.workDayId, 'work-day');
 });
 
-test('overtime floors to the half hour below, with no one-hour minimum', () => {
+test('overtime is exact to the minute, with no one-hour minimum and no coarser floor', () => {
+	// 08:30–17:55 on an 08:30–17:30 day is 25 minutes beyond the normal eight: the law pays the
+	// extra work, and no statute states a half-hour unit. A jurisdiction that pays "each hour or
+	// part thereof" rounds in its own band.
 	assert.equal(
-		deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', '17:55')] }), scheduled()),
-		null
+		deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', '17:55')] }), scheduled())
+			.hours,
+		25 / 60
 	);
 	assert.equal(
 		deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', '18:15')] }), scheduled())
 			.hours,
-		0.5
+		0.75
 	);
 	assert.equal(
-		deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', '18:35')] }), scheduled())
-			.hours,
-		1
+		deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', '17:30')] }), scheduled()),
+		null
 	);
 });
 
@@ -116,7 +119,7 @@ test('multiple observed intervals are normalized and only work outside the shift
 		}),
 		scheduled()
 	);
-	assert.equal(day.hours, 2);
+	assert.equal(day.hours, 2.25);
 });
 
 test('a rest day is overtime from the first minute, less the unpaid break', () => {
@@ -182,7 +185,7 @@ test('a jurisdiction with no rest break rule computes exactly what it always com
 	// restored, and none of them may lose a minute of overtime to its arrival.
 	for (const rules of [undefined, null, []]) {
 		const day = deriveDailyOvertime(longRun(), scheduled(), rules);
-		assert.equal(day.hours, 4);
+		assert.equal(day.hours, 4.25);
 		assert.equal(day.restBreak, null);
 		assert.equal(day.restBreakDeductedHours, 0);
 	}
@@ -196,7 +199,7 @@ test('a silent statute is assessed, cited and priced at nothing', () => {
 	assert.equal(day.restBreak.shortfallMinutes, 30);
 	assert.equal(day.restBreak.rule.counts_as_worked_time, null);
 	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 4, 'a silent statute prices nothing');
+	assert.equal(day.hours, 4.25, 'a silent statute prices nothing');
 	// The trigger is the consecutive run, not the excess: 12h15m clocked against 4h15m beyond.
 	assert.equal(day.restBreak.longestRunHours, 12.25);
 });
@@ -208,7 +211,7 @@ test('a break the statute says is not working time deducts the shortfall', () =>
 	const day = deriveDailyOvertime(longRun(), scheduled(), rules);
 	assert.equal(day.restBreak.shortfallMinutes, 30);
 	assert.equal(day.restBreakDeductedHours, 0.5);
-	assert.equal(day.hours, 3.5, '4h15m less the 30-minute shortfall is 3h45m, floored to 3h30m');
+	assert.equal(day.hours, 3.75, '4h15m less the 30-minute shortfall is 3h45m');
 });
 
 test('a break the statute counts as working time deducts nothing', () => {
@@ -216,7 +219,7 @@ test('a break the statute counts as working time deducts nothing', () => {
 	const day = deriveDailyOvertime(longRun(), scheduled(), rules);
 	assert.equal(day.restBreak.shortfallMinutes, 30);
 	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 4);
+	assert.equal(day.hours, 4.25);
 });
 
 test('the shortfall is deducted, never the requirement', () => {
@@ -228,7 +231,7 @@ test('the shortfall is deducted, never the requirement', () => {
 	assert.equal(day.restBreak.takenMinutes, 30);
 	assert.equal(day.restBreak.shortfallMinutes, 0);
 	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 3.5, '11h45m worked is 3h45m beyond the normal eight, floored');
+	assert.equal(day.hours, 3.75, '11h45m worked is 3h45m beyond the normal eight');
 	assert.notEqual(day.hours, 3, 'that would be the requirement charged a second time');
 });
 
@@ -236,8 +239,7 @@ test('a partly taken break deducts only the part that was not taken', () => {
 	const rules = [breakRule({ counts_as_worked_time: false })];
 	const day = deriveDailyOvertime(longRun({ break_minutes: 10 }), scheduled(), rules);
 	assert.equal(day.restBreak.shortfallMinutes, 20);
-	assert.equal(day.hours, 3.5, '4h05m beyond less 20 minutes is 3h45m, floored to 3h30m');
-	assert.equal(day.hours % 0.5, 0, 'payable overtime is always a half-hour multiple');
+	assert.equal(day.hours, 3.75, '4h05m beyond less 20 minutes is 3h45m');
 });
 
 test('a day whose whole overrun is owed as unpaid break earns nothing at all', () => {
@@ -354,33 +356,18 @@ test('a shift whose end reads before its start is carried forward even without t
 	assert.equal(ordinaryWorkedHours(nightEntry(), unflagged), 8);
 });
 
-test('the half-hour floor rounds down, and float error never costs a step', () => {
-	// The 0.5h step is the payable unit, and it is a FLOOR, not a rounding: 2h55m earns 2h30m and
-	// 55 minutes earns 30. Rounding to nearest would pay 3h for 2h55m, which is money the day did
-	// not earn. The epsilon exists because clock arithmetic produces 2.9999999999999996 for three
-	// hours, and flooring that raw would silently drop half an hour off a full day's overrun.
+test('the minute is the payable unit, and float error never moves it', () => {
+	// Clock arithmetic produces 2.9999999999999996 for three hours; the punch is minute-granular,
+	// so the minute is the unit that loses nothing the day earned and invents nothing it did not.
 	for (const [raw, expected] of [
 		[0, 0],
-		[0.4, 0],
-		[0.5, 0.5],
-		[0.9166666, 0.5],
-		[2.9166666, 2.5],
-		[3.25, 3],
-		[3.75, 3.5],
+		[0.4, 0.4],
+		[2.9166666, 2.9166666666666665],
 		[2.9999999999999996, 3],
 		[0.49999999999999994, 0.5]
 	] as const) {
-		assert.equal(floorHalfHour(raw), expected, `${raw} h floors to ${expected} h`);
+		assert.equal(roundMinute(raw), expected, `${raw} h is ${expected} h`);
 	}
-	// Never up: every input lands at or below itself, within the epsilon's own tolerance.
-	for (let minutes = 0; minutes <= 600; minutes += 1) {
-		const hours = minutes / 60;
-		const floored = floorHalfHour(hours);
-		assert.ok(floored <= hours + 1e-9, `${minutes} minutes floored up to ${floored} h`);
-		assert.equal(
-			floored % 0.5,
-			0,
-			`${minutes} minutes produced ${floored} h, not a half-hour step`
-		);
-	}
+	for (let minutes = 0; minutes <= 600; minutes += 1)
+		assert.equal(roundMinute(minutes / 60), minutes / 60, `${minutes} minutes is itself`);
 });

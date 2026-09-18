@@ -23,6 +23,8 @@ export default defineModel(
 		marital_status: enums(['SINGLE', 'MARRIED', 'DIVORCED']),
 		/** A solo parent under a statute that names one (PH RA 8972); `employee.solo_parent`. */
 		solo_parent: boolean().notNull().default(false),
+		/** A person with a disability under a statute that grants one more (VN art.113(1)(b), MY PCB relief); `employee.disabled`. */
+		disabled: boolean().notNull().default(false),
 		/** Only where a statutory fund is selected by it (SG's SHG funds); `employee.race`, `employee.religion`. */
 		race: text(),
 		religion: text(),

@@ -5,7 +5,14 @@ import { calendarDay } from '../../lib/iso-day.js';
 const id = Schema.String.check(Schema.isUUID());
 export const leaveChargeSchema = Schema.Struct({
 	date: calendarDay,
-	days: Schema.Literals([0.5, 1]),
+	/** A whole or half day, or an eighth for a row taken by the hour (an hour of an eight-hour day). */
+	days: Schema.Finite.check(
+		Schema.makeFilter(
+			(value: number) =>
+				(value > 0 && value <= 1 && Number.isInteger(value * 8)) ||
+				'A charge is a whole or half day, or an eighth of one for a row taken by the hour.'
+		)
+	),
 	catalogue_id: id,
 	employment_term_id: id,
 	/** The published holiday that excluded the day from the charge, when one did. */

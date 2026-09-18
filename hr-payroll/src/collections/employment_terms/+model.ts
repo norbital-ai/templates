@@ -16,6 +16,14 @@ export default defineModel(
 		residency_status: enums(['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER']),
 		/** When that standing began; predicates read whole calendar months as `employee.residency_months`. */
 		residency_since: instant({ precision: 'day' }),
+		/** The work pass a foreigner holds here, where a statute keys on it (SG's SINDA covers EP holders); `terms.pass_type`. */
+		pass_type: enums(['EMPLOYMENT_PASS', 'S_PASS', 'WORK_PERMIT', 'OTHER']),
+		/**
+		 * Tax residency declared for this contract, where it is not what citizenship implies (TW
+		 * 所得稅法 §7(3): domicile and days present decide it); null reads as the citizenship
+		 * default. `terms.tax_residency`.
+		 */
+		tax_residency: enums(['RESIDENT', 'NON_RESIDENT']),
 		base_salary: custom('money').notNull(),
 		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY']).notNull(),
 		work_classification: enums(['EA_COVERED', 'NON_EA', 'MANAGERIAL']).notNull(),
@@ -29,7 +37,10 @@ export default defineModel(
 			'MANUAL_LABOUR',
 			'MANUAL_LABOUR_SUPERVISOR',
 			'COMMERCIAL_VEHICLE_OPERATOR',
-			'VESSEL_WORK'
+			'VESSEL_WORK',
+			/** PH Labor Code art.82: field personnel and workers paid by results are outside hours-of-work rules. */
+			'FIELD_PERSONNEL',
+			'PAID_BY_RESULTS'
 		])
 			.notNull()
 			.default('NON_MANUAL'),
@@ -38,8 +49,16 @@ export default defineModel(
 			'CONTRACT',
 			'PROBATION',
 			'INTERN',
-			'CONSULTANT'
+			'CONSULTANT',
+			'PART_TIME',
+			'APPRENTICE',
+			'DOMESTIC'
 		]).notNull(),
+		/**
+		 * The notice either side owes on termination, in days, where the contract or statute
+		 * states one; a payment row for notice in lieu reads it as `terms.notice_days`.
+		 */
+		notice_days: integer(),
 		department: text(),
 		job_title: text(),
 		payroll_group: text(),

@@ -46,7 +46,7 @@ import { periodGrammarFault, resolveWindow, type PayrollWindow } from './period.
 import { payrollRunGraph, type PendingPayslip } from './graph.js';
 import { settle } from './settle.js';
 import { loanShortfallIssues } from '../../../lib/payroll/loan.js';
-import { minimumWageIssues } from '../../../lib/payroll/contribution.js';
+import { finalPayIssues, minimumWageIssues } from '../../../lib/payroll/contribution.js';
 import {
 	blockers,
 	describeIssues,
@@ -195,7 +195,8 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	} = calculateFamilyAssessments({ configuration, gathered, window, period });
 	issues.push(...familyIssues);
 	issues.push(
-		...minimumWageIssues({ configuration, bundles: gathered.bundles, asOf: window.salary.end })
+		...minimumWageIssues({ configuration, bundles: gathered.bundles, asOf: window.salary.end }),
+		...finalPayIssues({ configuration, bundles: gathered.bundles, payDate: window.payDate })
 	);
 	for (const { employment, measured, termsThrough } of measuredContracts) {
 		const charges = chargesByEmployment.get(employment.id)!;

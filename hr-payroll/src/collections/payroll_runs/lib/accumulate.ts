@@ -17,9 +17,20 @@
 import type { FamilyPayItem, PricedItem } from '../../../lib/payroll/family.js';
 import { leaveRowCode } from '../../../lib/leave/codes.js';
 
-/** The six reserved lines of the assessment site. */
+/**
+ * The reserved lines of the assessment site. `OVERTIME_PREMIUM` is not a line of its own: it is
+ * the part of every overtime line above the ordinary hour (amount − hours × ordinary hour), the
+ * quantity a tax regime exempts where it exempts the premium and not the wage (VN art.4(8)
+ * before 1 July 2026).
+ */
 export type ReservedLine =
-	'BASE' | 'OVERTIME' | 'NIGHT_PREMIUM' | 'ABSENCE' | 'NO_PAY_LEAVE' | 'ENCASHMENT';
+	| 'BASE'
+	| 'OVERTIME'
+	| 'NIGHT_PREMIUM'
+	| 'OVERTIME_PREMIUM'
+	| 'ABSENCE'
+	| 'NO_PAY_LEAVE'
+	| 'ENCASHMENT';
 
 /** One priced line that fed the payslip, as the calculation trace records it. */
 export type ContributionLine = {
@@ -76,12 +87,15 @@ function catalogueCode(item: PricedItem): string {
 
 /** One payslip's priced lines, folded into the reserved magnitudes and the code map. */
 export function accumulatePayslip(options: {
-	readonly items: readonly PricedItem[];
+	readonly items: readonly (PricedItem & { readonly quantity?: number | null })[];
+	/** The ordinary hour the premium is measured above; 0 prices every overtime line as premium. */
+	readonly ordinaryHour?: number;
 }): AccumulatedPayslip {
 	const magnitudes: Record<ReservedLine, number> = {
 		BASE: 0,
 		OVERTIME: 0,
 		NIGHT_PREMIUM: 0,
+		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
 		ENCASHMENT: 0
@@ -105,6 +119,11 @@ export function accumulatePayslip(options: {
 		});
 		if (reserved != null) {
 			magnitudes[reserved] += item.amount;
+			if (reserved === 'OVERTIME')
+				magnitudes.OVERTIME_PREMIUM += Math.max(
+					0,
+					item.amount - (item.quantity ?? 0) * (options.ordinaryHour ?? 0)
+				);
 			continue;
 		}
 		const signed = effect === 'REDUCE' ? -item.amount : item.amount;
@@ -121,6 +140,7 @@ export function sumAccumulations(parts: readonly AccumulatedPayslip[]): Accumula
 		BASE: 0,
 		OVERTIME: 0,
 		NIGHT_PREMIUM: 0,
+		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
 		ENCASHMENT: 0

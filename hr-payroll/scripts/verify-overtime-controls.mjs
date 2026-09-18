@@ -137,7 +137,7 @@ Effect.runPromise(
 				scheduled(),
 				[]
 			);
-			assert.equal(late.hours, 3, '08:30–20:45 is 3h15m outside the shift, floored to 3');
+			assert.equal(late.hours, 3.25, '08:30–20:45 is 3h15m outside the shift, to the minute');
 			assert.equal(late.totalWorkHours, 11.25, '12.25 clocked less the recorded hour');
 
 			// An ordinary overrun funnels the slice above the ceiling at the band's own award.

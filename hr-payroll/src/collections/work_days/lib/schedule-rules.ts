@@ -121,6 +121,10 @@ export function assertRunHasRestDay(options: {
 	}[];
 	readonly patternById: ReadonlyMap<string, ShiftPatternLike>;
 	readonly codeKindById: ReadonlyMap<string, 'WORK' | 'REST' | 'OFF'>;
+	/** Dates under approved leave of a code in `rule.suspended_by_leave`; such a day discharges the run. */
+	readonly suspendedDates?: ReadonlySet<string>;
+	/** Whether `rule.average` applies to this person (its `when` judged by the caller); absent is yes. */
+	readonly averaging?: boolean;
 }): void {
 	const {
 		employeeNumber,
@@ -133,6 +137,9 @@ export function assertRunHasRestDay(options: {
 		patternById,
 		codeKindById
 	} = options;
+	const suspended = options.suspendedDates ?? new Set<string>();
+	/** The dates the plan discharges the rule on, for the averaging arm's count. */
+	const discharged: string[] = [];
 	// The rule is always enforced: the weekly rest ceiling has no preference arm, so
 	// a stated breach refuses the write.
 	let runStart: string | null = null;
@@ -140,7 +147,15 @@ export function assertRunHasRestDay(options: {
 	let length = 0;
 	let touched = false;
 	const flush = (): void => {
-		if (touched && length > rule.max_consecutive_work_days)
+		// The averaging arm: the span ending on the run's last day still holds the rest days the
+		// month owes, so the run stands.
+		const averaged =
+			rule.average != null &&
+			options.averaging !== false &&
+			runEnd != null &&
+			discharged.filter((date) => date > addDays(runEnd!, -rule.average!.days) && date <= runEnd!)
+				.length >= rule.average.rest_days;
+		if (touched && length > rule.max_consecutive_work_days && !averaged)
 			refuse(
 				`Roster change for ${employeeNumber} is refused: ${runStart} to ${runEnd} would be ` +
 					`${length} consecutive worked day(s) with no rest day inside them. This jurisdiction ` +
@@ -169,12 +184,17 @@ export function assertRunHasRestDay(options: {
 		// explicit rows stack thirteen days — so unlike the month rule this does not skip it.
 		const effectiveId = plannedByDate.get(date) ?? projectedId;
 		const kind = effectiveId == null ? null : codeKindById.get(effectiveId);
-		if (kind === 'WORK') {
+		if (kind === 'WORK' && !suspended.has(date)) {
 			if (runStart == null) runStart = date;
 			runEnd = date;
 			length += 1;
 			if (changedDates.has(date)) touched = true;
-		} else if (kind === 'REST' || (kind === 'OFF' && rule.discharged_by === 'REST_OR_OFF')) {
+		} else if (
+			kind === 'REST' ||
+			(kind === 'OFF' && rule.discharged_by === 'REST_OR_OFF') ||
+			suspended.has(date)
+		) {
+			discharged.push(date);
 			flush();
 		}
 		// An OFF day under a REST-only rule, and a day with no code at all, are neither work nor

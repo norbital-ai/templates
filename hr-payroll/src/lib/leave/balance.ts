@@ -8,7 +8,23 @@ export type LeaveBalanceEntry = LeaveEntryActivity & {
 	readonly id: string;
 	readonly allocations: readonly LeaveAllocation[];
 	readonly approval_id: string | null;
+	/** The entry's own leave code; an allocation without a `pool` draws from it. */
+	readonly leave_code?: string;
 };
+
+/**
+ * Whether one allocation draws from the pool being measured: its own row when no pool is
+ * named, else the named pool (`allocation.pool`) or the row itself when the entry is of that
+ * code.
+ */
+const drawsFrom = (
+	entry: LeaveBalanceEntry,
+	allocation: LeaveAllocation,
+	pool: string | undefined
+): boolean =>
+	pool === undefined
+		? allocation.pool == null
+		: allocation.pool === pool || (allocation.pool == null && entry.leave_code === pool);
 export type EntitlementAt = (
 	window: LeaveWindow,
 	date: string
@@ -54,11 +70,13 @@ const creditsFor = (entries: readonly LeaveBalanceEntry[], window: LeaveWindow):
 	{ id: null, days: 0, available: window.start, expires: window.end }
 ];
 
-function allocationsIn(entries: readonly LeaveBalanceEntry[], window: LeaveWindow) {
+function allocationsIn(entries: readonly LeaveBalanceEntry[], window: LeaveWindow, pool?: string) {
 	return entries.flatMap((entry) =>
 		entry.allocations.filter(
 			(allocation) =>
-				sameWindow(allocation.window, window) && (entry.approval_id == null || allocation.days < 0)
+				sameWindow(allocation.window, window) &&
+				drawsFrom(entry, allocation, pool) &&
+				(entry.approval_id == null || allocation.days < 0)
 		)
 	);
 }
@@ -111,12 +129,15 @@ export function leaveBalanceAt(options: {
 	readonly window: LeaveWindow;
 	readonly date: string;
 	readonly entitlementAt: EntitlementAt;
+	/** The pool measured, where the entries are those of another row drawing from it. */
+	readonly pool?: string;
 }) {
 	const { entries, window, date, entitlementAt } = options;
-	const all = allocationsIn(entries, window);
+	const all = allocationsIn(entries, window, options.pool);
 	const posted = allocationsIn(
 		entries.filter((entry) => entry.approval_id == null),
-		window
+		window,
+		options.pool
 	);
 	let balance = 0,
 		reservedBalance = 0,
@@ -148,11 +169,13 @@ export function allocateLeaveDays(options: {
 	readonly days: number;
 	readonly entitlementAt: EntitlementAt;
 	readonly basis?: 'available' | 'earned';
+	/** The pool drawn from where it is another row's; the allocations carry it. */
+	readonly pool?: string;
 }): LeaveAllocation[] {
 	const { entries, window, date, days, entitlementAt } = options;
 	if (!Number.isFinite(days) || days <= 0 || date < window.start || date > window.end)
 		refuse('Leave allocation needs positive days inside its annual window.');
-	const allocations = allocationsIn(entries, window);
+	const allocations = allocationsIn(entries, window, options.pool);
 	let remaining = days;
 	const result: LeaveAllocation[] = [];
 	const credits = creditsFor(entries, window)
@@ -174,7 +197,14 @@ export function allocateLeaveDays(options: {
 			options.basis
 		);
 		const take = Math.min(remaining, Math.max(0, capacity));
-		if (take > 0) result.push({ window, date, days: -take, credit_entry_id: credit.id });
+		if (take > 0)
+			result.push({
+				window,
+				date,
+				days: -take,
+				credit_entry_id: credit.id,
+				...(options.pool == null ? {} : { pool: options.pool })
+			});
 		remaining -= take;
 		if (remaining <= 0) return result;
 	}
@@ -187,10 +217,11 @@ export function allocateLeaveDays(options: {
 export function assertLeaveBalanceIntegrity(
 	entries: readonly LeaveBalanceEntry[],
 	windows: readonly LeaveWindow[],
-	entitlementAt: EntitlementAt
+	entitlementAt: EntitlementAt,
+	pool?: string
 ): void {
 	for (const window of windows) {
-		const allocations = allocationsIn(entries, window);
+		const allocations = allocationsIn(entries, window, pool);
 		const credits = creditsFor(entries, window);
 		for (const allocation of allocations) {
 			const credit = credits.find((row) => row.id === allocation.credit_entry_id);

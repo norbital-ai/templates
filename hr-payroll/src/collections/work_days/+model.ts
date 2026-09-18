@@ -1,4 +1,4 @@
-import { custom, defineModel, instant, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, instant, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * One person-day: what was PLANNED for it, and what ACTUALLY happened on it.
@@ -32,6 +32,8 @@ export default defineModel(
 		shift_definition_id: uuid(),
 		/** The attendance: what was actually worked. Null is no punch; `[]` is a day read and found empty. */
 		worked_intervals: custom('instant_range', { multiple: true }),
+		/** Who asked for rest-day work, where the statute prices the two differently (SG s.37(2)/(3)); null is the employer. */
+		requested_by: enums(['EMPLOYER', 'EMPLOYEE']),
 		/** Set once a payslip has taken the day into account: the day is sealed. */
 		payslip_id: uuid()
 	},

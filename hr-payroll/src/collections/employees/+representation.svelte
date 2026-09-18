@@ -355,6 +355,7 @@
 					<Grid gap="sm" minimum="compact">
 						<Field name="marital_status" label={t('component.marital_status')} />
 						<Field name="solo_parent" label={t('component.solo_parent')} />
+						<Field name="disabled" label={t('component.disabled')} />
 						<Field
 							name="race"
 							label={t('component.race')}

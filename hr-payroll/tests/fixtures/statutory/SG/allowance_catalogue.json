@@ -1,0 +1,74 @@
+[
+	{
+		"id": "2321f922-916b-5b03-95c0-d8eed0019247",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
+		"code": "bonus",
+		"name": "Bonus",
+		"authority": "CPF Act 1953 First Schedule: a bonus is an Additional Wage, charged under the Additional Wage ceiling (102,000 less the year’s Ordinary Wages subject to CPF).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "c865d731-f7b4-5103-89af-d275927ca697",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "bonus",
+		"name": "Bonus",
+		"authority": "CPF Act 1953 First Schedule: a bonus is an Additional Wage, charged under the Additional Wage ceiling (102,000 less the year’s Ordinary Wages subject to CPF).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "5694f146-1c65-59f0-93d4-7b1e62e52d3f",
+		"settings_id": "10000000-0000-5000-8000-000000000040",
+		"code": "bonus",
+		"name": "Bonus",
+		"authority": "CPF Act 1953 First Schedule: a bonus is an Additional Wage, charged under the Additional Wage ceiling (102,000 less the year’s Ordinary Wages subject to CPF).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "ad069fca-7764-5b93-9f51-597c6d22f803",
+		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
+		"code": "bonus",
+		"name": "Bonus",
+		"authority": "CPF Act 1953 First Schedule: a bonus is an Additional Wage, charged under the Additional Wage ceiling (102,000 less the year’s Ordinary Wages subject to CPF).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	}
+]

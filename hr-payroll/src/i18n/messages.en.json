@@ -1029,5 +1029,21 @@
 	"component.entry_unpaid_days": "Unpaid days off",
 	"component.allowance_npl_prorates": "Unpaid leave prorates allowances",
 	"common.yes": "Yes",
-	"common.no": "No"
+	"common.no": "No",
+	"leave.hours": "Hours",
+	"leave.event_kind": "Event",
+	"leave.event_relationship": "Whose event",
+	"leave.event_child_index": "Child (1st, 2nd…)",
+	"leave.event_date": "Event date",
+	"component.on_separation": "Raised at separation",
+	"component.on_separation_hint": "Off-boarding raises a row of this allowance for a leaver whose eligibility holds; HR sets the amount.",
+	"component.paid_by": "Paid by",
+	"component.leave_unit": "Taken in",
+	"component.consumes_code": "Also counts inside (leave code)",
+	"component.pay_fraction": "Pay fraction (empty = whole; over the person and the leave day)",
+	"component.disabled": "Person with a disability",
+	"component.pass_type": "Work pass",
+	"component.tax_residency": "Tax residency (declared)",
+	"component.notice_days": "Notice period (days)",
+	"component.requested_by": "Rest-day work requested by"
 }

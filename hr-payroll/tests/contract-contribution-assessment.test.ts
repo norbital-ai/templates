@@ -238,3 +238,33 @@ test('conflicting intervals and projection cadences refuse instead of selecting 
 		/conflicting Contribution assessment intervals or cadences/
 	);
 });
+
+test('OVERTIME_PREMIUM is the part of every overtime line above the ordinary hour', () => {
+	// Two hours at 1.5× on a 10.00 hour: the line is 30.00, the wage inside it 20.00, the premium
+	// 10.00 — the quantity a regime exempts where it exempts the premium and not the wage.
+	const work = (label: string, amount: number, quantity: number | null) => ({
+		catalogueComponent: {
+			id: label,
+			settings_id: 's',
+			code: 'OVERTIME',
+			family: 'WORK' as const,
+			output: 'overtime',
+			destination: 'PAY' as const,
+			direction: 'ADD' as const
+		},
+		bucket: 'EARNING' as const,
+		label,
+		amount,
+		quantity
+	});
+	const accumulated = accumulatePayslip({
+		items: [work('OT-1.5X', 30, 2), work('OT-2.0X', 40, 2)],
+		ordinaryHour: 10
+	});
+	assert.equal(accumulated.reserved.OVERTIME, 70);
+	assert.equal(accumulated.reserved.OVERTIME_PREMIUM, 30);
+	assert.equal(
+		accumulatePayslip({ items: [work('OT-1.5X', 30, 2)] }).reserved.OVERTIME_PREMIUM,
+		30
+	);
+});

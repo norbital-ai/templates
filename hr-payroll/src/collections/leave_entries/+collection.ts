@@ -17,6 +17,7 @@ const columns = {
 	half_day_start: true,
 	half_day_end: true,
 	days: true,
+	hours: true,
 	encash_days: true,
 	as_adjustment_entry: true,
 	reversal_of_id: true,
@@ -26,7 +27,11 @@ const columns = {
 	destination_to: true,
 	available_from: true,
 	expires_on: true,
-	reason: true
+	reason: true,
+	event_kind: true,
+	event_relationship: true,
+	event_child_index: true,
+	event_date: true
 } as const;
 
 /**

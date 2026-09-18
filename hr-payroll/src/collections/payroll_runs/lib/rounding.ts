@@ -69,10 +69,11 @@ export function roundHalfDay(value: number): number {
 }
 
 /**
- * Floor an hour count to the half hour below it. 3.25 h earns 3.0 h, 0.4 h earns nothing at all.
- * There is no one-hour minimum: the plan proposes one, the engine of record has never had it, and
- * introducing it would convert every sub-hour overrun from nothing to a full hour (E4).
+ * An hour count to the minute the punches were made in. Clock arithmetic yields 2.9999999999999996
+ * for three hours; the minute is the punch's own unit, so nothing the day earned is lost or
+ * invented. No statute states a coarser payable unit — a jurisdiction that prices "each hour or
+ * part thereof" says so in its band (`up_to_unit(hours)`), not here.
  */
-export function floorHalfHour(hours: number): number {
-	return Math.floor(hours * 2 + epsilon(hours)) / 2;
+export function roundMinute(hours: number): number {
+	return Math.round(hours * 60) / 60;
 }

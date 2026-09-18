@@ -22,7 +22,12 @@ import { activeTimeOff } from './activity.js';
 import { leaveActivityOf, normaliseLeaveDays } from './activity-fields.js';
 import type { LeaveContext } from './context.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import {
+	evaluateNumberOver,
+	isEligible,
+	personContext
+} from '../../collections/payroll_runs/lib/eligibility.js';
+import { inclusiveDays } from '../../collections/payroll_runs/lib/dates.js';
 import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
 import { encashmentCode } from './codes.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
@@ -43,7 +48,27 @@ export type PreparedLeavePayroll = {
 	readonly catalogues: readonly LeaveCatalogue[];
 	readonly captures: readonly (SettledLeaveCapture & { readonly paid: boolean })[];
 	readonly deductionEligibility: Readonly<Record<string, boolean>>;
+	/**
+	 * `entry id/date` → the share of the day wage deducted for that charged day: 1 for an unpaid
+	 * or fund-paid day, `1 − pay_fraction` for a part-paid one. Absent reads as the whole day.
+	 */
+	readonly deductionShare?: Readonly<Record<string, number>>;
 };
+
+/** Whole calendar months between two days, the day of month ignored. */
+const wholeMonthsBetween = (start: string, end: string): number =>
+	(Number(end.slice(0, 4)) - Number(start.slice(0, 4))) * 12 +
+	(Number(end.slice(5, 7)) - Number(start.slice(5, 7)));
+
+/** A row whose days take something off the wage: unpaid, paid by a fund, or paid in part. */
+const deductsWage = (
+	catalogue: Pick<LeaveCatalogue, 'is_npl' | 'paid_by' | 'pay_fraction'>
+): boolean =>
+	catalogue.is_npl || catalogue.paid_by === 'FUND' || (catalogue.pay_fraction ?? '').trim() !== '';
+
+/** The deducted share of one charged day, as prepared; the whole day where none was stated. */
+const shareOf = (prepared: PreparedLeavePayroll, key: string): number =>
+	prepared.deductionShare?.[key] ?? 1;
 
 /** The catalogue revision a settled line names, resolved by the code the payslip froze. */
 function settledCatalogueOf(
@@ -234,27 +259,47 @@ export function withLeaveDeductionEligibility(
 	}
 ): PreparedLeavePayroll {
 	const deductionEligibility: Record<string, boolean> = {};
-	for (const entry of activeTimeOff(gathered.entries))
+	const deductionShare: Record<string, number> = {};
+	for (const entry of activeTimeOff(gathered.entries)) {
+		const chargedDays = entry.charges.reduce((sum, charge) => sum + charge.days, 0);
+		const opening = entry.charges.map((charge) => charge.date).toSorted()[0] ?? '';
 		for (const charge of entry.charges) {
 			const catalogue = gathered.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved leave refers to a missing catalogue revision.');
-			if (!catalogue.is_npl) continue;
+			if (!deductsWage(catalogue)) continue;
 			const term = options.terms.find((row) => row.id === charge.employment_term_id);
 			if (!term || !coversDate(term.effective_range, charge.date))
 				refuse('Approved leave has no effective captured employment terms.');
-			deductionEligibility[`${entry.id}/${charge.date}`] = isEligible(
-				catalogue.eligibility,
-				personContext({
-					employee: options.employee,
-					employment: stint(options.employment),
-					terms: term,
-					asOf: charge.date,
-					children: childrenOn(options.employee.children ?? [], charge.date),
-					company: options.company
-				})
-			);
+			const person = personContext({
+				employee: options.employee,
+				employment: stint(options.employment),
+				terms: term,
+				asOf: charge.date,
+				children: childrenOn(options.employee.children ?? [], charge.date),
+				company: options.company
+			});
+			const key = `${entry.id}/${charge.date}`;
+			let eligible = isEligible(catalogue.eligibility, person);
+			// The employer's share of the day: none for an unpaid or fund-paid day, `pay_fraction`
+			// of it otherwise — read on the day, so a scale that steps by month steps here.
+			let share = 1;
+			if (eligible && !catalogue.is_npl && catalogue.paid_by !== 'FUND') {
+				const paid = evaluateNumberOver(catalogue.pay_fraction, {
+					...person,
+					leave: {
+						month_index: wholeMonthsBetween(opening, charge.date) + 1,
+						day_index: inclusiveDays(opening, charge.date),
+						days: chargedDays
+					}
+				});
+				share = 1 - Math.min(1, Math.max(0, paid));
+				if (share <= 0) eligible = false;
+			}
+			deductionEligibility[key] = eligible;
+			deductionShare[key] = share;
 		}
-	return { ...gathered, deductionEligibility };
+	}
+	return { ...gathered, deductionEligibility, deductionShare };
 }
 
 /** The Leave family selects its own approved sources; payroll receives date slices and encashed days. */
@@ -372,9 +417,10 @@ export function unpaidLeaveDays(prepared: PreparedLeavePayroll, window: LeaveWin
 		for (const charge of entry.charges) {
 			if (charge.date < window.start || charge.date > window.end) continue;
 			const catalogue = prepared.catalogues.find((row) => row.id === charge.catalogue_id);
-			if (catalogue == null || !catalogue.is_npl) continue;
-			if (prepared.deductionEligibility[`${entry.id}/${charge.date}`] !== true) continue;
-			days += charge.days;
+			if (catalogue == null || !deductsWage(catalogue)) continue;
+			const key = `${entry.id}/${charge.date}`;
+			if (prepared.deductionEligibility[key] !== true) continue;
+			days += charge.days * shareOf(prepared, key);
 		}
 	return days;
 }
@@ -428,14 +474,18 @@ export function calculateLeavePayroll(options: {
 		for (const charge of charges) {
 			const catalogue = prepared.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved Leave has no captured catalogue revision.');
-			if (!catalogue.is_npl) continue;
-			const eligible = prepared.deductionEligibility[`${entry.id}/${charge.date}`];
+			if (!deductsWage(catalogue)) continue;
+			const key = `${entry.id}/${charge.date}`;
+			const eligible = prepared.deductionEligibility[key];
 			if (eligible == null) refuse('The Leave deduction eligibility was not prepared.');
 			if (!eligible) continue;
 			const rate = options.absenceRate(charge);
 			if (!Number.isFinite(rate) || rate < 0)
 				refuse('Work must supply a nonnegative Leave absence rate.');
-			const amount = fromMinorUnits(toMinorUnits(rate * charge.days, currency), currency);
+			const amount = fromMinorUnits(
+				toMinorUnits(rate * charge.days * shareOf(prepared, key), currency),
+				currency
+			);
 			if (amount === 0) continue;
 			items.push({
 				catalogue_id: catalogue.id,
