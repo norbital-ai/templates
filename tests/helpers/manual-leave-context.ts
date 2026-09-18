@@ -37,7 +37,6 @@ export function leaveContext(): LeaveContext {
 				id: id(4),
 				employment_id: id(1),
 				effective_range: span,
-				agreed_days_per_week: 7,
 				shift_pattern_id: id(5),
 				employment_type: 'PERMANENT',
 				residency_status: null,

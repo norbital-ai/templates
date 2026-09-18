@@ -285,8 +285,6 @@ const terms = (overrides = {}) => ({
 	employment_id: 'emp-1',
 	base_salary: { value: 3451, currency: 'MYR' },
 	pay_frequency: 'MONTHLY',
-	// The six-day pattern's own week: the divisor every rate below is built from.
-	agreed_days_per_week: 6,
 	shift_pattern_id: 'pattern-1',
 	statutory_work_category: 'NON_MANUAL',
 	work_classification: 'NON_MANUAL',

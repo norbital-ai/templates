@@ -122,9 +122,8 @@ test('an ad-hoc worker projects nothing, which is a different answer from projec
 	const guaranteed = {
 		expectation: {
 			kind: 'GUARANTEED_SCHEDULE',
-			period: 'WEEK',
-			required_work_days: 5,
-			required_paid_minutes: 2400
+			days_per_week: 5,
+			paid_minutes_per_week: 2400
 		}
 	};
 	assert.equal(patternRosterCodeId(guaranteed, '2026-01-01', ANCHOR), null);

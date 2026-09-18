@@ -90,7 +90,6 @@ test('a batch does not spend another contract’s balance even for the same empl
 		...context.terms[0]!,
 		id: id(31),
 		employment_id: id(30),
-		agreed_days_per_week: 5,
 		shift_pattern_id: id(42)
 	});
 	context.shifts.push({ ...context.shifts[0]!, id: id(41), company_id: id(40) });

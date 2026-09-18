@@ -247,7 +247,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		job_title: 'Fixture',
 		grade: person.grade ?? null,
 		payroll_group: null,
-		agreed_days_per_week: 5,
 		shift_pattern_id: PATTERN_ID,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
 		approval_id: null

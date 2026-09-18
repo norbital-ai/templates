@@ -204,9 +204,8 @@ CREATE TABLE "employment_terms" (
 	"job_title" text,
 	"payroll_group" text,
 	"grade" text,
-	"agreed_days_per_week" integer NOT NULL,
 	"ordinary_hours_per_week" integer,
-	"shift_pattern_id" uuid,
+	"shift_pattern_id" uuid NOT NULL,
 	"effective_range" jsonb NOT NULL,
 	"summary" text GENERATED ALWAYS AS (COALESCE(job_title || ' · ', '') || employment_type) STORED
 );

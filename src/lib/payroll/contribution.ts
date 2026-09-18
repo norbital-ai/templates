@@ -178,6 +178,7 @@ import {
 } from '../../collections/payroll_runs/lib/eligibility.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import { stint } from '../employment-contract.js';
+import { patternDaysPerWeek, termPattern } from '../scheduling/work-pattern.js';
 import { fixedAllowancesOn } from './money.js';
 import type { MeasuredEmployment } from './family.js';
 
@@ -430,7 +431,10 @@ export function minimumWageIssues(options: {
 			terms: term,
 			week: {
 				ordinary_hours_per_week: decodeNumber(term.ordinary_hours_per_week ?? 0),
-				working_days_per_week: decodeNumber(term.agreed_days_per_week)
+				working_days_per_week: (() => {
+					const pattern = termPattern(term, configuration.patternById);
+					return pattern == null ? 0 : patternDaysPerWeek(pattern, configuration.shiftById);
+				})()
 			},
 			children: bundle.children,
 			company: configuration.company,

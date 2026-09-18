@@ -6,9 +6,9 @@ import {
 	patternAnchor,
 	patternRosterCodeId,
 	patternRosterCodeIds,
+	patternDaysPerWeek,
 	patternWorkDaysPerWeek,
 	patternWorkload,
-	shiftAssignmentRefusal,
 	termPattern,
 	termPatternRow
 } from '../src/lib/scheduling/work-pattern.ts';
@@ -57,9 +57,8 @@ test('an expectation projects no cycle and states its own amount', () => {
 	const pattern = {
 		expectation: {
 			kind: 'GUARANTEED_SCHEDULE',
-			period: 'WEEK',
-			required_work_days: 3,
-			required_paid_minutes: 1440
+			days_per_week: 3,
+			paid_minutes_per_week: 1440
 		}
 	};
 	assert.equal(patternRosterCodeId(pattern, '2026-08-04', '2026-08-03'), null);
@@ -137,7 +136,7 @@ test('the roster codes a pattern names are listed once each; an expectation name
 	assert.deepEqual(patternRosterCodeIds(twoOnTwoOff), [DAY, OFF]);
 	assert.deepEqual(
 		patternRosterCodeIds({
-			expectation: { kind: 'AS_ASSIGNED', period: 'MONTH', maximum_paid_minutes: null }
+			expectation: { kind: 'AS_ASSIGNED', days_per_week: 5, maximum_paid_minutes_per_week: null }
 		}),
 		[]
 	);
@@ -154,7 +153,7 @@ test('a terms read carries the pattern row with its effective range, the cycle a
 	assert.equal(patternAnchor({}), null);
 });
 
-test('the shift assignment: agreed days are 1–7 and a named cycle works them every week', () => {
+test('the days a week live in the pattern: a cycle averages its weeks, a declaration states them', () => {
 	const five = {
 		id: 'p5',
 		code: 'FIVE',
@@ -167,12 +166,15 @@ test('the shift assignment: agreed days are 1–7 and a named cycle works them e
 	};
 	assert.deepEqual(patternWorkDaysPerWeek(twoWeeks.pattern, codes), [5, 6]);
 	assert.deepEqual(patternWorkDaysPerWeek(null, codes), []);
-	const fit = (agreedDaysPerWeek, pattern) =>
-		shiftAssignmentRefusal({ agreedDaysPerWeek, pattern, rosterCodeById: codes });
-	assert.equal(fit(5, five), null);
-	assert.equal(fit(6, null), null, 'rostered: any agreed week, no cycle to fit');
-	assert.match(fit(6, five), /FIVE works 5 days in a week; the contract agrees 6/);
-	assert.match(fit(5, twoWeeks), /works 6 days in a week; the contract agrees 5/);
-	for (const bad of [0, 8, 5.5, '5', null, undefined])
-		assert.match(fit(bad, null), /whole number from 1 to 7/);
+	assert.equal(patternDaysPerWeek(five.pattern, codes), 5);
+	assert.equal(patternDaysPerWeek(twoWeeks.pattern, codes), 5.5, 'an alternate-Saturday fortnight');
+	assert.equal(
+		patternDaysPerWeek(
+			{
+				expectation: { kind: 'GUARANTEED_SCHEDULE', days_per_week: 6, paid_minutes_per_week: 2700 }
+			},
+			codes
+		),
+		6
+	);
 });

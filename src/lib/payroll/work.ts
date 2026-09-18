@@ -86,6 +86,7 @@ import { leaveCoverage } from '../leave/payroll.js';
 import { countryOf } from '../jurisdiction_settings.js';
 import {
 	patternAnchor,
+	patternDaysPerWeek,
 	patternRosterCodeId,
 	patternWorkload,
 	termPattern,
@@ -253,7 +254,7 @@ function rosteredWorkload(options: {
 	readonly days: EmploymentBundle['workDays'];
 	readonly configuration: Configuration;
 	readonly window: PayRange;
-	/** The contract's `agreed_days_per_week`: the roster's normal week is its shift × these days. */
+	/** The pattern's days a week: the roster's normal week is its shift × these days. */
 	readonly daysPerWeek: number;
 }): PatternWorkload {
 	let workDays = 0;
@@ -314,14 +315,29 @@ function termsWorkload(options: TermsWorkloadOptions): PatternWorkload {
 		days: options.workDays,
 		configuration: options.configuration,
 		window: options.window,
-		daysPerWeek: decodeNumber(options.terms.agreed_days_per_week)
+		daysPerWeek: termsDaysPerWeek(options.terms, options.configuration)
 	});
 	return rostered.work_days > 0 ? rostered : (declared ?? rostered);
+}
+
+/** The days a week the terms' pattern works (`patternDaysPerWeek`); a terms row states none itself. */
+function termsDaysPerWeek(
+	terms: EmploymentBundle['terms'][number],
+	configuration: Pick<Configuration, 'patternById' | 'shiftById'>
+): number {
+	const pattern = termPattern(terms, configuration.patternById);
+	if (pattern == null)
+		throw new Error(
+			'Employment terms name no shift pattern; the pattern is where the contract’s week lives.'
+		);
+	return patternDaysPerWeek(pattern, configuration.shiftById);
 }
 
 function asRateTerms(
 	terms: EmploymentBundle['terms'][number],
 	workload: PatternWorkload,
+	/** The pattern's days a week (`termsDaysPerWeek`). */
+	days: number,
 	/** The statute's normal day over this person, where the version states one; else infinite. */
 	normalDayHours: number = Number.POSITIVE_INFINITY
 ): RateTerms {
@@ -333,10 +349,9 @@ function asRateTerms(
 	// the statute's normal day over the agreed days; a contract that states neither and holds no
 	// roster is refused by name — no figure of the engine's stands in for it.
 	//
-	// The days a week are the contract's own `agreed_days_per_week`, never counted off a pattern
-	// or a roster: a rostered person is not ad hoc, and a divisor read off the days a roster
-	// happened to hold priced the same salary at a different day rate every month.
-	const days = decodeNumber(terms.agreed_days_per_week);
+	// The days a week are the pattern's, never counted off a roster: a rostered person is not
+	// ad hoc, and a divisor read off the days a roster happened to hold priced the same salary
+	// at a different day rate every month.
 	const contracted =
 		terms.ordinary_hours_per_week == null ? null : decodeNumber(terms.ordinary_hours_per_week);
 	const hours =
@@ -422,14 +437,19 @@ export function prepareWorkContext(
 								closingWorkload.work_days > 0
 									? closingWorkload.average_weekly_paid_minutes / 60
 									: decodeNumber(closingTerms.ordinary_hours_per_week ?? 0),
-							working_days_per_week: decodeNumber(closingTerms.agreed_days_per_week)
+							working_days_per_week: termsDaysPerWeek(closingTerms, configuration)
 						},
 						children: bundle.children,
 						company: configuration.company,
 						asOf: options.salary.end
 					})
 				);
-	const rateTerms = asRateTerms(closingTerms, closingWorkload, normalHoursCap);
+	const rateTerms = asRateTerms(
+		closingTerms,
+		closingWorkload,
+		termsDaysPerWeek(closingTerms, configuration),
+		normalHoursCap
+	);
 	const currency = rateTerms.base_salary.currency;
 	const scheduleTermsAt = (date: IsoDate) => {
 		const row =
@@ -451,7 +471,7 @@ export function prepareWorkContext(
 				normalHoursCap,
 				workload.work_days > 0
 					? workload.paid_minutes / workload.work_days / 60
-					: contractDayHours(row, normalHoursCap)
+					: contractDayHours(row, termsDaysPerWeek(row, configuration), normalHoursCap)
 			)
 		};
 	};
@@ -572,7 +592,12 @@ export function prepareWorkContext(
 			workDays: bundle.workDays,
 			window: period
 		});
-		const terms = asRateTerms(term, workload, normalHoursCap);
+		const terms = asRateTerms(
+			term,
+			workload,
+			termsDaysPerWeek(term, configuration),
+			normalHoursCap
+		);
 		if (terms.base_salary.currency !== currency)
 			throw new Error('Leave absence rate has a different currency from payroll.');
 		if (terms.pay_frequency === 'DAILY') return terms.base_salary.value;
@@ -611,11 +636,11 @@ export function prepareWorkContext(
 
 /** The contract's own day where it states one, else the statute's normal day; never the engine's. */
 function contractDayHours(
-	terms: { readonly ordinary_hours_per_week?: unknown; readonly agreed_days_per_week?: unknown },
+	terms: { readonly ordinary_hours_per_week?: unknown },
+	days: number,
 	normalDayHours: number
 ): number {
 	const hours = decodeNumber(terms.ordinary_hours_per_week ?? 0);
-	const days = decodeNumber(terms.agreed_days_per_week ?? 0);
 	if (hours > 0 && days > 0) return hours / days;
 	if (Number.isFinite(normalDayHours)) return normalDayHours;
 	throw new Error(

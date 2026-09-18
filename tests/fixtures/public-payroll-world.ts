@@ -21,9 +21,8 @@ const RANGE = { start: '2020-01-01', end: null };
 const ROSTERED = {
 	expectation: {
 		kind: 'GUARANTEED_SCHEDULE',
-		period: 'WEEK',
-		required_work_days: 6,
-		required_paid_minutes: 2700
+		days_per_week: 6,
+		paid_minutes_per_week: 2700
 	}
 };
 
@@ -226,7 +225,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				department: null,
 				job_title: 'Clerk',
 				payroll_group: null,
-				agreed_days_per_week: 6,
 				shift_pattern_id: SHIFT_PATTERN_ID,
 				effective_range: { start: '2021-06-01', end: null },
 				approval_id: null

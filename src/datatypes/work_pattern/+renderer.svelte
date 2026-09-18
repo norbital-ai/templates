@@ -45,11 +45,6 @@
 	);
 	const codeIds = $derived((codesQuery?.current ?? []).map((code) => code.id));
 
-	const periodOptions = [
-		{ value: 'WEEK' as const, label: 'WEEK' },
-		{ value: 'MONTH' as const, label: 'MONTH' }
-	];
-
 	/* ── shape ─────────────────────────────────────────────────────────────────────────────── */
 	type Shape = 'CYCLE' | 'GUARANTEED_SCHEDULE' | 'AS_ASSIGNED';
 	const shapeOptions = $derived<{ value: Shape; label: string }[]>([
@@ -66,12 +61,12 @@
 			if (codeIds.length > 0) emit({ days: [{ roster_code_id: codeIds[0]! }] });
 			return;
 		}
-		const period = expectation?.period ?? 'WEEK';
+		const days_per_week = expectation?.days_per_week ?? 6;
 		emit({
 			expectation:
 				next === 'GUARANTEED_SCHEDULE'
-					? { kind: next, period, required_work_days: 6, required_paid_minutes: 2700 }
-					: { kind: next, period, maximum_paid_minutes: null }
+					? { kind: next, days_per_week, paid_minutes_per_week: 2700 }
+					: { kind: next, days_per_week, maximum_paid_minutes_per_week: null }
 		});
 	}
 
@@ -134,10 +129,10 @@
 		if ('expectation' in current) {
 			const value = current.expectation;
 			if (value.kind === 'AS_ASSIGNED')
-				return value.maximum_paid_minutes == null
-					? 'Roster-assigned · as assigned'
-					: `Roster-assigned · max ${value.maximum_paid_minutes / 60}h/${value.period.toLowerCase()}`;
-			return `Roster-assigned · ${value.required_work_days}d · ${value.required_paid_minutes / 60}h/${value.period.toLowerCase()}`;
+				return value.maximum_paid_minutes_per_week == null
+					? `Rostered · ${value.days_per_week}d/week as assigned`
+					: `Rostered · ${value.days_per_week}d · max ${value.maximum_paid_minutes_per_week / 60}h/week`;
+			return `Rostered · ${value.days_per_week}d · ${value.paid_minutes_per_week / 60}h/week`;
 		}
 		return `${current.days.length}-day cycle`;
 	});
@@ -166,53 +161,37 @@
 			<Grid gap="sm" minimum="compact">
 				<label class="text-xs">
 					<Stack gap="xs">
-						<span class="text-muted-foreground">{t('renderer.work_pattern.period')}</span>
-						<Combobox
-							options={periodOptions}
-							value={expectation.period}
+						<span class="text-muted-foreground">{t('renderer.work_pattern.days_per_week')}</span>
+						<Input
+							class="h-8"
+							type="number"
+							min="0.5"
+							max="7"
+							step="0.5"
+							value={expectation.days_per_week}
 							{disabled}
-							searchable={false}
-							onValueChange={(period) => {
-								if (period) editExpectation({ period });
-							}}
+							oninput={(event) =>
+								editExpectation({ days_per_week: numberFrom(event.currentTarget.value, 0) })}
 						/>
 					</Stack>
 				</label>
 				{#if expectation.kind === 'GUARANTEED_SCHEDULE'}
 					<label class="text-xs">
 						<Stack gap="xs">
-							<span class="text-muted-foreground">{t('renderer.work_pattern.required_days')}</span>
-							<Input
-								class="h-8"
-								type="number"
-								min="0"
-								step="0.5"
-								value={expectation.required_work_days}
-								{disabled}
-								oninput={(event) =>
-									editExpectation({
-										kind: 'GUARANTEED_SCHEDULE',
-										required_work_days: numberFrom(event.currentTarget.value, 0)
-									})}
-							/>
-						</Stack>
-					</label>
-					<label class="text-xs">
-						<Stack gap="xs">
 							<span class="text-muted-foreground"
-								>{t('renderer.work_pattern.required_minutes')}</span
+								>{t('renderer.work_pattern.paid_minutes_per_week')}</span
 							>
 							<Input
 								class="h-8"
 								type="number"
 								min="0"
 								step="1"
-								value={expectation.required_paid_minutes}
+								value={expectation.paid_minutes_per_week}
 								{disabled}
 								oninput={(event) =>
 									editExpectation({
 										kind: 'GUARANTEED_SCHEDULE',
-										required_paid_minutes: numberFrom(event.currentTarget.value, 0)
+										paid_minutes_per_week: numberFrom(event.currentTarget.value, 0)
 									})}
 							/>
 						</Stack>
@@ -220,19 +199,20 @@
 				{:else}
 					<label class="text-xs">
 						<Stack gap="xs">
-							<span class="text-muted-foreground">{t('renderer.work_pattern.maximum_minutes')}</span
+							<span class="text-muted-foreground"
+								>{t('renderer.work_pattern.maximum_minutes_per_week')}</span
 							>
 							<Input
 								class="h-8"
 								type="number"
 								min="0"
 								step="1"
-								value={expectation.maximum_paid_minutes ?? ''}
+								value={expectation.maximum_paid_minutes_per_week ?? ''}
 								{disabled}
 								oninput={(event) =>
 									editExpectation({
 										kind: 'AS_ASSIGNED',
-										maximum_paid_minutes: nullableNumberFrom(event.currentTarget.value)
+										maximum_paid_minutes_per_week: nullableNumberFrom(event.currentTarget.value)
 									})}
 							/>
 						</Stack>
