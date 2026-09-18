@@ -172,6 +172,16 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'event.child_age',
 		description: 'The named child’s completed years, -1 when none is named'
 	},
+	{
+		path: 'event.child_shared_weeks',
+		description:
+			'The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded'
+	},
+	{
+		path: 'event.prior_employment_days',
+		description:
+			'Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded'
+	},
 	{ path: 'period.working_days', description: 'Scheduled working days of the pay month' },
 	{
 		path: 'period.unpaid_days',
@@ -235,7 +245,9 @@ const PERSON_BLANK = {
 		child_index: 0,
 		date: '',
 		child_citizenship: '',
-		child_age: -1
+		child_age: -1,
+		child_shared_weeks: 0,
+		prior_employment_days: 0
 	}
 };
 

@@ -26,6 +26,9 @@
 	/** The stored range bounds are day-precision instants; the inputs are calendar days. */
 	const day = (value: string | null | undefined) => dateKey(value);
 	const dayInstant = (value: string) => `${value}T00:00:00.000Z`;
+	/** A blank count is unrecorded; anything else is the whole number typed. */
+	const count = (text: string): number | null =>
+		text.trim() === '' ? null : Math.max(0, Math.trunc(Number(text)) || 0);
 </script>
 
 {#if props.mode === 'display'}
@@ -93,6 +96,43 @@
 										end: event.currentTarget.value ? dayInstant(event.currentTarget.value) : null
 									}
 								})}
+						/></Stack
+					></label
+				>
+				<label class="text-sm"
+					><Stack gap="xs"
+						>{t('employee_children.citizenship')}<Input
+							value={row.citizenship ?? ''}
+							{disabled}
+							placeholder="CITIZEN"
+							oninput={(event) =>
+								edit(index, { citizenship: event.currentTarget.value.trim() || null })}
+						/></Stack
+					></label
+				>
+				<label class="text-sm"
+					><Stack gap="xs"
+						>{t('employee_children.shared_parental_weeks')}<Input
+							type="number"
+							min="0"
+							step="1"
+							value={row.shared_parental_weeks ?? ''}
+							{disabled}
+							oninput={(event) =>
+								edit(index, { shared_parental_weeks: count(event.currentTarget.value) })}
+						/></Stack
+					></label
+				>
+				<label class="text-sm"
+					><Stack gap="xs"
+						>{t('employee_children.prior_employment_days')}<Input
+							type="number"
+							min="0"
+							step="1"
+							value={row.prior_employment_days ?? ''}
+							{disabled}
+							oninput={(event) =>
+								edit(index, { prior_employment_days: count(event.currentTarget.value) })}
 						/></Stack
 					></label
 				>

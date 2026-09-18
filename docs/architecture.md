@@ -217,7 +217,8 @@ The `person` root: `employee.gender`, `age`, `age_months`, `citizenship`, `marit
 `children.count`, `children.citizens`, `children.under(n)`; `company.region`, `company.headcount`,
 `company.headcount_citizens`, `company.facts.<key>`; `facts.<CODE>.registered`,
 `facts.<CODE>.since_months` (the person's fact under a scheme); `event.kind`, `relationship`,
-`child_citizenship`, `child_age`, `date` (the leave entry's event, on a leave rule); `wage_floor`;
+`child_citizenship`, `child_age`, `child_shared_weeks`, `prior_employment_days`, `date` (the leave
+entry's event, on a leave rule); `wage_floor`;
 `period.working_days`, `period.unpaid_days`. Empty is everyone; an unrecorded fact reads as empty, false or zero — there
 is no null — and never claims anything. Race and religion are captured only where a statutory fund
 is selected by them.

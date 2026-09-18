@@ -106,6 +106,23 @@ export type LeaveContext = {
 		status: WorkspaceRow<'employment_statutory_facts'>['status'];
 	}[];
 	entries: LeaveActivity[];
+	/**
+	 * The time off of the same people under their other employments here (a rehire's earlier
+	 * contract), for the lifetime counts and caps; absent is none. Keyed to the person through
+	 * `employee_id`, never read as this employment's own.
+	 */
+	priorEntries?: (Pick<
+		LeaveActivity,
+		| 'id'
+		| 'employment_id'
+		| 'leave_code'
+		| 'charges'
+		| 'as_adjustment_entry'
+		| 'reversal_of_id'
+		| 'approval_id'
+	> & {
+		readonly employee_id: string;
+	})[];
 	versions: Pick<
 		WorkspaceRow<'jurisdiction_settings'>,
 		| 'id'
@@ -337,128 +354,145 @@ export function readLeaveContext(
 			...new Set(stored.flatMap((row) => (row.payslip_id == null ? [] : [row.payslip_id])))
 		];
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
-		const [catalogues, runs, patterns, shifts, holidays, payslips, schemes, factRows, emptyDays] =
-			yield* Effect.all(
-				[
-					api.db.leave_catalogue.findMany({
-						where: {
-							settings_id: { in: lineage.map((row) => row.id) },
-							approval_id: { isNull: true }
-						},
-						columns: {
-							id: true,
-							settings_id: true,
-							code: true,
-							name: true,
-							eligibility: true,
-							entitlement: true,
-							evidence_after_days: true,
-							is_npl: true,
-							can_encash: true,
-							pay_fraction: true,
-							paid_by: true,
-							consumes_code: true,
-							unit: true
-						},
-						limit: LIMIT
-					}),
-					api.db.payroll_runs.findMany({
-						where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
-						columns: {
-							id: true,
-							company_id: true,
-							period: true,
-							attendance_from: true,
-							attendance_to: true
-						},
-						limit: LIMIT
-					}),
-					// The roster vocabulary belongs to the entity, which the employment read names.
-					window == null || settingsCodes.size === 0
-						? Effect.succeed([])
-						: api.db.shift_patterns.findMany({
-								where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
-								columns: { id: true, code: true, pattern: true, effective_range: true },
-								limit: LIMIT
-							}),
-					window == null || settingsCodes.size === 0
-						? Effect.succeed([])
-						: api.db.shift_definitions.findMany({
-								where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
-								columns: { id: true, company_id: true, variant: true, effective_range: true },
-								limit: LIMIT
-							}),
-					api.db.jurisdiction_holidays.findMany({
-						where: {
-							// The entities of the employments in scope, not their jurisdictions: a holiday
-							// belongs to the employer that observes it.
-							company_id: { in: window == null ? [] : companyIds },
-							...(window == null ? {} : { date: { gte: window.start, lte: window.end } }),
-							published_at: { isNotNull: true },
-							approval_id: { isNull: true }
-						},
-						columns: {
-							id: true,
-							company_id: true,
-							date: true,
-							name: true,
-							kind: true,
-							replaces: true,
-							given_to: true,
-							published_at: true
-						},
-						limit: LIMIT
-					}),
-					!includeSettlements || settlingIds.length === 0
-						? Effect.succeed([])
-						: api.db.payslips.findMany({
-								where: { id: { in: settlingIds }, approval_id: { isNull: true } },
-								columns: {
-									id: true,
-									payroll_run_id: true,
-									employment_id: true,
-									currency: true,
-									paid_at: true,
-									adjustments: true
-								},
-								limit: LIMIT
-							}),
-					// The lineage's schemes name the codes a rule reads a fact under (`facts.SI.since_months`).
-					api.db.statutory_contributions.findMany({
-						where: {
-							settings_id: { in: lineage.map((row) => row.id) },
-							approval_id: { isNull: true }
-						},
-						columns: { id: true, code: true },
-						limit: LIMIT
-					}),
-					api.db.employment_statutory_facts.findMany({
-						where: { employee_id: { in: employeeIds }, approval_id: { isNull: true } },
-						columns: {
-							employee_id: true,
-							statutory_contribution_id: true,
-							effective_range: true,
-							status: true
-						},
-						limit: LIMIT
-					}),
-					// The year before the window: days read and found empty, for a forfeiture rule
-					// that counts unauthorised absence (MY s.60E(1)(b)).
-					window == null
-						? Effect.succeed([])
-						: api.db.work_days.findMany({
-								where: {
-									employment_id: { in: ids },
-									work_date: { gte: addDays(window.end, -366), lte: window.end },
-									worked_intervals: { eq: [] },
-									approval_id: { isNull: true }
-								},
-								columns: { employment_id: true, work_date: true, shift_definition_id: true },
-								limit: LIMIT
-							})
-				],
-				{ concurrency: 'unbounded' }
-			);
+		const [
+			catalogues,
+			runs,
+			patterns,
+			shifts,
+			holidays,
+			payslips,
+			siblings,
+			schemes,
+			factRows,
+			emptyDays
+		] = yield* Effect.all(
+			[
+				api.db.leave_catalogue.findMany({
+					where: {
+						settings_id: { in: lineage.map((row) => row.id) },
+						approval_id: { isNull: true }
+					},
+					columns: {
+						id: true,
+						settings_id: true,
+						code: true,
+						name: true,
+						eligibility: true,
+						entitlement: true,
+						evidence_after_days: true,
+						is_npl: true,
+						can_encash: true,
+						pay_fraction: true,
+						paid_by: true,
+						consumes_code: true,
+						unit: true
+					},
+					limit: LIMIT
+				}),
+				api.db.payroll_runs.findMany({
+					where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
+					columns: {
+						id: true,
+						company_id: true,
+						period: true,
+						attendance_from: true,
+						attendance_to: true
+					},
+					limit: LIMIT
+				}),
+				// The roster vocabulary belongs to the entity, which the employment read names.
+				window == null || settingsCodes.size === 0
+					? Effect.succeed([])
+					: api.db.shift_patterns.findMany({
+							where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
+							columns: { id: true, code: true, pattern: true, effective_range: true },
+							limit: LIMIT
+						}),
+				window == null || settingsCodes.size === 0
+					? Effect.succeed([])
+					: api.db.shift_definitions.findMany({
+							where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
+							columns: { id: true, company_id: true, variant: true, effective_range: true },
+							limit: LIMIT
+						}),
+				api.db.jurisdiction_holidays.findMany({
+					where: {
+						// The entities of the employments in scope, not their jurisdictions: a holiday
+						// belongs to the employer that observes it.
+						company_id: { in: window == null ? [] : companyIds },
+						...(window == null ? {} : { date: { gte: window.start, lte: window.end } }),
+						published_at: { isNotNull: true },
+						approval_id: { isNull: true }
+					},
+					columns: {
+						id: true,
+						company_id: true,
+						date: true,
+						name: true,
+						kind: true,
+						replaces: true,
+						given_to: true,
+						published_at: true
+					},
+					limit: LIMIT
+				}),
+				!includeSettlements || settlingIds.length === 0
+					? Effect.succeed([])
+					: api.db.payslips.findMany({
+							where: { id: { in: settlingIds }, approval_id: { isNull: true } },
+							columns: {
+								id: true,
+								payroll_run_id: true,
+								employment_id: true,
+								currency: true,
+								paid_at: true,
+								adjustments: true
+							},
+							limit: LIMIT
+						}),
+				// The people's other employments here, for what a lifetime counts (MY s.60FA(2):
+				// five confinements; SG GPCL: 42 days a child) across a rehire.
+				api.db.employments.findMany({
+					where: { employee_id: { in: employeeIds }, approval_id: { isNull: true } },
+					columns: { id: true, employee_id: true },
+					limit: LIMIT
+				}),
+				// The lineage's schemes name the codes a rule reads a fact under (`facts.SI.since_months`).
+				api.db.statutory_contributions.findMany({
+					where: {
+						settings_id: { in: lineage.map((row) => row.id) },
+						approval_id: { isNull: true }
+					},
+					columns: { id: true, code: true },
+					limit: LIMIT
+				}),
+				api.db.employment_statutory_facts.findMany({
+					where: { employee_id: { in: employeeIds }, approval_id: { isNull: true } },
+					columns: {
+						employee_id: true,
+						statutory_contribution_id: true,
+						effective_range: true,
+						status: true
+					},
+					limit: LIMIT
+				}),
+				// The year before the window: days read and found empty, for a forfeiture rule
+				// that counts unauthorised absence (MY s.60E(1)(b)).
+				window == null
+					? Effect.succeed([])
+					: api.db.work_days.findMany({
+							where: {
+								employment_id: { in: ids },
+								work_date: { gte: addDays(window.end, -366), lte: window.end },
+								worked_intervals: { eq: [] },
+								approval_id: { isNull: true }
+							},
+							columns: { employment_id: true, work_date: true, shift_definition_id: true },
+							limit: LIMIT
+						})
+			],
+			{ concurrency: 'unbounded' }
+		);
 		const workCodeIds = new Set(
 			shifts.filter((row) => rosterCodeKind(row.variant) === 'WORK').map((row) => row.id)
 		);
@@ -494,8 +528,33 @@ export function readLeaveContext(
 			allEntries.filter((row) => row.approval_id != null).map(normaliseLeaveDays),
 			stored
 		);
+		const inScope = new Set(ids);
+		const others = siblings.filter(
+			(row) => !inScope.has(row.id) && employeeIds.includes(row.employee_id)
+		);
+		const employeeOf = new Map(others.map((row) => [row.id, row.employee_id]));
+		const priorEntries =
+			others.length === 0
+				? []
+				: (yield* api.db.leave_entries.findMany({
+						where: {
+							employment_id: { in: others.map((row) => row.id) },
+							approval_id: { isNull: true }
+						},
+						columns: {
+							id: true,
+							employment_id: true,
+							leave_code: true,
+							charges: true,
+							as_adjustment_entry: true,
+							reversal_of_id: true,
+							approval_id: true
+						},
+						limit: LIMIT
+					})).map((row) => ({ ...row, employee_id: employeeOf.get(row.employment_id) ?? '' }));
 		return {
 			employments,
+			priorEntries,
 			companies,
 			employees,
 			terms,

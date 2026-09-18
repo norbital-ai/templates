@@ -36,7 +36,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid.",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -52,7 +52,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 3 ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0"
 	},
 	{
 		"id": "d85b43a1-c3cf-5bc5-9bf4-af2bb9151cd1",
@@ -243,7 +243,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid.",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -259,7 +259,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 3 ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0"
 	},
 	{
 		"id": "b22f1cc5-b21d-5b54-b588-ed33de3eb6c9",
@@ -450,7 +450,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid.",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -466,7 +466,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 3 ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0"
 	},
 	{
 		"id": "f8f14ec6-242f-56d6-bff6-d30bdde06e68",

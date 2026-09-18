@@ -22,6 +22,14 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	/** The most PER_EVENT entries of this leave an employee may take in a lifetime; absent is no cap. */
 	lifetime_events: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**
+	 * The most days of this leave a person may ever take, across leave years and across their
+	 * employments here, as a number or an expression over the person (SG GPCL: 42 days for each
+	 * child, `42.0 * children.count`). Absent is no cap.
+	 */
+	lifetime_days: Schema.optionalKey(
+		Schema.NullOr(Schema.Union([Schema.Finite.check(Schema.isGreaterThan(0)), Schema.String]))
+	),
+	/**
 	 * A window measured back from the day rather than a leave year: the `days` may be taken in any
 	 * such span (TW hospitalised sickness: one year within two, `24`). Absent is the leave year.
 	 */
