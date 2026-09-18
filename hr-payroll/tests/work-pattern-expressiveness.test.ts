@@ -121,9 +121,9 @@ test('an ad-hoc worker projects nothing, which is a different answer from projec
 	// payroll validates against the stated amount rather than against a cycle.
 	const guaranteed = {
 		expectation: {
-			kind: 'GUARANTEED_SCHEDULE',
 			days_per_week: 5,
-			paid_minutes_per_week: 2400
+			minimum_paid_minutes_per_week: 2400,
+			maximum_paid_minutes_per_week: null
 		}
 	};
 	assert.equal(patternRosterCodeId(guaranteed, '2026-01-01', ANCHOR), null);

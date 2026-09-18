@@ -27,6 +27,9 @@ export type LeaveActivity = Pick<
 	| 'allocations'
 	| 'approval_id'
 	| 'payslip_id'
+	| 'event_kind'
+	| 'event_relationship'
+	| 'event_date'
 >;
 
 /**

@@ -354,7 +354,7 @@ function asRateTerms(
 	// at a different day rate every month.
 	const contracted =
 		terms.ordinary_hours_per_week == null ? null : decodeNumber(terms.ordinary_hours_per_week);
-	const hours =
+	const rostered =
 		workload.work_days > 0
 			? workload.average_weekly_paid_minutes / 60
 			: contracted != null && contracted > 0
@@ -362,10 +362,16 @@ function asRateTerms(
 				: Number.isFinite(normalDayHours)
 					? normalDayHours * days
 					: null;
-	if (hours == null)
+	if (rostered == null)
 		throw new Error(
 			'A contract with no rostered days states its ordinary hours a week, or its version states a normal day.'
 		);
+	// The week the hourly rate is built on is the normal week, never longer than the statute's
+	// normal day over the pattern's days: the hourly rate is the day's pay over the normal hours
+	// of work (MY EA s.60I(1)(b), with s.60A(3)(c) capping those at the s.60A(1) limits), so a
+	// ten-hour shift under an eight-hour normal day prices its hour at a day over eight, and the
+	// two hours beyond are overtime on that rate — not a cheaper hour that pays its own overtime.
+	const hours = Math.min(rostered, normalDayHours * days);
 	return {
 		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
 		pay_frequency: frequency,

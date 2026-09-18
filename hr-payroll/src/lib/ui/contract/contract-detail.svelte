@@ -20,21 +20,23 @@
 	import Icon from '@iconify/svelte';
 	import { coversDate, readRange } from '../../../collections/payroll_runs/lib/effective.js';
 	import { todayKey } from '../calendar.js';
-	import { formatCalendarDate } from '../display-formatters.js';
-	import { dateKey } from '../../iso-day.js';
+	import { formatTermsDates } from '../display-formatters.js';
 	import FormSection from '../form-section.svelte';
 	import TermsFields from './terms-fields.svelte';
 
 	let {
 		record,
 		editable = true,
-		scopedCompanyId
+		scopedCompanyId,
+		contracts = true
 	}: {
 		record: WorkspaceRow<'employments'>;
 		/** Whether Edit is offered; an employee reading their own contract gets display only. */
 		editable?: boolean;
 		/** The entity the page is scoped to: its picker is prefilled and hidden. */
 		scopedCompanyId?: string | undefined;
+		/** Whether the terms in force and the other revisions follow the stint; the employment record lists them on their own tab. */
+		contracts?: boolean;
 	} = $props();
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	const today = todayKey();
@@ -84,14 +86,6 @@
 		revisions.find((row) => coversDate(row.effective_range, today)) ?? revisions.at(-1)
 	);
 	const otherRevisions = $derived(revisions.filter((row) => row.id !== inForce?.id));
-	function revisionDates(row: WorkspaceRow<'employment_terms'>): string {
-		const range = readRange(row.effective_range);
-		if (range == null) return '—';
-		const start = formatCalendarDate(dateKey(range.start));
-		return range.end == null
-			? t('component.revision_from', { start })
-			: t('component.revision_between', { start, end: formatCalendarDate(dateKey(range.end)) });
-	}
 </script>
 
 <Stack gap="md">
@@ -189,7 +183,9 @@
 				</FormSection>
 			{/snippet}
 		</CollectionForm>
-		{#if termsQuery.loading}
+		{#if !contracts}
+			<!-- The employment record lists its contracts on their own tab. -->
+		{:else if termsQuery.loading}
 			<p class="text-meta">{t('component.loading')}</p>
 		{:else if inForce == null}
 			<!-- A contract with no terms yet: the same form, empty, creates its first revision. -->
@@ -232,7 +228,7 @@
 					{#each otherRevisions as revision (revision.id)}
 						<li>
 							<Inline align="baseline" gap="sm">
-								<span class="text-meta tabular-nums">{revisionDates(revision)}</span>
+								<span class="text-meta tabular-nums">{formatTermsDates(revision, t)}</span>
 								<span>{revision.summary}</span>
 							</Inline>
 						</li>

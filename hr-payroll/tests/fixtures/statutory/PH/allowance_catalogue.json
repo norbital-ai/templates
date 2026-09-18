@@ -797,5 +797,277 @@
 			}
 		],
 		"fixed": false
+	},
+	{
+		"id": "a00ebc44-1eba-5441-b271-d1370b87bca3",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "leader",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "033e8385-671d-52d7-8cfb-2b0206e22608",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "meal",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"fixed": false,
+		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned."
+	},
+	{
+		"id": "9e0ec681-166f-5cac-9428-d103f205a63e",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "bonus",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"fixed": false
+	},
+	{
+		"id": "77014598-9ddf-5eca-a4a6-bf57b9685782",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "transport",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "866b495e-a5c7-5fc6-9adb-8c9ac583e73e",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "BACKPAY_BASIC",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"fixed": false
+	},
+	{
+		"id": "2ea9618c-6cb5-5484-b2e1-650f71ee8954",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "BACKPAY_DUTY_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"fixed": false
+	},
+	{
+		"id": "f963491e-8e3e-57f3-9ae3-c8394c753f81",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "corporate_duty_allowance",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "c3bf6a5a-f4ff-5bf8-b5e5-d0dd452f5170",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "allowance",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "992c03a6-6c05-5ef9-a208-4f9e460e94d7",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "communication",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "5bf7b558-65c6-517a-b5bb-a1e12f88c760",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "duty_allowance",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "fe3c8196-4a2d-5562-802b-876247390d97",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "position",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "b9267a4a-1ed3-53c3-84df-f9e90700eb64",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"fixed": false
+	},
+	{
+		"id": "b8deaafb-a813-5b9f-a755-51722e8c46c6",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "STATUTORY_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"fixed": false
+	},
+	{
+		"id": "a6dc29c5-3ac7-5601-83c9-465badd6699c",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "year.earned.BASIC / 12.0",
+				"limit": null
+			}
+		],
+		"fixed": false
+	},
+	{
+		"id": "6c4cfb63-a114-5de3-a5ef-d47f792589bc",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
+		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))",
+				"limit": null
+			}
+		],
+		"fixed": false
+	},
+	{
+		"id": "023c9e25-9d43-5017-b2fa-b4353e91bcd9",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five).",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": true,
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		],
+		"fixed": false
 	}
 ]

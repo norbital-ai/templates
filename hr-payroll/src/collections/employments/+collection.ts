@@ -36,6 +36,10 @@ const terms = {
 			job_title: true,
 			payroll_group: true,
 			grade: true,
+			pass_type: true,
+			tax_residency: true,
+			notice_days: true,
+			ordinary_hours_per_week: true,
 			shift_pattern_id: true,
 			effective_range: true
 		}

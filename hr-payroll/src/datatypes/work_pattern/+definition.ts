@@ -11,18 +11,17 @@ const daysPerWeekSchema = Schema.Finite.check(
 	Schema.isLessThanOrEqualTo(7)
 );
 
-const rosterExpectationValueSchema = Schema.Union([
-	Schema.Struct({
-		kind: Schema.Literal('GUARANTEED_SCHEDULE'),
-		days_per_week: daysPerWeekSchema,
-		paid_minutes_per_week: Schema.Int.check(Schema.isGreaterThan(0))
-	}),
-	Schema.Struct({
-		kind: Schema.Literal('AS_ASSIGNED'),
-		days_per_week: daysPerWeekSchema,
-		maximum_paid_minutes_per_week: Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))
-	})
-]);
+const minutes = Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)));
+
+/**
+ * A declared week: the days, and — where the contract states them — the paid minutes a week the
+ * roster must supply (a guarantee) or may not exceed (a cap). Either bound may be absent.
+ */
+const rosterExpectationValueSchema = Schema.Struct({
+	days_per_week: daysPerWeekSchema,
+	minimum_paid_minutes_per_week: minutes,
+	maximum_paid_minutes_per_week: minutes
+});
 
 /**
  * The employment's one canonical schedule term. The days a week a contract works live here and
@@ -33,7 +32,7 @@ const rosterExpectationValueSchema = Schema.Union([
  * duration — the pattern row already states when it begins, and a crew rotation is a long cycle.
  *
  * `expectation` is the declared week where no cycle can be generated ("Rostered 6 days"): the
- * days a week, and either the paid minutes a week the roster must supply or a cap on them.
+ * days a week, and optionally the paid minutes a week the roster must supply or may not exceed.
  */
 export const workPatternValueSchema = Schema.Union([
 	Schema.Struct({

@@ -126,7 +126,7 @@
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
 		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
-		"eligibility": "employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -393,7 +393,7 @@
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
 		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
-		"eligibility": "employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -660,7 +660,7 @@
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
 		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
-		"eligibility": "employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -797,6 +797,361 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "0a8b8526-5713-5746-8481-3bed0fff8b9d",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "ANNUAL_LEAVE_DOMESTIC",
+		"name": "Service incentive leave (kasambahay)",
+		"authority": "RA 10361 (Batas Kasambahay) s.29: a kasambahay of one year’s service is entitled to five days of service incentive leave with pay; unused leave is not cumulative, not carried over and not convertible to cash.",
+		"eligibility": "employment.type == \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "16038f1c-b0d4-594e-84ad-252e593adb4f",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "ANNUAL_LEAVE_DOMESTIC",
+		"name": "Service incentive leave (kasambahay)",
+		"authority": "RA 10361 (Batas Kasambahay) s.29: a kasambahay of one year’s service is entitled to five days of service incentive leave with pay; unused leave is not cumulative, not carried over and not convertible to cash.",
+		"eligibility": "employment.type == \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8ac53444-3197-5132-888d-3de9fb9f964a",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "ANNUAL_LEAVE_DOMESTIC",
+		"name": "Service incentive leave (kasambahay)",
+		"authority": "RA 10361 (Batas Kasambahay) s.29: a kasambahay of one year’s service is entitled to five days of service incentive leave with pay; unused leave is not cumulative, not carried over and not convertible to cash.",
+		"eligibility": "employment.type == \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "1a777f9d-0484-5d19-83de-de8ad23cc273",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3da14a33-e38a-54f9-aca9-f45d17cd7c62",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "VAWC_LEAVE",
+		"name": "Leave for victims of violence against women and their children",
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "a3faa3eb-5308-5f93-97ac-681068d7e627",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 2,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "5660b6ae-67fb-5709-8574-53ab1ac0a336",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			],
+			"lifetime_events": 4
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "aa5bf929-9b2f-5afd-897d-99960d055c35",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "SPECIAL_LEAVE_FOR_WOMEN",
+		"name": "Special leave for women (gynaecological surgery)",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "5d74bf8d-2dd1-5985-abfa-645f68da6a47",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "9e70df8e-7b6b-5d0b-a358-58a23053db06",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "fd074559-75d6-536a-8a12-bdf447090c76",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "2c6635c2-8cc8-5967-a0cf-7cbb30c63676",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"days": 60
+				},
+				{
+					"eligibility": "employee.solo_parent",
+					"days": 120
+				},
+				{
+					"eligibility": "",
+					"days": 105
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "9a5ca1cf-8d45-58c6-ba69-c860d90a96ee",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "2a0a06b9-822e-5c90-9457-ed442b7b68b5",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "601a9d56-7e0f-598c-b1d6-20826c36333f",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "SOLO_PARENT_LEAVE",
+		"name": "Parental leave for solo parents",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`).",
+		"eligibility": "employee.solo_parent",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 7
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"evidence": "REQUIRED",
+		"encash_on_exit": false
+	},
+	{
+		"id": "c613e9d6-d585-53ed-855d-a305e907e52b",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "5f7a9db9-2628-5de3-92a6-d191917ba25b",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "ANNUAL_LEAVE_DOMESTIC",
+		"name": "Service incentive leave (kasambahay)",
+		"authority": "RA 10361 (Batas Kasambahay) s.29: a kasambahay of one year’s service is entitled to five days of service incentive leave with pay; unused leave is not cumulative, not carried over and not convertible to cash.",
+		"eligibility": "employment.type == \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"is_npl": false,
 		"can_encash": false,
 		"encash_on_exit": false
 	}

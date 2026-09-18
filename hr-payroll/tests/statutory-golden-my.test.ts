@@ -907,8 +907,8 @@ const rostered = (
 		name: 'As assigned',
 		pattern: {
 			expectation: {
-				kind: 'AS_ASSIGNED',
 				days_per_week: daysPerWeek,
+				minimum_paid_minutes_per_week: null,
 				maximum_paid_minutes_per_week: null
 			}
 		},
@@ -1064,8 +1064,10 @@ test('Malaysia — the normal day is at most nine hours under the s.60A(1) provi
 			punch(world, 'MY-DAILY', '2026-01-11', '09:00', '16:00'); // Sunday rest day, seven hours
 		}
 	);
-	// 2,600 ÷ 26 = 100.00 a day; over the ten-hour normal day the hour is 10.00: two hours at 1.5×.
-	assert.deepEqual(workLines(slips.get('MY-TEN')!), [['2026-01-05', 'WORKDAY-OT-1.5X', 2, 30]]);
+	// 2,600 ÷ 26 = 100.00 a day; the hourly rate is the day over the *normal hours of work*
+	// (s.60I(1)(b)), which s.60A(3)(c) caps at the s.60A(1) eight — 12.50, not the ten-hour
+	// shift's 10.00: two hours at 1.5× = 37.50.
+	assert.deepEqual(workLines(slips.get('MY-TEN')!), [['2026-01-05', 'WORKDAY-OT-1.5X', 2, 37.5]]);
 	// s.60(3)(a): a daily-rated employee's rest-day work pays one day's wages up to half the
 	// normal hours and two days' wages beyond — 100 and 200 — where a monthly-rated one gets half
 	// and one.

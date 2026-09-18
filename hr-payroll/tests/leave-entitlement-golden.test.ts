@@ -236,10 +236,21 @@ for (const lineage of ['MY', 'MY-nihon'] as const)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 test('Philippines — service incentive leave and the special statutory leaves', () => {
-	// The 2026-01-01 version changes no leave law: the same ladder on both sealed versions.
+	// No sealed version changes the leave law: the same ladder on all four (the 2026-09-26
+	// version is Wage Order NCR-28 alone).
 	const BIRTH = { kind: 'BIRTH' } as const;
-	for (const version of [0, 1, 2]) {
+	for (const version of [0, 1, 2, 3]) {
 		assert.deepEqual(ladder('PH', version, 'ANNUAL_LEAVE'), [0, 5, 5]);
+		// RA 10361 s.29: a kasambahay has the five days on their own row, never encashed.
+		assert.deepEqual(ladder('PH', version, 'ANNUAL_LEAVE', { employment_type: 'DOMESTIC' }), [
+			null,
+			null,
+			null
+		]);
+		assert.deepEqual(
+			ladder('PH', version, 'ANNUAL_LEAVE_DOMESTIC', { employment_type: 'DOMESTIC' }),
+			[0, 5, 5]
+		);
 		assert.deepEqual(
 			ladder('PH', version, 'PATERNITY_LEAVE', { ...MARRIED_MALE, event: BIRTH }),
 			[7, 7, 7]

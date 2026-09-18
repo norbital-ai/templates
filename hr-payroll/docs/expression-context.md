@@ -54,6 +54,7 @@ Open prefixes: `company.facts.<key>`.
 | `children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `children.under(n)` | Children under n completed years |
 | `children.citizens` | Children recorded as citizens |
+| `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
 | `children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `company.region` | Employing entity region |
@@ -135,6 +136,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.citizens` | Children recorded as citizens |
+| `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
 | `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `person.company.region` | Employing entity region |
@@ -245,6 +247,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.citizens` | Children recorded as citizens |
+| `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
 | `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `person.company.region` | Employing entity region |
@@ -346,6 +349,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.citizens` | Children recorded as citizens |
+| `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
 | `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `person.company.region` | Employing entity region |
@@ -470,6 +474,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.citizens` | Children recorded as citizens |
+| `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
 | `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `person.company.region` | Employing entity region |
@@ -586,6 +591,7 @@ Open prefixes: `company.facts.<key>`.
 | `children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `children.under(n)` | Children under n completed years |
 | `children.citizens` | Children recorded as citizens |
+| `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
 | `children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `company.region` | Employing entity region |

@@ -10,6 +10,8 @@ import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
 import { addDays } from '../../collections/payroll_runs/lib/dates.js';
+import { readRange } from '../../collections/payroll_runs/lib/effective.js';
+import { dateKey } from '../iso-day.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -84,6 +86,19 @@ export function formatCalendarDate(value: unknown): string {
 	const day = calendarDayFrom(value);
 	if (day === null) return '—';
 	return CALENDAR_DATE.format(new Date(`${day}T00:00:00.000Z`));
+}
+
+/** The days a contract's terms hold across: "from 1 Jan 2026", or "1 Jan 2026 – 4 Jan 2026". */
+export function formatTermsDates(
+	row: { readonly effective_range: unknown },
+	t: Translator
+): string {
+	const range = readRange(row.effective_range);
+	if (range == null) return '—';
+	const start = formatCalendarDate(dateKey(range.start));
+	return range.end == null
+		? t('component.revision_from', { start })
+		: t('component.revision_between', { start, end: formatCalendarDate(dateKey(range.end)) });
 }
 
 /**

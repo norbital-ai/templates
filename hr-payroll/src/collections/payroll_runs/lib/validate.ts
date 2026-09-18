@@ -402,25 +402,20 @@ export function rosteredWorkCodeMaps(
  *
  * This is the arithmetic `validateRosterSchedule` used to run at roster publication, moved to where
  * the money is: a rostered employment has no pattern day, so every WORK day is an explicit row and
- * a date with no row is nothing. A declared week (`GUARANTEED_SCHEDULE`, `AS_ASSIGNED`) is scaled
- * to the window's active days over seven and checked with the `WORKLOAD_BELOW_TERMS` and
- * `WORKLOAD_ABOVE_TERMS` sentences. Cycle employments are not read: their month is the cycle.
+ * a date with no row is nothing. A declared week is scaled to the window's active days over seven
+ * and checked with the `WORKLOAD_BELOW_TERMS` (days, and minutes where a minimum is stated) and
+ * `WORKLOAD_ABOVE_TERMS` (where a maximum is) sentences. Cycle employments are not read: their
+ * month is the cycle.
  *
  * A MONTHLY rostered employment with zero expected days in the window is refused outright: a
- * monthly salary with no schedule cannot derive ordinary hours. `GUARANTEED_SCHEDULE` supplies
- * them when stated.
+ * monthly salary with no schedule cannot derive ordinary hours. A declared minimum of paid
+ * minutes supplies them when stated.
  */
-type RosteredExpectation =
-	| {
-			readonly kind: 'GUARANTEED_SCHEDULE';
-			readonly days_per_week: number;
-			readonly paid_minutes_per_week: number;
-	  }
-	| {
-			readonly kind: 'AS_ASSIGNED';
-			readonly days_per_week: number;
-			readonly maximum_paid_minutes_per_week: number | null;
-	  };
+type RosteredExpectation = {
+	readonly days_per_week: number;
+	readonly minimum_paid_minutes_per_week: number | null;
+	readonly maximum_paid_minutes_per_week: number | null;
+};
 
 type RosteredValidationTerms = {
 	readonly id: string;
@@ -509,11 +504,11 @@ export function validateRosteredExpectations(options: {
 			const codeId = explicitByDate.get(date);
 			return codeId != null && options.workCodeIds.has(codeId);
 		});
-		// A monthly salary with no schedule cannot derive ordinary hours. A stated
-		// `GUARANTEED_SCHEDULE` supplies them instead, and its shortfall is the
-		// `WORKLOAD_BELOW_TERMS` issue below rather than this refusal.
+		// A monthly salary with no schedule cannot derive ordinary hours. A declared minimum of
+		// paid minutes supplies them instead, and its shortfall is the `WORKLOAD_BELOW_TERMS`
+		// issue below rather than this refusal.
 		const hasGuarantee = touching.some(
-			(term) => expectationOf(term)?.kind === 'GUARANTEED_SCHEDULE'
+			(term) => expectationOf(term)?.minimum_paid_minutes_per_week != null
 		);
 		if (
 			expectedInWindow.length === 0 &&
@@ -554,46 +549,48 @@ export function validateRosteredExpectations(options: {
 				(total, date) => total + (options.paidMinutesByCode.get(explicitByDate.get(date)!) ?? 0),
 				0
 			);
-			if (expectation.kind === 'GUARANTEED_SCHEDULE') {
-				// A guarantee owes whole days: 6 a week over 39 days is 33.4, and the roster meets it
-				// with 33. Rounding up refused a leaver's real six-day roster for a day nobody owed;
-				// the minutes owed are those whole days' share, not the fraction's.
-				const requiredDays = decodeNumber(expectation.days_per_week);
-				const requiredMinutes = decodeNumber(expectation.paid_minutes_per_week);
-				// A holiday counts as one guaranteed day's minutes (EA s.60D: a paid holiday).
-				const actualMinutes =
-					workedMinutes +
-					(requiredDays > 0 ? (holidays.length * requiredMinutes) / requiredDays : 0);
-				const expectedDays = Math.floor(requiredDays * fraction);
-				const expectedMinutes = Math.floor(
-					requiredDays > 0
-						? (requiredMinutes * expectedDays) / requiredDays
-						: requiredMinutes * fraction
-				);
-				// A shortfall is the employer's contract to answer for, not the run's: the monthly
-				// salary is paid on the terms whatever the roster held, so the run warns and proceeds.
-				if (actualMinutes < expectedMinutes || actualDays < expectedDays) {
-					issues.push({
-						code: 'WORKLOAD_BELOW_TERMS',
-						severity: 'WARNING',
-						message:
-							`The pay window assigns ${actualDays} work day(s) and ${actualMinutes} paid minute(s) ` +
-							`for ${employment.employee_number}, below the employment terms of ${expectedDays} day(s) and ${expectedMinutes} minute(s).`,
-						collection: 'employments',
-						recordId: employment.id
-					});
-				}
-			} else if (
-				expectation.maximum_paid_minutes_per_week != null &&
-				workedMinutes >
-					Math.floor(decodeNumber(expectation.maximum_paid_minutes_per_week) * fraction)
-			) {
+			// A declaration owes whole days: 6 a week over 39 days is 33.4, and the roster meets it
+			// with 33. Rounding up refused a leaver's real six-day roster for a day nobody owed; the
+			// minutes a guarantee owes are those whole days' share, not the fraction's. A holiday
+			// counts as one declared day's minutes (EA s.60D: a paid holiday).
+			const requiredDays = decodeNumber(expectation.days_per_week);
+			const expectedDays = Math.floor(requiredDays * fraction);
+			const minimum = expectation.minimum_paid_minutes_per_week;
+			const expectedMinutes =
+				minimum == null
+					? 0
+					: Math.floor(
+							requiredDays > 0
+								? (decodeNumber(minimum) * expectedDays) / requiredDays
+								: decodeNumber(minimum) * fraction
+						);
+			const actualMinutes =
+				workedMinutes +
+				(minimum == null || requiredDays <= 0
+					? 0
+					: (holidays.length * decodeNumber(minimum)) / requiredDays);
+			// A shortfall is the employer's contract to answer for, not the run's: the monthly
+			// salary is paid on the terms whatever the roster held, so the run warns and proceeds.
+			if (actualDays < expectedDays || actualMinutes < expectedMinutes) {
+				issues.push({
+					code: 'WORKLOAD_BELOW_TERMS',
+					severity: 'WARNING',
+					message:
+						`The pay window assigns ${actualDays} work day(s) and ${workedMinutes} paid minute(s) ` +
+						`for ${employment.employee_number}, below the employment terms of ${expectedDays} day(s)` +
+						`${minimum == null ? '' : ` and ${expectedMinutes} minute(s)`}.`,
+					collection: 'employments',
+					recordId: employment.id
+				});
+			}
+			const maximum = expectation.maximum_paid_minutes_per_week;
+			if (maximum != null && workedMinutes > Math.floor(decodeNumber(maximum) * fraction)) {
 				issues.push({
 					code: 'WORKLOAD_ABOVE_TERMS',
 					severity: 'WARNING',
 					message:
 						`The pay window assigns ${worked.length} work day(s) and ${workedMinutes} paid minute(s) ` +
-						`for ${employment.employee_number}, above the employment cap of ${decodeNumber(expectation.maximum_paid_minutes_per_week)} minute(s) a week.`,
+						`for ${employment.employee_number}, above the employment cap of ${decodeNumber(maximum)} minute(s) a week.`,
 					collection: 'employments',
 					recordId: employment.id
 				});
