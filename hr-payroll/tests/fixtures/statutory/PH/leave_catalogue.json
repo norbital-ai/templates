@@ -62,8 +62,8 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`).",
-		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind == \"BIRTH\"",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -77,7 +77,7 @@
 			"lifetime_events": 4
 		},
 		"is_npl": false,
-		"can_encash": true,
+		"can_encash": false,
 		"encash_on_exit": false
 	},
 	{
@@ -125,8 +125,8 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`).",
-		"eligibility": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -164,7 +164,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`).",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -187,7 +187,7 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true,
+		"can_encash": false,
 		"encash_on_exit": false
 	},
 	{
@@ -329,8 +329,8 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`).",
-		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind == \"BIRTH\"",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -344,7 +344,7 @@
 			"lifetime_events": 4
 		},
 		"is_npl": false,
-		"can_encash": true,
+		"can_encash": false,
 		"encash_on_exit": false
 	},
 	{
@@ -392,8 +392,8 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`).",
-		"eligibility": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -431,7 +431,7 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`).",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -454,7 +454,7 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true,
+		"can_encash": false,
 		"encash_on_exit": false
 	},
 	{

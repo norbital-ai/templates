@@ -55,6 +55,8 @@ export type AccumulatedPayslip = {
 	readonly codes: ReadonlyMap<string, number>;
 	/** Catalogue row code → the family whose catalogue it came from. */
 	readonly familyOf: ReadonlyMap<string, FamilyPayItem['family']>;
+	/** Catalogue row code → `allowance_catalogue.fixed` (absent reads true), for `catalog(..., {fixed})`. */
+	readonly fixedOf: ReadonlyMap<string, boolean>;
 	readonly lines: readonly AccumulationLine[];
 };
 
@@ -102,6 +104,7 @@ export function accumulatePayslip(options: {
 	};
 	const codes = new Map<string, number>();
 	const familyOf = new Map<string, FamilyPayItem['family']>();
+	const fixedOf = new Map<string, boolean>();
 	const lines: AccumulationLine[] = [];
 	for (const item of options.items) {
 		// Information is not money; no scheme charges it.
@@ -129,8 +132,9 @@ export function accumulatePayslip(options: {
 		const signed = effect === 'REDUCE' ? -item.amount : item.amount;
 		codes.set(code, (codes.get(code) ?? 0) + signed);
 		familyOf.set(code, item.catalogueComponent.family);
+		fixedOf.set(code, item.catalogueComponent.fixed !== false);
 	}
-	return { reserved: magnitudes, codes, familyOf, lines };
+	return { reserved: magnitudes, codes, familyOf, fixedOf, lines };
 }
 
 /** The sum two contracts' payslips present as one person's money to one scheme. */
@@ -147,27 +151,37 @@ export function sumAccumulations(parts: readonly AccumulatedPayslip[]): Accumula
 	};
 	const codes = new Map<string, number>();
 	const familyOf = new Map<string, FamilyPayItem['family']>();
+	const fixedOf = new Map<string, boolean>();
 	const lines: AccumulationLine[] = [];
 	for (const part of parts) {
 		for (const key of Object.keys(reserved) as ReservedLine[]) reserved[key] += part.reserved[key];
 		for (const [code, amount] of part.codes) codes.set(code, (codes.get(code) ?? 0) + amount);
 		for (const [code, family] of part.familyOf) familyOf.set(code, family);
+		for (const [code, fixed] of part.fixedOf) fixedOf.set(code, fixed);
 		lines.push(...part.lines);
 	}
-	return { reserved, codes, familyOf, lines };
+	return { reserved, codes, familyOf, fixedOf, lines };
 }
 
 /** The signed sum of one catalogue's rows, as `catalog(...)` selects them. */
 export function catalogueSum(
 	accumulation: AccumulatedPayslip,
 	catalogue: string,
-	selection?: { readonly pick?: readonly string[]; readonly exclude?: readonly string[] }
+	selection?: {
+		readonly pick?: readonly string[];
+		readonly exclude?: readonly string[];
+		readonly fixed?: boolean;
+	}
 ): number {
 	let total = 0;
 	for (const [code, amount] of accumulation.codes) {
 		if (accumulation.familyOf.get(code) !== catalogue) continue;
 		if (selection?.pick != null && !selection.pick.includes(code)) continue;
 		if (selection?.exclude != null && selection.exclude.includes(code)) continue;
+		// `{fixed: false}` selects the rows not granted wholly for the month — SG CPF's Additional
+		// Wages are whatever the catalogue does not mark fixed, not a list of codes.
+		if (selection?.fixed != null && (accumulation.fixedOf.get(code) ?? true) !== selection.fixed)
+			continue;
 		total += amount;
 	}
 	return total;

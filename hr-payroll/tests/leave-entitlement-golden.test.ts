@@ -316,10 +316,11 @@ test('Singapore — the service ladders and the family schemes, on all four seal
 		assert.deepEqual(ladder('SG', version, 'SICK_LEAVE'), [5, 14, 14]);
 		// s.89(1)(b): fifteen hospitalisation days at three months rising to sixty at six.
 		assert.deepEqual(ladder('SG', version, 'HOSPITALIZATION_LEAVE'), [15, 60, 60]);
-		// CDCSA: four weeks of paternity leave per child, three months' service, a married father of
-		// a citizen child (the entry names the birth and the child); an unmarried man, one with no
-		// child, or the father of a non-citizen child is outside the scheme.
-		const BIRTH = { kind: 'BIRTH', child_index: 1 } as const;
+		// CDCSA: four weeks of paternity leave per child born on or after 1 April 2025, three months'
+		// service, a married father of a citizen child (the entry names the birth and the child); an
+		// unmarried man, one with no child, or the father of a non-citizen child is outside the
+		// scheme. A child born before 1 April 2025 carried two weeks.
+		const BIRTH = { kind: 'BIRTH', child_index: 1, date: '2026-01-10' } as const;
 		const FATHER = {
 			...MARRIED_MALE,
 			childAges: [0],
@@ -327,6 +328,13 @@ test('Singapore — the service ladders and the family schemes, on all four seal
 			event: BIRTH
 		} as const;
 		assert.deepEqual(ladder('SG', version, 'PATERNITY_LEAVE', FATHER), [28, 28, 28]);
+		assert.deepEqual(
+			ladder('SG', version, 'PATERNITY_LEAVE', {
+				...FATHER,
+				event: { ...BIRTH, date: '2025-03-20' }
+			}),
+			[14, 14, 14]
+		);
 		assert.deepEqual(ladder('SG', version, 'PATERNITY_LEAVE', MALE), [null, null, null]);
 		assert.deepEqual(
 			ladder('SG', version, 'PATERNITY_LEAVE', { ...FATHER, childCitizenship: ['FOREIGNER'] }),
@@ -372,15 +380,24 @@ test('Singapore — the service ladders and the family schemes, on all four seal
 		);
 		// Extended childcare leave is asserted on its own below: the engine cannot evaluate the
 		// predicate that row is written with.
-		// Twelve days of unpaid infant care for a parent of a child under two — doubled from six with
-		// effect from 1 January 2024, before this lineage's first sealed version opens, so all three
-		// carried half the statutory figure. Twelve weeks of adoption leave for an adoptive mother.
+		// Twelve days of unpaid infant care for a parent of a citizen child under two (CDCA s.12D) —
+		// doubled from six with effect from 1 January 2024, before this lineage's first sealed
+		// version opens. A non-citizen infant carries none.
 		assert.deepEqual(
 			ladder('SG', version, 'UNPAID_INFANT_CARE_LEAVE', {
 				citizenship: 'CITIZEN',
-				childAges: [1]
+				childAges: [1],
+				childCitizenship: ['CITIZEN']
 			}),
 			[12, 12, 12]
+		);
+		assert.deepEqual(
+			ladder('SG', version, 'UNPAID_INFANT_CARE_LEAVE', {
+				citizenship: 'CITIZEN',
+				childAges: [1],
+				childCitizenship: ['FOREIGNER']
+			}),
+			[null, null, null]
 		);
 		// Adoption leave: twelve weeks for an adoptive mother of a citizen child under twelve
 		// months at the Formal Intent to Adopt; a child of two is outside it.
@@ -481,23 +498,33 @@ test('Singapore — the service ladders and the family schemes, on all four seal
 });
 
 test('Singapore — extended childcare leave, for a parent whose youngest child is seven or over', () => {
-	// The seeded rule is `children.under(13) >= 1 && children.under(7) == 0`, and the `== 0` half
-	// is what `under` returning a CEL `int` makes answerable at all.
+	// CDCA s.12C: a citizen child aged seven to twelve, and no citizen child under seven — the
+	// seeded rule is `children.citizens_under(13) >= 1 && children.citizens_under(7) == 0`, and
+	// the `== 0` half is what the count returning a CEL `int` makes answerable at all.
 	for (const version of [0, 1, 2]) {
-		// Employment Act 1968 / CDCSA: two days for a parent whose children are all seven or over
-		// but at least one is under thirteen.
 		assert.deepEqual(
 			ladder('SG', version, 'EXTENDED_CHILDCARE_LEAVE', {
 				citizenship: 'CITIZEN',
-				childAges: [9]
+				childAges: [9],
+				childCitizenship: ['CITIZEN']
 			}),
 			[2, 2, 2]
 		);
-		// A child under seven puts the parent back on ordinary childcare leave instead.
+		// A citizen child under seven puts the parent back on ordinary childcare leave instead.
 		assert.deepEqual(
 			ladder('SG', version, 'EXTENDED_CHILDCARE_LEAVE', {
 				citizenship: 'CITIZEN',
-				childAges: [3, 9]
+				childAges: [3, 9],
+				childCitizenship: ['CITIZEN', 'CITIZEN']
+			}),
+			[null, null, null]
+		);
+		// The child must be a citizen: a non-citizen nine-year-old carries no extended leave.
+		assert.deepEqual(
+			ladder('SG', version, 'EXTENDED_CHILDCARE_LEAVE', {
+				citizenship: 'CITIZEN',
+				childAges: [9],
+				childCitizenship: ['FOREIGNER']
 			}),
 			[null, null, null]
 		);
@@ -567,9 +594,11 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 			ladder('VN', version, 'MATERNITY_LEAVE', { ...MOTHER, event: { kind: 'MULTIPLE_BIRTH' } }),
 			[210, 210, 210]
 		);
+		// Labour Code art.139: the six months' leave is every mother's; a mother short of the six
+		// contribution months is on leave without the fund's allowance, not without the leave.
 		assert.deepEqual(
 			ladder('VN', version, 'MATERNITY_LEAVE', { ...FEMALE, event: { kind: 'BIRTH' } }),
-			[null, null, null]
+			[180, 180, 180]
 		);
 		assert.deepEqual(
 			ladder('VN', version, 'MATERNITY_LEAVE', { ...MALE, event: { kind: 'BIRTH' } }),

@@ -21,6 +21,7 @@ import {
 	createStatutoryWorld,
 	expectStatutory,
 	expectStatutoryBase,
+	expectStatutorySkipped,
 	assertEveryVersionPriced,
 	COMPANY_ID
 } from './fixtures/statutory-world.ts';
@@ -100,8 +101,9 @@ test('Philippines — SSS, EC, PhilHealth, Pag-IBIG and the monthly withholding 
 	// no spreading — on compensation net of the three mandatory employee contributions, which the
 	// seed relieves into WTAX.
 	//
-	// 4,000 − (250 + 250 + 80) = 3,420, under ₱20,833: nothing withheld.
-	expectStatutory(book, 'PH-4000', 'WTAX', 0, 0);
+	// 4,000 is under the region's minimum wage: a minimum wage earner's wage is exempt (NIRC
+	// s.24(A)(2), RR 10-2008), so there is no compensation to withhold on and no WTAX row.
+	expectStatutorySkipped(book, 'PH-4000', 'WTAX');
 	// 30,000 − (1,500 + 750 + 200) = 27,550. Row "20,833–33,332 → 0 + 15% of the excess over
 	// 20,833": 15% × 6,717 = 1,007.55.
 	expectStatutory(book, 'PH-30000', 'WTAX', 1007.55, 0);
@@ -710,8 +712,9 @@ test('Philippines — the statutory leave ladder on every version', () => {
 	// gynaecological-surgery leave are grants per event (RA 11210 s.3: 60 days for a miscarriage;
 	// RA 8187 s.2: the first four deliveries; RA 9710 s.18: two months per surgery).
 	const expected: Record<string, [string, [string, number][]]> = {
+		// RA 10361 s.29 gives a kasambahay the five days too, so DOMESTIC is not excluded.
 		ANNUAL_LEAVE: [
-			'employment.classification != "MANAGERIAL" && employment.type != "DOMESTIC" && !(terms.statutory_work_category in ["FIELD_PERSONNEL", "PAID_BY_RESULTS"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)',
+			'employment.classification != "MANAGERIAL" && !(terms.statutory_work_category in ["FIELD_PERSONNEL", "PAID_BY_RESULTS"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)',
 			[['employment.service_months >= 12', 5]]
 		],
 		MATERNITY_LEAVE: [
@@ -722,8 +725,9 @@ test('Philippines — the statutory leave ladder on every version', () => {
 				['', 105]
 			]
 		],
+		// RA 8187 s.2: the delivery of, or miscarriage by, the legitimate spouse.
 		PATERNITY_LEAVE: [
-			'employee.gender == "MALE" && employee.marital_status == "MARRIED" && event.kind == "BIRTH"',
+			'employee.gender == "MALE" && employee.marital_status == "MARRIED" && event.kind in ["BIRTH", "MISCARRIAGE"]',
 			[['', 7]]
 		],
 		SOLO_PARENT_LEAVE: ['employee.solo_parent', [['employment.service_months >= 6', 7]]],

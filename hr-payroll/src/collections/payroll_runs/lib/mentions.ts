@@ -32,7 +32,10 @@ function walk(node: AstNode, mentions: string[]): void {
 			path != null &&
 			path.length === 3 &&
 			path[0] === 'produced' &&
-			(path[2] === 'employee' || path[2] === 'employee_this_period' || path[2] === 'employer') &&
+			(path[2] === 'employee' ||
+				path[2] === 'employee_this_period' ||
+				path[2] === 'employer' ||
+				path[2] === 'base') &&
 			!mentions.includes(path[1]!)
 		)
 			mentions.push(path[1]!);

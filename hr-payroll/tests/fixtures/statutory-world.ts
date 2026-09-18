@@ -502,6 +502,8 @@ export function buildStatutory(
 	readonly slips: Map<string, BuiltPayslip>;
 	readonly entries: Map<string, readonly MaterialisedMoney[]>;
 	readonly warnings: readonly string[];
+	/** The entity's own levies, charged once on the run: `[base, employer]` by scheme code. */
+	readonly companyCharges: Map<string, readonly [number, number]>;
 } {
 	const world = createStatutoryWorld(options);
 	prepareWorld?.(world, options.period);
@@ -529,7 +531,13 @@ export function buildStatutory(
 				built.captures.find((capture) => capture.payslipId === slip.id)?.materialised ?? []
 			])
 		),
-		warnings: built.warnings
+		warnings: built.warnings,
+		companyCharges: new Map(
+			built.company_charges.map((charge) => [
+				charge.scheme_code,
+				[charge.base_amount, charge.employer_amount] as const
+			])
+		)
 	};
 }
 

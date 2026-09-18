@@ -195,7 +195,7 @@ test('Vietnam — a night overtime hour carries the 30% night premium and 20% of
 		normalHours: 8,
 		breakMinutes: 60,
 		rosterCode: 'AM',
-		holidayKind: dayType === 'PUBLIC_HOLIDAY' ? 'PUBLIC_HOLIDAY' : '',
+		holidayKind: dayType === 'PUBLIC_HOLIDAY' ? 'PUBLIC' : '',
 		holidayName: '',
 		monthOvertimeHours: 0,
 		consecutiveHours: 4,
@@ -208,11 +208,14 @@ test('Vietnam — a night overtime hour carries the 30% night premium and 20% of
 	});
 	for (const version of settingsVersions('VN')) {
 		const premium = version.work_rules.night_premium;
-		assert.deepEqual([premium.from, premium.to, premium.ordinary_add], ['22:00', '06:00', 30]);
+		// Art.98(3): the bands carry the 20% of the day-type increment (0.2× on a rest day, 0.4× on a
+		// holiday over the slice's night hours), so the add over the line is 30 + 20 = 50 on every
+		// overtime hour — and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)).
+		assert.deepEqual([premium.from, premium.to, premium.overtime_add], ['22:00', '06:00', 50]);
 		const adds = (d) => nightAddsFor({ work: version.work_rules, premium, person, day: d, rates });
 		assert.deepEqual(adds(day('ORDINARY')), { ordinary: 30, overtime: 50 });
-		assert.deepEqual(adds(day('REST_DAY')), { ordinary: 30, overtime: 70 });
-		assert.deepEqual(adds(day('PUBLIC_HOLIDAY')), { ordinary: 30, overtime: 90 });
+		assert.deepEqual(adds(day('REST_DAY')), { ordinary: 50, overtime: 50 });
+		assert.deepEqual(adds(day('PUBLIC_HOLIDAY')), { ordinary: 50, overtime: 50 });
 	}
 });
 
@@ -230,7 +233,8 @@ test('Philippines — the night differential follows the day’s own rate', () =
 		normalHours: 8,
 		breakMinutes: 60,
 		rosterCode: 'AM',
-		holidayKind: dayType === 'PUBLIC_HOLIDAY' || dayType === 'SPECIAL_HOLIDAY' ? dayType : '',
+		holidayKind:
+			dayType === 'PUBLIC_HOLIDAY' ? 'PUBLIC' : dayType === 'SPECIAL_HOLIDAY' ? 'SPECIAL' : '',
 		holidayName: '',
 		monthOvertimeHours: 0,
 		consecutiveHours: 4,

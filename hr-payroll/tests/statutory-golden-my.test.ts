@@ -110,8 +110,10 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
 	expectStatutory(book, 'MY-PR-60', 'EPF_PR', 281, 306);
 	expectStatutorySkipped(book, 'MY-PR-60', 'EPF');
 	// Part F — a non-citizen, 2% each on the wage as it stands, no bracket table and no ceiling.
-	// 2% × 5,001 = 100.02, rounded up to the next ringgit = 101, each side.
-	expectStatutory(book, 'MY-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
+	// Part F para 2: "the total contribution which includes cents shall be rounded to the next
+	// ringgit" — 4% × 5,001 = 200.04 → 201; the employee's 100.02 → 101 and the employer carries
+	// the rest, 100. Two separate round-ups would over-collect a ringgit.
+	expectStatutory(book, 'MY-FOREIGN', 'EPF_NON_CITIZEN', 101, 100);
 	// EPF Act First Schedule para (13): at seventy-five the person is outside the Act — no Part F
 	// row at all, not a zero one.
 	expectStatutorySkipped(book, 'MY-FOREIGN-75', 'EPF_NON_CITIZEN');
@@ -364,8 +366,9 @@ test('Malaysia — a non-resident PCB override is a flat 30% without resident re
 	// registration `rate_override`): 30% of the month's remuneration, without resident reliefs,
 	// annualising or spreading. 30% × 5,001 = 1,500.30.
 	expectStatutory(book, 'MY-NR', 'PCB', 1500.3, 0);
-	// The rest of the statute prices them as the foreign worker they are: Part F EPF, 2% each.
-	expectStatutory(book, 'MY-NR', 'EPF_NON_CITIZEN', 101, 101);
+	// The rest of the statute prices them as the foreign worker they are: Part F EPF, 2% each,
+	// the total rounded up (201) and split 101 / 100.
+	expectStatutory(book, 'MY-NR', 'EPF_NON_CITIZEN', 101, 100);
 });
 
 test('MY-nihon prices the same statute as MY', () => {
@@ -404,7 +407,7 @@ test('MY-nihon carries Malaysia’s two later sealed versions, SKBBK seams and a
 	expectStatutory(july, 'N-5001', 'EPF', 561, 612);
 	expectStatutory(july, 'N-5001', 'SOCSO', 25.25, 88.35);
 	expectStatutory(july, 'N-5001', 'EIS', 10.1, 10.1);
-	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
+	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 101, 100);
 });
 
 test('Malaysia — the Third Schedule brackets a wage in tens, then twenties, then hundreds', () => {
@@ -441,9 +444,10 @@ test('Malaysia — the Third Schedule brackets a wage in tens, then twenties, th
 	// Above the RM6,000 ceiling: the open row.
 	expectStatutory(book, 'MY-6000.01', 'SOCSO', 29.75, 104.15);
 	expectStatutory(book, 'MY-6000.01', 'EIS', 11.9, 11.9);
-	// Third Schedule closing words, "wages exceed RM20,000": 11% and 12% of the wage itself,
-	// rounded up to the ringgit each.
-	expectStatutory(book, 'MY-20000.01', 'EPF', 2201, 2401);
+	// Third Schedule closing words, "wages exceed RM20,000": 11% and 12% of the wage itself, and
+	// "the total contribution which includes cents shall be rounded to the next ringgit" — 23% ×
+	// 20,000.01 = 4,600.0023 → 4,601; the employee's 2,200.0011 → 2,201, the employer the rest.
+	expectStatutory(book, 'MY-20000.01', 'EPF', 2201, 2400);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────

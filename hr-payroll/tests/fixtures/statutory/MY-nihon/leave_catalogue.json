@@ -38,7 +38,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service.",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service. Applied 2026-09-19 (2): EA 1955 s.37(1)(b)?: no maternity allowance where at the time of confinement she has five or more surviving children (`children.count >= 6` with the newborn recorded); the leave itself is not conditioned.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -54,7 +54,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0",
+		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0)",
 		"encash_on_exit": false
 	},
 	{
@@ -255,7 +255,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service.",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service. Applied 2026-09-19 (2): EA 1955 s.37(1)(b)?: no maternity allowance where at the time of confinement she has five or more surviving children (`children.count >= 6` with the newborn recorded); the leave itself is not conditioned.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -271,7 +271,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0",
+		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0)",
 		"encash_on_exit": false
 	},
 	{
@@ -472,7 +472,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service.",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service. Applied 2026-09-19 (2): EA 1955 s.37(1)(b)?: no maternity allowance where at the time of confinement she has five or more surviving children (`children.count >= 6` with the newborn recorded); the leave itself is not conditioned.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -488,7 +488,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0",
+		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0)",
 		"encash_on_exit": false
 	},
 	{

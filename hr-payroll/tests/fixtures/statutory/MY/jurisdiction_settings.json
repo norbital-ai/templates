@@ -137,19 +137,23 @@
 			"by_region": {
 				"Malaysia": 1700
 			},
-			"applies_when": "employment.type != \"INTERN\""
+			"applies_when": "employment.type != \"INTERN\" && employment.type != \"DOMESTIC\"",
+			"authority": "Applied 2026-09-19 (2): Minimum Wages Order 2024 para 3(2): a domestic employee is outside the Order."
 		},
 		"sources": {
 			"urls": [
-				"https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20452.pdf",
 				"https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%204.pdf",
 				"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%2053.pdf",
 				"https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
-				"https://hrdcorp.gov.my/registered-employers",
-				"https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20(Akta%20265).pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20265.pdf",
+				"https://jtksm.mohr.gov.my/sites/default/files/2023-03/7.%20EMPLOYMENT%20%28LIMITATION%20OF%20OVERTIME%20WORK%29%20REGULATIONS%201980_0.pdf",
+				"https://gajiminimum.mohr.gov.my/",
 				"https://www.johor.gov.my/rakyat/cuti-umum-2"
 			],
-			"instructions": "lom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. An Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or beside it for the browser.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
 		}
 	},
 	{
@@ -290,15 +294,26 @@
 			"by_region": {
 				"Malaysia": 1700
 			},
-			"applies_when": "employment.type != \"INTERN\""
+			"applies_when": "employment.type != \"INTERN\" && employment.type != \"DOMESTIC\"",
+			"authority": "Applied 2026-09-19 (2): Minimum Wages Order 2024 para 3(2): a domestic employee is outside the Order."
 		},
 		"sources": {
 			"urls": [
-				"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20452.pdf",
+				"https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%204.pdf",
 				"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%2053.pdf",
+				"https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20265.pdf",
+				"https://jtksm.mohr.gov.my/sites/default/files/2023-03/7.%20EMPLOYMENT%20%28LIMITATION%20OF%20OVERTIME%20WORK%29%20REGULATIONS%201980_0.pdf",
+				"https://gajiminimum.mohr.gov.my/",
+				"https://www.johor.gov.my/rakyat/cuti-umum-2",
+				"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf",
+				"https://www.perkeso.gov.my/en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html",
 				"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html"
 			],
-			"instructions": "lom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. An Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or beside it for the browser.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
 		}
 	},
 	{
@@ -439,22 +454,28 @@
 			"by_region": {
 				"Malaysia": 1700
 			},
-			"applies_when": "employment.type != \"INTERN\""
+			"applies_when": "employment.type != \"INTERN\" && employment.type != \"DOMESTIC\"",
+			"authority": "Applied 2026-09-19 (2): Minimum Wages Order 2024 para 3(2): a domestic employee is outside the Order."
 		},
 		"sources": {
 			"urls": [
-				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf",
-				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3521924/PUB%20196%20(2026).pdf",
-				"https://www.perkeso.gov.my/en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html",
-				"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130726-PANDUAN_PENGGUNA_NOTIS_PELEPASAN_LIABILITI_SKIM_LINDUNG_24_JAM.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20452.pdf",
+				"https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%204.pdf",
 				"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%2053.pdf",
+				"https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20265.pdf",
+				"https://jtksm.mohr.gov.my/sites/default/files/2023-03/7.%20EMPLOYMENT%20%28LIMITATION%20OF%20OVERTIME%20WORK%29%20REGULATIONS%201980_0.pdf",
+				"https://gajiminimum.mohr.gov.my/",
+				"https://www.johor.gov.my/rakyat/cuti-umum-2",
+				"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf",
+				"https://www.perkeso.gov.my/en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html",
 				"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html",
-				"https://www.hasil.gov.my/majikan/jadual-pcb-dan-spesifikasi-data/",
-				"https://jtksm.mohr.gov.my/ms/soalan-lazim/akta-kerja-1955-pindaan-2022",
-				"https://jtksm.mohr.gov.my/en/services/registration-place-employment/acts-guidelines",
-				"https://www.johor.gov.my/rakyat/cuti-umum-2"
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3521924/PUB%20196%20(2026).pdf"
 			],
-			"instructions": "lom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. An Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or beside it for the browser.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
 		}
 	}
 ]

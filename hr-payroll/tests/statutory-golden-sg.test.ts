@@ -632,10 +632,12 @@ test('Singapore — a bonus is an Additional Wage under the 102,000 ceiling, and
 		}
 	);
 	// Ordinary Wages 6,000 under the 8,000 ceiling; the 120,000 bonus is an Additional Wage
-	// capped by the Board's AW ceiling — 102,000 less the year's Ordinary Wages subject to CPF,
-	// January's own 6,000 included: 96,000. The CPF base is 102,000; 20% = 20,400 (floored); 37%
-	// = 37,740; employer 17,340. The charge records its ordinary part, 6,000, for the year.
-	assert.deepEqual(scheme(slips.get('SG-BONUS')!, 'CPF'), [102_000, 20_400, 17_340]);
+	// capped by the Board's AW ceiling — 102,000 less the year's Ordinary Wages subject to CPF.
+	// Paid in January, the year's OW is not yet known and the Board's method estimates it from
+	// this month's OW over the twelve payslips of the year: 72,000, so the ceiling is 30,000. The
+	// CPF base is 36,000; 20% = 7,200; 37% = 13,320; employer 6,120. The charge records its
+	// ordinary part, 6,000, for the year; December re-computes on the actual OW.
+	assert.deepEqual(scheme(slips.get('SG-BONUS')!, 'CPF'), [36_000, 7_200, 6_120]);
 	assert.equal(
 		slips.get('SG-BONUS')!.statutory.find((row) => row.scheme_code === 'CPF')!.ordinary_amount,
 		6000

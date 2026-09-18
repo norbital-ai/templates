@@ -15,7 +15,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "c865d731-f7b4-5103-89af-d275927ca697",
@@ -33,7 +34,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "5694f146-1c65-59f0-93d4-7b1e62e52d3f",
@@ -51,7 +53,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "ad069fca-7764-5b93-9f51-597c6d22f803",
@@ -69,6 +72,7 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	}
 ]

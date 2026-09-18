@@ -41,7 +41,8 @@ type WageComparandCategory = Schema.Schema.Type<typeof WageComparandCategorySche
 const WageComparandComponentSchema = Schema.Struct({
 	destination: Schema.NullOr(Schema.String),
 	direction: Schema.NullOr(Schema.String),
-	definition: Schema.NullOr(Schema.Struct({ source: Schema.String }))
+	definition: Schema.NullOr(Schema.Struct({ source: Schema.String })),
+	fixed: Schema.optional(Schema.NullOr(Schema.Boolean))
 });
 type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSchema>;
 
@@ -49,6 +50,9 @@ type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSc
 export function classifyWageComparand(component: WageComparandComponent): WageComparandCategory {
 	const source = component.definition?.source;
 	if (source === 'SCHEDULE') return 'BASIC_WAGES';
+	// A row not granted wholly for the month — a bonus (s.2(f)), a back payment, a separation
+	// payment — is not the month's cash payment for work done.
+	if (component.fixed === false) return 'NOT_WAGES';
 	if (component.destination === 'PAY' && component.direction !== 'SUBTRACT') return 'CASH_FOR_WORK';
 	return 'NOT_WAGES';
 }

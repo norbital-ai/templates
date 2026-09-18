@@ -4,8 +4,8 @@
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "SEVERANCE_ALLOWANCE",
 		"name": "Trợ cấp thôi việc (severance allowance)",
-		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year).",
-		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (employment.service_months - facts.UI.since_months) >= 6",
+		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year). Applied 2026-09-19 (2): Labour Code 2019 art.46: half a month’s salary for each year of service to an employee of twelve months’ service whose contract ends under art.34(1)–(4), (6), (7), (9), (10) — expiry, resignation, agreement, death; not a disciplinary dismissal or redundancy — over the service not covered by unemployment insurance, whatever its length; Decree 145/2020 art.8(3): a leftover of up to six months counts a half year, over six a whole year; art.8(5): the salary is the average contractual salary of the last six months (the monthly wage of the contract).",
+		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\"] && (employment.service_months - facts.UI.since_months) > 0",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -13,17 +13,18 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(0.5 * person.terms.basic_salary * round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0)",
+				"amount": "round_unit(0.5 * person.terms.monthly_wage * (floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "3bff0645-9c44-5883-80e2-c5e4b95e0014",
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "JOB_LOSS_ALLOWANCE",
 		"name": "Trợ cấp mất việc làm (job-loss allowance)",
-		"authority": "Labour Code 2019 art.47: an employee of twelve months’ regular service who loses the job through restructuring, technological change or an economic reason is paid one month’s salary for every year of service, at least two months, the years covered by unemployment insurance excluded.",
+		"authority": "Labour Code 2019 art.47: an employee of twelve months’ regular service who loses the job through restructuring, technological change or an economic reason is paid one month’s salary for every year of service, at least two months, the years covered by unemployment insurance excluded. Applied 2026-09-19 (2): Labour Code 2019 art.47: one month’s salary per year of uncovered service, at least two months; Decree 145/2020 art.8(3) rounds the leftover as for severance.",
 		"eligibility": "employment.service_months >= 12 && employment.exit_reason == \"REDUNDANCY\"",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -32,18 +33,19 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.basic_salary * (round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0 > 2.0 ? round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0 : 2.0))",
+				"amount": "round_unit(person.terms.monthly_wage * ((floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)) > 2.0 ? (floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)) : 2.0))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "59d27ee1-618d-55ed-9eca-a713114c943b",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "SEVERANCE_ALLOWANCE",
 		"name": "Trợ cấp thôi việc (severance allowance)",
-		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year).",
-		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (employment.service_months - facts.UI.since_months) >= 6",
+		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year). Applied 2026-09-19 (2): Labour Code 2019 art.46: half a month’s salary for each year of service to an employee of twelve months’ service whose contract ends under art.34(1)–(4), (6), (7), (9), (10) — expiry, resignation, agreement, death; not a disciplinary dismissal or redundancy — over the service not covered by unemployment insurance, whatever its length; Decree 145/2020 art.8(3): a leftover of up to six months counts a half year, over six a whole year; art.8(5): the salary is the average contractual salary of the last six months (the monthly wage of the contract).",
+		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\"] && (employment.service_months - facts.UI.since_months) > 0",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -51,17 +53,18 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(0.5 * person.terms.basic_salary * round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0)",
+				"amount": "round_unit(0.5 * person.terms.monthly_wage * (floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "4aeef978-a594-5af4-bd53-12a500f1ef44",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "JOB_LOSS_ALLOWANCE",
 		"name": "Trợ cấp mất việc làm (job-loss allowance)",
-		"authority": "Labour Code 2019 art.47: an employee of twelve months’ regular service who loses the job through restructuring, technological change or an economic reason is paid one month’s salary for every year of service, at least two months, the years covered by unemployment insurance excluded.",
+		"authority": "Labour Code 2019 art.47: an employee of twelve months’ regular service who loses the job through restructuring, technological change or an economic reason is paid one month’s salary for every year of service, at least two months, the years covered by unemployment insurance excluded. Applied 2026-09-19 (2): Labour Code 2019 art.47: one month’s salary per year of uncovered service, at least two months; Decree 145/2020 art.8(3) rounds the leftover as for severance.",
 		"eligibility": "employment.service_months >= 12 && employment.exit_reason == \"REDUNDANCY\"",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -70,18 +73,19 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.basic_salary * (round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0 > 2.0 ? round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0 : 2.0))",
+				"amount": "round_unit(person.terms.monthly_wage * ((floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)) > 2.0 ? (floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)) : 2.0))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "b0967652-05b0-5fd0-bfa3-28ac9f65edb7",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "SEVERANCE_ALLOWANCE",
 		"name": "Trợ cấp thôi việc (severance allowance)",
-		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year).",
-		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (employment.service_months - facts.UI.since_months) >= 6",
+		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year). Applied 2026-09-19 (2): Labour Code 2019 art.46: half a month’s salary for each year of service to an employee of twelve months’ service whose contract ends under art.34(1)–(4), (6), (7), (9), (10) — expiry, resignation, agreement, death; not a disciplinary dismissal or redundancy — over the service not covered by unemployment insurance, whatever its length; Decree 145/2020 art.8(3): a leftover of up to six months counts a half year, over six a whole year; art.8(5): the salary is the average contractual salary of the last six months (the monthly wage of the contract).",
+		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\"] && (employment.service_months - facts.UI.since_months) > 0",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -89,17 +93,18 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(0.5 * person.terms.basic_salary * round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0)",
+				"amount": "round_unit(0.5 * person.terms.monthly_wage * (floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	},
 	{
 		"id": "a29696db-7dd4-5f17-94dd-62b3078f1f61",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "JOB_LOSS_ALLOWANCE",
 		"name": "Trợ cấp mất việc làm (job-loss allowance)",
-		"authority": "Labour Code 2019 art.47: an employee of twelve months’ regular service who loses the job through restructuring, technological change or an economic reason is paid one month’s salary for every year of service, at least two months, the years covered by unemployment insurance excluded.",
+		"authority": "Labour Code 2019 art.47: an employee of twelve months’ regular service who loses the job through restructuring, technological change or an economic reason is paid one month’s salary for every year of service, at least two months, the years covered by unemployment insurance excluded. Applied 2026-09-19 (2): Labour Code 2019 art.47: one month’s salary per year of uncovered service, at least two months; Decree 145/2020 art.8(3) rounds the leftover as for severance.",
 		"eligibility": "employment.service_months >= 12 && employment.exit_reason == \"REDUNDANCY\"",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -108,9 +113,10 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.basic_salary * (round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0 > 2.0 ? round_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0 * 2.0) / 2.0 : 2.0))",
+				"amount": "round_unit(person.terms.monthly_wage * ((floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)) > 2.0 ? (floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) + ((person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 6.0 ? 1.0 : (person.employment.service_months - person.facts.UI.since_months) - floor_unit((person.employment.service_months - person.facts.UI.since_months) / 12.0) * 12.0 > 0.0 ? 0.5 : 0.0)) : 2.0))",
 				"limit": null
 			}
-		]
+		],
+		"fixed": false
 	}
 ]

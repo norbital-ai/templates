@@ -889,7 +889,8 @@ export function calculateFamilyAssessments(options: {
 		gathered,
 		window,
 		period,
-		accumulations: measuredContracts.map(({ calculation }) => calculation.accumulation)
+		accumulations: measuredContracts.map(({ calculation }) => calculation.accumulation),
+		charges: [...chargesByEmployment.values()].flat()
 	});
 	return { measuredContracts, chargesByEmployment, companyCharges, issues };
 }
