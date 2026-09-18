@@ -17,7 +17,24 @@ export const employeeChildSchema = Schema.Struct({
 	 * child is a Singapore citizen); absent is unrecorded. Read as `event.child_citizenship` on
 	 * the per-event entry that names the child, and counted by `children.citizens`.
 	 */
-	citizenship: Schema.optionalKey(Schema.NullOr(Schema.String))
+	citizenship: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * The weeks of the couple's shared parental pool this parent takes for the child, as agreed
+	 * with the other parent (SG GPSPL: ten weeks a couple from 1 April 2026, five each by
+	 * default); absent is the default share. Read as `event.child_shared_weeks`.
+	 */
+	shared_parental_weeks: Schema.optionalKey(
+		Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
+	),
+	/**
+	 * Days employed elsewhere in the months before the confinement, declared by the employee
+	 * (MY EA s.37(2): ninety days in aggregate in the nine months before), where the aggregate
+	 * counts service outside this employment. Absent is none. Read as
+	 * `event.prior_employment_days`.
+	 */
+	prior_employment_days: Schema.optionalKey(
+		Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
+	)
 }).check(
 	Schema.makeFilter(
 		(row) => isCalendarDate(row.child_birthdate) || 'Enter a valid child birth date.'

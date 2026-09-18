@@ -155,6 +155,10 @@ export type PersonContext = {
 		readonly child_citizenship: string;
 		/** The named child's completed years on the rule date, or -1 when no child is named. */
 		readonly child_age: number;
+		/** The weeks of a shared parental pool this parent takes for the named child; 0 unrecorded. */
+		readonly child_shared_weeks: number;
+		/** Days employed elsewhere before the named child's confinement, as declared; 0 unrecorded. */
+		readonly prior_employment_days: number;
 	};
 };
 
@@ -224,6 +228,8 @@ export type PersonInput = {
 	readonly children?: ReadonlyArray<{
 		readonly child_birthdate: string;
 		readonly citizenship?: string | null;
+		readonly shared_parental_weeks?: number | null;
+		readonly prior_employment_days?: number | null;
 	}>;
 	/** Statutory facts by scheme code, in force on `asOf`; absent reads as no facts. */
 	readonly facts?: ReadonlyArray<{
@@ -358,7 +364,9 @@ export function personContext(input: PersonInput): PersonContext {
 			child_index: decodeNumber(input.event?.child_index ?? 0),
 			date: dateKey(input.event?.date),
 			child_citizenship: named?.citizenship ?? '',
-			child_age: named == null ? -1 : completedYears(dateKey(named.child_birthdate), input.asOf)
+			child_age: named == null ? -1 : completedYears(dateKey(named.child_birthdate), input.asOf),
+			child_shared_weeks: named?.shared_parental_weeks ?? 0,
+			prior_employment_days: named?.prior_employment_days ?? 0
 		},
 		facts: Object.fromEntries(
 			(input.facts ?? []).map((fact) => {

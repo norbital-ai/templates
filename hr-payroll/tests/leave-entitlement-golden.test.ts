@@ -56,6 +56,8 @@ type Facts = {
 	readonly childAges?: readonly number[];
 	/** Each recorded child's citizenship, in `childAges` order; absent is unrecorded. */
 	readonly childCitizenship?: readonly (string | null)[];
+	/** The shared parental weeks this parent takes for each child, in `childAges` order. */
+	readonly childSharedWeeks?: readonly (number | null)[];
 	/** Statutory facts on the person root, by scheme code (`facts.SSS.since_months`). */
 	readonly registrations?: ReadonlyArray<{ readonly code: string; readonly since: string }>;
 	/** The event a PER_EVENT row is asked for: what happened, to whom, which child, when. */
@@ -138,7 +140,8 @@ function grant(
 			},
 			children: (facts.childAges ?? []).map((age, index) => ({
 				child_birthdate: bornFor(age, asOf),
-				citizenship: facts.childCitizenship?.[index] ?? null
+				citizenship: facts.childCitizenship?.[index] ?? null,
+				shared_parental_weeks: facts.childSharedWeeks?.[index] ?? null
 			})),
 			event: facts.event ?? null,
 			facts: [
@@ -410,34 +413,61 @@ test('Singapore — the service ladders and the family schemes, on all four seal
 	// The whole point of the 1 April 2026 version: shared parental leave goes from six weeks to ten.
 	// A married father qualifies; a mother qualifies whatever her marital status (MSF); an
 	// unmarried father does not.
-	// The weeks are keyed to the child's date of birth, not the day the leave is taken: on the
-	// April version a child born before 1 April 2026 still carries six.
+	// The weeks are the couple's pool: this parent's grant is the share recorded on the child
+	// (`event.child_shared_weeks`, × 7 days) or the default share — three of six, five of ten —
+	// and never more than the pool. They are keyed to the child's date of birth, not the day the
+	// leave is taken: on the April version a child born before 1 April 2026 still shares six.
 	const born = (date: string) => ({ kind: 'BIRTH', child_index: 1, date }) as const;
 	const FATHER = { ...MARRIED_MALE, childAges: [0], childCitizenship: ['CITIZEN'] } as const;
 	const UNMARRIED_MOTHER = { ...FEMALE, childAges: [0], childCitizenship: ['CITIZEN'] } as const;
 	assert.deepEqual(
 		ladder('SG', 0, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2025-12-15') }),
-		[42, 42, 42]
+		[21, 21, 21]
 	);
 	assert.deepEqual(
 		ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2026-02-01') }),
-		[42, 42, 42]
+		[21, 21, 21]
 	);
 	assert.deepEqual(
 		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2026-04-01') }),
-		[70, 70, 70]
+		[35, 35, 35]
 	);
 	assert.deepEqual(
 		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2026-03-31') }),
-		[42, 42, 42]
+		[21, 21, 21]
 	);
 	assert.deepEqual(
 		ladder('SG', 3, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2027-01-05') }),
-		[70, 70, 70]
+		[35, 35, 35]
 	);
 	assert.deepEqual(
 		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', { ...UNMARRIED_MOTHER, event: born('2026-05-01') }),
+		[35, 35, 35]
+	);
+	// The couple agreed eight of the ten weeks to this parent; a share past the pool is the pool.
+	assert.deepEqual(
+		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', {
+			...FATHER,
+			childSharedWeeks: [8],
+			event: born('2026-05-01')
+		}),
+		[56, 56, 56]
+	);
+	assert.deepEqual(
+		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', {
+			...FATHER,
+			childSharedWeeks: [12],
+			event: born('2026-05-01')
+		}),
 		[70, 70, 70]
+	);
+	assert.deepEqual(
+		ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', {
+			...FATHER,
+			childSharedWeeks: [2],
+			event: born('2026-02-01')
+		}),
+		[14, 14, 14]
 	);
 	assert.deepEqual(
 		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', {

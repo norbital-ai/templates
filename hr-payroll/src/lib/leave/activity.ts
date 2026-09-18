@@ -19,6 +19,7 @@ import {
 } from './balance.js';
 import { assertLeaveWindow, grantedDays, leaveWindowOf, type LeaveWindow } from './entitlement.js';
 import { leavePool, leaveRules, type LeaveContext } from './context.js';
+import { evaluatePersonNumber } from '../../collections/payroll_runs/lib/eligibility.js';
 import {
 	emptyActivityFields,
 	leaveActivityOf,
@@ -216,8 +217,12 @@ export function planLeaveActivity(
 				basis
 			})
 		);
-		// The same day also counts inside the pool this row draws from.
-		if (pools.pool != null) {
+		// The same day also counts inside the pool this row draws from; a rolling pool was judged
+		// over its window instead (`judgePoolRolling`).
+		if (
+			pools.pool != null &&
+			pools.pool.rules.catalogueOn(date).entitlement.rolling_months == null
+		) {
 			const poolWindow = leaveWindowOf(date, pools.pool.rules.catalogueOn(date).entitlement);
 			allocations.push(
 				...allocateLeaveDays({
@@ -234,6 +239,81 @@ export function planLeaveActivity(
 				})
 			);
 		}
+	};
+	/** The person's active time off of this code under their other employments here. */
+	const priorTimeOff = () => {
+		const employeeId = context.employments.find(
+			(row) => row.id === input.employment_id
+		)?.employee_id;
+		return activeTimeOff(
+			(context.priorEntries ?? []).filter(
+				(row) => row.employee_id === employeeId && row.leave_code === rules.selected.code
+			) as unknown as LeaveActivity[]
+		);
+	};
+	/** The days already charged in a window over a set of entries. */
+	const chargedIn = (rows: readonly LeaveActivity[], from: string, to: string): number =>
+		rows
+			.flatMap((row) => row.charges)
+			.filter((row) => row.date >= from && row.date <= to)
+			.reduce((sum, row) => sum + row.days, 0);
+	/** The first day of the `months`-month window ending on `date`. */
+	const rollingFrom = (date: string, months: number): string =>
+		addDays(
+			monthDay(
+				Number(date.slice(0, 4)),
+				Number(date.slice(5, 7)) - 1 - months,
+				Number(date.slice(8, 10))
+			),
+			1
+		);
+	/**
+	 * A row that draws from a rolling-window pool (TW sick leave inside the year-within-two of
+	 * hospitalised sickness) is judged against that window over the pool's own and its consumers'
+	 * charges, not allocated on a leave year the pool does not keep.
+	 */
+	const judgePoolRolling = (charged: readonly LeaveCharge[]): boolean => {
+		const pool = pools.pool;
+		const first = charged[0];
+		if (pool == null || first == null) return false;
+		const poolRule = pool.rules.catalogueOn(first.date).entitlement;
+		if (poolRule.rolling_months == null) return false;
+		for (const charge of charged) {
+			const from = rollingFrom(charge.date, poolRule.rolling_months);
+			const already = chargedIn(activeTimeOff(pool.entries), from, charge.date);
+			const within = charged
+				.filter((row) => row.date >= from && row.date <= charge.date)
+				.reduce((sum, row) => sum + row.days, 0);
+			const granted = grantedDays(poolRule, pool.rules.personOn(charge.date));
+			if (already + within > granted + 1e-9)
+				refuse(
+					`${pool.code} allows ${granted} days in any ${poolRule.rolling_months} months, and ${rules.selected.code} counts inside it; ${already} are already taken in the ${poolRule.rolling_months} months before ${charge.date}.`
+				);
+		}
+		return true;
+	};
+	/**
+	 * A lifetime cap in days (`lifetime_days`, SG GPCL: 42 a child) is counted over every leave
+	 * year and every employment of the person here.
+	 */
+	const judgeLifetimeDays = (charged: readonly LeaveCharge[], quantity: number): void => {
+		const first = charged[0];
+		if (first == null) return;
+		const rule = rules.catalogueOn(first.date).entitlement;
+		if (rule.lifetime_days == null) return;
+		const person = rules.personOn(first.date);
+		const cap =
+			typeof rule.lifetime_days === 'string'
+				? Math.max(0, evaluatePersonNumber(rule.lifetime_days, person))
+				: rule.lifetime_days;
+		const own = activeTimeOff(sameLeave).filter((row) => row.leave_code === rules.selected.code);
+		const taken = [...own, ...priorTimeOff()]
+			.flatMap((row) => row.charges)
+			.reduce((sum, row) => sum + row.days, 0);
+		if (taken + quantity > cap + 1e-9)
+			refuse(
+				`${rules.selected.code} is granted for ${cap} days in a lifetime; ${taken} are already taken and this would add ${quantity}.`
+			);
 	};
 	/**
 	 * A grant that is not an annual pool is judged on the entry itself: a PER_EVENT row against
@@ -256,10 +336,12 @@ export function planLeaveActivity(
 				refuse(
 					`${rules.selected.code} grants ${granted} days for this event; ${quantity} were requested.`
 				);
-			const taken = activeTimeOff(sameLeave).filter(
-				(row) => row.leave_code === rules.selected.code && row.employment_id === input.employment_id
-			).length;
-			// ponytail: counted on this employment; a rehire's earlier contract is not read here.
+			// Counted over the person: this employment's entries and their other employments' here.
+			const taken =
+				activeTimeOff(sameLeave).filter(
+					(row) =>
+						row.leave_code === rules.selected.code && row.employment_id === input.employment_id
+				).length + priorTimeOff().length;
 			if (rule.lifetime_events != null && taken >= rule.lifetime_events)
 				refuse(
 					`${rules.selected.code} is granted for ${rule.lifetime_events} events in a lifetime; this would be event ${taken + 1}.`
@@ -268,18 +350,8 @@ export function planLeaveActivity(
 		}
 		if (rule.rolling_months != null) {
 			for (const charge of charged) {
-				const from = addDays(
-					monthDay(
-						Number(charge.date.slice(0, 4)),
-						Number(charge.date.slice(5, 7)) - 1 - rule.rolling_months,
-						Number(charge.date.slice(8, 10))
-					),
-					1
-				);
-				const already = activeTimeOff(sameLeave)
-					.flatMap((row) => row.charges)
-					.filter((row) => row.date >= from && row.date <= charge.date)
-					.reduce((sum, row) => sum + row.days, 0);
+				const from = rollingFrom(charge.date, rule.rolling_months);
+				const already = chargedIn(activeTimeOff(sameLeave), from, charge.date);
 				const within = charged
 					.filter((row) => row.date >= from && row.date <= charge.date)
 					.reduce((sum, row) => sum + row.days, 0);
@@ -335,6 +407,8 @@ export function planLeaveActivity(
 			}
 			if (charges.length === 0) refuse('The range contains no eligible scheduled work time.');
 			const quantity = charges.reduce((sum, row) => sum + row.days, 0);
+			judgeLifetimeDays(charges, quantity);
+			judgePoolRolling(charges);
 			if (!judgeUnpooled(charges, quantity))
 				for (const debitOf of pooled)
 					debit(debitOf.window, debitOf.date, debitOf.days, 'available');

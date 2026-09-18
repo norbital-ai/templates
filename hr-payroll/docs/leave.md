@@ -35,6 +35,7 @@ The entitlement definition contains:
 | `proration`        | `NONE`, eligible `CALENDAR_MONTHS`, `COMPLETED_MONTHS` or eligible `CALENDAR_DAYS`.                                                                                                              |
 | `rolling_months`   | Measures the window over the trailing months ending on the day instead of the leave year (MY sick leave over 12, TW over 24).                                                                    |
 | `rounding`         | `HALF_DAY` (default) or `WHOLE_DAY`: a part-year grant rounds to the day, a half or more up (MY s.60E(1), SG s.88A(3)).                                                                          |
+| `lifetime_days`    | The most days of the leave a person may ever take, across years and their employments here; a number or an expression over the person (SG GPCL: `children.citizens * 42.0 + …`).                 |
 | `bands`            | Annual quantities by completed months of service on this contract; `days` is a number or an expression over `leave_day` (`leave.month_index`, `leave.day_index`, `leave.days`, the person root). |
 
 The catalogue row beside it: `pay_fraction` (an expression over `leave_day`, the share of the day
@@ -43,7 +44,12 @@ deducted from the wage and reimbursed by the fund outside payroll), `consumes_co
 from another row's pool — TW menstrual leave inside sick leave — and the pool's summary shows its
 consumers), `unit: DAY | HOUR` (an hourly row's entry states `hours`, charged in eighths of a day).
 An entry taken for an event carries `event_kind`, `event_relationship`, `event_child_index` and
-`event_date`; the leave rules read them as `event.*` and the named child's citizenship and age.
+`event_date`; the leave rules read them as `event.*` and the named child's citizenship, age, the
+shared parental weeks this parent takes for the child and the days the mother was employed
+elsewhere before the confinement — the last three recorded on the employee's child rows, since a
+tenant cannot see the other parent's employer or an earlier employer. Lifetime counts
+(`lifetime_events`, `lifetime_days`) run over the person's employments here, so a rehire does not
+reset them.
 
 Queries select the rule and service band effective on the requested date, bounded by the source
 window and the contract's departure. Eligibility uses effective terms and applicable child facts.

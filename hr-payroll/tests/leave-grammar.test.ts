@@ -207,6 +207,138 @@ test('a rolling-window row is measured over the months before each charge, not a
 	assert.equal(take('2026-04-08', '2026-04-08', 52).days, 1);
 });
 
+test('a lifetime cap in days counts every leave year and the person’s other employments here', () => {
+	const context = leaveContext();
+	// GPCL: 42 days a child, as an expression over the person; the fixture's employee has one child.
+	context.employees[0]!.children = [
+		{ child_birthdate: '2024-01-01', relationship: 'CHILD', effective_range: null }
+	];
+	catalogue(context, {
+		id: id(27),
+		code: 'CHILDCARE',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			lifetime_days: '42.0 * children.count',
+			bands: [{ eligibility: '', days: 6 }]
+		}
+	});
+	// Forty days already taken under an earlier contract of the same person.
+	const charges = Array.from({ length: 40 }, (_, index) => ({
+		date: `2024-${String(1 + Math.floor(index / 20)).padStart(2, '0')}-${String(1 + (index % 20)).padStart(2, '0')}`,
+		days: 1
+	}));
+	context.priorEntries = [
+		{
+			id: id(60),
+			employment_id: id(61),
+			employee_id: context.employees[0]!.id,
+			leave_code: 'CHILDCARE',
+			charges: charges as never,
+			as_adjustment_entry: false,
+			reversal_of_id: null,
+			approval_id: null
+		}
+	];
+	const take = (from: string, to: string, n: number) =>
+		planLeaveActivity(
+			context,
+			{ ...submission(timeOff(from, to), `C${n}`), catalogue_id: id(27) },
+			id(n)
+		);
+	// Two more days fit; a third is over the person's lifetime.
+	assert.equal(take('2026-03-02', '2026-03-03', 62).days, 2);
+	assert.match(
+		refusalOf(() => take('2026-03-02', '2026-03-04', 63)),
+		/granted for 42 days in a lifetime; 40 are already taken/
+	);
+	// The other contract's events count toward `lifetime_events` too.
+	catalogue(context, {
+		id: id(28),
+		code: 'PATERNITY2',
+		eligibility: 'event.kind == "BIRTH"',
+		entitlement: {
+			availability: 'PER_EVENT',
+			proration: 'NONE',
+			year_start_month: 1,
+			lifetime_events: 1,
+			bands: [{ eligibility: '', days: 2 }]
+		}
+	});
+	context.priorEntries.push({
+		id: id(64),
+		employment_id: id(61),
+		employee_id: context.employees[0]!.id,
+		leave_code: 'PATERNITY2',
+		charges: [{ date: '2024-05-06', days: 1 }] as never,
+		as_adjustment_entry: false,
+		reversal_of_id: null,
+		approval_id: null
+	});
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{
+					...submission({ ...timeOff('2026-06-01', '2026-06-02'), event_kind: 'BIRTH' }, 'P1'),
+					catalogue_id: id(28)
+				},
+				id(65)
+			)
+		),
+		/granted for 1 events in a lifetime; this would be event 2/
+	);
+});
+
+test('a row drawing from a rolling-window pool is judged on that window, not a leave year', () => {
+	const context = leaveContext();
+	// TW: thirty days of sick leave a year, each counting inside a year of hospitalised sickness
+	// leave measured over any two years.
+	catalogue(context, {
+		id: id(29),
+		code: 'HOSPITALISED',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			rolling_months: 24,
+			bands: [{ eligibility: '', days: 5 }]
+		}
+	});
+	catalogue(context, {
+		id: id(30),
+		code: 'SICK2',
+		consumes_code: 'HOSPITALISED',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			bands: [{ eligibility: '', days: 30 }]
+		}
+	});
+	const take = (from: string, to: string, n: number) =>
+		planLeaveActivity(
+			context,
+			{ ...submission(timeOff(from, to), `S${n}`), catalogue_id: id(30) },
+			id(n)
+		);
+	// Four days of sick leave late in 2025 sit inside the pool's two-year window in 2026: one more
+	// fits, two do not, though the sick row's own year has 26 left. Nothing is allocated on the
+	// pool's leave year — the window is the judge.
+	context.entries.push({ ...take('2025-11-03', '2025-11-06', 70), id: id(70), approval_id: null });
+	const one = take('2026-03-02', '2026-03-02', 71);
+	assert.equal(one.days, 1);
+	assert.deepEqual(
+		one.allocations.map((row) => row.pool ?? null),
+		[null]
+	);
+	assert.match(
+		refusalOf(() => take('2026-03-02', '2026-03-03', 72)),
+		/HOSPITALISED allows 5 days in any 24 months, and SICK2 counts inside it; 4 are already taken/
+	);
+});
+
 test('leave by the hour is a share of the shift, to the eighth, one day at a time', () => {
 	const context = leaveContext();
 	catalogue(context, {

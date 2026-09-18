@@ -1056,5 +1056,8 @@
 	"leave.rounding.HALF_DAY": "Half day",
 	"leave.rounding.WHOLE_DAY": "Whole day (half or more rounds up)",
 	"leave.rolling_months": "Rolling window (months; empty is the leave year)",
-	"leave.lifetime_events": "Lifetime events (empty is unlimited)"
+	"leave.lifetime_events": "Lifetime events (empty is unlimited)",
+	"employee_children.citizenship": "Child’s citizenship (where a statute turns on it)",
+	"employee_children.shared_parental_weeks": "Shared parental weeks this parent takes",
+	"employee_children.prior_employment_days": "Days employed elsewhere before the confinement"
 }

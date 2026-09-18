@@ -62,6 +62,14 @@ export default defineCollection({
 							if (daysProblem != null) refuse(`Entitlement days: ${daysProblem}`);
 						}
 					}
+					if (typeof row.entitlement?.lifetime_days === 'string') {
+						const capProblem = compileExpression({
+							expression: row.entitlement?.lifetime_days ?? '',
+							site: 'person',
+							type: 'days'
+						});
+						if (capProblem != null) refuse(`Lifetime days: ${capProblem}`);
+					}
 					if ((row.pay_fraction ?? '').trim() !== '') {
 						const fractionProblem = compileExpression({
 							expression: row.pay_fraction,

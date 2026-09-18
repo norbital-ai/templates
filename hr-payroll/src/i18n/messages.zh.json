@@ -1056,5 +1056,8 @@
 	"leave.rounding.HALF_DAY": "半天",
 	"leave.rounding.WHOLE_DAY": "整天（半天及以上进位）",
 	"leave.rolling_months": "滚动窗口（月；留空为假期年度）",
-	"leave.lifetime_events": "终身事件数（留空为不限）"
+	"leave.lifetime_events": "终身事件数（留空为不限）",
+	"employee_children.citizenship": "子女国籍（法规相关时填写）",
+	"employee_children.shared_parental_weeks": "本人承担的共享育儿假周数",
+	"employee_children.prior_employment_days": "分娩前在其他雇主的受雇天数"
 }
