@@ -108,6 +108,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			employee: bundle.employee,
 			employment: stint(bundle.employment),
 			fixedAllowances: fixedAllowancesOn(bundle.payRequests, finalDate),
+			monthlyWage6mAverage: monthlyWageAverage(bundle, finalDate, 6),
 			terms: finalTerms,
 			children: bundle.children,
 			company: configuration.company,
@@ -515,7 +516,8 @@ import { prepareLoanCatalogue, prepareLoanPayroll } from './loan.js';
 import {
 	prepareContributionCatalogue,
 	prepareContributionInputs,
-	contributionYearToDate
+	contributionYearToDate,
+	monthlyWageAverage
 } from './contribution.js';
 import { prepareLeaveCatalogue, prepareLeavePayroll } from '../leave/payroll.js';
 import type { PayrollReadApi, ReadLog } from '../../collections/payroll_runs/lib/api.js';
@@ -658,6 +660,7 @@ export function prepareFamilyHistory(
 		return {
 			yearToDate: contributionYearToDate(options),
 			yearEarned: earnedYearToDate(options),
+			earnedByMonth: earnedByMonth(options),
 			priorOvertimeHours: priorOvertimeHours(options),
 			consumedEntries
 		};
@@ -696,6 +699,40 @@ function earnedYearToDate(options: {
 	return earned;
 }
 
+/**
+ * What each employee's earlier payslips earned, by calendar month and component code — every
+ * prior run, not the tax year alone: `earned_average(code, months_back, months)` reads a window
+ * of it (TW 勞保條例施行細則 §27: the three months before the February and August declarations).
+ */
+function earnedByMonth(options: {
+	readonly payslips: readonly WorkspaceRow<'payslips'>[];
+	readonly employmentToEmployee: ReadonlyMap<string, string>;
+	readonly periodByRun: ReadonlyMap<string, string>;
+}): Map<string, Map<string, Map<string, number>>> {
+	const earned = new Map<string, Map<string, Map<string, number>>>();
+	for (const payslip of options.payslips) {
+		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
+		const month = options.periodByRun.get(payslip.payroll_run_id)?.slice(0, 7);
+		if (employeeId == null || month == null) continue;
+		const byMonth = earned.get(employeeId) ?? new Map<string, Map<string, number>>();
+		const byCode = byMonth.get(month) ?? new Map<string, number>();
+		for (const line of payslip.base)
+			byCode.set(
+				line.component_code,
+				(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
+			);
+		for (const line of payslip.adjustments)
+			if (line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT')
+				byCode.set(
+					line.component_code,
+					(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
+				);
+		byMonth.set(month, byCode);
+		earned.set(employeeId, byMonth);
+	}
+	return earned;
+}
+
 /** The year axis of one employment in one run; `earned` reads this run's own lines as they land. */
 function yearContextOf(input: {
 	readonly bundle: EmploymentBundle;
@@ -717,7 +754,7 @@ function yearContextOf(input: {
 		months_employed: employed ? completedMonths(from, addDays(through, 1)) : 0,
 		days_employed: employed ? inclusiveDays(from, through) : 0,
 		last_of_year:
-			closesTaxYear(options.period, startMonth) ||
+			closesTaxYear(options.period, startMonth, bundle.window.payFrequency) ||
 			(dates.exit != null && dates.exit <= options.salary.end),
 		earned: Object.fromEntries(
 			[...new Set(['BASIC', ...options.yearEarned.keys(), ...componentAmounts.keys()])].map(
@@ -788,6 +825,7 @@ export function calculateFamilyAssessments(options: {
 		readonly termsThrough: string;
 		readonly projection: ReturnType<typeof payProjection>;
 		readonly yearEarned: ReadonlyMap<string, number>;
+		readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	}> = [];
 	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
 
@@ -810,6 +848,7 @@ export function calculateFamilyAssessments(options: {
 		// twelve monthly ones.
 		const projection = payProjection(period, taxYearStartMonth, bundle.window);
 		const yearEarned = gathered.yearEarned.get(bundle.employment.employee_id) ?? new Map();
+		const earnedByMonth = gathered.earnedByMonth.get(bundle.employment.employee_id) ?? new Map();
 		const measured = calculateFamilies({
 			bundle,
 			configuration,
@@ -837,6 +876,7 @@ export function calculateFamilyAssessments(options: {
 			measured,
 			projection,
 			yearEarned,
+			earnedByMonth,
 			// These are committed calculation dates, not the future horizon of an entitlement or tax projection.
 			termsThrough: [
 				[
@@ -867,18 +907,21 @@ export function calculateFamilyAssessments(options: {
 	// Every measured run is judged before any is accumulated, so a blocker names every person it
 	// concerns and an undecided cell is reported as the issue it is rather than thrown from the grid.
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
-	const measuredContracts = measuredRuns.map(({ projection, yearEarned, ...run }) => ({
-		...run,
-		...prepareContributionAssessment({
-			measured: run.measured,
-			configuration,
-			projection,
-			yearToDate: gathered.yearToDate,
-			headcount: gathered.headcount,
-			headcountCitizens: gathered.headcountCitizens,
-			yearEarned
+	const measuredContracts = measuredRuns.map(
+		({ projection, yearEarned, earnedByMonth, ...run }) => ({
+			...run,
+			...prepareContributionAssessment({
+				measured: run.measured,
+				configuration,
+				projection,
+				yearToDate: gathered.yearToDate,
+				headcount: gathered.headcount,
+				headcountCitizens: gathered.headcountCitizens,
+				yearEarned,
+				earnedByMonth
+			})
 		})
-	}));
+	);
 
 	// 6 — CONTRIBUTE once per person/entity assessment; outputs remain on their own contracts.
 	const chargesByEmployment = assessContributions(measuredContracts);

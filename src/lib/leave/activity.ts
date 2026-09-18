@@ -380,6 +380,20 @@ export function planLeaveActivity(
 				);
 			return true;
 		}
+		// An unmetered leave granted a fixed number of times in the employment (ID religious duty,
+		// once with the same employer): the events are counted, the days are not.
+		if (rule.availability === 'UNLIMITED' && rule.lifetime_events != null) {
+			const taken =
+				activeTimeOff(sameLeave).filter(
+					(row) =>
+						row.leave_code === rules.selected.code && row.employment_id === input.employment_id
+				).length + priorTimeOff().length;
+			if (taken >= rule.lifetime_events)
+				refuse(
+					`${rules.selected.code} is granted for ${rule.lifetime_events} events in a lifetime; this would be event ${taken + 1}.`
+				);
+			return true;
+		}
 		if (rule.rolling_months != null) {
 			for (const charge of charged) {
 				const from = rollingFrom(charge.date, rule.rolling_months);

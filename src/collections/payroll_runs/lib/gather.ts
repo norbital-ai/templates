@@ -150,6 +150,8 @@ export type GatheredRun = {
 	>;
 	/** employee id → component code → what the person's earlier payslips earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/** employee id → calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
+	readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, ReadonlyMap<string, number>>>;
 	/** employee id → calendar month → regulated overtime hours earlier payslips settled. */
 	readonly priorOvertimeHours: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/**
@@ -340,6 +342,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				headcountCitizens,
 				yearToDate: new Map(),
 				yearEarned: new Map(),
+				earnedByMonth: new Map(),
 				priorOvertimeHours: new Map(),
 				consumedEntries: new Map()
 			};
@@ -479,6 +482,7 @@ type PriorSettlement = {
 		{ employee: number; employer: number; base: number; ordinary: number }
 	>;
 	readonly yearEarned: Map<string, Map<string, number>>;
+	readonly earnedByMonth: Map<string, Map<string, Map<string, number>>>;
 	readonly priorOvertimeHours: Map<string, Map<string, number>>;
 	readonly consumedEntries: Map<string, number>;
 };
@@ -533,6 +537,7 @@ function gatherPriorSettlement(
 		const empty = {
 			yearToDate: totals,
 			yearEarned: new Map<string, Map<string, number>>(),
+			earnedByMonth: new Map<string, Map<string, Map<string, number>>>(),
 			priorOvertimeHours: new Map<string, Map<string, number>>(),
 			consumedEntries
 		};

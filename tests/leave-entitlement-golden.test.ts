@@ -238,7 +238,7 @@ for (const lineage of ['MY', 'MY-nihon'] as const)
 test('Philippines — service incentive leave and the special statutory leaves', () => {
 	// The 2026-01-01 version changes no leave law: the same ladder on both sealed versions.
 	const BIRTH = { kind: 'BIRTH' } as const;
-	for (const version of [0, 1]) {
+	for (const version of [0, 1, 2]) {
 		assert.deepEqual(ladder('PH', version, 'ANNUAL_LEAVE'), [0, 5, 5]);
 		assert.deepEqual(
 			ladder('PH', version, 'PATERNITY_LEAVE', { ...MARRIED_MALE, event: BIRTH }),
@@ -788,6 +788,18 @@ test('Indonesia — the UU 13/2003 leave heads, on all three sealed versions', (
 		assert.deepEqual(
 			ladder('ID', version, 'MATERNITY_LEAVE', { ...FEMALE, event: COMPLICATED }),
 			[182, 182, 182]
+		);
+		// UU 13/2003 art.93(2)(e): religious duty leave is unmetered and paid, once with the employer
+		// (PP 36/2021 art.40(3)) — the event is counted, the days are the duty's own.
+		const religious = leaveCatalogue('ID').filter((row) => row.code === 'RELIGIOUS_DUTY_LEAVE');
+		assert.equal(religious.length, settingsVersions('ID').length);
+		assert.deepEqual(
+			religious.map((row) => [
+				row.entitlement.availability,
+				row.entitlement.lifetime_events,
+				row.is_npl
+			]),
+			settingsVersions('ID').map(() => ['UNLIMITED', 1, false])
 		);
 		assert.deepEqual(ladder('ID', version, 'MATERNITY_LEAVE', { ...MALE, event: BIRTH }), [
 			null,

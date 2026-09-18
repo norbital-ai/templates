@@ -38,6 +38,7 @@ Open prefixes: `company.facts.<key>`.
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
@@ -117,6 +118,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
@@ -163,10 +165,12 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `rates.ordinary_hour` | Ordinary hour rate for the entry date |
 | `limits.<key>` | Evaluated work limit, net worked hours |
 | `period.key` | YYYY-MM or YYYY-MM-n |
+| `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
 | `period.end` | Last day of the pay period |
 | `period.index` | Which instalment of the month this period is |
 | `period.instalments` | Instalments the month is paid in |
+| `period.month_factor` | What this instalment’s wage is multiplied by to state the month’s: 1 for a month, 2 for a half, 52/12 for a week — a MONTH-assessed scheme’s base is scaled by it, so a base that already states the month divides by it |
 | `period.last_of_year` | This period closes the tax year, or is a leaver’s last |
 | `period.days_employed` | Days of the pay month the employment covered, in the proration basis’s units (the payslip’s proration segments summed) |
 | `period.days_in_month` | Calendar days of the pay month |
@@ -223,6 +227,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
@@ -322,6 +327,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
@@ -356,10 +362,12 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `period.key` | YYYY-MM or YYYY-MM-n |
+| `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
 | `period.end` | Last day of the pay period |
 | `period.index` | Which instalment of the month this period is |
 | `period.instalments` | Instalments the month is paid in |
+| `period.month_factor` | What this instalment’s wage is multiplied by to state the month’s: 1 for a month, 2 for a half, 52/12 for a week — a MONTH-assessed scheme’s base is scaled by it, so a base that already states the month divides by it |
 | `period.last_of_year` | This period closes the tax year, or is a leaver’s last |
 | `period.days_employed` | Days of the pay month the employment covered, in the proration basis’s units (the payslip’s proration segments summed) |
 | `period.days_in_month` | Calendar days of the pay month |
@@ -405,13 +413,14 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `minimum_wage(region)` | The version’s minimum wage for a region |
 | `code('X')` | The signed total of the version’s row X this payslip |
 | `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude })` | The signed sum of a catalogue’s rows, selected or excluded |
+| `earned_average(code, months_back, months)` | The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |
 
 ## `scheme` — One statutory scheme for one person and period: rules and rate bands.
 
 Used by: contribution rules — the `when`, `employee` and `employer` of each rung.
 
-Bare names: `base`.
+Bare names: `base`, `ordinary`.
 
 Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person.company.facts.<key>`.
 
@@ -441,6 +450,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
@@ -475,10 +485,12 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `period.key` | YYYY-MM or YYYY-MM-n |
+| `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
 | `period.end` | Last day of the pay period |
 | `period.index` | Which instalment of the month this period is |
 | `period.instalments` | Instalments the month is paid in |
+| `period.month_factor` | What this instalment’s wage is multiplied by to state the month’s: 1 for a month, 2 for a half, 52/12 for a week — a MONTH-assessed scheme’s base is scaled by it, so a base that already states the month divides by it |
 | `period.last_of_year` | This period closes the tax year, or is a leaver’s last |
 | `period.days_employed` | Days of the pay month the employment covered, in the proration basis’s units (the payslip’s proration segments summed) |
 | `period.days_in_month` | Calendar days of the pay month |
@@ -503,6 +515,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `produced.<code>.employer` | The employer share |
 | `produced.<code>.base` | The base the producer was charged on this period — a graded insured amount another scheme measures against; on the company site, the sum over the run |
 | `base` | The result of the scheme’s `assessed_on` formula |
+| `ordinary` | The result of the scheme’s `ordinary_on` formula this period — the base itself where none is stated; `base - ordinary` is the additional part (MY MTD additional remuneration, SG Additional Wages) |
 
 | Function | Meaning |
 | --- | --- |
@@ -552,6 +565,7 @@ Open prefixes: `company.facts.<key>`.
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |

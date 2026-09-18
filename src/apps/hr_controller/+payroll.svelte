@@ -97,7 +97,7 @@
 				const run = runByCycle.get(period);
 				return {
 					period,
-					payDate: payDateFor(period),
+					payDate: payDateFor(period, selectedCompany.pay_frequency),
 					runState: run == null ? null : `${progressOf(run).paid}/${progressOf(run).total}`,
 					attendance: run
 						? `${formatCalendarInstant(run.attendance_from)} → ${formatCalendarInstant(run.attendance_to)}`

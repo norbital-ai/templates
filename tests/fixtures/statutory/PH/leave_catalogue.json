@@ -532,5 +532,272 @@
 		"is_npl": true,
 		"can_encash": false,
 		"encash_on_exit": false
+	},
+	{
+		"id": "118a9a20-213c-59e4-8e81-e60bbf26bd32",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "7a0c1961-8bd2-5dc7-9a0c-c24191a49719",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "VAWC_LEAVE",
+		"name": "Leave for victims of violence against women and their children",
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "f41c6843-776d-5d4c-8bc4-74105356217d",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 2,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "0da7c2d8-3472-5a9d-85f0-5799ddaa70d7",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			],
+			"lifetime_events": 4
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "50b1d689-12af-5979-b30f-d96a6138a7e3",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "SPECIAL_LEAVE_FOR_WOMEN",
+		"name": "Special leave for women (gynaecological surgery)",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "c375560d-3217-552b-8315-a350374dfe8b",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e857869a-2165-5874-86bb-4a3bfc4b0185",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "2c262a49-f163-5e60-be43-337eafed777c",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "951e8fe9-bd27-5a2f-9534-f228de1a5df2",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"days": 60
+				},
+				{
+					"eligibility": "employee.solo_parent",
+					"days": 120
+				},
+				{
+					"eligibility": "",
+					"days": 105
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3b8dcd32-530e-5970-ba8b-8e496e22f066",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "4f27e06f-6609-56be-a657-e7bf31a879fd",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "96fbe184-733a-57ab-8e75-29c3cfcdfa83",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "SOLO_PARENT_LEAVE",
+		"name": "Parental leave for solo parents",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`).",
+		"eligibility": "employee.solo_parent",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 7
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"evidence": "REQUIRED",
+		"encash_on_exit": false
+	},
+	{
+		"id": "abc7b01f-5c5e-5d83-93d3-4bdcf5dd1e1f",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
 	}
 ]

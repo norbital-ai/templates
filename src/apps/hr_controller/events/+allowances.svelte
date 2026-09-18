@@ -221,6 +221,7 @@
 	<MonthPeriodPicker
 		month={pay.period}
 		halves={pay.halves}
+		weeks={pay.weeks}
 		ariaLabel={t('app.events.pay_period')}
 		onMonthChange={(next) => pay.select(next)}
 	/>

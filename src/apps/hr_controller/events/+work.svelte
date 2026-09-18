@@ -883,6 +883,7 @@
 	<MonthPeriodPicker
 		month={period}
 		halves={selectedCompany?.pay_frequency === 'SEMI_MONTHLY'}
+		weeks={selectedCompany?.pay_frequency === 'WEEKLY'}
 		onMonthChange={selectMonth}
 	/>
 {/snippet}

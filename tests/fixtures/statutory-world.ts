@@ -115,7 +115,7 @@ export type Person = {
 		>
 	>;
 	/** The cadence the contract is paid on; `MONTHLY` unless stated. */
-	readonly pay_frequency?: 'MONTHLY' | 'SEMI_MONTHLY' | 'DAILY' | 'HOURLY';
+	readonly pay_frequency?: 'MONTHLY' | 'SEMI_MONTHLY' | 'WEEKLY' | 'DAILY' | 'HOURLY';
 	readonly employment_type?: string;
 	readonly pass_type?: string | null;
 	readonly tax_residency?: string | null;
@@ -137,7 +137,7 @@ export type WorldOptions = {
 	 */
 	readonly period: string;
 	/** The company's calendar; `MONTHLY` unless stated. */
-	readonly payFrequency?: 'MONTHLY' | 'SEMI_MONTHLY';
+	readonly payFrequency?: 'MONTHLY' | 'SEMI_MONTHLY' | 'WEEKLY';
 	readonly people: readonly Person[];
 	/** VN and ID band their minimum wage by region; `companies.region` picks it. */
 	readonly region?: string | null;

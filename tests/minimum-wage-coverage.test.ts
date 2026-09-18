@@ -11,6 +11,7 @@ import { contribute } from '../src/collections/payroll_runs/lib/contribute.ts';
 import { accumulatePayslip } from '../src/collections/payroll_runs/lib/accumulate.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { minimumWageCovers, minimumWageIssues } from '../src/lib/payroll/contribution.ts';
+import { settingsVersions } from './fixtures/statutory-world.ts';
 import { compileExpression } from '../src/lib/expressions/compile.ts';
 
 /** A payslip whose only money is a salary of `base`. */
@@ -158,4 +159,65 @@ test('a covered person under the wage is a warning on the run; an intern is not'
 		issues[0].message,
 		/A is contracted at 1500 a month, below the Malaysia minimum wage of 1700/
 	);
+});
+
+test('a wages order’s rule on the contract’s composition warns like the floor (ID PP 36/2021 art.7(2): basic at least 75%)', () => {
+	// The fixed allowance is a standing PAY request; 2,000,000 basic beside a 1,500,000 fixed
+	// allowance is 57% basic, under the 75% the rule states; 4,500,000 basic clears it.
+	const configuration = {
+		jurisdiction: {
+			work_rules: {
+				wages: {
+					by_region: { Jakarta: 1_000_000 },
+					terms_when: 'terms.basic_salary >= 0.75 * terms.monthly_wage'
+				}
+			}
+		},
+		company: { id: 'co', region: 'Jakarta' }
+	};
+	const bundle = (number: string, basic: number) => ({
+		employment: {
+			id: `e-${number}`,
+			employee_number: number,
+			effective_range: { start: '2025-01-01', end: null }
+		},
+		employee: { nationality: 'IDN', date_of_birth: '2000-01-01', children: [] },
+		children: [],
+		employedDays: { start: '2026-01-01', end: '2026-01-31' },
+		deferral: null,
+		terms: [],
+		payRequests: [
+			{
+				family: 'ALLOWANCE',
+				sign: 1,
+				amount: 1_500_000,
+				window: { start: '2025-01-01', end: null },
+				catalogueComponent: { destination: 'PAY', direction: 'ADD', fixed: true }
+			}
+		],
+		termsHistory: [
+			{
+				id: `t-${number}`,
+				employment_type: 'PERMANENT',
+				base_salary: { value: basic, currency: 'IDR' },
+				effective_range: { start: '2025-01-01', end: null }
+			}
+		]
+	});
+	const issues = minimumWageIssues({
+		configuration,
+		asOf: '2026-01-31',
+		bundles: [bundle('A', 2_000_000), bundle('B', 4_500_000)]
+	} as never);
+	assert.deepEqual(
+		issues.map((issue) => [issue.code, issue.severity, issue.recordId]),
+		[['WAGE_TERMS_RULE', 'WARNING', 't-A']]
+	);
+	assert.match(issues[0]!.message, /basic 2000000, fixed allowances 1500000/);
+	// The ID versions state the rule.
+	for (const version of settingsVersions('ID'))
+		assert.equal(
+			version.work_rules.wages.terms_when,
+			'terms.basic_salary >= 0.75 * terms.monthly_wage'
+		);
 });

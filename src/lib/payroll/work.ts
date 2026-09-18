@@ -1022,7 +1022,8 @@ function measureWorkComponent(
 				period: options.salary,
 				covered,
 				workingDaysIn: options.workingDaysIn,
-				instalments: terms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1
+				instalments: terms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
+				salaryPeriod: terms.pay_frequency === 'WEEKLY' ? 'WEEK' : 'MONTH'
 			});
 			if (segment == null || segment.denominator <= 0 || segment.days <= 0) return;
 			const contract = decodeNumber(baseSalaryOf(terms).value);

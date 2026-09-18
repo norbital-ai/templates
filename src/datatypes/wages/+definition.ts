@@ -29,7 +29,14 @@ export const wagesValueSchema = Schema.Struct({
 	 * reads `wage_floor` as three quarters of the table while `minimum_wage(region)` still
 	 * states the table.
 	 */
-	scale: Schema.optionalKey(Schema.String)
+	scale: Schema.optionalKey(Schema.String),
+	/**
+	 * What a covered contract must satisfy beyond the floor, over the person; absent is nothing.
+	 * A composition rule (ID PP 36/2021 art.7(2): the basic wage is at least 75% of basic plus
+	 * the fixed allowances) is judged where the floor is, and a contract that fails it warns on
+	 * the run the same way.
+	 */
+	terms_when: Schema.optionalKey(Schema.String)
 }).check(
 	Schema.makeFilter((wages) => {
 		const fault =
@@ -40,7 +47,10 @@ export const wagesValueSchema = Schema.Struct({
 			}) ??
 			(wages.scale == null || wages.scale.trim() === ''
 				? null
-				: compileExpression({ expression: wages.scale, site: 'person', type: 'number' }));
+				: compileExpression({ expression: wages.scale, site: 'person', type: 'number' })) ??
+			(wages.terms_when == null || wages.terms_when.trim() === ''
+				? null
+				: compileExpression({ expression: wages.terms_when, site: 'person', type: 'boolean' }));
 		return fault == null || `Minimum wage coverage: ${fault}`;
 	})
 );

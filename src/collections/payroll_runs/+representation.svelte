@@ -47,6 +47,8 @@
 	import {
 		companyPeriods,
 		periodDayRange,
+		periodHalfOf,
+		weekOf,
 		periodMonthOf,
 		periodWindow
 	} from '../../lib/ui/calendar.js';
@@ -172,10 +174,21 @@
 		return windowFor(candidate, company) == null;
 	}
 
-	const semiMonthly = $derived(selectedCompany?.pay_frequency === 'SEMI_MONTHLY');
+	/** A company paying in instalments picks a half or a week, not a month. */
+	const semiMonthly = $derived(
+		selectedCompany?.pay_frequency === 'SEMI_MONTHLY' || selectedCompany?.pay_frequency === 'WEEKLY'
+	);
 
-	/** "Feb 2026 · 1–15": the month in the viewer's locale, then the days the half pays for. */
+	/** "Feb 2026 · 1–15", or "Mar 2026 · week 2 (2026-03-02 – 2026-03-08)": the days the instalment pays for. */
 	function halfLabel(candidate: string): string {
+		const week = weekOf(candidate, selectedCompany?.pay_frequency);
+		if (week != null)
+			return t('component.period_week', {
+				month: monthLabel(intlLocale, periodMonthOf(candidate), 'short'),
+				n: periodHalfOf(candidate) ?? 1,
+				from: week.start,
+				to: week.end
+			});
 		const range = periodDayRange(candidate);
 		return t('component.period_half', {
 			month: monthLabel(intlLocale, periodMonthOf(candidate), 'short'),
@@ -183,10 +196,10 @@
 			to: range.to
 		});
 	}
-	/** The halves a semi-monthly company can still run, most recent first, as the list offers them. */
+	/** The instalments the company can still run, most recent first, as the list offers them. */
 	const halfOptions = $derived(
 		semiMonthly
-			? companyPeriods(periodCandidates, 'SEMI_MONTHLY')
+			? companyPeriods(periodCandidates, selectedCompany?.pay_frequency ?? 'MONTHLY')
 					.filter((candidate) => !isPeriodDisabled(candidate))
 					.toReversed()
 					.map((candidate) => ({

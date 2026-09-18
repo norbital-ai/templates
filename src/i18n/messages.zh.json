@@ -1098,5 +1098,8 @@
 	"renderer.work_rules.rest_average": "平均计算：休息天数 / 跨度天数",
 	"renderer.work_rules.rest_average_hint": "跨度内仍有此数休息日时允许更长连续工作（越南第111(1)条：4 / 30）。留空为严格上限。",
 	"renderer.work_rules.wages": "各地区最低工资",
-	"renderer.work_rules.wages_hint": "方案通过 minimum_wage(region) 读取的下限；applies_when 指明适用对象，scale 按人员系数换算。"
+	"renderer.work_rules.wages_hint": "方案通过 minimum_wage(region) 读取的下限；applies_when 指明适用对象，scale 按人员系数换算。",
+	"app.scheduling.week_picker": "当月周次",
+	"app.scheduling.week_n": "第{n}周",
+	"component.period_week": "{month} · 第{n}周（{from} – {to}）"
 }

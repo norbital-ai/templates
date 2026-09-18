@@ -120,7 +120,9 @@
 					"Jawa Barat": 2191232.18,
 					"Kabupaten Bekasi": 5558515.1
 				},
-				"applies_when": "employment.type != \"INTERN\""
+				"applies_when": "employment.type != \"INTERN\"",
+				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
+				"authority": "Applied 2026-09-19 (3): PP 36/2021 art.7(2) (UU 13/2003 art.94): where the wage is basic plus fixed allowances, the basic is at least 75% of the two together — a contract composed otherwise warns on the run (`terms_when`)."
 			}
 		},
 		"payroll": {
@@ -275,7 +277,9 @@
 					"Jawa Barat": 2317601,
 					"Kabupaten Bekasi": 5938885
 				},
-				"applies_when": "employment.type != \"INTERN\""
+				"applies_when": "employment.type != \"INTERN\"",
+				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
+				"authority": "Applied 2026-09-19 (3): PP 36/2021 art.7(2) (UU 13/2003 art.94): where the wage is basic plus fixed allowances, the basic is at least 75% of the two together — a contract composed otherwise warns on the run (`terms_when`)."
 			}
 		},
 		"payroll": {
@@ -432,7 +436,9 @@
 					"Jawa Barat": 2317601,
 					"Kabupaten Bekasi": 5938885
 				},
-				"applies_when": "employment.type != \"INTERN\""
+				"applies_when": "employment.type != \"INTERN\"",
+				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
+				"authority": "Applied 2026-09-19 (3): PP 36/2021 art.7(2) (UU 13/2003 art.94): where the wage is basic plus fixed allowances, the basic is at least 75% of the two together — a contract composed otherwise warns on the run (`terms_when`)."
 			}
 		},
 		"payroll": {

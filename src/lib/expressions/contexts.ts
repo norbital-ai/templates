@@ -116,6 +116,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of'
 	},
 	{
+		path: 'terms.monthly_wage_6m_average',
+		description:
+			'The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger'
+	},
+	{
 		path: 'terms.statutory_wages',
 		description:
 			'Wages a statutory ceiling reads: basic plus every other cash payment for work in the run'
@@ -239,6 +244,7 @@ const PERSON_BLANK = {
 		monthly_basic: 0,
 		fixed_allowances: 0,
 		monthly_wage: 0,
+		monthly_wage_6m_average: 0,
 		workman: false,
 		statutory_work_category: '',
 		statutory_wages: 0,
@@ -280,10 +286,16 @@ const personBlank = () => structuredClone(PERSON_BLANK);
 
 const PERIOD_FIELDS: readonly ContextField[] = [
 	{ path: 'key', description: 'YYYY-MM or YYYY-MM-n' },
+	{ path: 'month', description: 'The pay month, 1–12' },
 	{ path: 'start', description: 'First day of the pay period' },
 	{ path: 'end', description: 'Last day of the pay period' },
 	{ path: 'index', description: 'Which instalment of the month this period is' },
 	{ path: 'instalments', description: 'Instalments the month is paid in' },
+	{
+		path: 'month_factor',
+		description:
+			'What this instalment’s wage is multiplied by to state the month’s: 1 for a month, 2 for a half, 52/12 for a week — a MONTH-assessed scheme’s base is scaled by it, so a base that already states the month divides by it'
+	},
 	{ path: 'last_of_year', description: 'This period closes the tax year, or is a leaver’s last' },
 	{
 		path: 'days_employed',
@@ -301,10 +313,12 @@ const periodFields = (prefix: string): ContextField[] =>
 
 const PERIOD_BLANK = {
 	key: '',
+	month: 1,
 	start: '',
 	end: '',
 	index: 1,
 	instalments: 1,
+	month_factor: 1,
 	last_of_year: false,
 	days_employed: 0,
 	days_in_month: 0
@@ -414,6 +428,12 @@ const COMMON_FUNCTIONS: readonly ExpressionFunction[] = [
 	{ path: 'progressive(value, table)', description: 'Apply a progressive [from, base, rate] table' }
 ];
 
+const EARNED_AVERAGE: ExpressionFunction = {
+	path: 'earned_average(code, months_back, months)',
+	description:
+		'The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window'
+};
+
 const MINIMUM_WAGE: ExpressionFunction = {
 	path: 'minimum_wage(region)',
 	description: 'The version’s minimum wage for a region'
@@ -438,7 +458,7 @@ const CODE_FUNCTIONS: readonly ExpressionFunction[] = [
 const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 	const functions: ExpressionFunction[] = [...COMMON_FUNCTIONS];
 	if (site === 'person' || site === 'assessment' || site === 'scheme') functions.push(MINIMUM_WAGE);
-	if (site === 'assessment') functions.push(...CODE_FUNCTIONS);
+	if (site === 'assessment') functions.push(...CODE_FUNCTIONS, EARNED_AVERAGE);
 	if (site === 'assessment' || site === 'scheme') functions.push(ANNUAL_EXEMPT);
 	if (site === 'entry')
 		functions.push({
@@ -659,9 +679,14 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		...yearFields('year.'),
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
-		{ path: 'base', description: 'The result of the scheme’s `assessed_on` formula' }
+		{ path: 'base', description: 'The result of the scheme’s `assessed_on` formula' },
+		{
+			path: 'ordinary',
+			description:
+				'The result of the scheme’s `ordinary_on` formula this period — the base itself where none is stated; `base - ordinary` is the additional part (MY MTD additional remuneration, SG Additional Wages)'
+		}
 	],
-	bare: ['base'],
+	bare: ['base', 'ordinary'],
 	open: ['produced', 'year', 'scheme.elections', 'person.company.facts'],
 	functions: functionsFor('scheme'),
 	blank: {
@@ -679,7 +704,8 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			elections: {}
 		},
 		produced: { EPF: { base: 0, employee: 0, employee_this_period: 0, employer: 0 } },
-		base: 0
+		base: 0,
+		ordinary: 0
 	}
 };
 

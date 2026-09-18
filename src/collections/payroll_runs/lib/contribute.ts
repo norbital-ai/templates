@@ -98,6 +98,8 @@ type SchemeAssessment = {
 	};
 	/** component code → what earlier PAID payslips earned this tax year (BASIC always present). */
 	readonly yearEarned: ReadonlyMap<string, number>;
+	/** calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
+	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/** The period being settled: the shared six-member root. */
 	readonly period: {
 		readonly key: string;
@@ -111,6 +113,8 @@ type SchemeAssessment = {
 		 * last, or each its own share (`SPLIT`). The entity's `semi_monthly_statutory_cutoff`.
 		 */
 		readonly monthlyOn: 'FIRST' | 'SPLIT' | 'LAST';
+		/** What this instalment's base is multiplied by to state the month's: 2 for a half, 52/12 for a week. */
+		readonly monthFactor?: number;
 		/**
 		 * The days of the pay month the employment covered, in the proration basis's own units — the
 		 * sum of the payslip's proration segments — beside the month's calendar days, so a scheme can
@@ -229,14 +233,44 @@ function reliefReads(options: {
 
 /** The engine one assessment evaluates with: the region's wage and the payslip's own money. */
 function engineFor(
-	input: Pick<SchemeAssessment, 'minimumWage'>,
+	input: Pick<SchemeAssessment, 'minimumWage' | 'earnedByMonth' | 'period'>,
 	accumulation: AccumulatedPayslip
 ): ExpressionEngine {
 	return runtimeExpressionEngine({
 		minimumWage: () => input.minimumWage ?? 0,
 		code: (code) => accumulation.codes.get(code) ?? 0,
-		catalog: (catalogue, selection) => catalogueSum(accumulation, catalogue, selection)
+		catalog: (catalogue, selection) => catalogueSum(accumulation, catalogue, selection),
+		earnedAverage: (code, monthsBack, months) =>
+			earnedAverage(input.earnedByMonth ?? new Map(), input.period.key, code, monthsBack, months)
 	});
+}
+
+/**
+ * The average of one component's earnings over `months` calendar months, the window ending
+ * `monthsBack` months before the period's month; 0 where no earlier payslip falls in the window
+ * (a formula falls back to the contract). Months inside the window with no payslip count as 0.
+ */
+export function earnedAverage(
+	earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, number>>,
+	periodKey: string,
+	code: string,
+	monthsBack: number,
+	months: number
+): number {
+	if (!(months > 0)) return 0;
+	const year = Number(periodKey.slice(0, 4));
+	const month = Number(periodKey.slice(5, 7));
+	let total = 0;
+	let present = 0;
+	for (let offset = 0; offset < months; offset += 1) {
+		const index = year * 12 + (month - 1) - monthsBack - offset;
+		const key = `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
+		const byCode = earnedByMonth.get(key);
+		if (byCode == null) continue;
+		present += 1;
+		total += byCode.get(code) ?? 0;
+	}
+	return present === 0 ? 0 : total / months;
 }
 
 /** Every expression of one scheme, for the context keys it names. */
@@ -344,8 +378,10 @@ function schemeContext(options: {
 			key: input.period.key,
 			start: input.period.start,
 			end: input.period.end,
+			month: Number(input.period.key.slice(5, 7)),
 			index: input.period.index,
 			instalments: input.period.instalments,
+			month_factor: input.period.monthFactor ?? input.period.instalments,
 			last_of_year: input.period.lastOfYear,
 			days_employed: input.period.daysEmployed,
 			days_in_month: input.period.daysInMonth
@@ -486,7 +522,10 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			reads: reliefs
 		});
 		const base = monthlyAssessed
-			? cents(evaluated.base * input.period.instalments, input.currency)
+			? cents(
+					evaluated.base * (input.period.monthFactor ?? input.period.instalments),
+					input.currency
+				)
 			: evaluated.base;
 		// The ordinary part of the base, where the ceiling splits it (`ordinary_on`).
 		const ordinaryOn = (contribution.row.ordinary_on ?? '').trim();
@@ -535,7 +574,10 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 									reads: reliefs
 								});
 								const ownBase = monthlyAssessed
-									? cents(own.base * input.period.instalments, input.currency)
+									? cents(
+											own.base * (input.period.monthFactor ?? input.period.instalments),
+											input.currency
+										)
 									: own.base;
 								return { base: ownBase, inputs: own.selected };
 							})
@@ -559,7 +601,18 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 
 		const context = {
 			...schemeContext({ input, contribution, status, expressions, produced, reads: reliefs }),
-			base
+			base,
+			// The `ordinary_on` part of this period's base, the base itself where the scheme states
+			// none: a rule that prices the rest differently (MY MTD's additional remuneration) reads it.
+			ordinary:
+				ordinary == null
+					? base
+					: monthlyAssessed
+						? cents(
+								ordinary * (input.period.monthFactor ?? input.period.instalments),
+								input.currency
+							)
+						: ordinary
 		};
 		const rule = selectRule(contribution.row.rules, context, engine);
 		if (rule == null) {

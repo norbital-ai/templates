@@ -1098,5 +1098,8 @@
 	"renderer.work_rules.rest_average": "Averaging: rest days / span days",
 	"renderer.work_rules.rest_average_hint": "A longer run stands where the span ending on it still holds this many rest days (VN art.111(1): 4 / 30). Empty is a strict ceiling.",
 	"renderer.work_rules.wages": "Minimum wage by region",
-	"renderer.work_rules.wages_hint": "The floor a scheme reads through `minimum_wage(region)` and the run checks a contract against; `applies_when` says who the wages order covers, `scale` restates the floor on the person’s own factor."
+	"renderer.work_rules.wages_hint": "The floor a scheme reads through `minimum_wage(region)` and the run checks a contract against; `applies_when` says who the wages order covers, `scale` restates the floor on the person’s own factor.",
+	"app.scheduling.week_picker": "Week of the month",
+	"app.scheduling.week_n": "Wk {n}",
+	"component.period_week": "{month} · week {n} ({from} – {to})"
 }
