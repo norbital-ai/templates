@@ -112,8 +112,8 @@ test(
 				);
 				await session.query(
 					`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification,
-						statutory_work_category, employment_type, job_title, agreed_days_per_week, shift_pattern_id, effective_range)
-					 values ($1, $2, $3, $4, $5, $6, $7, $8, 6, $9, $10)`,
+						statutory_work_category, employment_type, job_title, shift_pattern_id, effective_range)
+					 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 					[
 						crypto.randomUUID(),
 						employmentId,

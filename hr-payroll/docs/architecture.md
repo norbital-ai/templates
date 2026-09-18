@@ -436,13 +436,13 @@ destination. See [Leave](leave.md) for the full validation and correction contra
 
 ### Schedule, overrides and observed time
 
-Effective employment terms carry the shift assignment: `agreed_days_per_week` (1–7, always set —
-the proration divisor) and an optional named `shift_patterns` row whose cycle projects from its
-anchor and works the agreed days in each of its weeks. A pattern may instead be a declaration
-("Rostered 6 days": days and paid minutes per week, no codes inside): the roster stays the record
-that prices the person, and a month short of the declaration is a `WORKLOAD_BELOW_TERMS` warning
-in which a calendar holiday counts as a met day. No pattern means rostered: every priced day
-needs a roster row with a shift, and the run refuses the person by name and period otherwise.
+Effective employment terms carry the shift assignment: the named `shift_patterns` row, always
+set, and the days a week the contract works are the pattern's — a cycle projects from its anchor
+and works the WORK days its weeks hold; a declaration ("Rostered 6 days": `days_per_week` and paid
+minutes a week, no codes inside) projects nothing, so every priced day needs a roster row with a
+shift and the run refuses the person by name and period otherwise. Under a declaration the roster
+stays the record that prices the person, and a month short of it is a `WORKLOAD_BELOW_TERMS`
+warning in which a calendar holiday counts as a met day.
 
 A `work_days` row belongs to one contract and date. Its planned roster code overrides that date's
 assignment; its actual side contains worked intervals and break minutes. An attendance-only row

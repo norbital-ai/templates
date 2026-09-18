@@ -1110,7 +1110,6 @@ test('Philippines — a daily-paid employee’s hour is the day over eight, what
 					row.employment_id ===
 					world.employments.find((e) => e.employee_number === 'PH-DAILY-6')!.id
 			)!;
-			terms.agreed_days_per_week = 6;
 			world.shift_patterns[0]!.pattern.days[5] = world.shift_patterns[0]!.pattern.days[0]!;
 			punchPh(world, 'PH-DAILY-6', '2026-01-05', '09:00', '20:00'); // two hours beyond eight
 		}

@@ -905,14 +905,19 @@ const rostered = (
 		company_id: COMPANY_ID,
 		code: 'ROSTER',
 		name: 'As assigned',
-		pattern: { expectation: { kind: 'AS_ASSIGNED', period: 'WEEK', maximum_paid_minutes: null } },
+		pattern: {
+			expectation: {
+				kind: 'AS_ASSIGNED',
+				days_per_week: daysPerWeek,
+				maximum_paid_minutes_per_week: null
+			}
+		},
 		effective_range: { start: '2000-01-03', end: null },
 		approval_id: null
 	});
 	const employment = world.employments.find((row) => row.employee_number === key)!;
 	const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
 	term.shift_pattern_id = ROSTER_PATTERN;
-	term.agreed_days_per_week = daysPerWeek;
 	for (let date = from; date <= to;) {
 		const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
 		if (weekday !== 0 && (daysPerWeek === 6 || weekday !== 6))

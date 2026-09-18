@@ -402,9 +402,9 @@ export function rosteredWorkCodeMaps(
  *
  * This is the arithmetic `validateRosterSchedule` used to run at roster publication, moved to where
  * the money is: a rostered employment has no pattern day, so every WORK day is an explicit row and
- * a date with no row is nothing. `GUARANTEED_SCHEDULE` and `AS_ASSIGNED` expectations are checked
- * here with the same `WORKLOAD_BELOW_TERMS` and `WORKLOAD_ABOVE_TERMS` sentences. Patterned
- * employments are not read: their month must equal the pattern, and that is refused at write time.
+ * a date with no row is nothing. A declared week (`GUARANTEED_SCHEDULE`, `AS_ASSIGNED`) is scaled
+ * to the window's active days over seven and checked with the `WORKLOAD_BELOW_TERMS` and
+ * `WORKLOAD_ABOVE_TERMS` sentences. Cycle employments are not read: their month is the cycle.
  *
  * A MONTHLY rostered employment with zero expected days in the window is refused outright: a
  * monthly salary with no schedule cannot derive ordinary hours. `GUARANTEED_SCHEDULE` supplies
@@ -413,14 +413,13 @@ export function rosteredWorkCodeMaps(
 type RosteredExpectation =
 	| {
 			readonly kind: 'GUARANTEED_SCHEDULE';
-			readonly period: 'WEEK' | 'MONTH';
-			readonly required_work_days: number;
-			readonly required_paid_minutes: number;
+			readonly days_per_week: number;
+			readonly paid_minutes_per_week: number;
 	  }
 	| {
 			readonly kind: 'AS_ASSIGNED';
-			readonly period: 'WEEK' | 'MONTH';
-			readonly maximum_paid_minutes: number | null;
+			readonly days_per_week: number;
+			readonly maximum_paid_minutes_per_week: number | null;
 	  };
 
 type RosteredValidationTerms = {
@@ -542,8 +541,7 @@ export function validateRosteredExpectations(options: {
 					coversDate(term.effective_range, date) && !offCodeIds.has(explicitByDate.get(date) ?? '')
 			);
 			if (activeDates.length === 0) continue;
-			const referenceDays = expectation.period === 'WEEK' ? 7 : windowDates.length;
-			const fraction = activeDates.length / referenceDays;
+			const fraction = activeDates.length / 7;
 			const worked = activeDates.filter((date) => {
 				const codeId = explicitByDate.get(date);
 				return codeId != null && options.workCodeIds.has(codeId);
@@ -560,8 +558,8 @@ export function validateRosteredExpectations(options: {
 				// A guarantee owes whole days: 6 a week over 39 days is 33.4, and the roster meets it
 				// with 33. Rounding up refused a leaver's real six-day roster for a day nobody owed;
 				// the minutes owed are those whole days' share, not the fraction's.
-				const requiredDays = decodeNumber(expectation.required_work_days);
-				const requiredMinutes = decodeNumber(expectation.required_paid_minutes);
+				const requiredDays = decodeNumber(expectation.days_per_week);
+				const requiredMinutes = decodeNumber(expectation.paid_minutes_per_week);
 				// A holiday counts as one guaranteed day's minutes (EA s.60D: a paid holiday).
 				const actualMinutes =
 					workedMinutes +
@@ -586,15 +584,16 @@ export function validateRosteredExpectations(options: {
 					});
 				}
 			} else if (
-				expectation.maximum_paid_minutes != null &&
-				workedMinutes > Math.floor(decodeNumber(expectation.maximum_paid_minutes) * fraction)
+				expectation.maximum_paid_minutes_per_week != null &&
+				workedMinutes >
+					Math.floor(decodeNumber(expectation.maximum_paid_minutes_per_week) * fraction)
 			) {
 				issues.push({
 					code: 'WORKLOAD_ABOVE_TERMS',
 					severity: 'WARNING',
 					message:
 						`The pay window assigns ${worked.length} work day(s) and ${workedMinutes} paid minute(s) ` +
-						`for ${employment.employee_number}, above the employment cap of ${decodeNumber(expectation.maximum_paid_minutes)} minute(s).`,
+						`for ${employment.employee_number}, above the employment cap of ${decodeNumber(expectation.maximum_paid_minutes_per_week)} minute(s) a week.`,
 					collection: 'employments',
 					recordId: employment.id
 				});

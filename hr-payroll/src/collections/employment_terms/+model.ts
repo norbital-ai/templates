@@ -65,27 +65,19 @@ export default defineModel(
 		/** The entity's own benefit tier; catalogue predicates read it as terms.grade. */
 		grade: text(),
 		/**
-		 * The shift assignment's first half: how many days a week this contract agrees to work,
-		 * 1–7. Always set. Proration divides by it (`work.ts` / `proration.ts` read this column),
-		 * whether or not a pattern is named: a rostered person is not ad hoc, their days move
-		 * inside a five- or six-day week.
-		 */
-		agreed_days_per_week: integer().notNull(),
-		/**
 		 * The contracted ordinary hours a week, where the contract states them: the week an
 		 * HOURLY rate is annualised over and the day length a person with no roster is measured on.
-		 * Null where the roster measures it — the shift's paid hours over the agreed days.
+		 * Null where the roster measures it — the shift's paid hours over the pattern's days.
 		 */
 		ordinary_hours_per_week: integer(),
 		/**
-		 * The shift assignment's second half, optional: the named `shift_patterns` row its days are
-		 * projected from. Workdays, hours, rest and off days derive from the pattern; a `work_days`
-		 * row overrides one day of it. A named cycle must work `agreed_days_per_week` days in each
-		 * of its weeks (refused otherwise). NULL means rostered: nothing is projected, and the
-		 * person must hold a roster with a shift for every day payroll prices, or the run refuses
-		 * them by name.
+		 * The shift assignment: the named `shift_patterns` row. The days a week the contract works
+		 * are the pattern's — a cycle's WORK days, or a declared week's figure — and workdays,
+		 * hours, rest and off days derive from it; a `work_days` row overrides one day. A declared
+		 * week ("Rostered 6 days") projects nothing: the person holds a roster with a shift for
+		 * every day payroll prices, and the run measures the month against the declaration.
 		 */
-		shift_pattern_id: uuid(),
+		shift_pattern_id: uuid().notNull(),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
 		 * The terms' own title, composed in SQL.
@@ -101,7 +93,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'The effective-dated pay, jurisdiction residency, classification and shift assignment (agreed days per week, optional pattern) of one employment contract, owned by that contract. Schedule hours, workdays, rest days and off days derive from the named pattern; without one the roster is the schedule.',
+			'The effective-dated pay, jurisdiction residency, classification and shift assignment (the named pattern) of one employment contract, owned by that contract. The days a week, schedule hours, workdays, rest days and off days derive from the named pattern; a declared-week pattern leaves the roster as the schedule.',
 		recordLabel: 'summary',
 		icon: 'lucide:file-signature',
 		// Exclusion: employment =, effective range &&. One employment has exactly one set of terms

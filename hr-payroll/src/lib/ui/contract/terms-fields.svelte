@@ -55,16 +55,14 @@
 
 	<FormSection title={t('component.shift_assignment')} hint={t('component.shift_assignment_hint')}>
 		<Grid gap="sm" minimum="compact">
-			<Field name="agreed_days_per_week" label={t('component.agreed_days_per_week')} />
 			<Field
 				name="ordinary_hours_per_week"
 				label={t('component.ordinary_hours_per_week')}
 				description={t('component.ordinary_hours_per_week_hint')}
 			/>
 			<!--
-				Optional: the entity's own named cycle. Empty means rostered — every priced day needs a
-				roster row with a shift, and the transform refuses a cycle whose weeks disagree with the
-				agreed days.
+				The entity's own named pattern: a day cycle, or a declared week ("Rostered 6 days") under
+				which every priced day needs a roster row with a shift. The days a week are the pattern's.
 			-->
 			<Field
 				name="shift_pattern_id"

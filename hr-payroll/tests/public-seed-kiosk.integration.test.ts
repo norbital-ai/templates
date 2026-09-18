@@ -121,14 +121,32 @@ test(
 
 			// No plan at all: the person is not rostered today, which is not an error.
 			await planToday(null);
-			// The terms' pattern would otherwise project one, so it is removed for this case only.
+			// The terms' cycle would otherwise project one, so for this case only the terms point at
+			// a declared week, which projects nothing.
 			const [terms] = (await session.query(
 				'select shift_pattern_id from employment_terms where employment_id = $1',
 				[EMPLOYMENT_ID]
 			)) as ReadonlyArray<{ readonly shift_pattern_id: string | null }>;
+			const declaredId = crypto.randomUUID();
 			await session.query(
-				'update employment_terms set shift_pattern_id = null where employment_id = $1',
-				[EMPLOYMENT_ID]
+				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range)
+				 values ($1, $2, 'R5D', 'Rostered 5 days', $3, $4)`,
+				[
+					declaredId,
+					COMPANY_ID,
+					{
+						expectation: {
+							kind: 'AS_ASSIGNED',
+							days_per_week: 5,
+							maximum_paid_minutes_per_week: null
+						}
+					},
+					{ start: '2000-01-03', end: null }
+				]
+			);
+			await session.query(
+				'update employment_terms set shift_pattern_id = $2 where employment_id = $1',
+				[EMPLOYMENT_ID, declaredId]
 			);
 			const unrostered = await punch();
 			assert.equal(unrostered.status, 'blocked', JSON.stringify(unrostered));

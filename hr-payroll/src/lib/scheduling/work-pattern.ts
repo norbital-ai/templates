@@ -125,12 +125,11 @@ export function patternWorkload(
 	if (pattern == null) return null;
 	if ('expectation' in pattern) {
 		if (pattern.expectation.kind === 'AS_ASSIGNED') return null;
-		const referenceDays = pattern.expectation.period === 'WEEK' ? 7 : 30;
 		return {
-			work_days: pattern.expectation.required_work_days,
-			paid_minutes: pattern.expectation.required_paid_minutes,
-			reference_days: referenceDays,
-			average_weekly_paid_minutes: (pattern.expectation.required_paid_minutes * 7) / referenceDays
+			work_days: pattern.expectation.days_per_week,
+			paid_minutes: pattern.expectation.paid_minutes_per_week,
+			reference_days: 7,
+			average_weekly_paid_minutes: pattern.expectation.paid_minutes_per_week
 		};
 	}
 
@@ -189,21 +188,16 @@ export function patternWorkDaysPerWeek(
 }
 
 /**
- * Why a shift assignment is refused, or null when it holds: the agreed days are a whole number
- * from 1 to 7, and a named cycle works exactly that many days in each of its weeks. The terms
- * transform refuses with this sentence; the change-terms flow shows it before submitting.
+ * The days a week a pattern works: a declaration's own figure, or a cycle's WORK days averaged
+ * over its weeks (an alternate-Saturday fortnight is 5.5). This is the contract's week — the
+ * divisor of a DAILY rate's month, the days a normal week's hours spread over — and a terms row
+ * has no figure of its own beside it.
  */
-export function shiftAssignmentRefusal(options: {
-	readonly agreedDaysPerWeek: unknown;
-	readonly pattern: ShiftPatternLike | null;
-	readonly rosterCodeById: ReadonlyMap<string, RosterCodeLike>;
-}): string | null {
-	const agreed = options.agreedDaysPerWeek;
-	if (typeof agreed !== 'number' || !Number.isInteger(agreed) || agreed < 1 || agreed > 7)
-		return 'Agreed working days per week must be a whole number from 1 to 7.';
-	if (options.pattern == null) return null;
-	const weeks = patternWorkDaysPerWeek(options.pattern.pattern, options.rosterCodeById);
-	const off = weeks.find((days) => days !== agreed);
-	if (off === undefined) return null;
-	return `Shift pattern ${options.pattern.code} works ${off} days in a week; the contract agrees ${agreed}. Pick a pattern of ${agreed} working days a week, or leave the pattern empty and roster the person.`;
+export function patternDaysPerWeek(
+	pattern: WorkPattern,
+	rosterCodeById: ReadonlyMap<string, RosterCodeLike>
+): number {
+	if ('expectation' in pattern) return pattern.expectation.days_per_week;
+	const weeks = patternWorkDaysPerWeek(pattern, rosterCodeById);
+	return weeks.reduce((sum, days) => sum + days, 0) / weeks.length;
 }

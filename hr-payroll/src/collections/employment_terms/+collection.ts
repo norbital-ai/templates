@@ -5,11 +5,6 @@ import { boundToContract, consumedTermsThrough } from '../../lib/employment-cont
 import { readRange } from '../payroll_runs/lib/effective.js';
 import { dateKey } from '../../lib/iso-day.js';
 import { stableJson } from '../../lib/jurisdiction_settings.js';
-import {
-	shiftAssignmentRefusal,
-	type ShiftPatternLike
-} from '../../lib/scheduling/work-pattern.js';
-import type { RosterCodeLike } from '../../lib/scheduling/roster-code.js';
 
 const columns = {
 	employment_id: true,
@@ -24,13 +19,10 @@ const columns = {
 	job_title: true,
 	payroll_group: true,
 	grade: true,
-	agreed_days_per_week: true,
 	ordinary_hours_per_week: true,
 	shift_pattern_id: true,
 	effective_range: true
 } as const;
-
-const LIMIT = 20_000;
 
 /**
  * Preserve consumed term history; amend an unconsumed future portion by closing its range and
@@ -38,9 +30,8 @@ const LIMIT = 20_000;
  * non-overlap on every write, including batches. Terms that supplied consumed history are not
  * deleted either: the delete grant (`peopleGrants`) reads the same consumption.
  *
- * The shift assignment is judged here too: `agreed_days_per_week` is 1–7, and a named cycle must
- * work that many days in each of its weeks. Two waves: consumption and the named pattern rows,
- * then the roster codes those cycles name.
+ * The shift assignment is judged here too: every terms row names a pattern that still exists —
+ * the pattern is where the contract's week lives. Two waves: consumption and the named pattern rows.
  */
 export default defineCollection({
 	model,
@@ -65,46 +56,28 @@ export default defineCollection({
 				[
 					consumedTermsThrough(db, employmentIds),
 					patternIds.length === 0
-						? Effect.succeed([] as ShiftPatternLike[])
+						? Effect.succeed([] as { id: string }[])
 						: db.shift_patterns.findMany({
 								where: { id: { in: patternIds } },
-								columns: { id: true, code: true, pattern: true, effective_range: true },
+								columns: { id: true },
 								limit: patternIds.length
 							})
 				],
 				{ concurrency: 'unbounded' }
 			);
-			const patternById = new Map(patterns.map((row) => [row.id, row]));
-			const codeIds = [
-				...new Set(
-					patterns.flatMap((row) =>
-						'days' in row.pattern ? row.pattern.days.map((day) => day.roster_code_id) : []
-					)
-				)
-			];
-			const codes =
-				codeIds.length === 0
-					? []
-					: yield* db.shift_definitions.findMany({
-							where: { id: { in: codeIds } },
-							columns: { id: true, code: true, variant: true },
-							limit: LIMIT
-						});
-			const rosterCodeById = new Map<string, RosterCodeLike>(codes.map((row) => [row.id, row]));
+			const patternIdsFound = new Set(patterns.map((row) => row.id));
 			return inputs.map((input, index) => {
 				const stored = existing[index];
 				const employmentId = input.employment_id ?? stored?.employment_id;
 				if (!employmentId) refuse('Employment terms must reference an employment contract.');
 				const result = boundToContract({ ...input, employment_id: employmentId }, stored);
 				const patternId = input.shift_pattern_id ?? stored?.shift_pattern_id ?? null;
-				if (patternId != null && !patternById.has(patternId))
+				if (patternId == null)
+					refuse(
+						'Employment terms name a shift pattern: the pattern is where the contract’s week lives.'
+					);
+				if (!patternIdsFound.has(patternId))
 					refuse('The shift pattern these terms name no longer exists.');
-				const unfit = shiftAssignmentRefusal({
-					agreedDaysPerWeek: input.agreed_days_per_week ?? stored?.agreed_days_per_week,
-					pattern: patternId == null ? null : (patternById.get(patternId) ?? null),
-					rosterCodeById
-				});
-				if (unfit != null) refuse(unfit);
 				const range = readRange(input.effective_range ?? stored?.effective_range);
 				if (!range || (range.end != null && dateKey(range.end) < dateKey(range.start)))
 					refuse('Employment terms need an ordered inclusive effective range.');

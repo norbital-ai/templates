@@ -51,7 +51,6 @@
 				job_title: true,
 				payroll_group: true,
 				grade: true,
-				agreed_days_per_week: true,
 				ordinary_hours_per_week: true,
 				shift_pattern_id: true,
 				pass_type: true,
@@ -75,7 +74,6 @@
 		readonly job_title: string | null;
 		readonly payroll_group: string | null;
 		readonly grade: string | null;
-		readonly agreed_days_per_week: number;
 		readonly ordinary_hours_per_week: number | null;
 		readonly shift_pattern_id: string | null;
 		readonly pass_type: string | null;
@@ -113,7 +111,6 @@
 	let jobTitle = $state('');
 	let payrollGroup = $state('');
 	let grade = $state('');
-	let agreedDaysPerWeek = $state('');
 	let shiftPatternId = $state('');
 	let formError = $state<string | null>(null);
 	let submitting = $state(false);
@@ -134,7 +131,6 @@
 		jobTitle = row.job_title ?? '';
 		payrollGroup = row.payroll_group ?? '';
 		grade = row.grade ?? '';
-		agreedDaysPerWeek = String(row.agreed_days_per_week);
 		shiftPatternId = row.shift_pattern_id ?? '';
 		formError = null;
 	});
@@ -191,9 +187,8 @@
 			formError = t('offboarding.need_valid_salary');
 			return null;
 		}
-		const agreedDays = numberFrom(agreedDaysPerWeek, Number.NaN);
-		if (!Number.isInteger(agreedDays) || agreedDays < 1 || agreedDays > 7) {
-			formError = t('offboarding.need_agreed_days');
+		if (shiftPatternId === '') {
+			formError = t('offboarding.need_pattern');
 			return null;
 		}
 		const facts: ChangeTermsFacts = {
@@ -209,9 +204,8 @@
 			job_title: jobTitle.trim() === '' ? null : jobTitle.trim(),
 			payroll_group: payrollGroup.trim() === '' ? null : payrollGroup.trim(),
 			grade: grade.trim() === '' ? null : grade.trim(),
-			agreed_days_per_week: agreedDays,
 			ordinary_hours_per_week: row.ordinary_hours_per_week,
-			shift_pattern_id: shiftPatternId === '' ? null : shiftPatternId,
+			shift_pattern_id: shiftPatternId,
 			// Carried unchanged: the successor keeps the pass, tax residency and notice of the row it replaces.
 			pass_type: row.pass_type,
 			tax_residency: row.tax_residency,
@@ -300,20 +294,6 @@
 			hint={t('component.shift_assignment_hint')}
 		>
 			<Grid gap="sm" minimum="compact">
-				<label class="text-sm font-medium"
-					><Stack gap="xs"
-						>{t('component.agreed_days_per_week')}<Input
-							type="number"
-							min="1"
-							max="7"
-							step="1"
-							value={agreedDaysPerWeek}
-							oninput={(event) => {
-								agreedDaysPerWeek = event.currentTarget.value;
-							}}
-						/></Stack
-					></label
-				>
 				{@render select(
 					t('component.shift_pattern'),
 					shiftPatternId,

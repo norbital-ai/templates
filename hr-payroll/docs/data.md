@@ -66,10 +66,10 @@ engagement's pay (`base_salary`, `pay_frequency`), standing (`residency_status`,
 organisation (`department`, `job_title`, `payroll_group`) and shift assignment; a contract change
 carries the three declared facts to the successor row unchanged. The contract is the unit the
 profile shows and the engine reads; a revision is a new dated row under the same contract, never a
-second contract. The shift assignment is `employment_terms.agreed_days_per_week` (integer 1–7,
-required — the proration divisor `src/lib/payroll/work.ts` / `proration.ts` read) and the optional
-`employment_terms.shift_pattern_id`; a named cycle must work `agreed_days_per_week` days in each of
-its weeks, and a term with no pattern must be rostered for every period payroll prices.
+second contract. The shift assignment is `employment_terms.shift_pattern_id` (required): the
+pattern is where the contract's week lives — a cycle's WORK days or a declared week's
+`days_per_week` — and `src/lib/payroll/work.ts` reads the days a week from it. A declared-week
+pattern projects nothing, so its person is rostered for every period payroll prices.
 
 Jurisdiction-relative residency status belongs to effective employment terms, with the day that
 standing began (`residency_since`). Move an existing status only when its contract's jurisdiction

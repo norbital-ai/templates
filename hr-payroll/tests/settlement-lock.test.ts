@@ -93,9 +93,8 @@ const BASIC = {
 const PATTERN = {
 	expectation: {
 		kind: 'GUARANTEED_SCHEDULE',
-		period: 'WEEK',
-		required_work_days: 6,
-		required_paid_minutes: 2700
+		days_per_week: 6,
+		paid_minutes_per_week: 2700
 	}
 };
 
@@ -127,7 +126,6 @@ function measure(overrides = {}) {
 				employment_id: 'emp-1',
 				base_salary: { value: 3451, currency: 'MYR' },
 				pay_frequency: 'MONTHLY',
-				agreed_days_per_week: 5,
 				shift_pattern_id: 'pattern-1',
 				statutory_work_category: 'NON_MANUAL',
 				work_classification: 'NON_MANUAL',

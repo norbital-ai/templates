@@ -36,7 +36,6 @@ const terms = {
 			job_title: true,
 			payroll_group: true,
 			grade: true,
-			agreed_days_per_week: true,
 			shift_pattern_id: true,
 			effective_range: true
 		}

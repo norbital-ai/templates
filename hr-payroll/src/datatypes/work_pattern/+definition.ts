@@ -5,31 +5,35 @@ const patternDayValueSchema = Schema.Struct({
 	roster_code_id: Schema.String.check(Schema.isUUID())
 });
 
-const periodSchema = Schema.Literals(['WEEK', 'MONTH']);
+/** Days a week, 1–7; a half day is an alternate-Saturday week (5.5). */
+const daysPerWeekSchema = Schema.Finite.check(
+	Schema.isGreaterThan(0),
+	Schema.isLessThanOrEqualTo(7)
+);
 
 const rosterExpectationValueSchema = Schema.Union([
 	Schema.Struct({
 		kind: Schema.Literal('GUARANTEED_SCHEDULE'),
-		period: periodSchema,
-		required_work_days: Schema.Finite.check(Schema.isGreaterThan(0)),
-		required_paid_minutes: Schema.Int.check(Schema.isGreaterThan(0))
+		days_per_week: daysPerWeekSchema,
+		paid_minutes_per_week: Schema.Int.check(Schema.isGreaterThan(0))
 	}),
 	Schema.Struct({
 		kind: Schema.Literal('AS_ASSIGNED'),
-		period: periodSchema,
-		maximum_paid_minutes: Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))
+		days_per_week: daysPerWeekSchema,
+		maximum_paid_minutes_per_week: Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))
 	})
 ]);
 
 /**
- * The employment's one canonical schedule term.
+ * The employment's one canonical schedule term. The days a week a contract works live here and
+ * nowhere else: a cycle works the WORK days its weeks hold, a declaration states them.
  *
  * `days` is a repeating cycle of roster codes, anchored at the `shift_patterns` row's effective
  * start: one day per list entry, repeating forever. There is no anchor on the value and no phase
  * duration — the pattern row already states when it begins, and a crew rotation is a long cycle.
  *
- * `expectation` is reserved for assignments that cannot be generated: a guaranteed weekly or
- * monthly amount the roster must satisfy, or an as-assigned statement with an optional cap.
+ * `expectation` is the declared week where no cycle can be generated ("Rostered 6 days"): the
+ * days a week, and either the paid minutes a week the roster must supply or a cap on them.
  */
 export const workPatternValueSchema = Schema.Union([
 	Schema.Struct({
@@ -50,6 +54,6 @@ export const workPatternSchema = Schema.toStandardSchemaV1(workPatternValueSchem
 export default defineCustomType({
 	name: 'work_pattern',
 	description:
-		'The employment schedule term: a repeating day cycle of roster codes, anchored at the pattern row’s effective start, or a guaranteed/as-assigned expectation where no cycle can be generated.',
+		'The employment schedule term: a repeating day cycle of roster codes, anchored at the pattern row’s effective start, or a declared week (days and paid minutes) where no cycle can be generated. The days a week a contract works are read from here.',
 	schema: workPatternSchema
 });

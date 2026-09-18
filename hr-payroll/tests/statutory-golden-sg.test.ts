@@ -508,7 +508,6 @@ test('Singapore — s.38(1) caps the normal week at 44 hours, and a rest-day hou
 			const pattern = world.shift_patterns[0]!;
 			const [monday, , , , , , sunday] = pattern.pattern.days;
 			pattern.pattern = { days: [monday!, monday!, monday!, monday!, monday!, monday!, sunday!] };
-			world.employment_terms[0]!.agreed_days_per_week = 6;
 			for (const day of ['05', '06', '07', '08', '09', '10'])
 				punch(world, 'SG-SIX-DAY', `2026-01-${day}`, '09:00', '18:00'); // eight hours net
 			punch(world, 'SG-SIX-DAY', '2026-01-11', '09:00', '18:15'); // Sunday rest day: 9h15

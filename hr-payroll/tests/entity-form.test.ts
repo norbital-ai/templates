@@ -203,7 +203,6 @@ test('the terms fields are Pay, Shift assignment, Standing, Organisation and Per
 	// One composition, shared by the terms record and the contract detail.
 	const fields = source('../src/lib/ui/contract/terms-fields.svelte');
 	assert.deepEqual(fieldNames(fields), [
-		'agreed_days_per_week',
 		'base_salary',
 		'department',
 		'effective_range',

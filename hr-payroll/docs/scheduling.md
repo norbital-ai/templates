@@ -27,14 +27,15 @@ Three scheduling layers have distinct meanings:
 | Assignment | `work_days.shift_definition_id`              | An explicit plan for that contract/date        |
 | Attendance | `work_days.worked_intervals`                 | The observed time worked; the break is derived |
 
-The shift assignment is two columns of the contract's terms. `employment_terms.agreed_days_per_week`
-(1–7, always set) is the working week the contract agrees to, and the divisor proration always uses.
-`employment_terms.shift_pattern_id` is optional: a day cycle repeats roster codes from its row's
-anchor, and it must work exactly `agreed_days_per_week` days in each of its weeks, or the terms write
-is refused. No pattern means rostered: nothing is projected, the person must hold a roster row with
-a shift for every day of every period payroll prices, and the run refuses that person by name and
-period otherwise. A rostered person is not ad hoc — their days move inside the agreed week. Every
-reader resolves the pattern through the effective terms.
+The shift assignment is one column of the contract's terms: `employment_terms.shift_pattern_id`,
+always set. The days a week the contract works live in the pattern and nowhere else
+(`patternDaysPerWeek`): a day cycle repeats roster codes from its row's anchor and works the WORK
+days its weeks hold (an alternate-Saturday fortnight is 5.5); a declared week ("Rostered 6 days":
+`days_per_week` and the paid minutes a week the roster must supply, or may not exceed) projects
+nothing — the person holds a roster row with a shift for every day payroll prices, and a month
+short of the declaration is a `WORKLOAD_BELOW_TERMS` warning in which a calendar holiday counts as
+a met day. A rostered person is not ad hoc — their days move inside the declared week. Every reader
+resolves the pattern through the effective terms.
 
 `shift_definitions` is the collection for roster codes:
 

@@ -117,7 +117,6 @@ test('change-terms closes the previous row the day before through the transformâ
 			job_title: null,
 			payroll_group: null,
 			grade: 'G3',
-			agreed_days_per_week: 7,
 			shift_pattern_id: id(5)
 		}
 	});

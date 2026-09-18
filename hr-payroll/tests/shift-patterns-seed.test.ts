@@ -24,14 +24,8 @@ test('every public term points at a pattern row of its own entity, and no term e
 	assert.ok(patterns.length >= 1);
 	for (const term of terms) {
 		assert.equal('work_pattern' in term, false, `${term.id} still embeds a work pattern`);
-		assert.ok(
-			Number.isInteger(term.agreed_days_per_week) &&
-				term.agreed_days_per_week >= 1 &&
-				term.agreed_days_per_week <= 7,
-			`${term.id} agrees ${term.agreed_days_per_week} days a week`
-		);
-		// A rostered term names no pattern; its schedule is its roster rows.
-		if (term.shift_pattern_id == null) continue;
+		assert.equal('agreed_days_per_week' in term, false, `${term.id} still states its own week`);
+		// Every term names a pattern: the pattern is where the contract's week lives.
 		const pattern = patternById.get(term.shift_pattern_id);
 		assert.ok(pattern, `${term.id} points at ${term.shift_pattern_id}, which is not seeded`);
 		const companyId = employments.get(term.employment_id)?.company_id;

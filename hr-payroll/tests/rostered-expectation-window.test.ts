@@ -48,9 +48,8 @@ test('a six-day roster with one holiday meets a 6-days-a-week guarantee over a l
 						work_pattern: {
 							expectation: {
 								kind: 'GUARANTEED_SCHEDULE',
-								period: 'WEEK',
-								required_work_days: 6,
-								required_paid_minutes: 2700
+								days_per_week: 6,
+								paid_minutes_per_week: 2700
 							}
 						},
 						effective_range: { start: '2023-05-15T00:00:00.000Z', end: '2026-01-28T23:59:59.999Z' }
@@ -83,9 +82,8 @@ test('a roster genuinely short of the guarantee warns, and the run proceeds', ()
 						work_pattern: {
 							expectation: {
 								kind: 'GUARANTEED_SCHEDULE',
-								period: 'WEEK',
-								required_work_days: 6,
-								required_paid_minutes: 2700
+								days_per_week: 6,
+								paid_minutes_per_week: 2700
 							}
 						},
 						effective_range: { start: '2023-05-15T00:00:00.000Z', end: '9999-12-31T00:00:00.000Z' }
@@ -121,9 +119,8 @@ test('a public holiday inside the window meets the guarantee as a paid day', () 
 					work_pattern: {
 						expectation: {
 							kind: 'GUARANTEED_SCHEDULE',
-							period: 'WEEK',
-							required_work_days: 6,
-							required_paid_minutes: 2700
+							days_per_week: 6,
+							paid_minutes_per_week: 2700
 						}
 					},
 					effective_range: { start: '2023-05-15T00:00:00.000Z', end: '9999-12-31T00:00:00.000Z' }

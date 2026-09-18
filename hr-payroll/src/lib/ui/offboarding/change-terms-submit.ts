@@ -19,9 +19,8 @@ export type ChangeTermsFacts = {
 	readonly job_title: string | null;
 	readonly payroll_group: string | null;
 	readonly grade: string | null;
-	readonly agreed_days_per_week: number;
 	readonly ordinary_hours_per_week: number | null;
-	readonly shift_pattern_id: string | null;
+	readonly shift_pattern_id: string;
 	readonly pass_type: string | null;
 	readonly tax_residency: string | null;
 	readonly notice_days: number | null;
