@@ -318,7 +318,10 @@
 				"type": "boolean"
 			}
 		],
-		"ordinary_on": "((BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE))"
+		"ordinary_on": "((BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE))",
+		"short_name": null,
+		"listing_order": 15,
+		"listing_group": null
 	},
 	{
 		"id": "87d625e1-f83f-59ca-a836-1c2bf06191d4",
@@ -363,7 +366,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 16,
+		"listing_group": null
 	},
 	{
 		"id": "e2641eea-5bab-52f7-a1f2-9ac78baa1894",
@@ -418,7 +424,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 17,
+		"listing_group": null
 	},
 	{
 		"id": "d53d41dd-165b-5489-a33a-7e84bb193699",
@@ -478,7 +487,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 18,
+		"listing_group": null
 	},
 	{
 		"id": "121544f4-c1c9-5f1c-9005-a49abbbca356",
@@ -538,7 +550,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 19,
+		"listing_group": null
 	},
 	{
 		"id": "c1ed0230-3804-5420-a651-445738aa1b15",
@@ -567,7 +582,10 @@
 				"employer": "round_cent(11.25)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 20,
+		"listing_group": null
 	},
 	{
 		"id": "26e38797-f78a-542a-9680-a4eca8250ae4",
@@ -888,7 +906,10 @@
 				"type": "boolean"
 			}
 		],
-		"ordinary_on": "((BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE))"
+		"ordinary_on": "((BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE))",
+		"short_name": null,
+		"listing_order": 15,
+		"listing_group": null
 	},
 	{
 		"id": "f5c201f6-86ca-539a-a42d-68199dd30707",
@@ -933,7 +954,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 16,
+		"listing_group": null
 	},
 	{
 		"id": "819493dd-505d-5218-8f69-c16015567382",
@@ -988,7 +1012,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 17,
+		"listing_group": null
 	},
 	{
 		"id": "dc421988-2cd0-510f-8547-2a58673ceef8",
@@ -1048,7 +1075,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 18,
+		"listing_group": null
 	},
 	{
 		"id": "d5a4e159-4902-5663-a600-785cabd858f2",
@@ -1108,7 +1138,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 19,
+		"listing_group": null
 	},
 	{
 		"id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
@@ -1137,7 +1170,10 @@
 				"employer": "round_cent(11.25)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 20,
+		"listing_group": null
 	},
 	{
 		"id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
@@ -1458,7 +1494,10 @@
 				"type": "boolean"
 			}
 		],
-		"ordinary_on": "((BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE))"
+		"ordinary_on": "((BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE))",
+		"short_name": null,
+		"listing_order": 15,
+		"listing_group": null
 	},
 	{
 		"id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
@@ -1503,7 +1542,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 16,
+		"listing_group": null
 	},
 	{
 		"id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
@@ -1558,7 +1600,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 17,
+		"listing_group": null
 	},
 	{
 		"id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
@@ -1618,7 +1663,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 18,
+		"listing_group": null
 	},
 	{
 		"id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
@@ -1678,7 +1726,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 19,
+		"listing_group": null
 	},
 	{
 		"id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
@@ -1707,7 +1758,10 @@
 				"employer": "round_cent(11.25)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 20,
+		"listing_group": null
 	},
 	{
 		"id": "49b40b71-c358-5776-855b-3a4fa141b992",
@@ -2028,7 +2082,10 @@
 				"type": "boolean"
 			}
 		],
-		"ordinary_on": "((BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE))"
+		"ordinary_on": "((BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus']}) - ABSENCE - NO_PAY_LEAVE))",
+		"short_name": null,
+		"listing_order": 15,
+		"listing_group": null
 	},
 	{
 		"id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
@@ -2073,7 +2130,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 16,
+		"listing_group": null
 	},
 	{
 		"id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
@@ -2128,7 +2188,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 17,
+		"listing_group": null
 	},
 	{
 		"id": "92c999d2-316a-5418-961b-db2f62d51dbc",
@@ -2188,7 +2251,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 18,
+		"listing_group": null
 	},
 	{
 		"id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
@@ -2248,7 +2314,10 @@
 				"key": "shg_opt_out",
 				"type": "boolean"
 			}
-		]
+		],
+		"short_name": null,
+		"listing_order": 19,
+		"listing_group": null
 	},
 	{
 		"id": "021ff5c7-0c92-5359-8447-4418062601e2",
@@ -2277,6 +2346,9 @@
 				"employer": "round_cent(11.25)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 20,
+		"listing_group": null
 	}
 ]

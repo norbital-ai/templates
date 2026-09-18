@@ -23,7 +23,12 @@
  */
 
 import { Schema } from 'effect';
-import { bySchemeListing, schemeLabel } from '../../../lib/payroll/scheme-label.js';
+import {
+	bySchemeListing,
+	schemeGroup,
+	schemeLabel,
+	type SchemeListing
+} from '../../../lib/payroll/scheme-label.js';
 
 const ReportLineSchema = Schema.Struct({
 	componentCode: Schema.String,
@@ -65,8 +70,13 @@ export type ReportPayslip = {
 	readonly net: number;
 	readonly employerCost: number;
 	readonly lines: readonly ReportLine[];
-	/** Scheme code → what it charged. */
-	readonly contributions: ReadonlyMap<string, { base: number; employee: number; employer: number }>;
+	/** Scheme code → what it charged, with the listing the version froze on the charge. */
+	readonly contributions: ReadonlyMap<string, ReportContribution>;
+};
+export type ReportContribution = SchemeListing & {
+	readonly base: number;
+	readonly employee: number;
+	readonly employer: number;
 };
 
 const OutputSectionSchema = Schema.Struct({
@@ -253,18 +263,14 @@ const stem = (code: string): string =>
 		.join('');
 
 /**
- * Schemes that are one fund in the report. Malaysia's EPF is three catalogue rows because the Third
- * Schedule is three rate tables (Part A citizens, Part C permanent residents aged 60+, Part F
- * non-citizens); a person only ever matches one, so the sheet shows one EPF column group.
+ * What the workbook calls one role of one scheme: `epfEmployee`, `epfEmployer`, `totalEpf`,
+ * `epfGross`. A scheme that folds into another's column (`listing_group`: MY's Part C and Part F
+ * rows into EPF — a person only ever matches one) is named by that column.
  */
-const REPORT_SCHEME: Readonly<Record<string, string>> = {
-	EPF_PR: 'EPF',
-	EPF_NON_CITIZEN: 'EPF'
-};
-
-/** What the workbook calls one role of one scheme: `epfEmployee`, `epfEmployer`, `totalEpf`, `epfGross`. */
-export function statutoryColumn(code: string, role: StatutoryRole): string {
-	const name = stem(schemeLabel(REPORT_SCHEME[code] ?? code));
+export function statutoryColumn(charge: SchemeListing, role: StatutoryRole): string {
+	const name = stem(
+		charge.listing_group == null ? schemeLabel(charge) : (charge.label ?? schemeGroup(charge))
+	);
 	switch (role) {
 		case 'employee':
 			return `${name}Employee`;
@@ -291,9 +297,9 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
 	const add = (outputId: string, amount: number): void => {
 		outputs[outputId] = (outputs[outputId] ?? 0) + amount;
 	};
-	for (const [code, charged] of payslip.contributions) {
-		if (charged.employee !== 0) add(statutoryColumn(code, 'employee'), charged.employee);
-		if (charged.employer !== 0) add(statutoryColumn(code, 'employer'), charged.employer);
+	for (const charged of payslip.contributions.values()) {
+		if (charged.employee !== 0) add(statutoryColumn(charged, 'employee'), charged.employee);
+		if (charged.employer !== 0) add(statutoryColumn(charged, 'employer'), charged.employer);
 	}
 	return outputs;
 }
@@ -366,16 +372,18 @@ export function outputGroups(
 	const groups: OutputSection[] = [];
 	// The schemes this population ran, in the order the entity's own listing reads them; each role's
 	// block follows it, so the employee shares run SSS, PhilHealth, Pag-IBIG and so do the employer's.
-	const schemes = [
-		...new Set(payslips.flatMap((payslip) => [...payslip.contributions.keys()]))
-	].toSorted(bySchemeListing);
+	const byCode = new Map<string, SchemeListing>();
+	for (const payslip of payslips)
+		for (const charged of payslip.contributions.values())
+			if (!byCode.has(charged.scheme_code)) byCode.set(charged.scheme_code, charged);
+	const schemes = [...byCode.values()].toSorted(bySchemeListing);
 	for (const section of SECTION_LAYOUT) {
 		const match = section.lines;
 		const outputIds =
 			match == null
 				? [
 						...(section.statutoryRoles ?? []).flatMap((role) => [
-							...new Set(schemes.map((code) => statutoryColumn(code, role)))
+							...new Set(schemes.map((charge) => statutoryColumn(charge, role)))
 						]),
 						...(section.outputIds ?? [])
 					].filter((id) => present.has(id))

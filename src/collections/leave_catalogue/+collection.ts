@@ -14,6 +14,7 @@ const columns = {
 	evidence: true,
 	is_npl: true,
 	can_encash: true,
+	encash_on_exit: true,
 	pay_fraction: true,
 	paid_by: true,
 	consumes_code: true,

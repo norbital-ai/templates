@@ -11,9 +11,9 @@
  * per week shape and the grammar picks between them:
  *
  * ```
- * terms.payroll_group == "MONTHLY"        30.4167   paid for all 365 days
- * terms.ordinary_hours_per_week > 40      26.0833   313 / 12, the six-day factor
- * (everyone)                              21.75     261 / 12, the five-day factor
+ * terms.payroll_group == "MONTHLY"        365 / 12  paid for all 365 days
+ * terms.ordinary_hours_per_week > 40      313 / 12  the six-day factor
+ * (everyone)                              261 / 12  the five-day factor
  * ```
  *
  * The order carries the rule the branch used to: a monthly-paid employee keeps 365/12 whatever
@@ -97,25 +97,25 @@ const dayWageOf = (hoursPerWeek: number, daysPerWeek: number, payrollGroup = 'BI
 test('a six-day Philippine week is priced over 313/12, chosen by the Work', () => {
 	// 15,650 ÷ (313/12) = 600.00 — the CALABARZON daily floor the salary was built from, which is
 	// what Wage Order IVA-22 tranche 2 sets from 1 April 2026.
-	assert.deepEqual(dayWageOf(48, 6), { divisor: 26.0833, wage: 600 });
+	assert.deepEqual(dayWageOf(48, 6), { divisor: 313 / 12, wage: 600 });
 });
 
 test('a five-day week keeps 261/12, and forty hours is not more than forty', () => {
-	assert.deepEqual(dayWageOf(40, 5), { divisor: 21.75, wage: 719.54 });
+	assert.deepEqual(dayWageOf(40, 5), { divisor: 261 / 12, wage: 719.54 });
 	// Four long days is still forty hours: the predicate reads the week, not the day.
-	assert.deepEqual(dayWageOf(40, 4), { divisor: 21.75, wage: 719.54 });
+	assert.deepEqual(dayWageOf(40, 4), { divisor: 261 / 12, wage: 719.54 });
 });
 
 test('a monthly-paid employee keeps 365/12, whatever their roster', () => {
 	// They are paid for all 365 days, so the 261-against-313 question is not theirs. The bank
 	// rosters one of them on the six-day pattern, so the ordering of the rows is load-bearing.
-	assert.deepEqual(dayWageOf(48, 6, 'MONTHLY'), { divisor: 30.4167, wage: 514.52 });
-	assert.deepEqual(dayWageOf(40, 5, 'MONTHLY'), { divisor: 30.4167, wage: 514.52 });
+	assert.deepEqual(dayWageOf(48, 6, 'MONTHLY'), { divisor: 365 / 12, wage: 514.52 });
+	assert.deepEqual(dayWageOf(40, 5, 'MONTHLY'), { divisor: 365 / 12, wage: 514.52 });
 });
 
 test('the Work states every week shape it rosters, so no person falls through', () => {
 	// `ordinaryDivisorDays` refuses by name rather than pricing an hour at nothing, and the
 	// expression's final arm is everyone. This is the check that the Philippine seed keeps it.
-	assert.match(PH_WORK.ordinary_divisor_days, /: 21\.75$/);
+	assert.match(PH_WORK.ordinary_divisor_days, /: \(261\.0 \/ 12\.0\)$/);
 	assert.doesNotThrow(() => dayWageOf(0, 0, ''));
 });

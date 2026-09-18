@@ -216,6 +216,11 @@ export type MeasuredEmployment = {
 	readonly periodWorkingDays: number;
 	/** Employed working days the run did not pay — what `person.period.unpaid_days` reads. */
 	readonly periodUnpaidDays: number;
+	/** The contract's week as the run resolved it — what `terms.ordinary_hours_per_week` and the monthly basic read. */
+	readonly week: {
+		readonly ordinary_hours_per_week: number;
+		readonly working_days_per_week: number;
+	};
 };
 
 /** The window-shaped arguments `measureEmployment` hands its helpers. */

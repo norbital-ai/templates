@@ -46,7 +46,10 @@ const children = {
 				project_relief_annually: true,
 				rules: true,
 				assessed_on: true,
-				ordinary_on: true
+				ordinary_on: true,
+				short_name: true,
+				listing_order: true,
+				listing_group: true
 			}
 		}
 	},
@@ -60,6 +63,7 @@ const children = {
 				evidence: true,
 				is_npl: true,
 				can_encash: true,
+				encash_on_exit: true,
 				pay_fraction: true,
 				paid_by: true,
 				consumes_code: true,

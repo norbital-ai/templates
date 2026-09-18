@@ -20,6 +20,7 @@ export type ChangeTermsFacts = {
 	readonly payroll_group: string | null;
 	readonly grade: string | null;
 	readonly agreed_days_per_week: number;
+	readonly ordinary_hours_per_week: number | null;
 	readonly shift_pattern_id: string | null;
 	readonly pass_type: string | null;
 	readonly tax_residency: string | null;

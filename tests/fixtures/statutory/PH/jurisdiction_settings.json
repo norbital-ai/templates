@@ -18,7 +18,7 @@
 				"by": "FIXED_DAYS",
 				"days": 21.75
 			},
-			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? 26.0833 : 21.75) : terms.payroll_group == \"MONTHLY\" ? 30.4167 : terms.ordinary_hours_per_week > 40.0 ? 26.0833 : 21.75",
+			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.payroll_group == \"MONTHLY\" ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
 			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
 			"bands": [
 				{
@@ -195,7 +195,7 @@
 				"by": "FIXED_DAYS",
 				"days": 21.75
 			},
-			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? 26.0833 : 21.75) : terms.payroll_group == \"MONTHLY\" ? 30.4167 : terms.ordinary_hours_per_week > 40.0 ? 26.0833 : 21.75",
+			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.payroll_group == \"MONTHLY\" ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
 			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
 			"bands": [
 				{

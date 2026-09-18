@@ -1,5 +1,4 @@
 import type { LeaveSubmission } from './activity.js';
-import { isAnnualLeaveCode } from './codes.js';
 import type { LeaveBalanceSummaries } from './summary.js';
 
 /**
@@ -32,7 +31,6 @@ export function exitEncashments(options: {
 	return options.summaries.flatMap((summary) => {
 		const reference = exitReference(options.employmentId, summary.code);
 		if (
-			!isAnnualLeaveCode(summary.code) ||
 			!options.encashable.has(summary.catalogue_id) ||
 			options.posted.has(reference) ||
 			summary.available == null ||

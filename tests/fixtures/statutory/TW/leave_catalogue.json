@@ -98,7 +98,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "6cce70cf-cc38-53b3-8f34-e3fcbb5c2957",
@@ -121,7 +122,8 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "0.5",
-		"consumes_code": "HOSPITALISED_SICK_LEAVE"
+		"consumes_code": "HOSPITALISED_SICK_LEAVE",
+		"encash_on_exit": false
 	},
 	{
 		"id": "1fc284f7-9314-5b2b-bddf-0f45fae11b8f",
@@ -142,7 +144,8 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "c6632860-501e-5b7d-9a2c-431f972bdaf3",
@@ -163,7 +166,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "e3f7fb22-dd31-5445-ac9a-457ab8c2b3a8",
@@ -192,7 +196,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "ff27fe08-8ad2-5a5a-acc8-45497374cc17",
@@ -208,7 +213,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "dce28a8a-baf3-5705-b6c9-2169ad7fc230",
@@ -242,7 +248,8 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5"
+		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5",
+		"encash_on_exit": false
 	},
 	{
 		"id": "8e05b3b6-2f9c-566f-bcca-02902fa8397b",
@@ -263,7 +270,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "c2df653f-a2c1-55d2-9dbd-70a61145e40c",
@@ -284,7 +292,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "d2579d59-4ae6-5706-82e1-38e859fa8a1d",
@@ -308,7 +317,8 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "0.5",
-		"consumes_code": "SICK_LEAVE"
+		"consumes_code": "SICK_LEAVE",
+		"encash_on_exit": false
 	},
 	{
 		"id": "ffc8911e-0bad-5bdc-9339-23021f1f1cc8",
@@ -330,7 +340,8 @@
 		},
 		"is_npl": true,
 		"can_encash": false,
-		"consumes_code": "PERSONAL_LEAVE"
+		"consumes_code": "PERSONAL_LEAVE",
+		"encash_on_exit": false
 	},
 	{
 		"id": "30b5eb1d-4a1a-508a-84be-618062035a50",
@@ -351,7 +362,8 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "e68fa491-ca00-598a-a3f2-5a2480bfae2b",
@@ -367,7 +379,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "841da440-0fec-5216-85a4-3d894b10b38c",
@@ -468,7 +481,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "a43e72ab-e989-57d0-af5f-5772a2445293",
@@ -491,7 +505,8 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "0.5",
-		"consumes_code": "HOSPITALISED_SICK_LEAVE"
+		"consumes_code": "HOSPITALISED_SICK_LEAVE",
+		"encash_on_exit": false
 	},
 	{
 		"id": "00426d95-6082-575b-b15d-32b00ae495cc",
@@ -513,7 +528,8 @@
 		},
 		"is_npl": true,
 		"can_encash": false,
-		"unit": "HOUR"
+		"unit": "HOUR",
+		"encash_on_exit": false
 	},
 	{
 		"id": "3b6ce88a-c096-5ecd-9c76-5312a89058b5",
@@ -534,7 +550,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "d5bb0987-7bb1-51dc-839e-6625f8243bdf",
@@ -563,7 +580,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "a977372b-727f-5929-a9a1-9172ecfa89c7",
@@ -579,7 +597,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "01750a01-2c63-5d01-ba2e-07410caf5dd1",
@@ -613,7 +632,8 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5"
+		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5",
+		"encash_on_exit": false
 	},
 	{
 		"id": "c8c04e77-8066-5736-91c6-d3be7948b8fb",
@@ -634,7 +654,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "b3ab8091-2030-525a-9904-51770338c523",
@@ -655,7 +676,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "027a42e9-4217-54de-a2b3-b11aed841952",
@@ -679,7 +701,8 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "0.5",
-		"consumes_code": "SICK_LEAVE"
+		"consumes_code": "SICK_LEAVE",
+		"encash_on_exit": false
 	},
 	{
 		"id": "7941601d-d57d-5f64-9bc0-9ec481fde3c0",
@@ -702,7 +725,8 @@
 		"is_npl": true,
 		"can_encash": false,
 		"consumes_code": "PERSONAL_LEAVE",
-		"unit": "HOUR"
+		"unit": "HOUR",
+		"encash_on_exit": false
 	},
 	{
 		"id": "3de20385-72c8-55c9-b5d3-8e30a3cbd877",
@@ -723,7 +747,8 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "f20d7f87-5027-5527-8784-6a3fd70bf5b6",
@@ -739,7 +764,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "c80d0999-a976-4b7a-8560-7b3107cac9a8",
@@ -749,13 +775,14 @@
 		"authority": null,
 		"eligibility": "",
 		"entitlement": {
-			"availability": "UNLIMITED",
+			"availability": "CREDITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "97d3f5d4-a4c1-49d2-a895-13246a10b2b8",
@@ -765,13 +792,14 @@
 		"authority": null,
 		"eligibility": "",
 		"entitlement": {
-			"availability": "UNLIMITED",
+			"availability": "CREDITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "61709f1e-ae6d-573e-868d-2f44b5010f84",
@@ -872,7 +900,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "2e8e5194-82fc-5b4b-b181-dd85edacfacb",
@@ -895,7 +924,8 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "0.5",
-		"consumes_code": "HOSPITALISED_SICK_LEAVE"
+		"consumes_code": "HOSPITALISED_SICK_LEAVE",
+		"encash_on_exit": false
 	},
 	{
 		"id": "bd212789-1381-52de-8f02-070a237377e6",
@@ -917,7 +947,8 @@
 		},
 		"is_npl": true,
 		"can_encash": false,
-		"unit": "HOUR"
+		"unit": "HOUR",
+		"encash_on_exit": false
 	},
 	{
 		"id": "0b85f046-2728-59f8-a40b-fe0836519e73",
@@ -938,7 +969,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "5356a9a6-c8ce-563e-ae1a-a92ed88afc50",
@@ -967,7 +999,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "e4159bd4-c366-5abe-8b30-631c154ea733",
@@ -983,7 +1016,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "24a76fe9-f541-59b3-9a8a-04b23765770f",
@@ -1017,7 +1051,8 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5"
+		"pay_fraction": "employment.service_months >= 6 ? 1.0 : 0.5",
+		"encash_on_exit": false
 	},
 	{
 		"id": "278e44a0-e7cf-5d40-adcf-ae41a30ac0d8",
@@ -1038,7 +1073,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "edac0448-546d-5072-9555-66214db3f11a",
@@ -1059,7 +1095,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "4cf74103-ae9d-5f64-8120-c2969c55b319",
@@ -1083,7 +1120,8 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "0.5",
-		"consumes_code": "SICK_LEAVE"
+		"consumes_code": "SICK_LEAVE",
+		"encash_on_exit": false
 	},
 	{
 		"id": "a0c1f56e-0dfd-5027-bb78-3f3eee02112f",
@@ -1106,7 +1144,8 @@
 		"is_npl": true,
 		"can_encash": false,
 		"consumes_code": "PERSONAL_LEAVE",
-		"unit": "HOUR"
+		"unit": "HOUR",
+		"encash_on_exit": false
 	},
 	{
 		"id": "77641e3c-1200-5003-a97d-21fa0f476ed1",
@@ -1127,7 +1166,8 @@
 			]
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "92397cef-111b-5bfe-9816-6c630ab29dce",
@@ -1143,7 +1183,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "a7b89929-df39-5ba5-9825-69e8cf9b5e24",
@@ -1153,13 +1194,14 @@
 		"authority": null,
 		"eligibility": "",
 		"entitlement": {
-			"availability": "UNLIMITED",
+			"availability": "CREDITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "b93c2077-de82-58f1-bc8e-ae2c178aeaf7",
@@ -1182,7 +1224,8 @@
 					"days": 365
 				}
 			]
-		}
+		},
+		"encash_on_exit": false
 	},
 	{
 		"id": "5c06d207-a7e7-5b38-af9f-d15e0e0d2d02",
@@ -1205,7 +1248,8 @@
 					"days": 365
 				}
 			]
-		}
+		},
+		"encash_on_exit": false
 	},
 	{
 		"id": "d079f3a3-74a9-5d35-9f63-03754aa2aeec",
@@ -1228,6 +1272,7 @@
 					"days": 365
 				}
 			]
-		}
+		},
+		"encash_on_exit": false
 	}
 ]

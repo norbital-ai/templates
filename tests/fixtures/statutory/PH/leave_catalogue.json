@@ -7,13 +7,14 @@
 		"authority": null,
 		"eligibility": "",
 		"entitlement": {
-			"availability": "UNLIMITED",
+			"availability": "CREDITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "3aa03c48-f319-4440-b642-247d0fe6301d",
@@ -35,7 +36,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "38dc7a00-2fad-42b8-b105-72d846c4650c",
@@ -52,7 +54,8 @@
 		},
 		"evidence_after_days": 2,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "a566e845-4766-46c1-ab11-9d1326c944b5",
@@ -74,7 +77,8 @@
 			"lifetime_events": 4
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "ba41f8a7-c2af-4c44-8719-3ddbe2657211",
@@ -96,7 +100,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "9d3004c1-4685-416c-a2ca-37c77e605824",
@@ -112,7 +117,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "048ef321-d99f-4e42-9ca6-38bd0c468853",
@@ -133,7 +139,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "96cfc0d8-dc2e-4889-a370-6ed5d46ea956",
@@ -149,7 +156,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "e021a674-6ff5-4420-9265-85ef288eb6c1",
@@ -179,7 +187,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "5c865f5f-010b-40e0-956f-e1605386b80f",
@@ -196,7 +205,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "0ccb0440-e45c-4d18-ab7b-f0f9c4a3ff31",
@@ -212,7 +222,8 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "d7a77774-802b-42c8-9884-7a28e419f138",
@@ -235,7 +246,8 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": false,
-		"evidence": "REQUIRED"
+		"evidence": "REQUIRED",
+		"encash_on_exit": false
 	},
 	{
 		"id": "6c4dfeaa-e449-4057-a5cd-1f7292c23777",
@@ -251,7 +263,8 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "11a978e4-285a-52a4-9ffa-3b6a8eec3256",
@@ -261,13 +274,14 @@
 		"authority": null,
 		"eligibility": "",
 		"entitlement": {
-			"availability": "UNLIMITED",
+			"availability": "CREDITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "34a9d916-95b8-5897-86cb-23107540c44a",
@@ -289,7 +303,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "65bf1678-c12d-5fba-9782-eebc730b3a55",
@@ -306,7 +321,8 @@
 		},
 		"evidence_after_days": 2,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "7155abd6-f390-5f9f-8002-8fd49646511c",
@@ -328,7 +344,8 @@
 			"lifetime_events": 4
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "8ec6350a-e936-5750-a24a-5b8a4219159d",
@@ -350,7 +367,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "8f71c0d7-3e3b-5234-8e4a-0abe31b43f63",
@@ -366,7 +384,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "b35799d7-fb9e-54ea-bce4-40f0f7688842",
@@ -387,7 +406,8 @@
 			]
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "ba8cc01f-31bc-5e6e-8916-466ed1abf0ad",
@@ -403,7 +423,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "bd9e3c08-cd1d-5b71-88fa-ca9683e3af50",
@@ -433,7 +454,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "c0e9d788-41af-5389-9f6c-0b8f53ca8c58",
@@ -450,7 +472,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "df3b701b-526e-567d-b7dc-d3bab16d2443",
@@ -466,7 +489,8 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "fbf0eced-5a1e-55c8-8c18-9443a661ea14",
@@ -489,7 +513,8 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": false,
-		"evidence": "REQUIRED"
+		"evidence": "REQUIRED",
+		"encash_on_exit": false
 	},
 	{
 		"id": "fec62c00-6026-5bd8-b1db-e66cfbdef574",
@@ -505,6 +530,7 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	}
 ]

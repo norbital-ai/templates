@@ -244,19 +244,41 @@ export type PersonInput = {
 		readonly child_index?: unknown;
 		readonly date?: string | null;
 	} | null;
+	/** The version's ordinary-rate divisor over this person, where the caller has evaluated it; it turns a daily, hourly or weekly rate into `terms.monthly_basic`. */
+	readonly divisorDays?: number | null;
 	/** The rule date: service, age and children are measured on it. */
 	readonly asOf: string;
 };
 
-/** A contracted basic as a month, by the cadence it is stated in. */
-function monthlyBasic(basic: number, frequency: string | null | undefined): number {
+/**
+ * A contracted basic as a month, by the cadence it is stated in, on the version's own divisor:
+ * a daily rate × the days a month the version prices an ordinary day over (PH: 313 ÷ 12 on a
+ * six-day week, 261 ÷ 12 on a five-day one), an hourly rate × the contract's hours a day × that,
+ * a weekly rate × that ÷ the days a week. No factor of the engine's: a caller that has no divisor
+ * to hand reads the basic as stated.
+ */
+function monthlyBasic(
+	basic: number,
+	frequency: string | null | undefined,
+	week:
+		| {
+				readonly ordinary_hours_per_week?: number | null;
+				readonly working_days_per_week?: number | null;
+		  }
+		| null
+		| undefined,
+	divisorDays: number | null | undefined
+): number {
+	if (divisorDays == null || !(divisorDays > 0)) return basic;
+	const days = week?.working_days_per_week ?? 0;
+	const hours = week?.ordinary_hours_per_week ?? 0;
 	switch (frequency) {
 		case 'DAILY':
-			return (basic * 313) / 12;
+			return basic * divisorDays;
 		case 'HOURLY':
-			return (basic * 8 * 313) / 12;
+			return days > 0 ? basic * (hours / days) * divisorDays : basic;
 		case 'WEEKLY':
-			return (basic * 52) / 12;
+			return days > 0 ? (basic * divisorDays) / days : basic;
 		default:
 			return basic;
 	}
@@ -324,7 +346,7 @@ export function personContext(input: PersonInput): PersonContext {
 		},
 		terms: {
 			basic_salary: basic,
-			monthly_basic: monthlyBasic(basic, input.terms?.pay_frequency),
+			monthly_basic: monthlyBasic(basic, input.terms?.pay_frequency, input.week, input.divisorDays),
 			fixed_allowances: fixed,
 			monthly_wage: basic + fixed,
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),

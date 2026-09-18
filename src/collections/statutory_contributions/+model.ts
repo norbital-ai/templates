@@ -71,7 +71,17 @@ export default defineModel(
 		 * `scheme.year_to_date.ordinary` — SG CPF's Additional Wage ceiling is 102,000 less the
 		 * year's Ordinary Wages subject to CPF, each month's capped. Empty for a scheme with one base.
 		 */
-		ordinary_on: text().notNull().default('')
+		ordinary_on: text().notNull().default(''),
+		/**
+		 * How the entity's own listing shows the scheme: the short name a payslip prints (Pag-IBIG
+		 * for HDMF, PhilHealth for PHIC — absent is the code), the position among the version's
+		 * schemes (absent sorts after the ordered ones, by code) and the scheme whose listing column
+		 * this one folds into (MY's Part C and Part F rows fold into EPF; absent is its own column).
+		 * Frozen on every charge at settlement.
+		 */
+		short_name: text(),
+		listing_order: integer(),
+		listing_group: text()
 	},
 	{
 		description:

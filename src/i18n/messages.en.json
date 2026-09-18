@@ -1080,5 +1080,10 @@
 	"renderer.statutory_fact_status.opening_months": "Months employed elsewhere",
 	"renderer.statutory_fact_status.opening_reference": "Form",
 	"renderer.statutory_fact_status.add_opening": "Add earlier employer",
-	"renderer.statutory_fact_status.remove_opening": "Remove"
+	"renderer.statutory_fact_status.remove_opening": "Remove",
+	"leave.availability.CREDITED": "Credited (by adjustment only)",
+	"component.encash_on_exit": "Paid out at exit",
+	"component.encash_on_exit_hint": "Off-boarding raises the unused balance of this row as an encashment for the leaver (annual leave under every jurisdiction’s commutation rule).",
+	"component.ordinary_hours_per_week": "Ordinary hours a week",
+	"component.ordinary_hours_per_week_hint": "The contracted hours a week; leave empty where the roster measures it. Read when a person holds no roster and for an hourly rate."
 }

@@ -72,6 +72,12 @@ export default defineModel(
 		 */
 		agreed_days_per_week: integer().notNull(),
 		/**
+		 * The contracted ordinary hours a week, where the contract states them: the week an
+		 * HOURLY rate is annualised over and the day length a person with no roster is measured on.
+		 * Null where the roster measures it — the shift's paid hours over the agreed days.
+		 */
+		ordinary_hours_per_week: integer(),
+		/**
 		 * The shift assignment's second half, optional: the named `shift_patterns` row its days are
 		 * projected from. Workdays, hours, rest and off days derive from the pattern; a `work_days`
 		 * row overrides one day of it. A named cycle must work `agreed_days_per_week` days in each

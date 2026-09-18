@@ -66,7 +66,7 @@
 				<tbody>
 					{#each charges as charge, index (`${charge.scheme_code}:${index}`)}
 						<tr class="border-t border-border">
-							<td class="py-1 pr-3">{schemeLabel(charge.scheme_code)}</td>
+							<td class="py-1 pr-3">{schemeLabel(charge)}</td>
 							<td class="py-1 pr-3 text-right font-medium"
 								>{formatNumeric(charge.employee_amount)}</td
 							>

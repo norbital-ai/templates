@@ -16,7 +16,12 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 * many such entries an employee may ever take (PH paternity: the first four deliveries; MY:
 	 * five confinements).
 	 */
-	availability: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT']),
+	/**
+	 * `CREDITED` grants nothing by rule: the balance is only what adjustment entries credit and
+	 * what time off debits (a day off in lieu of a public holiday worked), so the meter starts at
+	 * zero in every window.
+	 */
+	availability: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT', 'CREDITED']),
 	year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
 	proration: Schema.Literals(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS']),
 	/** The most PER_EVENT entries of this leave an employee may take in a lifetime; absent is no cap. */

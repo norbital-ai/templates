@@ -7,13 +7,14 @@
 		"authority": "",
 		"eligibility": "",
 		"entitlement": {
-			"availability": "UNLIMITED",
+			"availability": "CREDITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "13fc01fb-1763-5a56-9db1-e510ea61ffb5",
@@ -29,7 +30,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "74ceddb7-b2e1-53ca-b4e3-a4a4082cb0de",
@@ -52,7 +54,8 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0",
+		"encash_on_exit": false
 	},
 	{
 		"id": "8abc26c2-563f-5a00-b147-fe5be05139ce",
@@ -74,7 +77,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "8f0025f4-77d4-5637-a3e4-a687f809d930",
@@ -104,7 +108,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "92f2c720-4896-5ed0-b74a-149afbed337e",
@@ -120,7 +125,8 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "b0c47cc7-6000-5c81-aff2-bda7dbe68dbd",
@@ -150,7 +156,8 @@
 			"rounding": "WHOLE_DAY"
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "d9a28cc0-4762-5850-9c8c-7c6bdf1beacf",
@@ -166,7 +173,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "def6e73d-e25e-5448-87d6-9c831a43ec6f",
@@ -188,7 +196,8 @@
 			"lifetime_events": 5
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "f9399e0f-1385-5865-920a-523bb6a2c092",
@@ -204,7 +213,8 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "44e65c8f-de83-5107-a810-bba2779cc4af",
@@ -214,13 +224,14 @@
 		"authority": "",
 		"eligibility": "",
 		"entitlement": {
-			"availability": "UNLIMITED",
+			"availability": "CREDITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "b62fe632-af7a-5bfa-ba2d-bad41193007b",
@@ -236,7 +247,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "13f473d0-69c4-5096-bf2f-b491b8cb9264",
@@ -259,7 +271,8 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0",
+		"encash_on_exit": false
 	},
 	{
 		"id": "8bf9a993-d586-5097-8c8c-251176e833ad",
@@ -281,7 +294,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "d23da498-9b87-5f86-b84d-0efc7b195fdc",
@@ -311,7 +325,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "fdafe624-7c57-5f6a-8423-d5b962b4d868",
@@ -327,7 +342,8 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "9d1894ce-976a-5b42-b1ef-0e7fc33dfcbf",
@@ -357,7 +373,8 @@
 			"rounding": "WHOLE_DAY"
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "bde0d87a-6d1c-5cf8-a90b-aeff75f0992e",
@@ -373,7 +390,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "4ff0e19d-d894-5d3c-8a0c-19bf9b083016",
@@ -395,7 +413,8 @@
 			"lifetime_events": 5
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "17e9111d-7355-551d-849d-88475e093d7a",
@@ -411,7 +430,8 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "63442da1-4930-5b4f-92e7-e490ede7d69e",
@@ -421,13 +441,14 @@
 		"authority": "",
 		"eligibility": "",
 		"entitlement": {
-			"availability": "UNLIMITED",
+			"availability": "CREDITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "62a09c76-0a37-5be5-a35a-0aeb23ca674e",
@@ -443,7 +464,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "f4277dc1-07c1-599a-b076-dcf87d0e4ab1",
@@ -466,7 +488,8 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months * 30.0 + event.prior_employment_days >= 90.0 ? 1.0 : 0.0",
+		"encash_on_exit": false
 	},
 	{
 		"id": "bb2087cb-3946-5096-a69c-b40b58328533",
@@ -488,7 +511,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "7ee35eae-51d0-52c0-9713-55b63d070b53",
@@ -518,7 +542,8 @@
 		},
 		"evidence_after_days": 1,
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "65751668-3560-5633-9752-28736e9fa7ac",
@@ -534,7 +559,8 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	},
 	{
 		"id": "f8418d36-2652-544f-8aa9-e725d98ddafa",
@@ -564,7 +590,8 @@
 			"rounding": "WHOLE_DAY"
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": true
 	},
 	{
 		"id": "ae12e343-53fa-54e8-ba05-a2b3f7d62f96",
@@ -580,7 +607,8 @@
 			"bands": []
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "dfac1cdb-3f33-5139-901e-a2e0908ceb35",
@@ -602,7 +630,8 @@
 			"lifetime_events": 5
 		},
 		"is_npl": false,
-		"can_encash": true
+		"can_encash": true,
+		"encash_on_exit": false
 	},
 	{
 		"id": "abd6ffff-b681-5cb2-a0ec-ac9cbbd92ec4",
@@ -618,6 +647,7 @@
 			"bands": []
 		},
 		"is_npl": true,
-		"can_encash": false
+		"can_encash": false,
+		"encash_on_exit": false
 	}
 ]

@@ -52,6 +52,7 @@
 				payroll_group: true,
 				grade: true,
 				agreed_days_per_week: true,
+				ordinary_hours_per_week: true,
 				shift_pattern_id: true,
 				pass_type: true,
 				tax_residency: true,
@@ -75,6 +76,7 @@
 		readonly payroll_group: string | null;
 		readonly grade: string | null;
 		readonly agreed_days_per_week: number;
+		readonly ordinary_hours_per_week: number | null;
 		readonly shift_pattern_id: string | null;
 		readonly pass_type: string | null;
 		readonly tax_residency: string | null;
@@ -208,6 +210,7 @@
 			payroll_group: payrollGroup.trim() === '' ? null : payrollGroup.trim(),
 			grade: grade.trim() === '' ? null : grade.trim(),
 			agreed_days_per_week: agreedDays,
+			ordinary_hours_per_week: row.ordinary_hours_per_week,
 			shift_pattern_id: shiftPatternId === '' ? null : shiftPatternId,
 			// Carried unchanged: the successor keeps the pass, tax residency and notice of the row it replaces.
 			pass_type: row.pass_type,

@@ -665,9 +665,12 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 					asOf: '2026-06-30'
 				})
 			});
-		assert.equal(divisor('MONTHLY', 40, 5), 30.4167);
-		assert.equal(divisor('', 40, 5), 21.75);
-		assert.equal(divisor('', 48, 6), 26.0833);
+		// The factors as the Handbook derives them — 365, 261 and 313 days over twelve months —
+		// stated as the fractions, so a daily floor of ₱600 × 313 ÷ 12 meets the wage order's
+		// ₱15,650 exactly rather than by a rounded 26.0833.
+		assert.equal(divisor('MONTHLY', 40, 5), 365 / 12);
+		assert.equal(divisor('', 40, 5), 261 / 12);
+		assert.equal(divisor('', 48, 6), 313 / 12);
 		// Handbook ch.2 §E on the salary line too (`proration_by`): a daily-paid employee’s absent
 		// day on the 261 factor is ₱30,000 × 12 ÷ 261 = ₱1,379.31; a monthly-paid one’s (payroll
 		// group MONTHLY) is ÷ 30.4167 = ₱986.30, and their part month prorates on the same divisor.

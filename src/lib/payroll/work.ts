@@ -320,26 +320,41 @@ function termsWorkload(options: TermsWorkloadOptions): PatternWorkload {
 
 function asRateTerms(
 	terms: EmploymentBundle['terms'][number],
-	workload: PatternWorkload
+	workload: PatternWorkload,
+	/** The statute's normal day over this person, where the version states one; else infinite. */
+	normalDayHours: number = Number.POSITIVE_INFINITY
 ): RateTerms {
 	const salary = baseSalaryOf(terms);
 	const frequency = payFrequency(terms.pay_frequency);
 	// No scheduled days is no weekly pattern to annualise hours from: an ad-hoc DAILY or HOURLY
 	// month with no rows, or a deferred joiner priced through `measureArrears` over a window their
-	// roster does not reach. Base pay is earned units or a proration and never touches this, so
-	// the fallback only resolves the overtime and day-wage rates against a neutral forty-hour
-	// week — at any frequency, because a zero here is an infinite hourly rate and a run refused
-	// at the rounding step for an amount nobody can see.
+	// roster does not reach. The week is then the contract's own (`ordinary_hours_per_week`), or
+	// the statute's normal day over the agreed days; a contract that states neither and holds no
+	// roster is refused by name — no figure of the engine's stands in for it.
 	//
 	// The days a week are the contract's own `agreed_days_per_week`, never counted off a pattern
 	// or a roster: a rostered person is not ad hoc, and a divisor read off the days a roster
 	// happened to hold priced the same salary at a different day rate every month.
+	const days = decodeNumber(terms.agreed_days_per_week);
+	const contracted =
+		terms.ordinary_hours_per_week == null ? null : decodeNumber(terms.ordinary_hours_per_week);
+	const hours =
+		workload.work_days > 0
+			? workload.average_weekly_paid_minutes / 60
+			: contracted != null && contracted > 0
+				? contracted
+				: Number.isFinite(normalDayHours)
+					? normalDayHours * days
+					: null;
+	if (hours == null)
+		throw new Error(
+			'A contract with no rostered days states its ordinary hours a week, or its version states a normal day.'
+		);
 	return {
 		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
 		pay_frequency: frequency,
-		ordinary_hours_per_week:
-			workload.work_days > 0 ? workload.average_weekly_paid_minutes / 60 : 40,
-		working_days_per_week: decodeNumber(terms.agreed_days_per_week)
+		ordinary_hours_per_week: hours,
+		working_days_per_week: days
 	};
 }
 
@@ -382,8 +397,6 @@ export function prepareWorkContext(
 		workDays: bundle.workDays,
 		window: options.salary
 	});
-	const rateTerms = asRateTerms(closingTerms, closingWorkload);
-	const currency = rateTerms.base_salary.currency;
 
 	// ── schedule across the full calendar months touched by the settlement cutoff ───────────────
 	const complianceWindow: PayRange = {
@@ -404,14 +417,19 @@ export function prepareWorkContext(
 						employment: stint(bundle.employment),
 						terms: closingTerms,
 						week: {
-							ordinary_hours_per_week: rateTerms.ordinary_hours_per_week,
-							working_days_per_week: rateTerms.working_days_per_week
+							ordinary_hours_per_week:
+								closingWorkload.work_days > 0
+									? closingWorkload.average_weekly_paid_minutes / 60
+									: decodeNumber(closingTerms.ordinary_hours_per_week ?? 0),
+							working_days_per_week: decodeNumber(closingTerms.agreed_days_per_week)
 						},
 						children: bundle.children,
 						company: configuration.company,
 						asOf: options.salary.end
 					})
 				);
+	const rateTerms = asRateTerms(closingTerms, closingWorkload, normalHoursCap);
+	const currency = rateTerms.base_salary.currency;
 	const scheduleTermsAt = (date: IsoDate) => {
 		const row =
 			bundle.termsHistory.find((candidate) => coversDate(candidate.effective_range, date)) ??
@@ -426,11 +444,13 @@ export function prepareWorkContext(
 		return {
 			work_pattern: patternRow?.pattern ?? null,
 			pattern_anchor: patternAnchor(patternRow),
-			// A rostered zero carries no weekly pattern; the day length falls back to the same
-			// neutral eight hours the rate terms resolve against.
+			// A rostered zero carries no weekly pattern; the day length falls back to the contract's
+			// own week — its ordinary hours over its working days — never to a figure of the engine's.
 			normal_daily_hours: Math.min(
 				normalHoursCap,
-				workload.work_days > 0 ? workload.paid_minutes / workload.work_days / 60 : 8
+				workload.work_days > 0
+					? workload.paid_minutes / workload.work_days / 60
+					: contractDayHours(row, normalHoursCap)
 			),
 			normal_hours_follow_shift: configuration.work.normal_hours_follow_shift === true
 		};
@@ -552,7 +572,7 @@ export function prepareWorkContext(
 			workDays: bundle.workDays,
 			window: period
 		});
-		const terms = asRateTerms(term, workload);
+		const terms = asRateTerms(term, workload, normalHoursCap);
 		if (terms.base_salary.currency !== currency)
 			throw new Error('Leave absence rate has a different currency from payroll.');
 		if (terms.pay_frequency === 'DAILY') return terms.base_salary.value;
@@ -587,6 +607,20 @@ export function prepareWorkContext(
 		subject,
 		absenceRate
 	};
+}
+
+/** The contract's own day where it states one, else the statute's normal day; never the engine's. */
+function contractDayHours(
+	terms: { readonly ordinary_hours_per_week?: unknown; readonly agreed_days_per_week?: unknown },
+	normalDayHours: number
+): number {
+	const hours = decodeNumber(terms.ordinary_hours_per_week ?? 0);
+	const days = decodeNumber(terms.agreed_days_per_week ?? 0);
+	if (hours > 0 && days > 0) return hours / days;
+	if (Number.isFinite(normalDayHours)) return normalDayHours;
+	throw new Error(
+		'A contract with no roster states its ordinary hours a week, or its version states a normal day.'
+	);
 }
 
 /** Price Work attendance using the money families' prepared period totals for wage coverage. */

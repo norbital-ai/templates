@@ -45,7 +45,9 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 			employmentId,
 			exitDate: exit_date,
 			summaries: leaveBalanceSummaries(context, employmentId, exit_date),
-			encashable: new Set(context.catalogues.flatMap((row) => (row.can_encash ? [row.id] : []))),
+			encashable: new Set(
+				context.catalogues.flatMap((row) => (row.can_encash && row.encash_on_exit ? [row.id] : []))
+			),
 			posted: new Set(
 				context.entries.flatMap((row) =>
 					row.employment_id === employmentId ? [row.reference] : []

@@ -23,7 +23,9 @@ const plan = (context: LeaveContext, posted: readonly string[] = []) =>
 		employmentId: id(1),
 		exitDate: EXIT,
 		summaries: leaveBalanceSummaries(context, id(1), EXIT),
-		encashable: new Set(context.catalogues.flatMap((row) => (row.can_encash ? [row.id] : []))),
+		encashable: new Set(
+			context.catalogues.flatMap((row) => (row.can_encash && row.encash_on_exit ? [row.id] : []))
+		),
 		posted: new Set(posted),
 		reason: 'departure'
 	});
@@ -61,9 +63,11 @@ test('a spent balance, a posted exit reference, a non-encashable row or a non-an
 	const locked = closed(leaveContext());
 	locked.catalogues[0]!.can_encash = false;
 	assert.deepEqual(plan(locked), []);
-	// Sick or hospitalisation leave is never paid out at exit, whatever `can_encash` defaults to.
+	// A row the version does not mark `encash_on_exit` (sick, hospitalisation) is never paid out
+	// at exit, whatever `can_encash` says; the code is not read.
 	const sick = closed(leaveContext());
 	sick.catalogues[0]!.code = 'HOSPITALIZATION_LEAVE';
+	sick.catalogues[0]!.encash_on_exit = false;
 	assert.deepEqual(plan(sick), []);
 });
 

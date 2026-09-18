@@ -63,6 +63,12 @@ export default defineModel(
 		 * non-convertible says so here; an `is_npl` row is never encashable.
 		 */
 		can_encash: boolean().notNull().default(true),
+		/**
+		 * Off-boarding pays out this row's unused balance on the last day (annual leave under PH
+		 * art.95, VN art.113(3), TW LSA §38(4), MY s.60E(3), SG s.43(6)); every other row is left
+		 * to a manual encashment where `can_encash` allows one.
+		 */
+		encash_on_exit: boolean().notNull().default(false),
 		/** From this many charged days a certificate is required and checked by the entry transform. */
 		evidence_after_days: integer(),
 		entitlement: custom('leave_entitlement').notNull()

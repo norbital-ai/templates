@@ -412,7 +412,7 @@
 									<tr class="border-t border-border">
 										<td class="py-1 pr-3 whitespace-nowrap">
 											<Inline gap="xs" align="center">
-												<span>{schemeLabel(charge.scheme_code)}</span>
+												<span>{schemeLabel(charge)}</span>
 												<Tooltip
 													side="bottom"
 													align="start"

@@ -45,6 +45,9 @@ const viteResource = Effect.acquireRelease(
 	(vite) => Effect.orDie(Effect.tryPromise(() => vite.close()))
 );
 
+/** The order the Malaysian listing reads its schemes in, as the version rows would carry it. */
+const ORDER = ['EPF', 'SOCSO', 'EIS', 'PCB', 'HRDF'];
+
 /** A payslip line, with every flag `report.ts` reads spelled out so no default is load-bearing. */
 const line = (overrides) => ({
 	componentCode: 'UNUSED',
@@ -126,10 +129,46 @@ const VERIFIED = {
 		})
 	],
 	contributions: new Map([
-		['EPF', { base: 3395.34, employee: 374, employer: 442 }],
-		['SOCSO', { base: 3760.78, employee: 18.75, employer: 65.65 }],
-		['EIS', { base: 3760.78, employee: 7.5, employer: 7.5 }],
-		['PCB', { base: 3760.78, employee: 0, employer: 0 }]
+		[
+			'EPF',
+			{
+				scheme_code: 'EPF',
+				listing_order: ORDER.indexOf('EPF') + 1,
+				base: 3395.34,
+				employee: 374,
+				employer: 442
+			}
+		],
+		[
+			'SOCSO',
+			{
+				scheme_code: 'SOCSO',
+				listing_order: ORDER.indexOf('SOCSO') + 1,
+				base: 3760.78,
+				employee: 18.75,
+				employer: 65.65
+			}
+		],
+		[
+			'EIS',
+			{
+				scheme_code: 'EIS',
+				listing_order: ORDER.indexOf('EIS') + 1,
+				base: 3760.78,
+				employee: 7.5,
+				employer: 7.5
+			}
+		],
+		[
+			'PCB',
+			{
+				scheme_code: 'PCB',
+				listing_order: ORDER.indexOf('PCB') + 1,
+				base: 3760.78,
+				employee: 0,
+				employer: 0
+			}
+		]
 	])
 };
 
@@ -190,10 +229,46 @@ const JOINER = {
 		})
 	],
 	contributions: new Map([
-		['EPF', { base: 690, employee: 76, employer: 90 }],
-		['SOCSO', { base: 1005.91, employee: 5.05, employer: 17.65 }],
-		['EIS', { base: 1005.91, employee: 2, employer: 2 }],
-		['PCB', { base: 1005.91, employee: 0, employer: 0 }]
+		[
+			'EPF',
+			{
+				scheme_code: 'EPF',
+				listing_order: ORDER.indexOf('EPF') + 1,
+				base: 690,
+				employee: 76,
+				employer: 90
+			}
+		],
+		[
+			'SOCSO',
+			{
+				scheme_code: 'SOCSO',
+				listing_order: ORDER.indexOf('SOCSO') + 1,
+				base: 1005.91,
+				employee: 5.05,
+				employer: 17.65
+			}
+		],
+		[
+			'EIS',
+			{
+				scheme_code: 'EIS',
+				listing_order: ORDER.indexOf('EIS') + 1,
+				base: 1005.91,
+				employee: 2,
+				employer: 2
+			}
+		],
+		[
+			'PCB',
+			{
+				scheme_code: 'PCB',
+				listing_order: ORDER.indexOf('PCB') + 1,
+				base: 1005.91,
+				employee: 0,
+				employer: 0
+			}
+		]
 	])
 };
 
@@ -232,8 +307,26 @@ const SINGAPORE = {
 		})
 	],
 	contributions: new Map([
-		['CPF', { base: 5300, employee: 1060, employer: 901 }],
-		['SDL', { base: 5300, employee: 0, employer: 13.25 }]
+		[
+			'CPF',
+			{
+				scheme_code: 'CPF',
+				listing_order: ORDER.indexOf('CPF') + 1,
+				base: 5300,
+				employee: 1060,
+				employer: 901
+			}
+		],
+		[
+			'SDL',
+			{
+				scheme_code: 'SDL',
+				listing_order: ORDER.indexOf('SDL') + 1,
+				base: 5300,
+				employee: 0,
+				employer: 13.25
+			}
+		]
 	])
 };
 
