@@ -4,7 +4,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
 		"name": "Public holiday in lieu",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -20,7 +20,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "COMPASSIONATE_LEAVE",
 		"name": "Compassionate leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -36,7 +36,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`).",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -52,7 +52,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "(employment.service_months >= 3 && children.count < 6) ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months >= 3 ? 1.0 : 0.0"
 	},
 	{
 		"id": "d85b43a1-c3cf-5bc5-9bf4-af2bb9151cd1",
@@ -111,7 +111,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "ABSENCE",
 		"name": "Unpaid absence",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -127,7 +127,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year. s.60E(1) second proviso: an employee absent without permission or reasonable excuse for more than ten per cent of the working days of the twelve months is not entitled to the leave (`employment.absent_days_12m` against 10% of 52 weeks of the contracted days).",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -146,7 +146,8 @@
 					"eligibility": "",
 					"days": 8
 				}
-			]
+			],
+			"rounding": "WHOLE_DAY"
 		},
 		"is_npl": false,
 		"can_encash": true
@@ -156,7 +157,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "EMERGENCY_LEAVE",
 		"name": "Emergency leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -172,7 +173,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -194,7 +195,7 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -210,7 +211,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
 		"name": "Public holiday in lieu",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -226,7 +227,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "COMPASSIONATE_LEAVE",
 		"name": "Compassionate leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -242,7 +243,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`).",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -258,7 +259,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "(employment.service_months >= 3 && children.count < 6) ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months >= 3 ? 1.0 : 0.0"
 	},
 	{
 		"id": "b22f1cc5-b21d-5b54-b588-ed33de3eb6c9",
@@ -317,7 +318,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "ABSENCE",
 		"name": "Unpaid absence",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -333,7 +334,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year. s.60E(1) second proviso: an employee absent without permission or reasonable excuse for more than ten per cent of the working days of the twelve months is not entitled to the leave (`employment.absent_days_12m` against 10% of 52 weeks of the contracted days).",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -352,7 +353,8 @@
 					"eligibility": "",
 					"days": 8
 				}
-			]
+			],
+			"rounding": "WHOLE_DAY"
 		},
 		"is_npl": false,
 		"can_encash": true
@@ -362,7 +364,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "EMERGENCY_LEAVE",
 		"name": "Emergency leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -378,7 +380,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -400,7 +402,7 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -416,7 +418,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
 		"name": "Public holiday in lieu",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -432,7 +434,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "COMPASSIONATE_LEAVE",
 		"name": "Compassionate leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -448,7 +450,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`).",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -464,7 +466,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "(employment.service_months >= 3 && children.count < 6) ? 1.0 : 0.0"
+		"pay_fraction": "employment.service_months >= 3 ? 1.0 : 0.0"
 	},
 	{
 		"id": "f8f14ec6-242f-56d6-bff6-d30bdde06e68",
@@ -523,7 +525,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "ABSENCE",
 		"name": "Unpaid absence",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -539,7 +541,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year. s.60E(1) second proviso: an employee absent without permission or reasonable excuse for more than ten per cent of the working days of the twelve months is not entitled to the leave (`employment.absent_days_12m` against 10% of 52 weeks of the contracted days).",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -558,7 +560,8 @@
 					"eligibility": "",
 					"days": 8
 				}
-			]
+			],
+			"rounding": "WHOLE_DAY"
 		},
 		"is_npl": false,
 		"can_encash": true
@@ -568,7 +571,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "EMERGENCY_LEAVE",
 		"name": "Emergency leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -584,7 +587,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -606,7 +609,7 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
-		"authority": null,
+		"authority": "",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",

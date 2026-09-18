@@ -125,6 +125,37 @@ function contextOf(options: {
 }
 
 /**
+ * The night premium's two adds for one day, as percentages: a figure stands as it is, an
+ * expression is read over the same day context the bands see (PH art.86: the add follows the
+ * day's own rate — 13 on a rest day, 20 on a regular holiday, 26 where they coincide).
+ */
+export function nightAddsFor(options: {
+	readonly work: WorkRules;
+	readonly premium: {
+		readonly ordinary_add: number | string;
+		readonly overtime_add: number | string;
+	};
+	readonly person: PersonContext;
+	readonly day: WorkBandDay;
+	readonly rates: WorkBandRates;
+	readonly engine?: ExpressionEngine;
+}): { readonly ordinary: number; readonly overtime: number } {
+	const { premium } = options;
+	if (typeof premium.ordinary_add === 'number' && typeof premium.overtime_add === 'number')
+		return { ordinary: premium.ordinary_add, overtime: premium.overtime_add };
+	const engine = options.engine ?? expressionEngine;
+	const context = contextOf({
+		person: options.person,
+		day: options.day,
+		rates: options.rates,
+		limits: evaluatedLimits(options.work.limits, options.day.breakMinutes)
+	});
+	const read = (add: number | string) =>
+		typeof add === 'number' ? add : Math.max(0, evaluateNumber(engine, add, context));
+	return { ordinary: read(premium.ordinary_add), overtime: read(premium.overtime_add) };
+}
+
+/**
  * Price one day's bands. Rows are ordered by band; a funnel row follows the row it came from.
  */
 export function priceWorkDay(options: {

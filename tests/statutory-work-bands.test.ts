@@ -14,7 +14,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { assessedOnMentions } from '../src/lib/expressions/compile.ts';
-import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
+import { nightAddsFor, priceWorkDay } from '../src/lib/payroll/work-bands.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { settingsVersions, contributionSchemes } from './fixtures/statutory-world.ts';
 
@@ -195,15 +195,46 @@ test('Vietnam — a night overtime hour carries the 30% night premium and the 20
 	}
 });
 
-test('Philippines — night work on an overtime hour compounds the differential', () => {
-	// DOLE Handbook ch.5 §D: an overtime hour at night is 1.25 × 1.10 of the hourly rate, so the
-	// night add on top of the 125% overtime line is 12.5% of the ordinary hour; 10% on ordinary hours.
+test('Philippines — the night differential follows the day’s own rate', () => {
+	// Art.86 and DOLE Handbook ch.5: 10% of the hour’s own rate, so on top of each line the add
+	// is the line’s multiple × 10 — 10/12.5 on an ordinary day, 13/16.9 on a rest day or a special
+	// day, 20/26 on a regular holiday, 26/33.8 where the holiday falls on the rest day, 15/19.5
+	// for a special day on the rest day.
+	const day = (dayType, extra = {}) => ({
+		workDayId: 'd',
+		date: '2026-06-15',
+		dayType,
+		workedHours: 10,
+		overtimeHours: dayType === 'ORDINARY' ? 2 : 10,
+		normalHours: 8,
+		breakMinutes: 60,
+		rosterCode: 'AM',
+		holidayKind: dayType === 'PUBLIC_HOLIDAY' || dayType === 'SPECIAL_HOLIDAY' ? dayType : '',
+		holidayName: '',
+		monthOvertimeHours: 0,
+		consecutiveHours: 4,
+		continuousAttendance: false,
+		restDay: false,
+		offDay: false,
+		nightHours: 4,
+		requestedBy: 'EMPLOYER',
+		...extra
+	});
 	for (const version of settingsVersions('PH')) {
-		assert.deepEqual(version.work_rules.night_premium, {
-			from: '22:00',
-			to: '06:00',
-			ordinary_add: 10,
-			overtime_add: 12.5
+		const premium = version.work_rules.night_premium;
+		assert.deepEqual([premium.from, premium.to], ['22:00', '06:00']);
+		const adds = (d) => nightAddsFor({ work: version.work_rules, premium, person, day: d, rates });
+		assert.deepEqual(adds(day('ORDINARY')), { ordinary: 10, overtime: 12.5 });
+		assert.deepEqual(adds(day('REST_DAY', { restDay: true })), { ordinary: 13, overtime: 16.9 });
+		assert.deepEqual(adds(day('SPECIAL_HOLIDAY')), { ordinary: 13, overtime: 16.9 });
+		assert.deepEqual(adds(day('PUBLIC_HOLIDAY')), { ordinary: 20, overtime: 26 });
+		assert.deepEqual(adds(day('PUBLIC_HOLIDAY', { restDay: true })), {
+			ordinary: 26,
+			overtime: 33.8
+		});
+		assert.deepEqual(adds(day('SPECIAL_HOLIDAY', { restDay: true })), {
+			ordinary: 15,
+			overtime: 19.5
 		});
 	}
 });

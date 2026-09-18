@@ -636,7 +636,7 @@
 		"id": "7a9279fd-7afa-5917-ad54-bbdf9e630950",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-18\" && employment.exit_date < \"2026-03-13\"))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
@@ -646,13 +646,15 @@
 				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
 				"limit": null
 			}
-		]
+		],
+		"on_separation": true,
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it."
 	},
 	{
 		"id": "d21a02ca-669c-5295-8f16-124fa8d4143d",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-18\" && employment.exit_date < \"2026-03-13\"))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
@@ -662,13 +664,15 @@
 				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
 				"limit": null
 			}
-		]
+		],
+		"on_separation": true,
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it."
 	},
 	{
 		"id": "6905cf49-a5ed-5833-ad3d-d08074b60c4e",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-18\" && employment.exit_date < \"2026-03-13\"))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
@@ -678,7 +682,9 @@
 				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
 				"limit": null
 			}
-		]
+		],
+		"on_separation": true,
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it."
 	},
 	{
 		"id": "2cbb52d9-ae7d-5bb4-a459-731cc93799c1",

@@ -34,6 +34,7 @@ The entitlement definition contains:
 | `year_start_month` | The first month of the annual leave window, including fiscal years.                                                                                                                              |
 | `proration`        | `NONE`, eligible `CALENDAR_MONTHS`, `COMPLETED_MONTHS` or eligible `CALENDAR_DAYS`.                                                                                                              |
 | `rolling_months`   | Measures the window over the trailing months ending on the day instead of the leave year (MY sick leave over 12, TW over 24).                                                                    |
+| `rounding`         | `HALF_DAY` (default) or `WHOLE_DAY`: a part-year grant rounds to the day, a half or more up (MY s.60E(1), SG s.88A(3)).                                                                          |
 | `bands`            | Annual quantities by completed months of service on this contract; `days` is a number or an expression over `leave_day` (`leave.month_index`, `leave.day_index`, `leave.days`, the person root). |
 
 The catalogue row beside it: `pay_fraction` (an expression over `leave_day`, the share of the day

@@ -265,6 +265,34 @@ test('an entitlement band may be a number over the person: a seniority ladder wi
 	assert.equal(summaries.find((row) => row.code === 'LADDER')!.entitlement, 15);
 });
 
+test('a WHOLE_DAY row rounds a part-year grant to the day, a half or more up; the default keeps the half', () => {
+	// MY EA s.60E(1) and SG EA s.88A(3): a fraction under a half is disregarded, a half or more is
+	// a day. A contract begun on 1 August with a 16-day grant prorated on calendar months earns
+	// 16 × 5/12 = 6.67 days: 6.5 on the half-day default, 7 on the whole-day rule.
+	for (const [rounding, expected] of [
+		[undefined, 6.5],
+		['HALF_DAY', 6.5],
+		['WHOLE_DAY', 7]
+	] as const) {
+		const context = leaveContext();
+		catalogue(context, {
+			id: id(26),
+			code: 'ROUNDED',
+			entitlement: {
+				availability: 'UPFRONT',
+				proration: 'CALENDAR_MONTHS',
+				year_start_month: 1,
+				...(rounding == null ? {} : { rounding }),
+				bands: [{ eligibility: '', days: 16 }]
+			}
+		});
+		context.employments[0]!.effective_range = { start: '2026-08-01', end: null };
+		context.terms[0]!.effective_range = { start: '2026-08-01', end: null };
+		const summaries = leaveBalanceSummaries(context, id(1), '2026-12-31');
+		assert.equal(summaries.find((row) => row.code === 'ROUNDED')!.entitlement, expected);
+	}
+});
+
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // The deducted share of a charged day: `pay_fraction`, `paid_by: FUND`, and what counts unpaid.
 // ─────────────────────────────────────────────────────────────────────────────────────────────

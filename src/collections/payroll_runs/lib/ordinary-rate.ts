@@ -33,6 +33,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
 import { monthDays } from './dates.js';
 import { cents } from './rounding.js';
 import { normalDailyHours } from './schedule.js';
+import { prorationBasisFor } from './proration.js';
 import { evaluateNumber, expressionEngine } from '../../../lib/expressions/evaluate.js';
 
 const payFrequencies = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
@@ -125,6 +126,7 @@ export function ordinaryDayWage(terms: RateTerms, divisorDays: number): number {
 type AbsenceDayRateOptions = {
 	readonly terms: RateTerms;
 	readonly work: Work;
+	readonly person: PersonContext;
 	readonly period: { readonly start: string; readonly end: string };
 	readonly workingDaysIn: (range: { readonly start: string; readonly end: string }) => number;
 };
@@ -146,7 +148,7 @@ type AbsenceDayRateOptions = {
  */
 export function absenceDayRate(options: AbsenceDayRateOptions): number {
 	const monthly = monthlyBaseSalary(options.terms);
-	const proration = options.work.proration;
+	const proration = prorationBasisFor(options.work, options.person);
 	if (proration == null) throw new Error('The work states no proration basis.');
 	switch (proration.by) {
 		case 'CALENDAR_DAYS':

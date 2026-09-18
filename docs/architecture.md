@@ -514,7 +514,12 @@ the unconditional limits and a person against the applicable ones, and payroll r
 days the way a rest day does (MY s.59(1A)); `average {days, rest_days, when}` admits the averaging
 arm (VN art.111(1): four rest days a month where the work cannot rest weekly). Overtime is derived
 to the minute (`roundMinute`), and `payroll.final_pay_due_days` raises `FINAL_PAY_LATE` on a run
-whose pay date falls after a leaver's final pay is due.
+whose pay date falls after a leaver's final pay is due. The night premium's two adds are figures or
+expressions over the same day context (PH art.86: 10% of the hour's own rate, so the add follows
+the day type), and on a shiftless day the first `normal_hours` night hours are the ordinary ones.
+`work_rules.proration_by` is an ordered list of `{when, basis}` arms over the person; the first
+that holds replaces `proration` for that person everywhere a proration is read — the salary
+segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167).
 
 Attendance overruns are priced and reported, never blocked and never discarded. Hours a schedule
 was never allowed to contain are still paid; that a run paid them is not proof the schedule

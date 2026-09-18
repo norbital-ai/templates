@@ -15,6 +15,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+	nightWindowHours,
 	deriveDailyOvertime,
 	ordinaryWorkedHours
 } from '../src/collections/payroll_runs/lib/overtime.ts';
@@ -370,4 +371,23 @@ test('the minute is the payable unit, and float error never moves it', () => {
 	}
 	for (let minutes = 0; minutes <= 600; minutes += 1)
 		assert.equal(roundMinute(minutes / 60), minutes / 60, `${minutes} minutes is itself`);
+});
+
+test('on a day with no shift the first normal hours of night work are ordinary, the rest overtime', () => {
+	// A rest day worked 20:00 to 06:00 across midnight: eight hours fall in the 22:00–06:00 window;
+	// the first eight worked hours run to 04:00, so six of the night hours are the day's ordinary
+	// ones and two are beyond the normal day (PH art.93: 130% then 169%, the night add on each).
+	const day = entry({
+		worked_intervals: [{ start: at('2026-03-10', '20:00'), end: at('2026-03-11', '06:00') }],
+		break_minutes: 0
+	});
+	assert.deepEqual(nightWindowHours(day, { from: '22:00', to: '06:00' }, null, 8 * 60, 8), {
+		ordinary: 6,
+		overtime: 2
+	});
+	// Without a normal day stated, every night hour on a shiftless day is overtime, as before.
+	assert.deepEqual(nightWindowHours(day, { from: '22:00', to: '06:00' }, null), {
+		ordinary: 0,
+		overtime: 8
+	});
 });

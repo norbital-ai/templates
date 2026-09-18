@@ -118,11 +118,20 @@
 			"night_premium": {
 				"from": "22:00",
 				"to": "06:00",
-				"ordinary_add": 10,
-				"overtime_add": 12.5
+				"ordinary_add": "rest_day && holiday.kind == \"PUBLIC_HOLIDAY\" ? 26.0 : rest_day && holiday.kind == \"SPECIAL_HOLIDAY\" ? 15.0 : rest_day || holiday.kind == \"SPECIAL_HOLIDAY\" ? 13.0 : holiday.kind == \"PUBLIC_HOLIDAY\" ? 20.0 : 10.0",
+				"overtime_add": "rest_day && holiday.kind == \"PUBLIC_HOLIDAY\" ? 33.8 : rest_day && holiday.kind == \"SPECIAL_HOLIDAY\" ? 19.5 : rest_day || holiday.kind == \"SPECIAL_HOLIDAY\" ? 16.9 : holiday.kind == \"PUBLIC_HOLIDAY\" ? 26.0 : 12.5"
 			},
-			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. NOT APPLIED: a regular holiday worked on a rest day is 260% for the first eight hours and 338% beyond (2.0 x 1.3), and a special (non-working) day worked on a rest day is 150%; `holiday_rest_precedence` picks one day type rather than compounding two, so this row pays the 200% and 130% legs only. NOT APPLIED: art.94(a) pay for an UNWORKED regular holiday (100% of the daily wage, subject to the day-before presence rule) and the 'no work, no pay' rule for an unworked special day — the regime expresses premiums for hours worked, not an entitlement for a day not worked. NOT APPLIED: the art.82 exclusions beyond MANAGERIAL — officers and members of the managerial staff, field personnel, family members dependent on the employer for support, domestic helpers, persons in the personal service of another and workers paid by results — `category_basis: WORK_CLASSIFICATION` names one classification per person and the bank has one such value for them. NOT APPLIED: art.85's 20-minute compensable meal period in the four listed cases, and the compensable 5-20 minute rest periods; `work_rules.breaks` carries the general 60-minute unpaid meal period, owed on any worked day (art.85 states no hours trigger).",
-			"normal_hours": "8.0"
+			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. Applied 2026-09-18 (2): art.86 and Handbook ch.5: the night shift differential is 10% of the hour’s own rate, so 13 on a rest day or a special day, 20 on a regular holiday, 26 on a regular holiday falling on the rest day, 15 on a special day on the rest day, and on the overtime hours of each 12.5, 16.9, 26, 33.8 and 19.5 (`night_premium` adds as expressions over the day; the first eight night hours of a rest day or holiday are its ordinary ones). Handbook ch.2 §E: a monthly-paid employee (`payroll_group` MONTHLY) is prorated and has an absence deducted on the 365 factor, 30.4167 a month (`proration_by`); the daily-paid keep 21.75 or 26.0833.",
+			"normal_hours": "8.0",
+			"proration_by": [
+				{
+					"when": "terms.payroll_group == \"MONTHLY\"",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 30.4167
+					}
+				}
+			]
 		},
 		"payroll": {
 			"currency": "PHP",
@@ -137,7 +146,8 @@
 				"NCR": 18127.92
 			},
 			"applies_when": "employment.type != \"INTERN\"",
-			"scale": "employment.type == \"APPRENTICE\" ? 0.75 : 1.0"
+			"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
+			"authority": " Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75)."
 		},
 		"sources": {
 			"urls": [
@@ -285,11 +295,20 @@
 			"night_premium": {
 				"from": "22:00",
 				"to": "06:00",
-				"ordinary_add": 10,
-				"overtime_add": 12.5
+				"ordinary_add": "rest_day && holiday.kind == \"PUBLIC_HOLIDAY\" ? 26.0 : rest_day && holiday.kind == \"SPECIAL_HOLIDAY\" ? 15.0 : rest_day || holiday.kind == \"SPECIAL_HOLIDAY\" ? 13.0 : holiday.kind == \"PUBLIC_HOLIDAY\" ? 20.0 : 10.0",
+				"overtime_add": "rest_day && holiday.kind == \"PUBLIC_HOLIDAY\" ? 33.8 : rest_day && holiday.kind == \"SPECIAL_HOLIDAY\" ? 19.5 : rest_day || holiday.kind == \"SPECIAL_HOLIDAY\" ? 16.9 : holiday.kind == \"PUBLIC_HOLIDAY\" ? 26.0 : 12.5"
 			},
-			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. NOT APPLIED: a regular holiday worked on a rest day is 260% for the first eight hours and 338% beyond (2.0 x 1.3), and a special (non-working) day worked on a rest day is 150%; `holiday_rest_precedence` picks one day type rather than compounding two, so this row pays the 200% and 130% legs only. NOT APPLIED: art.94(a) pay for an UNWORKED regular holiday (100% of the daily wage, subject to the day-before presence rule) and the 'no work, no pay' rule for an unworked special day — the regime expresses premiums for hours worked, not an entitlement for a day not worked. NOT APPLIED: the art.82 exclusions beyond MANAGERIAL — officers and members of the managerial staff, field personnel, family members dependent on the employer for support, domestic helpers, persons in the personal service of another and workers paid by results — `category_basis: WORK_CLASSIFICATION` names one classification per person and the bank has one such value for them. NOT APPLIED: art.85's 20-minute compensable meal period in the four listed cases, and the compensable 5-20 minute rest periods; `work_rules.breaks` carries the general 60-minute unpaid meal period, owed on any worked day (art.85 states no hours trigger).",
-			"normal_hours": "8.0"
+			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. Applied 2026-09-18 (2): art.86 and Handbook ch.5: the night shift differential is 10% of the hour’s own rate, so 13 on a rest day or a special day, 20 on a regular holiday, 26 on a regular holiday falling on the rest day, 15 on a special day on the rest day, and on the overtime hours of each 12.5, 16.9, 26, 33.8 and 19.5 (`night_premium` adds as expressions over the day; the first eight night hours of a rest day or holiday are its ordinary ones). Handbook ch.2 §E: a monthly-paid employee (`payroll_group` MONTHLY) is prorated and has an absence deducted on the 365 factor, 30.4167 a month (`proration_by`); the daily-paid keep 21.75 or 26.0833.",
+			"normal_hours": "8.0",
+			"proration_by": [
+				{
+					"when": "terms.payroll_group == \"MONTHLY\"",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 30.4167
+					}
+				}
+			]
 		},
 		"payroll": {
 			"currency": "PHP",
@@ -304,7 +323,8 @@
 				"NCR": 18127.92
 			},
 			"applies_when": "employment.type != \"INTERN\"",
-			"scale": "employment.type == \"APPRENTICE\" ? 0.75 : 1.0"
+			"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
+			"authority": " Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75)."
 		},
 		"sources": {
 			"urls": [

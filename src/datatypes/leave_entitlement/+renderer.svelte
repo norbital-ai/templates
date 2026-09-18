@@ -42,11 +42,20 @@
 		}
 	);
 	const availabilityOptions = $derived(
-		(['UPFRONT', 'MONTHLY', 'UNLIMITED'] as const).map((value) => ({
+		(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT'] as const).map((value) => ({
 			value,
 			label: t(`leave.availability.${value}`)
 		}))
 	);
+	const roundingOptions = $derived(
+		(['HALF_DAY', 'WHOLE_DAY'] as const).map((value) => ({
+			value,
+			label: t(`leave.rounding.${value}`)
+		}))
+	);
+	/** A blank count clears the field; anything else is the integer typed. */
+	const countFrom = (text: string): number | null =>
+		text.trim() === '' ? null : Math.max(1, Math.trunc(numberFrom(text, 1)));
 	const prorationOptions = $derived(
 		(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS'] as const).map((value) => ({
 			value,
@@ -104,6 +113,50 @@
 						onValueChange={(proration) => {
 							if (proration) emit({ ...current, proration });
 						}}
+					/>
+				</Stack></label
+			>
+			<label class="text-sm font-medium"
+				><Stack gap="xs">
+					{t('leave.rounding')}
+					<Combobox
+						options={roundingOptions}
+						value={current.rounding ?? 'HALF_DAY'}
+						{disabled}
+						searchable={false}
+						onValueChange={(rounding) => {
+							if (rounding) emit({ ...current, rounding });
+						}}
+					/>
+				</Stack></label
+			>
+			<label class="text-sm font-medium"
+				><Stack gap="xs">
+					{t('leave.rolling_months')}
+					<Input
+						type="number"
+						min="1"
+						step="1"
+						value={current.rolling_months ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, rolling_months: countFrom(event.currentTarget.value) })}
+					/>
+				</Stack></label
+			>
+		{/if}
+		{#if current.availability === 'PER_EVENT'}
+			<label class="text-sm font-medium"
+				><Stack gap="xs">
+					{t('leave.lifetime_events')}
+					<Input
+						type="number"
+						min="1"
+						step="1"
+						value={current.lifetime_events ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, lifetime_events: countFrom(event.currentTarget.value) })}
 					/>
 				</Stack></label
 			>

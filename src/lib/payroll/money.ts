@@ -292,6 +292,7 @@ function allowanceProration(options: {
 	readonly employed: PayRange;
 	readonly salary: PayRange;
 	readonly configuration: Configuration;
+	readonly person: PersonContext;
 	readonly workingDaysIn: (window: PayRange) => number;
 	readonly instalments: number;
 	readonly unpaidDaysIn: (window: PayRange) => number;
@@ -302,6 +303,7 @@ function allowanceProration(options: {
 	);
 	const segment = prorationSegment({
 		work: options.configuration.work,
+		person: options.person,
 		period: options.salary,
 		covered,
 		workingDaysIn: options.workingDaysIn,
@@ -334,7 +336,10 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		);
 	if (options.entry == null) return null;
 	const bucket = settlementBucket(options.component.destination, options.component.direction);
-	const prorationOf = (source: PreparedPayRequest): AllowanceProration | null =>
+	const prorationOf = (
+		source: PreparedPayRequest,
+		person: PersonContext
+	): AllowanceProration | null =>
 		source.window == null
 			? null
 			: allowanceProration({
@@ -342,6 +347,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					employed: options.employed,
 					salary: options.salary,
 					configuration: options.configuration,
+					person,
 					workingDaysIn: options.workingDaysIn,
 					instalments: options.instalments,
 					unpaidDaysIn: options.unpaidDaysIn
@@ -402,6 +408,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			daysEmployed:
 				prorationSegment({
 					work: options.configuration.work,
+					person: subject,
 					period: options.salary,
 					covered: options.employed,
 					workingDaysIn: options.workingDaysIn,
@@ -424,7 +431,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		if (band == null && options.component.bands.length > 0)
 			return skipped('no band of the catalogue covers this entry');
 		const sign = entry.sign;
-		const proration = prorationOf(entry);
+		const proration = prorationOf(entry, subject);
 		// A claim is never prorated; an allowance whose window and employment cover none of the
 		// period is not an entry at all — the source is silent rather than captured at nothing.
 		if (entry.window != null && proration == null) return null;
@@ -460,7 +467,9 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 									candidate.sign *
 									cents(
 										decodeNumber(candidate.amount) *
-											(candidate.window == null ? 1 : fractionOf(prorationOf(candidate))),
+											(candidate.window == null
+												? 1
+												: fractionOf(prorationOf(candidate, subjectOn(candidate)))),
 										currency
 									)
 							}
