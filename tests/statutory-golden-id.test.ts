@@ -654,8 +654,8 @@ test('Indonesia — the PP 35/2021 Pasal 31 ladder on an ordinary day, a rest da
 test('Indonesia — a holiday on a six-day worker’s shortest day prices its own five hours at 2× (Pasal 31(2)(b))', () => {
 	// PP 35/2021 Pasal 31(2)(b): where the week is six days, a holiday on the shortest working day
 	// pays five hours at 2×, the sixth at 3× and the seventh to ninth at 4×. The guards' week is
-	// five seven-hour days and a five-hour Saturday (40 hours); with `normal_hours_follow_shift`
-	// the Saturday's normal day is its own five hours, not the contract's average. Rp 17,300,000
+	// five seven-hour days and a five-hour Saturday (40 hours); a rostered shift shorter than the normal day is
+	// that day’s normal day, so the Saturday’s is its own five hours. Rp 17,300,000
 	// is Rp 100,000 an hour. Saturday 3 January 2026 is the holiday, worked 09:00–16:00 (seven).
 	const SHORT = 'c0000000-0000-4000-8000-0000000000d8';
 	const LONG = 'c0000000-0000-4000-8000-0000000000d7';

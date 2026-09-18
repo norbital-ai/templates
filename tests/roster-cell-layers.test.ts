@@ -13,7 +13,10 @@ import {
 	buildRosterMonth,
 	describeClockLayer,
 	describePlanLayer,
-	resolveCellLayers
+	resolveCellLayers,
+	signedHalfHoursLabel,
+	slotFill,
+	slotState
 } from '../src/lib/ui/roster/roster-month.ts';
 import { employeeMissingPunchReportable } from '../src/lib/ui/roster/employee-reportability.ts';
 
@@ -228,4 +231,40 @@ test('punch clocks read in the timezone the board is handed, not the payroll def
 		'08:02'
 	);
 	assert.equal(month({ workDays: [punched] }).get(key)?.punchWindow?.first, '09:02');
+});
+
+test('the slot fill is the clock against the plan: signed to the half hour, all extra with no plan', () => {
+	const punched = (date, code, start, end) =>
+		row(date, {
+			shift_definition_id: code,
+			worked_intervals: [{ start, end }]
+		});
+	const facts = month({
+		workDays: [
+			// 08:31–17:20 on an eight-hour shift: 469 worked, −11 → rounds to the plan.
+			punched('2026-08-03', DAY_ID, '2026-08-03T00:31:00.000Z', '2026-08-03T09:20:00.000Z'),
+			// 08:00–18:35 on the same shift: 575 worked, +95 → +1.5h.
+			punched('2026-08-04', DAY_ID, '2026-08-04T00:00:00.000Z', '2026-08-04T10:35:00.000Z'),
+			// 08:00–15:00: 360 worked, −120 → −2h, a short day.
+			punched('2026-08-10', DAY_ID, '2026-08-10T00:00:00.000Z', '2026-08-10T07:00:00.000Z'),
+			// A rest day worked: nothing planned, every minute is extra.
+			punched('2026-08-05', REST_ID, '2026-08-05T00:00:00.000Z', '2026-08-05T04:00:00.000Z')
+		]
+	});
+	const fillOf = (date) => slotFill(facts.get(`${EMPLOYMENT}:${date}`));
+	const label = (date) => signedHalfHoursLabel(fillOf(date).deltaMinutes);
+	assert.equal(fillOf('2026-08-03').deltaMinutes, -11);
+	assert.equal(fillOf('2026-08-03').short, false);
+	assert.equal(label('2026-08-04'), '+1.5h');
+	assert.equal(fillOf('2026-08-04').short, false);
+	assert.equal(label('2026-08-10'), '−2h');
+	assert.equal(fillOf('2026-08-10').short, true);
+	assert.equal(label('2026-08-05'), '+4h');
+	assert.equal(fillOf('2026-08-05').ratio, 1);
+	// The states the fill sits on: rest stays rest under a clock; a base day is plain work.
+	assert.equal(slotState(facts.get(`${EMPLOYMENT}:2026-08-05`)), 'REST');
+	assert.equal(slotState(facts.get(`${EMPLOYMENT}:2026-08-03`)), 'WORK');
+	assert.equal(slotState(facts.get(`${EMPLOYMENT}:2026-08-06`)), 'REST');
+	assert.equal(slotState(facts.get(`${ROSTERED_EMPLOYMENT}:2026-08-06`)), 'UNROSTERED');
+	assert.equal(slotFill(facts.get(`${EMPLOYMENT}:2026-08-06`)).kind, 'NONE');
 });

@@ -534,8 +534,8 @@ expressions over the same day context (PH art.86: 10% of the hour's own rate, so
 the day type), and on a shiftless day the first `normal_hours` night hours are the ordinary ones.
 `work_rules.proration_by` is an ordered list of `{when, basis}` arms over the person; the first
 that holds replaces `proration` for that person everywhere a proration is read — the salary
-segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167). `normal_hours_follow_shift` makes a
-shorter rostered shift that day's normal day (ID art.31(2)(b)); an `ALL_OVERTIME_HOURS` limit
+segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167). A rostered shift shorter than
+`normal_hours` is that day's normal day (ID art.31(2)(b)); an `ALL_OVERTIME_HOURS` limit
 counts rest-day and holiday hours beyond the normal day for its warning while the regulated
 `OVERTIME_HOURS` count stays the one the monthly funnel — the only company policy in the engine —
 reads. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_is_half` carry SG s.88(2)

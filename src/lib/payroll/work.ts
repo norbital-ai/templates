@@ -304,19 +304,19 @@ type TermsWorkloadOptions = {
 };
 
 function termsWorkload(options: TermsWorkloadOptions): PatternWorkload {
-	const workload = patternWorkload(
-		termPattern(options.terms, options.configuration.patternById),
-		options.configuration.shiftById
-	);
-	return (
-		workload ??
-		rosteredWorkload({
-			days: options.workDays,
-			configuration: options.configuration,
-			window: options.window,
-			daysPerWeek: decodeNumber(options.terms.agreed_days_per_week)
-		})
-	);
+	const pattern = termPattern(options.terms, options.configuration.patternById);
+	const declared = patternWorkload(pattern, options.configuration.shiftById);
+	// A day cycle is the schedule itself. A declared expectation ("rostered 6 days") only
+	// constrains the roster, which stays the record of what the week is: the rows price the
+	// person, and the declaration stands in only where the month holds none.
+	if (pattern != null && 'days' in pattern && declared != null) return declared;
+	const rostered = rosteredWorkload({
+		days: options.workDays,
+		configuration: options.configuration,
+		window: options.window,
+		daysPerWeek: decodeNumber(options.terms.agreed_days_per_week)
+	});
+	return rostered.work_days > 0 ? rostered : (declared ?? rostered);
 }
 
 function asRateTerms(
@@ -452,8 +452,7 @@ export function prepareWorkContext(
 				workload.work_days > 0
 					? workload.paid_minutes / workload.work_days / 60
 					: contractDayHours(row, normalHoursCap)
-			),
-			normal_hours_follow_shift: configuration.work.normal_hours_follow_shift === true
+			)
 		};
 	};
 	const schedule = resolveSchedule({
@@ -1490,6 +1489,7 @@ export function validateWorkInputs(options: {
 						shift_definition_id: day.shift_definition_id
 					}))
 				})),
+			holidayDates: new Set(configuration.holidays.keys()),
 			...rosteredWorkCodeMaps(
 				[...configuration.shiftById].map(([id, code]) => ({ id, variant: code.variant }))
 			)

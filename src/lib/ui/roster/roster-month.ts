@@ -1505,10 +1505,11 @@ export function slotCode(day: DayFacts | undefined, dense = true): string {
  * How the clock filled the slot.
  *
  * `ratio` is worked ÷ planned, capped at one: the bar's length inside the slot. `extra` is the
- * part past the plan as a fraction of the plan — a 9-hour clock on an 8-hour shift is `0.125`,
- * shown as `+13%` — and it is the same measure the day sheet calls "beyond schedule". A day with
- * attendance and no plan has nothing to be measured against: its bar is full and its label is the
- * hours. An open clock has no length yet; it is drawn indeterminate. AWOL is the destructive fill.
+ * part past the plan as a fraction of the plan — a 9-hour clock on an 8-hour shift is `0.125` —
+ * and `deltaMinutes` is the same difference in minutes, signed, which the cell prints to the half
+ * hour as `+1h` or `−0.5h`; it is the measure the day sheet calls "beyond schedule". A day with
+ * attendance and no plan is all extra: its bar is full and every worked minute is the delta. An
+ * open clock has no length yet; it is drawn indeterminate. AWOL is the destructive fill.
  */
 type SlotFill =
 	| { readonly kind: 'NONE' }
@@ -1518,6 +1519,9 @@ type SlotFill =
 			readonly kind: 'CLOCKED';
 			readonly ratio: number;
 			readonly extra: number;
+			/** Worked − planned, in minutes; every minute when nothing was planned. */
+			readonly deltaMinutes: number;
+			/** Short of the plan by more than a rounding: ten minutes under an eight-hour shift is not a short day. */
 			readonly short: boolean;
 			readonly workedMinutes: number;
 			readonly plannedMinutes: number | null;
@@ -1534,12 +1538,13 @@ export function slotFill(day: DayFacts | undefined): SlotFill {
 	const planned = scheduledMinutes(day);
 	const ratio = planned == null || planned <= 0 ? 1 : Math.min(1, worked / planned);
 	const extra = planned == null || planned <= 0 ? 0 : Math.max(0, (worked - planned) / planned);
+	const deltaMinutes = worked - (planned ?? 0);
 	return {
 		kind: 'CLOCKED',
 		ratio,
 		extra,
-		// Short by more than a rounding: ten minutes under an eight-hour shift is not a short day.
-		short: planned != null && planned > 0 && planned - worked > 30,
+		deltaMinutes,
+		short: halfHours(deltaMinutes) < 0,
 		workedMinutes: worked,
 		plannedMinutes: planned,
 		first: day.punchWindow?.first ?? '',
@@ -1552,5 +1557,15 @@ export function slotFill(day: DayFacts | undefined): SlotFill {
  * under it still carries the exact share; the label says what a person reads off a timesheet.
  */
 export function halfHoursLabel(minutes: number): string {
-	return `${Math.round(minutes / 30) / 2}h`;
+	return `${halfHours(minutes)}h`;
+}
+
+/** The same figure signed — `+1.5h`, `−0.5h` — for the cell's over/under against the plan. */
+export function signedHalfHoursLabel(minutes: number): string {
+	const hours = halfHours(minutes);
+	return hours < 0 ? `−${-hours}h` : `+${hours}h`;
+}
+
+function halfHours(minutes: number): number {
+	return Math.round(minutes / 30) / 2;
 }

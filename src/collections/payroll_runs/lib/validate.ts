@@ -463,6 +463,8 @@ export function validateRosteredExpectations(options: {
 	readonly workCodeIds: ReadonlySet<string>;
 	/** Holiday and company-off codes: a day the schedule cannot use, so the guarantee does not count it. */
 	readonly offCodeIds?: ReadonlySet<string>;
+	/** The calendar's holidays: a paid day the roster cannot assign, so it meets the guarantee as a day. */
+	readonly holidayDates?: ReadonlySet<string>;
 	readonly paidMinutesByCode: ReadonlyMap<string, number>;
 }): RunIssue[] {
 	const issues: RunIssue[] = [];
@@ -546,8 +548,11 @@ export function validateRosteredExpectations(options: {
 				const codeId = explicitByDate.get(date);
 				return codeId != null && options.workCodeIds.has(codeId);
 			});
-			const actualDays = worked.length;
-			const actualMinutes = worked.reduce(
+			const holidays = activeDates.filter(
+				(date) => options.holidayDates?.has(date) === true && !worked.includes(date)
+			);
+			const actualDays = worked.length + holidays.length;
+			const workedMinutes = worked.reduce(
 				(total, date) => total + (options.paidMinutesByCode.get(explicitByDate.get(date)!) ?? 0),
 				0
 			);
@@ -557,15 +562,22 @@ export function validateRosteredExpectations(options: {
 				// the minutes owed are those whole days' share, not the fraction's.
 				const requiredDays = decodeNumber(expectation.required_work_days);
 				const requiredMinutes = decodeNumber(expectation.required_paid_minutes);
+				// A holiday counts as one guaranteed day's minutes (EA s.60D: a paid holiday).
+				const actualMinutes =
+					workedMinutes +
+					(requiredDays > 0 ? (holidays.length * requiredMinutes) / requiredDays : 0);
 				const expectedDays = Math.floor(requiredDays * fraction);
 				const expectedMinutes = Math.floor(
 					requiredDays > 0
 						? (requiredMinutes * expectedDays) / requiredDays
 						: requiredMinutes * fraction
 				);
+				// A shortfall is the employer's contract to answer for, not the run's: the monthly
+				// salary is paid on the terms whatever the roster held, so the run warns and proceeds.
 				if (actualMinutes < expectedMinutes || actualDays < expectedDays) {
 					issues.push({
 						code: 'WORKLOAD_BELOW_TERMS',
+						severity: 'WARNING',
 						message:
 							`The pay window assigns ${actualDays} work day(s) and ${actualMinutes} paid minute(s) ` +
 							`for ${employment.employee_number}, below the employment terms of ${expectedDays} day(s) and ${expectedMinutes} minute(s).`,
@@ -575,12 +587,13 @@ export function validateRosteredExpectations(options: {
 				}
 			} else if (
 				expectation.maximum_paid_minutes != null &&
-				actualMinutes > Math.floor(decodeNumber(expectation.maximum_paid_minutes) * fraction)
+				workedMinutes > Math.floor(decodeNumber(expectation.maximum_paid_minutes) * fraction)
 			) {
 				issues.push({
 					code: 'WORKLOAD_ABOVE_TERMS',
+					severity: 'WARNING',
 					message:
-						`The pay window assigns ${actualDays} work day(s) and ${actualMinutes} paid minute(s) ` +
+						`The pay window assigns ${worked.length} work day(s) and ${workedMinutes} paid minute(s) ` +
 						`for ${employment.employee_number}, above the employment cap of ${decodeNumber(expectation.maximum_paid_minutes)} minute(s).`,
 					collection: 'employments',
 					recordId: employment.id
