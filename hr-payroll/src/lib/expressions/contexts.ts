@@ -63,7 +63,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'employee.citizenship', description: 'Residency standing from the effective terms' },
 	{ path: 'employee.marital_status', description: 'Marital status' },
 	{ path: 'employee.spouse_status', description: 'NONE | WITHOUT_INCOME | WITH_INCOME' },
-	{ path: 'employee.dependents_count', description: 'Dependants recorded for statutory reliefs' },
+	{
+		path: 'employee.dependents_count',
+		description:
+			'Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead'
+	},
 	{ path: 'employee.solo_parent', description: 'Solo-parent flag' },
 	{ path: 'employee.disabled', description: 'Disability flag' },
 	{ path: 'employee.race', description: 'Recorded race' },
@@ -81,7 +85,6 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'employment.classification', description: 'Work classification' },
 	{ path: 'employment.risk_class', description: 'The employment risk class, or empty' },
 	{ path: 'employment.service_months', description: 'Completed months since the stint began' },
-	{ path: 'employment.service_start', description: 'First day of the stint' },
 	{ path: 'employment.service_years', description: 'Completed years since the stint began' },
 	{ path: 'employment.exit_date', description: 'Last day of work, or empty while open' },
 	{
@@ -107,7 +110,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'terms.fixed_allowances',
 		description: 'Standing PAY allowances in force on the rule date'
 	},
-	{ path: 'terms.monthly_wage', description: 'Basic salary plus the fixed allowances' },
+	{
+		path: 'terms.monthly_wage',
+		description:
+			'Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of'
+	},
 	{
 		path: 'terms.statutory_wages',
 		description:
@@ -115,9 +122,15 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'terms.workman', description: 'Statutory work category starts with MANUAL_LABOUR' },
 	{ path: 'terms.statutory_work_category', description: 'Statutory work category of the terms' },
-	{ path: 'terms.department', description: 'Department' },
+	{
+		path: 'terms.department',
+		description: 'Department — an employer’s own catalogue tier, never a statute’s'
+	},
 	{ path: 'terms.payroll_group', description: 'Payroll group' },
-	{ path: 'terms.grade', description: 'Grade' },
+	{
+		path: 'terms.grade',
+		description: 'Grade — an employer’s own catalogue tier, never a statute’s'
+	},
 	{ path: 'terms.pay_frequency', description: 'MONTHLY | SEMI_MONTHLY | WEEKLY | DAILY | HOURLY' },
 	{
 		path: 'terms.pass_type',
@@ -131,7 +144,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'terms.notice_days', description: 'Notice days the contract states, 0 when none' },
 	{ path: 'terms.ordinary_hours_per_week', description: 'Roster-measured working week, hours' },
 	{ path: 'terms.working_days_per_week', description: 'Roster-measured working week, days' },
-	{ path: 'children.count', description: 'Recorded children on the rule date' },
+	{
+		path: 'children.count',
+		description:
+			'Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count`'
+	},
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
 	{ path: 'children.citizens', description: 'Children recorded as citizens' },
 	{ path: 'children.citizens_under(n)', description: 'Of them, those under n completed years' },
@@ -213,7 +230,6 @@ const PERSON_BLANK = {
 		risk_class: '',
 		service_months: 0,
 		service_years: 0,
-		service_start: '',
 		exit_date: '',
 		exit_reason: '',
 		absent_days_12m: 0
@@ -300,10 +316,6 @@ const YEAR_FIELDS: readonly ContextField[] = [
 	{
 		path: 'months_employed',
 		description: 'Completed months of this employment in the tax year, through the period end'
-	},
-	{
-		path: 'days_employed',
-		description: 'Days of this employment in the tax year, through the period end'
 	},
 	{
 		path: 'earned.<code>',
@@ -474,7 +486,6 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		{ path: 'entry.period', description: 'Pay period key the entry settles in' },
 		{ path: 'entry.window.start', description: 'Standing allowance window start' },
 		{ path: 'entry.window.end', description: 'Standing allowance window end' },
-		{ path: 'entry.captures.paid_to_date', description: 'Amount already settled' },
 		{ path: 'entry.captures.remaining', description: 'Amount still to settle' },
 		{ path: 'rates.ordinary_day', description: 'Ordinary day rate for the entry date' },
 		{ path: 'rates.ordinary_hour', description: 'Ordinary hour rate for the entry date' },
@@ -496,12 +507,12 @@ const ENTRY_CONTEXT: ExpressionContext = {
 			event_date: '',
 			period: '',
 			window: { start: '', end: '' },
-			captures: { paid_to_date: 0, remaining: 0 }
+			captures: { remaining: 0 }
 		},
 		rates: { ordinary_day: 0, ordinary_hour: 0 },
 		limits: structuredClone(LIMITS_BLANK),
 		period: structuredClone(PERIOD_BLANK),
-		year: { start: '', end: '', months_employed: 0, days_employed: 0, earned: { BASIC: 0 } },
+		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0 } },
 		leave: {}
 	}
 };
@@ -520,9 +531,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		{ path: 'normal_hours', description: 'The scheduled normal hours' },
 		{ path: 'hours_beyond_normal', description: 'Worked hours past the normal day' },
 		{ path: 'hours_from_start_fraction', description: 'Worked share of a normal day, 0..1' },
-		{ path: 'total_work_hours', description: 'Net worked hours, the day in full' },
 		{ path: 'overtime_hours', description: 'Derived overtime hours' },
-		{ path: 'month_overtime_hours', description: 'Overtime hours already counted this month' },
 		{ path: 'consecutive_hours', description: 'Longest unbroken work run in the day' },
 		{ path: 'continuous_attendance', description: 'Work that must be carried on continuously' },
 		{ path: 'rest_day', description: 'The roster’s weekly rest day, whatever the holiday made it' },
@@ -533,14 +542,15 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 				'Hours inside the night window, 0 where none is declared; a break rule reads it too'
 		},
 		{ path: 'requested_by', description: 'EMPLOYER | EMPLOYEE: who asked for rest-day work' },
-		{ path: 'roster_code', description: 'The roster code that planned the day' },
-		{ path: 'break_minutes', description: 'Break the shift grants' },
 		{ path: 'ordinary_hour', description: 'Ordinary hour rate' },
-		{ path: 'ordinary_day', description: 'Ordinary day rate' },
 		{ path: 'day_wage', description: 'Ordinary day wage' },
 		{ path: 'hours', description: 'The hours this band consumed, for its price' },
 		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' },
-		{ path: 'holiday.kind', description: 'PUBLIC | SPECIAL | SUBSTITUTE, or empty' },
+		{
+			path: 'holiday.kind',
+			description:
+				'The published row on the date, in the day-type words: PUBLIC_HOLIDAY | SPECIAL_HOLIDAY | SUBSTITUTE, or empty; unlike `day_type` it does not move with the precedence rule'
+		},
 		{ path: 'holiday.name', description: 'Published holiday name, or empty' }
 	],
 	bare: [
@@ -550,19 +560,14 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'normal_hours',
 		'hours_beyond_normal',
 		'hours_from_start_fraction',
-		'total_work_hours',
 		'overtime_hours',
-		'month_overtime_hours',
 		'consecutive_hours',
 		'continuous_attendance',
 		'rest_day',
 		'off_day',
 		'night_hours',
 		'requested_by',
-		'roster_code',
-		'break_minutes',
 		'ordinary_hour',
-		'ordinary_day',
 		'day_wage',
 		'hours'
 	],
@@ -576,19 +581,14 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		normal_hours: 9,
 		hours_beyond_normal: 4,
 		hours_from_start_fraction: 1,
-		total_work_hours: 13,
 		overtime_hours: 4,
-		month_overtime_hours: 20,
 		consecutive_hours: 4,
 		continuous_attendance: false,
 		rest_day: false,
 		off_day: false,
 		night_hours: 0,
 		requested_by: 'EMPLOYER',
-		roster_code: 'AM0830',
-		break_minutes: 60,
 		ordinary_hour: 25.5,
-		ordinary_day: 204,
 		day_wage: 204,
 		hours: 4,
 		limits: structuredClone(LIMITS_BLANK),
@@ -628,7 +628,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 	blank: {
 		person: personBlank(),
 		period: structuredClone(PERIOD_BLANK),
-		year: { start: '', end: '', months_employed: 0, days_employed: 0, earned: { BASIC: 0 } },
+		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0 } },
 		scheme: {
 			code: '',
 			assessment_period: 'PAY_PERIOD',
@@ -667,7 +667,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 	blank: {
 		person: personBlank(),
 		period: structuredClone(PERIOD_BLANK),
-		year: { start: '', end: '', months_employed: 0, days_employed: 0, earned: { BASIC: 0 } },
+		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0 } },
 		scheme: {
 			code: '',
 			assessment_period: 'PAY_PERIOD',

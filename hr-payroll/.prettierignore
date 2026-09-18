@@ -11,3 +11,6 @@ pnpm-workspace.yaml
 
 # Vendored face-model JSONs for kiosk matching. Not ours to format.
 assets/models/
+
+# Rendered from src/lib/expressions/contexts.ts by scripts/render-expression-context.ts; a test holds it byte-for-byte.
+docs/expression-context.md

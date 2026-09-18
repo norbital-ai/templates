@@ -90,7 +90,6 @@ const day = (overrides: Partial<WorkBandDay>): WorkBandDay => ({
 	normalHours: 9,
 	overtimeHours: 4,
 	breakMinutes: 60,
-	rosterCode: 'AM0830',
 	holidayKind: '',
 	holidayName: '',
 	monthOvertimeHours: 20,

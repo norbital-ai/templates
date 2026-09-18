@@ -8,7 +8,7 @@ export const holidaySnapshotSchema = Schema.Struct({
 	company_id: Schema.String.check(Schema.isUUID()),
 	date: calendarDay,
 	name: Schema.String,
-	kind: Schema.Literals(['PUBLIC', 'SPECIAL', 'SUBSTITUTE']),
+	kind: Schema.Literals(['PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY', 'SUBSTITUTE']),
 	replaces: Schema.NullOr(calendarDay),
 	given_to: Schema.Literals(['EVERYONE', 'ONLY_IF_OFF_ON_REPLACED_DATE']),
 	published_at: Schema.String

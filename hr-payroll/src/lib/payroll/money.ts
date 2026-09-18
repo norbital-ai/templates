@@ -213,7 +213,6 @@ export function entryContext(options: {
 				end: entry.window?.end ?? ''
 			},
 			captures: {
-				paid_to_date: options.captures.paidToDate,
 				remaining: options.captures.remaining
 			}
 		},

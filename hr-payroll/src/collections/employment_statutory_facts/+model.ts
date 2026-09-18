@@ -4,11 +4,6 @@ export default defineModel(
 	{
 		employee_id: uuid().notNull(),
 		statutory_contribution_id: uuid().notNull(),
-		/**
-		 * The predecessor a successor row names. Nothing writes it today: no form or grant offers
-		 * it, and a successor closes its predecessor by an explicit edit of the predecessor's range.
-		 */
-		supersedes_fact_id: uuid(),
 		status: custom('statutory_fact_status').notNull(),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**

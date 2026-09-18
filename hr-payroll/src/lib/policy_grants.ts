@@ -325,42 +325,6 @@ export const statutoryGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 		grantsOn('statutory_contributions', actions)
 	);
 
-const EMPLOYMENT_STATUTORY_FACT_FIELDS = [
-	'employee_id',
-	'statutory_contribution_id',
-	'status',
-	'effective_range'
-] as const;
-
-/**
- * Human statutory-fact authority excludes `supersedes_fact_id` in both write directions.
- *
- * That field is the system worker's instruction to stage a predecessor close. Letting a form or an
- * agent supply it would turn an ordinary edit into a second write. The dedicated static-identity
- * policy owns that one extra `mutate.new` field and routes the resulting graph through HR approval.
- */
-const employmentStatutoryFactGrants = (
-	...actions: ReadonlyArray<'read' | 'mutate.new' | 'mutate.existing' | 'delete'>
-): Grants =>
-	mergeGrants(
-		...(actions.includes('read') ? [grantsOn('employment_statutory_facts', ['read'])] : []),
-		...(actions.includes('mutate.new')
-			? [
-					grantOn('employment_statutory_facts', 'mutate.new', {
-						fields: EMPLOYMENT_STATUTORY_FACT_FIELDS
-					})
-				]
-			: []),
-		...(actions.includes('mutate.existing')
-			? [
-					grantOn('employment_statutory_facts', 'mutate.existing', {
-						fields: EMPLOYMENT_STATUTORY_FACT_FIELDS
-					})
-				]
-			: []),
-		...(actions.includes('delete') ? [grantsOn('employment_statutory_facts', ['delete'])] : [])
-	);
-
 export const peopleGrants = (
 	...actions: ReadonlyArray<'read' | 'mutate.new' | 'mutate.existing' | 'delete'>
 ): Grants =>
@@ -380,7 +344,7 @@ export const peopleGrants = (
 					grantOn('employment_terms', 'delete', { authorize: unconsumedTerms })
 				]
 			: []),
-		employmentStatutoryFactGrants(...actions)
+		grantsOn('employment_statutory_facts', actions)
 	);
 
 /** The money families and loans: every write, and a delete of anything no payslip settled. */

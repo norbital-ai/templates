@@ -487,7 +487,7 @@ const holiday = (date: string, name: string) => ({
 	company_id: COMPANY_ID,
 	date,
 	name,
-	kind: 'PUBLIC',
+	kind: 'PUBLIC_HOLIDAY',
 	replaces: null,
 	source: null,
 	published_at: '2025-12-01T00:00:00.000Z',

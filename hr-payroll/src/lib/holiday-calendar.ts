@@ -17,7 +17,7 @@ function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
 		company_id: row.company_id,
 		date: dateKey(row.date),
 		name: row.name,
-		kind: row.kind === 'SPECIAL' || row.kind === 'SUBSTITUTE' ? row.kind : 'PUBLIC',
+		kind: row.kind === 'SPECIAL_HOLIDAY' || row.kind === 'SUBSTITUTE' ? row.kind : 'PUBLIC_HOLIDAY',
 		replaces: row.replaces == null ? null : dateKey(row.replaces),
 		given_to:
 			row.given_to === 'ONLY_IF_OFF_ON_REPLACED_DATE' ? 'ONLY_IF_OFF_ON_REPLACED_DATE' : 'EVERYONE',

@@ -22,13 +22,13 @@
 			"bands": [
 				{
 					"label": "OT-3.0X-STATUTORY-DAY",
-					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},
 				{
 					"label": "OT-3.0X-STATUTORY-DAY",
-					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},
@@ -200,13 +200,13 @@
 			"bands": [
 				{
 					"label": "OT-3.0X-STATUTORY-DAY",
-					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},
 				{
 					"label": "OT-3.0X-STATUTORY-DAY",
-					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},
@@ -379,13 +379,13 @@
 			"bands": [
 				{
 					"label": "OT-3.0X-STATUTORY-DAY",
-					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},
 				{
 					"label": "OT-3.0X-STATUTORY-DAY",
-					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC\"",
+					"when": "day_type == \"REST_DAY\" && holiday.kind == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 3.0 + (night_hours < hours ? night_hours : hours) * ordinary_hour * 0.4"
 				},

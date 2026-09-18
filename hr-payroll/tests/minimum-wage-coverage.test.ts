@@ -67,7 +67,7 @@ const charge = (employmentType: string, applies: boolean) =>
 			monthlyOn: 'FIRST',
 			lastOfYear: false
 		},
-		year: { start: '2025-01-01', end: '2025-12-31', months_employed: 12, days_employed: 365 },
+		year: { start: '2025-01-01', end: '2025-12-31', months_employed: 12 },
 		projection: { payslipsRemaining: 12, futurePayslipEquivalents: 0 },
 		person: { ...person(employmentType), wage_floor: applies ? 5_729_876 : 0 },
 		minimumWage: 5_729_876

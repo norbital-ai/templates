@@ -7,7 +7,7 @@ const festival = {
 	company_id: '11111111-1111-4111-8111-111111111111',
 	date: '2026-02-03',
 	name: 'Festival',
-	kind: 'PUBLIC',
+	kind: 'PUBLIC_HOLIDAY',
 	replaces: null,
 	published_at: '2025-12-01T00:00:00Z'
 };

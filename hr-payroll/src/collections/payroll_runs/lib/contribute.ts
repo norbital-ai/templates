@@ -127,7 +127,6 @@ type SchemeAssessment = {
 		readonly start: string;
 		readonly end: string;
 		readonly months_employed: number;
-		readonly days_employed: number;
 	};
 	/** How far this payslip projects: the payslips left in the year, and the size of the year after it. */
 	readonly projection: PayProjection;

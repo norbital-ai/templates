@@ -35,9 +35,9 @@ export function ruleDayType(dayType: DayType): RuleDayType {
 	return dayType === 'OFF_DAY' ? 'ORDINARY' : dayType;
 }
 
-/** PUBLIC and SUBSTITUTE days price on the PUBLIC_HOLIDAY ladder; SPECIAL on its own. */
+/** A holiday row's kind is the day type it prices on; a SUBSTITUTE day prices as a public holiday. */
 function holidayDayType(holiday: Pick<HolidaySnapshot, 'kind'>): RuleDayType {
-	return holiday.kind === 'SPECIAL' ? 'SPECIAL_HOLIDAY' : 'PUBLIC_HOLIDAY';
+	return holiday.kind === 'SPECIAL_HOLIDAY' ? 'SPECIAL_HOLIDAY' : 'PUBLIC_HOLIDAY';
 }
 
 type ScheduledShift = WorkWindow & {
