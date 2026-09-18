@@ -1547,7 +1547,10 @@ export function slotFill(day: DayFacts | undefined): SlotFill {
 	};
 }
 
-/** `+13%` for a clock that ran past its shift; empty otherwise. */
-export function extraLabel(fill: SlotFill): string {
-	return fill.kind === 'CLOCKED' && fill.extra > 0.005 ? `+${Math.round(fill.extra * 100)}%` : '';
+/**
+ * Worked minutes as hours to the half hour — `8h`, `8.5h` — the figure a cell prints. The bar
+ * under it still carries the exact share; the label says what a person reads off a timesheet.
+ */
+export function halfHoursLabel(minutes: number): string {
+	return `${Math.round(minutes / 30) / 2}h`;
 }

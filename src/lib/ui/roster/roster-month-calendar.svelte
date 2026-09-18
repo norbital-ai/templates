@@ -438,11 +438,7 @@
 										</Inline>
 
 										{#if day != null}
-											<RosterSlot
-												{day}
-												dense={false}
-												hours={(minutes) => formatDurationHours(minutes, t)}
-											/>
+											<RosterSlot {day} dense={false} />
 
 											<!-- LOCK, when it is a rung the employee can be told something about -->
 											{#if rung === 'PENDING'}
