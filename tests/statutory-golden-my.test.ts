@@ -112,8 +112,9 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
 	// Part F — a non-citizen, 2% each on the wage as it stands, no bracket table and no ceiling.
 	// 2% × 5,001 = 100.02, rounded up to the next ringgit = 101, each side.
 	expectStatutory(book, 'MY-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
-	// KWSP: a non-citizen contributes below the age of 75; at 75 Part F stops.
-	expectStatutory(book, 'MY-FOREIGN-75', 'EPF_NON_CITIZEN', 0, 0);
+	// EPF Act First Schedule para (13): at seventy-five the person is outside the Act — no Part F
+	// row at all, not a zero one.
+	expectStatutorySkipped(book, 'MY-FOREIGN-75', 'EPF_NON_CITIZEN');
 
 	// SOCSO, Act 4 Third Schedule. First Category (employment injury + invalidity) below 60;
 	// Second Category (injury only, employer alone) at 60 and above. RM6,000 wage ceiling.
@@ -1041,4 +1042,24 @@ test('Malaysia — a mid-year joiner’s PCB reads the previous employer’s TP3
 	// Fresh: 5,001 × 7 = 35,007 annualised; EPF 561 × 7 = 3,927; the 350 pool; personal 9,000 →
 	// 21,730 in the 20,000–35,000 band: −650 + 1,730 × 3% = −598.10 → nothing withheld.
 	expectStatutory(book, 'MY-FRESH', 'PCB', 0, 0);
+});
+
+test('Malaysia — EPF stops at seventy-five for citizen and foreigner alike (First Schedule para 13)', () => {
+	// EPF Act 1991 First Schedule para (13): a person who has attained seventy-five is not an
+	// employee for the Act; s.51(2B)(a) credits nothing after seventy-five. Act A1760's Part F
+	// prints no age because the exclusion lives in the First Schedule. SOCSO and EIS have their own
+	// ages and are unaffected here.
+	const book = assessStatutory({
+		code: 'MY',
+		period: '2026-01',
+		people: [
+			{ key: 'MY-74', wage: 5001, age: 74, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+			{ key: 'MY-75', wage: 5001, age: 75, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+			{ key: 'MY-F75', wage: 5001, age: 75, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
+		]
+	});
+	// Part E (over 60, citizen): 5,001 → employee 0, employer 4% = 200.04 → 201 (Part E rounds up).
+	assert.notEqual(book.get('MY-74')!.get('EPF')!.employer, 0);
+	assert.equal(book.get('MY-75')!.get('EPF'), undefined);
+	assert.equal(book.get('MY-F75')!.get('EPF_NON_CITIZEN'), undefined);
 });
