@@ -19,7 +19,9 @@ export default defineModel(
 		 * special non-working day) as SPECIAL_HOLIDAY. A substitute is the observed day of a holiday
 		 * that fell on a rest day.
 		 */
-		kind: enums(['PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY', 'SUBSTITUTE']).notNull().default('PUBLIC_HOLIDAY'),
+		kind: enums(['PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY', 'SUBSTITUTE'])
+			.notNull()
+			.default('PUBLIC_HOLIDAY'),
 		/** The statutory date when the observance moved, e.g. a Sunday holiday taken on Monday. */
 		replaces: instant({ precision: 'day' }),
 		/**

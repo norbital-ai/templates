@@ -603,8 +603,7 @@ export function prepareContributionAssessment(options: {
 			year: {
 				start: bounds.start,
 				end: bounds.end,
-				months_employed:
-					(employed ? completedMonths(from, addDays(through, 1)) : 0) + openingMonths
+				months_employed: (employed ? completedMonths(from, addDays(through, 1)) : 0) + openingMonths
 			},
 			projection,
 			person: { ...person, wage_floor: floor },
