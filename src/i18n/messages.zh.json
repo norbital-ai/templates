@@ -1059,5 +1059,16 @@
 	"leave.lifetime_events": "终身事件数（留空为不限）",
 	"employee_children.citizenship": "子女国籍（法规相关时填写）",
 	"employee_children.shared_parental_weeks": "本人承担的共享育儿假周数",
-	"employee_children.prior_employment_days": "分娩前在其他雇主的受雇天数"
+	"employee_children.prior_employment_days": "分娩前在其他雇主的受雇天数",
+	"component.fixed_allowance": "固定津贴",
+	"component.fixed_allowance_hint": "无论出勤每期照付，计入法规定义的“基本工资加固定津贴”。报销、按日津贴或奖金请取消勾选。",
+	"component.scheme_ordinary_on": "计算基数中的经常性部分",
+	"component.scheme_ordinary_on_hint": "当上限区分经常性与额外工资时（如新加坡CPF）：以同一公式表达经常性部分，随每笔计提保存，并可通过 scheme.year_to_date.ordinary 读取。单一基数的方案留空。",
+	"component.final_pay_due_days": "离职结算期限（最后工作日后天数）",
+	"component.holiday_in_npl_unpaid": "无薪假期间的公众假期不计薪",
+	"component.short_day_is_half": "合同工时≤5小时的一天按半天计",
+	"renderer.work_rules.normal_hours": "正常工作日（小时，按人表达式；留空为班次时长）",
+	"renderer.work_rules.normal_hours_follow_shift": "较短的排班班次即为当日正常工时",
+	"leave.lifetime_days": "终身天数（数字或按人表达式；留空为不限）",
+	"leave.consumes_after_days": "每年不计入所引用假期池的天数"
 }

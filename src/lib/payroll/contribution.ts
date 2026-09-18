@@ -213,12 +213,13 @@ export function assessCompanyContributions(options: {
 	// The year-to-date and earned facts a company formula reads are the entity's: the sum over
 	// every employee the run gathered.
 	const yearToDate = (code: string) => {
-		const total = { employee: 0, employer: 0, base: 0 };
+		const total = { employee: 0, employer: 0, base: 0, ordinary: 0 };
 		for (const [key, value] of gathered.yearToDate)
 			if (key.endsWith(`:${code}`)) {
 				total.employee += value.employee;
 				total.employer += value.employer;
 				total.base += value.base;
+				total.ordinary += value.ordinary;
 			}
 		return total;
 	};
@@ -287,18 +288,22 @@ export function contributionYearToDate(options: {
 }) {
 	const { inTaxYear, employmentToEmployee } = options;
 	const priorPayslips = options.payslips;
-	const totals = new Map<string, { employee: number; employer: number; base: number }>();
+	const totals = new Map<
+		string,
+		{ employee: number; employer: number; base: number; ordinary: number }
+	>();
 	for (const payslip of priorPayslips) {
 		if (!inTaxYear.has(payslip.payroll_run_id)) continue;
 		const employeeId = employmentToEmployee.get(payslip.employment_id);
 		if (employeeId == null) continue;
 		for (const charge of payslip.statutory) {
 			const key = `${employeeId}:${charge.scheme_code}`;
-			const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0 };
+			const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0, ordinary: 0 };
 			totals.set(key, {
 				employee: running.employee + decodeNumber(charge.employee_amount),
 				employer: running.employer + decodeNumber(charge.employer_amount),
-				base: running.base + decodeNumber(charge.base_amount)
+				base: running.base + decodeNumber(charge.base_amount),
+				ordinary: running.ordinary + decodeNumber(charge.ordinary_amount ?? 0)
 			});
 		}
 	}
@@ -414,7 +419,10 @@ export function prepareContributionAssessment(options: {
 	readonly measured: MeasuredEmployment;
 	readonly configuration: Configuration;
 	readonly projection: ContractAssessment['calculation']['projection'];
-	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
+	readonly yearToDate: ReadonlyMap<
+		string,
+		{ employee: number; employer: number; base: number; ordinary: number }
+	>;
 	readonly headcount: number;
 	readonly headcountCitizens?: number;
 	/** component code → what this employee's earlier payslips earned this tax year. */
@@ -485,7 +493,8 @@ export function prepareContributionAssessment(options: {
 				options.yearToDate.get(`${bundle.employment.employee_id}:${code}`) ?? {
 					employee: 0,
 					employer: 0,
-					base: 0
+					base: 0,
+					ordinary: 0
 				},
 			yearEarned: options.yearEarned,
 			period: {

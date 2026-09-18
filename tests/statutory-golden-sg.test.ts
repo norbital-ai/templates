@@ -632,9 +632,14 @@ test('Singapore — a bonus is an Additional Wage under the 102,000 ceiling, and
 		}
 	);
 	// Ordinary Wages 6,000 under the 8,000 ceiling; the 120,000 bonus is an Additional Wage
-	// capped at 102,000 less the Ordinary Wages of the year to date (none before January): the
-	// CPF base is 108,000. 20% = 21,600 (floored); 37% = 39,960; employer 18,360.
-	assert.deepEqual(scheme(slips.get('SG-BONUS')!, 'CPF'), [108_000, 21_600, 18_360]);
+	// capped by the Board's AW ceiling — 102,000 less the year's Ordinary Wages subject to CPF,
+	// January's own 6,000 included: 96,000. The CPF base is 102,000; 20% = 20,400 (floored); 37%
+	// = 37,740; employer 17,340. The charge records its ordinary part, 6,000, for the year.
+	assert.deepEqual(scheme(slips.get('SG-BONUS')!, 'CPF'), [102_000, 20_400, 17_340]);
+	assert.equal(
+		slips.get('SG-BONUS')!.statutory.find((row) => row.scheme_code === 'CPF')!.ordinary_amount,
+		6000
+	);
 	// SINDA reaches an Employment Pass holder of Indian descent ($4,000: the "over $2,500 up to
 	// $4,500" rung, $7) and not a Work Permit holder.
 	assert.deepEqual(scheme(slips.get('SG-EP')!, 'SINDA'), [4000, 7, 0]);
@@ -642,6 +647,62 @@ test('Singapore — a bonus is an Additional Wage under the 102,000 ceiling, and
 		slips.get('SG-WP')!.statutory.find((row) => row.scheme_code === 'SINDA'),
 		undefined
 	);
+});
+
+test('Singapore — the AW ceiling is a running annual figure: OW to date, this month included, and AW already subject', () => {
+	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	// January stood: OW 6,000, AW 96,000 subject (the golden above). A 10,000 bonus in February:
+	// the room is 102,000 − (6,000 + 6,000) − 96,000 = −6,000 → nothing more is subject, and the
+	// base is February's OW alone.
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-02',
+			people: [{ key: 'SG-BONUS', wage: 6000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			const bonus = world.allowance_catalogue.find(
+				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
+			)!;
+			const employment = world.employments.find((row) => row.employee_number === 'SG-BONUS')!;
+			world.allowances.push({
+				id: 'd0000000-0000-4000-8000-0000000000b1',
+				employment_id: employment.id,
+				catalogue_id: bonus.id,
+				amount: 10_000,
+				effective_from: '2026-02-01',
+				effective_to: '2026-02-28',
+				reason: 'second bonus',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+			world.payroll_runs.push({
+				id: 'sg-january',
+				company_id: COMPANY_ID,
+				period: '2026-01',
+				lifecycle: 'DRAFT'
+			} as never);
+			world.payslips.push({
+				id: 'sg-january-slip',
+				payroll_run_id: 'sg-january',
+				employment_id: employment.id,
+				base: [],
+				adjustments: [],
+				paid_at: null,
+				statutory: [
+					{
+						scheme_code: 'CPF',
+						base_amount: 102_000,
+						ordinary_amount: 6000,
+						employee_amount: 20_400,
+						employer_amount: 17_340
+					}
+				]
+			} as never);
+		}
+	);
+	assert.deepEqual(scheme(slips.get('SG-BONUS')!, 'CPF'), [6000, 1200, 1020]);
 });
 
 test('Singapore — s.20A prices an incomplete month and an unpaid day on the month’s working days', () => {
@@ -690,6 +751,107 @@ test('Singapore — s.20A prices an incomplete month and an unpaid day on the mo
 	);
 	assert.equal(absent.gross, 3135);
 	assert.deepEqual(scheme(absent, 'CPF'), [3135, 627, 533]);
+});
+
+test('Singapore — s.20A(2): a day of five contracted hours or fewer counts as half a working day', () => {
+	// February 2026: twenty rostered days. With Fridays a four-hour shift the month has 16 whole
+	// days and 4 half days = 18 working days; a joiner on Monday the 16th works 8 whole + 2 half
+	// = 9 of them. 3,300 × 9 ÷ 18 = 1,650.
+	const SHORT = 'c0000000-0000-4000-8000-0000000000d9';
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-02',
+			people: [{ key: 'SG-JOINER', wage: 3300, hire_date: '2026-02-16', citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			world.shift_definitions.push({
+				...world.shift_definitions[0]!,
+				id: SHORT,
+				code: 'SHORT',
+				name: 'Short Friday',
+				variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 }
+			});
+			world.shift_patterns[0]!.pattern.days[4] = { roster_code_id: SHORT };
+		}
+	);
+	const joiner = slips.get('SG-JOINER')!;
+	assert.deepEqual(
+		joiner.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		[[9, 18, 1650]]
+	);
+});
+
+test('Singapore — the 72-hour month is also counted with rest-day and holiday work beyond the normal day', () => {
+	// MOM on s.38(5): work on a rest day or public holiday beyond the normal daily hours is inside
+	// the 72 hours. Seventy ordinary overtime hours plus four rest-day hours beyond the normal
+	// day: the regulated count (70) stays under the funnel's ceiling, the wider count (74) warns.
+	const { warnings } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-03',
+			people: [{ key: 'SG-OT', wage: 2000, citizenship: 'CITIZEN', workman: true }]
+		},
+		(world) => {
+			const employment = world.employments.find((row) => row.employee_number === 'SG-OT')!;
+			const at = (date: string, time: string) => `${date}T${time}:00.000+08:00`;
+			// The shift is 09:00–18:00 with an hour's break: eight normal hours. Fourteen weekdays
+			// worked to 22:00 (four over each): 56 h; two to 23:00 (five over): 10 h; two to 20:00
+			// (two over): 4 h → 70 regulated hours.
+			const weekdays = [
+				'02',
+				'03',
+				'04',
+				'05',
+				'06',
+				'09',
+				'10',
+				'11',
+				'12',
+				'13',
+				'16',
+				'17',
+				'18',
+				'19',
+				'20',
+				'23',
+				'24',
+				'25'
+			];
+			const overs = [...Array(14).fill('22:00'), '23:00', '23:00', '20:00', '20:00'];
+			weekdays.forEach((day, index) => {
+				const end = overs[index]!;
+				world.work_days.push({
+					id: `wd-SG-OT-2026-03-${day}`,
+					employment_id: employment.id,
+					work_date: `2026-03-${day}`,
+					shift_definition_id: null,
+					worked_intervals: [
+						{
+							start: at(`2026-03-${day}`, '09:00'),
+							end:
+								end === '00:00'
+									? at(`2026-03-${String(Number(day) + 1).padStart(2, '0')}`, '00:00')
+									: at(`2026-03-${day}`, end)
+						}
+					],
+					approval_id: null
+				});
+			});
+			// A rest-day Sunday worked twelve hours: eight normal, four beyond the normal day.
+			world.work_days.push({
+				id: 'wd-SG-OT-2026-03-08',
+				employment_id: employment.id,
+				work_date: '2026-03-08',
+				shift_definition_id: null,
+				worked_intervals: [{ start: at('2026-03-08', '08:00'), end: at('2026-03-08', '20:00') }],
+				approval_id: null
+			});
+		}
+	);
+	const limitLines = warnings.filter((line) => line.startsWith('OVERTIME_LIMIT_EXCEEDED'));
+	assert.equal(limitLines.length, 1, warnings.join('\n'));
+	assert.match(limitLines[0]!, /74 .*hours in 2026-03, against a 72-hour/);
 });
 
 test('Singapore — s.20A counts a public holiday on a working day as a working day, worked or not', () => {

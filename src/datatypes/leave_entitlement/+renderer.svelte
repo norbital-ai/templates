@@ -145,6 +145,47 @@
 				</Stack></label
 			>
 		{/if}
+		<label class="text-sm font-medium"
+			><Stack gap="xs">
+				{t('leave.lifetime_days')}
+				<Input
+					value={current.lifetime_days == null ? '' : String(current.lifetime_days)}
+					{disabled}
+					oninput={(event) => {
+						const text = event.currentTarget.value.trim();
+						emit({
+							...current,
+							lifetime_days:
+								text === ''
+									? null
+									: Number.isFinite(Number(text)) && Number(text) > 0
+										? Number(text)
+										: text
+						});
+					}}
+				/>
+			</Stack></label
+		>
+		<label class="text-sm font-medium"
+			><Stack gap="xs">
+				{t('leave.consumes_after_days')}
+				<Input
+					type="number"
+					min="0"
+					step="0.5"
+					value={current.consumes_after_days ?? ''}
+					{disabled}
+					oninput={(event) =>
+						emit({
+							...current,
+							consumes_after_days:
+								event.currentTarget.value.trim() === ''
+									? null
+									: Math.max(0, Number(event.currentTarget.value) || 0)
+						})}
+				/>
+			</Stack></label
+		>
 		{#if current.availability === 'PER_EVENT'}
 			<label class="text-sm font-medium"
 				><Stack gap="xs">

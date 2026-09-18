@@ -24,6 +24,8 @@ export const payslipStatutoryValueSchema = Schema.Struct({
 	authority: Schema.NullOr(Schema.String),
 	/** The wage the scheme was charged on. */
 	base_amount: Schema.Finite,
+	/** The ordinary part of it, where the scheme states `ordinary_on`; summed into `year_to_date.ordinary`. */
+	ordinary_amount: Schema.optionalKey(Schema.Finite),
 	/**
 	 * What the scheme took from the employee. Negative in a year-end rung's refund month: the
 	 * annual reckoning found the year over-withheld, and the refund flows through net as it is.

@@ -93,6 +93,11 @@
 					hint={t('component.scheme_section_assessed_on_hint')}
 				>
 					<Field name="assessed_on" label={t('component.scheme_assessed_on')} />
+					<Field
+						name="ordinary_on"
+						label={t('component.scheme_ordinary_on')}
+						description={t('component.scheme_ordinary_on_hint')}
+					/>
 				</FormSection>
 
 				<FormSection

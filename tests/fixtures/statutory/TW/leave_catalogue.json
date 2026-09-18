@@ -291,7 +291,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "MENSTRUAL_LEAVE",
 		"name": "Menstrual leave (生理假)",
-		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
+		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages. Applied 2026-09-18 (4): 性別平等工作法 §14: one day a month; three days a year are outside the thirty-day ordinary sickness quota and every day beyond them counts into it (`consumes_code`, `consumes_after_days`).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "MONTHLY",
@@ -302,11 +302,13 @@
 					"eligibility": "",
 					"days": 1
 				}
-			]
+			],
+			"consumes_after_days": 3
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "0.5"
+		"pay_fraction": "0.5",
+		"consumes_code": "SICK_LEAVE"
 	},
 	{
 		"id": "ffc8911e-0bad-5bdc-9339-23021f1f1cc8",
@@ -660,7 +662,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "MENSTRUAL_LEAVE",
 		"name": "Menstrual leave (生理假)",
-		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
+		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages. Applied 2026-09-18 (4): 性別平等工作法 §14: one day a month; three days a year are outside the thirty-day ordinary sickness quota and every day beyond them counts into it (`consumes_code`, `consumes_after_days`).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "MONTHLY",
@@ -671,11 +673,13 @@
 					"eligibility": "",
 					"days": 1
 				}
-			]
+			],
+			"consumes_after_days": 3
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "0.5"
+		"pay_fraction": "0.5",
+		"consumes_code": "SICK_LEAVE"
 	},
 	{
 		"id": "7941601d-d57d-5f64-9bc0-9ec481fde3c0",
@@ -1062,7 +1066,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "MENSTRUAL_LEAVE",
 		"name": "Menstrual leave (生理假)",
-		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
+		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages. Applied 2026-09-18 (4): 性別平等工作法 §14: one day a month; three days a year are outside the thirty-day ordinary sickness quota and every day beyond them counts into it (`consumes_code`, `consumes_after_days`).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "MONTHLY",
@@ -1073,11 +1077,13 @@
 					"eligibility": "",
 					"days": 1
 				}
-			]
+			],
+			"consumes_after_days": 3
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "0.5"
+		"pay_fraction": "0.5",
+		"consumes_code": "SICK_LEAVE"
 	},
 	{
 		"id": "a0c1f56e-0dfd-5027-bb78-3f3eee02112f",

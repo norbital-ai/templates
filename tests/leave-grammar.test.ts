@@ -339,6 +339,121 @@ test('a row drawing from a rolling-window pool is judged on that window, not a l
 	);
 });
 
+test('a public holiday enclosed by no-pay leave is charged where the version says so (SG s.88(2))', () => {
+	const holiday = {
+		id: 'holiday-2026-04-16',
+		company_id: '00000000-0000-4000-8000-000000000003',
+		date: '2026-04-16',
+		name: 'Observed holiday',
+		replaces: null,
+		published_at: '2025-01-01T00:00:00.000Z'
+	};
+	const unpaid = (context: ReturnType<typeof leaveContext>) =>
+		catalogue(context, {
+			id: id(31),
+			code: 'NPL',
+			is_npl: true,
+			entitlement: { availability: 'UNLIMITED', proration: 'NONE', year_start_month: 1, bands: [] }
+		});
+	// Wednesday to Friday of a week with Thursday a holiday: two working days by default.
+	const plain = leaveContext();
+	plain.holidays.push(holiday);
+	unpaid(plain);
+	const kept = planLeaveActivity(
+		plain,
+		{ ...submission(timeOff('2026-04-15', '2026-04-17'), 'N1'), catalogue_id: id(31) },
+		id(80)
+	);
+	assert.deepEqual(
+		kept.charges.map((row) => row.date),
+		['2026-04-15', '2026-04-17']
+	);
+	// Under s.88(2) the enclosed holiday is a day of no pay too, named by its holiday.
+	const sg = leaveContext();
+	sg.holidays.push(holiday);
+	sg.versions[0]!.payroll = { ...sg.versions[0]!.payroll, holiday_in_no_pay_leave_unpaid: true };
+	unpaid(sg);
+	const charged = planLeaveActivity(
+		sg,
+		{ ...submission(timeOff('2026-04-15', '2026-04-17'), 'N2'), catalogue_id: id(31) },
+		id(81)
+	);
+	assert.deepEqual(
+		charged.charges.map((row) => [row.date, row.holiday_id]),
+		[
+			['2026-04-15', null],
+			['2026-04-16', 'holiday-2026-04-16'],
+			['2026-04-17', null]
+		]
+	);
+	assert.equal(charged.days, 3);
+	// A range that ends on the holiday does not enclose it: the leave must stand on both sides.
+	const edge = planLeaveActivity(
+		sg,
+		{ ...submission(timeOff('2026-04-15', '2026-04-16'), 'N3'), catalogue_id: id(31) },
+		id(82)
+	);
+	assert.deepEqual(
+		edge.charges.map((row) => row.date),
+		['2026-04-15']
+	);
+});
+
+test('a consuming row keeps its first days a year outside the pool (`consumes_after_days`)', () => {
+	const context = leaveContext();
+	catalogue(context, {
+		id: id(32),
+		code: 'SICK3',
+		entitlement: {
+			availability: 'UPFRONT',
+			proration: 'NONE',
+			year_start_month: 1,
+			bands: [{ eligibility: '', days: 30 }]
+		}
+	});
+	// TW 性別平等工作法 §14: menstrual leave, three days a year outside the sick quota, more inside it.
+	catalogue(context, {
+		id: id(33),
+		code: 'MENSTRUAL3',
+		consumes_code: 'SICK3',
+		entitlement: {
+			availability: 'MONTHLY',
+			proration: 'NONE',
+			year_start_month: 1,
+			consumes_after_days: 3,
+			bands: [{ eligibility: '', days: 1 }]
+		}
+	});
+	const take = (date: string, n: number) =>
+		planLeaveActivity(
+			context,
+			{ ...submission(timeOff(date, date), `M${n}`), catalogue_id: id(33) },
+			id(n)
+		);
+	for (const [date, n] of [
+		['2026-01-05', 84],
+		['2026-02-02', 85],
+		['2026-03-02', 86]
+	] as const) {
+		const plan = take(date, n);
+		assert.deepEqual(
+			plan.allocations.map((row) => row.pool ?? null),
+			[null],
+			`${date} stays outside the pool`
+		);
+		context.entries.push({ ...plan, id: id(n), approval_id: null });
+	}
+	const fourth = take('2026-04-06', 87);
+	assert.deepEqual(
+		fourth.allocations.map((row) => [row.pool ?? null, row.days]),
+		[
+			[null, -1],
+			['SICK3', -1]
+		],
+		'the fourth day of the year draws from the sick pool'
+	);
+});
+
 test('leave by the hour is a share of the shift, to the eighth, one day at a time', () => {
 	const context = leaveContext();
 	catalogue(context, {

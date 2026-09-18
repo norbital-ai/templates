@@ -4,7 +4,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "LI",
 		"name": "Labor Insurance (勞工保險)",
-		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — an 11.5% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 12.5% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — an 11.5% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 12.5% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -161,7 +161,7 @@
 				"employer": "round_unit((45800.0 * 0.115 * 0.7) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "9e9412e0-73bc-5d5c-8a03-807f95cabc90",
@@ -172,10 +172,10 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"authority": "積欠工資墊償基金提繳及墊償管理辦法 §3 (勞基法 §28): the employer contributes 0.025% of the establishment’s aggregate insured-salary total each month, rounded once for the establishment; borne wholly by the employer. Read here over the sum of every payslip’s ordinary wage, the closest reading of the insured total. Applied 2026-09-18.",
+		"authority": "積欠工資墊償基金提繳及墊償管理辦法 §3 (勞基法 §28): the employer contributes 0.025% of the establishment’s aggregate insured-salary total each month, rounded once for the establishment; borne wholly by the employer. Read here over the sum of every payslip’s ordinary wage, the closest reading of the insured total. Applied 2026-09-18. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"rules": [
 			{
 				"when": "base > 0.0",
@@ -189,7 +189,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -346,14 +346,14 @@
 				"employer": "round_unit((45800.0 * 0.01 * 0.7) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "cdc65bc6-3366-59f9-8811-ee46f58f9afe",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base.",
+		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -665,7 +665,7 @@
 				"employer": "15146.0"
 			}
 		],
-		"assessed_on": "person.employment.exit_date != \"\" && person.employment.exit_date < period.end ? 0.0 : (period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE))"
+		"assessed_on": "person.employment.exit_date != \"\" && person.employment.exit_date < period.end ? 0.0 : (period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE))"
 	},
 	{
 		"id": "f7012ab1-9f9f-5ed0-b04d-754d869cda5e",
@@ -692,7 +692,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "LABOR_PENSION",
 		"name": "Labor Pension (勞工退休金, new system)",
-		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: 勞退條例 §14(3): the worker may contribute up to a further 6% of the grade (`voluntary_rate`, a percentage election), which §14(4) leaves out of the year’s taxable salary. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: 勞退條例 §14(3): the worker may contribute up to a further 6% of the grade (`voluntary_rate`, a percentage election), which §14(4) leaves out of the year’s taxable salary. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -984,7 +984,7 @@
 				"employer": "round_unit((150000.0 * 0.06 * 1.0) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)",
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)",
 		"elections": [
 			{
 				"key": "voluntary_rate",
@@ -997,7 +997,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
-		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the 114年 勞工職業災害保險投保薪資分級表 (勞動部 113-11-15 勞動保3字第1130087585號令, 22 grades 28,590–72,800, in force 2025-01-01) grades the wage; the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class. The 民國115年 分級表 is stated on the later version as GRADE_LADDER; the 民國114年 one is not sourced, so this version carries the ceiling alone and grades nothing. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base.",
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the 114年 勞工職業災害保險投保薪資分級表 (勞動部 113-11-15 勞動保3字第1130087585號令, 22 grades 28,590–72,800, in force 2025-01-01) grades the wage; the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class. The 民國115年 分級表 is stated on the later version as GRADE_LADDER; the 民國114年 one is not sourced, so this version carries the ceiling alone and grades nothing. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1279,14 +1279,14 @@
 				"employer": "round_unit((round_unit((ladder(base, [28590.0, 28800.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) * 0.19 / 100.0)) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "93bbdc51-5c38-5be0-9dd1-ddc3fa948461",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "INCOME_TAX",
 		"name": "Individual Income Tax withholding, resident 5% election (薪資所得扣繳)",
-		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below. Applied 2026-09-18: residency declared on the contract (`terms.tax_residency`, 所得稅法 §7(3): domicile and 183 days) outranks citizenship; the `table_withholding` election withholds by the 薪資所得扣繳稅額表 method — the annual schedule on twelve times the month less the filer’s exemption and deductions and 101,000 per dependant, over twelve, nothing under NT$2,000 (各類所得扣繳率標準 §2(1)) — where the 5% election is not taken; the voluntary pension contribution is outside the base (勞退條例 §14(4)).",
+		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below. Applied 2026-09-18: residency declared on the contract (`terms.tax_residency`, 所得稅法 §7(3): domicile and 183 days) outranks citizenship; the `table_withholding` election withholds by the 薪資所得扣繳稅額表 method — the annual schedule on twelve times the month less the filer’s exemption and deductions and 101,000 per dependant, over twelve, nothing under NT$2,000 (各類所得扣繳率標準 §2(1)) — where the 5% election is not taken; the voluntary pension contribution is outside the base (勞退條例 §14(4)). Applied 2026-09-18 (4): 所得稅法 §14(1)(3): allowances are 薪資所得 (`catalog('ALLOWANCE')`); 伙食費 to NT$3,000 a month is outside (財政部 exemption — a meal row is added with `annual_exempt` when a version carries one); severance within the statutory amount is outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1298,7 +1298,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ENCASHMENT - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee - produced.LABOR_PENSION.employee",
 		"elections": [
 			{
 				"key": "table_withholding",
@@ -1335,7 +1335,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "LI",
 		"name": "Labor Insurance (勞工保險)",
-		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — an 11.5% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 12.5% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — an 11.5% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 12.5% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1487,7 +1487,7 @@
 				"employer": "round_unit((45800.0 * 0.115 * 0.7) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "b0d0bee7-57df-5ea6-a051-69bf849e1178",
@@ -1498,10 +1498,10 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"authority": "積欠工資墊償基金提繳及墊償管理辦法 §3 (勞基法 §28): the employer contributes 0.025% of the establishment’s aggregate insured-salary total each month, rounded once for the establishment; borne wholly by the employer. Read here over the sum of every payslip’s ordinary wage, the closest reading of the insured total. Applied 2026-09-18.",
+		"authority": "積欠工資墊償基金提繳及墊償管理辦法 §3 (勞基法 §28): the employer contributes 0.025% of the establishment’s aggregate insured-salary total each month, rounded once for the establishment; borne wholly by the employer. Read here over the sum of every payslip’s ordinary wage, the closest reading of the insured total. Applied 2026-09-18. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"rules": [
 			{
 				"when": "base > 0.0",
@@ -1515,7 +1515,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1667,14 +1667,14 @@
 				"employer": "round_unit((45800.0 * 0.01 * 0.7) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "fad78d69-2b64-502e-8ab5-2959909c0e27",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base.",
+		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1981,7 +1981,7 @@
 				"employer": "15146.0"
 			}
 		],
-		"assessed_on": "person.employment.exit_date != \"\" && person.employment.exit_date < period.end ? 0.0 : (period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE))"
+		"assessed_on": "person.employment.exit_date != \"\" && person.employment.exit_date < period.end ? 0.0 : (period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE))"
 	},
 	{
 		"id": "67c3ccea-c064-5bb6-9413-06e21a9db47d",
@@ -2008,7 +2008,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "LABOR_PENSION",
 		"name": "Labor Pension (勞工退休金, new system)",
-		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: 勞退條例 §14(3): the worker may contribute up to a further 6% of the grade (`voluntary_rate`, a percentage election), which §14(4) leaves out of the year’s taxable salary. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: 勞退條例 §14(3): the worker may contribute up to a further 6% of the grade (`voluntary_rate`, a percentage election), which §14(4) leaves out of the year’s taxable salary. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2295,7 +2295,7 @@
 				"employer": "round_unit((150000.0 * 0.06 * 1.0) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)",
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)",
 		"elections": [
 			{
 				"key": "voluntary_rate",
@@ -2308,7 +2308,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
-		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is stated as GRADE_LADDER — twenty-one grades from 29,500 to 72,800, 勞動部 114年11月17日 勞動保3字第1140090499號令, 自115年1月1日生效. That is the whole 分級表 in one statement: a wage under the first grade insures at the first, one over the last insures at the last, and everything between rounds up to its own grade. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base.",
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is stated as GRADE_LADDER — twenty-one grades from 29,500 to 72,800, 勞動部 114年11月17日 勞動保3字第1140090499號令, 自115年1月1日生效. That is the whole 分級表 in one statement: a wage under the first grade insures at the first, one over the last insures at the last, and everything between rounds up to its own grade. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2590,14 +2590,14 @@
 				"employer": "round_unit((round_unit((ladder(base, [29500.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) * 0.19 / 100.0)) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "4d2125a2-5ac8-51d3-b67d-0df689445aed",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "INCOME_TAX",
 		"name": "Individual Income Tax withholding, resident 5% election (薪資所得扣繳)",
-		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below. Applied 2026-09-18: residency declared on the contract (`terms.tax_residency`, 所得稅法 §7(3): domicile and 183 days) outranks citizenship; the `table_withholding` election withholds by the 薪資所得扣繳稅額表 method — the annual schedule on twelve times the month less the filer’s exemption and deductions and 101,000 per dependant, over twelve, nothing under NT$2,000 (各類所得扣繳率標準 §2(1)) — where the 5% election is not taken; the voluntary pension contribution is outside the base (勞退條例 §14(4)).",
+		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below. Applied 2026-09-18: residency declared on the contract (`terms.tax_residency`, 所得稅法 §7(3): domicile and 183 days) outranks citizenship; the `table_withholding` election withholds by the 薪資所得扣繳稅額表 method — the annual schedule on twelve times the month less the filer’s exemption and deductions and 101,000 per dependant, over twelve, nothing under NT$2,000 (各類所得扣繳率標準 §2(1)) — where the 5% election is not taken; the voluntary pension contribution is outside the base (勞退條例 §14(4)). Applied 2026-09-18 (4): 所得稅法 §14(1)(3): allowances are 薪資所得 (`catalog('ALLOWANCE')`); 伙食費 to NT$3,000 a month is outside (財政部 exemption — a meal row is added with `annual_exempt` when a version carries one); severance within the statutory amount is outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2609,7 +2609,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ENCASHMENT - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee - produced.LABOR_PENSION.employee",
 		"elections": [
 			{
 				"key": "table_withholding",
@@ -2646,7 +2646,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "LI",
 		"name": "Labor Insurance (勞工保險)",
-		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — a 12% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. From 1 January 2027 勞工保險條例第13條 steps the ordinary rate from 11.5% to 12%; the 116年 投保薪資分級表 will be re-issued from the 116年 minimum wage, so the ladder below still carries the 115年 grades. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 13% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — a 12% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. From 1 January 2027 勞工保險條例第13條 steps the ordinary rate from 11.5% to 12%; the 116年 投保薪資分級表 will be re-issued from the 116年 minimum wage, so the ladder below still carries the 115年 grades. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 13% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2798,7 +2798,7 @@
 				"employer": "round_unit((45800.0 * 0.12 * 0.7) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "000f8fe3-22c4-5d92-ab8d-0a6657a290bc",
@@ -2809,10 +2809,10 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"authority": "積欠工資墊償基金提繳及墊償管理辦法 §3 (勞基法 §28): the employer contributes 0.025% of the establishment’s aggregate insured-salary total each month, rounded once for the establishment; borne wholly by the employer. Read here over the sum of every payslip’s ordinary wage, the closest reading of the insured total. Applied 2026-09-18.",
+		"authority": "積欠工資墊償基金提繳及墊償管理辦法 §3 (勞基法 §28): the employer contributes 0.025% of the establishment’s aggregate insured-salary total each month, rounded once for the establishment; borne wholly by the employer. Read here over the sum of every payslip’s ordinary wage, the closest reading of the insured total. Applied 2026-09-18. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"rules": [
 			{
 				"when": "base > 0.0",
@@ -2826,7 +2826,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2978,14 +2978,14 @@
 				"employer": "round_unit((45800.0 * 0.01 * 0.7) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base.",
+		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -3292,7 +3292,7 @@
 				"employer": "15146.0"
 			}
 		],
-		"assessed_on": "person.employment.exit_date != \"\" && person.employment.exit_date < period.end ? 0.0 : (period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE))"
+		"assessed_on": "person.employment.exit_date != \"\" && person.employment.exit_date < period.end ? 0.0 : (period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE))"
 	},
 	{
 		"id": "2d097931-3f74-5190-87ab-e641437c44a0",
@@ -3319,7 +3319,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "LABOR_PENSION",
 		"name": "Labor Pension (勞工退休金, new system)",
-		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: 勞退條例 §14(3): the worker may contribute up to a further 6% of the grade (`voluntary_rate`, a percentage election), which §14(4) leaves out of the year’s taxable salary. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them.",
+		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below. Each rule is the grade × rate × share, rounded once after the enrolled-day fraction (勞保條例施行細則 §28-1: 保險費每月以三十日計算; the Bureau's 114年 分擔金額表 is reproduced cell for cell, 1,680 of 1,680, by that arithmetic and by no rounding of the whole-month row first). Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18: 勞退條例 §14(3): the worker may contribute up to a further 6% of the grade (`voluntary_rate`, a percentage election), which §14(4) leaves out of the year’s taxable salary. Applied 2026-09-18: a part-time worker (`employment.type == \"PART_TIME\"`) is insured at the part-time grades below the floor (11,100 to 27,600; 勞保條例 §14, BLI Files/25659), the full-time ladder taking over above them. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -3606,7 +3606,7 @@
 				"employer": "round_unit((150000.0 * 0.06 * 1.0) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)",
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)",
 		"elections": [
 			{
 				"key": "voluntary_rate",
@@ -3619,7 +3619,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
-		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is stated as GRADE_LADDER — twenty-one grades from 29,500 to 72,800, 勞動部 114年11月17日 勞動保3字第1140090499號令, 自115年1月1日生效. That is the whole 分級表 in one statement: a wage under the first grade insures at the first, one over the last insures at the last, and everything between rounds up to its own grade. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base.",
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is stated as GRADE_LADDER — twenty-one grades from 29,500 to 72,800, 勞動部 114年11月17日 勞動保3字第1140090499號令, 自115年1月1日生效. That is the whole 分級表 in one statement: a wage under the first grade insures at the first, one over the last insures at the last, and everything between rounds up to its own grade. Applied 2026-09-18: leave encashment (特休未休工資) does not re-declare the insured grade mid-year (投保薪資 and 月提繳工資 are declared on the ordinary wage), so ENCASHMENT is outside this base. Applied 2026-09-18 (4): 勞基法 §2(3): a recurring allowance is 工資 and enters the 投保薪資 / 月提繳工資 (`catalog('ALLOWANCE', {exclude})` on the measured base, `terms.fixed_allowances` on the contractual one); a non-recurring bonus and severance are outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -3901,14 +3901,14 @@
 				"employer": "round_unit((round_unit((ladder(base, [29500.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) * 0.19 / 100.0)) * (period.days_employed < period.days_in_month ? period.days_employed / 30.0 : 1.0))"
 			}
 		],
-		"assessed_on": "period.days_employed < period.days_in_month ? person.terms.basic_salary : (BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE)"
+		"assessed_on": "period.days_employed < period.days_in_month ? (person.terms.basic_salary + person.terms.fixed_allowances) : (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['bonus', 'SEVERANCE_PAY']}) - ABSENCE - NO_PAY_LEAVE)"
 	},
 	{
 		"id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "INCOME_TAX",
 		"name": "Individual Income Tax withholding, resident 5% election (薪資所得扣繳)",
-		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below. Applied 2026-09-18: residency declared on the contract (`terms.tax_residency`, 所得稅法 §7(3): domicile and 183 days) outranks citizenship; the `table_withholding` election withholds by the 薪資所得扣繳稅額表 method — the annual schedule on twelve times the month less the filer’s exemption and deductions and 101,000 per dependant, over twelve, nothing under NT$2,000 (各類所得扣繳率標準 §2(1)) — where the 5% election is not taken; the voluntary pension contribution is outside the base (勞退條例 §14(4)).",
+		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below. Applied 2026-09-18: residency declared on the contract (`terms.tax_residency`, 所得稅法 §7(3): domicile and 183 days) outranks citizenship; the `table_withholding` election withholds by the 薪資所得扣繳稅額表 method — the annual schedule on twelve times the month less the filer’s exemption and deductions and 101,000 per dependant, over twelve, nothing under NT$2,000 (各類所得扣繳率標準 §2(1)) — where the 5% election is not taken; the voluntary pension contribution is outside the base (勞退條例 §14(4)). Applied 2026-09-18 (4): 所得稅法 §14(1)(3): allowances are 薪資所得 (`catalog('ALLOWANCE')`); 伙食費 to NT$3,000 a month is outside (財政部 exemption — a meal row is added with `annual_exempt` when a version carries one); severance within the statutory amount is outside.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -3920,7 +3920,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ENCASHMENT - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee - produced.LABOR_PENSION.employee",
 		"elections": [
 			{
 				"key": "table_withholding",

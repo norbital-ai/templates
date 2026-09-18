@@ -64,7 +64,14 @@ export default defineModel(
 		 * catalogue rows, e.g. `BASE + catalog('ALLOWANCE', {'exclude': ['BACKPAY_ADD_WAGES']})`. A
 		 * catalogue row returns its own landing, so the formula is a selection written with `+`.
 		 */
-		assessed_on: text().notNull().default('')
+		assessed_on: text().notNull().default(''),
+		/**
+		 * The ordinary part of the base, where a ceiling splits ordinary from additional wages: the
+		 * same CEL over the same lines, stored beside each charge (`ordinary_amount`) and summed into
+		 * `scheme.year_to_date.ordinary` — SG CPF's Additional Wage ceiling is 102,000 less the
+		 * year's Ordinary Wages subject to CPF, each month's capped. Empty for a scheme with one base.
+		 */
+		ordinary_on: text().notNull().default('')
 	},
 	{
 		description:

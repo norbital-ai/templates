@@ -163,7 +163,7 @@ test('a person’s held earlier slip is history the next period stands on', asyn
 	);
 	assert.deepEqual(
 		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB-FIXED`),
-		{ employee: 30, employer: 60, base: 1000 },
+		{ employee: 30, employer: 60, base: 1000, ordinary: 0 },
 		'the held slip is history: February is paid only after it is'
 	);
 });
@@ -200,7 +200,7 @@ test('rehire gathers prior YTD across old contracts while excluding another enti
 	);
 	assert.deepEqual(
 		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB-FIXED`),
-		{ employee: 60, employer: 120, base: 2000 },
+		{ employee: 60, employer: 120, base: 2000, ordinary: 0 },
 		'the paid and the unpaid slip of this company count; the other entity’s does not'
 	);
 	assert.deepEqual(

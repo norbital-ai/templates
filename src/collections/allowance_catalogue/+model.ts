@@ -30,7 +30,15 @@ export default defineModel(
 		 * the last day, where the row's eligibility holds over them then — held for HR like the
 		 * encashment. The band prices it from the person (service years, monthly wage, notice days).
 		 */
-		on_separation: boolean().notNull().default(false)
+		on_separation: boolean().notNull().default(false),
+		/**
+		 * A fixed allowance — paid every period regardless of attendance or output (ID tunjangan
+		 * tetap, VN phụ cấp lương, TW 經常性給與) — counts in `terms.fixed_allowances` and so in the
+		 * wage a statute defines as basic plus fixed allowances (ID THR and the BPJS bases, VN
+		 * insurance salary, MY overtime wages). A reimbursement, a per-day allowance or a bonus is
+		 * not fixed, whatever its window.
+		 */
+		fixed: boolean().notNull().default(true)
 	},
 	{
 		description:

@@ -660,25 +660,32 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	const absence = slips.get('TW-NPL')!.adjustments.find((row) => row.bucket === 'ABSENCE')!;
 	assert.deepEqual([absence.quantity, absence.amount], [1, 1290.32]);
 	assert.equal(slips.get('TW-NPL')!.gross, 40_000 - 1290.32 + 3100);
-	// No Taiwanese scheme opts an allowance in (`assessed_on` names no `catalog('ALLOWANCE')`), so
-	// the 3,100 reaches no base — the 事假 month still insures at 40,100 on 38,709.68.
-	assert.deepEqual(charge(slips.get('TW-NPL')!, 'LI'), [38_709.68, 922, 3228]);
-	assert.deepEqual(charge(slips.get('TW-WHOLE')!, 'INCOME_TAX'), [40_000, 0, 0]);
+	// 勞基法 §2(3): a recurring 交通津貼 is 工資, so it is in the insured wage and the taxable pay:
+	// the 事假 month insures 38,709.68 + 3,100 = 41,809.68 at grade 42,000 (× 11.5% = 4,830 →
+	// 966 / 3,381), and the whole month's 薪資所得 is 43,100.
+	assert.deepEqual(charge(slips.get('TW-NPL')!, 'LI'), [41_809.68, 966, 3381]);
+	// 43,100 of 薪資所得 is over the 5% election's threshold, so 2,155 is withheld where 40,000 alone was not.
+	assert.deepEqual(charge(slips.get('TW-WHOLE')!, 'INCOME_TAX'), [43_100, 2155, 0]);
 
 	// The part month. 勞保施行細則 §28-1 counts the premium per enrolled day on a thirty-day month at
-	// the DECLARED grade, 40,100 — the contract's 40,000, never the prorated 20,645.16 that would
-	// fall to the floor grade. BLI Files/25697, 16-day row: 勞工 535 / 單位 1,872 for 勞保+就保
+	// the DECLARED grade — the contract's 40,000 plus the recurring 3,100 transport allowance
+	// (勞基法 §2(3)), 43,100 → grade 43,900 — never the prorated wage that would fall to the floor
+	// grade. Same arithmetic as BLI Files/25697's 16-day row one grade down (40,100: 492 / 1,722):
+	// 勞保 43,900 × 11.5% × 20% × 16/30 = 538.5 → 539 and × 70% = 1,884.8 → 1,885; 就保 43,900 ×
+	// 1% × 20% × 16/30 = 46.8 → 47 and × 70% = 163.9 → 164; 勞退 43,900 × 6% = 2,634 × 16/30 =
+	// 1,404.8 → 1,405; 健保 43,900 × 5.17% × 30% = 680.9 → 681, employer × 60% × 1.56 = 2,124;
+	// the leaver's fifteen days: 勞保 504.85 → 505 / 1,767, 就保 43.9 → 44 / 153.65 → 154, 勞退 1,317. BLI Files/25697, 16-day row: 勞工 535 / 單位 1,872 for 勞保+就保
 	// together, each scheme rounded once from the rate after the day fraction: 勞保 40,100 × 11.5%
 	// × 20% × 16/30 = 491.89 → 492 and × 70% = 1,721.63 → 1,722; 就保 40,100 × 1% × 20% × 16/30 =
 	// 42.77 → 43 and × 70% = 149.71 → 150.
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LI'), [40_000, 492, 1722]);
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'EI'), [40_000, 43, 150]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LI'), [43_100, 539, 1885]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'EI'), [43_100, 47, 164]);
 	// 勞退條例 §14 on the same thirty-day month: 40,100 × 6% = 2,406 × 16/30 = 1,283.2 → 1,283.
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LABOR_PENSION'), [40_000, 0, 1283]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LABOR_PENSION'), [43_100, 0, 1405]);
 	// 健保法 §30: a whole-month premium at the declared grade, billed to the unit the person is
 	// insured with at month end — the joiner's employer pays January whole (622 / 1,940), the
 	// leaver's pays nothing and carries no 健保 row at all.
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'NHI'), [40_000, 622, 1940]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'NHI'), [43_100, 681, 2124]);
 	assert.equal(
 		slips.get('TW-LEAVER')!.statutory.find((entry) => entry.scheme_code === 'NHI'),
 		undefined
@@ -686,9 +693,9 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	// The leaver's fifteen enrolled days — BLI's 15-day row at 40,100 is 501 / 1,754 combined
 	// (Files/24807): 勞保 461.15 → 461 / 1,614.025 → 1,614; 就保 40.1 → 40 / 280.7 × ½ = 140.35 →
 	// 140, where the whole-month row 281 halved would round to 141; 勞退 2,406 × 15/30 = 1,203.
-	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LI'), [40_000, 461, 1614]);
-	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'EI'), [40_000, 40, 140]);
-	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LABOR_PENSION'), [40_000, 0, 1203]);
+	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LI'), [43_100, 505, 1767]);
+	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'EI'), [43_100, 44, 154]);
+	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LABOR_PENSION'), [43_100, 0, 1317]);
 });
 
 test('every sealed version of `TW` is priced by a golden here', () => {

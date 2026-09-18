@@ -32,7 +32,18 @@ export const workLimitValueSchema = Schema.Struct({
 	/** Read in expressions as `limits.<key>`. */
 	key: Schema.String.check(Schema.isMinLength(1)),
 	period: Schema.Literals(['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR']),
-	measure: Schema.Literals(['TOTAL_WORK_HOURS', 'OVERTIME_HOURS', 'NORMAL_HOURS', 'SPREAD_HOURS']),
+	/**
+	 * OVERTIME_HOURS is regulated overtime — ordinary and off-day hours beyond the normal day,
+	 * the ladder the monthly funnel reads; ALL_OVERTIME_HOURS also counts rest-day and holiday
+	 * hours beyond the normal day, the MOM reading of SG's 72-hour month, and is reported only.
+	 */
+	measure: Schema.Literals([
+		'TOTAL_WORK_HOURS',
+		'OVERTIME_HOURS',
+		'ALL_OVERTIME_HOURS',
+		'NORMAL_HOURS',
+		'SPREAD_HOURS'
+	]),
 	max_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
 	/**
 	 * How `max_hours` is measured: a CLOCK span evaluates against the shift by subtracting its
@@ -127,6 +138,12 @@ export const workRulesValueSchema = Schema.Struct({
 	 * art.83: 8). A shift shorter than it is the normal day.
 	 */
 	normal_hours: Schema.optionalKey(Schema.String),
+	/**
+	 * The normal day on a rostered day is that day's own shift where it is shorter than the
+	 * contract's day (ID PP 35/2021 art.31(2)(b): a six-day worker's shortest day prices its
+	 * holiday tiers on its own five hours). Absent or false is the contract's day everywhere.
+	 */
+	normal_hours_follow_shift: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	bands: Schema.Array(workRateBandValueSchema),
 	limits: Schema.Array(workLimitValueSchema),
 	breaks: Schema.Array(workBreakValueSchema),

@@ -144,7 +144,10 @@ export type GatheredRun = {
 	/** Of them, the citizens (`residency_status` other than FOREIGNER): MY HRD Corp counts and levies these alone. */
 	readonly headcountCitizens: number;
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
-	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
+	readonly yearToDate: ReadonlyMap<
+		string,
+		{ employee: number; employer: number; base: number; ordinary: number }
+	>;
 	/** employee id → component code → what the person's earlier payslips earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/** employee id → calendar month → regulated overtime hours earlier payslips settled. */
@@ -471,7 +474,10 @@ type GatherPriorSettlementOptions = {
 };
 
 type PriorSettlement = {
-	readonly yearToDate: Map<string, { employee: number; employer: number; base: number }>;
+	readonly yearToDate: Map<
+		string,
+		{ employee: number; employer: number; base: number; ordinary: number }
+	>;
 	readonly yearEarned: Map<string, Map<string, number>>;
 	readonly priorOvertimeHours: Map<string, Map<string, number>>;
 	readonly consumedEntries: Map<string, number>;
@@ -519,7 +525,10 @@ function gatherPriorSettlement(
 				)
 				.map((run) => run.id)
 		);
-		const totals = new Map<string, { employee: number; employer: number; base: number }>();
+		const totals = new Map<
+			string,
+			{ employee: number; employer: number; base: number; ordinary: number }
+		>();
 		const consumedEntries = new Map<string, number>();
 		const empty = {
 			yearToDate: totals,

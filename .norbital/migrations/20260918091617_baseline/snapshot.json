@@ -375,6 +375,19 @@
       "table": "allowance_catalogue"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "fixed",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_catalogue"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1937,7 +1950,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce((CASE status ->> 'kind'\n\t\t\t\tWHEN 'REGISTERED' THEN 'Registered · ' || COALESCE(NULLIF(status ->> 'reference_number', ''), 'no reference')\n\t\t\t\tWHEN 'NOT_REGISTERED' THEN 'Not registered · ' || COALESCE(NULLIF(status ->> 'reason', ''), 'no reason given')\n\t\t\t\tELSE 'Statutory fact'\n\t\t\tEND || ' · from ' || LEFT(effective_range ->> 'start', 10)), ''))",
+        "as": "to_tsvector('simple'::regconfig, coalesce((CASE status ->> 'kind'\n\t\t\t\tWHEN 'REGISTERED' THEN 'Registered \u00b7 ' || COALESCE(NULLIF(status ->> 'reference_number', ''), 'no reference')\n\t\t\t\tWHEN 'NOT_REGISTERED' THEN 'Not registered \u00b7 ' || COALESCE(NULLIF(status ->> 'reason', ''), 'no reason given')\n\t\t\t\tELSE 'Statutory fact'\n\t\t\tEND || ' \u00b7 from ' || LEFT(effective_range ->> 'start', 10)), ''))",
         "type": "stored"
       },
       "identity": null,
@@ -2018,7 +2031,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "CASE status ->> 'kind'\n\t\t\t\tWHEN 'REGISTERED' THEN 'Registered · ' || COALESCE(NULLIF(status ->> 'reference_number', ''), 'no reference')\n\t\t\t\tWHEN 'NOT_REGISTERED' THEN 'Not registered · ' || COALESCE(NULLIF(status ->> 'reason', ''), 'no reason given')\n\t\t\t\tELSE 'Statutory fact'\n\t\t\tEND || ' · from ' || LEFT(effective_range ->> 'start', 10)",
+        "as": "CASE status ->> 'kind'\n\t\t\t\tWHEN 'REGISTERED' THEN 'Registered \u00b7 ' || COALESCE(NULLIF(status ->> 'reference_number', ''), 'no reference')\n\t\t\t\tWHEN 'NOT_REGISTERED' THEN 'Not registered \u00b7 ' || COALESCE(NULLIF(status ->> 'reason', ''), 'no reason given')\n\t\t\t\tELSE 'Statutory fact'\n\t\t\tEND || ' \u00b7 from ' || LEFT(effective_range ->> 'start', 10)",
         "type": "stored"
       },
       "identity": null,
@@ -2112,7 +2125,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce((COALESCE(job_title || ' · ', '') || employment_type), ''))",
+        "as": "to_tsvector('simple'::regconfig, coalesce((COALESCE(job_title || ' \u00b7 ', '') || employment_type), ''))",
         "type": "stored"
       },
       "identity": null,
@@ -2362,7 +2375,7 @@
       "dimensions": 0,
       "default": null,
       "generated": {
-        "as": "COALESCE(job_title || ' · ', '') || employment_type",
+        "as": "COALESCE(job_title || ' \u00b7 ', '') || employment_type",
         "type": "stored"
       },
       "identity": null,
@@ -5552,6 +5565,19 @@
       "generated": null,
       "identity": null,
       "name": "assessed_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "''",
+      "generated": null,
+      "identity": null,
+      "name": "ordinary_on",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"

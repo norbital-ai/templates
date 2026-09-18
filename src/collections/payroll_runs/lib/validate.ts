@@ -123,6 +123,8 @@ type ValidateOvertimeLimitsOptions = {
 	readonly employeeNumber: string;
 	/** Regulated overtime this run measured, by calendar month. */
 	readonly hoursByMonth: ReadonlyMap<string, number>;
+	/** Every hour beyond the normal day, rest days and holidays included, for an ALL_OVERTIME_HOURS limit. */
+	readonly allHoursByMonth?: ReadonlyMap<string, number>;
 	/** Regulated overtime earlier PAID payslips settled, by calendar month; read by QUARTER and YEAR. */
 	readonly priorHoursByMonth?: ReadonlyMap<string, number>;
 };
@@ -149,20 +151,24 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 		// compared against them. A TOTAL_WORK_HOURS row is a different quantity, not a stricter one.
 		const period = limit.period;
 		if (
-			limit.measure !== 'OVERTIME_HOURS' ||
+			(limit.measure !== 'OVERTIME_HOURS' && limit.measure !== 'ALL_OVERTIME_HOURS') ||
 			(period !== 'MONTH' && period !== 'QUARTER' && period !== 'YEAR')
 		)
 			continue;
+		const measured =
+			limit.measure === 'ALL_OVERTIME_HOURS'
+				? (options.allHoursByMonth ?? options.hoursByMonth)
+				: options.hoursByMonth;
 		const totals = new Map<string, number>();
 		const add = (month: string, hours: number) => {
 			const bucket = limitBucket(month, period);
 			totals.set(bucket, (totals.get(bucket) ?? 0) + hours);
 		};
-		for (const [month, hours] of options.hoursByMonth) add(month, hours);
+		for (const [month, hours] of measured) add(month, hours);
 		if (period !== 'MONTH')
 			for (const [month, hours] of options.priorHoursByMonth ?? [])
 				if (
-					[...options.hoursByMonth.keys()].some(
+					[...measured.keys()].some(
 						(own) => limitBucket(own, period) === limitBucket(month, period)
 					)
 				)

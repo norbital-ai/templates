@@ -142,6 +142,7 @@ export function schemeFault(scheme: {
 		readonly employer: string;
 	}[];
 	readonly assessed_on: string;
+	readonly ordinary_on?: string;
 	readonly elections: readonly DeclaredKey[];
 }): string | null {
 	const { rules, assessed_on: assessedOn, elections } = scheme;
@@ -152,6 +153,15 @@ export function schemeFault(scheme: {
 		elections
 	});
 	if (formula != null) return `Assessed-on: ${formula}`;
+	if ((scheme.ordinary_on ?? '').trim() !== '') {
+		const ordinary = compileExpression({
+			expression: scheme.ordinary_on ?? '',
+			site: 'assessment',
+			type: 'money',
+			elections
+		});
+		if (ordinary != null) return `Ordinary-on: ${ordinary}`;
+	}
 	if (assessedOn.trim() === '')
 		return 'Assessed-on: the scheme charges nothing, so it states what it is assessed on.';
 	for (const [index, rule] of rules.entries()) {

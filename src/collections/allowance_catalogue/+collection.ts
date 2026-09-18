@@ -14,7 +14,8 @@ const columns = {
 	bands: true,
 	eligibility: true,
 	evidence: true,
-	on_separation: true
+	on_separation: true,
+	fixed: true
 } as const;
 
 /**

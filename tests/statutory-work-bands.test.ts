@@ -181,17 +181,38 @@ test('Indonesia — PP 35/2021 Pasal 31 prices the first overtime hour at 1.5× 
 	]);
 });
 
-test('Vietnam — a night overtime hour carries the 30% night premium and the 20% night-overtime add', () => {
-	// Labour Code 2019 art.98(3) with Decree 145/2020 art.57: on an ordinary day a night overtime
-	// hour is 150% + 30% + 20% = 200% of the hourly wage. The engine prices the 150% on the
-	// OVERTIME line and the rest as `night_premium.overtime_add`, so that add is 50, not 20.
+test('Vietnam — a night overtime hour carries the 30% night premium and 20% of the day-type wage', () => {
+	// Labour Code 2019 art.98(3) with Decree 145/2020 art.57: a night overtime hour is the overtime
+	// wage plus 30% for the night plus 20% of the daytime wage of that day type. The engine prices
+	// the overtime multiple on the OVERTIME line and the rest as `night_premium.overtime_add`: 50
+	// on an ordinary day (30 + 20% of 100%), 70 on a rest day (20% of 200%), 90 on a holiday.
+	const day = (dayType, extra = {}) => ({
+		workDayId: 'd',
+		date: '2026-06-15',
+		dayType,
+		workedHours: 10,
+		overtimeHours: dayType === 'ORDINARY' ? 2 : 10,
+		normalHours: 8,
+		breakMinutes: 60,
+		rosterCode: 'AM',
+		holidayKind: dayType === 'PUBLIC_HOLIDAY' ? 'PUBLIC_HOLIDAY' : '',
+		holidayName: '',
+		monthOvertimeHours: 0,
+		consecutiveHours: 4,
+		continuousAttendance: false,
+		restDay: dayType === 'REST_DAY',
+		offDay: false,
+		nightHours: 4,
+		requestedBy: 'EMPLOYER',
+		...extra
+	});
 	for (const version of settingsVersions('VN')) {
-		assert.deepEqual(version.work_rules.night_premium, {
-			from: '22:00',
-			to: '06:00',
-			ordinary_add: 30,
-			overtime_add: 50
-		});
+		const premium = version.work_rules.night_premium;
+		assert.deepEqual([premium.from, premium.to, premium.ordinary_add], ['22:00', '06:00', 30]);
+		const adds = (d) => nightAddsFor({ work: version.work_rules, premium, person, day: d, rates });
+		assert.deepEqual(adds(day('ORDINARY')), { ordinary: 30, overtime: 50 });
+		assert.deepEqual(adds(day('REST_DAY')), { ordinary: 30, overtime: 70 });
+		assert.deepEqual(adds(day('PUBLIC_HOLIDAY')), { ordinary: 30, overtime: 90 });
 	}
 });
 

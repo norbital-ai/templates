@@ -317,6 +317,11 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 	{ path: 'code', description: 'The scheme code' },
 	{ path: 'assessment_period', description: 'PAY_PERIOD | MONTH' },
 	{ path: 'year_to_date.base', description: 'Base already charged this tax year' },
+	{
+		path: 'year_to_date.ordinary',
+		description:
+			'The ordinary part of the base already charged this tax year, where the scheme states `ordinary_on`'
+	},
 	{ path: 'year_to_date.employee', description: 'Employee amount already charged this tax year' },
 	{ path: 'year_to_date.employer', description: 'Employer amount already charged this tax year' },
 	{
@@ -616,7 +621,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		scheme: {
 			code: '',
 			assessment_period: 'PAY_PERIOD',
-			year_to_date: { base: 0, employee: 0, employer: 0 },
+			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',
@@ -655,7 +660,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		scheme: {
 			code: '',
 			assessment_period: 'PAY_PERIOD',
-			year_to_date: { base: 0, employee: 0, employer: 0 },
+			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',

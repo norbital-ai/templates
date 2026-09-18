@@ -45,6 +45,8 @@ export type FamilyPayItem = {
 	readonly bands: readonly CatalogueBand[];
 	readonly eligibility: string;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'LOAN';
+	/** `allowance_catalogue.fixed`: paid regardless of attendance; absent (a claim, a work line) reads true. */
+	readonly fixed?: boolean;
 };
 
 import type {
@@ -204,6 +206,8 @@ export type MeasuredEmployment = {
 	readonly overtimeDays: readonly DailyOvertime[];
 	/** Regulated ordinary/off-day OT by calendar month; rest days and PH are excluded. */
 	readonly calendarMonthOvertimeHours: ReadonlyMap<string, number>;
+	/** Every hour beyond the normal day by calendar month, rest days and holidays included (reported only). */
+	readonly calendarMonthAllOvertimeHours?: ReadonlyMap<string, number>;
 	readonly currency: string;
 	readonly schedule: ReadonlyMap<IsoDate, ScheduledDay>;
 	/** The version's limits that govern this person, the conditional ones (`limits[].when`) judged. */

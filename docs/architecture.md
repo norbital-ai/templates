@@ -201,7 +201,8 @@ end, index, instalments, last_of_year, days_employed — the pay month's days th
 on the proration basis, the payslip's segments summed — and days_in_month), `year` (the tax year:
 start, end, months_employed,
 days_employed, `earned.<code>` over earlier payslips), `scheme` (code, assessment_period,
-year_to_date.\*, projection.\*, rate_override, since, since_months, `elections.<key>`),
+year_to_date.\* — base, employee, employer and `ordinary`, the part a scheme's `ordinary_on` stored
+on each charge — projection.\*, rate_override, since, since_months, `elections.<key>`),
 `produced` (`<code>.employee`, `<code>.employee_this_period`, `<code>.employer` of every scheme already charged) and `limits`
 (the version's evaluated hour ceilings). A site's subject is bare — the person object on `person`,
 the day on `work_day`, `base` on `scheme`, the six reserved money lines on `assessment` — and
@@ -520,7 +521,13 @@ expressions over the same day context (PH art.86: 10% of the hour's own rate, so
 the day type), and on a shiftless day the first `normal_hours` night hours are the ordinary ones.
 `work_rules.proration_by` is an ordered list of `{when, basis}` arms over the person; the first
 that holds replaces `proration` for that person everywhere a proration is read — the salary
-segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167).
+segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167). `normal_hours_follow_shift` makes a
+shorter rostered shift that day's normal day (ID art.31(2)(b)); an `ALL_OVERTIME_HOURS` limit
+counts rest-day and holiday hours beyond the normal day for its warning while the regulated
+`OVERTIME_HOURS` count stays the one the monthly funnel — the only company policy in the engine —
+reads. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_is_half` carry SG s.88(2)
+and s.20A(2). A scheme whose ceiling splits ordinary from additional wages states `ordinary_on`,
+and `allowance_catalogue.fixed` says which allowances are wage-like (`terms.fixed_allowances`).
 
 Attendance overruns are priced and reported, never blocked and never discarded. Hours a schedule
 was never allowed to contain are still paid; that a run paid them is not proof the schedule

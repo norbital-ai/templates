@@ -120,6 +120,11 @@
 					<Grid gap="md" minimum="card">
 						<Field name="evidence" label={t('component.evidence')} />
 						<Field
+							name="fixed"
+							label={t('component.fixed_allowance')}
+							description={t('component.fixed_allowance_hint')}
+						/>
+						<Field
 							name="on_separation"
 							label={t('component.on_separation')}
 							description={t('component.on_separation_hint')}

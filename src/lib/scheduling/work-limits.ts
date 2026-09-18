@@ -90,6 +90,7 @@ const PERIOD_LABEL: Readonly<Record<WorkLimit['period'], string>> = {
 const MEASURE_LABEL: Readonly<Record<WorkLimit['measure'], string>> = {
 	TOTAL_WORK_HOURS: 'worked hours',
 	OVERTIME_HOURS: 'overtime hours',
+	ALL_OVERTIME_HOURS: 'overtime hours, rest days and holidays included',
 	NORMAL_HOURS: 'normal hours',
 	SPREAD_HOURS: 'spread-over hours'
 };
@@ -245,17 +246,23 @@ export function projectedLimitBreaches(options: {
 		const read = (limit: WorkLimit): number => {
 			if (limit.period === 'DAY') {
 				if (limit.measure === 'SPREAD_HOURS') return plan.spread_hours;
-				if (limit.measure === 'OVERTIME_HOURS') return overtime(plan);
+				if (limit.measure === 'OVERTIME_HOURS' || limit.measure === 'ALL_OVERTIME_HOURS')
+					return overtime(plan);
 				return hours(plan);
 			}
 			const row = totals.get(`${limit.period}:${periodKey(limit.period, date)}`);
 			if (row == null) return 0;
 			if (limit.measure === 'SPREAD_HOURS') return row.spread;
-			if (limit.measure === 'OVERTIME_HOURS') return row.overtime;
+			if (limit.measure === 'OVERTIME_HOURS' || limit.measure === 'ALL_OVERTIME_HOURS')
+				return row.overtime;
 			return row.worked;
 		};
 		for (const limit of limits) {
-			if (limit.measure === 'OVERTIME_HOURS' && normal == null) continue;
+			if (
+				(limit.measure === 'OVERTIME_HOURS' || limit.measure === 'ALL_OVERTIME_HOURS') &&
+				normal == null
+			)
+				continue;
 			// The normal-hours ceiling is the threshold, not a wall: hours a day plans beyond it are
 			// overtime, priced by the conversion the version states (Malaysia's flows to incentive).
 			// It splits the day for the overtime ceilings above and refuses nothing by itself.

@@ -26,6 +26,14 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 * employments here, as a number or an expression over the person (SG GPCL: 42 days for each
 	 * child, `42.0 * children.count`). Absent is no cap.
 	 */
+	/**
+	 * Of a row that `consumes_code` another, the days a leave year that stay outside the pool:
+	 * only days beyond them draw from it (TW 性別平等工作法 §14: three menstrual days a year
+	 * outside the sick-leave quota, the rest counted into it). Absent is every day.
+	 */
+	consumes_after_days: Schema.optionalKey(
+		Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
+	),
 	lifetime_days: Schema.optionalKey(
 		Schema.NullOr(Schema.Union([Schema.Finite.check(Schema.isGreaterThan(0)), Schema.String]))
 	),

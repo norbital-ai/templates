@@ -172,6 +172,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			ordinaryDayWage: 0,
 			overtimeDays: [],
 			calendarMonthOvertimeHours: new Map(),
+			calendarMonthAllOvertimeHours: new Map(),
 			currency,
 			schedule: new Map(),
 			limits: [],
@@ -226,7 +227,12 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		entryTotalByComponentId,
 		priorOvertimeHours: options.priorOvertimeHours
 	});
-	const { overtimeDays, calendarMonthOvertimeHours, nightShiftHours } = workAttendance;
+	const {
+		overtimeDays,
+		calendarMonthOvertimeHours,
+		calendarMonthAllOvertimeHours,
+		nightShiftHours
+	} = workAttendance;
 	/**
 	 * The unpaid days an allowance loses, for the jurisdictions whose allowances lose them
 	 * (`payroll.allowance_npl_prorates`): the no-pay leave this run charges and the rostered days
@@ -419,6 +425,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		ordinaryDayWage: dayWage,
 		overtimeDays,
 		calendarMonthOvertimeHours,
+		calendarMonthAllOvertimeHours,
 		currency,
 		schedule,
 		limits: workAttendance.limits,

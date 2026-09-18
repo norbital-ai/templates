@@ -1059,5 +1059,16 @@
 	"leave.lifetime_events": "Lifetime events (empty is unlimited)",
 	"employee_children.citizenship": "Child’s citizenship (where a statute turns on it)",
 	"employee_children.shared_parental_weeks": "Shared parental weeks this parent takes",
-	"employee_children.prior_employment_days": "Days employed elsewhere before the confinement"
+	"employee_children.prior_employment_days": "Days employed elsewhere before the confinement",
+	"component.fixed_allowance": "Fixed allowance",
+	"component.fixed_allowance_hint": "Paid every period regardless of attendance; counts in the wage a statute defines as basic plus fixed allowances. Untick for a reimbursement, a per-day allowance or a bonus.",
+	"component.scheme_ordinary_on": "Ordinary part of the base",
+	"component.scheme_ordinary_on_hint": "Where a ceiling splits ordinary from additional wages (SG CPF): the same formula for the ordinary part, stored with each charge and read back as scheme.year_to_date.ordinary. Leave empty for a scheme with one base.",
+	"component.final_pay_due_days": "Final pay due (days after the last day)",
+	"component.holiday_in_npl_unpaid": "Holiday inside no-pay leave is unpaid",
+	"component.short_day_is_half": "A day of ≤ 5 contracted hours counts as half",
+	"renderer.work_rules.normal_hours": "Normal day (hours, over the person; empty is the shift)",
+	"renderer.work_rules.normal_hours_follow_shift": "A shorter rostered shift is that day's normal day",
+	"leave.lifetime_days": "Lifetime days (a number or an expression over the person; empty is no cap)",
+	"leave.consumes_after_days": "Days a year outside the pool this row draws from"
 }

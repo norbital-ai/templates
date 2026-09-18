@@ -45,7 +45,8 @@ const children = {
 				shared_cap_group: true,
 				project_relief_annually: true,
 				rules: true,
-				assessed_on: true
+				assessed_on: true,
+				ordinary_on: true
 			}
 		}
 	},
@@ -107,7 +108,8 @@ const children = {
 				bands: true,
 				eligibility: true,
 				evidence: true,
-				on_separation: true
+				on_separation: true,
+				fixed: true
 			}
 		}
 	}
@@ -327,6 +329,7 @@ export default defineCollection({
 						const fault = schemeFault({
 							rules: scheme.rules,
 							assessed_on: String(scheme.assessed_on ?? ''),
+							ordinary_on: String(scheme.ordinary_on ?? ''),
 							elections: scheme.elections ?? []
 						});
 						if (fault != null) refuse(`Scheme ${scheme.code} ${fault}`);

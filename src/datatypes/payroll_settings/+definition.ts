@@ -27,7 +27,19 @@ export const payrollSettingsValueSchema = Schema.Struct({
 	 * states one (PH Labor Advisory 06-20: 30; ID PP 35/2021 art.15: 7; VN art.48: 14). A run
 	 * whose pay date falls later warns. Absent is no rule.
 	 */
-	final_pay_due_days: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0))))
+	final_pay_due_days: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
+	/**
+	 * A public holiday enclosed by no-pay leave the employee asked for is itself unpaid (SG EA
+	 * s.88(2)): the leave entry charges the holiday too, and payroll deducts it as a day. Absent
+	 * or false is the holiday paid whatever surrounds it.
+	 */
+	holiday_in_no_pay_leave_unpaid: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * A day the contract requires five hours or fewer counts as half a day in the working days a
+	 * part month and an absence are measured on (SG EA s.20A(2)). Absent or false counts every
+	 * rostered day as one.
+	 */
+	short_day_is_half: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
 });
 
 export type PayrollSettings = Schema.Schema.Type<typeof payrollSettingsValueSchema>;
