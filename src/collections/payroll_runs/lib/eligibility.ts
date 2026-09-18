@@ -22,7 +22,11 @@ import { decodeNumber } from '@norbital-ai/std/json';
 import { completedMonths, completedYears } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
-import { childCitizensUnder, childUnder } from '../../../lib/expressions/child-under.js';
+import {
+	childCitizensUnder,
+	childClassed,
+	childUnder
+} from '../../../lib/expressions/child-under.js';
 import { roundMoney } from './rounding.js';
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
@@ -119,6 +123,8 @@ export type PersonContext = {
 		readonly citizens: number;
 		/** Their completed years; `children.citizens_under(age)` counts these. */
 		readonly citizen_ages: readonly number[];
+		/** Each child's relief class — the declared one, else MINOR under 18 / ADULT; `children.classed(x)` counts these. */
+		readonly classes: readonly string[];
 	};
 	readonly company: {
 		readonly region: string;
@@ -235,6 +241,7 @@ export type PersonInput = {
 		readonly citizenship?: string | null;
 		readonly shared_parental_weeks?: number | null;
 		readonly prior_employment_days?: number | null;
+		readonly relief_class?: string | null;
 	}>;
 	/** Statutory facts by scheme code, in force on `asOf`; absent reads as no facts. */
 	readonly facts?: ReadonlyArray<{
@@ -373,7 +380,12 @@ export function personContext(input: PersonInput): PersonContext {
 			citizens: children.filter((child) => child.citizenship === 'CITIZEN').length,
 			citizen_ages: children
 				.filter((child) => child.citizenship === 'CITIZEN')
-				.map((child) => completedYears(dateKey(child.child_birthdate), input.asOf))
+				.map((child) => completedYears(dateKey(child.child_birthdate), input.asOf)),
+			classes: children.map(
+				(child) =>
+					(child.relief_class ?? '').trim() ||
+					(completedYears(dateKey(child.child_birthdate), input.asOf) < 18 ? 'MINOR' : 'ADULT')
+			)
 		},
 		company: {
 			region: input.company?.region ?? '',
@@ -432,6 +444,7 @@ const engine = ROUNDING.reduce(
 	createReckonEngine()
 		.registerFunction('under', 'map.under(int): int', childUnder)
 		.registerFunction('citizens_under', 'map.citizens_under(int): int', childCitizensUnder)
+		.registerFunction('classed', 'map.classed(string): int', childClassed)
 );
 
 function evaluate(expression: string, context: PersonContext): unknown {

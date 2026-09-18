@@ -55,6 +55,7 @@ Open prefixes: `company.facts.<key>`.
 | `children.under(n)` | Children under n completed years |
 | `children.citizens` | Children recorded as citizens |
 | `children.citizens_under(n)` | Of them, those under n completed years |
+| `children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `company.region` | Employing entity region |
 | `company.headcount` | Active employments in the entity |
 | `company.headcount_citizens` | Of them, the citizens |
@@ -135,6 +136,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
+| `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
@@ -244,6 +246,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
+| `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
@@ -344,6 +347,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
+| `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
@@ -467,6 +471,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
+| `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
@@ -582,6 +587,7 @@ Open prefixes: `company.facts.<key>`.
 | `children.under(n)` | Children under n completed years |
 | `children.citizens` | Children recorded as citizens |
 | `children.citizens_under(n)` | Of them, those under n completed years |
+| `children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
 | `company.region` | Employing entity region |
 | `company.headcount` | Active employments in the entity |
 | `company.headcount_citizens` | Of them, the citizens |

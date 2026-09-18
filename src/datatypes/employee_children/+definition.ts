@@ -34,7 +34,13 @@ export const employeeChildSchema = Schema.Struct({
 	 */
 	prior_employment_days: Schema.optionalKey(
 		Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
-	)
+	),
+	/**
+	 * The class a tax relief ladder puts the child in, as the employee declares it (MY ITA s.48:
+	 * STUDYING at 18 or over, TERTIARY, DISABLED, DISABLED_TERTIARY); absent is the child's age
+	 * alone — MINOR under 18, ADULT from 18 — which is what `children.classed(x)` counts.
+	 */
+	relief_class: Schema.optionalKey(Schema.NullOr(Schema.String))
 }).check(
 	Schema.makeFilter(
 		(row) => isCalendarDate(row.child_birthdate) || 'Enter a valid child birth date.'

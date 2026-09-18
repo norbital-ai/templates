@@ -79,6 +79,48 @@ test('Malaysia — a bonus month withholds the additional remuneration’s whole
 	assert.equal(book.get('MY-BONUS')!.get('PCB')!.base, 17_001);
 });
 
+test('Malaysia — the s.48 child relief ladder reads the children on record and their declared class', () => {
+	// ITA s.48: RM2,000 for a child under eighteen, RM8,000 for one in tertiary education,
+	// RM6,000 for a disabled child. MY-5001's household of three: a minor, a twenty-year-old at
+	// university (TERTIARY) and a disabled sixteen-year-old (DISABLED — classed, so not also a
+	// minor): 2,000 + 8,000 + 6,000 = 16,000, beside the RM9,000 personal relief. Chargeable =
+	// 60,012 − 4,035.35 − 25,000 = 30,976.65 → 20,001–35,000 at 3% with B = −250: −250 + 10,976.65
+	// × 3% = 79.2995 → over twelve = 6.6083 → under the RM10 minimum: nothing withheld.
+	const book = assessStatutory({
+		code: 'MY',
+		period: '2026-01',
+		people: [
+			{
+				key: 'MY-CHILDREN',
+				wage: 5001,
+				citizenship: 'CITIZEN',
+				registrations: MY_LOCAL,
+				child_rows: [
+					{ child_birthdate: '2015-06-01' },
+					{ child_birthdate: '2006-01-15', relief_class: 'TERTIARY' },
+					{ child_birthdate: '2010-03-03', relief_class: 'DISABLED' }
+				]
+			},
+			// The same three children, none classed: the two under eighteen are RM2,000 each and the
+			// twenty-year-old carries nothing — 4,000 of relief, chargeable 42,976.65 → 600 + 7,976.65
+			// × 6% = 1,078.599 → 89.88325 → 89.88 → 89.90.
+			{
+				key: 'MY-UNCLASSED',
+				wage: 5001,
+				citizenship: 'CITIZEN',
+				registrations: MY_LOCAL,
+				child_rows: [
+					{ child_birthdate: '2015-06-01' },
+					{ child_birthdate: '2006-01-15' },
+					{ child_birthdate: '2010-03-03' }
+				]
+			}
+		]
+	});
+	expectStatutory(book, 'MY-CHILDREN', 'PCB', 0, 0);
+	expectStatutory(book, 'MY-UNCLASSED', 'PCB', 89.9, 0);
+});
+
 test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
 	const book = assessStatutory({
 		code: 'MY',

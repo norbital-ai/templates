@@ -157,6 +157,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
 	{ path: 'children.citizens', description: 'Children recorded as citizens' },
 	{ path: 'children.citizens_under(n)', description: 'Of them, those under n completed years' },
+	{
+		path: 'children.classed(x)',
+		description:
+			'Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT'
+	},
 	{ path: 'company.region', description: 'Employing entity region' },
 	{ path: 'company.headcount', description: 'Active employments in the entity' },
 	{ path: 'company.headcount_citizens', description: 'Of them, the citizens' },
@@ -258,7 +263,7 @@ const PERSON_BLANK = {
 		ordinary_hours_per_week: 0,
 		working_days_per_week: 0
 	},
-	children: { count: 0, ages: [], citizens: 0, citizen_ages: [] },
+	children: { count: 0, ages: [], citizens: 0, citizen_ages: [], classes: [] },
 	company: { region: '', headcount: 1, headcount_citizens: 1, facts: {} },
 	wage_floor: 0,
 	period: { working_days: 22, unpaid_days: 0 },

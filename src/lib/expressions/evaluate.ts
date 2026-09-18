@@ -9,7 +9,7 @@
 
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
 import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
-import { childCitizensUnder, childUnder } from './child-under.js';
+import { childCitizensUnder, childClassed, childUnder } from './child-under.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -96,6 +96,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	],
 	['map.under(int): int', childUnder],
 	['map.citizens_under(int): int', childCitizensUnder],
+	['map.classed(string): int', childClassed],
 	['map.days(string): double', () => 0],
 	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
 	[

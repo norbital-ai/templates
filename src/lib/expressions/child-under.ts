@@ -20,6 +20,13 @@ export function childCitizensUnder(children: unknown, age: unknown): bigint {
 	return countUnder((children as { citizen_ages?: unknown }).citizen_ages, age);
 }
 
+/** `children.classed(x)` — how many children carry relief class `x` (declared, else MINOR / ADULT by age). */
+export function childClassed(children: unknown, reliefClass: unknown): bigint {
+	const classes = (children as { classes?: unknown }).classes;
+	if (!Array.isArray(classes)) return 0n;
+	return BigInt(classes.filter((value) => value === String(reliefClass)).length);
+}
+
 function countUnder(ages: unknown, age: unknown): bigint {
 	const limit = Number(age);
 	if (!Array.isArray(ages)) return 0n;
