@@ -167,6 +167,7 @@ import {
 	closesTaxYear,
 	taxYearBounds,
 	taxYearOf,
+	weeklyInstalments,
 	type PayrollWindow
 } from '../../collections/payroll_runs/lib/period.js';
 import {
@@ -241,7 +242,7 @@ export function assessCompanyContributions(options: {
 			index: 1,
 			instalments: 1,
 			monthlyOn: 'FIRST',
-			lastOfYear: closesTaxYear(period, startMonth),
+			lastOfYear: closesTaxYear(period, startMonth, window.payFrequency),
 			daysEmployed: 0,
 			daysInMonth: monthDays(window.salary.start)
 		},
@@ -441,6 +442,19 @@ export function minimumWageIssues(options: {
 			divisorDays: divisorFor(configuration, input, bundle.employment.employee_number)
 		});
 		if (!minimumWageCovers(configuration, person)) continue;
+		// The wages order's rule on the contract's composition (ID: basic at least 75% of the wage).
+		const termsWhen = (configuration.jurisdiction.work_rules.wages?.terms_when ?? '').trim();
+		if (termsWhen !== '' && !isEligible(termsWhen, person))
+			issues.push({
+				code: 'WAGE_TERMS_RULE',
+				severity: 'WARNING',
+				message:
+					`${bundle.employment.employee_number}'s contract does not satisfy the version's wage rule ` +
+					`\`${termsWhen}\` (basic ${person.terms.basic_salary}, fixed allowances ${person.terms.fixed_allowances}). ` +
+					'The run pays the contract; restate the terms or record why they stand.',
+				collection: 'employment_terms',
+				recordId: term.id
+			});
 		// A daily or hourly rate is compared as the month it makes (313 days ÷ 12).
 		if (!(person.terms.monthly_basic < wage * minimumWageScale(configuration, person))) continue;
 		issues.push({
@@ -467,6 +481,35 @@ function regionalMinimumWage(
 	return wage == null ? null : decodeNumber(wage);
 }
 
+/**
+ * The contractual monthly wage — basic and the standing allowances — averaged over the last
+ * `months` months of the employment ending on `asOf`: the terms in force on the first of each
+ * month, from the employment's start at the earliest. What VN art.46 measures severance on.
+ */
+export function monthlyWageAverage(
+	bundle: Pick<EmploymentBundle, 'termsHistory' | 'terms' | 'payRequests' | 'employment'>,
+	asOf: string,
+	months: number
+): number | null {
+	const start = employmentDates(bundle.employment).hire;
+	const year = Number(asOf.slice(0, 4));
+	const month = Number(asOf.slice(5, 7));
+	const wages: number[] = [];
+	for (let offset = 0; offset < months; offset += 1) {
+		const index = year * 12 + (month - 1) - offset;
+		const first = `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}-01`;
+		const date = first < start ? start : first;
+		if (date > asOf || (start !== '' && date < start)) continue;
+		const terms =
+			bundle.termsHistory.find((row) => coversDate(row.effective_range, date)) ??
+			bundle.terms.at(-1);
+		if (terms == null) continue;
+		const basic = decodeNumber((terms.base_salary as { value?: unknown } | null)?.value ?? 0);
+		wages.push(basic + fixedAllowancesOn(bundle.payRequests, date));
+	}
+	return wages.length === 0 ? null : wages.reduce((sum, wage) => sum + wage, 0) / wages.length;
+}
+
 export function prepareContributionAssessment(options: {
 	readonly measured: MeasuredEmployment;
 	readonly configuration: Configuration;
@@ -479,6 +522,8 @@ export function prepareContributionAssessment(options: {
 	readonly headcountCitizens?: number;
 	/** component code → what this employee's earlier payslips earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, number>;
+	/** calendar month → component code → what this employee's earlier payslips earned. */
+	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 }): ContractAssessment {
 	const { measured, configuration, projection, headcount } = options;
 	const { bundle } = measured;
@@ -507,6 +552,7 @@ export function prepareContributionAssessment(options: {
 		employee: bundle.employee,
 		employment: { ...stint(bundle.employment), risk_class: configuration.company.risk_class },
 		fixedAllowances: fixedAllowancesOn(bundle.payRequests, asOf),
+		monthlyWage6mAverage: monthlyWageAverage(bundle, asOf, 6),
 		terms:
 			bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
 			bundle.terms.at(-1) ??
@@ -579,6 +625,7 @@ export function prepareContributionAssessment(options: {
 						};
 			},
 			yearEarned: options.yearEarned,
+			earnedByMonth: options.earnedByMonth,
 			period: {
 				key: bundle.window.period,
 				start: bundle.window.salary.start,
@@ -588,13 +635,30 @@ export function prepareContributionAssessment(options: {
 				// employment's own, not the company's: a MONTHLY employment inside a SEMI_MONTHLY company
 				// is paid once, in the `-2` run, and that one instalment is its whole month.
 				index:
-					bundle.window.payFrequency === 'SEMI_MONTHLY'
+					bundle.window.payFrequency === 'SEMI_MONTHLY' || bundle.window.payFrequency === 'WEEKLY'
 						? (periodHalf(bundle.window.period) ?? 1)
 						: 1,
-				instalments: bundle.window.payFrequency === 'SEMI_MONTHLY' ? 2 : 1,
-				monthlyOn: statutoryCutoff(configuration.company.semi_monthly_statutory_cutoff),
+				instalments:
+					bundle.window.payFrequency === 'SEMI_MONTHLY'
+						? 2
+						: bundle.window.payFrequency === 'WEEKLY'
+							? weeklyInstalments(bundle.window.period).length
+							: 1,
+				// A MONTH-assessed scheme reads the month's wage from one instalment: a half is doubled,
+				// a week is the year's 52 over 12 (SSS Circular 2014-002: weekly × 52 ÷ 12).
+				monthFactor:
+					bundle.window.payFrequency === 'SEMI_MONTHLY'
+						? 2
+						: bundle.window.payFrequency === 'WEEKLY'
+							? 52 / 12
+							: 1,
+				// A weekly company charges the month's schemes in the last week, when the month is known.
+				monthlyOn:
+					bundle.window.payFrequency === 'WEEKLY'
+						? 'LAST'
+						: statutoryCutoff(configuration.company.semi_monthly_statutory_cutoff),
 				lastOfYear:
-					closesTaxYear(bundle.window.period, startMonth) ||
+					closesTaxYear(bundle.window.period, startMonth, bundle.window.payFrequency) ||
 					(dates.exit != null && dates.exit <= bundle.window.salary.end),
 				daysEmployed: measured.proration.reduce((total, segment) => total + segment.days, 0),
 				daysInMonth: monthDays(bundle.window.salary.start)

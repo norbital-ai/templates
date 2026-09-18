@@ -12,6 +12,7 @@ import { Number as EffectNumber, Result } from 'effect';
 import { formatDateISO, isCalendarDate } from '@norbital-ai/std/date';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { addDays, monthDays, shiftPeriod } from '../../collections/payroll_runs/lib/dates.js';
+import { weeklyInstalments } from '../../collections/payroll_runs/lib/period.js';
 
 import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
 
@@ -164,9 +165,9 @@ export function periodMonthOf(period: string): string {
 	return period.slice(0, 7);
 }
 
-/** `1`, `2`, or `null` for a whole month. */
-export function periodHalfOf(period: string): 1 | 2 | null {
-	return period.length === 7 ? null : period.endsWith('1') ? 1 : 2;
+/** The instalment a period names — a half (1, 2) or a week (1–5) — or `null` for a whole month. */
+export function periodHalfOf(period: string): number | null {
+	return period.length === 7 ? null : Number(period.slice(8));
 }
 
 /** The first and last day of the month a period pays for: `1–15`, `16–28`, or the whole month. */
@@ -193,8 +194,18 @@ export function periodInCompanyGrammar(
 	today: string
 ): string {
 	const month = periodMonthOf(period);
+	if (payFrequency === 'WEEKLY') {
+		const weeks = weeklyInstalments(month);
+		const named = periodHalfOf(period);
+		if (named != null && named <= weeks.length) return period;
+		// The week today falls in, where today is in the month; else the month's first week.
+		const current = weeks.findIndex(
+			(week) => week.salary.start <= today && today <= week.salary.end
+		);
+		return `${month}-${current >= 0 ? current + 1 : 1}`;
+	}
 	if (payFrequency !== 'SEMI_MONTHLY') return month;
-	if (periodHalfOf(period) != null) return period;
+	if (periodHalfOf(period) != null && (periodHalfOf(period) ?? 0) <= 2) return period;
 	return `${month}-${Number(today.slice(8, 10)) <= 15 ? 1 : 2}`;
 }
 
@@ -221,17 +232,34 @@ export function dayWindowInstantBounds(window: { readonly start: string; readonl
  * for a semi-monthly company, in chronological order.
  */
 export function companyPeriods(months: readonly string[], payFrequency: string): string[] {
+	if (payFrequency === 'WEEKLY')
+		return months.flatMap((month) =>
+			weeklyInstalments(month).map((week) => `${month}-${week.sequence}`)
+		);
 	if (payFrequency !== 'SEMI_MONTHLY') return [...months];
 	return months.flatMap((month) => [`${month}-1`, `${month}-2`]);
 }
 
 /**
- * The day a period pays: the 15th for a first half, otherwise its last calendar day. The
- * compliance month is the cutoff month.
+ * The day a period pays: the 15th for a first half, a week's Sunday, otherwise its last calendar
+ * day. The compliance month is the cutoff month.
  */
-export function payDateFor(period: string): string {
+export function payDateFor(period: string, payFrequency?: string): string {
 	const month = periodMonthOf(period);
+	if (payFrequency === 'WEEKLY') {
+		const week = weeklyInstalments(month)[(periodHalfOf(period) ?? 1) - 1];
+		if (week != null) return week.payDate;
+	}
 	return `${month}-${String(periodDayRange(period).to).padStart(2, '0')}`;
+}
+
+/** The days a weekly period pays for, `null` where the period is not a week of a weekly company. */
+export function weekOf(
+	period: string,
+	payFrequency: string | undefined
+): { readonly start: string; readonly end: string } | null {
+	if (payFrequency !== 'WEEKLY') return null;
+	return weeklyInstalments(periodMonthOf(period))[(periodHalfOf(period) ?? 1) - 1]?.salary ?? null;
 }
 
 /** Whole days from `from` to `to`, negative when `to` is in the past. */

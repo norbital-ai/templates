@@ -765,6 +765,50 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LABOR_PENSION'), [43_900, 0, 1317]);
 });
 
+test('Taiwan — a variable wage insures on the three months before the February and August declarations (施行細則 §27)', () => {
+	// An hourly worker (DAILY / HOURLY / WEEKLY pay) has no fixed monthly wage to declare; 勞保條例
+	// §14(2) with 施行細則 §27 grades them on the average of the three months before each
+	// declaration: May–July from 1 September, November–January from 1 March. In September the
+	// window is May, June, July: 30,000 + 36,000 + 33,000 = 99,000 ÷ 3 = 33,000 → the 33,300 grade.
+	// August, the last month on the old declaration, reads November–January instead — and with
+	// no payslip there, the contract wage (an hourly 200 over the roster week) grades the month.
+	// The person is unrostered in the fixture, so the month's charge itself is the per-day rule's
+	// zero; the grade is what this golden holds.
+	const priorBasic: Record<string, number> = {
+		'2026-05': 30_000,
+		'2026-06': 36_000,
+		'2026-07': 33_000
+	};
+	const world = (period: string) =>
+		assessStatutory(
+			{
+				code: 'TW',
+				period,
+				riskClass: '1',
+				people: [{ key: 'TW-HOURLY', wage: 200, citizenship: 'CITIZEN', pay_frequency: 'HOURLY' }]
+			},
+			(world) => {
+				const employment = world.employments.find((row) => row.employee_number === 'TW-HOURLY')!;
+				for (const [month, amount] of Object.entries(priorBasic)) {
+					world.payroll_runs.push({ id: `prior-${month}`, company_id: COMPANY_ID, period: month });
+					world.payslips.push({
+						id: `payslip-${month}`,
+						payroll_run_id: `prior-${month}`,
+						employment_id: employment.id,
+						status: 'PAID',
+						paid_at: `${month}-28T00:00:00.000Z`,
+						currency: 'TWD',
+						base: [{ component_code: 'BASIC', amount }],
+						adjustments: [],
+						statutory: []
+					} as never);
+				}
+			}
+		);
+	assert.equal(world('2026-09').get('TW-HOURLY')!.get('LI')!.base, 33_300);
+	assert.notEqual(world('2026-08').get('TW-HOURLY')!.get('LI')!.base, 33_300);
+});
+
 test('every sealed version of `TW` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced

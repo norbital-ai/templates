@@ -64,6 +64,13 @@ type ProrationFractionOptions = {
 	 * distribute by the days the instalment happens to hold.
 	 */
 	readonly instalments?: number;
+	/**
+	 * The span the salary is stated for: the month (a monthly, semi-monthly, daily or hourly
+	 * contract states a month's figure) or the week (a weekly contract states a week's). A weekly
+	 * salary is prorated over its own week — calendar days over seven, working days over the
+	 * week's — never over the month.
+	 */
+	readonly salaryPeriod?: 'MONTH' | 'WEEK';
 };
 
 /**
@@ -105,6 +112,16 @@ export function prorationSegment(options: ProrationFractionOptions): {
 	 */
 	const month = monthBounds(monthKey(options.period.start));
 	const measured = ((): { days: number; denominator: number } => {
+		if (options.salaryPeriod === 'WEEK')
+			return basis.by === 'CALENDAR_DAYS'
+				? {
+						days: inclusiveDays(covered.start, covered.end),
+						denominator: inclusiveDays(options.period.start, options.period.end)
+					}
+				: {
+						days: options.workingDaysIn(covered),
+						denominator: options.workingDaysIn(options.period)
+					};
 		switch (basis.by) {
 			case 'CALENDAR_DAYS':
 				return {

@@ -81,6 +81,8 @@ export type PersonContext = {
 		readonly fixed_allowances: number;
 		/** Basic plus the fixed allowances: "one month's wage" where a statute says so. */
 		readonly monthly_wage: number;
+		/** The same wage averaged over the last six months of the employment (VN art.46 severance). */
+		readonly monthly_wage_6m_average: number;
 		readonly workman: boolean;
 		/** The statutory work category itself, for an overtime predicate that names one. */
 		readonly statutory_work_category: string;
@@ -187,6 +189,8 @@ export type PersonInput = {
 	};
 	/** Standing PAY allowances in force on `asOf`, summed; see `fixedAllowancesOn`. */
 	readonly fixedAllowances?: number | null;
+	/** The contractual monthly wage averaged over the last six months; absent is this month's. */
+	readonly monthlyWage6mAverage?: number | null;
 	readonly terms: {
 		readonly residency_status?: string | null;
 		readonly employment_type?: string | null;
@@ -349,6 +353,7 @@ export function personContext(input: PersonInput): PersonContext {
 			monthly_basic: monthlyBasic(basic, input.terms?.pay_frequency, input.week, input.divisorDays),
 			fixed_allowances: fixed,
 			monthly_wage: basic + fixed,
+			monthly_wage_6m_average: decodeNumber(input.monthlyWage6mAverage ?? basic + fixed),
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
 			statutory_work_category: input.terms?.statutory_work_category ?? '',
 			statutory_wages: decodeNumber(input.statutoryWages ?? 0),

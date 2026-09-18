@@ -387,6 +387,72 @@ test('Philippines — December annualises the year and charges the difference (R
 	expectStatutory(book, 'PH-30000', 'WTAX', 1_006.95, 0);
 });
 
+test('Philippines — Wage Order IVA-22 by area, and its 1 April 2026 tranche as a sealed version', () => {
+	// nwpc.dole.gov.ph/region-iva: non-agriculture ₱600 in the Extended Metropolitan Area and the
+	// component cities, ₱550 in 1st-class municipalities, ₱510 in reclassified 1st-class and
+	// 2nd–5th-class municipalities, the last two stepping to ₱550 and ₱525 on 1 April 2026. A
+	// 13,000 basic in a 2nd–5th-class municipality clears the March floor (13,302.50 = 510 × 313 ÷
+	// 12) by nothing and is under April's 13,693.75 — the run warns from April.
+	const march = assessStatutory({
+		code: 'PH',
+		period: '2026-03',
+		region: 'IV-A-2ND-5TH',
+		people: [{ key: 'PH-13302', wage: 13_302.5 }]
+	});
+	assert.equal(march.get('PH-13302')!.get('SSS')!.base, 13_302.5);
+	const april = assessStatutory({
+		code: 'PH',
+		period: '2026-04',
+		region: 'IV-A-2ND-5TH',
+		people: [{ key: 'PH-13302', wage: 13_302.5 }]
+	});
+	assert.equal(april.get('PH-13302')!.get('SSS')!.base, 13_302.5);
+	const [before, after] = settingsVersions('PH')
+		.filter((version) =>
+			['2026-01-01', '2026-04-01'].includes(String(version.effective_range.start).slice(0, 10))
+		)
+		.map((version) => version.work_rules.wages.by_region['IV-A-2ND-5TH']);
+	assert.deepEqual([before, after], [13_302.5, 13_693.75]);
+	assert.equal(
+		settingsVersions('PH').find((version) =>
+			String(version.effective_range.start).startsWith('2026-04')
+		)!.work_rules.wages.by_region['IV-A'],
+		15_650
+	);
+});
+
+test('Philippines — a weekly-paying company withholds on Annex E’s weekly column and charges the month’s schemes in the last week', () => {
+	// RR 11-2018 Annex E: a weekly payslip of 10,000 with nothing deducted this week sits in the
+	// weekly column's third bracket: 432.60 + 20% × (10,000 − 7,692) = 894.20. SSS, PhilHealth and
+	// Pag-IBIG are assessed over the month (RA 11199, RA 11223, RA 9679) and a weekly company
+	// charges them once, in the month's last week, on the month's wage — the weekly 10,000 × 52 ÷
+	// 12 = 43,333.33 (SSS Circular 2014-002): MSC 35,000 — the regular 20,000 → 1,000 / 2,000, the
+	// MPF 15,000 above it → 750 / 1,500. PhilHealth reads the monthly basic salary as the
+	// version's own divisor states it (a five-day week: weekly ÷ 5 × 261 ÷ 12 = 43,500): 5% →
+	// 1,087.50 each; Pag-IBIG the ₱200 cap each.
+	const week2 = assessStatutory({
+		code: 'PH',
+		period: '2026-03-2',
+		payFrequency: 'WEEKLY',
+		people: [{ key: 'PH-WEEKLY', wage: 10_000, pay_frequency: 'WEEKLY' }]
+	});
+	expectStatutory(week2, 'PH-WEEKLY', 'WTAX', 894.2, 0);
+	// The other weeks of the month carry the month's schemes at zero: nothing is due, no formula read.
+	expectStatutory(week2, 'PH-WEEKLY', 'SSS', 0, 0);
+	expectStatutory(week2, 'PH-WEEKLY', 'PHIC', 0, 0);
+	const week5 = assessStatutory({
+		code: 'PH',
+		period: '2026-03-5',
+		payFrequency: 'WEEKLY',
+		people: [{ key: 'PH-WEEKLY', wage: 10_000, pay_frequency: 'WEEKLY' }]
+	});
+	expectStatutoryBase(week5, 'PH-WEEKLY', 'SSS', 43_333.33);
+	expectStatutory(week5, 'PH-WEEKLY', 'SSS', 1000, 2000);
+	expectStatutory(week5, 'PH-WEEKLY', 'SSS_MPF', 750, 1500);
+	expectStatutory(week5, 'PH-WEEKLY', 'PHIC', 1087.5, 1087.5);
+	expectStatutory(week5, 'PH-WEEKLY', 'HDMF', 200, 200);
+});
+
 test('every sealed version of `PH` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced

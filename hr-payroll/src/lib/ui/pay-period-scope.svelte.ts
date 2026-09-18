@@ -41,6 +41,9 @@ export function createPayPeriodScope(company: () => PayGridCompany | null | unde
 		get halves() {
 			return company()?.pay_frequency === 'SEMI_MONTHLY';
 		},
+		get weeks() {
+			return company()?.pay_frequency === 'WEEKLY';
+		},
 		/** The `start`..`end` days whose entries settle in the period, or null without an entity. */
 		get window() {
 			return window;

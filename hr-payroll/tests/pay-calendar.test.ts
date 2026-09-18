@@ -27,6 +27,8 @@ import {
 	payProjection,
 	periodGrammarFault,
 	resolveWindow,
+	weeklyInstalments,
+	closesTaxYear,
 	taxYearFirstPeriod,
 	taxYearOf
 } from '../src/collections/payroll_runs/lib/period.ts';
@@ -37,14 +39,74 @@ const PH_SEMI = { name: 'Omni Plus PH', pay_cutoff_day: 21, pay_frequency: 'SEMI
 /** A monthly-only company — the shape every other entity in the workspace has. */
 const MONTHLY_ONLY = { name: 'Norbital', pay_cutoff_day: 21, pay_frequency: 'MONTHLY' };
 
-test('the period grammar: a month, or a half of one', () => {
+/** A weekly company: each Monday-to-Sunday week paid on its Sunday, monthly staff in the last week. */
+const WEEKLY = { name: 'Weekly PH', pay_cutoff_day: 1, pay_frequency: 'WEEKLY' };
+
+test('a weekly company runs the weeks whose Sunday falls in the month, and its monthly staff in the last one', () => {
+	// March 2026: Sundays on the 1st, 8th, 15th, 22nd and 29th — five weeks, the first running
+	// from Monday 23 February; April 2026: the 5th, 12th, 19th, 26th — four.
+	assert.deepEqual(
+		weeklyInstalments('2026-03').map((week) => [week.sequence, week.salary.start, week.payDate]),
+		[
+			[1, '2026-02-23', '2026-03-01'],
+			[2, '2026-03-02', '2026-03-08'],
+			[3, '2026-03-09', '2026-03-15'],
+			[4, '2026-03-16', '2026-03-22'],
+			[5, '2026-03-23', '2026-03-29']
+		]
+	);
+	assert.equal(weeklyInstalments('2026-04').length, 4);
+	assert.equal(periodGrammarFault('2026-03-5', WEEKLY), null);
+	assert.match(periodGrammarFault('2026-04-5', WEEKLY) ?? '', /YYYY-MM-1 to YYYY-MM-4/);
+	assert.match(periodGrammarFault('2026-04', WEEKLY) ?? '', /pays WEEKLY/);
+	assert.match(periodGrammarFault('2026-04-3', PH_SEMI) ?? '', /names a week/);
+	// The week is its own window; the monthly cadence pays only in the last week, on the month.
+	const week2 = cadenceWindow('2026-03-2', WEEKLY, 'WEEKLY')!;
+	assert.deepEqual(
+		[week2.salary, week2.payDate],
+		[{ start: '2026-03-02', end: '2026-03-08' }, '2026-03-08']
+	);
+	assert.equal(cadenceWindow('2026-03-2', WEEKLY, 'MONTHLY'), null);
+	assert.deepEqual(cadenceWindow('2026-03-5', WEEKLY, 'MONTHLY')!.salary, {
+		start: '2026-03-01',
+		end: '2026-03-31'
+	});
+	assert.deepEqual(
+		resolveWindow('2026-03-5', WEEKLY).instalments.map((one) => one.sequence),
+		[5, 1]
+	);
+	// A weekly entry settles in the week of its day, named by the Sunday's month; a monthly
+	// employment's entry settles in the month's last week.
+	assert.equal(
+		defaultPayPeriod('2026-02-25', 1, { company: WEEKLY, payFrequency: 'WEEKLY' }),
+		'2026-03-1'
+	);
+	assert.equal(
+		defaultPayPeriod('2026-02-25', 1, { company: WEEKLY, payFrequency: 'MONTHLY' }),
+		'2026-02-4'
+	);
+	// Fifty-two payslips a year: from the first week of January 2026 (paid 4 Jan) to the last of December.
+	assert.equal(payPeriodsRemaining('2026-01-1', 1, 'WEEKLY'), 52);
+	assert.equal(payPeriodsRemaining('2026-12-4', 1, 'WEEKLY'), 1);
+	assert.equal(closesTaxYear('2026-12-4', 1, 'WEEKLY'), true);
+	assert.equal(closesTaxYear('2026-12-3', 1, 'WEEKLY'), false);
+	// The first week of March (23 Feb – 1 Mar) projects the year after it: nine whole months plus
+	// the thirty days of March after the week, in payslips of a week's share of March.
+	const projection = payProjection('2026-03-1', 1, cadenceWindow('2026-03-1', WEEKLY, 'WEEKLY')!);
+	assert.equal(projection.payslipsRemaining, 44);
+	assert.ok(Math.abs(projection.futurePayslipEquivalents - (9 + 30 / 31) / (7 / 31)) < 1e-9);
+});
+
+test('the period grammar: a month, a half of one, or a week of one', () => {
 	assert.equal(periodMonth('2026-02'), '2026-02');
 	assert.equal(periodMonth('2026-02-1'), '2026-02');
 	assert.equal(periodMonth('2026-02-2'), '2026-02');
 	assert.equal(periodHalf('2026-02'), null);
 	assert.equal(periodHalf('2026-02-1'), 1);
 	assert.equal(periodHalf('2026-02-2'), 2);
-	assert.throws(() => periodMonth('2026-02-3'), /YYYY-MM-1 \/ YYYY-MM-2/);
+	// A weekly company's fifth week; a sixth instalment is nothing anyone pays.
+	assert.equal(periodHalf('2026-05-5'), 5);
+	assert.throws(() => periodMonth('2026-02-6'), /YYYY-MM-1 … YYYY-MM-5/);
 	assert.throws(() => periodMonth('2026-2'), /YYYY-MM/);
 	// A shifted period keeps its half: the run before 2026-02-2 is 2026-01-2.
 	assert.equal(shiftPeriod('2026-02-2', -1), '2026-01-2');

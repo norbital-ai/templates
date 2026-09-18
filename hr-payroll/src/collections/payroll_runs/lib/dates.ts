@@ -172,21 +172,24 @@ export function intersectDays(
  * chronological order, so the previous-run-paid rule and the year-to-date filter read the new
  * grammar unchanged.
  */
-const RUN_PERIOD = /^\d{4}-(0[1-9]|1[0-2])(-[12])?$/;
+const RUN_PERIOD = /^\d{4}-(0[1-9]|1[0-2])(-[1-5])?$/;
 
 /** The `YYYY-MM` a run period belongs to; the whole of it for a monthly period. */
 export function periodMonth(period: string): string {
 	if (!RUN_PERIOD.test(period))
 		throw new Error(
-			`Payroll period must be YYYY-MM or YYYY-MM-1 / YYYY-MM-2, received "${period}".`
+			`Payroll period must be YYYY-MM, YYYY-MM-1 / YYYY-MM-2 (a half) or YYYY-MM-1 … YYYY-MM-5 (a week), received "${period}".`
 		);
 	return period.slice(0, 7);
 }
 
-/** Which half of the month a run period names, or `null` for a whole month. */
-export function periodHalf(period: string): 1 | 2 | null {
+/**
+ * Which instalment of the month a run period names — the half (1 or 2) at a semi-monthly company,
+ * the week (1 to 5) at a weekly one — or `null` for a whole month.
+ */
+export function periodHalf(period: string): number | null {
 	periodMonth(period);
-	return period.length === 7 ? null : period.endsWith('1') ? 1 : 2;
+	return period.length === 7 ? null : Number(period.slice(8));
 }
 
 /** First and last calendar day of a `YYYY-MM` month. A run period goes through `periodMonth`. */

@@ -33,6 +33,8 @@ export type ExpressionEngine = {
 			readonly fixed?: boolean;
 		}
 	) => number;
+	/** `earned_average(code, months_back, months)`: a window of earlier payslips' earnings. */
+	readonly earnedAverage?: (code: string, monthsBack: number, months: number) => number;
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
@@ -101,6 +103,11 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 		(catalogue) => Number(bound.catalog?.(String(catalogue), undefined) ?? 0)
 	],
 	[
+		'earned_average(string, int, int): double',
+		(code, monthsBack, months) =>
+			Number(bound.earnedAverage?.(String(code), Number(monthsBack), Number(months)) ?? 0)
+	],
+	[
 		'catalog(string, dyn): double',
 		(catalogue, selection) =>
 			Number(bound.catalog?.(String(catalogue), catalogSelection(selection)) ?? 0)
@@ -112,20 +119,12 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	]
 ];
 
-export function runtimeExpressionEngine(
-	options: {
-		readonly minimumWage?: (region: string) => number;
-		readonly code?: (code: string) => number;
-		readonly catalog?: (
-			catalogue: string,
-			selection?: { readonly pick?: readonly string[]; readonly exclude?: readonly string[] }
-		) => number;
-	} = {}
-): ExpressionEngine {
+export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {}): ExpressionEngine {
 	return {
 		minimumWage: options.minimumWage ?? (() => 0),
 		code: options.code,
-		catalog: options.catalog
+		catalog: options.catalog,
+		earnedAverage: options.earnedAverage
 	};
 }
 

@@ -24,7 +24,8 @@ import {
 	expectStatutorySkipped,
 	assertEveryVersionPriced,
 	chargeOf,
-	type BuiltPayslip
+	type BuiltPayslip,
+	settingsVersions
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
@@ -33,6 +34,50 @@ const OUT = { kind: 'NOT_REGISTERED' } as const;
 const MY_LOCAL = { EPF_NON_CITIZEN: OUT };
 /** A non-citizen: Part F only. */
 const MY_FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
+
+test('Malaysia — a bonus month withholds the additional remuneration’s whole tax difference (MTD spec 2026, additional remuneration)', () => {
+	// MY-5001 with a 12,000 bonus (the non-fixed ADJ row) in January. The spec projects the year
+	// on the NORMAL remuneration alone — 5,001 × 12 = 60,012 — and takes the bonus's tax in full
+	// in the month, where annualising the whole 17,001 would have taxed a 204,012 year.
+	//
+	// Reliefs this month: EPF on the bracketed 17,100 = 1,881, projected to the 4,000 cap;
+	// SOCSO + EIS at the 6,000 ceiling = 29.75 + 11.90 = 41.65; personal 9,000.
+	// Normal: 60,012 − 4,000 − 41.65 − 9,000 = 46,970.35 → 600 + 6% × 11,970.35 = 1,318.221; over
+	// twelve = 109.85175. Additional: 58,970.35 → 1,500 + 11% × 8,970.35 = 2,486.7385; the
+	// difference 1,168.5175 is withheld now. 1,278.36925 → 1,278.36 → 1,278.40.
+	const book = assessStatutory(
+		{
+			code: 'MY',
+			period: '2026-01',
+			people: [{ key: 'MY-BONUS', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+		},
+		(world) => {
+			const bonus = world.allowance_catalogue.find(
+				(row) =>
+					row.code === 'ADJ' &&
+					row.settings_id ===
+						settingsVersions('MY').find((v) =>
+							String(v.effective_range.start).startsWith('2025-12')
+						)!.id
+			)!;
+			const employment = world.employments.find((row) => row.employee_number === 'MY-BONUS')!;
+			world.allowances.push({
+				id: 'd0000000-0000-4000-8000-00000000ad10',
+				employment_id: employment.id,
+				catalogue_id: bonus.id,
+				amount: 12_000,
+				effective_from: '2026-01-01',
+				effective_to: '2026-01-31',
+				reason: 'bonus',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+		}
+	);
+	expectStatutory(book, 'MY-BONUS', 'PCB', 1278.4, 0);
+	assert.equal(book.get('MY-BONUS')!.get('PCB')!.base, 17_001);
+});
 
 test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
 	const book = assessStatutory({

@@ -1033,5 +1033,59 @@
 		"is_npl": false,
 		"can_encash": true,
 		"encash_on_exit": false
+	},
+	{
+		"id": "e31b1463-7bf3-5b9d-ab73-bb5d04210e1c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "RELIGIOUS_DUTY_LEAVE",
+		"name": "Cuti ibadah (religious duty leave)",
+		"authority": "UU 13/2003 art.93(2)(e): wages are paid while the worker performs a religious duty their religion commands (the haji); PP 36/2021 art.40(3) continuing PP 78/2015 art.28: once during the employment with the same employer. No instrument states a duration — the leave is the duty’s own length (`UNLIMITED`, one event: `lifetime_events`), the pay the full wage.",
+		"eligibility": "event.kind == \"RELIGIOUS_DUTY\"",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [],
+			"lifetime_events": 1
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e9de6692-c6e5-552c-8c49-1d80af6d3ad2",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "RELIGIOUS_DUTY_LEAVE",
+		"name": "Cuti ibadah (religious duty leave)",
+		"authority": "UU 13/2003 art.93(2)(e): wages are paid while the worker performs a religious duty their religion commands (the haji); PP 36/2021 art.40(3) continuing PP 78/2015 art.28: once during the employment with the same employer. No instrument states a duration — the leave is the duty’s own length (`UNLIMITED`, one event: `lifetime_events`), the pay the full wage.",
+		"eligibility": "event.kind == \"RELIGIOUS_DUTY\"",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [],
+			"lifetime_events": 1
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "a8762da4-41ab-5c26-8f3f-60842df704eb",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "RELIGIOUS_DUTY_LEAVE",
+		"name": "Cuti ibadah (religious duty leave)",
+		"authority": "UU 13/2003 art.93(2)(e): wages are paid while the worker performs a religious duty their religion commands (the haji); PP 36/2021 art.40(3) continuing PP 78/2015 art.28: once during the employment with the same employer. No instrument states a duration — the leave is the duty’s own length (`UNLIMITED`, one event: `lifetime_events`), the pay the full wage.",
+		"eligibility": "event.kind == \"RELIGIOUS_DUTY\"",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [],
+			"lifetime_events": 1
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
 	}
 ]

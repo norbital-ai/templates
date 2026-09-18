@@ -19,12 +19,13 @@ export default defineModel(
 		/** The day a run's attendance window opens; the window closes the day before it next month. */
 		pay_cutoff_day: integer().notNull(),
 		/**
-		 * How often the entity pays. `SEMI_MONTHLY` is the only cadence beside monthly any seed uses:
-		 * half on the 15th and half at the period end, for the employments whose terms say so, while
-		 * the entity's monthly employments stay on the cutoff window. Both pay on the period end; the
-		 * compliance month is the cutoff month.
+		 * How often the entity pays. `SEMI_MONTHLY` is half on the 15th and half at the period end,
+		 * for the employments whose terms say so, while the entity's monthly employments stay on the
+		 * cutoff window; `WEEKLY` pays each Monday-to-Sunday week on its Sunday (`YYYY-MM-n`, the
+		 * n-th week whose Sunday falls in the month) and its monthly employments in the last week.
+		 * Every period pays on its last day; the compliance month is the cutoff month.
 		 */
-		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY']).notNull().default('MONTHLY'),
+		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY']).notNull().default('MONTHLY'),
 		/**
 		 * Where a `SEMI_MONTHLY` entity deducts the schemes its law assesses over the MONTH (SSS,
 		 * PhilHealth, Pag-IBIG). The premium is monthly on the month's compensation; the law leaves

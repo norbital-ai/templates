@@ -55,6 +55,7 @@ import {
 	periodHalf,
 	periodMonth,
 	shiftPeriod,
+	weekStart,
 	type IsoDate,
 	monthKey
 } from './dates.js';
@@ -63,10 +64,28 @@ import { decodeNumber } from '@norbital-ai/std/json';
 
 export const PAY_FREQUENCIES = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
 
-/** Whether a company's calendar can pay a cadence: monthly always, semi-monthly when it pays so. */
+/** Whether a company's calendar can pay a cadence: monthly always, a half or a week when it pays so. */
 export const paysOn = (company: { readonly pay_frequency: string }, frequency: string): boolean =>
 	usesMonthlyCalendar(frequency) ||
-	(frequency === 'SEMI_MONTHLY' && company.pay_frequency === 'SEMI_MONTHLY');
+	(frequency === 'SEMI_MONTHLY' && company.pay_frequency === 'SEMI_MONTHLY') ||
+	(frequency === 'WEEKLY' && company.pay_frequency === 'WEEKLY');
+
+/**
+ * The weeks a weekly company pays in a month: every Monday-to-Sunday week whose Sunday — the pay
+ * day — falls in the month, in order. Four or five; the period `YYYY-MM-n` names the n-th.
+ */
+export function weeklyInstalments(period: string): readonly PayInstalment[] {
+	const bounds = monthBounds(periodMonth(period));
+	const weeks: PayInstalment[] = [];
+	let sunday = addDays(weekStart(bounds.start), 6);
+	if (sunday < bounds.start) sunday = addDays(sunday, 7);
+	while (sunday <= bounds.end) {
+		const week = { start: addDays(sunday, -6), end: sunday };
+		weeks.push({ sequence: weeks.length + 1, salary: week, attendance: week, payDate: sunday });
+		sunday = addDays(sunday, 7);
+	}
+	return weeks;
+}
 
 /** DAILY and HOURLY specify earned units; their wages settle on the company monthly calendar. */
 const usesMonthlyCalendar = (frequency: string): boolean =>
@@ -149,7 +168,7 @@ function monthParts(period: string): { year: number; monthIndex: number } {
  * opens on the 1st pays the month it names.
  */
 export function attendanceWindow(period: string, cutoffDay: number): DayRange {
-	if (cutoffDay === 1) return monthBounds(period);
+	if (cutoffDay === 1) return monthBounds(periodMonth(period));
 	const { year, monthIndex } = monthParts(period);
 	return {
 		start: monthDay(year, monthIndex - 1, cutoffDay),
@@ -164,6 +183,10 @@ export function attendanceWindow(period: string, cutoffDay: number): DayRange {
  * tables by this window, so a clerk sees a period's claims the way the run that pays them will.
  */
 export function payPeriodWindow(period: string, company: PayCalendarCompany): DayRange {
+	if (company.pay_frequency === 'WEEKLY') {
+		const week = weeklyInstalments(period)[(periodHalf(period) ?? 1) - 1];
+		if (week != null) return week.salary;
+	}
 	if (company.pay_frequency === 'SEMI_MONTHLY') {
 		const bounds = monthBounds(periodMonth(period));
 		return periodHalf(period) === 2
@@ -227,10 +250,21 @@ export function periodGrammarFault(
 			`${who} pays SEMI_MONTHLY, so its payroll periods are halves written YYYY-MM-1 ` +
 			`(the 1st to the 15th) or YYYY-MM-2 (the 16th to the month end); "${period}" names a whole month.`
 		);
+	if (company.pay_frequency === 'SEMI_MONTHLY' && half != null && half > 2)
+		return `${who} pays SEMI_MONTHLY, so its payroll periods are halves written YYYY-MM-1 or YYYY-MM-2; "${period}" names a week.`;
+	if (company.pay_frequency === 'WEEKLY') {
+		const weeks = weeklyInstalments(period).length;
+		if (half == null || half > weeks)
+			return (
+				`${who} pays WEEKLY, so its payroll periods are the weeks paid in the month, written ` +
+				`YYYY-MM-1 to YYYY-MM-${weeks} (the Monday-to-Sunday weeks whose Sunday falls in ${periodMonth(period)}); "${period}" names none of them.`
+			);
+		return null;
+	}
 	if (company.pay_frequency !== 'SEMI_MONTHLY' && half != null)
 		return (
 			`${who} pays ${company.pay_frequency}, so its payroll periods are months written ` +
-			`YYYY-MM; "${period}" names half of one.`
+			`YYYY-MM; "${period}" names an instalment of one.`
 		);
 	return null;
 }
@@ -281,8 +315,19 @@ export function cadenceWindow(
 	const fault = periodGrammarFault(period, company);
 	if (fault != null) throw new Error(fault);
 	const half = periodHalf(period);
+	// A daily or hourly unit settles on the company's own calendar: the month at a monthly or
+	// semi-monthly company, the week at a weekly one — the daily-paid are the weekly-paid there.
+	if (company.pay_frequency === 'WEEKLY' && (payFrequency === 'DAILY' || payFrequency === 'HOURLY'))
+		payFrequency = 'WEEKLY';
 	if (usesMonthlyCalendar(payFrequency)) {
-		if (half === 1) return null;
+		// At a company paying in instalments the monthly cadence is paid once, in the last one.
+		const last =
+			company.pay_frequency === 'WEEKLY'
+				? weeklyInstalments(period).length
+				: company.pay_frequency === 'SEMI_MONTHLY'
+					? 2
+					: null;
+		if (last != null && half !== last) return null;
 		return envelope(period, payFrequency, [monthlyInstalment(period, cutoffDay)]);
 	}
 	if (!paysOn(company, payFrequency))
@@ -290,6 +335,10 @@ export function cadenceWindow(
 			`This company pays ${company.pay_frequency}, so there is no ${payFrequency} window it could ` +
 				'pay someone on those terms over.'
 		);
+	if (payFrequency === 'WEEKLY') {
+		const week = weeklyInstalments(period)[(half ?? 1) - 1];
+		return week == null ? null : envelope(period, payFrequency, [week]);
+	}
 	const [first, second] = semiMonthlyInstalments(period);
 	return envelope(period, payFrequency, [half === 1 ? first : second]);
 }
@@ -307,13 +356,15 @@ export function cadenceWindow(
 export function resolveWindow(period: string, company: PayCalendarCompany): PayrollWindow {
 	const fault = periodGrammarFault(period, company);
 	if (fault != null) throw new Error(fault);
-	const cadences: PayFrequency[] =
-		company.pay_frequency === 'SEMI_MONTHLY' ? ['SEMI_MONTHLY', 'MONTHLY'] : ['MONTHLY'];
+	const own: PayFrequency =
+		company.pay_frequency === 'SEMI_MONTHLY' || company.pay_frequency === 'WEEKLY'
+			? company.pay_frequency
+			: 'MONTHLY';
+	const cadences: PayFrequency[] = own === 'MONTHLY' ? ['MONTHLY'] : [own, 'MONTHLY'];
 	const instalments = cadences.flatMap(
 		(cadence) => cadenceWindow(period, company, cadence)?.instalments ?? []
 	);
-	const payFrequency = company.pay_frequency === 'SEMI_MONTHLY' ? 'SEMI_MONTHLY' : 'MONTHLY';
-	return envelope(period, payFrequency, instalments);
+	return envelope(period, own, instalments);
 }
 
 /** The cadence a default pay period is resolved for: the company, and the employment's frequency. */
@@ -346,6 +397,16 @@ export function defaultPayPeriod(
 			return dayOfMonth(eventDate) <= 15 ? `${month}-1` : `${month}-2`;
 		return `${monthlyPeriodOf(eventDate, cutoffDay)}-2`;
 	}
+	if (cadence?.company.pay_frequency === 'WEEKLY') {
+		if (cadence.payFrequency === 'WEEKLY') {
+			// The week the day falls in, named by the month its Sunday pays in.
+			const sunday = addDays(weekStart(eventDate), 6);
+			const weeks = weeklyInstalments(sunday.slice(0, 7));
+			return `${sunday.slice(0, 7)}-${weeks.findIndex((week) => week.payDate === sunday) + 1}`;
+		}
+		const monthly = monthlyPeriodOf(eventDate, cutoffDay);
+		return `${monthly}-${weeklyInstalments(monthly).length}`;
+	}
 	return monthlyPeriodOf(eventDate, cutoffDay);
 }
 
@@ -369,9 +430,18 @@ export function taxYearBounds(
 	return { start: monthBounds(first).start, end: monthBounds(shiftPeriod(first, 11)).end };
 }
 
-/** Whether this period closes its tax year: the last month of it, and its second half where halves exist. */
-export function closesTaxYear(period: string, taxYearStartMonth: number): boolean {
-	if (periodHalf(period) === 1) return false;
+/**
+ * Whether this period closes its tax year: the last month of it, and — at a company paying in
+ * instalments — the last instalment of that month (the second half; the fourth or fifth week).
+ */
+export function closesTaxYear(
+	period: string,
+	taxYearStartMonth: number,
+	payFrequency: PayFrequency = 'MONTHLY'
+): boolean {
+	const instalment = periodHalf(period);
+	const last = payFrequency === 'WEEKLY' ? weeklyInstalments(period).length : 2;
+	if (instalment != null && instalment !== last) return false;
 	return (
 		taxYearOf(shiftPeriod(period, 1), taxYearStartMonth) !== taxYearOf(period, taxYearStartMonth)
 	);
@@ -401,6 +471,14 @@ export function payPeriodsRemaining(
 	payFrequency: PayFrequency = 'MONTHLY'
 ): number {
 	const months = monthsRemaining(period, taxYearStartMonth);
+	if (payFrequency === 'WEEKLY') {
+		// The weeks paid from this one to the tax year's last month, this one included.
+		const instalment = periodHalf(period) ?? 1;
+		let weeks = weeklyInstalments(period).length - instalment + 1;
+		for (let ahead = 1; ahead < months; ahead += 1)
+			weeks += weeklyInstalments(shiftPeriod(periodMonth(period), ahead)).length;
+		return weeks;
+	}
 	if (payFrequency !== 'SEMI_MONTHLY') return months;
 	return months * 2 - (periodHalf(period) === 2 ? 1 : 0);
 }
@@ -440,12 +518,17 @@ export function payProjection(
 	const months = monthsRemaining(period, taxYearStartMonth);
 	const payslipsRemaining = payPeriodsRemaining(period, taxYearStartMonth, window.payFrequency);
 	const half = periodHalf(period);
-	if (half == null || window.payFrequency !== 'SEMI_MONTHLY')
+	if (half == null || (window.payFrequency !== 'SEMI_MONTHLY' && window.payFrequency !== 'WEEKLY'))
 		return { payslipsRemaining, futurePayslipEquivalents: months - 1 };
 	const bounds = monthBounds(periodMonth(period));
 	const monthDays = inclusiveDays(bounds.start, bounds.end);
 	const share = inclusiveDays(window.salary.start, window.salary.end) / monthDays;
-	const unpaidRestOfMonth = half === 1 ? 1 - share : 0;
+	// The rest of the month after this instalment, as a share of the month; a week may reach past
+	// the month end, and then nothing of the month is left.
+	const unpaidRestOfMonth =
+		window.salary.end >= bounds.end
+			? 0
+			: inclusiveDays(addDays(window.salary.end, 1), bounds.end) / monthDays;
 	return {
 		payslipsRemaining,
 		futurePayslipEquivalents: (months - 1 + unpaidRestOfMonth) / share
