@@ -191,6 +191,8 @@
 	"component.allowance_section_settlement_hint": "是否改为收回该金额而非支付。",
 	"component.allowance_section_when": "何时",
 	"component.allowance_section_when_hint": "在这两天之间的每个薪资周期支付；无截止日则留空。",
+	"component.allowance_priced_draft": "薪资运行 {periods} 已计入此津贴，人员、类型、金额和开始日期不可更改。要从之后的周期停止，请设置“截止”；要在该次运行中更改，请先删除该草稿运行。",
+	"component.allowance_priced_paid": "已支付的薪资运行 {periods} 已计入此津贴，人员、类型、金额和开始日期已成历史。要停止，请设置“截止”；要更正已支付的金额，请在之后的运行中记录调整。",
 	"component.amount": "金额",
 	"component.amount_due": "应还金额",
 	"component.as_adjustment_entry": "冲回",
