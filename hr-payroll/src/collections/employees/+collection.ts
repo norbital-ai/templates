@@ -17,6 +17,7 @@ const columns = {
 	identity_number: true,
 	dependents_count: true,
 	disabled: true,
+	receiving_pension: true,
 	email: true,
 	phone: true,
 	address: true,

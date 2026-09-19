@@ -17,13 +17,24 @@ export default defineModel(
 		/** When that standing began; predicates read whole calendar months as `employee.residency_months`. */
 		residency_since: instant({ precision: 'day' }),
 		/** The work pass a foreigner holds here, where a statute keys on it (SG's SINDA covers EP holders); `terms.pass_type`. */
-		pass_type: enums(['EMPLOYMENT_PASS', 'S_PASS', 'WORK_PERMIT', 'OTHER']),
+		pass_type: enums([
+			'EMPLOYMENT_PASS',
+			'S_PASS',
+			'WORK_PERMIT',
+			'INTRA_COMPANY_TRANSFER',
+			'OTHER'
+		]),
 		/**
 		 * Tax residency declared for this contract, where it is not what citizenship implies (TW
 		 * 所得稅法 §7(3): domicile and days present decide it); null reads as the citizenship
 		 * default. `terms.tax_residency`.
 		 */
-		tax_residency: enums(['RESIDENT', 'NON_RESIDENT']),
+		/**
+		 * `NON_RESIDENT_NETB`: a non-resident alien not engaged in trade or business — in the
+		 * country 180 days or fewer in the year (PH NIRC s.25(B): 25% of the gross); `NON_RESIDENT`
+		 * is one engaged in it, on the graduated table like a resident.
+		 */
+		tax_residency: enums(['RESIDENT', 'NON_RESIDENT', 'NON_RESIDENT_NETB']),
 		base_salary: custom('money').notNull(),
 		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY']).notNull(),
 		work_classification: enums(['EA_COVERED', 'NON_EA', 'MANAGERIAL']).notNull(),

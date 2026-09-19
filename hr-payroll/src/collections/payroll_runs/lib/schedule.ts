@@ -60,6 +60,8 @@ export type ScheduledDay = {
 	 * VN 300%) that reads `rest_day` beside `day_type`.
 	 */
 	readonly restDay: boolean;
+	/** The rest day the statute forbids work on (the REST code's `statutory`), whatever the holiday made it. */
+	readonly statutoryRest: boolean;
 	/** Whether the roster left the day unassigned (OFF) before any holiday was overlaid on it. */
 	readonly offDay: boolean;
 };
@@ -101,14 +103,21 @@ type PlannedDay = Schema.Schema.Type<typeof PlannedDaySchema>;
 function scheduledCode(
 	code: ShiftDefinition,
 	date: IsoDate
-): { readonly kind: 'WORK' | 'REST' | 'OFF'; readonly shift: ScheduledShift | null } {
+): {
+	readonly kind: 'WORK' | 'REST' | 'OFF';
+	readonly shift: ScheduledShift | null;
+	/** A REST code marked the statutory rest day (TW 例假). */
+	readonly statutoryRest: boolean;
+} {
 	if (!coversDate(code.effective_range, date))
 		throw new Error(`Roster code ${code.code} is not effective on ${date}.`);
 	const kind = rosterCodeKind(code.variant);
 	const window = workWindow(code.variant);
+	const variant = code.variant as { kind: string; statutory?: boolean };
 	return {
 		kind,
-		shift: window == null ? null : { id: code.id, code: code.code, ...window }
+		shift: window == null ? null : { id: code.id, code: code.code, ...window },
+		statutoryRest: variant.kind === 'REST' && variant.statutory === true
 	};
 }
 
@@ -172,6 +181,7 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		shift: ScheduledShift | null;
 		normalHours: number;
 		restDay: boolean;
+		statutoryRest: boolean;
 		offDay: boolean;
 	}[] = [];
 	const precedence = options.configuration.holidayRestPrecedence;
@@ -252,6 +262,7 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 					? Math.min(terms.normal_daily_hours, assignmentCode.shift.paid_minutes / 60)
 					: terms.normal_daily_hours,
 			restDay: baseDayType === 'REST_DAY',
+			statutoryRest: baseDayType === 'REST_DAY' && dayCode?.statutoryRest === true,
 			offDay: baseDayType === 'OFF_DAY'
 		});
 	}
@@ -265,6 +276,7 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			clampStart: day.shift?.start_time ?? clampStart,
 			normalHours: day.normalHours,
 			restDay: day.restDay,
+			statutoryRest: day.statutoryRest,
 			offDay: day.offDay
 		});
 	}

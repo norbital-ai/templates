@@ -33,6 +33,12 @@
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
 				},
 				{
+					"label": "REST-STATUTORY-DOUBLE",
+					"when": "day_type == \"REST_DAY\" && statutory_rest",
+					"take_hours": "worked_hours",
+					"price_amount": "day_wage"
+				},
+				{
 					"label": "OT-1.3333333333333333X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "(overtime_hours < 2.0 ? overtime_hours : 2.0)",
@@ -208,6 +214,12 @@
 					"when": "day_type == \"ORDINARY\"",
 					"take_hours": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
+				},
+				{
+					"label": "REST-STATUTORY-DOUBLE",
+					"when": "day_type == \"REST_DAY\" && statutory_rest",
+					"take_hours": "worked_hours",
+					"price_amount": "day_wage"
 				},
 				{
 					"label": "OT-1.3333333333333333X",
@@ -390,6 +402,12 @@
 					"when": "day_type == \"ORDINARY\"",
 					"take_hours": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
+				},
+				{
+					"label": "REST-STATUTORY-DOUBLE",
+					"when": "day_type == \"REST_DAY\" && statutory_rest",
+					"take_hours": "worked_hours",
+					"price_amount": "day_wage"
 				},
 				{
 					"label": "OT-1.3333333333333333X",

@@ -137,6 +137,7 @@ CREATE TABLE "employees" (
 	"marital_status" text,
 	"solo_parent" boolean DEFAULT false NOT NULL,
 	"disabled" boolean DEFAULT false NOT NULL,
+	"receiving_pension" boolean DEFAULT false NOT NULL,
 	"race" text,
 	"religion" text,
 	"spouse_status" text,

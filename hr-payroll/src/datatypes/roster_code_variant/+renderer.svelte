@@ -31,7 +31,12 @@
 
 	const summary = $derived.by(() => {
 		if (current == null) return '—';
-		if (current.kind !== 'WORK') return current.kind === 'REST' ? 'Rest day' : 'Off day';
+		if (current.kind !== 'WORK')
+			return current.kind === 'REST'
+				? current.statutory === true
+					? 'Statutory rest day'
+					: 'Rest day'
+				: 'Off day';
 		const overnight = current.end_time <= current.start_time ? ' (+1 day)' : '';
 		return `${current.start_time} → ${current.end_time}${overnight} · ${current.break_minutes / 60}h break`;
 	});
@@ -101,6 +106,17 @@
 				/>
 			</Stack>
 		</label>
+		{#if current?.kind === 'REST'}
+			<label class="flex items-center gap-2 text-xs">
+				<input
+					type="checkbox"
+					checked={current.statutory === true}
+					{disabled}
+					onchange={(event) => emit({ kind: 'REST', statutory: event.currentTarget.checked })}
+				/>
+				<span>{t('component.statutory_rest_day')}</span>
+			</label>
+		{/if}
 		{#if current?.kind === 'WORK'}
 			<TimeRangeField
 				label={t('component.shift_time_range')}

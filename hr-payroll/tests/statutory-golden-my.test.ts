@@ -1266,3 +1266,45 @@ test('Malaysia — the 45-hour week counts the scheduled days nobody clocked, an
 		unpriced.some((line) => line.includes('SIX8-SAT') && line.includes('week of 2026-01-12'))
 	);
 });
+
+test('Malaysia — a part-timer’s hours beyond their own day up to a full-timer’s eight are the hourly rate, beyond that 1.5× (Part-Time Employees Regulations 2010 reg. 5)', () => {
+	// Contracted 09:00–13:00 five days (twenty hours) at RM1,040: the day is 1,040 ÷ 26 = 40.00
+	// and the hour is the day over the contract's four — 10.00. A ten-hour Monday (09:00–19:00,
+	// no break): four hours up to the full-timer's eight at 1.0× = 40.00, two beyond at 1.5× =
+	// 30.00.
+	const SHORT_ID = 'c0000000-0000-4000-8000-0000000000f2';
+	const { slips } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-01',
+			people: [
+				{
+					key: 'MY-PT',
+					wage: 1040,
+					citizenship: 'CITIZEN',
+					employment_type: 'PART_TIME',
+					statutory_work_category: 'MANUAL_LABOUR',
+					registrations: REGISTERED_LOCAL
+				}
+			]
+		},
+		(world) => {
+			world.shift_definitions.push({
+				...world.shift_definitions[0]!,
+				id: SHORT_ID,
+				code: 'HALF',
+				name: 'Half day',
+				variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 }
+			});
+			const pattern = world.shift_patterns[0]!;
+			pattern.pattern.days = pattern.pattern.days.map((day: { roster_code_id: string }) =>
+				day.roster_code_id === world.shift_definitions[0]!.id ? { roster_code_id: SHORT_ID } : day
+			);
+			punch(world, 'MY-PT', '2026-01-05', '09:00', '19:00');
+		}
+	);
+	assert.deepEqual(workLines(slips.get('MY-PT')!), [
+		['2026-01-05', 'PT-1.0X', 4, 40],
+		['2026-01-05', 'PT-1.5X', 2, 30]
+	]);
+});

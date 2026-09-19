@@ -779,7 +779,7 @@
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
 		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -787,7 +787,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason == \"DISMISSAL\" ? 0.5 : 1.0))",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason in [\"DISMISSAL\", \"RETRENCHMENT\"] ? 0.5 : 1.0))",
 				"limit": null
 			}
 		],
@@ -800,7 +800,7 @@
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
 		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -842,7 +842,7 @@
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
 		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -850,7 +850,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason == \"DISMISSAL\" ? 0.5 : 1.0))",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason in [\"DISMISSAL\", \"RETRENCHMENT\"] ? 0.5 : 1.0))",
 				"limit": null
 			}
 		],
@@ -863,7 +863,7 @@
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
 		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -905,7 +905,7 @@
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
 		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -913,7 +913,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason == \"DISMISSAL\" ? 0.5 : 1.0))",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason in [\"DISMISSAL\", \"RETRENCHMENT\"] ? 0.5 : 1.0))",
 				"limit": null
 			}
 		],
@@ -926,7 +926,7 @@
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
 		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",

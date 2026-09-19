@@ -57,6 +57,8 @@ export type WorkBandDay = {
 	readonly continuousAttendance: boolean;
 	/** The roster's weekly rest day, whatever holiday precedence called the day. */
 	readonly restDay: boolean;
+	/** The statutory rest day (TW 例假), whatever the holiday made it. */
+	readonly statutoryRest?: boolean;
 	/** The roster's unassigned day (OFF) before a holiday was overlaid on it. */
 	readonly offDay: boolean;
 	/** Hours inside the regime's night window, 0 where the version prices none. */
@@ -104,6 +106,7 @@ function contextOf(options: {
 		consecutive_hours: day.consecutiveHours,
 		continuous_attendance: day.continuousAttendance,
 		rest_day: day.restDay ?? false,
+		statutory_rest: day.statutoryRest ?? false,
 		off_day: day.offDay ?? false,
 		night_hours: day.nightHours ?? 0,
 		requested_by: day.requestedBy ?? 'EMPLOYER',

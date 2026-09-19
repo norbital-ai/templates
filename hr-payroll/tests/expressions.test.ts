@@ -99,6 +99,7 @@ test('every declared path in the catalogue compiles as a value', () => {
 			'classed',
 			'born_on',
 			'age_on',
+			'age_months_on',
 			'taken',
 			'days',
 			'balance',

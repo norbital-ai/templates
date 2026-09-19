@@ -487,6 +487,8 @@
 	"component.shift_section_hint": "排班代码，以及它代表的工时。",
 	"component.shift_time_range": "班次时段",
 	"component.solo_parent": "单亲",
+	"component.receiving_pension": "正在领取法定养老金",
+	"component.statutory_rest_day": "法定例假日（禁止工作；台湾例假）",
 	"component.sources": "来源",
 	"component.spouse": "配偶",
 	"component.standing": "身份",

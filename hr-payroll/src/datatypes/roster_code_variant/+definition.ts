@@ -18,7 +18,15 @@ export const rosterCodeVariantValueSchema = Schema.Union([
 		end_time: clockTime,
 		break_minutes: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 	}),
-	Schema.Struct({ kind: Schema.Literal('REST') }),
+	Schema.Struct({
+		kind: Schema.Literal('REST'),
+		/**
+		 * The rest day the statute forbids work on, where a regime keeps two kinds of rest day
+		 * apart (TW 勞基法 §36: one 例假 and one 休息日 in seven; §40 pays a worked 例假 a further
+		 * day's wage and owes a day off in lieu). Absent or false is the ordinary rest day.
+		 */
+		statutory: Schema.optionalKey(Schema.Boolean)
+	}),
 	Schema.Struct({ kind: Schema.Literal('OFF') })
 ]);
 
