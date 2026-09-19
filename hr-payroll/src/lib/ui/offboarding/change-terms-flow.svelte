@@ -14,8 +14,8 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
-	import { dateKey, dayInstant, PAYROLL_TIME_ZONE } from '../../iso-day.js';
-	import { startOfDayInstant, todayKey } from '../calendar.js';
+	import { dateKey, dayInstant } from '../../iso-day.js';
+	import { endOfDayInstant, todayKey } from '../calendar.js';
 	import { numberFrom } from '../renderer-input.js';
 	import { coversDate, readRange } from '../../../collections/payroll_runs/lib/effective.js';
 	import FormSection from '../form-section.svelte';
@@ -215,8 +215,8 @@
 				previousId: row.id,
 				employmentId: employment.id,
 				previousStart: range.start,
-				closeEnd: startOfDayInstant(previousDay(newStart), PAYROLL_TIME_ZONE),
-				newStart: startOfDayInstant(newStart, PAYROLL_TIME_ZONE),
+				closeEnd: endOfDayInstant(previousDay(newStart)),
+				newStart: dayInstant(newStart),
 				facts
 			});
 		} catch (error) {

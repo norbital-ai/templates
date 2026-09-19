@@ -116,6 +116,20 @@ export function startOfDayInstant(calendarDate: string, timeZone: string): strin
 }
 
 /**
+ * The closed end of an effective range on `calendarDate`: the last millisecond of that day in
+ * the payroll zone, `2026-06-30T15:59:59.999Z` for 30 June in Kuala Lumpur — the seed bank's
+ * convention. A range's start is the day's stored form (`dayInstant`). `contains_date` compares
+ * the bound texts, so an end at the zone's *start* of the last day (`T16:00:00.000Z` of the day
+ * before) put every leaver out of force on their last day in every list, while the engine, which
+ * resolves the bound to a day, still paid it.
+ */
+export function endOfDayInstant(calendarDate: string): string {
+	return new Date(
+		Date.parse(startOfDayInstant(addDays(calendarDate, 1), PAYROLL_TIME_ZONE)) - 1
+	).toISOString();
+}
+
+/**
  * Represent a calendar-day key as the instant the platform day picker expects.
  *
  * A nested custom datatype can deliberately store `YYYY-MM-DD` rather than an instant. The

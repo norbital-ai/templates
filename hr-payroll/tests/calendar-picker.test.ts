@@ -7,12 +7,14 @@ import {
 	calendarDayFromPickerInstant,
 	calendarDateInTimeZone,
 	dayWindowInstantBounds,
+	endOfDayInstant,
 	monthWorkDateInstantBounds,
 	periodInCompanyGrammar,
 	periodWindow,
 	startOfDayInstant,
 	workDateCalendarKey
 } from '../src/lib/ui/calendar.js';
+import { dayInstant } from '../src/lib/iso-day.js';
 
 describe('calendar-day picker adapters', () => {
 	it('round-trips the same day through viewer-local instants on both sides of UTC', () => {
@@ -108,5 +110,18 @@ describe('dayWindowInstantBounds', () => {
 		const inside = (instant: string) => instant >= bounds.start && instant < bounds.end;
 		assert.ok(inside('2026-01-16T00:00:00.000Z') && inside('2026-01-31T00:00:00.000Z'));
 		assert.ok(!inside('2026-01-15T00:00:00.000Z') && !inside('2026-02-01T00:00:00.000Z'));
+	});
+});
+
+describe('endOfDayInstant', () => {
+	it('closes a range on the last millisecond of the day in the payroll zone, as the bank does', () => {
+		assert.equal(endOfDayInstant('2026-06-30'), '2026-06-30T15:59:59.999Z');
+		// `contains_date` compares bound texts: the day's stored form lies inside a range that
+		// starts on it and ends on it, so a leaver is in force on their last day in every list.
+		const range = { start: dayInstant('2026-06-01'), end: endOfDayInstant('2026-06-30') };
+		const contains = (day: string) =>
+			range.start <= dayInstant(day) && dayInstant(day) <= range.end;
+		assert.ok(contains('2026-06-01') && contains('2026-06-30'));
+		assert.ok(!contains('2026-05-31') && !contains('2026-07-01'));
 	});
 });
