@@ -724,6 +724,7 @@
 	"leave.proration.CALENDAR_DAYS": "Eligible calendar days",
 	"leave.proration.CALENDAR_MONTHS": "Calendar month ends",
 	"leave.proration.COMPLETED_MONTHS": "Completed service months",
+	"leave.proration.HALF_MONTHS": "Months at least half eligible",
 	"leave.proration.NONE": "No proration",
 	"leave.reversal_hint": "The reversal restores the original dated allocations. Paid encashment reversals use the original payment amount and opt-ins; enter the due date for recovery.",
 	"leave.source_end": "Source leave year ends",

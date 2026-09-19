@@ -23,7 +23,17 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 */
 	availability: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT', 'CREDITED']),
 	year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
-	proration: Schema.Literals(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS']),
+	/**
+	 * `HALF_MONTHS`: a calendar month counts as one once at least half its days are eligible (VN
+	 * Decree 145/2020 art.66(2): a part month worked or paid for half its working days is a month).
+	 */
+	proration: Schema.Literals([
+		'NONE',
+		'CALENDAR_MONTHS',
+		'COMPLETED_MONTHS',
+		'HALF_MONTHS',
+		'CALENDAR_DAYS'
+	]),
 	/** The most PER_EVENT entries of this leave an employee may take in a lifetime; absent is no cap. */
 	lifetime_events: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**

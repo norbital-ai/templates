@@ -19,7 +19,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { computedEntitlement, grantedDays, leaveWindowOf } from '../src/lib/leave/entitlement.ts';
-import { isEligible, personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import {
+	evaluateNumberOver,
+	isEligible,
+	personContext
+} from '../src/collections/payroll_runs/lib/eligibility.ts';
 import {
 	LINEAGES,
 	contributionSchemes,
@@ -219,6 +223,40 @@ for (const lineage of ['MY', 'MY-nihon'] as const)
 				null,
 				null
 			]);
+			// s.37(2)(a)(i): the maternity allowance needs ninety days' employment in the four
+			// months before confinement — days, not three months: a joiner ninety days before the
+			// birth is paid, one at eighty-nine is not.
+			const maternity = leaveCatalogue(lineage).find(
+				(row) =>
+					row.settings_id === settingsVersions(lineage)[version]!.id &&
+					row.code === 'MATERNITY_LEAVE'
+			)!;
+			const fractionAfter = (days: number) =>
+				evaluateNumberOver(maternity.pay_fraction ?? '', {
+					...personContext({
+						employee: {
+							gender: 'FEMALE',
+							date_of_birth: '1990-01-01',
+							marital_status: null,
+							solo_parent: null,
+							disabled: null
+						},
+						employment: { service_start: '2026-01-01' },
+						terms: {
+							residency_status: 'CITIZEN',
+							work_classification: 'EA_COVERED',
+							employment_type: 'PERMANENT',
+							statutory_work_category: null
+						},
+						children: [],
+						event: BIRTH,
+						facts: [],
+						asOf: `2026-0${days === 90 ? '3-31' : '3-30'}`
+					}),
+					leave: { month_index: 1, day_index: 1, days: 98 }
+				});
+			assert.equal(fractionAfter(90), 1);
+			assert.equal(fractionAfter(89), 0);
 			// First Schedule para 2(5): a domestic employee is outside ss.60E, 60F and 60FA.
 			assert.deepEqual(
 				ladder(lineage, version, 'ANNUAL_LEAVE', {
@@ -556,6 +594,27 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 		// cohort — each on the art.114 ladder too, so seventy months is fifteen.
 		assert.deepEqual(ladder('VN', version, 'ANNUAL_LEAVE', { age: 17 }), [14, 14, 15]);
 		assert.deepEqual(ladder('VN', version, 'ANNUAL_LEAVE', { disabled: true }), [14, 14, 15]);
+		// Decree 145/2020 art.66(2): a part month with at least half its days worked or paid counts
+		// as a month of annual leave. A joiner on 15 January (17 of 31 days) carries January and
+		// earns the whole twelve; one on 20 January (12 of 31) starts in February — eleven.
+		const partYear = (hire: string) =>
+			computedEntitlement({
+				rule: leaveCatalogue('VN').find((row) => row.code === 'ANNUAL_LEAVE')!.entitlement,
+				window: { start: '2026-01-01', end: '2026-12-31' },
+				asOf: '2026-12-31',
+				hireDate: hire,
+				exitDate: null,
+				eligibleOn: () => true,
+				personOn: (date) =>
+					personContext({
+						employee: { date_of_birth: '1990-01-01' },
+						employment: { service_start: hire },
+						terms: null,
+						asOf: date
+					})
+			}).entitlement;
+		assert.equal(partYear('2026-01-15'), 12);
+		assert.equal(partYear('2026-01-20'), 11);
 		// art.114 has no top: thirty-five years of service is nineteen days.
 		assert.equal(
 			grantedDays(

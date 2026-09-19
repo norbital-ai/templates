@@ -207,9 +207,12 @@ test('Vietnam — a night overtime hour carries the 30% night premium and 20% of
 		// Art.98(3): the bands carry the 20% of the day-type increment (0.2× on a rest day, 0.4× on a
 		// holiday over the slice's night hours), so the add over the line is 30 + 20 = 50 on every
 		// overtime hour — and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)).
-		assert.deepEqual([premium.from, premium.to, premium.overtime_add], ['22:00', '06:00', 50]);
+		// Decree 145 art.57(1)(b): on an ordinary day whose night overtime follows daytime overtime
+		// the 20% is of the 150% daytime overtime hour — 30 + 30 = 60.
+		assert.deepEqual([premium.from, premium.to], ['22:00', '06:00']);
 		const adds = (d) => nightAddsFor({ work: version.work_rules, premium, person, day: d, rates });
 		assert.deepEqual(adds(day('ORDINARY')), { ordinary: 30, overtime: 50 });
+		assert.deepEqual(adds(day('ORDINARY', { overtimeHours: 6 })), { ordinary: 30, overtime: 60 });
 		assert.deepEqual(adds(day('REST_DAY')), { ordinary: 50, overtime: 50 });
 		assert.deepEqual(adds(day('PUBLIC_HOLIDAY')), { ordinary: 50, overtime: 50 });
 	}

@@ -126,6 +126,15 @@ export function accumulatePayslip(options: {
 		});
 		if (reserved != null) {
 			magnitudes[reserved] += item.amount;
+			// An encashed leave day is a reserved line and also its row's own code
+			// (`code('ANNUAL_LEAVE_ENCASHMENT')`), for a law that treats one leave's commutation
+			// differently from another's (PH: vacation leave is de minimis, sick leave is not).
+			if (reserved === 'ENCASHMENT') {
+				const rowCode = `${code}_ENCASHMENT`;
+				codes.set(rowCode, (codes.get(rowCode) ?? 0) + item.amount);
+				familyOf.set(rowCode, 'LEAVE');
+				fixedOf.set(rowCode, false);
+			}
 			if (reserved === 'OVERTIME') {
 				magnitudes.OVERTIME_PREMIUM += Math.max(
 					0,

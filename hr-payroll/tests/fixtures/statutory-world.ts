@@ -90,6 +90,8 @@ export type Person = {
 	readonly hire_date?: string;
 	/** The last employed day; the fixture closes the employment and its terms on it. */
 	readonly exit_date?: string;
+	/** `employments.exit_reason`, the separation bands' gate. */
+	readonly exit_reason?: string;
 	/**
 	 * Per-scheme registration: a code mapped to `NOT_REGISTERED`, a flat rate override, or the
 	 * employment's declared elections under that scheme (e.g. `shg_opt_out`).
@@ -227,6 +229,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		employee_number: person.key,
 		bank: null,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
+		exit_reason: person.exit_reason ?? null,
 		approval_id: null
 	}));
 

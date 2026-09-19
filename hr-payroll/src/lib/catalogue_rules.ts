@@ -20,7 +20,9 @@ import { refuseUnlessDraftOnBoth, type SealedVersion } from './settings_seal.js'
 import { assessedOnMentions, compileExpression, type DeclaredKey } from './expressions/compile.js';
 
 const CATALOGUE_FAMILIES = ['ALLOWANCE', 'CLAIM', 'LOAN'] as const;
-type CatalogueFamily = (typeof CATALOGUE_FAMILIES)[number];
+/** `code('X')` may also name a leave row's encashment line, `<code>_ENCASHMENT`. */
+const CODE_FAMILIES = [...CATALOGUE_FAMILIES, 'LEAVE'] as const;
+type CatalogueFamily = (typeof CODE_FAMILIES)[number];
 
 type CatalogueRowLike = {
 	readonly settings_id?: unknown;
@@ -42,7 +44,7 @@ type CatalogueCodes = ReadonlyMap<
 export function catalogueCodesByVersion(
 	db: Pick<
 		CollectionTransformDatabase,
-		'allowance_catalogue' | 'claim_catalogue' | 'loan_catalogue'
+		'allowance_catalogue' | 'claim_catalogue' | 'loan_catalogue' | 'leave_catalogue'
 	>,
 	settingsIds: ReadonlyArray<unknown>
 ): Effect.Effect<CatalogueCodes> {
@@ -58,11 +60,12 @@ export function catalogueCodesByVersion(
 			[
 				db.allowance_catalogue.findMany(query),
 				db.claim_catalogue.findMany(query),
-				db.loan_catalogue.findMany(query)
+				db.loan_catalogue.findMany(query),
+				db.leave_catalogue.findMany(query)
 			],
 			{ concurrency: 'unbounded' }
 		),
-		([allowances, claims, loans]) => {
+		([allowances, claims, loans, leaves]) => {
 			const byVersion = new Map<string, Map<CatalogueFamily, Map<string, string>>>();
 			const file = (
 				family: CatalogueFamily,
@@ -80,6 +83,10 @@ export function catalogueCodesByVersion(
 			file('ALLOWANCE', allowances);
 			file('CLAIM', claims);
 			file('LOAN', loans);
+			file(
+				'LEAVE',
+				leaves.map((row) => ({ ...row, code: `${row.code}_ENCASHMENT` }))
+			);
 			return byVersion;
 		}
 	);
@@ -116,7 +123,7 @@ export function refuseUnknownAssessedOnMentions(
 				);
 	}
 	for (const code of [...mentions.codes, ...mentions.yearEarned]) {
-		const carrying = CATALOGUE_FAMILIES.filter((family) => rowsOf(family).has(code));
+		const carrying = CODE_FAMILIES.filter((family) => rowsOf(family).has(code));
 		if (carrying.length === 0)
 			refuse(
 				`${what} names ${code}, which is not a row of its settings version. Add the row to that ` +

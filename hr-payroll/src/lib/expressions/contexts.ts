@@ -84,6 +84,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'employment.classification', description: 'Work classification' },
 	{ path: 'employment.risk_class', description: 'The employment risk class, or empty' },
+	{
+		path: 'employment.service_days',
+		description:
+			'Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days)'
+	},
 	{ path: 'employment.service_months', description: 'Completed months since the stint began' },
 	{ path: 'employment.service_years', description: 'Completed years since the stint began' },
 	{ path: 'employment.exit_date', description: 'Last day of work, or empty while open' },
@@ -253,6 +258,7 @@ const PERSON_BLANK = {
 		type: '',
 		classification: '',
 		risk_class: '',
+		service_days: 0,
 		service_months: 0,
 		service_years: 0,
 		exit_date: '',
@@ -358,7 +364,8 @@ const YEAR_FIELDS: readonly ContextField[] = [
 	{ path: 'end', description: 'Last day of the tax year' },
 	{
 		path: 'months_employed',
-		description: 'Completed months of this employment in the tax year, through the period end'
+		description:
+			'The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole'
 	},
 	{
 		path: 'earned.<code>',

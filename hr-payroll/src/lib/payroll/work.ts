@@ -339,7 +339,9 @@ function asRateTerms(
 	/** The pattern's days a week (`termsDaysPerWeek`). */
 	days: number,
 	/** The statute's normal day over this person, where the version states one; else infinite. */
-	normalDayHours: number = Number.POSITIVE_INFINITY
+	normalDayHours: number = Number.POSITIVE_INFINITY,
+	/** The statute's normal week, where the version caps one (a `WEEK NORMAL_HOURS` limit); else infinite. */
+	normalWeekHours: number = Number.POSITIVE_INFINITY
 ): RateTerms {
 	const salary = baseSalaryOf(terms);
 	const frequency = payFrequency(terms.pay_frequency);
@@ -371,7 +373,11 @@ function asRateTerms(
 	// of work (MY EA s.60I(1)(b), with s.60A(3)(c) capping those at the s.60A(1) limits), so a
 	// ten-hour shift under an eight-hour normal day prices its hour at a day over eight, and the
 	// two hours beyond are overtime on that rate — not a cheaper hour that pays its own overtime.
-	const hours = Math.min(rostered, normalDayHours * days);
+	// Nor longer than the statute's normal week: SG EA s.2 builds the hourly basic rate on 52 × 44
+	// for any contract of 44 hours or more, and MY s.60A(3)(c) lets no agreed normal hours exceed
+	// the s.60A(1) limits — a six-day week of 8-hour days prices its hour on the 44 (45) the law
+	// lets the contract require, and the hours beyond are overtime at that rate.
+	const hours = Math.min(rostered, normalDayHours * days, normalWeekHours);
 	return {
 		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
 		pay_frequency: frequency,
@@ -450,11 +456,18 @@ export function prepareWorkContext(
 						asOf: options.salary.end
 					})
 				);
+	// The version's unconditional normal week (SG's 44, s.38(1)(b)); a limit gated over the person
+	// is judged where the person is known, on the priced hours.
+	const normalWeekCap =
+		applicableLimits(configuration.limits, null).find(
+			(limit) => limit.period === 'WEEK' && limit.measure === 'NORMAL_HOURS'
+		)?.max_hours ?? Number.POSITIVE_INFINITY;
 	const rateTerms = asRateTerms(
 		closingTerms,
 		closingWorkload,
 		termsDaysPerWeek(closingTerms, configuration),
-		normalHoursCap
+		normalHoursCap,
+		normalWeekCap
 	);
 	const currency = rateTerms.base_salary.currency;
 	const scheduleTermsAt = (date: IsoDate) => {
@@ -590,6 +603,34 @@ export function prepareWorkContext(
 	});
 	const hourlyRate = ordinaryHourlyRate(rateTerms, divisorDays);
 	const dayWage = ordinaryDayWage(rateTerms, divisorDays);
+	// A worked day is priced at the hour of the calendar month it fell in: a divisor that reads
+	// `period.working_days` (VN Decree 145 art.55(1)(a): the month's wage over that month's
+	// hours) differs month to month, and a pay window that straddles two months prices each
+	// day on its own. A divisor that reads nothing of the period is the same figure everywhere.
+	const ratesByMonth = new Map<string, { ordinaryHour: number; dayWage: number }>();
+	const ratesOn = (date: IsoDate) => {
+		const month = monthKey(date);
+		let rates = ratesByMonth.get(month);
+		if (rates == null) {
+			const divisor =
+				month === monthKey(options.salary.start)
+					? divisorDays
+					: ordinaryDivisorDays({
+							expression: configuration.work.ordinary_divisor_days,
+							person: {
+								...subject,
+								period: { ...subject.period, working_days: workingDaysIn(monthBounds(month)) }
+							},
+							employeeNumber: bundle.employment.employee_number
+						});
+			rates = {
+				ordinaryHour: ordinaryHourlyRate(rateTerms, divisor),
+				dayWage: ordinaryDayWage(rateTerms, divisor)
+			};
+			ratesByMonth.set(month, rates);
+		}
+		return rates;
+	};
 
 	const absenceRate = (charge: LeaveCharge): number => {
 		const term = bundle.termsHistory.find(
@@ -607,7 +648,8 @@ export function prepareWorkContext(
 			term,
 			workload,
 			termsDaysPerWeek(term, configuration),
-			normalHoursCap
+			normalHoursCap,
+			normalWeekCap
 		);
 		if (terms.base_salary.currency !== currency)
 			throw new Error('Leave absence rate has a different currency from payroll.');
@@ -635,6 +677,7 @@ export function prepareWorkContext(
 		currency,
 		hourlyRate,
 		dayWage,
+		ratesOn,
 		complianceWindow,
 		schedule,
 		coverage,
@@ -677,8 +720,8 @@ export function calculateWorkAttendance(
 		rateTerms,
 		closingTerms,
 		absenceDayWage,
-		hourlyRate,
-		dayWage
+		dayWage,
+		ratesOn
 	} = options.work;
 	// ── overtime, derived from clocks and split beyond the jurisdiction's own daily ceilings ───
 	//
@@ -921,9 +964,17 @@ export function calculateWorkAttendance(
 									premium: nightPremium,
 									person: subject,
 									day: bandDay,
-									rates: { ordinaryHour: hourlyRate, dayWage }
+									rates: ratesOn(date)
 								});
-					return [{ id: entry.id, ordinary: night.ordinary, overtime, adds }];
+					return [
+						{
+							id: entry.id,
+							ordinary: night.ordinary,
+							overtime,
+							adds,
+							rate: ratesOn(date).ordinaryHour
+						}
+					];
 				});
 	const nightShiftHours = nightDays.reduce((total, day) => total + day.ordinary + day.overtime, 0);
 	const capped = funnelMonthlyOvertime({
@@ -931,7 +982,7 @@ export function calculateWorkAttendance(
 			work: { ...configuration.work, limits },
 			person: subject,
 			days: pricedBandDays,
-			rates: { ordinaryHour: hourlyRate, dayWage },
+			ratesOn,
 			catalogueComponents: configuration.catalogueComponents,
 			currency: options.work.currency
 		}),
@@ -950,7 +1001,6 @@ export function calculateWorkAttendance(
 			: measureNightPremium({
 					premium: nightPremium,
 					days: nightDays,
-					hourlyRate,
 					catalogueComponents: configuration.catalogueComponents,
 					subject,
 					currency: options.work.currency
@@ -1310,8 +1360,9 @@ function measureNightPremium(options: {
 		readonly ordinary: number;
 		readonly overtime: number;
 		readonly adds: { readonly ordinary: number; readonly overtime: number };
+		/** The ordinary hour of the calendar month the day fell in. */
+		readonly rate: number;
 	}[];
-	readonly hourlyRate: number;
 	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly subject: PersonContext;
 	readonly currency: string;
@@ -1324,8 +1375,7 @@ function measureNightPremium(options: {
 	if (!isEligible(component.eligibility, options.subject)) return [];
 	return options.days.flatMap((day) => {
 		const amount = cents(
-			options.hourlyRate *
-				((day.ordinary * day.adds.ordinary + day.overtime * day.adds.overtime) / 100),
+			day.rate * ((day.ordinary * day.adds.ordinary + day.overtime * day.adds.overtime) / 100),
 			options.currency
 		);
 		if (amount === 0) return [];
@@ -1337,7 +1387,7 @@ function measureNightPremium(options: {
 				label: component.code,
 				amount,
 				quantity: day.ordinary + day.overtime,
-				rate: options.hourlyRate,
+				rate: day.rate,
 				statutoryRuleKey: null
 			}
 		];
@@ -1356,10 +1406,7 @@ function measureWorkBands(options: {
 	readonly work: Configuration['work'];
 	readonly person: PersonContext;
 	readonly days: readonly WorkBandDay[];
-	readonly rates: {
-		readonly ordinaryHour: number;
-		readonly dayWage: number;
-	};
+	readonly ratesOn: (date: IsoDate) => { readonly ordinaryHour: number; readonly dayWage: number };
 	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly currency: string;
 }): MeasuredAdjustment[] {
@@ -1374,7 +1421,7 @@ function measureWorkBands(options: {
 			work: options.work,
 			person: options.person,
 			day,
-			rates: options.rates
+			rates: options.ratesOn(day.date)
 		})) {
 			const component = byOutput.get(`${row.line}:${row.label}`);
 			if (component == null)

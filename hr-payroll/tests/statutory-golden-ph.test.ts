@@ -894,19 +894,20 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 		// Handbook ch.2 §E on the salary line too (`proration_by`): a daily-paid employee’s absent
 		// day on the 261 factor is ₱30,000 × 12 ÷ 261 = ₱1,379.31; a monthly-paid one’s (payroll
 		// group MONTHLY) is ÷ 30.4167 = ₱986.30, and their part month prorates on the same divisor.
-		const absent = (payroll_group) =>
+		const absent = (payroll_group, hours = 40, days = 5) =>
 			absenceDayRate({
 				terms: {
 					base_salary: { value: 30_000, currency: 'PHP' },
 					pay_frequency: 'MONTHLY',
-					ordinary_hours_per_week: 40,
-					working_days_per_week: 5
+					ordinary_hours_per_week: hours,
+					working_days_per_week: days
 				},
 				work: version.work_rules,
 				person: personContext({
 					employee: null,
 					employment: { service_start: '2020-01-01' },
 					terms: { base_salary: { value: 30_000, currency: 'PHP' }, payroll_group },
+					week: { ordinary_hours_per_week: hours, working_days_per_week: days },
 					asOf: '2026-02-28'
 				}),
 				period: { start: '2026-02-01', end: '2026-02-28' },
@@ -914,8 +915,15 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 			});
 		assert.equal(absent('BI-MONTHLY'), 1379.31);
 		assert.equal(absent('MONTHLY'), 986.3);
+		// A six-day week's absent day is on the 313 factor the overtime hour is built on: ₱30,000
+		// ÷ 26.0833 = ₱1,150.16 — the ₱15,650 daily-paid floor comes back as its ₱600 day.
+		assert.equal(absent('BI-MONTHLY', 48, 6), 1150.16);
 		assert.deepEqual(version.work_rules.proration_by, [
-			{ when: 'terms.payroll_group == "MONTHLY"', basis: { by: 'FIXED_DAYS', days: 30.4167 } }
+			{ when: 'terms.payroll_group == "MONTHLY"', basis: { by: 'FIXED_DAYS', days: 30.4167 } },
+			{
+				when: 'terms.pay_frequency != "DAILY" && terms.payroll_group != "MONTHLY" && terms.ordinary_hours_per_week > 40.0',
+				basis: { by: 'FIXED_DAYS', days: 26.0833 }
+			}
 		]);
 	}
 });

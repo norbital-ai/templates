@@ -29,6 +29,7 @@ Open prefixes: `company.facts.<key>`.
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
+| `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `employment.service_months` | Completed months since the stint began |
 | `employment.service_years` | Completed years since the stint began |
 | `employment.exit_date` | Last day of work, or empty while open |
@@ -113,6 +114,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
 | `person.employment.exit_date` | Last day of work, or empty while open |
@@ -184,7 +186,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `period.days_in_month` | Calendar days of the pay month |
 | `year.start` | First day of the tax year |
 | `year.end` | Last day of the tax year |
-| `year.months_employed` | Completed months of this employment in the tax year, through the period end |
+| `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
 | `leave.days(code)` | Charged days of one leave code in the window |
 
@@ -226,6 +228,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
 | `person.employment.exit_date` | Last day of work, or empty while open |
@@ -330,6 +333,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
 | `person.employment.exit_date` | Last day of work, or empty while open |
@@ -389,7 +393,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `period.days_in_month` | Calendar days of the pay month |
 | `year.start` | First day of the tax year |
 | `year.end` | Last day of the tax year |
-| `year.months_employed` | Completed months of this employment in the tax year, through the period end |
+| `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
 | `scheme.code` | The scheme code |
 | `scheme.assessment_period` | PAY_PERIOD \| MONTH |
@@ -459,6 +463,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
 | `person.employment.exit_date` | Last day of work, or empty while open |
@@ -518,7 +523,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `period.days_in_month` | Calendar days of the pay month |
 | `year.start` | First day of the tax year |
 | `year.end` | Last day of the tax year |
-| `year.months_employed` | Completed months of this employment in the tax year, through the period end |
+| `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
 | `scheme.code` | The scheme code |
 | `scheme.assessment_period` | PAY_PERIOD \| MONTH |
@@ -578,6 +583,7 @@ Open prefixes: `company.facts.<key>`.
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
+| `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `employment.service_months` | Completed months since the stint began |
 | `employment.service_years` | Completed years since the stint began |
 | `employment.exit_date` | Last day of work, or empty while open |

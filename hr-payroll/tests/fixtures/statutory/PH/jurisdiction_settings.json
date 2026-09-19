@@ -132,6 +132,13 @@
 						"by": "FIXED_DAYS",
 						"days": 30.4167
 					}
+				},
+				{
+					"when": "terms.pay_frequency != \"DAILY\" && terms.payroll_group != \"MONTHLY\" && terms.ordinary_hours_per_week > 40.0",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 26.0833
+					}
 				}
 			],
 			"wages": {
@@ -307,6 +314,13 @@
 					"basis": {
 						"by": "FIXED_DAYS",
 						"days": 30.4167
+					}
+				},
+				{
+					"when": "terms.pay_frequency != \"DAILY\" && terms.payroll_group != \"MONTHLY\" && terms.ordinary_hours_per_week > 40.0",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 26.0833
 					}
 				}
 			],
@@ -485,6 +499,13 @@
 						"by": "FIXED_DAYS",
 						"days": 30.4167
 					}
+				},
+				{
+					"when": "terms.pay_frequency != \"DAILY\" && terms.payroll_group != \"MONTHLY\" && terms.ordinary_hours_per_week > 40.0",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 26.0833
+					}
 				}
 			],
 			"wages": {
@@ -661,6 +682,13 @@
 					"basis": {
 						"by": "FIXED_DAYS",
 						"days": 30.4167
+					}
+				},
+				{
+					"when": "terms.pay_frequency != \"DAILY\" && terms.payroll_group != \"MONTHLY\" && terms.ordinary_hours_per_week > 40.0",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 26.0833
 					}
 				}
 			],

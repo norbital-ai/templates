@@ -280,7 +280,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
 				"limit": null
 			}
 		],
@@ -322,7 +322,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
 				"limit": null
 			}
 		],
@@ -364,7 +364,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (person.employment.service_months / 12.0) * person.terms.basic_salary / 26.0)",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
 				"limit": null
 			}
 		],

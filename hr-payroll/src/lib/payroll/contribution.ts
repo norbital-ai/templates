@@ -157,14 +157,17 @@ import {
 	type MonthPrior
 } from '../../collections/payroll_runs/lib/accumulate.js';
 import { orderSchemes } from '../../collections/payroll_runs/lib/mentions.js';
-import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
+import {
+	employmentDates,
+	type EmploymentDates
+} from '../../collections/payroll_runs/lib/settlement.js';
 import type { StatutoryFactStatus } from '../../collections/payroll_runs/lib/contribute.js';
 import {
 	addDays,
-	completedMonths,
 	inclusiveDays,
 	monthDays,
-	periodHalf
+	periodHalf,
+	type IsoDate
 } from '../../collections/payroll_runs/lib/dates.js';
 import {
 	closesTaxYear,
@@ -676,14 +679,24 @@ export function prepareContributionAssessment(options: {
 				lastOfYear:
 					closesTaxYear(bundle.window.period, startMonth, bundle.window.payFrequency) ||
 					(dates.exit != null && dates.exit <= bundle.window.salary.end),
-				daysEmployed: measured.proration.reduce((total, segment) => total + segment.days, 0),
+				// The days of the month the person was employed: the salary's prorated segments where
+				// the wage is a month's, else — an hourly or daily contract prorates nothing — the
+				// employment's own span inside the pay month (TW 勞保條例施行細則 §28-1: the premium is
+				// for every enrolled day, whatever the hours worked).
+				daysEmployed:
+					measured.proration.length > 0
+						? measured.proration.reduce((total, segment) => total + segment.days, 0)
+						: employedDaysIn(dates, bundle.window.salary),
 				daysInMonth: monthDays(bundle.window.salary.start)
 			},
 			currency: measured.currency,
 			year: {
 				start: bounds.start,
 				end: bounds.end,
-				months_employed: (employed ? completedMonths(from, addDays(through, 1)) : 0) + openingMonths
+				// The calendar months of the year the employment touches, the join and exit months
+				// whole: a month with any income in it is a month of income (ID PMK 250/2008 art.1(1):
+				// the biaya jabatan cap is Rp500,000 a month, and a joiner on the 15th earns in that month).
+				months_employed: (employed ? calendarMonthsTouched(from, through) : 0) + openingMonths
 			},
 			projection,
 			person: { ...person, wage_floor: floor },
@@ -691,4 +704,17 @@ export function prepareContributionAssessment(options: {
 			minimumWageApplies: covered
 		}
 	};
+}
+
+/** The calendar days of the pay window inside the employment, zero when it never touches it. */
+function employedDaysIn(dates: EmploymentDates, window: PayrollWindow['salary']): number {
+	const start = dates.hire > window.start ? dates.hire : window.start;
+	const end = dates.exit != null && dates.exit < window.end ? dates.exit : window.end;
+	return end >= start ? inclusiveDays(start, end) : 0;
+}
+
+/** The calendar months from the month of `from` to the month of `through`, both counted whole. */
+function calendarMonthsTouched(from: IsoDate, through: IsoDate): number {
+	const months = (date: IsoDate) => Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7));
+	return months(through) - months(from) + 1;
 }
