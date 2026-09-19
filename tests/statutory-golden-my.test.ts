@@ -1225,3 +1225,44 @@ test('Malaysia — the termination benefit counts a part year to the nearest mon
 		4759.62
 	);
 });
+
+test('Malaysia — the 45-hour week counts the scheduled days nobody clocked, and reports the week whose excess nobody did (s.60A(1)(d))', () => {
+	// A six-day, 8-hour pattern is a 48-hour week: three hours beyond s.60A(1)(d) every week.
+	// SIX8-SAT clocks Saturday only: silence is presence for the weekdays, so the week's first
+	// forty hours are theirs and Saturday's 45th to 48th hours are overtime — 3 × 12.50 × 1.5 =
+	// 56.25 (the 44-hour rate week: 2,600 ÷ 26 ÷ 8 = 12.50). SIX8-NONE clocks nothing: no line
+	// can price an unclocked day, and the run says so.
+	const { slips, warnings } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-01',
+			people: [
+				{ key: 'SIX8-SAT', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL },
+				{ key: 'SIX8-NONE', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
+			]
+		},
+		(world) => {
+			const pattern = world.shift_patterns[0]!;
+			const [monday, , , , , , sunday] = pattern.pattern.days;
+			pattern.pattern = { days: [monday!, monday!, monday!, monday!, monday!, monday!, sunday!] };
+			punch(world, 'SIX8-SAT', '2026-01-10', '09:00', '18:00');
+		}
+	);
+	assert.deepEqual(workLines(slips.get('SIX8-SAT')!), [
+		['2026-01-10', 'WORKDAY-OT-1.5X', 3, 56.25]
+	]);
+	assert.deepEqual(workLines(slips.get('SIX8-NONE')!), []);
+	const unpriced = warnings.filter((line) => line.startsWith('WEEKLY_NORMAL_UNPRICED'));
+	assert.ok(
+		unpriced.some((line) => line.includes('SIX8-NONE')),
+		`the unclocked week is reported:\n${warnings.join('\n')}`
+	);
+	// The Saturday priced its own week; the other weeks of the month, unclocked, are reported.
+	assert.ok(
+		!unpriced.some((line) => line.includes('SIX8-SAT') && line.includes('week of 2026-01-05')),
+		'the clocked Saturday priced its week'
+	);
+	assert.ok(
+		unpriced.some((line) => line.includes('SIX8-SAT') && line.includes('week of 2026-01-12'))
+	);
+});

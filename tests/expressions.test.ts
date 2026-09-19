@@ -93,9 +93,17 @@ test('unknown members, undeclared identifiers, bad syntax and wrong types are re
 
 test('every declared path in the catalogue compiles as a value', () => {
 	const isFunction = (path: string) =>
-		['under', 'citizens_under', 'classed', 'born_on', 'days', 'balance', 'minimum_wage'].includes(
-			path.split('.').at(-1) ?? ''
-		);
+		[
+			'under',
+			'citizens_under',
+			'classed',
+			'born_on',
+			'age_on',
+			'taken',
+			'days',
+			'balance',
+			'minimum_wage'
+		].includes(path.split('.').at(-1) ?? '');
 	for (const context of Object.values(EXPRESSION_CONTEXTS))
 		for (const field of context.fields) {
 			const path = field.path.replace(/\(.*$/, '').replace(/<.*$/, '').trim();

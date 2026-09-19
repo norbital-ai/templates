@@ -373,10 +373,11 @@ function asRateTerms(
 	// of work (MY EA s.60I(1)(b), with s.60A(3)(c) capping those at the s.60A(1) limits), so a
 	// ten-hour shift under an eight-hour normal day prices its hour at a day over eight, and the
 	// two hours beyond are overtime on that rate — not a cheaper hour that pays its own overtime.
-	// Nor longer than the statute's normal week: SG EA s.2 builds the hourly basic rate on 52 × 44
-	// for any contract of 44 hours or more, and MY s.60A(3)(c) lets no agreed normal hours exceed
-	// the s.60A(1) limits — a six-day week of 8-hour days prices its hour on the 44 (45) the law
-	// lets the contract require, and the hours beyond are overtime at that rate.
+	// Nor longer than the week the version builds the hourly rate on, where it states one
+	// (`work_rules.rate_week_hours`): SG EA s.2 builds the hourly basic rate on 52 × 44 for any
+	// contract of 44 hours or more, so a six-day week of 8-hour days prices its hour on 44 and the
+	// hours beyond are overtime at that rate. Malaysia states none: its hour is the day over the
+	// daily normal hours (s.60I(1)(b)), 12.50 on a 48-hour six-day contract at RM2,600.
 	const hours = Math.min(rostered, normalDayHours * days, normalWeekHours);
 	return {
 		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
@@ -456,12 +457,10 @@ export function prepareWorkContext(
 						asOf: options.salary.end
 					})
 				);
-	// The version's unconditional normal week (SG's 44, s.38(1)(b)); a limit gated over the person
-	// is judged where the person is known, on the priced hours.
-	const normalWeekCap =
-		applicableLimits(configuration.limits, null).find(
-			(limit) => limit.period === 'WEEK' && limit.measure === 'NORMAL_HOURS'
-		)?.max_hours ?? Number.POSITIVE_INFINITY;
+	// The week the version builds the hourly rate on, where it states one (SG EA s.2: 52 × 44 for
+	// any contract of 44 hours or more); a version whose hour is the day over the daily normal
+	// hours (MY s.60I(1)(b)) states none.
+	const normalWeekCap = configuration.work.rate_week_hours ?? Number.POSITIVE_INFINITY;
 	const rateTerms = asRateTerms(
 		closingTerms,
 		closingWorkload,
@@ -750,7 +749,36 @@ export function calculateWorkAttendance(
 	const weeklyNormalCap =
 		limits.find((limit) => limit.period === 'WEEK' && limit.measure === 'NORMAL_HOURS')
 			?.max_hours ?? null;
+	// Silence is presence for the wage, so it is presence for the week: a scheduled ordinary day
+	// with no attendance row counts its normal hours in the running sum (MY s.60A(1)(d) on a
+	// six-day 8-hour pattern: the clocked Saturday carries the week's three hours beyond 45 even
+	// when the weekdays were never punched). It is priced by no line of its own — a day with no
+	// clock has no hour to price — and a week whose excess falls on such days is reported.
 	const weekNormalRunning = new Map<string, number>();
+	const weekExcessPriced = new Map<string, number>();
+	const attendedDates = new Set(clockedDays.map((row) => row.workDate));
+	const unclockedByWeek = new Map<string, { date: IsoDate; hours: number }[]>();
+	if (weeklyNormalCap != null)
+		for (const [date, day] of schedule)
+			if (
+				date >= complianceWindow.start &&
+				date <= complianceWindow.end &&
+				!attendedDates.has(date) &&
+				day.dayType === 'ORDINARY' &&
+				day.shift != null
+			) {
+				const week = weekStart(date);
+				const rows = unclockedByWeek.get(week) ?? [];
+				rows.push({ date, hours: Math.min(day.shift.paid_minutes / 60, day.normalHours) });
+				unclockedByWeek.set(week, rows);
+			}
+	const countUnclockedBefore = (week: string, date: IsoDate) => {
+		for (const row of unclockedByWeek.get(week) ?? [])
+			if (row.date < date) {
+				weekNormalRunning.set(week, (weekNormalRunning.get(week) ?? 0) + row.hours);
+				row.hours = 0;
+			}
+	};
 	for (const { entry, workDate } of clockedDays) {
 		const day = schedule.get(workDate);
 		if (!day) continue;
@@ -776,9 +804,11 @@ export function calculateWorkAttendance(
 		if (weeklyNormalCap != null && day.dayType === 'ORDINARY') {
 			const withinNormal = Math.min(Math.max(0, worked), day.normalHours);
 			const week = weekStart(workDate);
+			countUnclockedBefore(week, workDate);
 			const running = (weekNormalRunning.get(week) ?? 0) + withinNormal;
 			weekNormalRunning.set(week, running);
 			weeklyExcess = Math.min(withinNormal, Math.max(0, running - weeklyNormalCap));
+			weekExcessPriced.set(week, (weekExcessPriced.get(week) ?? 0) + weeklyExcess);
 		}
 		// An unworked holiday the person's calendar recorded (a day read and found empty) is a
 		// band day of zero hours: the first band that holds prices it by amount — a regular
@@ -903,6 +933,15 @@ export function calculateWorkAttendance(
 	// A REST or OFF day, a holiday, and a day outside the attendance window are all no-ops. DAILY
 	// and HOURLY employments are not deducted here: their base pay is earned units, so an absent
 	// day simply earns nothing (see below).
+	// The weeks whose hours beyond the cap fall on unclocked scheduled days: nothing priced them.
+	const unpricedWeeks: { week: string; hours: number }[] = [];
+	if (weeklyNormalCap != null)
+		for (const [week, rows] of unclockedByWeek) {
+			const running =
+				(weekNormalRunning.get(week) ?? 0) + rows.reduce((sum, row) => sum + row.hours, 0);
+			const unpriced = Math.max(0, running - weeklyNormalCap) - (weekExcessPriced.get(week) ?? 0);
+			if (unpriced > 0) unpricedWeeks.push({ week, hours: unpriced });
+		}
 	const absentDays = bundle.workDays.flatMap((day) => {
 		if (day.worked_intervals != null && day.worked_intervals.length > 0) return [];
 		const date = requiredDateKey(day.work_date, 'work_days.work_date');
@@ -1029,6 +1068,8 @@ export function calculateWorkAttendance(
 		nightShiftHours,
 		/** The rostered days with no punch and no leave, for an allowance that loses unpaid days. */
 		absentDays,
+		/** Weeks whose normal hours beyond the weekly cap fall on scheduled days nobody clocked. */
+		unpricedWeeks,
 		/** The limits that govern this person, the conditional ones judged. */
 		limits
 	};
@@ -1612,6 +1653,18 @@ export function validateWorkResult(options: {
 	const ownDays = measured.overtimeDays.filter(
 		(day) => day.date >= attendance.start && day.date <= attendance.end
 	);
+	for (const { week, hours } of measured.unpricedWeeks)
+		issues.push({
+			code: 'WEEKLY_NORMAL_UNPRICED',
+			severity: 'WARNING',
+			message:
+				`${bundle.employment.employee_number}'s week of ${week} projects ${hours.toFixed(2)} normal ` +
+				'hours beyond the weekly limit on scheduled days with no attendance recorded. The run will ' +
+				'still be built; those hours are overtime the law owes and are priced only from attendance ' +
+				'— record the days, or shorten the pattern.',
+			collection: 'employments',
+			recordId: bundle.employment.id
+		});
 	for (const limit of measured.limits) {
 		if (limit.period !== 'DAY') continue;
 		if (limit.measure === 'TOTAL_WORK_HOURS')

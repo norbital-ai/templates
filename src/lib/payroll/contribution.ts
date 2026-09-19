@@ -147,6 +147,7 @@ import {
 	type ReadLog
 } from '../../collections/payroll_runs/lib/api.js';
 import type { PersonInput } from '../../collections/payroll_runs/lib/eligibility.js';
+import { factStatusesOn, personFacts } from './facts.js';
 import { realignStatutoryFacts } from '../../collections/payroll_runs/lib/statutory-facts.js';
 import { ordinaryDivisorDays } from '../../collections/payroll_runs/lib/ordinary-rate.js';
 import { live, coversDate } from '../../collections/payroll_runs/lib/effective.js';
@@ -539,13 +540,9 @@ export function prepareContributionAssessment(options: {
 }): ContractAssessment {
 	const { measured, configuration, projection, headcount } = options;
 	const { bundle } = measured;
-	const facts = new Map<string, StatutoryFactStatus>();
 	const asOf =
 		bundle.employedDays?.end ?? employmentDates(bundle.employment).exit ?? bundle.window.salary.end;
-	for (const fact of bundle.statutoryFacts) {
-		if (!coversDate(fact.effective_range, asOf) || fact.status == null) continue;
-		facts.set(fact.statutory_contribution_id, fact.status);
-	}
+	const facts = factStatusesOn(bundle.statutoryFacts, asOf);
 	const startMonth0 = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
 	const taxYear = taxYearOf(bundle.window.period, startMonth0);
 	/** An earlier employer's figures under a scheme for this tax year, where the fact declares them. */
@@ -579,14 +576,7 @@ export function prepareContributionAssessment(options: {
 		// The pay month's working days and the employed ones it did not pay, so a scheme can count
 		// the days without wages (VN art.33(5): fourteen or more in the month contribute nothing).
 		period: { working_days: measured.periodWorkingDays, unpaid_days: measured.periodUnpaidDays },
-		facts: configuration.contributions.map((scheme) => {
-			const status = facts.get(scheme.row.id);
-			return {
-				code: scheme.row.code,
-				registered: status?.kind === 'REGISTERED',
-				since: status?.kind === 'REGISTERED' ? (status.since ?? null) : null
-			};
-		}),
+		facts: personFacts(configuration.contributions, facts),
 		asOf
 	};
 	const person = personContext({

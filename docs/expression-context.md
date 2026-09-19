@@ -17,6 +17,8 @@ Open prefixes: `company.facts.<key>`.
 | `employee.gender` | Recorded gender |
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
+| `employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `employee.citizenship` | Residency standing from the effective terms |
 | `employee.marital_status` | Marital status |
 | `employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
@@ -33,7 +35,9 @@ Open prefixes: `company.facts.<key>`.
 | `employment.service_months` | Completed months since the stint began |
 | `employment.service_years` | Completed years since the stint began |
 | `employment.exit_date` | Last day of work, or empty while open |
-| `employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
+| `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
+| `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -66,6 +70,7 @@ Open prefixes: `company.facts.<key>`.
 | `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
+| `facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
 | `event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
@@ -102,6 +107,8 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
+| `person.employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `person.employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `person.employee.citizenship` | Residency standing from the effective terms |
 | `person.employee.marital_status` | Marital status |
 | `person.employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
@@ -118,7 +125,9 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
 | `person.employment.exit_date` | Last day of work, or empty while open |
-| `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
+| `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
+| `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -151,6 +160,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
+| `person.facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `person.facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
 | `person.event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `person.event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
@@ -201,6 +211,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `bracket(base, up_to, step)` | Round a figure up to the next bracket |
 | `ladder(base, grades)` | Step a figure up to the next grade in a table |
 | `progressive(value, table)` | Apply a progressive [from, base, rate] table |
+| `minimum_wage(region)` | The version’s minimum wage for a region |
 | `leave.days(code)` | Charged days of one leave code in the window |
 
 ## `work_day` — One priced person-day: work bands and owed breaks.
@@ -216,6 +227,8 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
+| `person.employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `person.employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `person.employee.citizenship` | Residency standing from the effective terms |
 | `person.employee.marital_status` | Marital status |
 | `person.employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
@@ -232,7 +245,9 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
 | `person.employment.exit_date` | Last day of work, or empty while open |
-| `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
+| `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
+| `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -265,6 +280,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
+| `person.facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `person.facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
 | `person.event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `person.event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
@@ -321,6 +337,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
+| `person.employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `person.employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `person.employee.citizenship` | Residency standing from the effective terms |
 | `person.employee.marital_status` | Marital status |
 | `person.employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
@@ -337,7 +355,9 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
 | `person.employment.exit_date` | Last day of work, or empty while open |
-| `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
+| `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
+| `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -370,6 +390,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
+| `person.facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `person.facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
 | `person.event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `person.event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
@@ -435,7 +456,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `code('X')` | The signed total of the version’s row X this payslip |
 | `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude })` | The signed sum of a catalogue’s rows, selected or excluded |
 | `year_catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude | fixed })` | The same selection summed over the tax year’s earlier PAID payslips (this payslip excluded — add `catalog(...)` for it): the year’s Additional Wages for a December true-up (SG CPF) |
-| `earned_average(code, months_back, months)` | The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window |
+| `earned_average(code, months_back, months)` | The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window. `code` may be a list of codes — reserved lines among them (`OVERTIME`) — summed month by month (TW 施行細則 §27: the three-month average of 工資, overtime included) |
+| `days_under(age)` | The calendar days of the pay window on which the person is under that age — a cover that ends on a birthday charges the days before it (TW 勞保條例施行細則 §28-1 at sixty-five) |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |
 
 ## `scheme` — One statutory scheme for one person and period: rules and rate bands.
@@ -451,6 +473,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
+| `person.employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `person.employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `person.employee.citizenship` | Residency standing from the effective terms |
 | `person.employee.marital_status` | Marital status |
 | `person.employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
@@ -467,7 +491,9 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
 | `person.employment.exit_date` | Last day of work, or empty while open |
-| `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
+| `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
+| `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -500,6 +526,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
+| `person.facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `person.facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
 | `person.event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `person.event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
@@ -556,6 +583,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `ladder(base, grades)` | Step a figure up to the next grade in a table |
 | `progressive(value, table)` | Apply a progressive [from, base, rate] table |
 | `minimum_wage(region)` | The version’s minimum wage for a region |
+| `days_under(age)` | The calendar days of the pay window on which the person is under that age — a cover that ends on a birthday charges the days before it (TW 勞保條例施行細則 §28-1 at sixty-five) |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |
 
 ## `leave_day` — One charged day of leave: the person that day, and where in the leave it falls.
@@ -571,6 +599,8 @@ Open prefixes: `company.facts.<key>`.
 | `employee.gender` | Recorded gender |
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
+| `employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `employee.citizenship` | Residency standing from the effective terms |
 | `employee.marital_status` | Marital status |
 | `employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
@@ -587,7 +617,9 @@ Open prefixes: `company.facts.<key>`.
 | `employment.service_months` | Completed months since the stint began |
 | `employment.service_years` | Completed years since the stint began |
 | `employment.exit_date` | Last day of work, or empty while open |
-| `employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
+| `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
+| `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -620,6 +652,7 @@ Open prefixes: `company.facts.<key>`.
 | `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
+| `facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
 | `event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
@@ -634,6 +667,7 @@ Open prefixes: `company.facts.<key>`.
 | `leave.month_index` | Which month of the leave the day is in, from 1 |
 | `leave.day_index` | Which calendar day of the leave, from 1 |
 | `leave.days` | The days the whole entry charges |
+| `leave.taken(code)` | The days of that leave code charged in the leave year before this day, across every entry (TW 勞工請假規則 §4(3): thirty half-paid 普通傷病假 days a year, hospitalised or not) |
 
 | Function | Meaning |
 | --- | --- |

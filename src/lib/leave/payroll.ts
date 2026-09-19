@@ -10,7 +10,7 @@ import { Effect } from 'effect';
 import type { WorkspaceRow } from '$bolt/types.js';
 import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
 import type { LeavePayItem } from '../../datatypes/leave_pay_items/+definition.js';
-import type { LeaveWindow } from './entitlement.js';
+import { leaveWindowOf, type LeaveWindow } from './entitlement.js';
 import type {
 	SettlementBucket,
 	SettlementDestination,
@@ -260,6 +260,15 @@ export function withLeaveDeductionEligibility(
 ): PreparedLeavePayroll {
 	const deductionEligibility: Record<string, boolean> = {};
 	const deductionShare: Record<string, number> = {};
+	// Every charged day of the employment's time off, so `leave.taken(code)` can count a code's
+	// days in the leave year before the day being priced, across entries.
+	const charged = activeTimeOff(gathered.entries).flatMap((entry) =>
+		entry.charges.map((charge) => ({
+			date: charge.date,
+			code: entry.leave_code,
+			days: charge.days
+		}))
+	);
 	for (const entry of activeTimeOff(gathered.entries)) {
 		const chargedDays = entry.charges.reduce((sum, charge) => sum + charge.days, 0);
 		const opening = entry.charges.map((charge) => charge.date).toSorted()[0] ?? '';
@@ -284,12 +293,18 @@ export function withLeaveDeductionEligibility(
 			// of it otherwise — read on the day, so a scale that steps by month steps here.
 			let share = 1;
 			if (eligible && !catalogue.is_npl && catalogue.paid_by !== 'FUND') {
+				const yearStart = leaveWindowOf(charge.date, catalogue.entitlement).start;
+				const yearTaken: Record<string, number> = {};
+				for (const row of charged)
+					if (row.date >= yearStart && row.date < charge.date)
+						yearTaken[row.code] = (yearTaken[row.code] ?? 0) + row.days;
 				const paid = evaluateNumberOver(catalogue.pay_fraction, {
 					...person,
 					leave: {
 						month_index: wholeMonthsBetween(opening, charge.date) + 1,
 						day_index: inclusiveDays(opening, charge.date),
-						days: chargedDays
+						days: chargedDays,
+						year_taken: yearTaken
 					}
 				});
 				share = 1 - Math.min(1, Math.max(0, paid));

@@ -30,6 +30,7 @@ import {
 	chargeOf,
 	createStatutoryWorld,
 	expectStatutory,
+	expectStatutorySkipped,
 	assertEveryVersionPriced,
 	COMPANY_ID,
 	type BuiltPayslip
@@ -946,4 +947,32 @@ test('Indonesia — biaya jabatan is capped per month of income, the join month 
 		}
 	);
 	expectStatutory(book, 'ID-JUL15', 'PPH21', 2_586_550 - 6_400_000, 0);
+});
+
+test('Indonesia — a foreign worker joins JKK, JKM and JHT from six months of work (PP 44/2015, PP 46/2015 art.2(2))', () => {
+	// A three-month contract: outside the three; a six-month one, or an open contract, inside.
+	// (JP reaches a foreigner only through a registration fact — landed 2026-09-19 (11).)
+	const book = assessStatutoryUnvalidated({
+		...idWorld('2026-01'),
+		people: [
+			{
+				key: 'ID-TKA-3M',
+				wage: 20_000_000,
+				citizenship: 'FOREIGNER',
+				hire_date: '2026-01-01',
+				exit_date: '2026-03-31'
+			},
+			{
+				key: 'ID-TKA-6M',
+				wage: 20_000_000,
+				citizenship: 'FOREIGNER',
+				hire_date: '2026-01-01',
+				exit_date: '2026-06-30'
+			},
+			{ key: 'ID-TKA-OPEN', wage: 20_000_000, citizenship: 'FOREIGNER' }
+		]
+	});
+	for (const scheme of ['JHT', 'JKK', 'JKM']) expectStatutorySkipped(book, 'ID-TKA-3M', scheme);
+	expectStatutory(book, 'ID-TKA-6M', 'JHT', 400_000, 740_000);
+	expectStatutory(book, 'ID-TKA-OPEN', 'JHT', 400_000, 740_000);
 });

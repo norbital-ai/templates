@@ -60,6 +60,12 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		description:
 			'Whole calendar months since birth, for a band that moves the month after a birthday'
 	},
+	{ path: 'employee.birth_date', description: 'Date of birth as `YYYY-MM-DD`, or empty' },
+	{
+		path: 'employee.age_on(date)',
+		description:
+			'Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters'
+	},
 	{ path: 'employee.citizenship', description: 'Residency standing from the effective terms' },
 	{ path: 'employee.marital_status', description: 'Marital status' },
 	{ path: 'employee.spouse_status', description: 'NONE | WITHOUT_INCOME | WITH_INCOME' },
@@ -93,9 +99,19 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'employment.service_years', description: 'Completed years since the stint began' },
 	{ path: 'employment.exit_date', description: 'Last day of work, or empty while open' },
 	{
+		path: 'employment.open_ended',
+		description:
+			'Whether the contract states no end; a fixed-term contract’s end is its `exit_date`'
+	},
+	{
+		path: 'employment.contract_months',
+		description:
+			'Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended'
+	},
+	{
 		path: 'employment.exit_reason',
 		description:
-			'RESIGNATION | DISMISSAL | REDUNDANCY | RETIREMENT | END_OF_CONTRACT | MUTUAL | DEATH, or empty'
+			'RESIGNATION | DISMISSAL | REDUNDANCY | RETRENCHMENT | UNILATERAL | RETIREMENT | END_OF_CONTRACT | MUTUAL | DEATH, or empty'
 	},
 	{
 		path: 'employment.absent_days_12m',
@@ -198,6 +214,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		description: 'Whether the employment is registered with the scheme of that code'
 	},
 	{
+		path: 'facts.<CODE>.since',
+		description:
+			'The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`)'
+	},
+	{
 		path: 'facts.<CODE>.since_months',
 		description:
 			'Completed months since the employment registered with that scheme, 0 when unrecorded'
@@ -244,6 +265,7 @@ const PERSON_BLANK = {
 		gender: '',
 		age: 0,
 		age_months: 0,
+		birth_date: '',
 		citizenship: '',
 		marital_status: '',
 		spouse_status: '',
@@ -262,6 +284,8 @@ const PERSON_BLANK = {
 		service_months: 0,
 		service_years: 0,
 		exit_date: '',
+		open_ended: true,
+		contract_months: 0,
 		exit_reason: '',
 		absent_days_12m: 0
 	},
@@ -467,7 +491,13 @@ const COMMON_FUNCTIONS: readonly ExpressionFunction[] = [
 const EARNED_AVERAGE: ExpressionFunction = {
 	path: 'earned_average(code, months_back, months)',
 	description:
-		'The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window'
+		'The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window. `code` may be a list of codes — reserved lines among them (`OVERTIME`) — summed month by month (TW 施行細則 §27: the three-month average of 工資, overtime included)'
+};
+
+const DAYS_UNDER: ExpressionFunction = {
+	path: 'days_under(age)',
+	description:
+		'The calendar days of the pay window on which the person is under that age — a cover that ends on a birthday charges the days before it (TW 勞保條例施行細則 §28-1 at sixty-five)'
 };
 
 const MINIMUM_WAGE: ExpressionFunction = {
@@ -498,8 +528,10 @@ const CODE_FUNCTIONS: readonly ExpressionFunction[] = [
 
 const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 	const functions: ExpressionFunction[] = [...COMMON_FUNCTIONS];
-	if (site === 'person' || site === 'assessment' || site === 'scheme') functions.push(MINIMUM_WAGE);
+	if (site === 'person' || site === 'entry' || site === 'assessment' || site === 'scheme')
+		functions.push(MINIMUM_WAGE);
 	if (site === 'assessment') functions.push(...CODE_FUNCTIONS, EARNED_AVERAGE);
+	if (site === 'assessment' || site === 'scheme') functions.push(DAYS_UNDER);
 	if (site === 'assessment' || site === 'scheme') functions.push(ANNUAL_EXEMPT);
 	if (site === 'entry')
 		functions.push({
@@ -526,12 +558,17 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 		...PERSON_ROOT_FIELDS,
 		{ path: 'leave.month_index', description: 'Which month of the leave the day is in, from 1' },
 		{ path: 'leave.day_index', description: 'Which calendar day of the leave, from 1' },
-		{ path: 'leave.days', description: 'The days the whole entry charges' }
+		{ path: 'leave.days', description: 'The days the whole entry charges' },
+		{
+			path: 'leave.taken(code)',
+			description:
+				'The days of that leave code charged in the leave year before this day, across every entry (TW 勞工請假規則 §4(3): thirty half-paid 普通傷病假 days a year, hospitalised or not)'
+		}
 	],
 	bare: ['wage_floor'],
 	open: ['company.facts'],
 	functions: functionsFor('person'),
-	blank: { ...personBlank(), leave: { month_index: 1, day_index: 1, days: 1 } }
+	blank: { ...personBlank(), leave: { month_index: 1, day_index: 1, days: 1, year_taken: {} } }
 };
 
 const ENTRY_CONTEXT: ExpressionContext = {

@@ -40,7 +40,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -143,7 +143,8 @@
 			"wages": {
 				"by_region": {},
 				"applies_when": ""
-			}
+			},
+			"rate_week_hours": 44
 		},
 		"payroll": {
 			"currency": "SGD",
@@ -217,7 +218,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -320,7 +321,8 @@
 			"wages": {
 				"by_region": {},
 				"applies_when": ""
-			}
+			},
+			"rate_week_hours": 44
 		},
 		"payroll": {
 			"currency": "SGD",
@@ -394,7 +396,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -497,7 +499,8 @@
 			"wages": {
 				"by_region": {},
 				"applies_when": ""
-			}
+			},
+			"rate_week_hours": 44
 		},
 		"payroll": {
 			"currency": "SGD",
@@ -571,7 +574,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -674,7 +677,8 @@
 			"wages": {
 				"by_region": {},
 				"applies_when": ""
-			}
+			},
+			"rate_week_hours": 44
 		},
 		"payroll": {
 			"currency": "SGD",

@@ -407,6 +407,20 @@
 				/>
 			</label>
 			<label class="flex flex-col gap-1 text-xs">
+				<span class="text-muted-foreground">{t('renderer.work_rules.rate_week_hours')}</span>
+				<Input
+					type="number"
+					value={current.rate_week_hours ?? ''}
+					{disabled}
+					placeholder="44"
+					oninput={(event) =>
+						edit({
+							rate_week_hours:
+								event.currentTarget.value.trim() === '' ? null : Number(event.currentTarget.value)
+						})}
+				/>
+			</label>
+			<label class="flex flex-col gap-1 text-xs">
 				<span class="text-muted-foreground">{t('renderer.work_rules.precedence_label')}</span>
 				<Combobox
 					options={precedenceOptions}

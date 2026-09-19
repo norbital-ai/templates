@@ -45,7 +45,7 @@ import {
 	type MonthPrior
 } from './accumulate.js';
 import type { ContributionConfig } from './configuration.js';
-import { completedMonths } from './dates.js';
+import { addDays, completedMonths, inclusiveDays, monthDay } from './dates.js';
 import { producedMentions, producedMentionsOf } from './mentions.js';
 import type { PersonContext } from './eligibility.js';
 import type { PayProjection } from './period.js';
@@ -242,12 +242,28 @@ function reliefReads(options: {
 
 /** The engine one assessment evaluates with: the region's wage and the payslip's own money. */
 function engineFor(
-	input: Pick<SchemeAssessment, 'minimumWage' | 'earnedByMonth' | 'period'> &
+	input: Pick<SchemeAssessment, 'minimumWage' | 'earnedByMonth' | 'period' | 'person'> &
 		Partial<Pick<SchemeAssessment, 'yearEarned' | 'componentsByCode'>>,
 	accumulation: AccumulatedPayslip
 ): ExpressionEngine {
 	return runtimeExpressionEngine({
 		minimumWage: () => input.minimumWage ?? 0,
+		// The pay window's days before the person's birthday of that age: the whole window with no
+		// birth date on record, none once the birthday is past.
+		daysUnder: (age) => {
+			const born = input.person.employee.birth_date;
+			const { start, end } = input.period;
+			if (born === '' || !(age > 0)) return inclusiveDays(start, end);
+			const birthday = addDays(
+				monthDay(
+					Number(born.slice(0, 4)) + age,
+					Number(born.slice(5, 7)) - 1,
+					Number(born.slice(8, 10))
+				),
+				-1
+			);
+			return birthday < start ? 0 : inclusiveDays(start, birthday < end ? birthday : end);
+		},
 		code: (code) => accumulation.codes.get(code) ?? 0,
 		catalog: (catalogue, selection) => catalogueSum(accumulation, catalogue, selection),
 		earnedAverage: (code, monthsBack, months) =>

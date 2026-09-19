@@ -5,7 +5,7 @@
 		"code": "SEVERANCE_ALLOWANCE",
 		"name": "Trợ cấp thôi việc (severance allowance)",
 		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year). Applied 2026-09-19 (2): Labour Code 2019 art.46: half a month’s salary for each year of service to an employee of twelve months’ service whose contract ends under art.34(1)–(4), (6), (7), (9), (10) — expiry, resignation, agreement, death; not a disciplinary dismissal or redundancy — over the service not covered by unemployment insurance, whatever its length; Decree 145/2020 art.8(3): a leftover of up to six months counts a half year, over six a whole year; art.8(5): the salary is the average contractual salary of the last six months (the monthly wage of the contract). Applied 2026-09-19 (3): Decree 145/2020 art.8(5): the salary the allowance is computed on is the average contractual salary of the six months before the contract ends (`terms.monthly_wage_6m_average`: the terms in force and the standing allowances on the first of each of those months).",
-		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\"] && (employment.service_months - facts.UI.since_months) > 0",
+		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"] && (employment.service_months - facts.UI.since_months) > 0",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -47,7 +47,7 @@
 		"code": "SEVERANCE_ALLOWANCE",
 		"name": "Trợ cấp thôi việc (severance allowance)",
 		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year). Applied 2026-09-19 (2): Labour Code 2019 art.46: half a month’s salary for each year of service to an employee of twelve months’ service whose contract ends under art.34(1)–(4), (6), (7), (9), (10) — expiry, resignation, agreement, death; not a disciplinary dismissal or redundancy — over the service not covered by unemployment insurance, whatever its length; Decree 145/2020 art.8(3): a leftover of up to six months counts a half year, over six a whole year; art.8(5): the salary is the average contractual salary of the last six months (the monthly wage of the contract). Applied 2026-09-19 (3): Decree 145/2020 art.8(5): the salary the allowance is computed on is the average contractual salary of the six months before the contract ends (`terms.monthly_wage_6m_average`: the terms in force and the standing allowances on the first of each of those months).",
-		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\"] && (employment.service_months - facts.UI.since_months) > 0",
+		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"] && (employment.service_months - facts.UI.since_months) > 0",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -89,7 +89,7 @@
 		"code": "SEVERANCE_ALLOWANCE",
 		"name": "Trợ cấp thôi việc (severance allowance)",
 		"authority": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year). Applied 2026-09-19 (2): Labour Code 2019 art.46: half a month’s salary for each year of service to an employee of twelve months’ service whose contract ends under art.34(1)–(4), (6), (7), (9), (10) — expiry, resignation, agreement, death; not a disciplinary dismissal or redundancy — over the service not covered by unemployment insurance, whatever its length; Decree 145/2020 art.8(3): a leftover of up to six months counts a half year, over six a whole year; art.8(5): the salary is the average contractual salary of the last six months (the monthly wage of the contract). Applied 2026-09-19 (3): Decree 145/2020 art.8(5): the salary the allowance is computed on is the average contractual salary of the six months before the contract ends (`terms.monthly_wage_6m_average`: the terms in force and the standing allowances on the first of each of those months).",
-		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\"] && (employment.service_months - facts.UI.since_months) > 0",
+		"eligibility": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"] && (employment.service_months - facts.UI.since_months) > 0",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -124,5 +124,68 @@
 		],
 		"fixed": false,
 		"one_off": true
+	},
+	{
+		"id": "4ed19a3f-e40e-5344-b9d2-67427d8a28f7",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "INSURANCE_EQUIVALENT",
+		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
+		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month.",
+		"eligibility": "(has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": false,
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + 3.0) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+			}
+		],
+		"fixed": false,
+		"one_off": false
+	},
+	{
+		"id": "c8ea427e-276c-596c-bad3-c28317c057ff",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "INSURANCE_EQUIVALENT",
+		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
+		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month.",
+		"eligibility": "(has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": false,
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + 3.0) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+			}
+		],
+		"fixed": false,
+		"one_off": false
+	},
+	{
+		"id": "753a0f34-dc12-501f-99ac-55c0b99bf326",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "INSURANCE_EQUIVALENT",
+		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
+		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month.",
+		"eligibility": "(has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2530000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"on_separation": false,
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_unit((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + 3.0) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+			}
+		],
+		"fixed": false,
+		"one_off": false
 	}
 ]
