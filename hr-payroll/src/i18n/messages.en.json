@@ -1070,6 +1070,7 @@
 	"component.holiday_in_npl_unpaid": "Holiday inside no-pay leave is unpaid",
 	"component.short_day_is_half": "A day of ≤ 5 contracted hours counts as half",
 	"renderer.work_rules.normal_hours": "Normal working day (hours, over the person; empty is the shift’s own length)",
+	"renderer.work_rules.rate_week_hours": "Hourly-rate week cap (hours; empty is the day over the daily normal hours)",
 	"leave.lifetime_days": "Lifetime days (a number or an expression over the person; empty is no cap)",
 	"leave.consumes_after_days": "Days a year outside the pool this row draws from",
 	"renderer.statutory_fact_status.opening": "Earlier employer this year",

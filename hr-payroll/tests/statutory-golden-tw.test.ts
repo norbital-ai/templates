@@ -112,15 +112,23 @@ test('Taiwan — labour and employment insurance end at 65, and the run still bu
 		riskClass: '1',
 		people: [
 			{ key: 'TW-64', wage: 40_000, age: 64, citizenship: 'CITIZEN' },
-			{ key: 'TW-65', wage: 40_000, age: 65, citizenship: 'CITIZEN' },
+			// Sixty-five on 15 January: cover ends on the birthday, and 施行細則 §28-1 charges the
+			// fourteen enrolled days before it — 40,100 × 11.5% × 20% × 14/30 = 430, × 70% = 1,506;
+			// 就保 40,100 × 1% × 20% × 14/30 = 37, × 70% = 131.
+			{ key: 'TW-65', wage: 40_000, birth_date: '1961-01-15', citizenship: 'CITIZEN' },
+			// Sixty-five on the 31st: thirty enrolled days is the whole month.
+			{ key: 'TW-65-LAST', wage: 40_000, birth_date: '1961-01-31', citizenship: 'CITIZEN' },
 			{ key: 'TW-70', wage: 40_000, age: 70, citizenship: 'CITIZEN' }
 		]
 	});
 	expectStatutory(book, 'TW-64', 'LI', 922, 3228);
 	expectStatutory(book, 'TW-64', 'EI', 80, 281);
+	expectStatutory(book, 'TW-65', 'LI', 430, 1506);
+	expectStatutory(book, 'TW-65', 'EI', 37, 131);
+	expectStatutory(book, 'TW-65-LAST', 'LI', 922, 3228);
+	expectStatutorySkipped(book, 'TW-70', 'LI');
+	expectStatutorySkipped(book, 'TW-70', 'EI');
 	for (const key of ['TW-65', 'TW-70']) {
-		expectStatutorySkipped(book, key, 'LI');
-		expectStatutorySkipped(book, key, 'EI');
 		// Still insured for health and for occupational injury, and still priced.
 		expectStatutory(book, key, 'NHI', 622, 1940);
 		expectStatutory(book, key, 'OCC_INJURY', 0, 100);
@@ -1096,4 +1104,153 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 	assert.deepEqual(charge(encash, 'INCOME_TAX'), [60_000, 3000, 0]);
 	const fifty = slips.get('TW-FIFTY')!;
 	assert.deepEqual(charge(fifty, 'INCOME_TAX'), [61_583.34, 3079.17, 0]);
+});
+
+test('Taiwan — thirty half-paid 普通傷病假 days a year, hospitalised or not, across entries (勞工請假規則 §4(3))', () => {
+	// 62,000 a month, 2,000 a day on March's 31 calendar days. Thirty days of sick leave in
+	// January and February on file, then ten
+	// hospitalised days in March: the year's thirty half-paid days are spent, so the ten are
+	// unpaid — a whole day each comes off, not a half.
+	const sick = leaveCatalogue('TW').find(
+		(row) => row.code === 'SICK_LEAVE' && row.settings_id === TW_2026
+	)!;
+	const hospitalised = leaveCatalogue('TW').find(
+		(row) => row.code === 'HOSPITALISED_SICK_LEAVE' && row.settings_id === TW_2026
+	)!;
+	const entry = (
+		world: PayrollWorld,
+		key: string,
+		id: string,
+		catalogue: { id: string; code: string },
+		dates: string[]
+	) => {
+		const employment = world.employments.find((row) => row.employee_number === key)!;
+		const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+		world.leave_entries.push({
+			id,
+			employment_id: employment.id,
+			catalogue_id: catalogue.id,
+			leave_code: catalogue.code,
+			reference: id,
+			from_date: dates[0]!,
+			to_date: dates.at(-1)!,
+			half_day_start: false,
+			half_day_end: false,
+			days: dates.length,
+			effective_on: dates[0]!,
+			reason: '',
+			allocations: [],
+			charges: dates.map((date) => ({
+				date,
+				days: 1,
+				catalogue_id: catalogue.id,
+				employment_term_id: term.id,
+				holiday_id: null,
+				shift_definition_id: null,
+				work_day_id: null
+			})),
+			approval_id: null
+		} as never);
+	};
+	const weekdays = (month: string, from: number, count: number) => {
+		const days: string[] = [];
+		for (let day = from; days.length < count; day += 1) {
+			const date = `${month}-${String(day).padStart(2, '0')}`;
+			const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+			if (weekday !== 0 && weekday !== 6) days.push(date);
+		}
+		return days;
+	};
+	const build = (spent: boolean) =>
+		buildStatutory(
+			{
+				code: 'TW',
+				period: '2026-03',
+				riskClass: '1',
+				people: [{ key: 'TW-SICK', wage: 62_000, citizenship: 'CITIZEN' }]
+			},
+			(world) => {
+				world.leave_catalogue.push(
+					{ ...sick, approval_id: null } as never,
+					{ ...hospitalised, approval_id: null } as never
+				);
+				if (spent)
+					entry(world, 'TW-SICK', 'e1000000-0000-4000-8000-0000000sick1', sick, [
+						...weekdays('2026-01', 5, 20),
+						...weekdays('2026-02', 2, 10)
+					]);
+				entry(
+					world,
+					'TW-SICK',
+					'e1000000-0000-4000-8000-0000000hosp1',
+					hospitalised,
+					weekdays('2026-03', 2, 10)
+				);
+			}
+		);
+	const lines = (slip: BuiltPayslip) =>
+		slip.adjustments
+			.filter((row) => row.family === 'LEAVE')
+			.map((row) => [row.quantity, row.amount, row.bucket] as const);
+	const off = (slip: BuiltPayslip) => lines(slip).reduce((sum, line) => sum + line[1], 0);
+	// The year's first hospitalised days: half-paid, ten days at half of 62,000 ÷ 31 = 1,000 off.
+	assert.equal(lines(build(false).slips.get('TW-SICK')!).length, 10);
+	assert.equal(off(build(false).slips.get('TW-SICK')!), 10_000);
+	// After thirty sick days earlier in the year: unpaid, ten whole days of 2,000 off.
+	assert.equal(off(build(true).slips.get('TW-SICK')!), 20_000);
+});
+
+test('Taiwan — a monthly worker with regular overtime is graded on the three-month average with it (施行細則 §27)', () => {
+	// 30,000 a month with 8,000 of overtime in each of November, December and January on file:
+	// the March declaration reads the November–January average of 工資 — 38,000 — the 38,200
+	// grade, not the 30,300 of the basic alone. A worker whose three months carried no overtime
+	// stays on the contract's grade.
+	const prior = (world: PayrollWorld, key: string, overtime: number) => {
+		const employment = world.employments.find((row) => row.employee_number === key)!;
+		for (const month of ['2025-11', '2025-12', '2026-01']) {
+			world.payroll_runs.push({
+				id: `prior-${month}-${key}`,
+				company_id: COMPANY_ID,
+				period: month
+			});
+			world.payslips.push({
+				id: `payslip-${month}-${key}`,
+				payroll_run_id: `prior-${month}-${key}`,
+				employment_id: employment.id,
+				status: 'PAID',
+				paid_at: `${month}-28T00:00:00.000Z`,
+				currency: 'TWD',
+				base: [{ component_code: 'BASIC', amount: 30_000 }],
+				adjustments:
+					overtime > 0
+						? [
+								{
+									family: 'WORK_DAY',
+									component_code: 'OT-1.3333333333333333X',
+									bucket: 'EARNING',
+									amount: overtime
+								}
+							]
+						: [],
+				statutory: []
+			} as never);
+		}
+	};
+	const book = assessStatutory(
+		{
+			code: 'TW',
+			period: '2026-03',
+			riskClass: '1',
+			people: [
+				{ key: 'TW-OT-REG', wage: 30_000, citizenship: 'CITIZEN' },
+				{ key: 'TW-OT-NONE', wage: 30_000, citizenship: 'CITIZEN' }
+			]
+		},
+		(world) => {
+			prior(world, 'TW-OT-REG', 8_000);
+			prior(world, 'TW-OT-NONE', 0);
+		}
+	);
+	assert.equal(book.get('TW-OT-REG')!.get('LI')!.base, 38_200);
+	assert.equal(book.get('TW-OT-NONE')!.get('LI')!.base, 30_300);
 });

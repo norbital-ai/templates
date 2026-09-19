@@ -1070,6 +1070,7 @@
 	"component.holiday_in_npl_unpaid": "无薪假期间的公众假期不计薪",
 	"component.short_day_is_half": "合同工时≤5小时的一天按半天计",
 	"renderer.work_rules.normal_hours": "正常工作日（小时，按人评估；留空则取班次时长）",
+	"renderer.work_rules.rate_week_hours": "时薪计算周上限（小时；留空则按日正常工时折算）",
 	"leave.lifetime_days": "终身天数（数字或按人表达式；留空为不限）",
 	"leave.consumes_after_days": "每年不计入所引用假期池的天数",
 	"renderer.statutory_fact_status.opening": "本年度前雇主",

@@ -10,6 +10,7 @@
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
 import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
 import { childBornOn, childCitizensUnder, childClassed, childUnder } from './child-under.js';
+import { ageOn, leaveTaken } from './person-functions.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -35,6 +36,8 @@ export type ExpressionEngine = {
 	) => number;
 	/** `earned_average(code, months_back, months)`: a window of earlier payslips' earnings. */
 	readonly earnedAverage?: (code: string, monthsBack: number, months: number) => number;
+	/** `days_under(age)`: the pay window's days on which the person is under that age. */
+	readonly daysUnder?: (age: number) => number;
 	/** `year_catalog(...)`: the same selection as `catalog`, summed over the tax year's earlier PAID payslips. */
 	readonly yearCatalog?: ExpressionEngine['catalog'];
 };
@@ -100,6 +103,9 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.citizens_under(int): int', childCitizensUnder],
 	['map.classed(string): int', childClassed],
 	['map.born_on(string): int', childBornOn],
+	['map.age_on(string): int', ageOn],
+	['map.taken(string): double', leaveTaken],
+	['days_under(int): double', (age) => Number(bound.daysUnder?.(Number(age)) ?? 0)],
 	['map.days(string): double', () => 0],
 	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
 	[
@@ -110,6 +116,16 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 		'earned_average(string, int, int): double',
 		(code, monthsBack, months) =>
 			Number(bound.earnedAverage?.(String(code), Number(monthsBack), Number(months)) ?? 0)
+	],
+	[
+		'earned_average(list, int, int): double',
+		(codes, monthsBack, months) =>
+			(Array.isArray(codes) ? codes : []).reduce(
+				(sum: number, code) =>
+					sum +
+					Number(bound.earnedAverage?.(String(code), Number(monthsBack), Number(months)) ?? 0),
+				0
+			)
 	],
 	[
 		'catalog(string, dyn): double',
@@ -138,6 +154,7 @@ export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {})
 		code: options.code,
 		catalog: options.catalog,
 		earnedAverage: options.earnedAverage,
+		daysUnder: options.daysUnder,
 		yearCatalog: options.yearCatalog
 	};
 }

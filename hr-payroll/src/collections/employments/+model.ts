@@ -25,6 +25,11 @@ export default defineModel(
 			'RESIGNATION',
 			'DISMISSAL',
 			'REDUNDANCY',
+			// The employer's termination for an authorised cause that is not redundancy: PH art.298
+			// retrenchment, closure or disease (half a month per year); VN art.36 unilateral termination
+			// (art.46 severance), where the enum's own word is UNILATERAL.
+			'RETRENCHMENT',
+			'UNILATERAL',
 			'RETIREMENT',
 			'END_OF_CONTRACT',
 			'MUTUAL',

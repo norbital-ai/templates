@@ -19,7 +19,7 @@
 import { Effect } from 'effect';
 import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std/reckon';
 import { decodeNumber } from '@norbital-ai/std/json';
-import { completedMonths, completedYears, inclusiveDays } from './dates.js';
+import { addDays, completedMonths, completedYears, inclusiveDays } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
 import {
@@ -29,6 +29,7 @@ import {
 	childUnder
 } from '../../../lib/expressions/child-under.js';
 import { roundMoney } from './rounding.js';
+import { ageOn, leaveTaken } from '../../../lib/expressions/person-functions.js';
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
 export type PersonContext = {
@@ -37,6 +38,8 @@ export type PersonContext = {
 		readonly age: number;
 		/** Completed months; a band that moves the month after a birthday reads this. */
 		readonly age_months: number;
+		/** `YYYY-MM-DD`, or empty; `employee.age_on(date)` reads it. */
+		readonly birth_date: string;
 		readonly citizenship: string;
 		readonly marital_status: string;
 		/** `NONE` | `WITHOUT_INCOME` | `WITH_INCOME` — whether a spouse has income of their own. */
@@ -67,6 +70,10 @@ export type PersonContext = {
 		readonly service_years: number;
 		/** Last day of work, or empty while the stint is open. */
 		readonly exit_date: string;
+		/** Whether the contract states no end: a fixed-term contract's end is its `exit_date`. */
+		readonly open_ended: boolean;
+		/** Whole months of a fixed-term contract, first day to last; 0 where open-ended. */
+		readonly contract_months: number;
 		/** `employments.exit_reason`, or empty while the stint is open or unrecorded. */
 		readonly exit_reason: string;
 		/**
@@ -157,7 +164,10 @@ export type PersonContext = {
 	 * (VN sick leave) or on a contribution test (PH maternity) reads `facts.SI.since_months`.
 	 */
 	readonly facts: Readonly<
-		Record<string, { readonly registered: boolean; readonly since_months: number }>
+		Record<
+			string,
+			{ readonly registered: boolean; readonly since: string; readonly since_months: number }
+		>
 	>;
 	/**
 	 * The event a per-event leave answers to, where the rule is read for one entry: empty
@@ -336,6 +346,7 @@ export function personContext(input: PersonInput): PersonContext {
 			// following" the birthday turns on the month, so a 31 January birth is at the next band
 			// for every February payroll.
 			age_months: born === '' ? 0 : wholeMonthsBetween(born, input.asOf),
+			birth_date: born,
 			// Effective contract terms hold jurisdiction-relative standing. A concurrent contract
 			// elsewhere may have different standing; nationality is not a substitute.
 			citizenship: input.terms?.residency_status ?? '',
@@ -365,6 +376,9 @@ export function personContext(input: PersonInput): PersonContext {
 			service_months: start === '' ? 0 : completedMonths(start, input.asOf),
 			service_years: start === '' ? 0 : completedYears(start, input.asOf),
 			exit_date: exit,
+			open_ended: exit === '',
+			contract_months:
+				exit === '' || start === '' || exit < start ? 0 : completedMonths(start, addDays(exit, 1)),
 			exit_reason: input.employment.exit_reason ?? '',
 			absent_days_12m: decodeNumber(input.employment.absent_days_12m ?? 0)
 		},
@@ -437,6 +451,7 @@ export function personContext(input: PersonInput): PersonContext {
 					fact.code,
 					{
 						registered: fact.registered,
+						since,
 						since_months:
 							since === '' || since > input.asOf ? 0 : completedMonths(since, input.asOf)
 					}
@@ -466,6 +481,8 @@ const engine = ROUNDING.reduce(
 		.registerFunction('citizens_under', 'map.citizens_under(int): int', childCitizensUnder)
 		.registerFunction('classed', 'map.classed(string): int', childClassed)
 		.registerFunction('born_on', 'map.born_on(string): int', childBornOn)
+		.registerFunction('age_on', 'map.age_on(string): int', ageOn)
+		.registerFunction('taken', 'map.taken(string): double', leaveTaken)
 );
 
 function evaluate(expression: string, context: PersonContext): unknown {

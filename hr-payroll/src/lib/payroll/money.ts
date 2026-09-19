@@ -11,7 +11,12 @@ import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_run
 import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
-import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expressions/evaluate.js';
+import {
+	evaluateBoolean,
+	evaluateNumber,
+	runtimeExpressionEngine,
+	type ExpressionEngine
+} from '../expressions/evaluate.js';
 import {
 	isEligible,
 	personContext,
@@ -23,6 +28,7 @@ import {
 	type LimitSibling
 } from '../../collections/payroll_runs/lib/entry-cap.js';
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
+import { factStatusesOn, personFacts } from './facts.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import {
 	intersectDays,
@@ -245,10 +251,10 @@ export function entryContext(options: {
 /** The band that governs this entry: the first whose `when` holds, or null when none does. */
 function selectBand(
 	bands: readonly CatalogueBand[],
-	context: Record<string, unknown>
+	context: Record<string, unknown>,
+	engine: ExpressionEngine
 ): CatalogueBand | null {
 	if (bands.length === 0) return null;
-	const engine = expressionEngine;
 	for (const band of bands) {
 		if (band.when.trim() === '') return band;
 		try {
@@ -263,8 +269,12 @@ function selectBand(
 }
 
 /** The band's amount: its money expression evaluated over the entry context. */
-function bandAmount(band: CatalogueBand, context: Record<string, unknown>): number {
-	return evaluateNumber(expressionEngine, band.amount, context);
+function bandAmount(
+	band: CatalogueBand,
+	context: Record<string, unknown>,
+	engine: ExpressionEngine
+): number {
+	return evaluateNumber(engine, band.amount, context);
 }
 
 /** The proration facts of one allowance entry, as the payslip stores them beside the money. */
@@ -355,6 +365,12 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		proration == null ? 0 : proration.denominator <= 0 ? 0 : proration.days / proration.denominator;
 	const currency = options.configuration.jurisdiction.payroll.currency;
 
+	// The entry site's engine: a band can read the version's minimum wage for a region (PH de
+	// minimis on the statutory minimum, VN's twenty-times-the-minimum unemployment ceiling).
+	const engine = runtimeExpressionEngine({
+		minimumWage: (region) =>
+			decodeNumber(options.configuration.jurisdiction.work_rules.wages?.by_region?.[region] ?? 0)
+	});
 	const measureEntry = (entry: PreparedPayRequest): Measurement | null => {
 		const subjectOn = (source: PayRequest): PersonContext =>
 			personContext({
@@ -370,6 +386,12 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				),
 				children: options.bundle.children,
 				company: options.configuration.company,
+				// The registration facts on the day, so a row owed to those outside a scheme (VN
+				// art.168(3)) can read `facts.<CODE>.registered`.
+				facts: personFacts(
+					options.configuration.contributions,
+					factStatusesOn(options.bundle.statutoryFacts, source.event_date)
+				),
 				asOf: source.event_date
 			});
 		const subject = subjectOn(entry);
@@ -424,7 +446,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				remaining: Math.max(0, decodeNumber(entry.amount) - paidToDate)
 			}
 		});
-		const band = selectBand(options.component.bands, context);
+		const band = selectBand(options.component.bands, context, engine);
 		// A non-empty band table that covers nobody leaves the entry priced at nothing: the bands
 		// are the entitlement, and no band is no entitlement.
 		if (band == null && options.component.bands.length > 0)
@@ -443,11 +465,11 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		const fraction = entry.window == null || lumpSum ? 1 : fractionOf(proration);
 		if (fraction <= 0 && entry.window != null)
 			return skipped('unpaid leave covered every day of the period the allowance was in force');
-		const raw = band == null ? decodeNumber(entry.amount) : bandAmount(band, context);
+		const raw = band == null ? decodeNumber(entry.amount) : bandAmount(band, context, engine);
 		const reimbursable = cents(raw * fraction, currency);
 		let payable = reimbursable;
 		if (band?.limit != null) {
-			const limitAmount = evaluateNumber(expressionEngine, band.limit.amount, context);
+			const limitAmount = evaluateNumber(engine, band.limit.amount, context);
 			// The ceiling spans catalogue revisions of one code: a request agreed under an earlier
 			// revision still consumes it. Compare by code, not id, for the same reason the transform's
 			// `catalogueRevisionsOf` reads the whole lineage.

@@ -980,3 +980,130 @@ test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve mont
 	);
 	expectStatutory(december, 'VN-JULY', 'PIT', 8_155_800 - 5 * withheld, 0);
 });
+
+test('Vietnam — a contract under three months is withheld 10% flat from 5,000,000 a payment, unless the commitment is on file (Decree 253/2026 art.50(2))', () => {
+	const book = assessStatutory({
+		code: 'VN',
+		period: '2026-01',
+		region: 'I',
+		people: [
+			// Two months, 8,000,000: 10% = 800,000 — no deduction, no table.
+			{
+				key: 'VN-2M-CONTRACT',
+				wage: 8_000_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2026-01-01',
+				exit_date: '2026-02-28'
+			},
+			// The same on 4,000,000: under 5,000,000 a payment, nothing withheld.
+			{
+				key: 'VN-2M-SMALL',
+				wage: 4_000_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2026-01-01',
+				exit_date: '2026-02-28'
+			},
+			// The commitment (mẫu 08/CK-TNCN) suspends the 10%: the table, which on 8,000,000 less
+			// the 15,500,000 deduction is nothing.
+			{
+				key: 'VN-2M-COMMITTED',
+				wage: 8_000_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2026-01-01',
+				exit_date: '2026-02-28',
+				registrations: { PIT: { kind: 'REGISTERED', elections: { commitment_form: true } } }
+			},
+			// Three months is the progressive table: 8,000,000 − insurance − 15,500,000 < 0 → 0.
+			{
+				key: 'VN-3M-CONTRACT',
+				wage: 8_000_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2026-01-01',
+				exit_date: '2026-03-31'
+			}
+		]
+	});
+	expectStatutory(book, 'VN-2M-CONTRACT', 'PIT', 800_000, 0);
+	expectStatutory(book, 'VN-2M-SMALL', 'PIT', 0, 0);
+	expectStatutory(book, 'VN-2M-COMMITTED', 'PIT', 0, 0);
+	expectStatutory(book, 'VN-3M-CONTRACT', 'PIT', 0, 0);
+});
+
+test('Vietnam — a foreigner is insured on a contract of twelve months or more (Law 41/2024 art.2(2)); those outside are owed the employer’s rate as wages (Labour Code art.168(3))', () => {
+	const version = settingsVersions('VN').find((v) =>
+		String(v.effective_range.start).startsWith('2026-01')
+	)!;
+	const { slips } = buildStatutory(
+		{
+			code: 'VN',
+			period: '2026-01',
+			region: 'I',
+			people: [
+				{
+					key: 'VN-F-6M',
+					wage: 20_000_000,
+					citizenship: 'FOREIGNER',
+					hire_date: '2026-01-01',
+					exit_date: '2026-06-30'
+				},
+				{
+					key: 'VN-F-12M',
+					wage: 20_000_000,
+					citizenship: 'FOREIGNER',
+					hire_date: '2026-01-01',
+					exit_date: '2026-12-31'
+				},
+				// A working pensioner, recorded outside SI: nothing to the fund, 20.5% + 1% to them.
+				{
+					key: 'VN-PENSIONER',
+					wage: 20_000_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						SI: { kind: 'NOT_REGISTERED' },
+						HI: { kind: 'NOT_REGISTERED' },
+						UI: { kind: 'NOT_REGISTERED' }
+					}
+				}
+			]
+		},
+		(world) => {
+			const row = world.allowance_catalogue.find(
+				(item) => item.code === 'INSURANCE_EQUIVALENT' && item.settings_id === version.id
+			)!;
+			for (const [index, key] of ['VN-F-6M', 'VN-PENSIONER'].entries()) {
+				const employment = world.employments.find((item) => item.employee_number === key)!;
+				world.allowances.push({
+					id: `d0000000-0000-4000-8000-0000000000e${index}`,
+					employment_id: employment.id,
+					catalogue_id: row.id,
+					amount: 0,
+					effective_from: '2026-01-01',
+					effective_to: null,
+					reason: 'art.168(3)',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		}
+	);
+	// The payslip lists a scheme the person is outside as a zero row; the charge is what counts.
+	const charge = (key: string, code: string) => {
+		const row = slips.get(key)!.statutory.find((item) => item.scheme_code === code);
+		return [row?.employee_amount ?? 0, row?.employer_amount ?? 0];
+	};
+	const equivalent = (key: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')
+			?.amount;
+	// Six months: outside SI and HI; the employer's 17.5% + 3% of the 20,000,000 it would have
+	// insured — 4,100,000 — is paid with the wage; a foreigner is outside UI, so no 1%.
+	assert.deepEqual(charge('VN-F-6M', 'SI'), [0, 0]);
+	assert.deepEqual(charge('VN-F-6M', 'HI'), [0, 0]);
+	assert.equal(equivalent('VN-F-6M'), 4_100_000);
+	// Twelve months: insured, 8% / 17.5% and 1.5% / 3%.
+	assert.deepEqual(charge('VN-F-12M', 'SI'), [1_600_000, 3_500_000]);
+	assert.deepEqual(charge('VN-F-12M', 'HI'), [300_000, 600_000]);
+	// The pensioner: 20.5% of 20,000,000 plus UI's 1% = 4,300,000.
+	assert.deepEqual(charge('VN-PENSIONER', 'SI'), [0, 0]);
+	assert.equal(equivalent('VN-PENSIONER'), 4_300_000);
+});

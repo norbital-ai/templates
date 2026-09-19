@@ -1343,3 +1343,68 @@ test('Philippines — monetised leave beyond the de minimis days is compensation
 	);
 	assert.equal(Math.round(book.get('PH-ENCASH')!.get('WTAX')!.base * 100) / 100, 34_137.93);
 });
+
+test('Philippines — SSS covers an employee not over sixty when first covered (RA 11199 s.9(a)); a member stays covered past it', () => {
+	// Hired — and so first covered — at 58, now 62: still a member, still charged. Hired at 61:
+	// never within compulsory coverage. The fixture registers on the hire date, which is the day
+	// `employee.age_on(scheme.since)` reads.
+	const book = assessStatutory({
+		code: 'PH',
+		period: '2026-01',
+		people: [
+			{ key: 'PH-58-AT-HIRE', wage: 30_000, birth_date: '1963-06-15', hire_date: '2022-01-01' },
+			{ key: 'PH-61-AT-HIRE', wage: 30_000, birth_date: '1963-06-15', hire_date: '2025-01-01' }
+		]
+	});
+	expectStatutory(book, 'PH-58-AT-HIRE', 'SSS', 1000, 2000);
+	expectStatutorySkipped(book, 'PH-61-AT-HIRE', 'SSS');
+});
+
+test('Philippines — separation pay: a month per year on redundancy, half a month on retrenchment, closure or disease (Labor Code art.298–299)', () => {
+	// Five years and two months at ₱30,000: redundancy pays 5 × 30,000 = 150,000 (a fraction of
+	// six months would have counted a year); retrenchment 5 × 15,000 = 75,000; a leaver of eight
+	// months on retrenchment gets the one-month floor, 30,000.
+	const separation = (key: string, wage: number, hire: string, reason: string) => ({
+		key,
+		wage,
+		hire_date: hire,
+		exit_date: '2026-01-31',
+		exit_reason: reason
+	});
+	const { slips } = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-01',
+			people: [
+				separation('PH-REDUNDANT', 30_000, '2020-11-15', 'REDUNDANCY'),
+				separation('PH-RETRENCHED', 30_000, '2020-11-15', 'RETRENCHMENT'),
+				separation('PH-RETRENCHED-8M', 30_000, '2025-05-15', 'RETRENCHMENT')
+			]
+		},
+		(world) => {
+			const row = world.allowance_catalogue.find(
+				(item) => item.code === 'SEPARATION_PAY' && item.settings_id === PH_2026
+			)!;
+			for (const [index, key] of ['PH-REDUNDANT', 'PH-RETRENCHED', 'PH-RETRENCHED-8M'].entries()) {
+				const employment = world.employments.find((item) => item.employee_number === key)!;
+				world.allowances.push({
+					id: `d0000000-0000-4000-8000-0000000000f${index}`,
+					employment_id: employment.id,
+					catalogue_id: row.id,
+					amount: 0,
+					effective_from: '2026-01-31',
+					effective_to: '2026-01-31',
+					reason: 'separation pay',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		}
+	);
+	const paid = (key: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === 'SEPARATION_PAY')?.amount;
+	assert.equal(paid('PH-REDUNDANT'), 150_000);
+	assert.equal(paid('PH-RETRENCHED'), 75_000);
+	assert.equal(paid('PH-RETRENCHED-8M'), 30_000);
+});

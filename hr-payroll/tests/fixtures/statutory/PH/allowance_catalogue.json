@@ -479,16 +479,21 @@
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
 		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
-		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"on_separation": true,
 		"bands": [
 			{
+				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))",
-				"limit": null
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
 			}
 		],
 		"fixed": false,
@@ -521,16 +526,21 @@
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
 		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
-		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"on_separation": true,
 		"bands": [
 			{
+				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))",
-				"limit": null
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
 			}
 		],
 		"fixed": false,
@@ -809,16 +819,21 @@
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
 		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
-		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"on_separation": true,
 		"bands": [
 			{
+				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))",
-				"limit": null
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
 			}
 		],
 		"fixed": false,
@@ -1097,16 +1112,21 @@
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
 		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
-		"eligibility": "employment.exit_reason == \"REDUNDANCY\"",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"on_separation": true,
 		"bands": [
 			{
+				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))",
-				"limit": null
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
 			}
 		],
 		"fixed": false,

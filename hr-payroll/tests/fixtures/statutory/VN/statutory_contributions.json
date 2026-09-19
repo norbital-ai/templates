@@ -26,7 +26,7 @@
 				"employer": "round_unit(46800000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
 			}
 		],
-		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 28,
 		"listing_group": null
@@ -86,7 +86,7 @@
 				"employer": "round_unit(1404000.0)"
 			}
 		],
-		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 29,
 		"listing_group": null
@@ -153,6 +153,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "!person.employment.open_ended && person.employment.contract_months < 3 && !scheme.elections.commitment_form",
+				"employee": "base >= 5000000.0 ? round_unit(base * 10.0 / 100.0) : 0.0",
+				"employer": "0.0"
+			},
+			{
 				"when": "period.last_of_year && person.employment.exit_date == \"\"",
 				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
@@ -166,7 +171,13 @@
 		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + OVERTIME - OVERTIME_PREMIUM + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 33,
-		"listing_group": null
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "commitment_form",
+				"type": "boolean"
+			}
+		]
 	},
 	{
 		"id": "5f4b1158-77e0-5029-a1ed-5c38e88550df",
@@ -195,7 +206,7 @@
 				"employer": "round_unit(46800000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
 			}
 		],
-		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 28,
 		"listing_group": null
@@ -255,7 +266,7 @@
 				"employer": "round_unit(1404000.0)"
 			}
 		],
-		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 29,
 		"listing_group": null
@@ -322,6 +333,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "!person.employment.open_ended && person.employment.contract_months < 3 && !scheme.elections.commitment_form",
+				"employee": "base >= 5000000.0 ? round_unit(base * 10.0 / 100.0) : 0.0",
+				"employer": "0.0"
+			},
+			{
 				"when": "period.last_of_year && person.employment.exit_date == \"\"",
 				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
@@ -335,7 +351,13 @@
 		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 33,
-		"listing_group": null
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "commitment_form",
+				"type": "boolean"
+			}
+		]
 	},
 	{
 		"id": "e54fc2da-828e-5f39-94eb-e829b152eab9",
@@ -364,7 +386,7 @@
 				"employer": "round_unit(50600000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
 			}
 		],
-		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 28,
 		"listing_group": null
@@ -424,7 +446,7 @@
 				"employer": "round_unit(1518000.0)"
 			}
 		],
-		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 29,
 		"listing_group": null
@@ -491,6 +513,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "!person.employment.open_ended && person.employment.contract_months < 3 && !scheme.elections.commitment_form",
+				"employee": "base >= 5000000.0 ? round_unit(base * 10.0 / 100.0) : 0.0",
+				"employer": "0.0"
+			},
+			{
 				"when": "period.last_of_year && person.employment.exit_date == \"\"",
 				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
@@ -504,6 +531,12 @@
 		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 33,
-		"listing_group": null
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "commitment_form",
+				"type": "boolean"
+			}
+		]
 	}
 ]

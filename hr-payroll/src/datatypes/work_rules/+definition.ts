@@ -182,6 +182,12 @@ export const workRulesValueSchema = Schema.Struct({
 	 * 35/2021 art.31(2)(b): a six-day worker's five-hour Saturday prices its holiday tiers on five).
 	 */
 	normal_hours: Schema.optionalKey(Schema.String),
+	/**
+	 * The most hours a week the hourly rate is built on, where the statute defines the hour over
+	 * the week (SG EA s.2: 12 × monthly ÷ (52 × 44), or 52 × the contract's hours under 44).
+	 * Absent where the hour is the day over the daily normal hours (MY s.60I(1)(b)).
+	 */
+	rate_week_hours: Schema.optionalKey(Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0)))),
 	bands: Schema.Array(workRateBandValueSchema),
 	limits: Schema.Array(Schema.Union([workLimitValueSchema, workRestLimitValueSchema])),
 	breaks: Schema.Array(workBreakValueSchema),

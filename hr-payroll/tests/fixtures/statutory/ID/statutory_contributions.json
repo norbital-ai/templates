@@ -11,7 +11,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
@@ -60,27 +60,27 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "person.employment.risk_class == \"I\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"I\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.24 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"II\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"II\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.54 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"III\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"III\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.89 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"IV\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"IV\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 1.27 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"V\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"V\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
@@ -102,7 +102,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
@@ -832,7 +832,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
@@ -881,27 +881,27 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "person.employment.risk_class == \"I\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"I\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.24 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"II\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"II\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.54 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"III\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"III\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.89 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"IV\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"IV\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 1.27 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"V\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"V\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
@@ -923,7 +923,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
@@ -1653,7 +1653,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
@@ -1702,27 +1702,27 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "person.employment.risk_class == \"I\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"I\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.24 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"II\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"II\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.54 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"III\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"III\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.89 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"IV\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"IV\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 1.27 / 100.0)"
 			},
 			{
-				"when": "person.employment.risk_class == \"V\"",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && person.employment.risk_class == \"V\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
@@ -1744,7 +1744,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.employment.open_ended || person.employment.contract_months >= 6) && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}

@@ -181,6 +181,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			overtimeDays: [],
 			calendarMonthOvertimeHours: new Map(),
 			calendarMonthAllOvertimeHours: new Map(),
+			unpricedWeeks: [],
 			currency,
 			schedule: new Map(),
 			limits: [],
@@ -239,7 +240,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		overtimeDays,
 		calendarMonthOvertimeHours,
 		calendarMonthAllOvertimeHours,
-		nightShiftHours
+		nightShiftHours,
+		unpricedWeeks
 	} = workAttendance;
 	/**
 	 * The unpaid days an allowance loses, for the jurisdictions whose allowances lose them
@@ -437,6 +439,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		overtimeDays,
 		calendarMonthOvertimeHours,
 		calendarMonthAllOvertimeHours,
+		unpricedWeeks,
 		currency,
 		schedule,
 		limits: workAttendance.limits,
@@ -791,11 +794,17 @@ function earnedByMonth(options: {
 				(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
 			);
 		for (const line of payslip.adjustments)
-			if (line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT')
+			if (line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT') {
 				byCode.set(
 					line.component_code,
 					(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
 				);
+				// Every priced work-day line — overtime, night, the funnelled hours — is also filed
+				// under the reserved name, so `earned_average(["BASIC", "OVERTIME"], …)` reads a
+				// month's 工資 whole (TW 施行細則 §27).
+				if (line.family === 'WORK_DAY')
+					byCode.set('OVERTIME', (byCode.get('OVERTIME') ?? 0) + decodeNumber(line.amount));
+			}
 		byMonth.set(month, byCode);
 		earned.set(employeeId, byMonth);
 	}

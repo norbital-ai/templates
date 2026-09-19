@@ -471,11 +471,15 @@ calculation. Payable overtime is exact to the minute the punches were made in: n
 coarser unit, so 1.99 h pays 1.99 h. There is no automatic one-hour minimum; a jurisdiction that
 pays "each hour or part thereof" (Singapore's rest day, s.37(3)(c)(ii)) rounds in its own band with
 `up_to_unit(hours)`. A version's `WEEK NORMAL_HOURS` limit (Singapore's 44, s.38(1)) is read by
-payroll: normal-day hours past it in a Monday-to-Sunday week are overtime of the day they fall on,
-and the week the hourly rate is built on is never longer than it (SG s.2: 52 × 44 for any contract
-of 44 hours or more; MY s.60A(3)(c)). A worked day is priced at the hour of the calendar month it
-fell in, so a divisor that reads `period.working_days` (VN art.55(1)(a)) follows the worked month,
-not the pay month, across a cutoff.
+payroll: normal-day hours past it in a Monday-to-Sunday week are overtime of the day they fall on —
+a scheduled ordinary day nobody clocked counts its normal hours in that running sum (silence is
+presence for the week as for the wage), and a week whose excess falls on such days is reported
+(`WEEKLY_NORMAL_UNPRICED`), since only attendance is priced. Where the statute defines the hour over
+the week (SG s.2: 52 × 44 for any contract of 44 hours or more) `work_rules.rate_week_hours` caps
+the week the hourly rate is built on; a version whose hour is the day over the daily normal hours
+(MY s.60I(1)(b)) states none. A worked day is priced at the hour of the calendar month it fell in,
+so a divisor that reads `period.working_days` (VN art.55(1)(a)) follows the worked month, not the
+pay month, across a cutoff.
 
 An annualised hourly-rate configuration uses:
 

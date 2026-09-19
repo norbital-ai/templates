@@ -210,6 +210,8 @@ export type MeasuredEmployment = {
 	readonly calendarMonthOvertimeHours: ReadonlyMap<string, number>;
 	/** Every hour beyond the normal day by calendar month, rest days and holidays included (reported only). */
 	readonly calendarMonthAllOvertimeHours?: ReadonlyMap<string, number>;
+	/** Weeks whose normal hours beyond the weekly cap fall on scheduled days nobody clocked. */
+	readonly unpricedWeeks: readonly { readonly week: string; readonly hours: number }[];
 	readonly currency: string;
 	readonly schedule: ReadonlyMap<IsoDate, ScheduledDay>;
 	/** The version's limits that govern this person, the conditional ones (`limits[].when`) judged. */
