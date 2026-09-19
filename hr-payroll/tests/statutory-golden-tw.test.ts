@@ -1288,3 +1288,40 @@ test('Taiwan — work on the 例假 earns a further day’s wage whatever the ho
 		['2026-01-11', 'REST-STATUTORY-DOUBLE', 3.5, 2000]
 	]);
 });
+
+test('Taiwan — the old-system pension reserve is the entity’s declared 2–15% of its old-system workers’ wages (勞基法 §56(1))', () => {
+	// The entity declares 6%. One worker in service since 1998 who stayed on the old system (no
+	// 勞退 registration), 50,000 a month; one on the new system at the same wage; a migrant
+	// worker outside 勞退. The reserve is 6% of the old-system worker's wages alone: 3,000, an
+	// employer cost on that payslip.
+	const { slips } = buildStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		companyFacts: { pension_reserve_rate: 6 },
+		people: [
+			{
+				key: 'TW-OLD',
+				wage: 50_000,
+				citizenship: 'CITIZEN',
+				hire_date: '1998-03-01',
+				registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } }
+			},
+			{ key: 'TW-NEW', wage: 50_000, citizenship: 'CITIZEN' },
+			{
+				key: 'TW-MIGRANT',
+				wage: 50_000,
+				citizenship: 'FOREIGNER',
+				hire_date: '1998-03-01',
+				registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } }
+			}
+		]
+	});
+	assert.deepEqual(charge(slips.get('TW-OLD')!, 'LABOR_PENSION_RESERVE'), [50_000, 0, 3000]);
+	for (const key of ['TW-NEW', 'TW-MIGRANT'])
+		assert.equal(
+			slips.get(key)!.statutory.find((row) => row.scheme_code === 'LABOR_PENSION_RESERVE')
+				?.employer_amount ?? 0,
+			0
+		);
+});

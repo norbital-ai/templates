@@ -4239,5 +4239,74 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": "NHI_SUPPLEMENT"
+	},
+	{
+		"assessment_period": "PAY_PERIOD",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"short_name": null,
+		"listing_order": 38,
+		"id": "63844a28-bedf-5ad2-aa62-96d35f70e596",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "LABOR_PENSION_RESERVE",
+		"name": "勞工退休準備金（舊制）",
+		"listing_group": "LABOR_PENSION",
+		"elections": [],
+		"authority": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內按月提撥勞工退休準備金 — a monthly appropriation, at the rate the entity declares (`company.facts.pension_reserve_rate`, 2–15), of the total wages of the workers on the old system: those in service before 1 July 2005 who kept it, carried as a LABOR_PENSION fact NOT_REGISTERED (勞退條例 §8–9). An employer cost on that worker’s payslip, paid into the Bank of Taiwan account.",
+		"assessed_on": "(has(person.facts.LABOR_PENSION) && !person.facts.LABOR_PENSION.registered && person.employee.citizenship != \"FOREIGNER\" && person.employment.service_start < \"2005-07-01\") ? (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE) : 0.0",
+		"rules": [
+			{
+				"when": "base > 0.0 && has(person.company.facts.pension_reserve_rate)",
+				"employee": "0.0",
+				"employer": "round_unit(base * person.company.facts.pension_reserve_rate / 100.0)"
+			}
+		]
+	},
+	{
+		"assessment_period": "PAY_PERIOD",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"short_name": null,
+		"listing_order": 38,
+		"id": "1d2586dc-c675-5c4d-bc49-3f81f6c78544",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "LABOR_PENSION_RESERVE",
+		"name": "勞工退休準備金（舊制）",
+		"listing_group": "LABOR_PENSION",
+		"elections": [],
+		"authority": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內按月提撥勞工退休準備金 — a monthly appropriation, at the rate the entity declares (`company.facts.pension_reserve_rate`, 2–15), of the total wages of the workers on the old system: those in service before 1 July 2005 who kept it, carried as a LABOR_PENSION fact NOT_REGISTERED (勞退條例 §8–9). An employer cost on that worker’s payslip, paid into the Bank of Taiwan account.",
+		"assessed_on": "(has(person.facts.LABOR_PENSION) && !person.facts.LABOR_PENSION.registered && person.employee.citizenship != \"FOREIGNER\" && person.employment.service_start < \"2005-07-01\") ? (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE) : 0.0",
+		"rules": [
+			{
+				"when": "base > 0.0 && has(person.company.facts.pension_reserve_rate)",
+				"employee": "0.0",
+				"employer": "round_unit(base * person.company.facts.pension_reserve_rate / 100.0)"
+			}
+		]
+	},
+	{
+		"assessment_period": "PAY_PERIOD",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"short_name": null,
+		"listing_order": 38,
+		"id": "c550bb3a-b650-5289-ac15-2b20989cb265",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "LABOR_PENSION_RESERVE",
+		"name": "勞工退休準備金（舊制）",
+		"listing_group": "LABOR_PENSION",
+		"elections": [],
+		"authority": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內按月提撥勞工退休準備金 — a monthly appropriation, at the rate the entity declares (`company.facts.pension_reserve_rate`, 2–15), of the total wages of the workers on the old system: those in service before 1 July 2005 who kept it, carried as a LABOR_PENSION fact NOT_REGISTERED (勞退條例 §8–9). An employer cost on that worker’s payslip, paid into the Bank of Taiwan account.",
+		"assessed_on": "(has(person.facts.LABOR_PENSION) && !person.facts.LABOR_PENSION.registered && person.employee.citizenship != \"FOREIGNER\" && person.employment.service_start < \"2005-07-01\") ? (BASE + OVERTIME + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_PAY']}) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE) : 0.0",
+		"rules": [
+			{
+				"when": "base > 0.0 && has(person.company.facts.pension_reserve_rate)",
+				"employee": "0.0",
+				"employer": "round_unit(base * person.company.facts.pension_reserve_rate / 100.0)"
+			}
+		]
 	}
 ]
