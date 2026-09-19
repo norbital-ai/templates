@@ -27,7 +27,8 @@ test('every site compiles expressions over its own context', () => {
 			'money'
 		],
 		['work_day', 'day_type == "PUBLIC_HOLIDAY" && night_hours > 0.0', 'boolean'],
-		['assessment', "BASE + catalog('ALLOWANCE', {'pick': ['SUA', 'BPAYBS']}) - ABSENCE", 'money'],
+		['assessment', 'BASE + ALLOWANCES + CLAIMS - ABSENCE', 'money'],
+		['assessment', 'BASE + year.ALLOWANCES - ABSENCE', 'money'],
 		['assessment', "code('BPAYBS') + annual_exempt(100.0, 0.0, 90000.0)", 'money'],
 		['assessment', 'year.earned.BASIC + ENCASHMENT - NO_PAY_LEAVE', 'money'],
 		['scheme', 'base > 5000 && person.employee.age >= 60', 'boolean'],
@@ -152,28 +153,44 @@ test('the runtime closures compute what the seeds name', () => {
 	);
 });
 
-test('the assessment closures select catalogue rows and exempt annually', () => {
+test('the assessment closures read one class by code and exempt annually; the words are context', () => {
 	const engine = runtimeExpressionEngine({
-		code: (code) => (code === 'BPAYBS' ? 500 : code === 'ALPAY' ? 200 : 0),
-		catalog: (catalogue, selection) => {
-			assert.equal(catalogue, 'ALLOWANCE');
-			const rows: Record<string, number> = { SUA: 100, BPAYBS: 500, ADJ: 50 };
-			if (selection?.pick != null)
-				return selection.pick.reduce((sum, code) => sum + (rows[code] ?? 0), 0);
-			if (selection?.exclude != null)
-				return Object.entries(rows).reduce(
-					(sum, [code, amount]) => (selection.exclude!.includes(code) ? sum : sum + amount),
-					0
-				);
-			return Object.values(rows).reduce((sum, amount) => sum + amount, 0);
-		}
+		code: (code) => (code === 'BPAYBS' ? 500 : code === 'ALPAY' ? 200 : 0)
 	});
-	const run = (expression: string) => evaluateNumber(engine, expression, {});
+	const run = (expression: string, context: Record<string, unknown> = {}) =>
+		evaluateNumber(engine, expression, context);
 
 	assert.equal(run("code('BPAYBS') + code('ALPAY')"), 700);
-	assert.equal(run("catalog('ALLOWANCE', {'pick': ['SUA', 'BPAYBS']})"), 600);
-	assert.equal(run("catalog('ALLOWANCE', {'exclude': ['BPAYBS']})"), 150);
-	assert.equal(run("catalog('ALLOWANCE')"), 650);
+	// The catalogue words are pre-aggregated per scheme before the formula runs (`accumulate.ts`
+	// `catalogueWords`): the formula only ever adds them.
+	assert.equal(
+		run('BASE + ALLOWANCES + ORDINARY.CLAIMS + year.ADDITIONAL.ALLOWANCES', {
+			BASE: 1000,
+			ALLOWANCES: 600,
+			ORDINARY: { ALLOWANCES: 100, CLAIMS: 30 },
+			year: { ADDITIONAL: { ALLOWANCES: 50, CLAIMS: 0 } }
+		}),
+		1680
+	);
+	assert.match(
+		compileExpression({ expression: "catalog('ALLOWANCE')", site: 'assessment', type: 'money' }) ??
+			'',
+		/does not compile/
+	);
+	assert.match(
+		compileExpression({ expression: 'ORDINARY.ALLOWANCES', site: 'assessment', type: 'money' }) ??
+			'',
+		/does not compile/
+	);
+	assert.equal(
+		compileExpression({
+			expression: 'ORDINARY.ALLOWANCES + year.ORDINARY.CLAIMS',
+			site: 'assessment',
+			type: 'money',
+			parts: ['ORDINARY']
+		}),
+		null
+	);
 	assert.equal(run('annual_exempt(1000.0, 89500.0, 90000.0)'), 500);
 	assert.equal(run('annual_exempt(1000.0, 90000.0, 90000.0)'), 0);
 	assert.equal(run('annual_exempt(1000.0, 0.0, 90000.0)'), 1000);
@@ -181,11 +198,9 @@ test('the assessment closures select catalogue rows and exempt annually', () => 
 
 test('the AST literal walk reads the version-bound mentions', () => {
 	const mentions = assessedOnMentions(
-		"code('BPAYBS') + catalog('ALLOWANCE', {'exclude': ['BACKPAY_ADD_WAGES']}) + year.earned.THIRTEENTH_MONTH_PAY"
+		"code('BPAYBS') + ALLOWANCES + ORDINARY.CLAIMS + year.ADDITIONAL.ALLOWANCES + year.earned.THIRTEENTH_MONTH_PAY"
 	);
 	assert.deepEqual(mentions.codes, ['BPAYBS']);
-	assert.deepEqual(mentions.catalogues, [
-		{ catalogue: 'ALLOWANCE', pick: [], exclude: ['BACKPAY_ADD_WAGES'] }
-	]);
+	assert.deepEqual(mentions.words, ['ALLOWANCES', 'ORDINARY.CLAIMS', 'year.ADDITIONAL.ALLOWANCES']);
 	assert.deepEqual(mentions.yearEarned, ['THIRTEENTH_MONTH_PAY']);
 });

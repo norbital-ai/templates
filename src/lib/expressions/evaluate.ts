@@ -24,48 +24,20 @@ import { ageMonthsOn, ageOn, leaveTaken } from './person-functions.js';
  * compiled environment serves every employee and every run. Evaluation is synchronous, so the
  * binding cannot interleave.
  *
- * `code` and `catalog` read the code → signed amount map ACCUMULATE produced for this payslip; a
- * scheme's `assessed_on` is the only expression that calls them.
+ * `code` reads the code → signed amount map ACCUMULATE produced for this payslip; a scheme's
+ * `assessed_on` is the only expression that calls it.
  */
 export type ExpressionEngine = {
 	readonly minimumWage: (region: string) => number;
 	/** The signed total of one catalogue code this payslip, or 0 where the payslip has none. */
 	readonly code?: (code: string) => number;
-	/** `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick } | { exclude } | { fixed })`, signed by each row. */
-	readonly catalog?: (
-		catalogue: string,
-		selection?: {
-			readonly pick?: readonly string[];
-			readonly exclude?: readonly string[];
-			readonly fixed?: boolean;
-		}
-	) => number;
 	/** `earned_average(code, months_back, months)`: a window of earlier payslips' earnings. */
 	readonly earnedAverage?: (code: string, monthsBack: number, months: number) => number;
 	/** `days_under(age)`: the pay window's days on which the person is under that age. */
 	readonly daysUnder?: (age: number) => number;
-	/** `year_catalog(...)`: the same selection as `catalog`, summed over the tax year's earlier PAID payslips. */
-	readonly yearCatalog?: ExpressionEngine['catalog'];
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
-
-/** The second argument of `catalog`, as the AST hands it over: a `{ pick | exclude }` map. */
-function catalogSelection(value: unknown): {
-	pick?: string[];
-	exclude?: string[];
-	fixed?: boolean;
-} {
-	const selection = value as
-		{ pick?: unknown; exclude?: unknown; fixed?: unknown } | null | undefined;
-	const list = (candidate: unknown): string[] =>
-		Array.isArray(candidate) ? candidate.map(String) : [];
-	return {
-		...(selection?.pick == null ? {} : { pick: list(selection.pick) }),
-		...(selection?.exclude == null ? {} : { exclude: list(selection.exclude) }),
-		...(selection?.fixed == null ? {} : { fixed: Boolean(selection.fixed) })
-	};
-}
 
 const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['minimum_wage(string): double', (region) => Number(bound.minimumWage(String(region)))],
@@ -117,10 +89,6 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.days(string): double', () => 0],
 	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
 	[
-		'catalog(string): double',
-		(catalogue) => Number(bound.catalog?.(String(catalogue), undefined) ?? 0)
-	],
-	[
 		'earned_average(string, int, int): double',
 		(code, monthsBack, months) =>
 			Number(bound.earnedAverage?.(String(code), Number(monthsBack), Number(months)) ?? 0)
@@ -136,20 +104,6 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 			)
 	],
 	[
-		'catalog(string, dyn): double',
-		(catalogue, selection) =>
-			Number(bound.catalog?.(String(catalogue), catalogSelection(selection)) ?? 0)
-	],
-	[
-		'year_catalog(string): double',
-		(catalogue) => Number(bound.yearCatalog?.(String(catalogue), undefined) ?? 0)
-	],
-	[
-		'year_catalog(string, dyn): double',
-		(catalogue, selection) =>
-			Number(bound.yearCatalog?.(String(catalogue), catalogSelection(selection)) ?? 0)
-	],
-	[
 		'annual_exempt(dyn, dyn, dyn): double',
 		(amount, earnedBefore, cap) =>
 			Math.min(Number(amount), Math.max(0, Number(cap) - Number(earnedBefore)))
@@ -160,10 +114,8 @@ export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {})
 	return {
 		minimumWage: options.minimumWage ?? (() => 0),
 		code: options.code,
-		catalog: options.catalog,
 		earnedAverage: options.earnedAverage,
-		daysUnder: options.daysUnder,
-		yearCatalog: options.yearCatalog
+		daysUnder: options.daysUnder
 	};
 }
 

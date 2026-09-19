@@ -63,8 +63,8 @@ test(
 			)) as Row[];
 			assert.ok(draftScheme && draftLeave, 'the draft carries the scheme and catalogue row');
 
-			const withEntry = (code: string) =>
-				`${draftScheme.assessed_on} + catalog('ALLOWANCE', {'pick': ['${code}']})`;
+			// A formula names one class by code where the law caps or exempts that class alone.
+			const withEntry = (code: string) => `${draftScheme.assessed_on} + code('${code}')`;
 			const baseWrite = async (code: string) =>
 				command(
 					{

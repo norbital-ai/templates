@@ -16,7 +16,8 @@
 				"employer": "round_cent((base) * 13.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"parts": []
 	},
 	{
 		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
@@ -35,6 +36,7 @@
 				"employer": "round_cent((base) * 5.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
+		"assessed_on": "BASE + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"parts": []
 	}
 ]

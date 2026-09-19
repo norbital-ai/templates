@@ -16,7 +16,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Bonus / THR"
+		"name": "Bonus / THR",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "b9840b25-0311-41a8-a2f5-ab0ea80a8e40",
@@ -35,7 +36,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "House allowance"
+		"name": "House allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "e7d90a91-ff8d-4873-9fbb-a4a8a7fa3a5e",
@@ -54,7 +56,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "Car allowance"
+		"name": "Car allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "f54286f3-9b7c-4258-a02c-43f252b7626e",
@@ -78,7 +81,8 @@
 		"fixed": false,
 		"authority": "Applied 2026-09-18 (4): a capped reimbursement (tunjangan tidak tetap): outside `terms.monthly_wage`, THR and the BPJS bases (`fixed: false`).",
 		"one_off": false,
-		"name": "Medical allowance"
+		"name": "Medical allowance",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "b0cc4983-0bd3-46fa-85ef-fbdda3a9103f",
@@ -97,7 +101,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Bonus / THR"
+		"name": "Bonus / THR",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "3dd7a56d-7bad-4c80-b552-b931af25192f",
@@ -116,7 +121,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "House allowance"
+		"name": "House allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "6759dc65-0c5f-4402-9983-419278c9805f",
@@ -135,7 +141,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "Car allowance"
+		"name": "Car allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "08611bdf-30e7-4750-aab9-343d4a4151c4",
@@ -159,7 +166,8 @@
 		"fixed": false,
 		"authority": "Applied 2026-09-18 (4): a capped reimbursement (tunjangan tidak tetap): outside `terms.monthly_wage`, THR and the BPJS bases (`fixed: false`).",
 		"one_off": false,
-		"name": "Medical allowance"
+		"name": "Medical allowance",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "cc19b377-ad56-4f4c-a79e-25327af77a94",
@@ -178,7 +186,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Bonus / THR"
+		"name": "Bonus / THR",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "348397d4-973a-463d-9fad-1456791553f1",
@@ -197,7 +206,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "House allowance"
+		"name": "House allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "f6bb6383-61fe-4513-8e2c-43b0f19b647c",
@@ -216,7 +226,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "Car allowance"
+		"name": "Car allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "13a28ce4-771e-453e-950f-83a3fc09bba8",
@@ -240,7 +251,8 @@
 		"fixed": false,
 		"authority": "Applied 2026-09-18 (4): a capped reimbursement (tunjangan tidak tetap): outside `terms.monthly_wage`, THR and the BPJS bases (`fixed: false`).",
 		"one_off": false,
-		"name": "Medical allowance"
+		"name": "Medical allowance",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "d326b479-ae16-4f6c-ba8f-e13d66ae2126",
@@ -259,7 +271,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Overtime claw-back"
+		"name": "Overtime claw-back",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "507dbd44-3e80-456c-8cfb-349f9e106677",
@@ -278,7 +291,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – salary"
+		"name": "Back pay – salary",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "aba2f4a5-c474-42f1-afe7-87848ec2ceac",
@@ -296,7 +310,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "BPJS Kesehatan, termination month (employer share)"
+		"name": "BPJS Kesehatan, termination month (employer share)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "da1a2235-06f1-46fd-897f-dde0c94021a6",
@@ -315,7 +330,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "Special allowance"
+		"name": "Special allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "cf721e46-4c65-4f86-8037-ac975e1358ec",
@@ -334,7 +350,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Deduction"
+		"name": "Deduction",
+		"counts_toward": []
 	},
 	{
 		"id": "e4286d03-8917-4003-bb8c-9c75ac61e201",
@@ -353,7 +370,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "BPJS Kesehatan, termination month (employee share)"
+		"name": "BPJS Kesehatan, termination month (employee share)",
+		"counts_toward": []
 	},
 	{
 		"id": "7a0678a8-c8c7-4a64-bb3e-efa71ff1c1bb",
@@ -372,7 +390,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Retroactive pay"
+		"name": "Retroactive pay",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "8683dc63-2ff3-4681-8f0d-a5efbe676a9c",
@@ -391,7 +410,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Tax incentive (advance / reimburse)"
+		"name": "Tax incentive (advance / reimburse)",
+		"counts_toward": []
 	},
 	{
 		"id": "e669a4a7-5cca-4651-bcf0-770548d160df",
@@ -410,7 +430,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Overtime claw-back"
+		"name": "Overtime claw-back",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "5ce7cac6-b07f-4726-b27f-b7303d25eb58",
@@ -429,7 +450,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – salary"
+		"name": "Back pay – salary",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "e6f62eae-0f22-45aa-a2ef-653e3fbf5d44",
@@ -447,7 +469,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "BPJS Kesehatan, termination month (employer share)"
+		"name": "BPJS Kesehatan, termination month (employer share)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "5b47d1b1-b1b5-4c04-87db-47805c7080cc",
@@ -466,7 +489,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "Special allowance"
+		"name": "Special allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "77b85334-5cbc-4148-95b3-d4f763a273f3",
@@ -485,7 +509,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Deduction"
+		"name": "Deduction",
+		"counts_toward": []
 	},
 	{
 		"id": "6c5ae1ea-e3f0-49da-81c5-d0ef2464399e",
@@ -504,7 +529,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "BPJS Kesehatan, termination month (employee share)"
+		"name": "BPJS Kesehatan, termination month (employee share)",
+		"counts_toward": []
 	},
 	{
 		"id": "16b158f9-c464-457e-adc5-dc1712ca17be",
@@ -523,7 +549,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Retroactive pay"
+		"name": "Retroactive pay",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "60abc022-7617-42b1-bd7b-e835873671e4",
@@ -542,7 +569,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Tax incentive (advance / reimburse)"
+		"name": "Tax incentive (advance / reimburse)",
+		"counts_toward": []
 	},
 	{
 		"id": "49b0ff00-7f1d-4418-ad37-962fab829e01",
@@ -561,7 +589,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Overtime claw-back"
+		"name": "Overtime claw-back",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "8c06178a-bb1e-4105-a8e7-5aa2c41511fd",
@@ -580,7 +609,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – salary"
+		"name": "Back pay – salary",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "ce017c3d-7859-4966-aa11-f4521f655391",
@@ -598,7 +628,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "BPJS Kesehatan, termination month (employer share)"
+		"name": "BPJS Kesehatan, termination month (employer share)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "3bcb7e73-42de-4be6-8293-b4a81c7b46fa",
@@ -617,7 +648,8 @@
 		],
 		"fixed": true,
 		"one_off": false,
-		"name": "Special allowance"
+		"name": "Special allowance",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
 	{
 		"id": "de91f937-0590-49f7-81cb-b816b6326ba4",
@@ -636,7 +668,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Deduction"
+		"name": "Deduction",
+		"counts_toward": []
 	},
 	{
 		"id": "abd8f66a-9a80-4e72-8694-0d739d92e09b",
@@ -655,7 +688,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "BPJS Kesehatan, termination month (employee share)"
+		"name": "BPJS Kesehatan, termination month (employee share)",
+		"counts_toward": []
 	},
 	{
 		"id": "c17bcb1b-4016-4db0-ae32-efe31962c8bc",
@@ -674,7 +708,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Retroactive pay"
+		"name": "Retroactive pay",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "96b6dfd9-799b-4ceb-aabd-998ba99fb886",
@@ -693,7 +728,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Tax incentive (advance / reimburse)"
+		"name": "Tax incentive (advance / reimburse)",
+		"counts_toward": []
 	},
 	{
 		"id": "c1c29931-0148-47f0-9b10-884469777322",
@@ -712,7 +748,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Compensation"
+		"name": "Compensation",
+		"counts_toward": []
 	},
 	{
 		"id": "62f8706d-ee7b-4d8a-b38f-7d38bab45362",
@@ -731,7 +768,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Compensation"
+		"name": "Compensation",
+		"counts_toward": []
 	},
 	{
 		"id": "24bc77bc-7de0-4c80-857a-b65dfddf53b1",
@@ -750,7 +788,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Compensation"
+		"name": "Compensation",
+		"counts_toward": []
 	},
 	{
 		"id": "7a9279fd-7afa-5917-ad54-bbdf9e630950",
@@ -771,7 +810,8 @@
 		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
 		"fixed": false,
 		"one_off": true,
-		"name": "THR (religious holiday allowance)"
+		"name": "THR (religious holiday allowance)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "d21a02ca-669c-5295-8f16-124fa8d4143d",
@@ -792,7 +832,8 @@
 		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
 		"fixed": false,
 		"one_off": true,
-		"name": "THR (religious holiday allowance)"
+		"name": "THR (religious holiday allowance)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "6905cf49-a5ed-5833-ad3d-d08074b60c4e",
@@ -813,7 +854,8 @@
 		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
 		"fixed": false,
 		"one_off": true,
-		"name": "THR (religious holiday allowance)"
+		"name": "THR (religious holiday allowance)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "2cbb52d9-ae7d-5bb4-a459-731cc93799c1",
@@ -834,7 +876,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "0497b4dd-be21-52c8-b1f2-87a7df6b3275",
@@ -855,7 +898,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "c746e6e3-c341-56aa-9004-1ee481f71f07",
@@ -876,7 +920,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "c7c0212e-551f-5349-bb41-77fe682a24ed",
@@ -897,7 +942,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "4c2f2cbe-49e3-5e93-b246-6f7efa5a1263",
@@ -918,7 +964,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "c173c367-fbd7-5f19-9307-eb5f71c9b693",
@@ -939,7 +986,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	},
 	{
 		"id": "ec6e7587-3175-5004-9cb8-1fb3c56b4cd2",
@@ -960,7 +1008,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "1ed91405-a972-5865-b8be-86f68f9dafe5",
@@ -981,7 +1030,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "36b35377-87c7-526c-afdd-0e69ef598fa7",
@@ -1002,6 +1052,7 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"]
 	}
 ]

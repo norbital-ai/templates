@@ -13,6 +13,7 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"counts_toward": []
 	}
 ]

@@ -522,9 +522,11 @@ test('Vietnam — a part month prorates on working days, an allowance with it, a
 				evidence: 'NONE',
 				destination: 'PAY',
 				direction: 'ADD',
-				// Circular 06/2021 art.30(3): a mid-shift meal is outside the insurance salary.
+				// Circular 06/2021 art.30(3): a mid-shift meal is outside the insurance salary; it is
+				// salary income for PIT (Circular 111/2013 art.2(2)(g.5)) and counts toward that alone.
 				fixed: false,
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				counts_toward: ['PIT'],
 				approval_id: null
 			});
 			// Circular 111/2013 art.2(2)(g.5): the meal is taxable above 730,000 a month. The bank's

@@ -1,7 +1,11 @@
 import { Effect } from 'effect';
 import { defineCollection } from '@norbital-ai/bolt/authoring';
 import model from './+model.js';
-import { admitCatalogueRow } from '../../lib/catalogue_rules.js';
+import {
+	admitCatalogueRow,
+	refuseUnknownMemberships,
+	schemePartsByVersion
+} from '../../lib/catalogue_rules.js';
 import { versionsById } from '../../lib/settings_seal.js';
 
 const columns = {
@@ -16,7 +20,8 @@ const columns = {
 	evidence: true,
 	on_separation: true,
 	fixed: true,
-	one_off: true
+	one_off: true,
+	counts_toward: true
 } as const;
 
 /**
@@ -31,13 +36,29 @@ export default defineCollection({
 	delete: {},
 	transform: (inputs, { existing, db }) =>
 		Effect.map(
-			versionsById(db, [
-				...inputs.map((input) => input.settings_id),
-				...existing.map((row) => row?.settings_id)
-			]),
-			(versions) =>
-				inputs.map((input, index) =>
-					admitCatalogueRow(versions, input, existing[index], 'Allowance')
-				)
+			Effect.all(
+				[
+					versionsById(db, [
+						...inputs.map((input) => input.settings_id),
+						...existing.map((row) => row?.settings_id)
+					]),
+					schemePartsByVersion(db, [
+						...inputs.map((input) => input.settings_id),
+						...existing.map((row) => row?.settings_id)
+					])
+				],
+				{ concurrency: 'unbounded' }
+			),
+			([versions, schemes]) =>
+				inputs.map((input, index) => {
+					const row = { ...existing[index], ...input };
+					if (input.counts_toward !== undefined)
+						refuseUnknownMemberships(
+							row.settings_id == null ? undefined : schemes.get(String(row.settings_id)),
+							input.counts_toward,
+							`Allowance ${String(row.code ?? '')}`
+						);
+					return admitCatalogueRow(versions, input, existing[index], 'Allowance');
+				})
 		)
 });

@@ -127,8 +127,9 @@ printed name, its place in the entity's listing and the column it folds into are
 daily, hourly or weekly basic becomes a month on the version's `ordinary_divisor_days`; a contract
 with no roster is measured on its own `employment_terms.ordinary_hours_per_week` or the version's
 `normal_hours`, and a contract stating neither is refused by name rather than priced on a figure of
-the engine's. Codes are named freely inside a version's own CEL (`code('ANNUAL_LEAVE')`,
-`catalog('ALLOWANCE', {exclude: ['bonus']})`); the rule is that the engine's source names none.
+the engine's. Codes are named freely inside a version's own CEL (`code('ANNUAL_LEAVE')`) and a
+class's own `counts_toward` (`['CPF.ADDITIONAL', 'SDL']`); the rule is that the engine's source
+names none.
 
 ## Payroll flow
 
@@ -247,9 +248,8 @@ fact editors offer the declared type's control. Every other member is refused at
 site does not declare it, as is a wrong result type; nothing is discovered at payroll. The
 functions: `round_cent`, `truncate_cent`, `up_5_cents`, `round_unit`, `floor_unit`, `up_to_unit`,
 `bracket`, `ladder` and `progressive` on every site; `minimum_wage(region)` on `person`,
-`assessment` and `scheme`; `leave.days(code)` on `entry`; `code('X')` and
-`catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', {pick | exclude})` on `assessment`; `annual_exempt(amount,
-earned_before, cap)` on `assessment` and `scheme`.
+`assessment` and `scheme`; `leave.days(code)` on `entry`; `code('X')` on `assessment`;
+`annual_exempt(amount, earned_before, cap)` on `assessment` and `scheme`.
 
 The event forms speak it too. `lib/ui/eligible-types.svelte` reads the chosen employment with its
 person, terms and entity in one query, builds the same context as of today (`lib/eligible-types.ts`)
@@ -589,16 +589,22 @@ allowance from other earnings.
 Each scheme states what it is assessed on as one expression. `statutory_contributions.assessed_on`
 is CEL over the `assessment` site: the six reserved lines (`BASE`, `OVERTIME`, `NIGHT_PREMIUM`,
 `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT` — the engine's own money, never catalogue rows), the
-version's catalogue rows (`code('X')`, `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', {'pick' | 'exclude':
-[...]})`), `year.earned.<code>`, `annual_exempt(amount, earned_before, cap)` and the shared roots
-(`person`, `period`, `year`, `scheme`, `produced`). The reserved lines are magnitudes and the
-formula writes their sign; a catalogue row carries its own landing signed (an earning adds, a
-deduction reduces), so a selection is written with `+` and `-` appears only on reserved lines and
-in arithmetic. The result is clamped at zero. An Act defined by inclusion is written with `pick`,
-one defined by exclusion with `exclude`, so a new row lands where the Act would put it. The write
-compiles the formula, walks its literals and refuses a catalogue that is not one of the three, a
-code that is not a row of the scheme's version or one that two catalogues carry, and an empty
-formula; the seal repeats every check. An unpaid leave day is the `NO_PAY_LEAVE` line; an
+class words (`ALLOWANCES`, `CLAIMS` — the signed sum of this payslip's lines of that class whose
+row lists this scheme in its `counts_toward`; `<PART>.ALLOWANCES` where the scheme declares
+`parts`, SG CPF's `ORDINARY` / `ADDITIONAL`; `year.ALLOWANCES` and `year.<PART>.ALLOWANCES` over
+the tax year's earlier PAID payslips), one row by name (`code('X')`, for a law that caps or exempts
+one class alone), `year.earned.<code>`, `annual_exempt(amount, earned_before, cap)` and the shared
+roots (`person`, `period`, `year`, `scheme`, `produced`). The scheme names no class: each
+allowance or claim row decides on its own form which schemes — and which part — its paid line
+enters, and the run pre-aggregates the words per scheme from those lists. The reserved lines are
+magnitudes and the formula writes their sign; a catalogue row carries its own landing signed (an
+earning adds, a deduction reduces), so a word is written with `+` and `-` appears only on reserved lines and
+in arithmetic. The result is clamped at zero. A new row lands nowhere until its own
+`counts_toward` says where — an empty list is a decision the form states in words, not an
+omission. The write compiles the formula, walks its literals and refuses a code that is not a row
+of the scheme's version or one that two catalogues carry, a part word the scheme does not declare,
+and an empty formula; a class row is refused when it lists a scheme or part its version does not
+carry; the seal repeats every check. An unpaid leave day is the `NO_PAY_LEAVE` line; an
 encashed day is `ENCASHMENT`. A scheme carries no `eligibility` field: ineligibility is a rule
 whose `when` nobody matches, and a person who matches no rule is charged nothing and appears on
 no payslip. The formula is evaluated inside the ordered loop, so it may read `produced.<code>` of

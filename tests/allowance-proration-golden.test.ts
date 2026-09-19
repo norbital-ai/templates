@@ -139,6 +139,7 @@ test('Singapore — a joiner takes the working days employed over the month’s,
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				counts_toward: ['CPF.ORDINARY', 'SDL', 'CDAC', 'ECF', 'MBMF', 'SINDA'],
 				approval_id: null
 			});
 			standing(world, SG_TRANSPORT);

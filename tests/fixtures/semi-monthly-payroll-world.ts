@@ -57,9 +57,9 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		assessment_period: 'PAY_PERIOD',
 		assessment_scope: 'EMPLOYMENT',
 		elections: [],
-		// PUB-EPF charges the work lines and every money catalogue row of the version.
-		assessed_on:
-			"BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE + catalog('CLAIM') + catalog('ALLOWANCE') + catalog('LOAN')",
+		// PUB-EPF charges the work lines and every allowance and claim class that counts toward it.
+		assessed_on: 'BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE + CLAIMS + ALLOWANCES',
+		parts: [],
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,

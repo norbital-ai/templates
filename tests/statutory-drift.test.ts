@@ -307,8 +307,7 @@ test('an HTTP-success browser challenge is recorded as unreadable rather than st
 test('a cloned version carries every scheme’s assessed-on formula unchanged, with no id of its own', () => {
 	// The formula names catalogue rows by code, so nothing is remapped; it is cloned verbatim.
 	// No row carries an id: the runtime assigns the draft's and every child's.
-	const assessed_on =
-		"BASE - ABSENCE - NO_PAY_LEAVE + catalog('ALLOWANCE', {'pick': ['TRANSPORT']})";
+	const assessed_on = 'BASE - ABSENCE - NO_PAY_LEAVE + ALLOWANCES';
 	const source = {
 		id: 'source',
 		code: 'SG',

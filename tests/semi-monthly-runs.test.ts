@@ -285,8 +285,8 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
-		assessed_on:
-			"BASE + OVERTIME + NIGHT_PREMIUM - ABSENCE - NO_PAY_LEAVE + catalog('CLAIM') + catalog('ALLOWANCE') + catalog('LOAN')",
+		assessed_on: 'BASE + OVERTIME + NIGHT_PREMIUM - ABSENCE - NO_PAY_LEAVE + CLAIMS + ALLOWANCES',
+		parts: [],
 		approval_id: null,
 		rules: [{ when: 'true', employee: PUB_TAX_EMPLOYEE, employer: '0.0' }]
 	});

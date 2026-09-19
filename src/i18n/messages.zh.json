@@ -979,7 +979,7 @@
 	"component.roster_hint": "一份雇佣合同在一个日历月内的排班。存在期间，薪资读取其工作日而非班次模式。",
 	"component.scheme_assessed_on": "计征表达式",
 	"component.scheme_section_assessed_on": "计征基础",
-	"component.scheme_section_assessed_on_hint": "本方案的计征基础：以保留行（BASE、OVERTIME、NIGHT_PREMIUM、ABSENCE、NO_PAY_LEAVE、ENCASHMENT）与目录条目组成的表达式，例如 BASE + catalog('ALLOWANCE', {'exclude': ['BACKPAY_ADD_WAGES']}) - ABSENCE。目录条目自带正负，公式以 + 选取。",
+	"component.scheme_section_assessed_on_hint": "本方案的计征基础：以保留行（BASE、OVERTIME、NIGHT_PREMIUM、ABSENCE、NO_PAY_LEAVE、ENCASHMENT）与类别词（ALLOWANCES、CLAIMS）组成的表达式，例如 BASE + ALLOWANCES - ABSENCE。各类别在其自身表单中决定是否计入本方案；项目自带正负，公式以 + 选取。",
 	"component.assessment_scope": "计征范围",
 	"component.scheme_elections": "选择项",
 	"component.expression_functions": "函数",
@@ -1114,5 +1114,18 @@
 	"app.scheduling.week_picker": "当月周次",
 	"app.scheduling.week_n": "第{n}周",
 	"component.period_week": "{month} · 第{n}周（{from} – {to}）",
-	"employee_children.relief_class": "税务减免类别（STUDYING、TERTIARY、DISABLED、DISABLED_TERTIARY；留空按年龄）"
+	"employee_children.relief_class": "税务减免类别（STUDYING、TERTIARY、DISABLED、DISABLED_TERTIARY；留空按年龄）",
+	"component.catalogue_section_counts_toward": "计入方案",
+	"component.catalogue_section_counts_toward_hint": "此类别的已付项目计入哪些法定方案。勾选后该方案的基数包含此项；不勾选则该方案不计此项。",
+	"component.counts_toward": "计入方案",
+	"component.counts_toward_hint": "此项目计入哪些方案的计征基数。若方案将基数拆分为多个部分（新加坡 CPF：普通/附加工资），请选择此项目所属的部分。",
+	"component.counts_toward_none": "不计入任何方案",
+	"component.counts_toward_needs_version": "请先选择设置版本，其方案将显示于此。",
+	"component.counts_toward_no_schemes": "此版本尚无法定方案。",
+	"component.counts_toward_whole_base": "整体基数",
+	"component.scheme_parts": "基数部分",
+	"component.scheme_parts_hint": "仅用于基数拆分为多个命名部分、各有上限或费率的方案（新加坡 CPF：ORDINARY 与 ADDITIONAL）。类别据此指定所属部分，公式以 ORDINARY.ALLOWANCES 等读取。其他方案留空。",
+	"component.scheme_enters_base": "计入此基数",
+	"component.scheme_enters_base_none": "尚无津贴或报销类别计入此方案。各类别在其自身表单中决定。",
+	"component.counts_toward_nothing": "不计入任何方案：此项薪酬不在任何法定基数之内。"
 }

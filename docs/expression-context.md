@@ -341,7 +341,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 
 Used by: `statutory_contributions.assessed_on` and `ordinary_on` — one scheme’s wage.
 
-Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`.
+Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`, `ALLOWANCES`, `CLAIMS`.
 
 Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person.company.facts.<key>`.
 
@@ -457,6 +457,14 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `NO_PAY_LEAVE` | Unpaid leave days |
 | `ENCASHMENT` | Every encashed leave day |
 | `INCENTIVE` | The overtime lines a band funnelled above its named limit — the hours beyond the statutory ceiling, priced at the band’s award; also inside OVERTIME |
+| `ALLOWANCES` | The signed sum of this payslip’s allowance lines whose class counts toward this scheme |
+| `CLAIMS` | The signed sum of this payslip’s claim lines whose class counts toward this scheme |
+| `<PART>.ALLOWANCES` | The allowance lines counting toward this scheme as the named part, where the scheme declares parts (SG CPF ORDINARY / ADDITIONAL) |
+| `<PART>.CLAIMS` | The claim lines counting toward the named part |
+| `year.ALLOWANCES` | The allowance lines counting toward this scheme over the tax year’s earlier PAID payslips (this payslip excluded — add `ALLOWANCES` for it) |
+| `year.CLAIMS` | The same over the claim lines |
+| `year.<PART>.ALLOWANCES` | The year’s earlier allowance lines of the named part |
+| `year.<PART>.CLAIMS` | The year’s earlier claim lines of the named part |
 
 | Function | Meaning |
 | --- | --- |
@@ -470,9 +478,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `ladder(base, grades)` | Step a figure up to the next grade in a table |
 | `progressive(value, table)` | Apply a progressive [from, base, rate] table |
 | `minimum_wage(region)` | The version’s minimum wage for a region |
-| `code('X')` | The signed total of the version’s row X this payslip |
-| `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude })` | The signed sum of a catalogue’s rows, selected or excluded |
-| `year_catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude | fixed })` | The same selection summed over the tax year’s earlier PAID payslips (this payslip excluded — add `catalog(...)` for it): the year’s Additional Wages for a December true-up (SG CPF) |
+| `code('X')` | The signed total of the version’s class X this payslip — for a law that caps or exempts one class alone (MY’s termination-benefit exemption, PH’s de-minimis rice subsidy) |
 | `earned_average(code, months_back, months)` | The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window. `code` may be a list of codes — reserved lines among them (`OVERTIME`) — summed month by month (TW 施行細則 §27: the three-month average of 工資, overtime included) |
 | `days_under(age)` | The calendar days of the pay window on which the person is under that age — a cover that ends on a birthday charges the days before it (TW 勞保條例施行細則 §28-1 at sixty-five) |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |

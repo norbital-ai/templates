@@ -29,7 +29,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))",
 		"short_name": null,
 		"listing_order": 28,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "b36127e7-0e33-59ee-8728-6c238d71adcb",
@@ -57,7 +58,8 @@
 		],
 		"short_name": null,
 		"listing_order": 32,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "4cf6d212-8a40-59d3-bed9-6a531e58f0c0",
@@ -89,7 +91,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))",
 		"short_name": null,
 		"listing_order": 29,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "4c7d29eb-b1a4-563b-819c-fe475dc2e46d",
@@ -116,7 +119,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 30,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "21adb4da-a0cd-5a5b-9e75-3c4024232b0f",
@@ -139,14 +143,15 @@
 		"short_name": null,
 		"listing_order": 31,
 		"listing_group": null,
-		"assessment_scope": "COMPANY"
+		"assessment_scope": "COMPANY",
+		"parts": []
 	},
 	{
 		"id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI (art.7); family deductions of 11,000,000 a month for the taxpayer and 4,400,000 a dependant under Resolution 954/2020/UBTVQH14. A non-resident is withheld at the flat 20% of art.26 through the registration’s rate override. Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18 (4): Circular 111/2013 art.2(2): allowances are salary income except the statutory severance and job-loss allowances (`catalog('ALLOWANCE', {exclude})`); art.7: the monthly progressive table is assessed on the month (`assessment_period: MONTH`), so a semi-monthly company withholds each half as part of one month. Applied 2026-09-19 (2): Decree 126/2020 art.8(6)(d): the employer finalises on behalf of an employee who is still employed at the time of finalisation and has income from this employer alone; a leaver’s last payslip is withheld month by month and the person finalises with the tax office (`exit_date == \"\"` on the year-end rung).",
+		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI (art.7); family deductions of 11,000,000 a month for the taxpayer and 4,400,000 a dependant under Resolution 954/2020/UBTVQH14. A non-resident is withheld at the flat 20% of art.26 through the registration’s rate override. Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18 (4): Circular 111/2013 art.2(2): allowances are salary income except the statutory severance and job-loss allowances (`ALLOWANCES`); art.7: the monthly progressive table is assessed on the month (`assessment_period: MONTH`), so a semi-monthly company withholds each half as part of one month. Applied 2026-09-19 (2): Decree 126/2020 art.8(6)(d): the employer finalises on behalf of an employee who is still employed at the time of finalisation and has income from this employer alone; a leaver’s last payslip is withheld month by month and the person finalises with the tax office (`exit_date == \"\"` on the year-end rung).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -168,7 +173,7 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + OVERTIME - OVERTIME_PREMIUM + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + ALLOWANCES + OVERTIME - OVERTIME_PREMIUM + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 33,
 		"listing_group": null,
@@ -177,7 +182,8 @@
 				"key": "commitment_form",
 				"type": "boolean"
 			}
-		]
+		],
+		"parts": []
 	},
 	{
 		"id": "5f4b1158-77e0-5029-a1ed-5c38e88550df",
@@ -209,7 +215,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))",
 		"short_name": null,
 		"listing_order": 28,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "349d2942-1fc6-58b2-946e-f733c0ecd524",
@@ -237,7 +244,8 @@
 		],
 		"short_name": null,
 		"listing_order": 32,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "8339c95d-77e8-5bea-b06e-d2fc88cd8dfc",
@@ -269,7 +277,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))",
 		"short_name": null,
 		"listing_order": 29,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "92d096bf-8260-5adb-a7f9-6073199855d9",
@@ -296,7 +305,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 30,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "bc474287-8417-5220-b244-f0f57bb4ae1f",
@@ -319,14 +329,15 @@
 		"short_name": null,
 		"listing_order": 31,
 		"listing_group": null,
-		"assessment_scope": "COMPANY"
+		"assessment_scope": "COMPANY",
+		"parts": []
 	},
 	{
 		"id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI, with the 15,500,000 personal and 6,200,000 dependant monthly deductions of Resolution 110/2025/UBTVQH15 read into art.10. Law 04/2007’s seven-rung scale governed December 2025 only. A non-resident is withheld at the flat 20% through the registration’s rate override. Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18 (4): Circular 111/2013 art.2(2): allowances are salary income except the statutory severance and job-loss allowances (`catalog('ALLOWANCE', {exclude})`); art.7: the monthly progressive table is assessed on the month (`assessment_period: MONTH`), so a semi-monthly company withholds each half as part of one month. Applied 2026-09-19 (2): Decree 126/2020 art.8(6)(d): the employer finalises on behalf of an employee who is still employed at the time of finalisation and has income from this employer alone; a leaver’s last payslip is withheld month by month and the person finalises with the tax office (`exit_date == \"\"` on the year-end rung).",
+		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI, with the 15,500,000 personal and 6,200,000 dependant monthly deductions of Resolution 110/2025/UBTVQH15 read into art.10. Law 04/2007’s seven-rung scale governed December 2025 only. A non-resident is withheld at the flat 20% through the registration’s rate override. Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18 (4): Circular 111/2013 art.2(2): allowances are salary income except the statutory severance and job-loss allowances (`ALLOWANCES`); art.7: the monthly progressive table is assessed on the month (`assessment_period: MONTH`), so a semi-monthly company withholds each half as part of one month. Applied 2026-09-19 (2): Decree 126/2020 art.8(6)(d): the employer finalises on behalf of an employee who is still employed at the time of finalisation and has income from this employer alone; a leaver’s last payslip is withheld month by month and the person finalises with the tax office (`exit_date == \"\"` on the year-end rung).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -348,7 +359,7 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + ALLOWANCES + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 33,
 		"listing_group": null,
@@ -357,7 +368,8 @@
 				"key": "commitment_form",
 				"type": "boolean"
 			}
-		]
+		],
+		"parts": []
 	},
 	{
 		"id": "e54fc2da-828e-5f39-94eb-e829b152eab9",
@@ -389,7 +401,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))",
 		"short_name": null,
 		"listing_order": 28,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "1023865e-eb18-5fca-a790-27acca7b3e35",
@@ -417,7 +430,8 @@
 		],
 		"short_name": null,
 		"listing_order": 32,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "ee7f7408-63d3-5eca-8ceb-92e5e10c0a88",
@@ -449,7 +463,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))",
 		"short_name": null,
 		"listing_order": 29,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "fe8a9888-288e-5254-be22-d94bbec833d3",
@@ -476,7 +491,8 @@
 		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
 		"short_name": null,
 		"listing_order": 30,
-		"listing_group": null
+		"listing_group": null,
+		"parts": []
 	},
 	{
 		"id": "11743132-ee52-510a-81a4-4daffc29f555",
@@ -499,14 +515,15 @@
 		"short_name": null,
 		"listing_order": 31,
 		"listing_group": null,
-		"assessment_scope": "COMPANY"
+		"assessment_scope": "COMPANY",
+		"parts": []
 	},
 	{
 		"id": "9657382b-d498-561e-b7b4-6015d946ae93",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI, with the 15,500,000 personal and 6,200,000 dependant monthly deductions written into art.10. Art.4(8) exempts the overtime and night-work wage and the wage paid for untaken leave days, so neither OVERTIME nor ENCASHMENT is in the base from 1 July 2026 (Decree 253/2026/NĐ-CP). A non-resident is withheld at the flat 20% through the registration’s rate override. Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18 (4): Circular 111/2013 art.2(2): allowances are salary income except the statutory severance and job-loss allowances (`catalog('ALLOWANCE', {exclude})`); art.7: the monthly progressive table is assessed on the month (`assessment_period: MONTH`), so a semi-monthly company withholds each half as part of one month. Applied 2026-09-19 (2): Decree 126/2020 art.8(6)(d): the employer finalises on behalf of an employee who is still employed at the time of finalisation and has income from this employer alone; a leaver’s last payslip is withheld month by month and the person finalises with the tax office (`exit_date == \"\"` on the year-end rung).",
+		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI, with the 15,500,000 personal and 6,200,000 dependant monthly deductions written into art.10. Art.4(8) exempts the overtime and night-work wage and the wage paid for untaken leave days, so neither OVERTIME nor ENCASHMENT is in the base from 1 July 2026 (Decree 253/2026/NĐ-CP). A non-resident is withheld at the flat 20% through the registration’s rate override. Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18: the tax year’s last payslip (December, or a leaver’s last) charges the annual scale — the monthly rungs × 12 — on the year’s income net of the year’s SI, HI, UI and the deductions for the months employed, less what the year already withheld (Law 109/2025 art.29(2); Decree 253/2026 art.70): a negative charge is the refund. Before 1 July 2026 the part of the overtime wage above the ordinary rate is outside the base (Circular 111/2013 art.3(1)(i); `OVERTIME_PREMIUM`). Applied 2026-09-18 (4): Circular 111/2013 art.2(2): allowances are salary income except the statutory severance and job-loss allowances (`ALLOWANCES`); art.7: the monthly progressive table is assessed on the month (`assessment_period: MONTH`), so a semi-monthly company withholds each half as part of one month. Applied 2026-09-19 (2): Decree 126/2020 art.8(6)(d): the employer finalises on behalf of an employee who is still employed at the time of finalisation and has income from this employer alone; a leaver’s last payslip is withheld month by month and the person finalises with the tax office (`exit_date == \"\"` on the year-end rung).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -528,7 +545,7 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + ALLOWANCES + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 33,
 		"listing_group": null,
@@ -537,6 +554,7 @@
 				"key": "commitment_form",
 				"type": "boolean"
 			}
-		]
+		],
+		"parts": []
 	}
 ]

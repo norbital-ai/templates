@@ -26,6 +26,8 @@
 		readonly empty?: string;
 		readonly class?: string;
 		readonly onValueChange?: (value: string) => void;
+		/** The form's row: on the assessment site, the scheme's own `parts` root the part words. */
+		readonly row?: Record<string, unknown>;
 	};
 
 	let {
@@ -37,7 +39,8 @@
 		placeholder,
 		empty,
 		class: className,
-		onValueChange
+		onValueChange,
+		row
 	}: Props = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const text = $derived(value == null ? '' : String(value));
@@ -51,8 +54,11 @@
 			.filter((part) => part != null && part !== '')
 			.join(' · ')
 	);
+	const parts = $derived(
+		site === 'assessment' && Array.isArray(row?.parts) ? row.parts.map(String) : []
+	);
 	const fault = $derived(
-		mode === 'display' ? null : compileExpression({ expression: text, site, type })
+		mode === 'display' ? null : compileExpression({ expression: text, site, type, parts })
 	);
 </script>
 

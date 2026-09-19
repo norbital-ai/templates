@@ -25,6 +25,15 @@ export default defineModel(
 		/** Whether a request against this line must, may or need not attach proof. */
 		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
 		/**
+		 * The statutory schemes whose base every line of this class enters — `EPF`, `SOCSO`; a scheme
+		 * that splits its base names the part, `CPF.ADDITIONAL`. Listed, the class is summed into the
+		 * scheme's `ALLOWANCES`; not listed, it is outside that base. Empty is a decision: the class
+		 * enters no base at all.
+		 */
+		counts_toward: custom('code_list')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
+		/**
 		 * A payment the law owes on separation (termination benefits, separation or retirement pay,
 		 * severance, notice in lieu): off-boarding raises one standing row of it for the leaver on
 		 * the last day, where the row's eligibility holds over them then — held for HR like the

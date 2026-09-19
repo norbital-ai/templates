@@ -25,6 +25,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import ExpressionFields from './expression-fields.svelte';
 	import ExpressionField from './expression-field.svelte';
+	import CountsTowardField from './counts-toward-field.svelte';
 	import { hrCreateScope } from './create-scope.js';
 	import { settingsVersionSealed } from './settings-sealed.svelte.js';
 
@@ -133,6 +134,18 @@
 				</Stack>
 			{/snippet}
 
+			{#snippet countsToward()}
+				<Stack gap="sm">
+					<p class="text-meta">{t('component.catalogue_section_counts_toward_hint')}</p>
+					<Field
+						name="counts_toward"
+						label={t('component.counts_toward')}
+						description={t('component.counts_toward_hint')}
+						renderer={CountsTowardField}
+					/>
+				</Stack>
+			{/snippet}
+
 			<Tabs
 				animate={false}
 				listClass="w-full"
@@ -157,6 +170,12 @@
 						label: t('component.catalogue_section_limits'),
 						icon: 'lucide:shield',
 						content: limits
+					},
+					{
+						name: 'counts_toward',
+						label: t('component.catalogue_section_counts_toward'),
+						icon: 'lucide:landmark',
+						content: countsToward
 					}
 				] satisfies TabConfig[]}
 			/>

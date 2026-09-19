@@ -979,7 +979,7 @@
 	"component.roster_hint": "One employment over one calendar month. While it exists payroll reads its days instead of the shift pattern.",
 	"component.scheme_assessed_on": "Assessed on",
 	"component.scheme_section_assessed_on": "Wage",
-	"component.scheme_section_assessed_on_hint": "What this scheme is assessed on: one expression over the reserved lines (BASE, OVERTIME, NIGHT_PREMIUM, ABSENCE, NO_PAY_LEAVE, ENCASHMENT) and the catalogue rows, e.g. BASE + catalog('ALLOWANCE', {'exclude': ['BACKPAY_ADD_WAGES']}) - ABSENCE. A catalogue row carries its own sign, so the formula selects with +.",
+	"component.scheme_section_assessed_on_hint": "What this scheme is assessed on: one expression over the reserved lines (BASE, OVERTIME, NIGHT_PREMIUM, ABSENCE, NO_PAY_LEAVE, ENCASHMENT) and the class words (ALLOWANCES, CLAIMS), e.g. BASE + ALLOWANCES - ABSENCE. Each class decides on its own form whether it counts toward this scheme; a line carries its own sign, so the formula selects with +.",
 	"component.assessment_scope": "Assessment scope",
 	"component.scheme_elections": "Elections",
 	"component.expression_functions": "Functions",
@@ -1114,5 +1114,18 @@
 	"app.scheduling.week_picker": "Week of the month",
 	"app.scheduling.week_n": "Wk {n}",
 	"component.period_week": "{month} · week {n} ({from} – {to})",
-	"employee_children.relief_class": "Tax relief class (STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY; blank is by age)"
+	"employee_children.relief_class": "Tax relief class (STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY; blank is by age)",
+	"component.catalogue_section_counts_toward": "Counts toward",
+	"component.catalogue_section_counts_toward_hint": "Which statutory schemes a paid line of this class enters. Tick a scheme and its base includes this line; leave it unticked and that scheme never sees it.",
+	"component.counts_toward": "Counts toward",
+	"component.counts_toward_hint": "The schemes whose assessed base this line joins. Where a scheme splits its base into parts (SG CPF: Ordinary / Additional wages), pick the part this line belongs to.",
+	"component.counts_toward_none": "No scheme",
+	"component.counts_toward_needs_version": "Choose the settings version first; its schemes appear here.",
+	"component.counts_toward_no_schemes": "This version has no statutory schemes yet.",
+	"component.counts_toward_whole_base": "Whole base",
+	"component.scheme_parts": "Base parts",
+	"component.scheme_parts_hint": "Only for a scheme whose base splits into named parts, each with its own ceiling or rate (SG CPF: ORDINARY and ADDITIONAL). A class then names the part it enters, and the formula reads them as ORDINARY.ALLOWANCES and the like. Every other scheme leaves this empty.",
+	"component.scheme_enters_base": "Enters this base",
+	"component.scheme_enters_base_none": "No allowance or claim class counts toward this scheme yet. Each class decides that on its own form.",
+	"component.counts_toward_nothing": "Counts toward nothing: this pay is outside every statutory base."
 }

@@ -401,6 +401,19 @@
       "table": "allowance_catalogue"
     },
     {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "counts_toward",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_catalogue"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1010,6 +1023,19 @@
       "generated": null,
       "identity": null,
       "name": "evidence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "claim_catalogue"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "counts_toward",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_catalogue"
@@ -5578,6 +5604,19 @@
       "generated": null,
       "identity": null,
       "name": "assessed_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "parts",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"

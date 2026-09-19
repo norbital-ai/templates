@@ -30,15 +30,21 @@
 
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { EMPTY_OF, assessedOnMentions } from '../../../lib/expressions/compile.js';
-import { openKeyMentions } from '../../../lib/expressions/contexts.js';
+import {
+	CATALOGUE_WORDS,
+	openKeyMentions,
+	type CatalogueWord
+} from '../../../lib/expressions/contexts.js';
 import {
 	evaluateNumber,
 	runtimeExpressionEngine,
 	type ExpressionEngine
 } from '../../../lib/expressions/evaluate.js';
 import {
-	catalogueSum,
+	catalogueWords,
+	countsToward,
 	sumAccumulations,
+	WORD_FAMILY,
 	type AccumulatedPayslip,
 	type AccumulationLine,
 	type ContributionLine,
@@ -100,10 +106,10 @@ type SchemeAssessment = {
 	};
 	/** component code → what earlier PAID payslips earned this tax year (BASIC always present). */
 	readonly yearEarned: ReadonlyMap<string, number>;
-	/** component code → its catalogue family and `fixed` flag, for `year_catalog(...)` over the year's codes. */
+	/** component code → its catalogue family and memberships, for `year.<WORD>` over the year's codes. */
 	readonly componentsByCode?: ReadonlyMap<
 		string,
-		{ readonly family: string; readonly fixed?: boolean }
+		{ readonly family: string; readonly counts_toward?: readonly string[] }
 	>;
 	/** calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
@@ -265,22 +271,37 @@ function engineFor(
 			return birthday < start ? 0 : inclusiveDays(start, birthday < end ? birthday : end);
 		},
 		code: (code) => accumulation.codes.get(code) ?? 0,
-		catalog: (catalogue, selection) => catalogueSum(accumulation, catalogue, selection),
 		earnedAverage: (code, monthsBack, months) =>
-			earnedAverage(input.earnedByMonth ?? new Map(), input.period.key, code, monthsBack, months),
-		yearCatalog: (catalogue, selection) => {
-			let total = 0;
-			for (const [code, amount] of input.yearEarned ?? []) {
-				const component = input.componentsByCode?.get(code);
-				if (component == null || component.family !== catalogue) continue;
-				if (selection?.pick != null && !selection.pick.includes(code)) continue;
-				if (selection?.exclude != null && selection.exclude.includes(code)) continue;
-				if (selection?.fixed != null && (component.fixed ?? true) !== selection.fixed) continue;
-				total += amount;
-			}
-			return total;
-		}
+			earnedAverage(input.earnedByMonth ?? new Map(), input.period.key, code, monthsBack, months)
 	});
+}
+
+/**
+ * The catalogue words over the tax year's earlier PAID payslips: `year.ALLOWANCES`,
+ * `year.<PART>.ALLOWANCES`, the same memberships read off the year's codes.
+ */
+function yearCatalogueWords(
+	input: Pick<SchemeAssessment, 'yearEarned' | 'componentsByCode'>,
+	scheme: string,
+	parts: readonly string[]
+): Record<string, number | Record<CatalogueWord, number>> {
+	const sum = (word: CatalogueWord, part: string | null): number => {
+		let total = 0;
+		for (const [code, amount] of input.yearEarned ?? []) {
+			const component = input.componentsByCode?.get(code);
+			if (component == null || component.family !== WORD_FAMILY[word]) continue;
+			if (!countsToward(component.counts_toward, scheme, part)) continue;
+			total += amount;
+		}
+		return total;
+	};
+	const words: Record<string, number | Record<CatalogueWord, number>> = {};
+	for (const word of CATALOGUE_WORDS) words[word] = sum(word, null);
+	for (const part of parts)
+		words[part] = Object.fromEntries(
+			CATALOGUE_WORDS.map((word) => [word, sum(word, part)])
+		) as Record<CatalogueWord, number>;
+	return words;
 }
 
 /**
@@ -424,7 +445,11 @@ function schemeContext(options: {
 			days_employed: input.period.daysEmployed,
 			days_in_month: input.period.daysInMonth
 		},
-		year: { ...input.year, earned: yearEarned },
+		year: {
+			...input.year,
+			earned: yearEarned,
+			...yearCatalogueWords(input, contribution.row.code, contribution.row.parts ?? [])
+		},
 		scheme: schemeObject({ input, contribution, status: options.status }),
 		produced: producedObject(
 			options.produced ?? new Map(),
@@ -467,30 +492,47 @@ function assessedBase(options: {
 		ABSENCE: options.accumulation.reserved.ABSENCE,
 		NO_PAY_LEAVE: options.accumulation.reserved.NO_PAY_LEAVE,
 		ENCASHMENT: options.accumulation.reserved.ENCASHMENT,
-		INCENTIVE: options.accumulation.reserved.INCENTIVE
+		INCENTIVE: options.accumulation.reserved.INCENTIVE,
+		// The catalogue words, pre-aggregated for this scheme: what its classes count toward.
+		...catalogueWords(
+			options.accumulation,
+			options.contribution.row.code,
+			options.contribution.row.parts ?? []
+		)
 	};
 	const value = evaluateNumber(engineFor(options.input, options.accumulation), expression, context);
 	return {
 		base: cents(Math.max(0, value), options.input.currency),
-		selected: selectedLines(expression, options.accumulation)
+		selected: selectedLines(expression, options.accumulation, options.contribution.row.code)
 	};
 }
 
 /** The lines one formula selected, for the calculation trace. */
 function selectedLines(
 	expression: string,
-	accumulation: AccumulatedPayslip
+	accumulation: AccumulatedPayslip,
+	scheme: string
 ): readonly AccumulationLine[] {
 	const mentions = assessedOnMentions(expression);
 	const reserved = new Set(mentions.reserved);
+	// A word names a catalogue and, through a part, which of its members: `ORDINARY.ALLOWANCES`
+	// selects the allowance lines counting toward this scheme as ORDINARY. The year's forms name
+	// earlier payslips, not this one's lines.
+	const words = mentions.words
+		.filter((word) => !word.startsWith('year.'))
+		.map((word) => {
+			const [head, tail] = word.split('.');
+			return tail == null
+				? { word: head as CatalogueWord, part: null }
+				: { word: tail as CatalogueWord, part: head! };
+		});
 	return accumulation.lines.filter((line) => {
 		if (line.reserved != null) return reserved.has(line.reserved);
 		if (mentions.codes.includes(line.code)) return true;
-		return mentions.catalogues.some(
-			(selection) =>
-				selection.catalogue === line.family &&
-				(selection.pick.length === 0 || selection.pick.includes(line.code)) &&
-				!selection.exclude.includes(line.code)
+		return words.some(
+			({ word, part }) =>
+				WORD_FAMILY[word] === line.family &&
+				countsToward(accumulation.countsTowardOf.get(line.code), scheme, part)
 		);
 	});
 }
