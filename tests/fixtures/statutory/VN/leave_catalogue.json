@@ -672,20 +672,12 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] && event.child_index >= 2",
-					"days": 240
-				},
-				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "event.child_index >= 2",
-					"days": 210
+					"days": "210.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				},
 				{
 					"eligibility": "",
-					"days": 180
+					"days": "180.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -709,11 +701,11 @@
 			"bands": [
 				{
 					"eligibility": "event.kind == \"MULTIPLE_BIRTH_SURGERY\"",
-					"days": 14
+					"days": "14.0 + 3.0 * double(children.born_on(event.date) > 2 ? children.born_on(event.date) - 2 : 0)"
 				},
 				{
 					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
-					"days": 10
+					"days": "10.0 + 3.0 * double(children.born_on(event.date) > 2 ? children.born_on(event.date) - 2 : 0)"
 				},
 				{
 					"eligibility": "event.child_index >= 2",

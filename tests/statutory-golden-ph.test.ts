@@ -1151,3 +1151,39 @@ test('Philippines — a daily-paid employee’s hour is the day over eight, what
 	assert.deepEqual(workLinesPh(slips.get('PH-DAILY-6')!), [['2026-01-05', 'OT-1.25X', 2, 187.5]]);
 	assert.deepEqual(warnings, []);
 });
+
+test('Philippines — monetised leave beyond the de minimis days is compensation (RR 2-98 s.2.78.1(A)(3)(a), RR 29-2025)', () => {
+	// Fifteen days of leave encashed in one entry. The 2026 versions exempt twelve; the three
+	// beyond — at the ordinary day the engine encashes at, 30,000 ÷ 21.75 = 1,379.31 — join the
+	// withholding base: 30,000 + 3 × 1,379.31 = 34,137.93.
+	const book = assessStatutory(
+		{ code: 'PH', period: '2026-01', people: [{ key: 'PH-ENCASH', wage: 30_000 }] },
+		(world) => {
+			const employment = world.employments.find((row) => row.employee_number === 'PH-ENCASH')!;
+			const annual = leaveCatalogue('PH').find(
+				(row) => row.code === 'ANNUAL_LEAVE' && row.settings_id === PH_2026
+			)!;
+			world.leave_catalogue.push({ ...annual, approval_id: null } as never);
+			world.leave_entries.push({
+				id: 'e1000000-0000-4000-8000-0000000enc01',
+				employment_id: employment.id,
+				catalogue_id: annual.id,
+				leave_code: 'ANNUAL_LEAVE',
+				reference: 'ENCASH-PH',
+				from_date: '2026-01-01',
+				to_date: '2026-12-31',
+				half_day_start: false,
+				half_day_end: false,
+				days: 15,
+				encash_days: 15,
+				effective_on: '2026-01-15',
+				due_on: '2026-01-31',
+				reason: 'Agreed',
+				allocations: [],
+				charges: [],
+				approval_id: null
+			} as never);
+		}
+	);
+	assert.equal(Math.round(book.get('PH-ENCASH')!.get('WTAX')!.base * 100) / 100, 34_137.93);
+});

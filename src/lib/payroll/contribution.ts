@@ -343,8 +343,8 @@ function divisorFor(
 	input: PersonInput,
 	employeeNumber: string
 ): number | null {
-	const frequency = input.terms?.pay_frequency ?? 'MONTHLY';
-	if (frequency !== 'DAILY' && frequency !== 'HOURLY' && frequency !== 'WEEKLY') return null;
+	// Every cadence reads the divisor: a daily, hourly or weekly rate becomes a month through it,
+	// and a monthly one becomes the ordinary day (`terms.ordinary_day`) over it.
 	try {
 		return ordinaryDivisorDays({
 			expression: configuration.work.ordinary_divisor_days,
@@ -630,6 +630,12 @@ export function prepareContributionAssessment(options: {
 			},
 			yearEarned: options.yearEarned,
 			earnedByMonth: options.earnedByMonth,
+			componentsByCode: new Map(
+				configuration.catalogueComponents.map((component) => [
+					component.code,
+					{ family: component.family, fixed: component.fixed }
+				])
+			),
 			period: {
 				key: bundle.window.period,
 				start: bundle.window.salary.start,

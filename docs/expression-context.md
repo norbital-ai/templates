@@ -36,6 +36,7 @@ Open prefixes: `company.facts.<key>`.
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
+| `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — what a leave day is encashed or deducted at; 0 where no divisor was evaluated |
 | `terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
@@ -53,6 +54,7 @@ Open prefixes: `company.facts.<key>`.
 | `terms.working_days_per_week` | Roster-measured working week, days |
 | `children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `children.under(n)` | Children under n completed years |
+| `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
@@ -118,6 +120,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
+| `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — what a leave day is encashed or deducted at; 0 where no divisor was evaluated |
 | `person.terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
@@ -135,6 +138,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
 | `person.children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `person.children.under(n)` | Children under n completed years |
+| `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
@@ -229,6 +233,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
+| `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — what a leave day is encashed or deducted at; 0 where no divisor was evaluated |
 | `person.terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
@@ -246,6 +251,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
 | `person.children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `person.children.under(n)` | Children under n completed years |
+| `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
@@ -303,7 +309,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 
 Used by: `statutory_contributions.assessed_on` and `ordinary_on` — one scheme’s wage.
 
-Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`.
+Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`.
 
 Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person.company.facts.<key>`.
 
@@ -331,6 +337,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
+| `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — what a leave day is encashed or deducted at; 0 where no divisor was evaluated |
 | `person.terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
@@ -348,6 +355,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
 | `person.children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `person.children.under(n)` | Children under n completed years |
+| `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
@@ -406,6 +414,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `ABSENCE` | Unexplained absence and every unpaid leave day |
 | `NO_PAY_LEAVE` | Unpaid leave days |
 | `ENCASHMENT` | Every encashed leave day |
+| `INCENTIVE` | The overtime lines a band funnelled above its named limit — the hours beyond the statutory ceiling, priced at the band’s award; also inside OVERTIME |
 
 | Function | Meaning |
 | --- | --- |
@@ -421,6 +430,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `minimum_wage(region)` | The version’s minimum wage for a region |
 | `code('X')` | The signed total of the version’s row X this payslip |
 | `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude })` | The signed sum of a catalogue’s rows, selected or excluded |
+| `year_catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude | fixed })` | The same selection summed over the tax year’s earlier PAID payslips (this payslip excluded — add `catalog(...)` for it): the year’s Additional Wages for a December true-up (SG CPF) |
 | `earned_average(code, months_back, months)` | The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |
 
@@ -456,6 +466,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
+| `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — what a leave day is encashed or deducted at; 0 where no divisor was evaluated |
 | `person.terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
@@ -473,6 +484,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
 | `person.children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `person.children.under(n)` | Children under n completed years |
+| `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
@@ -573,6 +585,7 @@ Open prefixes: `company.facts.<key>`.
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
+| `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — what a leave day is encashed or deducted at; 0 where no divisor was evaluated |
 | `terms.fixed_allowances` | Standing PAY allowances in force on the rule date |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
@@ -590,6 +603,7 @@ Open prefixes: `company.facts.<key>`.
 | `terms.working_days_per_week` | Roster-measured working week, days |
 | `children.count` | Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count` |
 | `children.under(n)` | Children under n completed years |
+| `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |

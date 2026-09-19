@@ -82,7 +82,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 					configuration,
 					salary: options.salary,
 					employed: { start: finalDate, end: finalDate }
-				}).absenceDayWage
+				}).dayWage
 		});
 		const finalTerms = termsAt(bundle, finalDate);
 		const cadence: PayCadence = {
@@ -192,7 +192,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		dayWage,
 		schedule,
 		workingDaysIn,
-		absenceDayWage,
 		subject
 	} = work;
 	const cutoffDay = decodeNumber(configuration.company.pay_cutoff_day);
@@ -262,7 +261,10 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		dueThrough: options.salary.end,
 		currency,
 		absenceRate: work.absenceRate,
-		ordinaryDayRate: () => absenceDayWage
+		// An encashed day is paid at the ordinary day — the month over the version's ordinary
+		// divisor (SG EA: the gross rate of pay for a day; MY s.60E(3B): the ordinary rate; PH:
+		// the daily wage) — not at the absence day, which is the month over its own working days.
+		ordinaryDayRate: () => dayWage
 	});
 
 	const componentAmounts = new Map<string, number>();

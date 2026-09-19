@@ -124,7 +124,8 @@ const accumulationOf = (base: number): AccumulatedPayslip => {
 		NIGHT_PREMIUM: 0,
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
-		ENCASHMENT: 0
+		ENCASHMENT: 0,
+		INCENTIVE: 0
 	};
 	return { reserved, codes: new Map(), familyOf: new Map(), lines: [] };
 };

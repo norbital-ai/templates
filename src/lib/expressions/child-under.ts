@@ -32,3 +32,11 @@ function countUnder(ages: unknown, age: unknown): bigint {
 	if (!Array.isArray(ages)) return 0n;
 	return BigInt(ages.filter((value) => Number(value) < limit).length);
 }
+
+/** `children.born_on(date)` — how many children were born on that day: the size of one confinement. */
+export function childBornOn(children: unknown, date: unknown): bigint {
+	const birthdates = (children as { birthdates?: unknown }).birthdates;
+	if (!Array.isArray(birthdates)) return 0n;
+	const day = String(date).slice(0, 10);
+	return BigInt(birthdates.filter((value) => String(value).slice(0, 10) === day).length);
+}
