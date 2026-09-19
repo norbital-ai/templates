@@ -19,7 +19,7 @@
 import { Effect } from 'effect';
 import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std/reckon';
 import { decodeNumber } from '@norbital-ai/std/json';
-import { completedMonths, completedYears } from './dates.js';
+import { completedMonths, completedYears, inclusiveDays } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
 import {
@@ -60,6 +60,8 @@ export type PersonContext = {
 		readonly classification: string;
 		/** The entity's statutory risk class, or empty where the regime prices none. */
 		readonly risk_class: string;
+		/** Calendar days since the stint began, the rule date included (a ninety-day test counts these). */
+		readonly service_days: number;
 		readonly service_months: number;
 		/** Completed years of service on the rule date; separation payments count in these. */
 		readonly service_years: number;
@@ -356,6 +358,10 @@ export function personContext(input: PersonInput): PersonContext {
 			type: input.terms?.employment_type ?? '',
 			classification: input.terms?.work_classification ?? '',
 			risk_class: input.employment.risk_class ?? '',
+			service_days:
+				start === '' || input.asOf.slice(0, 10) < start
+					? 0
+					: inclusiveDays(start, input.asOf.slice(0, 10)),
 			service_months: start === '' ? 0 : completedMonths(start, input.asOf),
 			service_years: start === '' ? 0 : completedYears(start, input.asOf),
 			exit_date: exit,

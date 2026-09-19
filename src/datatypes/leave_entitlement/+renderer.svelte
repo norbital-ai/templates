@@ -57,10 +57,12 @@
 	const countFrom = (text: string): number | null =>
 		text.trim() === '' ? null : Math.max(1, Math.trunc(numberFrom(text, 1)));
 	const prorationOptions = $derived(
-		(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS'] as const).map((value) => ({
-			value,
-			label: t(`leave.proration.${value}`)
-		}))
+		(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'HALF_MONTHS', 'CALENDAR_DAYS'] as const).map(
+			(value) => ({
+				value,
+				label: t(`leave.proration.${value}`)
+			})
+		)
 	);
 	const rows = $derived<Band[]>(
 		current.bands.map((band, index) => ({ id: `band-${index}`, ...band }))

@@ -350,7 +350,7 @@ test('Singapore — the SPR year turns on the month after the anniversary, whate
 // Employment Act 1968 Part 4 and Part 3: the pay side of the statute. The world's shift is
 // 09:00–18:00 with a sixty-minute break — eight normal hours, Monday to Friday, Saturday and
 // Sunday rest days — so every figure below is a hand derivation from the Fourth Schedule (hourly
-// basic rate = 12 × monthly ÷ (52 × 44)), Third Schedule item 2 (basic rate for one day =
+// basic rate = 12 × monthly ÷ (52 × 44), or 52 × the contract's hours under 44), Third Schedule item 2 (basic rate for one day =
 // 12 × monthly ÷ (52 × days required to work in a week)), s.38(4) (1.5× beyond the normal
 // hours), s.37(3) (rest day at the employer's request: one day's pay up to half the normal
 // hours, two days' up to the normal hours, 1.5× beyond them), s.88(4) (an extra day's salary at
@@ -419,15 +419,16 @@ test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day
 			code: 'SG',
 			period: '2026-01',
 			people: [
-				// A workman at $2,860: 12 × 2,860 ÷ 2,288 = 15.00 an hour; 12 × 2,860 ÷ (52 × 5) =
-				// 132.00 a day. Inside the $4,500 workman ceiling.
+				// A workman at $2,860 on a 40-hour week: 12 × 2,860 ÷ (52 × 40) = 16.50 an hour (s.2,
+				// a contract of fewer than 44 hours); 12 × 2,860 ÷ (52 × 5) = 132.00 a day. Inside the
+				// $4,500 workman ceiling.
 				{
 					key: 'SG-WORKMAN',
 					wage: 2860,
 					citizenship: 'CITIZEN',
 					statutory_work_category: 'MANUAL_LABOUR'
 				},
-				// A non-workman at $2,288: 12.00 an hour, 105.60 a day. Inside the $2,600 ceiling.
+				// A non-workman at $2,288: 13.20 an hour, 105.60 a day. Inside the $2,600 ceiling.
 				{ key: 'SG-CLERK', wage: 2288, citizenship: 'CITIZEN' },
 				// The same $2,860 as a non-workman is over $2,600: s.35(b) takes Part 4 away.
 				{ key: 'SG-CLERK-OVER', wage: 2860, citizenship: 'CITIZEN' },
@@ -461,37 +462,40 @@ test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day
 	// shift, so its whole clock is work), then 3 h × 15.00 × 1.5 = 67.50.
 	assert.deepEqual(workLines(slips.get('SG-WORKMAN')!), [
 		['2026-01-01', 'OT-1.0X', 8, 132],
-		['2026-01-01', 'OT-1.5X', 2, 45],
-		['2026-01-05', 'OT-1.5X', 2, 45],
+		['2026-01-01', 'OT-1.5X', 2, 49.5],
+		['2026-01-05', 'OT-1.5X', 2, 49.5],
 		['2026-01-10', 'OT-1.0X', 4, 132],
 		['2026-01-11', 'OT-2.0X', 7, 264],
-		['2026-01-17', 'OT-1.5X', 3, 67.5],
+		['2026-01-17', 'OT-1.5X', 3, 74.25],
 		['2026-01-17', 'OT-2.0X', 8, 264]
 	]);
-	assert.equal(slips.get('SG-WORKMAN')!.gross, 2860 + 132 + 45 + 45 + 132 + 264 + 264 + 67.5);
-	// CPF Board: overtime is an Ordinary Wage. 3,809.50 × 20% = 761.90 → 761 (cents dropped);
-	// × 37% = 1,409.515 → 1,410 (nearest dollar, half up); employer 649. SDL 0.25% × 3,809.50 =
-	// 9.52 to the cent; the SDL Act rounds the employer's total remittance, not one employee.
-	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'CPF'), [3809.5, 761, 649]);
-	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'SDL'), [3809.5, 0, 9.52]);
+	assert.equal(slips.get('SG-WORKMAN')!.gross, 2860 + 132 + 49.5 + 49.5 + 132 + 264 + 264 + 74.25);
+	// CPF Board: overtime is an Ordinary Wage. 3,825.25 × 20% = 765.05 → 765 (cents dropped);
+	// × 37% = 1,415.34 → 1,415 (nearest dollar, half up); employer 650. SDL 0.25% × 3,825.25 =
+	// 9.56 to the cent; the SDL Act rounds the employer's total remittance, not one employee.
+	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'CPF'), [3825.25, 765, 650]);
+	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'SDL'), [3825.25, 0, 9.56]);
 
-	// The clerk: the same days at 12.00 an hour and 105.60 a day.
+	// The clerk: the same days at 13.20 an hour and 105.60 a day.
 	assert.deepEqual(workLines(slips.get('SG-CLERK')!), [
 		['2026-01-01', 'OT-1.0X', 8, 105.6],
-		['2026-01-01', 'OT-1.5X', 2, 36],
-		['2026-01-05', 'OT-1.5X', 2, 36],
+		['2026-01-01', 'OT-1.5X', 2, 39.6],
+		['2026-01-05', 'OT-1.5X', 2, 39.6],
 		['2026-01-10', 'OT-1.0X', 4, 105.6],
 		['2026-01-11', 'OT-2.0X', 7, 211.2],
-		['2026-01-17', 'OT-1.5X', 3, 54],
+		['2026-01-17', 'OT-1.5X', 3, 59.4],
 		['2026-01-17', 'OT-2.0X', 8, 211.2]
 	]);
-	assert.equal(slips.get('SG-CLERK')!.gross, 3047.6);
+	assert.equal(slips.get('SG-CLERK')!.gross, 3060.2);
 
-	// s.35: outside Part 4 the same six days produce no line at all, on either ceiling.
-	assert.deepEqual(workLines(slips.get('SG-CLERK-OVER')!), []);
-	assert.equal(slips.get('SG-CLERK-OVER')!.gross, 2860);
-	assert.deepEqual(workLines(slips.get('SG-WORKMAN-OVER')!), []);
-	assert.equal(slips.get('SG-WORKMAN-OVER')!.gross, 4576);
+	// s.35: outside Part 4 the rest days and the hours beyond normal produce no line, on either
+	// ceiling — but s.88 is Part 10 and reaches every employee: the holiday worked still earns
+	// its extra day's basic pay (s.88(4)), 12 × 2,860 ÷ (52 × 5) = 132.00 and 12 × 4,576 ÷ 260 =
+	// 211.20.
+	assert.deepEqual(workLines(slips.get('SG-CLERK-OVER')!), [['2026-01-01', 'OT-1.0X', 8, 132]]);
+	assert.equal(slips.get('SG-CLERK-OVER')!.gross, 2992);
+	assert.deepEqual(workLines(slips.get('SG-WORKMAN-OVER')!), [['2026-01-01', 'OT-1.0X', 8, 211.2]]);
+	assert.equal(slips.get('SG-WORKMAN-OVER')!.gross, 4787.2);
 });
 
 test('Singapore — s.38(1) caps the normal week at 44 hours, and a rest-day hour is paid whole or part (s.37(3)(c)(ii))', () => {
@@ -583,7 +587,8 @@ test('Singapore — the normal day is nine hours on a five-day week (s.38(1)), a
 			punch(world, 'SG-LONG', '2026-01-05', '09:00', '20:00');
 		}
 	);
-	// 12 × 2,288 ÷ (52 × 44) = 12.00 an hour; one hour beyond nine at 1.5× = 18.00.
+	// The rostered week is fifty hours, over s.38(1)(b)'s 44: 12 × 2,288 ÷ (52 × 44) = 12.00 an
+	// hour (s.2); one hour beyond nine at 1.5× = 18.00.
 	assert.deepEqual(workLines(slips.get('SG-LONG')!), [['2026-01-05', 'OT-1.5X', 1, 18]]);
 });
 
@@ -1105,4 +1110,122 @@ test('Singapore — a five-hour contracted day is half a day (s.20A(2)), but a p
 		[[13, 20.5, 2600]]
 	);
 	assert.equal(slip.gross, 2600);
+});
+
+test('Singapore — the AW estimate takes the monthly OW for the payslips remaining, not a joiner’s prorated month (CPF Board, Step 1)', () => {
+	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	// A joiner on Monday 16 February at 8,000 works ten of the month's twenty days: OW 4,000. A
+	// 100,000 sign-on bonus is an Additional Wage; the Board estimates the year's OW as the
+	// monthly OW (8,000, at the ceiling) over the eleven payslips left in the year — 88,000, so
+	// 14,000 of the bonus is subject (an estimate on the prorated 4,000 would have let 58,000
+	// through). Base 18,000: 20% = 3,600; 37% = 6,660; employer 3,060.
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-02',
+			people: [{ key: 'SG-SIGNON', wage: 8000, hire_date: '2026-02-16', citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			const bonus = world.allowance_catalogue.find(
+				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
+			)!;
+			const employment = world.employments.find((row) => row.employee_number === 'SG-SIGNON')!;
+			world.allowances.push({
+				id: 'd0000000-0000-4000-8000-0000000000b7',
+				employment_id: employment.id,
+				catalogue_id: bonus.id,
+				amount: 100_000,
+				effective_from: '2026-02-16',
+				effective_to: '2026-02-28',
+				reason: 'sign-on bonus',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+		}
+	);
+	assert.deepEqual(scheme(slips.get('SG-SIGNON')!, 'CPF'), [18_000, 3_600, 3_060]);
+});
+
+test('Singapore — a December true-up never goes below zero: an over-contribution is the Board’s refund, not a payslip credit', () => {
+	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	// January: OW 6,000 and a 100,000 bonus, estimated on 6,000 × 12 = 72,000 — 30,000 subject.
+	// The OW then rose to 8,000: by November the year's OW is 6,000 + 8,000 × 10 = 86,000 (base
+	// 116,000). December's OW is 8,000: the year's OW 94,000 leaves 8,000 of ceiling, so only
+	// 8,000 of the bonus should have been subject — 22,000 less than was charged. That excess is
+	// refunded on application to the Board (its refund of contributions paid in excess of the AW ceiling):
+	// December charges the OW alone. Base 8,000: 1,600 and 1,360.
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-12',
+			people: [{ key: 'SG-OVERPAID', wage: 8000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			const bonus = world.allowance_catalogue.find(
+				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
+			)!;
+			const employment = world.employments.find((row) => row.employee_number === 'SG-OVERPAID')!;
+			world.payroll_runs.push({
+				id: 'sg-over-to-november',
+				company_id: COMPANY_ID,
+				period: '2026-11',
+				lifecycle: 'PAID'
+			} as never);
+			world.payslips.push({
+				id: 'sg-over-to-november-slip',
+				payroll_run_id: 'sg-over-to-november',
+				employment_id: employment.id,
+				status: 'PAID',
+				paid_at: '2026-11-28T00:00:00.000Z',
+				base: [],
+				adjustments: [
+					{ component_code: bonus.code, bucket: 'EARNING', amount: 100_000, catalogue_id: bonus.id }
+				],
+				statutory: [
+					{
+						scheme_code: 'CPF',
+						base_amount: 116_000,
+						ordinary_amount: 86_000,
+						employee_amount: 23_200,
+						employer_amount: 19_720
+					}
+				]
+			} as never);
+		}
+	);
+	assert.deepEqual(scheme(slips.get('SG-OVERPAID')!, 'CPF'), [8_000, 1_600, 1_360]);
+});
+
+test('Singapore — a part-timer’s hours beyond their own day up to a full-timer’s are the basic hourly rate (Part-Time Employees Regulations reg. 5)', () => {
+	// A part-timer contracted 09:00–13:00, five days (twenty hours a week) at 1,040 a month:
+	// 12 × 1,040 ÷ (52 × 20) = 12.00 an hour. A ten-hour Monday, 09:00–19:00 with no break: the
+	// four contracted hours are the normal day, the five up to the full-timer's nine-hour day
+	// (s.38(1)) are 1.0×, and the tenth is s.38(4)'s 1.5×: 60.00 and 18.00.
+	const SHORT_ID = 'c0000000-0000-4000-8000-0000000000f1';
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [{ key: 'SG-PT', wage: 1040, citizenship: 'CITIZEN', employment_type: 'PART_TIME' }]
+		},
+		(world) => {
+			world.shift_definitions.push({
+				...world.shift_definitions[0]!,
+				id: SHORT_ID,
+				code: 'HALF',
+				name: 'Half day',
+				variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 }
+			});
+			const pattern = world.shift_patterns[0]!;
+			pattern.pattern.days = pattern.pattern.days.map((day: { roster_code_id: string }) =>
+				day.roster_code_id === world.shift_definitions[0]!.id ? { roster_code_id: SHORT_ID } : day
+			);
+			punch(world, 'SG-PT', '2026-01-05', '09:00', '19:00');
+		}
+	);
+	assert.deepEqual(workLines(slips.get('SG-PT')!), [
+		['2026-01-05', 'PT-1.0X', 5, 60],
+		['2026-01-05', 'PT-1.5X', 1, 18]
+	]);
 });

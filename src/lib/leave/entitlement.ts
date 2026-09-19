@@ -121,6 +121,19 @@ export function computedEntitlement(options: {
 					active.filter((date) => date <= to && date === monthBounds(date.slice(0, 7)).end).length /
 					12
 				);
+			case 'HALF_MONTHS': {
+				// A month is counted once it has ended and at least half its days were eligible.
+				let months = 0;
+				for (
+					let month = window.start.slice(0, 7);
+					monthBounds(month).end <= to;
+					month = addDays(monthBounds(month).end, 1).slice(0, 7)
+				) {
+					const days = daysBetween(monthBounds(month).start, monthBounds(month).end);
+					if (days.filter((date) => eligible.has(date)).length * 2 >= days.length) months += 1;
+				}
+				return months / 12;
+			}
 			case 'COMPLETED_MONTHS': {
 				let complete = 0;
 				for (let month = 0; month < 12; month += 1) {

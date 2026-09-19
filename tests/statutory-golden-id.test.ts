@@ -429,7 +429,29 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 			// A one-month reimbursement keyed as an allowance for March alone is not; one that runs
 			// past the month is.
 			{ key: 'ID-ONEOFF', wage: 20_000_000 },
-			{ key: 'ID-TWO-MONTHS', wage: 20_000_000 }
+			{ key: 'ID-TWO-MONTHS', wage: 20_000_000 },
+			// Permenaker 6/2016 art.7: a PKWTT leaver of the thirty days before the holiday (Idulfitri,
+			// 21 March) is owed the THR (art.7(1)); a PKWT that ends *before* the holiday is not
+			// (art.7(3)); one that ends on or after it was employed on the day and is (art.2(1)).
+			{ key: 'ID-PERM-25MAR', wage: 10_000_000, exit_date: '2026-03-25' },
+			{
+				key: 'ID-PKWT-31MAR',
+				wage: 10_000_000,
+				employment_type: 'CONTRACT',
+				exit_date: '2026-03-31'
+			},
+			{
+				key: 'ID-PKWT-21MAR',
+				wage: 10_000_000,
+				employment_type: 'CONTRACT',
+				exit_date: '2026-03-21'
+			},
+			{
+				key: 'ID-PKWT-10MAR',
+				wage: 10_000_000,
+				employment_type: 'CONTRACT',
+				exit_date: '2026-03-10'
+			}
 		]
 	});
 	// The version in force in March 2026 (2026-03-01 → open).
@@ -524,6 +546,10 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 	// still paid in March, it just does not become 5,000,000 more of THR.
 	assert.deepEqual(slip('ID-ONEOFF').thr, [20_000_000]);
 	assert.deepEqual(slip('ID-TWO-MONTHS').thr, [25_000_000]);
+	assert.deepEqual(slip('ID-PERM-25MAR').thr, [10_000_000]);
+	assert.deepEqual(slip('ID-PKWT-31MAR').thr, [10_000_000]);
+	assert.deepEqual(slip('ID-PKWT-21MAR').thr, [10_000_000]);
+	assert.deepEqual(slip('ID-PKWT-10MAR').thr, []);
 	// PPh 21 is on gross, THR and the employer-borne premiums included (484,000 on 10,000,000).
 	// PP 44/45/46 of 2015: the BPJS wage is upah pokok plus tunjangan tetap, so the standing house
 	// allowance is in the JHT base and the employer premiums PPh 21 adds rise with it (JKK 0.54% +
@@ -839,4 +865,85 @@ test('Indonesia — the statutory leave ladder on every version', () => {
 		);
 		assert.equal(rows.find((row) => row.code === 'JOINT_LEAVE')!.consumes_code, 'ANNUAL_LEAVE');
 	}
+});
+
+test('Indonesia — the Kesehatan floor is on the wage per month, not on a part month’s prorated base (Perpres 82/2018 art.32(2))', () => {
+	// A joiner on 15 January at 10,000,000 is paid 17 of 31 days — 5,483,870.97, under the
+	// 5,729,876 UMP — but the contract is above the floor: 1% / 4% of the wage paid, 54,839 /
+	// 219,355. A contract at 5,000,000 is under it, and its part month is lifted in the same
+	// proportion: 5,729,876 × 17 ÷ 31 = 3,142,190 → 31,422 / 125,688.
+	const book = assessStatutoryUnvalidated({
+		...idWorld('2026-01'),
+		people: [
+			{ key: 'ID-JOIN-10M', wage: 10_000_000, hire_date: '2026-01-15' },
+			{ key: 'ID-JOIN-5M', wage: 5_000_000, hire_date: '2026-01-15' }
+		]
+	});
+	expectStatutory(book, 'ID-JOIN-10M', 'KESEHATAN', 54_839, 219_355);
+	expectStatutory(book, 'ID-JOIN-5M', 'KESEHATAN', 31_422, 125_688);
+});
+
+test('Indonesia — biaya jabatan is capped per month of income, the join month whole (PMK 250/PMK.03/2008 art.1(1))', () => {
+	// A joiner on 15 July at 20,000,000. On file: July's 17 of 31 days, 10,967,742, then four
+	// months of 20,000,000 (1,600,000 withheld each, JP 110,863 on the ceiling, JHT 2%). December's
+	// gross is 20,648,000 with the employer premiums (Kesehatan 480,000 on the 12,000,000 cap,
+	// JKK 108,000, JKM 60,000): the year 111,615,742, biaya jabatan 5% = 5,580,787 capped at six
+	// months × 500,000 = 3,000,000 (five would be 2,500,000), JP 665,178, JHT 2,219,355, PTKP
+	// 54,000,000 → PKP 51,731,209 → 51,731,000 → 5% = 2,586,550, less the 6,400,000 withheld.
+	const book = assessStatutoryUnvalidated(
+		{
+			...idWorld('2026-12'),
+			people: [{ key: 'ID-JUL15', wage: 20_000_000, hire_date: '2026-07-15' }]
+		},
+		(world) => {
+			const employment = world.employments.find((row) => row.employee_number === 'ID-JUL15')!;
+			const months: [string, number, number, number][] = [
+				['2026-07', 10_967_742, 0, 219_355],
+				['2026-08', 20_000_000, 1_600_000, 400_000],
+				['2026-09', 20_000_000, 1_600_000, 400_000],
+				['2026-10', 20_000_000, 1_600_000, 400_000],
+				['2026-11', 20_000_000, 1_600_000, 400_000]
+			];
+			for (const [period, gross, pph21, jht] of months) {
+				world.payroll_runs.push({ id: `prior-${period}`, company_id: COMPANY_ID, period });
+				world.payslips.push({
+					id: `payslip-${period}-ID-JUL15`,
+					payroll_run_id: `prior-${period}`,
+					employment_id: employment.id,
+					status: 'PAID',
+					paid_at: `${period}-28T00:00:00.000Z`,
+					currency: 'IDR',
+					base: [],
+					adjustments: [],
+					statutory: [
+						{
+							scheme_code: 'PPH21',
+							employee_amount: pph21,
+							employer_amount: 0,
+							base_amount: gross,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'JP',
+							employee_amount: 110_863,
+							employer_amount: 221_726,
+							base_amount: gross,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'JHT',
+							employee_amount: jht,
+							employer_amount: jht * 1.85,
+							base_amount: gross,
+							rule_when: null,
+							authority: null
+						}
+					]
+				});
+			}
+		}
+	);
+	expectStatutory(book, 'ID-JUL15', 'PPH21', 2_586_550 - 6_400_000, 0);
 });

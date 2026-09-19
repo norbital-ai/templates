@@ -1161,3 +1161,67 @@ test('Malaysia — EPF stops at seventy-five for citizen and foreigner alike (Fi
 	assert.equal(book.get('MY-75')!.get('EPF'), undefined);
 	assert.equal(book.get('MY-F75')!.get('EPF_NON_CITIZEN'), undefined);
 });
+
+test('Malaysia — a non-citizen is Part F whatever the registration says (EPF Act Third Schedule)', () => {
+	// A forty-year-old foreigner whose facts carry an EPF registration — a legacy election, a
+	// wrong fact — is still no Part A member: the Third Schedule's Part A is citizens and
+	// permanent residents, and a non-citizen's contribution is Part F's 2% (from October 2025).
+	const book = assessStatutory({
+		code: 'MY',
+		period: '2026-01',
+		people: [{ key: 'MY-F40', wage: 3000, age: 40, citizenship: 'FOREIGNER' }]
+	});
+	assert.equal(book.get('MY-F40')!.get('EPF'), undefined);
+	expectStatutory(book, 'MY-F40', 'EPF_NON_CITIZEN', 60, 60);
+});
+
+test('Malaysia — the termination benefit counts a part year to the nearest month (Termination and Lay-Off Benefits Regulations 1980 reg. 6(1))', () => {
+	// Hired 15 May 2023, made redundant on 31 January 2026 at RM3,000: 993 days of service is
+	// 32.6 months, the nearest month 33 — two years and nine months, inside the fifteen-day tier
+	// (two years or more, under five). 15 × 33/12 × 3,000 ÷ 26 = 4,759.615 → 4,759.62.
+	const { slips } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-01',
+			people: [
+				{
+					key: 'MY-REDUNDANT',
+					wage: 3000,
+					citizenship: 'CITIZEN',
+					registrations: MY_LOCAL,
+					hire_date: '2023-05-15',
+					exit_date: '2026-01-31',
+					exit_reason: 'REDUNDANCY'
+				}
+			]
+		},
+		(world) => {
+			const benefit = world.allowance_catalogue.find(
+				(row) =>
+					row.code === 'TERMINATION_BENEFIT' &&
+					row.settings_id ===
+						settingsVersions('MY').find((v) =>
+							String(v.effective_range.start).startsWith('2025-12')
+						)!.id
+			)!;
+			const employment = world.employments.find((row) => row.employee_number === 'MY-REDUNDANT')!;
+			world.allowances.push({
+				id: 'd0000000-0000-4000-8000-00000000ad21',
+				employment_id: employment.id,
+				catalogue_id: benefit.id,
+				amount: 0,
+				effective_from: '2026-01-31',
+				effective_to: '2026-01-31',
+				reason: 'termination benefit',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+		}
+	);
+	const slip = slips.get('MY-REDUNDANT')!;
+	assert.equal(
+		slip.adjustments.find((row) => row.component_code === 'TERMINATION_BENEFIT')?.amount,
+		4759.62
+	);
+});

@@ -31,6 +31,7 @@ import {
 	assertEveryVersionPriced,
 	settingsVersions,
 	contributionSchemes,
+	leaveCatalogue,
 	COMPANY_ID,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
@@ -572,16 +573,18 @@ test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 do
 	// contractual monthly wage, 60,000, and a month's overtime does not re-declare it — each
 	// scheme is assessed on its grade itself: 勞退 60,800 × 6% = 3,648; NHI 60,800 × 5.17% × 30%
 	// = 943.01 → 943, the insuring unit's 60,800 × 5.17% × 60% × 1.56 = 2,942.28 → 2,942; 職災
-	// 60,800 × 0.25% = 152. Income tax reads the whole payment: the 5% election, 3,379.17.
+	// 60,800 × 0.25% = 152. Income tax reads the salary alone: 所得稅法 §14(1)三(2) with 財政部 74
+	// 台財稅第16713號 keeps overtime within the 勞基法 §24/§32 standard and holiday-work pay out of
+	// 薪資所得, so the 7,583.35 of work-day lines is outside the 5% election — 3,000.
 	assert.equal(slip.gross, 67_583.35);
 	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [60_800, 0, 3648]);
 	assert.deepEqual(charge(slip, 'NHI'), [60_800, 943, 2942]);
 	assert.deepEqual(charge(slip, 'OCC_INJURY'), [60_800, 0, 152]);
-	assert.deepEqual(charge(slip, 'INCOME_TAX'), [67_583.35, 3379.17, 0]);
+	assert.deepEqual(charge(slip, 'INCOME_TAX'), [60_000, 3000, 0]);
 	assert.deepEqual(charge(slip, 'LI'), [45_800, 1053, 3687]); // the 勞保 ceiling grade
 	// net = gross − every employee leg; employer cost = Σ employer legs (settle.ts).
-	assert.equal(slip.total_deductions, 5467.17); // 1,053 + 92 + 943 + 3,379.17
-	assert.equal(slip.net, 62_116.18); // 67,583.35 − 5,467.17
+	assert.equal(slip.total_deductions, 5088); // 1,053 + 92 + 943 + 3,000
+	assert.equal(slip.net, 62_495.35); // 67,583.35 − 5,088
 	// 健保法 §34: the insuring unit's supplementary premium is 2.11% of the month's total pay
 	// above the insured amounts, netted over the establishment — a company-scope charge on no
 	// payslip: (67,583.35 − 60,800) × 2.11% = 143.13 → 143. The insured's own supplement (§31) is
@@ -880,10 +883,16 @@ test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,
 	const rung = contributionSchemes('TW')
 		.find((row) => row.code === 'INCOME_TAX' && row.settings_id === settingsVersions('TW')[1]!.id)!
 		.rules.find((row) => row.employee.includes('five_percent_withholding'))!.employee;
+	// The column is 配偶及受扶養親屬人數 (說明(三)): a spouse without income is one head of it.
 	const context = (base: number, dependants: number) => ({
 		base,
 		scheme: { elections: { five_percent_withholding: false }, rate_override: 0 },
-		person: { employee: { dependents_count: dependants } },
+		person: {
+			employee: {
+				dependents_count: dependants > 0 ? dependants - 1 : 0,
+				spouse_status: dependants > 0 ? 'WITHOUT_INCOME' : 'NONE'
+			}
+		},
 		produced: { LABOR_PENSION: { employee: 0 } }
 	});
 	let cells = 0;
@@ -984,4 +993,107 @@ test('Taiwan — the second review: 災保 has no grade under the basic wage, th
 	expectStatutory(book, 'TW-BONUS-60000', 'INCOME_TAX', 0, 0);
 	expectStatutory(book, 'TW-BONUS-5PCT', 'INCOME_TAX', 2500, 0);
 	assert.equal(book.get('TW-MIGRANT')!.get('LABOR_PENSION'), undefined);
+});
+
+test('Taiwan — an hourly worker is insured for every enrolled day of the month, on a month’s figure (勞保條例施行細則 §27, §28-1)', () => {
+	// 196 an hour, part-time, no payslip history: the grade is a month of the contract's hours —
+	// 196 × 8 × 30 = 47,040 → the 48,200 grade — not the hourly rate graded as if it were a month
+	// (11,100). Enrolled the whole of March, the premium is the whole month's, whatever the hours
+	// punched: 勞保 45,800 (the ceiling) × 11.5% × 20% = 1,053 / × 80% × 1.1… the fixture's
+	// employer share 3,687; 就保 92 / 321; 勞退 48,200 × 6% = 2,892.
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-03',
+			riskClass: '1',
+			people: [
+				{
+					key: 'TW-196',
+					wage: 196,
+					citizenship: 'CITIZEN',
+					pay_frequency: 'HOURLY',
+					employment_type: 'PART_TIME'
+				}
+			]
+		},
+		(world) => {
+			for (const day of ['02', '03', '04', '05', '06', '09', '10', '11'])
+				punch(world, 'TW-196', `2026-03-${day}`, '09:00', '18:00');
+		}
+	);
+	const slip = slips.get('TW-196')!;
+	assert.deepEqual(charge(slip, 'LI'), [45_800, 1053, 3687]);
+	assert.deepEqual(charge(slip, 'EI'), [45_800, 92, 321]);
+	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [48_200, 0, 2892]);
+});
+
+test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the monthly limit inside it (財政部 74 台財稅第16713號)', () => {
+	// 60,000 on the 5% election with five days encashed (10,000): pay for unused annual leave is
+	// holiday-work pay under the ruling and outside the withholding base — 3,000 on the salary
+	// alone. Fifty ordinary-day overtime hours in the month: the 46 within 勞基法 §32 are exempt,
+	// the four beyond are the INCENTIVE line and taxable — the 47th hour is the tenth day's second
+	// 4/3 hour and the 48th to 50th its 5/3 hours: 333.33 + 3 × 416.67 = 1,583.34 at 5% = 79.17
+	// beside the 3,000.
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: [
+				{
+					key: 'TW-ENCASH',
+					wage: 60_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+					}
+				},
+				{
+					key: 'TW-FIFTY',
+					wage: 60_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+					}
+				}
+			]
+		},
+		(world) => {
+			const employment = world.employments.find((row) => row.employee_number === 'TW-ENCASH')!;
+			const annual = leaveCatalogue('TW').find(
+				(row) => row.code === 'ANNUAL_LEAVE' && row.settings_id === settingsVersions('TW')[1]!.id
+			)!;
+			world.leave_catalogue.push({ ...annual, approval_id: null } as never);
+			world.leave_entries.push({
+				id: 'e1000000-0000-4000-8000-0000000enc02',
+				employment_id: employment.id,
+				catalogue_id: annual.id,
+				leave_code: 'ANNUAL_LEAVE',
+				reference: 'ENCASH-TW',
+				from_date: '2026-01-01',
+				to_date: '2026-12-31',
+				half_day_start: false,
+				half_day_end: false,
+				days: 5,
+				encash_days: 5,
+				effective_on: '2026-01-15',
+				due_on: '2026-01-31',
+				reason: 'Year end',
+				allocations: [],
+				charges: [],
+				approval_id: null
+			} as never);
+			// Ten weekdays of 09:00–23:00: 13 worked, 5 beyond the day — 50 in the month.
+			for (const day of ['05', '06', '07', '08', '09', '12', '13', '14', '15', '16'])
+				punch(world, 'TW-FIFTY', `2026-01-${day}`, '09:00', '23:00');
+		}
+	);
+	const encash = slips.get('TW-ENCASH')!;
+	assert.equal(
+		encash.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')?.amount,
+		10_000
+	);
+	assert.deepEqual(charge(encash, 'INCOME_TAX'), [60_000, 3000, 0]);
+	const fifty = slips.get('TW-FIFTY')!;
+	assert.deepEqual(charge(fifty, 'INCOME_TAX'), [61_583.34, 3079.17, 0]);
 });

@@ -5,7 +5,7 @@
 		"code": "SI",
 		"name": "Social Insurance (Bảo hiểm xã hội)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18: an employer granted the reduced 0.3% occupational-accident rate (Decree 58/2020 art.5) records the entity fact `occupational_accident_reduced`; its share is then 17.3%. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Above the ceiling (twenty times the reference level) the employer’s share is the ceiling at the employer’s own rate — 17.3% where the occupational-accident fund is reduced (Decree 58/2020 art.4), 17.5% otherwise — the same choice the open rungs make. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2340000.0) and capped at twenty times it (46800000.0) — so a scheme that reads `produced.SI.base` reads the insured salary.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -26,7 +26,7 @@
 				"employer": "round_unit(46800000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
 		"short_name": null,
 		"listing_order": 28,
 		"listing_group": null
@@ -36,11 +36,11 @@
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "UNION_DUES",
 		"name": "Đoàn phí công đoàn (union membership dues)",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances)",
+		"assessed_on": "produced.SI.base",
 		"authority": "Trade Union Law 50/2024/QH15 art.29 with Decision 1908/QĐ-TLĐ art.23: a union member pays dues of 1% of the salary the social-insurance contribution is based on, capped at 10% of the reference (base) salary; paid to the union, never by a non-member. The `union_member` election says who is one. Applied 2026-09-18. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside.",
 		"elections": [
 			{
@@ -65,7 +65,7 @@
 		"code": "HI",
 		"name": "Health Insurance (Bảo hiểm y tế)",
 		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2340000.0) and capped at twenty times it (46800000.0) — so a scheme that reads `produced.HI.base` reads the insured salary.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -86,7 +86,7 @@
 				"employer": "round_unit(1404000.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
 		"short_name": null,
 		"listing_order": 29,
 		"listing_group": null
@@ -97,7 +97,7 @@
 		"code": "UI",
 		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
 		"authority": "Law on Employment 38/2013/QH13 art.57 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 74/2024/NĐ-CP, Region I 4,960,000). The scheme covers Vietnamese employees; a foreign employee is outside it. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Law 41/2024 art.31(1)(đ) makes the unemployment-insurance base the social-insurance base, so its floor is the version’s reference level — 2,530,000 from 1 July 2026 as for SI, not the earlier 2,340,000.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -113,7 +113,7 @@
 				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances)",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
 		"short_name": null,
 		"listing_order": 30,
 		"listing_group": null
@@ -124,7 +124,7 @@
 		"code": "UNION_FEE",
 		"name": "Trade Union Fee (Kinh phí công đoàn)",
 		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): Law on Trade Unions 2024 art.29(1)(b) (Decree 191/2013 art.5): the employer’s union fund contribution is 2% of the salary fund on which social insurance is paid — one line on the establishment, the sum of the insured salaries (`produced.SI.base` over the run), not a charge on any payslip.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -154,7 +154,7 @@
 		"rules": [
 			{
 				"when": "period.last_of_year && person.employment.exit_date == \"\"",
-				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
 			},
 			{
@@ -174,7 +174,7 @@
 		"code": "SI",
 		"name": "Social Insurance (Bảo hiểm xã hội)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18: an employer granted the reduced 0.3% occupational-accident rate (Decree 58/2020 art.5) records the entity fact `occupational_accident_reduced`; its share is then 17.3%. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Above the ceiling (twenty times the reference level) the employer’s share is the ceiling at the employer’s own rate — 17.3% where the occupational-accident fund is reduced (Decree 58/2020 art.4), 17.5% otherwise — the same choice the open rungs make. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2340000.0) and capped at twenty times it (46800000.0) — so a scheme that reads `produced.SI.base` reads the insured salary.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -195,7 +195,7 @@
 				"employer": "round_unit(46800000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
 		"short_name": null,
 		"listing_order": 28,
 		"listing_group": null
@@ -205,11 +205,11 @@
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "UNION_DUES",
 		"name": "Đoàn phí công đoàn (union membership dues)",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances)",
+		"assessed_on": "produced.SI.base",
 		"authority": "Trade Union Law 50/2024/QH15 art.29 with Decision 1908/QĐ-TLĐ art.23: a union member pays dues of 1% of the salary the social-insurance contribution is based on, capped at 10% of the reference (base) salary; paid to the union, never by a non-member. The `union_member` election says who is one. Applied 2026-09-18. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside.",
 		"elections": [
 			{
@@ -234,7 +234,7 @@
 		"code": "HI",
 		"name": "Health Insurance (Bảo hiểm y tế)",
 		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2340000.0) and capped at twenty times it (46800000.0) — so a scheme that reads `produced.HI.base` reads the insured salary.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -255,7 +255,7 @@
 				"employer": "round_unit(1404000.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
 		"short_name": null,
 		"listing_order": 29,
 		"listing_group": null
@@ -266,7 +266,7 @@
 		"code": "UI",
 		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
 		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33, in force 1 January 2026 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP). The scheme covers Vietnamese employees; a foreign employee is outside it. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Law 41/2024 art.31(1)(đ) makes the unemployment-insurance base the social-insurance base, so its floor is the version’s reference level — 2,530,000 from 1 July 2026 as for SI, not the earlier 2,340,000.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -282,7 +282,7 @@
 				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances)",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
 		"short_name": null,
 		"listing_order": 30,
 		"listing_group": null
@@ -293,7 +293,7 @@
 		"code": "UNION_FEE",
 		"name": "Trade Union Fee (Kinh phí công đoàn)",
 		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): Law on Trade Unions 2024 art.29(1)(b) (Decree 191/2013 art.5): the employer’s union fund contribution is 2% of the salary fund on which social insurance is paid — one line on the establishment, the sum of the insured salaries (`produced.SI.base` over the run), not a charge on any payslip.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -323,7 +323,7 @@
 		"rules": [
 			{
 				"when": "period.last_of_year && person.employment.exit_date == \"\"",
-				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
 			},
 			{
@@ -343,7 +343,7 @@
 		"code": "SI",
 		"name": "Social Insurance (Bảo hiểm xã hội)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,530,000, ceiling 50,600,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version). Applied 2026-09-18: an employer granted the reduced 0.3% occupational-accident rate (Decree 58/2020 art.5) records the entity fact `occupational_accident_reduced`; its share is then 17.3%. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Above the ceiling (twenty times the reference level) the employer’s share is the ceiling at the employer’s own rate — 17.3% where the occupational-accident fund is reduced (Decree 58/2020 art.4), 17.5% otherwise — the same choice the open rungs make. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2530000.0) and capped at twenty times it (50600000.0) — so a scheme that reads `produced.SI.base` reads the insured salary.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -364,7 +364,7 @@
 				"employer": "round_unit(50600000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
 		"short_name": null,
 		"listing_order": 28,
 		"listing_group": null
@@ -374,11 +374,11 @@
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "UNION_DUES",
 		"name": "Đoàn phí công đoàn (union membership dues)",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances)",
+		"assessed_on": "produced.SI.base",
 		"authority": "Trade Union Law 50/2024/QH15 art.29 with Decision 1908/QĐ-TLĐ art.23: a union member pays dues of 1% of the salary the social-insurance contribution is based on, capped at 10% of the reference (base) salary; paid to the union, never by a non-member. The `union_member` election says who is one. Applied 2026-09-18. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside.",
 		"elections": [
 			{
@@ -403,7 +403,7 @@
 		"code": "HI",
 		"name": "Health Insurance (Bảo hiểm y tế)",
 		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (50,600,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2530000.0) and capped at twenty times it (50600000.0) — so a scheme that reads `produced.HI.base` reads the insured salary.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -424,7 +424,7 @@
 				"employer": "round_unit(1518000.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))",
 		"short_name": null,
 		"listing_order": 29,
 		"listing_group": null
@@ -435,7 +435,7 @@
 		"code": "UI",
 		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
 		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP, unchanged on 1 July 2026). The scheme covers Vietnamese employees; a foreign employee is outside it. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Law 41/2024 art.31(1)(đ) makes the unemployment-insurance base the social-insurance base, so its floor is the version’s reference level — 2,530,000 from 1 July 2026 as for SI, not the earlier 2,340,000.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -451,7 +451,7 @@
 				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
 			}
 		],
-		"assessed_on": "person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances)",
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))",
 		"short_name": null,
 		"listing_order": 30,
 		"listing_group": null
@@ -462,7 +462,7 @@
 		"code": "UNION_FEE",
 		"name": "Trade Union Fee (Kinh phí công đoàn)",
 		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (50,600,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): Law on Trade Unions 2024 art.29(1)(b) (Decree 191/2013 art.5): the employer’s union fund contribution is 2% of the salary fund on which social insurance is paid — one line on the establishment, the sum of the insured salaries (`produced.SI.base` over the run), not a charge on any payslip.",
-		"assessment_period": "PAY_PERIOD",
+		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
@@ -492,7 +492,7 @@
 		"rules": [
 			{
 				"when": "period.last_of_year && person.employment.exit_date == \"\"",
-				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * year.months_employed) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
 				"employer": "round_unit(0.0)"
 			},
 			{

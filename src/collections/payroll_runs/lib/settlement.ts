@@ -60,7 +60,7 @@ const EmploymentDatesSchema = Schema.Struct({
 	hire: Schema.String,
 	exit: Schema.NullOr(Schema.String)
 });
-type EmploymentDates = Schema.Schema.Type<typeof EmploymentDatesSchema>;
+export type EmploymentDates = Schema.Schema.Type<typeof EmploymentDatesSchema>;
 
 const dayRangeSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
 const EmploymentSettlementSchema = Schema.Struct({

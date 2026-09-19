@@ -724,6 +724,7 @@
 	"leave.proration.CALENDAR_DAYS": "符合条件的日历天数",
 	"leave.proration.CALENDAR_MONTHS": "每个日历月末",
 	"leave.proration.COMPLETED_MONTHS": "已完成的服务月数",
+	"leave.proration.HALF_MONTHS": "至少一半天数符合条件的月份",
 	"leave.proration.NONE": "不按比例计算",
 	"leave.reversal_hint": "冲销恢复原始按日期分配的假期。已支付折现的冲销沿用原支付金额与法定参与项；请填写追回款项的到期日。",
 	"leave.source_end": "来源假期年度结束",

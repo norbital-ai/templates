@@ -424,8 +424,10 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 		['2026-01-10', 'OT-2.0X', 8, 1_600_000],
 		['2026-01-10', 'OT-2.0X', 0.5, 100_000],
 		// Six hours beyond the normal day at 150%, and art.98(2)–(3) for the two of them after 22:00:
-		// 30% of the hourly wage for night work plus 20% of the day-time unit price, 100,000 an hour.
-		['2026-01-12', 'NIGHT_PREMIUM', 2, 100_000],
+		// 30% of the hourly wage for night work plus 20% of the day-time unit price — which, the
+		// night overtime following four daytime overtime hours, is the 150% hour (Decree 145
+		// art.57(1)(b)): 60,000 an hour.
+		['2026-01-12', 'NIGHT_PREMIUM', 2, 120_000],
 		// Art.107(2)(b): four hours of overtime a day; Decree 253/2026 art.26(3) taxes the part
 		// beyond, so the fifth and sixth hours are their own line at the same 150%.
 		['2026-01-12', 'OT-1.5X', 4, 600_000],
@@ -440,7 +442,7 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 		warnings.map((warning) => warning.split('.')[0]),
 		['DAILY_OVERTIME_LIMIT_EXCEEDED: VN-17']
 	);
-	assert.equal(slip.gross, 17_600_000 + 6_950_000 + 100_000);
+	assert.equal(slip.gross, 17_600_000 + 6_950_000 + 120_000);
 	// Social, health and unemployment insurance and the union fee read the salary alone (Labour Code
 	// art.168, Circular 06/2021 art.30: the contractual wage, never overtime).
 	assert.deepEqual(charge(slip, 'SI'), [17_600_000, 1_408_000, 3_080_000]);
@@ -455,7 +457,7 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 	// rate; that is the December 2025 version.)
 	assert.deepEqual(charge(slip, 'PIT'), [17_900_000, 27_600, 0]);
 	assert.equal(slip.total_deductions, 1_875_600); // 1,408,000 + 264,000 + 176,000 + 27,600
-	assert.equal(slip.net, 22_774_400); // 24,650,000 − 1,875,600
+	assert.equal(slip.net, 22_794_400); // 24,670,000 − 1,875,600
 	// The union fund is the establishment’s line, not the payslip’s employer cost.
 	assert.equal(slip.employer_cost, 3_080_000 + 528_000 + 176_000);
 });
@@ -479,7 +481,7 @@ test('Vietnam — on the July 2026 version too, the overtime and night wage are 
 			['OT-1.5X', 3, 450_000],
 			['OT-2.0X', 8, 1_600_000],
 			['OT-2.0X', 0.5, 100_000],
-			['NIGHT_PREMIUM', 2, 100_000],
+			['NIGHT_PREMIUM', 2, 120_000],
 			['OT-1.5X', 4, 600_000],
 			['OT-1.5X', 2, 300_000]
 		]
@@ -489,7 +491,7 @@ test('Vietnam — on the July 2026 version too, the overtime and night wage are 
 	// × 5% = 63,400; the four lawful hours stay outside.
 	assert.deepEqual(charge(slip, 'SI'), [18_400_000, 1_472_000, 3_220_000]);
 	assert.deepEqual(charge(slip, 'PIT'), [18_700_000, 63_400, 0]);
-	assert.equal(slip.gross, 18_400_000 + 5_450_000 + 100_000);
+	assert.equal(slip.gross, 18_400_000 + 5_450_000 + 120_000);
 });
 
 test('Vietnam — a part month prorates on working days, an allowance with it, and unpaid leave leaves the allowance whole', () => {
@@ -836,4 +838,145 @@ test('Vietnam — the 300-hour sector limit, the reduced accident rate and union
 	// reference level (234,000); a non-member pays none.
 	expectStatutory(book, 'VN-MEMBER', 'UNION_DUES', 176_000, 0);
 	assert.equal(book.get('VN-NONMEMBER')!.get('UNION_DUES'), undefined);
+});
+
+test('Vietnam — a holiday on the rest day is the holiday, its substitute Monday the rest day (Decree 145/2020 art.55(3))', () => {
+	// Giỗ Tổ Hùng Vương 2026 is Sunday 26 April, with Monday the 27th its substitute — the
+	// calendar's shape for a holiday on a rest day (the bank seeds both rows). Eight hours on the
+	// Sunday: the holiday coincides with the weekly rest day, so it is paid as holiday overtime —
+	// 300%; eight hours on the substitute: rest-day overtime — 200%. The company cuts off on the
+	// 21st, so both days are in the May run; each is priced at the hour of the month it was worked
+	// (art.55(1)(a)): April's 22 working days, 17,600,000 ÷ 22 ÷ 8 = 100,000, not May's 21.
+	const { slips } = buildStatutory(
+		{
+			code: 'VN',
+			period: '2026-05',
+			region: 'I',
+			people: [{ key: 'VN-HUNG', wage: 17_600_000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			world.jurisdiction_holidays.push(holiday('2026-04-26', 'Giỗ Tổ Hùng Vương'), {
+				...holiday('2026-04-27', 'Giỗ Tổ Hùng Vương — observed'),
+				kind: 'SUBSTITUTE',
+				replaces: '2026-04-26'
+			});
+			punch(world, 'VN-HUNG', '2026-04-26', '09:00', '17:30'); // eight hours net of the art.109 break
+			punch(world, 'VN-HUNG', '2026-04-27', '09:00', '18:00'); // eight on the substitute
+		}
+	);
+	assert.deepEqual(workLines(slips.get('VN-HUNG')!), [
+		['2026-04-26', 'OT-3.0X-STATUTORY-DAY', 8, 2_400_000],
+		['2026-04-27', 'OT-2.0X-SUBSTITUTE', 8, 1_600_000]
+	]);
+});
+
+test('Vietnam — a part-timer under the floor and a trainee are outside compulsory insurance (Law 41/2024 art.2(1)(a), (l))', () => {
+	const book = assessStatutory({
+		code: 'VN',
+		period: '2026-01',
+		region: 'I',
+		people: [
+			{ key: 'VN-PT-2M', wage: 2_000_000, citizenship: 'CITIZEN', employment_type: 'PART_TIME' },
+			{ key: 'VN-PT-FLOOR', wage: 2_340_000, citizenship: 'CITIZEN', employment_type: 'PART_TIME' },
+			{ key: 'VN-INTERN', wage: 5_000_000, citizenship: 'CITIZEN', employment_type: 'INTERN' }
+		]
+	});
+	// Art.2(1)(l): a part-timer is a member only from a month's wage at or above the lowest
+	// contribution salary; exactly the reference level is in.
+	for (const scheme of ['SI', 'HI', 'UI']) {
+		expectStatutorySkipped(book, 'VN-PT-2M', scheme);
+		expectStatutorySkipped(book, 'VN-INTERN', scheme);
+	}
+	expectStatutory(book, 'VN-PT-FLOOR', 'SI', 187_200, 409_500);
+	expectStatutory(book, 'VN-PT-FLOOR', 'UI', 23_400, 23_400);
+});
+
+test('Vietnam — union dues below the floor are 1% of the SI salary (Decision 1908/QĐ-TLĐ art.23(3))', () => {
+	const book = assessStatutory({
+		code: 'VN',
+		period: '2026-01',
+		region: 'I',
+		people: [
+			{
+				key: 'VN-DUES-2M',
+				wage: 2_000_000,
+				citizenship: 'CITIZEN',
+				registrations: { UNION_DUES: { kind: 'REGISTERED', elections: { union_member: true } } }
+			}
+		]
+	});
+	// The SI salary is the floored 2,340,000, so the dues are 23,400 — not 20,000 on the raw wage.
+	expectStatutory(book, 'VN-DUES-2M', 'UNION_DUES', 23_400, 0);
+});
+
+test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve months whatever the months employed (Decree 253/2026 art.48(1)(b))', () => {
+	// A joiner on 1 July 2026 at 60,000,000 with no other income of the year: the employer's
+	// finalisation in December reads the year's income, 6 × 60,000,000 = 360,000,000, less the
+	// year's insurance (6 × 4,807,000 on the 50,600,000 cap: SI 4,048,000 + HI 759,000; UI on the
+	// regional cap 20 × 5,310,000 = 106,200,000 → 600,000 — 5,407,000 a month, 32,442,000) and the
+	// twelve-month self-deduction, 186,000,000 (six months' worth, 93,000,000, would have left
+	// 234,558,000): 141,558,000 → 5% × 120,000,000 + 10% × 21,558,000 = 8,155,800, less the five
+	// months withheld on file — the year's tax is below what the monthly table took, and the
+	// finalisation refunds the difference through the payslip.
+	const people = [
+		{ key: 'VN-JULY', wage: 60_000_000, citizenship: 'CITIZEN', hire_date: '2026-07-01' }
+	];
+	// The monthly table on 60,000,000 − 5,407,000 − 15,500,000 = 39,093,000: 500,000 + 2,000,000 +
+	// 20% × 9,093,000 = 4,318,600.
+	const withheld = 4_318_600;
+	const december = assessStatutory(
+		{ code: 'VN', period: '2026-12', people, region: 'I' },
+		(world) => {
+			const employment = world.employments.find((row) => row.employee_number === 'VN-JULY')!;
+			for (let month = 7; month <= 11; month += 1) {
+				const period = `2026-${String(month).padStart(2, '0')}`;
+				world.payroll_runs.push({ id: `prior-${period}`, company_id: COMPANY_ID, period });
+				world.payslips.push({
+					id: `payslip-VN-JULY-${period}`,
+					payroll_run_id: `prior-${period}`,
+					employment_id: employment.id,
+					status: 'PAID',
+					paid_at: `${period}-28T00:00:00.000Z`,
+					currency: 'VND',
+					base: [],
+					adjustments: [],
+					statutory: [
+						{
+							scheme_code: 'SI',
+							employee_amount: 4_048_000,
+							employer_amount: 0,
+							base_amount: 50_600_000,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'HI',
+							employee_amount: 759_000,
+							employer_amount: 0,
+							base_amount: 50_600_000,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'UI',
+							employee_amount: 600_000,
+							employer_amount: 0,
+							base_amount: 60_000_000,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'PIT',
+							employee_amount: withheld,
+							employer_amount: 0,
+							base_amount: 60_000_000,
+							rule_when: null,
+							authority: null
+						}
+					]
+				});
+			}
+		}
+	);
+	expectStatutory(december, 'VN-JULY', 'PIT', 8_155_800 - 5 * withheld, 0);
 });

@@ -32,7 +32,8 @@ const db = {
 	},
 	allowance_catalogue: { findMany: () => Effect.succeed([]) },
 	claim_catalogue: { findMany: () => Effect.succeed([]) },
-	loan_catalogue: { findMany: () => Effect.succeed([]) }
+	loan_catalogue: { findMany: () => Effect.succeed([]) },
+	leave_catalogue: { findMany: () => Effect.succeed([]) }
 };
 
 const writeScheme = (input: Record<string, unknown>) => transformOne(schemes, input, undefined, db);
