@@ -483,13 +483,22 @@ export function prepareWorkContext(
 		return {
 			work_pattern: patternRow?.pattern ?? null,
 			pattern_anchor: patternAnchor(patternRow),
-			// A rostered zero carries no weekly pattern; the day length falls back to the contract's
-			// own week — its ordinary hours over its working days — never to a figure of the engine's.
+			// The normal day of a day with no shift of its own (a rest day's halves, an unrostered
+			// clocked day): the contract's stated day, else the roster's usual day, else the
+			// statute's — never a figure of the engine's.
 			normal_daily_hours: Math.min(
 				normalHoursCap,
 				workload.work_days > 0
 					? workload.paid_minutes / workload.work_days / 60
 					: contractDayHours(row, termsDaysPerWeek(row, configuration), normalHoursCap)
+			),
+			// A rostered shift is its own normal day up to the statute's (and the contract's stated
+			// day where it states one) — never up to the roster's average: a roster mixing 7.5-hour
+			// and 9-hour shifts averages 8.2, and every 9-hour shift was earning an hour of overtime
+			// MY s.60A(1)'s proviso does not owe.
+			shift_day_hours: Math.min(
+				normalHoursCap,
+				statedDayHours(row, termsDaysPerWeek(row, configuration)) ?? Number.POSITIVE_INFINITY
 			)
 		};
 	};
@@ -685,6 +694,15 @@ export function prepareWorkContext(
 		subject,
 		absenceRate
 	};
+}
+
+/** The contract's stated hours a day (`ordinary_hours_per_week` over its days), or null where it states none. */
+function statedDayHours(
+	terms: { readonly ordinary_hours_per_week?: unknown },
+	days: number
+): number | null {
+	const hours = decodeNumber(terms.ordinary_hours_per_week ?? 0);
+	return hours > 0 && days > 0 ? hours / days : null;
 }
 
 /** The contract's own day where it states one, else the statute's normal day; never the engine's. */

@@ -83,7 +83,14 @@ const ScheduleTermsSchema = Schema.Struct({
 	work_pattern: Schema.NullOr(workPatternValueSchema),
 	/** The pattern row's effective start, the day its cycle counts from. */
 	pattern_anchor: Schema.NullOr(Schema.String),
-	normal_daily_hours: Schema.Number
+	normal_daily_hours: Schema.Number,
+	/**
+	 * The most a rostered shift's own length counts as the normal day: the statute's normal day
+	 * (MY s.60A(1): 8, or 9 under the 45-hour proviso), and the contract's stated day where it
+	 * states one. A shift longer than it is a normal day plus overtime; a shorter one is its own
+	 * normal day. Absent is `normal_daily_hours`.
+	 */
+	shift_day_hours: Schema.optionalKey(Schema.Number)
 });
 type ScheduleTerms = Schema.Schema.Type<typeof ScheduleTermsSchema>;
 
@@ -259,7 +266,10 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			// the hours beyond the normal hours of work, and a short day's are its own.
 			normalHours:
 				assignmentCode?.shift != null
-					? Math.min(terms.normal_daily_hours, assignmentCode.shift.paid_minutes / 60)
+					? Math.min(
+							terms.shift_day_hours ?? terms.normal_daily_hours,
+							assignmentCode.shift.paid_minutes / 60
+						)
 					: terms.normal_daily_hours,
 			restDay: baseDayType === 'REST_DAY',
 			statutoryRest: baseDayType === 'REST_DAY' && dayCode?.statutoryRest === true,
