@@ -3,8 +3,8 @@
  * A request the run read and paid nothing for says so.
  *
  * The pin is the settlement lock, so a claim the run reads is consumed whether or not it produces
- * money, and a standing allowance the run declines to price leaves no entry behind. Every branch
- * that decides to pay nothing therefore leaves no payslip line to explain it: an approved allowance
+ * money, and an allowance on the contract the run declines to price leaves no line behind. Every
+ * branch that decides to pay nothing therefore leaves no payslip line to explain it: an allowance
  * is simply absent next time somebody looks. The measurement reports each of those decisions, and
  * the run carries them as warnings — the arithmetic is right, and the operator has to see it.
  */
@@ -33,24 +33,24 @@ test('an allowance paid is not reported as skipped', async () => {
 		[]
 	);
 	const slip = built.payslip_payroll_run[0];
-	assert.ok(slip.adjustments.some((row) => row.component_code === 'TRANSPORT'));
+	assert.ok(slip.base.some((row) => row.component_code === 'TRANSPORT'));
 });
 
-test('an allowance whose eligibility the person fails pays nothing, prices no entry, and is reported', async () => {
+test('an allowance whose eligibility the person fails pays nothing, prices no line, and is reported', async () => {
 	const world = createPublicPayrollWorld();
-	// A rule nobody satisfies. The standing allowance is read every period; nothing is priced.
+	// A rule nobody satisfies. The allowance is on the contract every period; nothing is priced.
 	world.allowance_catalogue[0].eligibility = 'employment.service_months >= 600';
 	const built = await build(world);
 	const slip = built.payslip_payroll_run[0];
 	assert.equal(
-		slip.adjustments.find((row) => row.component_code === 'TRANSPORT'),
+		slip.base.find((row) => row.component_code === 'TRANSPORT'),
 		undefined,
 		'nothing was paid'
 	);
 	assert.equal(
-		built.captures[0].materialised.length,
-		0,
-		'no entry is priced, so the payslip carries nothing to explain it — which is why it is reported'
+		slip.proration.some((row) => row.component_code === 'TRANSPORT'),
+		false,
+		'no segment is priced, so the payslip carries nothing to explain it — which is why it is reported'
 	);
 	const reported = built.warnings.filter((line) => line.includes('paid nothing'));
 	assert.equal(reported.length, 1);

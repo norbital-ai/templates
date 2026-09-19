@@ -3,29 +3,26 @@
  *
  * The run's transform returns the record the runtime persists, and it may carry the records that
  * belong to it — so the run's whole result is returned here and committed as part of the run's
- * own write: the payslips with their inlined base, proration and statutory entries, the pins on
- * every source each payslip consumed, and the per-period rows a standing source materialised.
+ * own write: the payslips with their inlined base, proration and statutory entries, and the pins
+ * on every source each payslip consumed.
  *
  * Two consequences worth stating, because each replaces something that used to be code:
  *
  *  - **A build cannot leave half an answer.** The run, its payslips and their pins are one
  *    payload and one transaction; a build that dies leaves no run row with no payslips under it.
- *  - **A child carries no `payslip_id`.** Nested under the payslip that owns it, there is no id to
- *    carry: the runtime fills the foreign key from the parent it assigned, and a `link` action
- *    stamps it on a source that already exists. Deleting a draft slip takes its allowance entries
- *    with it (the cascade) and releases every pin (the runtime nulls them as it deletes).
+ *  - **A pin is a `link` action.** It stamps `payslip_id` on a source that already exists;
+ *    deleting a draft slip releases every pin (the runtime nulls them as it deletes).
  *
  * ## Linking the consumed inputs
  *
  * MEASURE emits adjustments that name an entry by family and id. `payrollRunPayload` turns each
  * payslip's captures into relation actions on the slip: authored entries are `link`ed (their
- * `payslip_id` stamped), and allowance entries are `create`d under it with the pin already set.
- * An adjustment whose source is neither is a bug to stop on.
+ * `payslip_id` stamped). An adjustment whose source is not one is a bug to stop on.
  */
 
 import type { ContributionCharge } from './contribute.js';
 import { dayInstant } from '../../../lib/iso-day.js';
-import type { MaterialisedMoney, PayRequestFamily } from '../../../lib/payroll/money.js';
+import type { PayRequestFamily } from '../../../lib/payroll/money.js';
 import type {
 	MeasuredAdjustment,
 	MeasuredBase,
@@ -48,7 +45,7 @@ export type PendingPayslip = {
 	readonly captured: MeasuredEmployment['captured'];
 };
 
-/** One entry family captured by one payslip, and the allowance entries it materialised. */
+/** The sources one payslip captured, by family. */
 type PayslipCaptures = Readonly<{
 	payslipId: string;
 	workDays: readonly string[];
@@ -56,7 +53,6 @@ type PayslipCaptures = Readonly<{
 	adhoc: readonly string[];
 	leave: readonly string[];
 	loanRepayments: readonly string[];
-	materialised: ReadonlyArray<MaterialisedMoney & { readonly payslipId: string }>;
 }>;
 
 /** Every payslip in the run with its adjustments and captures, and what each settled. */
@@ -75,8 +71,7 @@ export function payrollRunGraph(options: {
 			claims: payslip.captured.payRequests.CLAIM,
 			adhoc: payslip.captured.payRequests.ADHOC,
 			leave: payslip.captured.leave.map((capture) => capture.leave_entry_id),
-			loanRepayments: payslip.captured.loanRepayments,
-			materialised: payslip.captured.materialised.map((row) => ({ ...row, payslipId: id }))
+			loanRepayments: payslip.captured.loanRepayments
 		});
 		return {
 			id,
@@ -151,7 +146,7 @@ const linkActions = (ids: readonly string[]) =>
 
 /**
  * The payslips as nested `create` entries of the run, each carrying its captures as relation
- * actions: `link` on the sources it consumed, `create` for the allowance entries it materialised.
+ * actions: `link` on the sources it consumed.
  */
 export function payrollRunPayload(built: {
 	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>['rows'];
@@ -161,17 +156,15 @@ export function payrollRunPayload(built: {
 	return built.payslip_payroll_run.map((row) => {
 		const capture = captureOf.get(row.id);
 		if (capture == null) throw new Error(`Payslip ${row.id} was built without its captures.`);
-		const materialised = capture.materialised.map((entry) => ({ id: entry.id, ...entry.values }));
 		return {
 			...row,
 			work_day_payslip: linkActions(capture.workDays),
 			claim_request_payslip: linkActions(capture.claims),
 			adhoc_request_payslip: linkActions(capture.adhoc),
-			...(materialised.length === 0 ? {} : { allowance_entry_payslip: { create: materialised } }),
 			leave_entry_payslip: linkActions(capture.leave),
 			loan_repayment_payslip: linkActions(capture.loanRepayments)
 		};
 	});
 }
 
-export type { MaterialisedMoney, PayRequestFamily, SettlementBucket, PayslipAdjustment };
+export type { PayRequestFamily, SettlementBucket, PayslipAdjustment };

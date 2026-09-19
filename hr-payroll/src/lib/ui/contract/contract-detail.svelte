@@ -54,7 +54,7 @@
 		[
 			client.db.employment_terms,
 			client.db.claim_requests,
-			client.db.allowances,
+			client.db.adhoc_requests,
 			client.db.loans,
 			client.db.loan_repayments,
 			client.db.leave_entries,

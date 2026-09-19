@@ -205,12 +205,9 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const touching = begun.filter((row) =>
 			overlapsRange(row.effective_range, salary.start, salary.end)
 		);
-		// An outstanding claim keeps an ended contract in the run; a standing allowance ended with
-		// the contract and never selects it.
+		// An outstanding claim or ad hoc request keeps an ended contract in the run.
 		const hasOutstandingRequest = (employmentId: string) =>
-			(requestsByEmploymentGathered.get(employmentId) ?? []).some(
-				(request) => request.window == null && !request.captured
-			);
+			(requestsByEmploymentGathered.get(employmentId) ?? []).some((request) => !request.captured);
 		const candidates = begun.filter(
 			(row) =>
 				touching.includes(row) ||
@@ -297,16 +294,14 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			const cadence = cadenceByEmployment.get(row.id);
 			const dueRequest =
 				cadence != null &&
-				(requestsByEmployment.get(row.id) ?? []).some(
-					(request) =>
-						request.window == null &&
-						requestIsDue(
-							request,
-							period,
-							cadence.window.salary,
-							decodeNumber(company.pay_cutoff_day),
-							{ company, payFrequency: cadence.payFrequency }
-						)
+				(requestsByEmployment.get(row.id) ?? []).some((request) =>
+					requestIsDue(
+						request,
+						period,
+						cadence.window.salary,
+						decodeNumber(company.pay_cutoff_day),
+						{ company, payFrequency: cadence.payFrequency }
+					)
 				);
 			return (
 				settlement != null &&

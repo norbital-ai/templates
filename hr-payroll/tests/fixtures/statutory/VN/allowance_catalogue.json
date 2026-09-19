@@ -6,7 +6,6 @@
 		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
 		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month. The pensioner is `employee.receiving_pension`, the transferee `terms.pass_type` INTRA_COMPANY_TRANSFER, the retirement-age hire `employee.age_months_on(employment.service_start)` against Decree 135/2020 art.4’s roadmap.",
 		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.gender == \"FEMALE\" ? employee.age_months_on(employment.service_start) >= 680 : employee.age_months_on(employment.service_start) >= 735)) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -16,7 +15,6 @@
 				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + 3.0) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
 			}
 		],
-		"fixed": false,
 		"counts_toward": ["PIT"]
 	},
 	{
@@ -26,7 +24,6 @@
 		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
 		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month. The pensioner is `employee.receiving_pension`, the transferee `terms.pass_type` INTRA_COMPANY_TRANSFER, the retirement-age hire `employee.age_months_on(employment.service_start)` against Decree 135/2020 art.4’s roadmap.",
 		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.gender == \"FEMALE\" ? employee.age_months_on(employment.service_start) >= 684 : employee.age_months_on(employment.service_start) >= 738)) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -36,7 +33,6 @@
 				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + 3.0) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
 			}
 		],
-		"fixed": false,
 		"counts_toward": ["PIT"]
 	},
 	{
@@ -46,7 +42,6 @@
 		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
 		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month. The pensioner is `employee.receiving_pension`, the transferee `terms.pass_type` INTRA_COMPANY_TRANSFER, the retirement-age hire `employee.age_months_on(employment.service_start)` against Decree 135/2020 art.4’s roadmap.",
 		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.gender == \"FEMALE\" ? employee.age_months_on(employment.service_start) >= 684 : employee.age_months_on(employment.service_start) >= 738)) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2530000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -56,7 +51,6 @@
 				"amount": "round_unit((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + 3.0) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
 			}
 		],
-		"fixed": false,
 		"counts_toward": ["PIT"]
 	}
 ]

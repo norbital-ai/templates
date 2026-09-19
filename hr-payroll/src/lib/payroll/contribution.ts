@@ -186,7 +186,7 @@ import {
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import { stint } from '../employment-contract.js';
 import { patternDaysPerWeek, termPattern } from '../scheduling/work-pattern.js';
-import { fixedAllowancesOn } from './money.js';
+import { contractAllowancesOn } from './contract-allowances.js';
 import type { MeasuredEmployment } from './family.js';
 
 /**
@@ -434,7 +434,7 @@ export function minimumWageIssues(options: {
 		const input = {
 			employee: bundle.employee,
 			employment: stint(bundle.employment),
-			fixedAllowances: fixedAllowancesOn(bundle.payRequests, asOf),
+			fixedAllowances: contractAllowancesOn(bundle, configuration, asOf),
 			terms: term,
 			week: {
 				ordinary_hours_per_week: decodeNumber(term.ordinary_hours_per_week ?? 0),
@@ -498,7 +498,8 @@ function regionalMinimumWage(
  * month, from the employment's start at the earliest. What VN art.46 measures severance on.
  */
 export function monthlyWageAverage(
-	bundle: Pick<EmploymentBundle, 'termsHistory' | 'terms' | 'payRequests' | 'employment'>,
+	bundle: Pick<EmploymentBundle, 'termsHistory' | 'terms' | 'employment'>,
+	configuration: Configuration,
 	asOf: string,
 	months: number
 ): number | null {
@@ -516,7 +517,7 @@ export function monthlyWageAverage(
 			bundle.terms.at(-1);
 		if (terms == null) continue;
 		const basic = decodeNumber((terms.base_salary as { value?: unknown } | null)?.value ?? 0);
-		wages.push(basic + fixedAllowancesOn(bundle.payRequests, date));
+		wages.push(basic + contractAllowancesOn(bundle as EmploymentBundle, configuration, date));
 	}
 	return wages.length === 0 ? null : wages.reduce((sum, wage) => sum + wage, 0) / wages.length;
 }
@@ -560,8 +561,8 @@ export function prepareContributionAssessment(options: {
 	const personInput = {
 		employee: bundle.employee,
 		employment: { ...stint(bundle.employment), risk_class: configuration.company.risk_class },
-		fixedAllowances: fixedAllowancesOn(bundle.payRequests, asOf),
-		monthlyWage6mAverage: monthlyWageAverage(bundle, asOf, 6),
+		fixedAllowances: contractAllowancesOn(bundle, configuration, asOf),
+		monthlyWage6mAverage: monthlyWageAverage(bundle, configuration, asOf, 6),
 		terms:
 			bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
 			bundle.terms.at(-1) ??
@@ -673,10 +674,18 @@ export function prepareContributionAssessment(options: {
 				// the wage is a month's, else — an hourly or daily contract prorates nothing — the
 				// employment's own span inside the pay month (TW 勞保條例施行細則 §28-1: the premium is
 				// for every enrolled day, whatever the hours worked).
-				daysEmployed:
-					measured.proration.length > 0
-						? measured.proration.reduce((total, segment) => total + segment.days, 0)
-						: employedDaysIn(dates, bundle.window.salary),
+				daysEmployed: (() => {
+					// The wage's own segments: an allowance's are the same days over again.
+					const wage = measured.base.find(
+						(line) => line.catalogueComponent.definition?.source === 'SCHEDULE'
+					)?.catalogueComponent.code;
+					const segments = measured.proration.filter(
+						(segment) => wage != null && segment.component_code === wage
+					);
+					return segments.length > 0
+						? segments.reduce((total, segment) => total + segment.days, 0)
+						: employedDaysIn(dates, bundle.window.salary);
+				})(),
 				daysInMonth: monthDays(bundle.window.salary.start)
 			},
 			currency: measured.currency,
@@ -690,6 +699,10 @@ export function prepareContributionAssessment(options: {
 			},
 			projection,
 			person: { ...person, wage_floor: floor },
+			// A scheme reads the contract's allowances that count toward it (RFC catalogue-classes
+			// §3.4): VN's insurance-equivalent allowance is on the contract and outside every
+			// insurance base, so SI's `terms.fixed_allowances` leaves it out where PIT's keeps it.
+			fixedAllowancesFor: (scheme) => contractAllowancesOn(bundle, configuration, asOf, scheme),
 			minimumWage,
 			minimumWageApplies: covered
 		}

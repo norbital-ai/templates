@@ -45,7 +45,8 @@ const BANK = {
  * as the database would hold it.
  */
 async function januaryWorld({ bank = false, period = PERIOD, runId = RUN_ID, world } = {}) {
-	world ??= createPublicPayrollWorld();
+	// With the one-off bonus: an ad hoc request is what the catalogue-entries workbook reports.
+	world ??= createPublicPayrollWorld({ includePayment: true });
 	if (bank) world.employments[0].bank = BANK;
 	for (const day of world.work_days) {
 		day.worked_intervals = [
@@ -117,8 +118,8 @@ test('a settled run exports a bank file, a payslip per employment and the workbo
 		BANK.bank_code,
 		BANK.bank_name,
 		BANK.bank_account_number,
-		// The net of the payslip `public-month.test.ts` pins, to the cent, as text.
-		'3761.00',
+		// The net of the payslip `public-month.test.ts` pins plus the 100 bonus, to the cent, as text.
+		'3861.00',
 		'MYR',
 		`${RUN_ID}:${EMPLOYEE_NUMBER}`
 	]);

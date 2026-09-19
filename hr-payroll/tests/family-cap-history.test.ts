@@ -11,6 +11,7 @@ import {
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { adjust, capturesOf, settle } from './helpers/settlement.ts';
+import { clearAllowances } from './fixtures/contract-allowances.ts';
 
 type Family = 'claim' | 'allowance';
 /**
@@ -45,35 +46,36 @@ function capWorld(family: Family) {
 		...structuredClone(world.allowance_catalogue[0]),
 		id: 'old-catalogue',
 		code: 'BENEFIT',
-		bands: capBands()
+		bands: capBands(),
+		...(family === 'adhoc' ? { raised_by: 'MANUAL' } : {})
 	};
 	world[`${family}_catalogue`] = [
 		source,
 		{ ...structuredClone(source), id: 'new-catalogue', settings_id: 'new-settings' }
 	];
-	// A claim is dated; an allowance is a window — the month, here.
+	// A claim is dated by the day incurred, an ad hoc request by the day it is for: the same
+	// day under two names, each read by its own guard.
 	const request = (id: string, catalogueId: string, amount: number, month: string) => ({
 		id,
 		employment_id: EMPLOYMENT_ID,
 		catalogue_id: catalogueId,
 		amount,
 		incurred_on: `${month}-05`,
-		effective_from: `${month}-01`,
-		effective_to: `${month}-${month === '2026-02' ? '28' : '31'}`,
+		event_date: `${month}-05`,
 		reason: 'Synthetic benefit request',
 		approval_id: null,
 		as_adjustment_entry: false
 	});
 	const prior = request('prior', 'old-catalogue', 800, '2026-01');
 	const candidate = request('candidate', 'new-catalogue', 200, '2026-02');
-	(family === 'claim' ? world.claim_requests : world.allowances).push(prior);
+	(family === 'claim' ? world.claim_requests : (world.adhoc_requests ??= [])).push(prior);
 	return { world, prior, candidate, request };
 }
 
 const guardFor = (family: Family): PayRequestGuard => ({
 	family: family.toUpperCase() as PayRequestGuard['family'],
-	catalogue: 'claim_catalogue',
-	requests: 'claim_requests',
+	catalogue: `${family}_catalogue`,
+	requests: `${family}_requests`,
 	noun: family,
 	eventDate: (row) => String(row.incurred_on)
 });
@@ -88,12 +90,8 @@ const admit = (family: Family, world: PayrollWorld, candidate: Record<string, un
 		)
 	);
 
-/** File a period's allowance entries as a paid slip left them: pinned, with the slip's own line. */
-const payAllowances = (
-	world: PayrollWorld,
-	built: Awaited<ReturnType<typeof build>>,
-	period: string
-) => {
+/** File a period's payslip as paid: the run row, the slip, and the ad hoc requests it pinned. */
+const pay = (world: PayrollWorld, built: Awaited<ReturnType<typeof build>>, period: string) => {
 	const slip = built.payslip_payroll_run[0]!;
 	const payslipId = `slip-${period}`;
 	world.payroll_runs.push({ id: `run-${period}`, company_id: COMPANY_ID, period });
@@ -103,14 +101,7 @@ const payAllowances = (
 		payroll_run_id: `run-${period}`,
 		paid_at: `${period}-28`
 	});
-	(world.allowance_entries ??= []).push(
-		...capturesOf(built, slip).materialised.map((row) => ({
-			id: row.id,
-			...row.values,
-			payslip_id: payslipId,
-			approval_id: null
-		}))
-	);
+	for (const id of capturesOf(built, slip).adhoc) settle(world, 'adhoc_requests', id, payslipId);
 };
 const build = async (world: PayrollWorld, period = '2026-02') =>
 	buildPayrollRun(
@@ -143,18 +134,21 @@ test('claim cap spans catalogue revisions of the same code', async () => {
 	await assert.rejects(build(world), /1001\.00 requested against 1000\.00/);
 });
 
-test('allowance cap spans catalogue revisions of the same code, and bounds each period rather than refusing', async () => {
-	// No ceiling is checked when the allowance is written: the run bounds every period's entry.
-	const { world, candidate } = capWorld('allowance');
-	payAllowances(world, await build(world, '2026-01'), '2026-01'); // 800 under the old revision.
-	world.allowances.push(candidate);
-	const paid = async () =>
+test('ad hoc cap spans catalogue revisions of the same code, at the write and in the run', async () => {
+	const { world, candidate } = capWorld('adhoc');
+	pay(world, await build(world, '2026-01'), '2026-01'); // 800 under the old revision.
+	await admit('adhoc', world, candidate); // 800 + 200 = 1,000.
+	await assert.rejects(
+		admit('adhoc', world, { ...candidate, amount: 201 }),
+		/1001\.00 requested against 1000\.00/
+	);
+	world.adhoc_requests!.push(candidate);
+	assert.deepEqual(
 		(await build(world)).payslip_payroll_run[0].adjustments
 			.filter((row) => row.label === 'BENEFIT')
-			.map((row) => row.amount);
-	assert.deepEqual(await paid(), [200]);
-	candidate.amount = 201;
-	assert.deepEqual(await paid(), [200], 'what the annual ceiling has left');
+			.map((row) => row.amount),
+		[200]
+	);
 });
 
 test('two bands that differ by grade: the tier is read off the terms in force on the event date', async () => {
@@ -307,16 +301,21 @@ test('the same code in another family or settings lineage does not consume this 
 		settings_id: 'unrelated-settings'
 	});
 	world.claim_requests.push(request('unrelated', 'unrelated-catalogue', 9000, '2026-01'));
-	world.allowance_catalogue[0].code = 'BENEFIT';
-	world.allowances.push(request('other-family', world.allowance_catalogue[0].id, 9000, '2026-01'));
+	(world.adhoc_catalogue ??= []).push({
+		...world.claim_catalogue[0],
+		id: 'other-family-catalogue'
+	});
+	(world.adhoc_requests ??= []).push(
+		request('other-family', 'other-family-catalogue', 9000, '2026-01')
+	);
 	await admit('claim', world, candidate);
 });
 
 test('a recurring annual award pays 600 then 400, exhausts, and starts fresh next year', async () => {
-	const { world, prior } = capWorld('allowance');
+	// An award raised every month as an ad hoc request: the class's CALENDAR_YEAR ceiling bounds
+	// what a year pays, and a request that exceeds it is refused at the write.
+	const { world, prior, request } = capWorld('adhoc');
 	prior.amount = 600;
-	prior.effective_to = '2027-12-31';
-	world.allowance_catalogue[0].bands = capBands();
 	const template = world.work_days[0];
 	world.work_days = [];
 	for (
@@ -332,62 +331,30 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 			worked_intervals: [{ start: `${date}T07:30:00+08:00`, end: `${date}T16:30:00+08:00` }]
 		});
 	}
-	for (const [period, expected] of [
-		['2026-01', 600],
-		['2026-02', 400],
-		['2026-03', 0],
-		['2027-01', 600]
+	const award = (month: string, amount: number) =>
+		request(`award-${month}`, month < '2026-02' ? 'old-catalogue' : 'new-catalogue', amount, month);
+	for (const [period, amount, admitted] of [
+		['2026-01', 600, true],
+		['2026-02', 400, true],
+		['2026-03', 1, false],
+		['2027-01', 600, true]
 	] as const) {
+		if (period !== '2026-01') {
+			const candidate = award(period, amount);
+			if (admitted) {
+				await admit('adhoc', world, candidate);
+				world.adhoc_requests!.push(candidate);
+			} else await assert.rejects(admit('adhoc', world, candidate), /requested against 1000\.00/);
+		}
 		const built = await build(world, period);
 		const slip = built.payslip_payroll_run[0];
 		assert.equal(
 			slip.adjustments.find((row) => row.label === 'BENEFIT')?.amount ?? 0,
-			expected,
+			admitted ? amount : 0,
 			period
 		);
-		const materialised = capturesOf(built, slip).materialised;
-		assert.equal(materialised.length, 1, 'a zero award is still an entry, with its facts');
-		assert.equal(materialised[0]!.values.amount, expected);
-		payAllowances(world, built, period);
+		pay(world, built, period);
 	}
-});
-
-test('an open-ended allowance is bounded by the ceiling in each period it is priced', async () => {
-	const { world, candidate } = capWorld('allowance');
-	payAllowances(world, await build(world, '2026-01'), '2026-01'); // January took 800.
-	candidate.effective_to = null;
-	candidate.amount = 1200;
-	world.allowances.push(candidate);
-	const outputs = (await build(world)).payslip_payroll_run[0].adjustments.filter(
-		(row) => row.label === 'BENEFIT'
-	);
-	assert.deepEqual(
-		outputs.map((row) => row.amount),
-		[200]
-	);
-});
-
-test('cap usage counts what a prorated period actually paid, not the standing amount', async () => {
-	const { world, prior, candidate } = capWorld('allowance');
-	world.employments[0].effective_range = { start: '2026-01-15', end: null };
-	world.employment_terms[0].effective_range = { start: '2026-01-15', end: null };
-	prior.amount = 310;
-	candidate.amount = 830;
-	const january = await build(world, '2026-01');
-	assert.equal(
-		january.payslip_payroll_run[0].adjustments.find((row) => row.label === 'BENEFIT')?.amount,
-		170,
-		'310 × 17/31 for a joiner on the 15th'
-	);
-	payAllowances(world, january, '2026-01');
-	world.allowances.push(candidate);
-	const paid = async () =>
-		(await build(world)).payslip_payroll_run[0].adjustments
-			.filter((row) => row.label === 'BENEFIT')
-			.map((row) => row.amount);
-	assert.deepEqual(await paid(), [830], '170 already used of 1,000');
-	candidate.amount = 831;
-	assert.deepEqual(await paid(), [830], 'bounded by what the ceiling has left');
 });
 
 test('final terms do not fill an in-service gap or a missing departure-day record', () => {

@@ -151,6 +151,8 @@ type SchemeAssessment = {
 	readonly projection: PayProjection;
 	/** The person, as a scheme's or rule's expression sees them. */
 	readonly person: PersonContext;
+	/** The contract's standing allowances counting toward one scheme; absent, the person's figure stands. */
+	readonly fixedAllowancesFor?: (scheme: string) => number;
 	/** The company region's minimum wage, or null where the version states none for it. */
 	readonly minimumWage: number | null;
 	/** Whether the version's wages order covers this person; `wage_floor` is 0 when it does not. */
@@ -420,7 +422,13 @@ function schemeContext(options: {
 	for (const [code, amount] of input.yearEarned) yearEarned[code] = amount;
 	const person = structuredClone(input.person) as PersonContext & {
 		company: { facts: Record<string, unknown> };
+		terms: { basic_salary: number; fixed_allowances: number; monthly_wage: number };
 	};
+	if (input.fixedAllowancesFor != null) {
+		const fixed = input.fixedAllowancesFor(contribution.row.code);
+		person.terms.fixed_allowances = fixed;
+		person.terms.monthly_wage = person.terms.basic_salary + fixed;
+	}
 	for (const expression of expressions) {
 		for (const code of assessedOnMentions(expression).yearEarned)
 			if (!(code in yearEarned)) yearEarned[code] = 0;

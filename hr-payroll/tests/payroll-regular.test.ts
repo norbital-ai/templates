@@ -9,6 +9,7 @@ import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { adjust, capturesOf, release, settle } from './helpers/settlement.ts';
 import { admitPayRequests } from '../src/lib/pay_request_rules.ts';
 import { transform } from './helpers/transform.ts';
+import { assignAllowance, clearAllowances } from './fixtures/contract-allowances.ts';
 
 test('a run reads only the catalogue of the version it picked, never a sibling version’s', async () => {
 	const world = createPublicPayrollWorld();
@@ -129,71 +130,91 @@ const build = async (world: ReturnType<typeof createPublicPayrollWorld>, period 
 	return { prepared, built, slip, captured: capturesOf(built, slip) };
 };
 
-/** The one entry a payslip priced from a standing allowance, with the facts behind the money. */
-const entryOf = (
-	built: Awaited<ReturnType<typeof build>>['built'],
-	slip: { id: string },
-	sourceId: string
-) =>
-	built.captures
-		.find((capture) => capture.payslipId === slip.id)
-		?.materialised.find((row) => row.sourceId === sourceId);
+/** A base line's amount on a payslip, or undefined where the payslip carries none of that code. */
+const baseOf = (
+	slip: { base: readonly { component_code: string; amount: number }[] },
+	code: string
+) => slip.base.find((row) => row.component_code === code)?.amount;
 
-test('a standing allowance materialises one entry per period; a one-period window settles once', async () => {
+test('an allowance on the contract is a base line every period; a one-off is an ad hoc request settled once', async () => {
 	const world = attendedWorld({ includePayment: true });
-	const standing = world.allowances[0]!;
-	const once = world.allowances[1]!;
+	const once = world.adhoc_requests![0]!;
 	const january = await build(world, '2026-01');
-	assert.equal(january.captured.materialised.length, 2, 'both windows touch January');
-	const first = entryOf(january.built, january.slip, once.id)!;
-	assert.equal(first.collection, 'allowance_entries');
+	// The allowance is the contract's money: a base line, prorated over the same calendar as the
+	// salary, and its working stored beside the salary's.
+	assert.equal(baseOf(january.slip, 'TRANSPORT'), 310);
 	assert.deepEqual(
-		[first.values.from, first.values.to, first.values.days, first.values.denominator],
-		['2026-01-01T00:00:00.000Z', '2026-01-31T00:00:00.000Z', 31, 31]
+		january.slip.proration
+			.filter((segment) => segment.component_code === 'TRANSPORT')
+			.map((segment) => [segment.from, segment.to, segment.days, segment.denominator]),
+		[['2026-01-01', '2026-01-31', 31, 31]]
 	);
-	assert.equal(first.values.amount, 100);
-	assert.equal(first.values.contract_amount, 100);
-	assert.deepEqual(first.values.basis, { by: 'CALENDAR_DAYS' });
-	// The adjustment names the standing source, never the entry: that is what a ceiling counts.
+	// The bonus is an ad hoc request: an adjustment naming it, pinned once.
 	assert.ok(january.slip.adjustments.some((row) => row.source_id === once.id));
+	assert.deepEqual(january.captured.adhoc, [once.id]);
+	settle(world, 'adhoc_requests', once.id, 'paid');
 	const february = await build(world);
-	assert.deepEqual(
-		february.captured.materialised.map((row) => row.sourceId),
-		[standing.id],
-		'a window closed in January is not priced in February'
+	assert.equal(baseOf(february.slip, 'TRANSPORT'), 310);
+	assert.equal(
+		february.slip.adjustments.some((row) => row.source_id === once.id),
+		false,
+		'a request settled in January is not priced in February'
 	);
-	assert.equal(february.captured.payRequests?.ALLOWANCE, undefined);
-	// A held allowance is not priced; a window that has not opened is not either.
-	standing.approval_id = 'pending';
-	assert.equal((await build(world)).captured.materialised.length, 0);
-	standing.approval_id = null;
-	standing.effective_from = '2026-03-01';
-	assert.equal((await build(world)).captured.materialised.length, 0);
-	// The allowance works like salary: the standing row is the only source, and a run creates the
-	// period's entry from it. Removing the row removes the entry from every cycle built after.
-	standing.effective_from = '2026-01-01';
-	assert.equal((await build(world)).captured.materialised.length, 1);
-	world.allowances.splice(world.allowances.indexOf(standing), 1);
-	assert.equal((await build(world)).captured.materialised.length, 0);
+	// Removing the allowance from the contract removes the line from every cycle built after.
+	clearAllowances(world);
+	assert.equal(baseOf((await build(world)).slip, 'TRANSPORT'), undefined);
+	assert.equal(
+		(await build(world)).slip.proration.some((segment) => segment.component_code === 'TRANSPORT'),
+		false
+	);
 });
 
 test('an allowance prorates on the same basis as basic salary: a joiner takes the covered days', async () => {
 	const world = attendedWorld();
 	world.employments[0].effective_range = { start: '2026-02-16', end: null };
-	world.employment_terms[0].effective_range = { start: '2026-02-16', end: null };
-	const { built, slip } = await build(world);
-	const entry = entryOf(built, slip, world.allowances[0]!.id)!;
-	const basic = slip.proration[0]!;
+	for (const terms of world.employment_terms)
+		if (
+			String(terms.effective_range.start) < '2026-02-16' &&
+			String(terms.effective_range.end ?? '9999') >= '2026-02-16'
+		)
+			terms.effective_range = { ...terms.effective_range, start: '2026-02-16' };
+	const { slip } = await build(world);
+	const basic = slip.proration.find((segment) => segment.component_code === 'BASIC')!;
+	const transport = slip.proration.find((segment) => segment.component_code === 'TRANSPORT')!;
 	assert.deepEqual(
-		[entry.values.from, entry.values.to, entry.values.days, entry.values.denominator],
-		[`${basic.from}T00:00:00.000Z`, `${basic.to}T00:00:00.000Z`, basic.days, basic.denominator]
+		[transport.from, transport.to, transport.days, transport.denominator],
+		[basic.from, basic.to, basic.days, basic.denominator]
 	);
-	assert.deepEqual([entry.values.days, entry.values.denominator], [13, 28]);
-	assert.equal(entry.values.unpaid_days, 0);
-	assert.equal(entry.values.amount, Math.round(((310 * 13) / 28) * 100) / 100);
+	assert.deepEqual([transport.days, transport.denominator], [13, 28]);
+	assert.equal(transport.prorated_amount, Math.round(((310 * 13) / 28) * 100) / 100);
+	assert.equal(baseOf(slip, 'TRANSPORT'), transport.prorated_amount);
+});
+
+test('a terms change mid-period prices an allowance as two segments that add up to the month', async () => {
+	const world = attendedWorld();
+	// The transport allowance rises from 310 to 400 on the 16th: two terms rows, two segments.
+	assignAllowance(world, {
+		employment_id: world.employments[0].id,
+		catalogue_id: world.allowance_catalogue[0].id,
+		amount: 400,
+		effective_from: '2026-02-16',
+		effective_to: '2026-03-31'
+	});
+	const { slip } = await build(world);
+	const segments = slip.proration.filter((segment) => segment.component_code === 'TRANSPORT');
+	assert.deepEqual(
+		segments.map((segment) => [segment.from, segment.to, segment.contract_amount]),
+		[
+			['2026-02-01', '2026-02-15', 310],
+			['2026-02-16', '2026-02-28', 400]
+		]
+	);
+	const expected = Math.round(((310 * 15) / 28 + (400 * 13) / 28) * 100) / 100;
+	assert.equal(baseOf(slip, 'TRANSPORT'), expected);
 	assert.equal(
-		slip.adjustments.find((row) => row.family === 'ALLOWANCE')?.amount,
-		entry.values.amount
+		Math.round(segments.reduce((total, segment) => total + segment.prorated_amount, 0) * 100) / 100,
+		expected,
+		'the segments sum to the line'
 	);
 });
 
@@ -270,57 +291,14 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 
 test('a deduction net pay cannot carry refuses the run rather than reducing itself', async () => {
 	const world = attendedWorld({ includePayment: true });
-	const once = world.allowances[1]!;
+	const once = world.adhoc_requests![0]!;
 	once.as_adjustment_entry = true;
 	once.amount = 100000;
 	await assert.rejects(build(world, '2026-01'), /net pay is negative/);
-	world.allowance_catalogue[0].destination = 'NET';
-	world.allowance_catalogue[0].direction = 'SUBTRACT';
+	world.adhoc_catalogue![0].destination = 'NET';
+	world.adhoc_catalogue![0].direction = 'SUBTRACT';
 	once.as_adjustment_entry = false;
 	await assert.rejects(build(world, '2026-01'), /net pay is negative/);
-});
-
-test('a standing allowance is bounded per period by its band ceiling, counting what earlier periods paid', async () => {
-	const world = attendedWorld();
-	world.allowance_catalogue.push({
-		...world.allowance_catalogue[0],
-		id: 'benefit-catalogue',
-		code: 'BENEFIT',
-		bands: [
-			{
-				when: '',
-				amount: 'entry.amount',
-				limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: '150.0' }
-			}
-		]
-	});
-	const benefit = world.allowances[0]!;
-	benefit.catalogue_id = 'benefit-catalogue';
-	benefit.amount = 100;
-	// January paid the first hundred: an entry under a prior slip, and the slip's own line.
-	(world.allowance_entries ??= []).push({
-		id: 'january-entry',
-		derived_from_id: benefit.id,
-		payslip_id: 'prior-slip',
-		employment_id: benefit.employment_id,
-		catalogue_id: 'benefit-catalogue',
-		from: '2026-01-01',
-		to: '2026-01-31',
-		basis: { by: 'CALENDAR_DAYS' },
-		days: 31,
-		denominator: 31,
-		unpaid_days: 0,
-		contract_amount: 100,
-		amount: 100,
-		approval_id: null
-	});
-	adjust(world, 'prior-slip', { family: 'ALLOWANCE', source_id: benefit.id, amount: 100 });
-	const { built, slip } = await build(world);
-	assert.equal(
-		entryOf(built, slip, benefit.id)?.values.amount,
-		50,
-		'February pays what the annual ceiling has left'
-	);
 });
 
 test('a loan recovery net pay cannot carry is dropped whole, unpinned and named', async () => {
@@ -359,21 +337,23 @@ test('a loan recovery net pay cannot carry is dropped whole, unpinned and named'
 	assert.equal(world.loan_repayments[0].amount_due, 10000);
 });
 
-test('deferred joining wages carry the standing allowances of the deferred period, prorated', async () => {
-	const world = attendedWorld({ includePayment: true });
+test('deferred joining wages carry the allowances of the deferred period, prorated', async () => {
+	const world = attendedWorld();
 	world.employments[0].effective_range = { start: '2026-01-25', end: null };
-	const once = world.allowances[1]!;
 	const withAllowance = (await build(world)).slip.gross;
-	world.allowances = world.allowances.filter((row) => row !== once);
+	clearAllowances(world);
 	const withoutAllowance = (await build(world)).slip.gross;
 	const owed = withAllowance - withoutAllowance;
-	assert.ok(owed > 0 && owed < 100, `the January window pays its covered days only: ${owed}`);
+	// January's covered days (7 of 31 at 310) beside February's whole month.
+	assert.equal(owed, Math.round(((310 * 7) / 31) * 100) / 100 + 310);
 });
 
 test('ended contracts settle approved claims once, without reviving Work or the allowances that ended with them', async () => {
 	const world = attendedWorld({ includePayment: true });
 	world.employments[0].effective_range = { start: '2021-06-01', end: '2026-01-31' };
-	world.employment_terms[0].effective_range = { start: '2021-06-01', end: '2026-01-31' };
+	for (const terms of world.employment_terms)
+		if (String(terms.effective_range.end ?? '9999') > '2026-01-31')
+			terms.effective_range = { ...terms.effective_range, end: '2026-01-31' };
 	world.claim_catalogue.push({ ...world.allowance_catalogue[0], id: 'expense', code: 'EXPENSE' });
 	world.claim_requests.push({
 		id: 'receipt',
@@ -383,72 +363,63 @@ test('ended contracts settle approved claims once, without reviving Work or the 
 		incurred_on: '2026-01-15',
 		approval_id: null
 	});
+	settle(world, 'adhoc_requests', world.adhoc_requests![0]!.id, 'paid');
 	const { slip, captured } = await build(world);
 	assert.equal(slip.gross, 25);
-	assert.deepEqual(slip.base, []);
+	assert.deepEqual(slip.base, [], 'an allowance ended with the contract');
 	assert.deepEqual(slip.proration, []);
 	assert.equal(captured.workDays.length, 0);
-	assert.equal(captured.materialised.length, 0, 'an allowance ended with the contract');
 	assert.equal(captured.claims.length, 1);
 	settle(world, 'claim_requests', 'receipt', 'paid');
 	assert.equal((await build(world, '2026-03')).slip, undefined);
 });
 
-test('a pending allowance, or one opening later, does not select an ended contract', async () => {
+test('a pending ad hoc request, or one due later, does not select an ended contract', async () => {
 	const world = attendedWorld({ includePayment: true });
 	world.employments[0].effective_range = { start: '2021-06-01', end: '2026-01-31' };
-	const once = world.allowances[1]!;
+	const once = world.adhoc_requests![0]!;
 	once.approval_id = 'pending';
 	assert.equal((await build(world)).slip, undefined);
 	once.approval_id = null;
-	once.effective_from = '2026-03-01';
-	once.effective_to = '2026-03-31';
+	once.event_date = '2026-03-10';
 	assert.equal((await build(world)).slip, undefined);
-	assert.equal((await build(world, '2026-03')).slip, undefined);
 });
 
-for (const family of ['claim', 'allowance']) {
-	test(`a ${family} retains the catalogue definition from its sealed source revision`, async () => {
-		const world = attendedWorld();
-		world.allowances = family === 'allowance' ? world.allowances : [];
-		if (family === 'claim') {
-			world.claim_catalogue.push({
-				...world.allowance_catalogue[0],
-				id: 'claim-type',
-				code: 'EXPENSE'
-			});
-			world.claim_requests.push({
-				id: 'old-receipt',
-				employment_id: world.employments[0].id,
-				catalogue_id: 'claim-type',
-				amount: 100,
-				incurred_on: '2026-01-15',
-				approval_id: null
-			});
-		}
-		if (family === 'allowance') world.allowances[0].amount = 100;
-		const source = world[`${family}_catalogue`][0];
-		const sourceSettings = world.jurisdiction_settings[0];
-		sourceSettings.effective_range = { start: '2020-01-01', end: '2026-02-01' };
-		const currentSettings = {
-			...sourceSettings,
-			id: 'current-settings',
-			effective_range: { start: '2026-02-01', end: null }
-		};
-		world.jurisdiction_settings.push(currentSettings);
-		world[`${family}_catalogue`].push({
-			...source,
-			id: 'current-family-item',
-			settings_id: currentSettings.id
-		});
-		const { slip, prepared } = await build(world);
-		const output = slip.adjustments.find((row) => row.family === family.toUpperCase());
-		assert.equal(output.amount, 100);
-		assert.equal(output.bucket, 'EARNING');
-		const request = prepared.gathered.bundles[0].payRequests.find(
-			(row) => row.family === family.toUpperCase()
-		);
-		assert.equal(request.catalogueComponent.settings_id, sourceSettings.id);
-		assert.equal(prepared.configuration.jurisdiction.id, currentSettings.id);
+test('a claim retains the catalogue definition from its sealed source revision', async () => {
+	const world = attendedWorld();
+	clearAllowances(world);
+	world.claim_catalogue.push({
+		...world.allowance_catalogue[0],
+		id: 'claim-type',
+		code: 'EXPENSE'
 	});
-}
+	world.claim_requests.push({
+		id: 'old-receipt',
+		employment_id: world.employments[0].id,
+		catalogue_id: 'claim-type',
+		amount: 100,
+		incurred_on: '2026-01-15',
+		approval_id: null
+	});
+	const source = world.claim_catalogue[0];
+	const sourceSettings = world.jurisdiction_settings[0];
+	sourceSettings.effective_range = { start: '2020-01-01', end: '2026-02-01' };
+	const currentSettings = {
+		...sourceSettings,
+		id: 'current-settings',
+		effective_range: { start: '2026-02-01', end: null }
+	};
+	world.jurisdiction_settings.push(currentSettings);
+	world.claim_catalogue.push({
+		...source,
+		id: 'current-family-item',
+		settings_id: currentSettings.id
+	});
+	const { slip, prepared } = await build(world);
+	const output = slip.adjustments.find((row) => row.family === 'CLAIM');
+	assert.equal(output.amount, 100);
+	assert.equal(output.bucket, 'EARNING');
+	const request = prepared.gathered.bundles[0].payRequests.find((row) => row.family === 'CLAIM');
+	assert.equal(request.catalogueComponent.settings_id, sourceSettings.id);
+	assert.equal(prepared.configuration.jurisdiction.id, currentSettings.id);
+});

@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildStatutory, type Person } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { assignAllowance } from './fixtures/contract-allowances.ts';
 
 const PH_VERSION = 'bb5137fd-d7fd-4a26-8eae-77211521f892';
 const PH_TRANSPORT = '92e2ca4a-bd53-42f5-8b62-84e892da9954';
@@ -23,7 +24,7 @@ const SG_UNPAID_LEAVE = 'c1c1c1c1-0000-4000-8000-000000000002';
 /** A transport allowance of 2,175 a month for everyone, from the start of the year. */
 const standing = (world: PayrollWorld, catalogueId: string) => {
 	for (const [index, employment] of world.employments.entries())
-		world.allowances.push({
+		assignAllowance(world, {
 			id: `d0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 			employment_id: employment.id,
 			catalogue_id: catalogueId,
@@ -77,19 +78,18 @@ const people: Person[] = [
 	{ key: 'JOINER', wage: 30_000, hire_date: '2026-01-19' }
 ];
 
+/** The allowance's one segment on a payslip, and the base line it is the working of. */
 const facts = (
 	built: ReturnType<typeof buildStatutory>,
 	key: string
 ): readonly [number, number, number, number] => {
-	const entry = built.entries.get(key)![0]!;
-	const line = built.slips.get(key)!.adjustments.find((row) => row.family === 'ALLOWANCE')!;
-	assert.equal(line.amount, entry.values.amount, `${key}: the line is the entry`);
-	return [
-		entry.values.days,
-		entry.values.denominator,
-		entry.values.unpaid_days,
-		entry.values.amount
-	];
+	const [segment, ...rest] = built.allowances.get(key)!;
+	assert.equal(rest.length, 0, `${key}: one segment`);
+	const line = built.slips
+		.get(key)!
+		.base.find((row) => row.component_code === segment!.component_code)!;
+	assert.equal(line.amount, segment!.prorated_amount, `${key}: the line is the segment`);
+	return [segment!.days, segment!.denominator, segment!.unpaid_days, segment!.prorated_amount];
 };
 
 test('Philippines — a joiner takes the working days employed over 21.75, and an unpaid day comes off the allowance', () => {
@@ -117,8 +117,8 @@ test('Philippines — a joiner takes the working days employed over 21.75, and a
 	assert.deepEqual(facts(built, 'UNPAID'), [20.75, 21.75, 1, 2075]);
 	// Ten working days of a part month, at the daily rate the factor states.
 	assert.deepEqual(facts(built, 'JOINER'), [10, 21.75, 0, 1000]);
-	// The entry's day columns land in their stored form: the UTC midnight of the day.
-	assert.equal(built.entries.get('JOINER')![0]!.values.from, '2026-01-19T00:00:00.000Z');
+	// The segment opens on the joiner's first day.
+	assert.equal(built.allowances.get('JOINER')![0]!.from, '2026-01-19');
 });
 
 test('Singapore — a joiner takes the working days employed over the month’s, and an unpaid day leaves the allowance whole', () => {
@@ -135,7 +135,6 @@ test('Singapore — a joiner takes the working days employed over the month’s,
 				code: 'TRANSPORT',
 				name: 'Transport',
 				eligibility: '',
-				evidence: 'NONE',
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],

@@ -48,8 +48,7 @@ import {
 	requestIsDue,
 	prepareMoneySteps,
 	type PayRequestFamily,
-	type PreparedPayRequest,
-	type MaterialisedMoney
+	type PreparedPayRequest
 } from './money.js';
 import { prepareWorkContext, calculateWorkAttendance, prepareWorkSteps, termsAt } from './work.js';
 import { measureLoanRecoveries, validateLoanRecoveries } from './loan.js';
@@ -96,17 +95,15 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			company: configuration.company,
 			payFrequency: bundle.payFrequency
 		};
-		// An ended contract settles the claims it still owes; a standing allowance ended with it.
-		const requests = bundle.payRequests.filter(
-			(request) =>
-				request.window == null &&
-				requestIsDue(
-					request,
-					options.period,
-					options.salary,
-					decodeNumber(configuration.company.pay_cutoff_day),
-					cadence
-				)
+		// An ended contract settles the claims and ad hoc requests it still owes.
+		const requests = bundle.payRequests.filter((request) =>
+			requestIsDue(
+				request,
+				options.period,
+				options.salary,
+				decodeNumber(configuration.company.pay_cutoff_day),
+				cadence
+			)
 		);
 
 		const componentAmounts = new Map<string, number>();
@@ -114,8 +111,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const subject = personContext({
 			employee: bundle.employee,
 			employment: stint(bundle.employment),
-			fixedAllowances: fixedAllowancesOn(bundle.payRequests, finalDate),
-			monthlyWage6mAverage: monthlyWageAverage(bundle, finalDate, 6),
+			fixedAllowances: contractAllowancesOn(bundle, configuration, finalDate),
+			monthlyWage6mAverage: monthlyWageAverage(bundle, configuration, finalDate, 6),
 			terms: finalTerms,
 			children: bundle.children,
 			company: configuration.company,
@@ -168,12 +165,10 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				workDays: [],
 				payRequests: {
 					CLAIM: requests.filter((entry) => entry.family === 'CLAIM').map((entry) => entry.id),
-					ADHOC: requests.filter((entry) => entry.family === 'ADHOC').map((entry) => entry.id),
-					ALLOWANCE: []
+					ADHOC: requests.filter((entry) => entry.family === 'ADHOC').map((entry) => entry.id)
 				},
 				leave: leave.captures,
-				loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
-				materialised: []
+				loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id)
 			},
 			arrears: null,
 			componentAmounts,
@@ -211,13 +206,13 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		company: configuration.company,
 		payFrequency: rateTerms.pay_frequency
 	};
-	// A deferred period's wages are the salary and the standing allowances; the claims that settled
-	// there are settled once, by the run that pays them.
-	const periodEntries = bundle.payRequests.filter(
-		(request) =>
-			(!options.deferredWagesOnly || request.window != null) &&
-			requestIsDue(request, options.period, options.salary, cutoffDay, cadence)
-	);
+	// A deferred period's wages are the salary and the allowances on the contract; the requests
+	// that settled there are settled once, by the run that pays them.
+	const periodEntries = options.deferredWagesOnly
+		? []
+		: bundle.payRequests.filter((request) =>
+				requestIsDue(request, options.period, options.salary, cutoffDay, cadence)
+			);
 	const entriesByComponent = Map.groupBy(periodEntries, (entry) => entry.catalogue_id);
 	const entryTotalByComponentId = new Map<string, number>();
 	for (const component of configuration.catalogueComponents) {
@@ -357,6 +352,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	};
 	const steps = [
 		...prepareWorkSteps(stepOptions),
+		...prepareAllowanceSteps(stepOptions),
 		// The requests arrive in query order; their code is the inferred, deterministic order.
 		...prepareMoneySteps({ ...stepOptions, requests: periodEntries }).toSorted((a, b) =>
 			a.item.code === b.item.code
@@ -364,11 +360,9 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				: a.item.code.localeCompare(b.item.code)
 		)
 	];
-	const materialised: MaterialisedMoney[] = [];
 	for (const step of steps) {
 		const measured = step.calculate();
 		if (measured == null) continue;
-		if (measured.allowanceEntry != null) materialised.push(measured.allowanceEntry);
 		const component = step.item;
 		const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
 		componentAmounts.set(component.code, running);
@@ -422,15 +416,11 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			payRequests: Object.fromEntries(
 				PAY_REQUEST_FAMILIES.map((family) => [
 					family,
-					// An allowance entry is created with its pin; only authored claims are pinned.
-					periodEntries
-						.filter((entry) => entry.family === family && entry.window == null)
-						.map((entry) => entry.id)
+					periodEntries.filter((entry) => entry.family === family).map((entry) => entry.id)
 				])
 			) as unknown as Record<PayRequestFamily, readonly string[]>,
 			leave: measuredLeave.captures,
-			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
-			materialised
+			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id)
 		},
 		arrears,
 		notes,
@@ -519,12 +509,9 @@ import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import type { GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
 import { prepareWorkCatalogue, prepareWorkInputs } from './work.js';
 import { workPayItems } from './work-lines.js';
-import {
-	fixedAllowancesOn,
-	prepareMoneyCatalogues,
-	prepareMoneyInputs,
-	prepareMoneyConsumption
-} from './money.js';
+import { prepareMoneyCatalogues, prepareMoneyInputs, prepareMoneyConsumption } from './money.js';
+import { prepareAllowanceSteps } from './allowances.js';
+import { contractAllowancesOn } from './contract-allowances.js';
 import { prepareLoanCatalogue, prepareLoanPayroll } from './loan.js';
 import {
 	prepareContributionCatalogue,
@@ -549,6 +536,7 @@ import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js
 const runMoneyCatalogues = (catalogue: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly settingsId: string;
+	readonly lineageIds: readonly string[];
 }) =>
 	Effect.all(
 		[
@@ -565,6 +553,8 @@ const versionCataloguesByApi = new WeakMap<object, Map<string, VersionCatalogues
 export function prepareFamilyCatalogues(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly jurisdiction: Jurisdiction;
+	/** Every version of the lineage, for the classes a contract lists under an earlier one. */
+	readonly lineageIds: readonly string[];
 	readonly companyId: string;
 	readonly windowStart: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
 	readonly windowEnd: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
@@ -572,7 +562,11 @@ export function prepareFamilyCatalogues(options: {
 	readonly patternRows: Parameters<typeof prepareWorkCatalogue>[0]['patternRows'];
 }) {
 	return Effect.gen(function* () {
-		const catalogue = { api: options.api, settingsId: options.jurisdiction.id };
+		const catalogue = {
+			api: options.api,
+			settingsId: options.jurisdiction.id,
+			lineageIds: options.lineageIds
+		};
 		// Keyed by the runtime's own `db`, which every read-log wrapper spreads unchanged; the
 		// wrappers themselves are a fresh object per phase.
 		const cache =
@@ -598,8 +592,9 @@ export function prepareFamilyCatalogues(options: {
 			...work,
 			contributions,
 			catalogueLeaves,
-			catalogueComponents: [...workPayItems(work.work), ...money, ...loans].toSorted((a, b) =>
-				a.code === b.code ? a.id.localeCompare(b.id) : a.code.localeCompare(b.code)
+			allowanceCodeById: money.allowanceCodeById,
+			catalogueComponents: [...workPayItems(work.work), ...money.components, ...loans].toSorted(
+				(a, b) => (a.code === b.code ? a.id.localeCompare(b.id) : a.code.localeCompare(b.code))
 			)
 		};
 	});

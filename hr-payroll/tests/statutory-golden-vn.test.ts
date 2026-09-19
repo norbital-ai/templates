@@ -34,6 +34,7 @@ import {
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { assignAllowance } from './fixtures/contract-allowances.ts';
 
 const VN_PEOPLE = [
 	{ key: 'VN-20M', wage: 20_000_000, age: 25, citizenship: 'CITIZEN' },
@@ -498,7 +499,7 @@ test('Vietnam — a part month prorates on working days, an allowance with it, a
 	const NPL = 'c1c1c1c1-0000-4000-8000-00000000000a';
 	const LUNCH = 'c1c1c1c1-0000-4000-8000-00000000000b';
 	// January 2026 with no holiday planted: 22 working days on the Monday-to-Friday pattern.
-	const { slips, entries } = buildStatutory(
+	const { slips, allowances } = buildStatutory(
 		{
 			code: 'VN',
 			period: '2026-01',
@@ -536,7 +537,7 @@ test('Vietnam — a part month prorates on working days, an allowance with it, a
 				if (scheme.code === 'PIT' && scheme.settings_id === VN_2026_JAN)
 					scheme.assessed_on = `${scheme.assessed_on} - (code('LUNCH') > 730000.0 ? 730000.0 : code('LUNCH'))`;
 			for (const [index, employment] of world.employments.entries())
-				world.allowances.push({
+				assignAllowance(world, {
 					id: `d0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 					employment_id: employment.id,
 					catalogue_id: LUNCH,
@@ -599,18 +600,19 @@ test('Vietnam — a part month prorates on working days, an allowance with it, a
 		}
 	);
 	const facts = (key: string) => {
-		const entry = entries.get(key)![0]!;
-		const line = slips.get(key)!.adjustments.find((row) => row.family === 'ALLOWANCE')!;
-		assert.equal(line.amount, entry.values.amount, `${key}: the line is the entry`);
-		return [
-			entry.values.days,
-			entry.values.denominator,
-			entry.values.unpaid_days,
-			entry.values.amount
-		];
+		const [segment, ...rest] = allowances.get(key)!;
+		assert.equal(rest.length, 0, `${key}: one segment`);
+		const line = slips
+			.get(key)!
+			.base.find((row) => row.component_code === segment!.component_code)!;
+		assert.equal(line.amount, segment!.prorated_amount, `${key}: the line is the segment`);
+		return [segment!.days, segment!.denominator, segment!.unpaid_days, segment!.prorated_amount];
 	};
 	const prorated = (key: string) =>
-		slips.get(key)!.proration.map((row) => [row.days, row.denominator, row.prorated_amount]);
+		slips
+			.get(key)!
+			.proration.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]);
 	// `work_rules.proration` is WORKING_DAYS: a joiner on Monday the 19th takes 10 of January's 22,
 	// a leaver on the 15th the 11 before it, on the salary and the allowance alike — one entry each.
 	assert.deepEqual(prorated('VN-JOINER'), [[10, 22, 10_000_000]]);
@@ -660,7 +662,9 @@ test('Vietnam — fourteen unpaid working days in the month is a month outside i
 	});
 	const slip = slips.get('VN-EARLY')!;
 	assert.deepEqual(
-		slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		slip.proration
+			.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]),
 		[[7, 22, 7_000_000]]
 	);
 	for (const code of ['SI', 'HI', 'UI', 'UNION_FEE'])
@@ -1074,7 +1078,7 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 			)!;
 			for (const [index, key] of ['VN-F-6M', 'VN-PENSIONER'].entries()) {
 				const employment = world.employments.find((item) => item.employee_number === key)!;
-				world.allowances.push({
+				assignAllowance(world, {
 					id: `d0000000-0000-4000-8000-0000000000e${index}`,
 					employment_id: employment.id,
 					catalogue_id: row.id,
@@ -1095,8 +1099,7 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 		return [row?.employee_amount ?? 0, row?.employer_amount ?? 0];
 	};
 	const equivalent = (key: string) =>
-		slips.get(key)!.adjustments.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')
-			?.amount;
+		slips.get(key)!.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')?.amount;
 	// Six months: outside SI and HI; the employer's 17.5% + 3% of the 20,000,000 it would have
 	// insured — 4,100,000 — is paid with the wage; a foreigner is outside UI, so no 1%.
 	assert.deepEqual(charge('VN-F-6M', 'SI'), [0, 0]);
@@ -1159,7 +1162,7 @@ test('Vietnam — a pensioner, a transferee and a foreigner hired at retirement 
 				'VN-F-NOT-YET'
 			].entries()) {
 				const employment = world.employments.find((item) => item.employee_number === key)!;
-				world.allowances.push({
+				assignAllowance(world, {
 					id: `d0000000-0000-4000-8000-0000000000d${index}`,
 					employment_id: employment.id,
 					catalogue_id: row.id,
@@ -1179,8 +1182,7 @@ test('Vietnam — a pensioner, a transferee and a foreigner hired at retirement 
 		return [row?.employee_amount ?? 0, row?.employer_amount ?? 0];
 	};
 	const equivalent = (key: string) =>
-		slips.get(key)!.adjustments.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')
-			?.amount;
+		slips.get(key)!.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')?.amount;
 	// The pensioner: no SI, HI or UI; 20.5% + 1% of 20,000,000 = 4,300,000 with the wage.
 	assert.deepEqual(charge('VN-PENSION', 'SI'), [0, 0]);
 	assert.deepEqual(charge('VN-PENSION', 'UI'), [0, 0]);

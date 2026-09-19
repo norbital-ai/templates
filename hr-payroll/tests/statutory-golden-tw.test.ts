@@ -37,6 +37,7 @@ import {
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
+import { assignAllowance } from './fixtures/contract-allowances.ts';
 
 test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 民國115年 tables', () => {
 	const book = assessStatutory({
@@ -608,7 +609,7 @@ test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 do
 test('Taiwan — a part month prorates on calendar days, an allowance with it, and 事假 leaves the allowance whole', () => {
 	const NPL = 'c1c1c1c1-0000-4000-8000-00000000000a';
 	const TRANSPORT = 'c1c1c1c1-0000-4000-8000-00000000000b';
-	const { slips, entries } = buildStatutory(
+	const { slips, allowances } = buildStatutory(
 		{
 			code: 'TW',
 			period: '2026-01',
@@ -638,9 +639,15 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
-				// A recurring allowance is 工資: salary income (所得稅法 §14), and the insured wage reaches
-				// it through `terms.fixed_allowances` on the rows marked fixed.
+				// A recurring allowance is 工資 (勞基法 §2(3)): salary income (所得稅法 §14), and inside
+				// the contractual wage the insured grades read as `terms.fixed_allowances` — each
+				// scheme reading the classes that count toward it.
 				counts_toward: [
+					'LI',
+					'EI',
+					'NHI',
+					'LABOR_PENSION',
+					'OCC_INJURY',
 					'INCOME_TAX',
 					'INCOME_TAX_NON_RESIDENT',
 					'NHI_SUPPLEMENT_EMPLOYER',
@@ -649,7 +656,7 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 				approval_id: null
 			});
 			for (const [index, employment] of world.employments.entries())
-				world.allowances.push({
+				assignAllowance(world, {
 					id: `d0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 					employment_id: employment.id,
 					catalogue_id: TRANSPORT,
@@ -712,29 +719,29 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 		}
 	);
 	const facts = (key: string) => {
-		const entry = entries.get(key)![0]!;
-		const line = slips.get(key)!.adjustments.find((row) => row.family === 'ALLOWANCE')!;
-		assert.equal(line.amount, entry.values.amount, `${key}: the line is the entry`);
-		return [
-			entry.values.days,
-			entry.values.denominator,
-			entry.values.unpaid_days,
-			entry.values.amount
-		];
+		const [segment, ...rest] = allowances.get(key)!;
+		assert.equal(rest.length, 0, `${key}: one segment`);
+		const line = slips
+			.get(key)!
+			.base.find((row) => row.component_code === segment!.component_code)!;
+		assert.equal(line.amount, segment!.prorated_amount, `${key}: the line is the segment`);
+		return [segment!.days, segment!.denominator, segment!.unpaid_days, segment!.prorated_amount];
 	};
 	// `work_rules.proration` is CALENDAR_DAYS: a joiner on the 16th takes 16 of January's 31 days
 	// on the salary and on the allowance alike, one entry each, on the same basis.
 	assert.deepEqual(
 		slips
 			.get('TW-JOINER')!
-			.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+			.proration.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]),
 		[[16, 31, 20_645.16]]
 	);
 	assert.deepEqual(facts('TW-JOINER'), [16, 31, 0, 1600]);
 	assert.deepEqual(
 		slips
 			.get('TW-LEAVER')!
-			.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+			.proration.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]),
 		[[15, 31, 19_354.84]]
 	);
 	assert.deepEqual(facts('TW-LEAVER'), [15, 31, 0, 1500]);

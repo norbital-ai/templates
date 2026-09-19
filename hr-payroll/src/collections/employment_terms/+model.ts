@@ -36,6 +36,14 @@ export default defineModel(
 		 */
 		tax_residency: enums(['RESIDENT', 'NON_RESIDENT', 'NON_RESIDENT_NETB']),
 		base_salary: custom('money').notNull(),
+		/**
+		 * The allowances the contract carries — one allowance class each with its monthly figure —
+		 * priced every period beside the salary and prorated the same way. To change or stop one
+		 * is a terms change from a date. See `datatypes/contract_allowances`.
+		 */
+		allowances: custom('contract_allowances')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY']).notNull(),
 		work_classification: enums(['EA_COVERED', 'NON_EA', 'MANAGERIAL']).notNull(),
 		/**

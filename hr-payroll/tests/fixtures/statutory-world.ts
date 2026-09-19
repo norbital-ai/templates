@@ -21,7 +21,7 @@ import {
 	gatherPayrollRun
 } from '../../src/collections/payroll_runs/lib/engine.ts';
 import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
-import type { MaterialisedMoney } from '../../src/lib/payroll/money.ts';
+import type { PayslipProration } from '../../src/datatypes/payslip_proration/+definition.ts';
 import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -531,7 +531,8 @@ export function buildStatutory(
 	prepareWorld?: (world: PayrollWorld, period: string) => void
 ): {
 	readonly slips: Map<string, BuiltPayslip>;
-	readonly entries: Map<string, readonly MaterialisedMoney[]>;
+	/** The allowance lines each payslip priced: the base line's segments, by class code. */
+	readonly allowances: Map<string, readonly PayslipProration[]>;
 	readonly warnings: readonly string[];
 	/** The entity's own levies, charged once on the run: `[base, employer]` by scheme code. */
 	readonly companyCharges: Map<string, readonly [number, number]>;
@@ -555,11 +556,15 @@ export function buildStatutory(
 	);
 	return {
 		slips,
-		/** The allowance entries each payslip priced, with the proration facts the row will carry. */
-		entries: new Map(
+		allowances: new Map(
 			[...slips].map(([key, slip]) => [
 				key,
-				built.captures.find((capture) => capture.payslipId === slip.id)?.materialised ?? []
+				slip.proration.filter(
+					(segment) =>
+						prepared.configuration.catalogueComponents.find(
+							(component) => component.code === segment.component_code
+						)?.family === 'ALLOWANCE'
+				)
 			])
 		),
 		warnings: built.warnings,

@@ -4,7 +4,6 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "SUA",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -22,7 +21,6 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "ONCALL",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -32,7 +30,6 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
 		"name": "On-call allowance",
 		"counts_toward": ["EIS", "EPF", "EPF_NON_CITIZEN", "EPF_PR", "HRDF", "PCB.ADDITIONAL", "SOCSO"]
 	},
@@ -41,7 +38,6 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "SUA",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -68,7 +64,6 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "ONCALL",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -78,7 +73,6 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
 		"name": "On-call allowance",
 		"counts_toward": [
 			"EIS",
@@ -96,7 +90,6 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "SUA",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -123,7 +116,6 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "ONCALL",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -133,7 +125,6 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
 		"name": "On-call allowance",
 		"counts_toward": [
 			"EIS",

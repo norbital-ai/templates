@@ -162,8 +162,8 @@ test('a covered person under the wage is a warning on the run; an intern is not'
 });
 
 test('a wages order’s rule on the contract’s composition warns like the floor (ID PP 36/2021 art.7(2): basic at least 75%)', () => {
-	// The fixed allowance is a standing PAY request; 2,000,000 basic beside a 1,500,000 fixed
-	// allowance is 57% basic, under the 75% the rule states; 4,500,000 basic clears it.
+	// The fixed allowance is on the contract; 2,000,000 basic beside a 1,500,000 allowance is
+	// 57% basic, under the 75% the rule states; 4,500,000 basic clears it.
 	const configuration = {
 		jurisdiction: {
 			work_rules: {
@@ -173,7 +173,11 @@ test('a wages order’s rule on the contract’s composition warns like the floo
 				}
 			}
 		},
-		company: { id: 'co', region: 'Jakarta' }
+		company: { id: 'co', region: 'Jakarta' },
+		catalogueComponents: [
+			{ id: 'house', family: 'ALLOWANCE', destination: 'PAY', direction: 'ADD', counts_toward: [] }
+		],
+		allowanceCodeById: new Map()
 	};
 	const bundle = (number: string, basic: number) => ({
 		employment: {
@@ -186,20 +190,13 @@ test('a wages order’s rule on the contract’s composition warns like the floo
 		employedDays: { start: '2026-01-01', end: '2026-01-31' },
 		deferral: null,
 		terms: [],
-		payRequests: [
-			{
-				family: 'ALLOWANCE',
-				sign: 1,
-				amount: 1_500_000,
-				window: { start: '2025-01-01', end: null },
-				catalogueComponent: { destination: 'PAY', direction: 'ADD', fixed: true }
-			}
-		],
+		payRequests: [],
 		termsHistory: [
 			{
 				id: `t-${number}`,
 				employment_type: 'PERMANENT',
 				base_salary: { value: basic, currency: 'IDR' },
+				allowances: [{ catalogue_id: 'house', amount: 1_500_000 }],
 				effective_range: { start: '2025-01-01', end: null }
 			}
 		]

@@ -16,7 +16,13 @@
 			"start": "2021-06-01T00:00:00.000Z",
 			"end": null
 		},
-		"residency_status": "CITIZEN"
+		"residency_status": "CITIZEN",
+		"allowances": [
+			{
+				"catalogue_id": "77777777-7777-4777-8777-777777777777",
+				"amount": 310
+			}
+		]
 	},
 	{
 		"id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd2",
@@ -35,7 +41,13 @@
 			"start": "2026-01-01T00:00:00.000Z",
 			"end": null
 		},
-		"residency_status": "CITIZEN"
+		"residency_status": "CITIZEN",
+		"allowances": [
+			{
+				"catalogue_id": "77777777-7777-4777-8777-777777777777",
+				"amount": 200
+			}
+		]
 	},
 	{
 		"id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd3",
@@ -54,7 +66,13 @@
 			"start": "2018-01-01T00:00:00.000Z",
 			"end": null
 		},
-		"residency_status": "CITIZEN"
+		"residency_status": "CITIZEN",
+		"allowances": [
+			{
+				"catalogue_id": "77777777-7777-4777-8777-777777777777",
+				"amount": 250
+			}
+		]
 	},
 	{
 		"id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd4",
@@ -73,6 +91,7 @@
 			"start": "2025-06-01T00:00:00.000Z",
 			"end": null
 		},
-		"residency_status": "FOREIGNER"
+		"residency_status": "FOREIGNER",
+		"allowances": []
 	}
 ]

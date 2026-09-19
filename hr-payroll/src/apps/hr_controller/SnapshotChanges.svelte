@@ -86,6 +86,7 @@
 				where: { settings_id },
 				limit: 2_000
 			}),
+			adhoc_catalogue: client.db.adhoc_catalogue.findMany({ where: { settings_id }, limit: 2_000 }),
 			loan_catalogue: client.db.loan_catalogue.findMany({ where: { settings_id }, limit: 2_000 })
 		};
 	});
@@ -132,6 +133,8 @@
 				return t('app.settings.claim_catalogue');
 			case 'allowance_catalogue':
 				return t('app.settings.allowance_catalogue');
+			case 'adhoc_catalogue':
+				return t('app.settings.adhoc_catalogue');
 			default:
 				return t('app.settings.loan_catalogue');
 		}

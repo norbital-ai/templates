@@ -3,63 +3,37 @@ import test from 'node:test';
 import { registrations, snippet, source } from './helpers/page-source.ts';
 
 const families = [
-	{ page: 'claims', family: 'claim', employee: 'myClaims', catalogue: 'catalogueClaims' },
-	{
-		page: 'allowances',
-		family: 'allowance',
-		employee: 'myAllowances',
-		catalogue: 'catalogueAllowances'
-	}
+	{ page: 'claims', family: 'claim' },
+	{ page: 'adhoc', family: 'adhoc' }
 ] as const;
 
-for (const { page, family, employee } of families) {
+for (const { page, family } of families) {
 	test(`Controller ${page} registers one family table carrying contract, catalogue and payroll capture`, () => {
 		const text = source(`apps/hr_controller/events/+${page}.svelte`);
-		// Allowances are the standing sources and, stepped by pay period, the entries payroll
-		// priced from them; a claim is one table stepped the same way.
-		assert.deepEqual(
-			registrations(text),
-			family === 'allowance' ? ['CollectionTable', 'CollectionTable'] : ['CollectionTable']
-		);
+		// One table stepped by pay period, its capture the row's own pin.
+		assert.deepEqual(registrations(text), ['CollectionTable']);
 		assert.match(text, /createPayPeriodScope\(/);
 		assert.match(text, /gte: pay\.bounds\.start, lt: pay\.bounds\.end/);
-		if (family === 'allowance') {
-			assert.match(text, /collection="allowances"/);
-			assert.match(text, /collection="allowance_entries"/);
-			assert.match(text, /allowance_employment:/);
-			assert.match(text, /allowance_entry_allowance_catalogue:/);
-		} else {
-			assert.match(text, /pay_period: \{ eq: pay\.period \}/);
-			assert.match(text, new RegExp(`collection="${family}_requests"`));
-			assert.match(text, new RegExp(`${family}_request_employment:`));
-			assert.match(text, new RegExp(`${family}_request_${family}_catalogue:`));
-			assert.match(text, /row\.payslip_id == null/);
-		}
+		assert.match(text, /pay_period: \{ eq: pay\.period \}/);
+		assert.match(text, new RegExp(`collection="${family}_requests"`));
+		assert.match(text, new RegExp(`${family}_request_employment:`));
+		assert.match(text, new RegExp(`${family}_request_${family}_catalogue:`));
+		assert.match(text, /row\.payslip_id == null/);
 		assert.match(text, /payRequestRecordMetadata\(/);
-		assert.doesNotMatch(text, /collection="(?:component|bonus|arrears)_/);
-	});
-
-	test(`Employee ${family} table stays scoped to the selected contract and carries settlement evidence`, () => {
-		const tab = snippet(source('apps/+hr_employee.svelte'), employee);
-		assert.deepEqual(registrations(tab), ['CollectionTable']);
-		assert.match(
-			tab,
-			new RegExp(`collection="${family === 'allowance' ? 'allowances' : `${family}_requests`}"`)
-		);
-		assert.match(tab, /employment_id: employmentId \? \{ eq: employmentId \}/);
-		// An allowance is a standing source and carries no pin of its own; its entries do.
-		assert.match(
-			tab,
-			family === 'allowance'
-				? /payRequestRecordMetadata\(row\.approval_id, \[\], t\)/
-				: /payRequestRecordMetadata\(row\.approval_id, capturesOf\(row\), t\)/
-		);
-		if (family === 'claim') assert.doesNotMatch(tab, /features=\{\{ create: false \}\}/);
-		else assert.match(tab, /features=\{\{ create: false \}\}/);
+		assert.doesNotMatch(text, /collection="(?:component|bonus|arrears|allowance)_/);
 	});
 }
 
-test('Controller Events starts at Work and Employee Events exposes the five family tabs vertically', () => {
+test('Employee claim table stays scoped to the selected contract and carries settlement evidence', () => {
+	const tab = snippet(source('apps/+hr_employee.svelte'), 'myClaims');
+	assert.deepEqual(registrations(tab), ['CollectionTable']);
+	assert.match(tab, /collection="claim_requests"/);
+	assert.match(tab, /employment_id: employmentId \? \{ eq: employmentId \}/);
+	assert.match(tab, /payRequestRecordMetadata\(row\.approval_id, capturesOf\(row\), t\)/);
+	assert.doesNotMatch(tab, /features=\{\{ create: false \}\}/);
+});
+
+test('Controller Events starts at Work and Employee Events exposes the four family tabs vertically', () => {
 	const group = source('apps/hr_controller/events/+group.ts');
 	assert.match(group, /label: 'Events'/);
 	assert.match(group, /defaultChild: 'work'/);
@@ -68,11 +42,12 @@ test('Controller Events starts at Work and Employee Events exposes the five fami
 	assert.match(events, /layout="vertical"/);
 	assert.deepEqual(
 		[...events.matchAll(/name: '([^']+)'/g)].map((match) => match[1]),
-		['work', 'leave', 'claim', 'allowance', 'loan']
+		['work', 'leave', 'claim', 'loan']
 	);
+	// Employees neither request nor see allowances as events: an allowance is on the contract.
 	assert.doesNotMatch(
 		page,
-		/collection="(?:correction|component|bonus|arrears)_(?:requests|entries)"/
+		/collection="(?:correction|component|bonus|arrears|allowance)_(?:requests|entries)"|collection="allowances"/
 	);
 });
 
@@ -96,6 +71,10 @@ test('Settings hoists schemes out of Catalog, and scopes shared financial catalo
 	const table = snippet(page, 'catalogueTable');
 	assert.deepEqual(registrations(table), ['CollectionTable']);
 	assert.match(table, /settings_id: \{ eq: selectedVersion\.id \}/);
-	for (const { family, catalogue } of families)
+	for (const [family, catalogue] of [
+		['claim', 'catalogueClaims'],
+		['adhoc', 'catalogueAdhoc'],
+		['allowance', 'catalogueAllowances']
+	])
 		assert.match(snippet(page, catalogue), new RegExp(`'${family}_catalogue'`));
 });

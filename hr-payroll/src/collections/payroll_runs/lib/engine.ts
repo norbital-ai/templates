@@ -286,8 +286,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 				capture.workDays.length +
 				capture.claims.length +
 				capture.leave.length +
-				capture.loanRepayments.length +
-				capture.materialised.length,
+				capture.loanRepayments.length,
 			0
 		),
 		warnings: issues

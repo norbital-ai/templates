@@ -434,8 +434,17 @@ export function loadRunExports(
 					];
 				};
 				const reportLines: ReportLine[] = [
+					// The wage's base line is the basic; an allowance on the contract is a base line
+					// too, and the workbook files it under its own family.
 					...payslip.base.flatMap((entry) =>
-						reportLine(entry.component_code, decodeNumber(entry.amount), null, 'BASE')
+						reportLine(
+							entry.component_code,
+							decodeNumber(entry.amount),
+							null,
+							componentByCode.get(entry.component_code)?.family === 'ALLOWANCE'
+								? 'ALLOWANCE'
+								: 'BASE'
+						)
 					),
 					...payslipAdjustments.flatMap((row): ReportLine[] =>
 						reportLine(

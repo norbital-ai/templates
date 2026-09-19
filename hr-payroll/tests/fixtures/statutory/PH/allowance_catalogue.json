@@ -4,7 +4,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "leader",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -22,7 +21,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "meal",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -32,7 +30,6 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
 		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned.",
 		"name": "Meal allowance (rice subsidy)",
 		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.SPECIAL"]
@@ -42,7 +39,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "transport",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -60,7 +56,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "corporate_duty_allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -78,7 +73,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -96,7 +90,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "communication",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -114,7 +107,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "duty_allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -132,7 +124,6 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "leader",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -150,7 +141,6 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "meal",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -160,7 +150,6 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
 		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned.",
 		"name": "Meal allowance (rice subsidy)",
 		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.SPECIAL"]
@@ -170,7 +159,6 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "transport",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -188,7 +176,6 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "corporate_duty_allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -206,7 +193,6 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -224,7 +210,6 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "communication",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -242,7 +227,6 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "duty_allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -260,7 +244,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "position",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -278,7 +261,6 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "position",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -296,7 +278,6 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "leader",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -314,7 +295,6 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "meal",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -324,7 +304,6 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
 		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned.",
 		"name": "Meal allowance (rice subsidy)",
 		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.SPECIAL"]
@@ -334,7 +313,6 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "transport",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -352,7 +330,6 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "corporate_duty_allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -370,7 +347,6 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -388,7 +364,6 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "communication",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -406,7 +381,6 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "duty_allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -424,7 +398,6 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "position",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -442,7 +415,6 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "leader",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -460,7 +432,6 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "meal",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -470,7 +441,6 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
 		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned.",
 		"name": "Meal allowance (rice subsidy)",
 		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.SPECIAL"]
@@ -480,7 +450,6 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "transport",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -498,7 +467,6 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "corporate_duty_allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -516,7 +484,6 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -534,7 +501,6 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "communication",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -552,7 +518,6 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "duty_allowance",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -570,7 +535,6 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "position",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [

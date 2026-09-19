@@ -294,8 +294,7 @@ test('every rank reads its own request families, and a correction is not a recor
 	// what a rank sees of one is exactly what it sees of the family that entry belongs to.
 	for (const [collection, relation] of [
 		['claim_requests', 'claim_request_employment'],
-		['allowances', 'allowance_employment'],
-		['allowance_entries', 'allowance_entry_employment']
+		['adhoc_requests', 'adhoc_request_employment']
 	]) {
 		const [read, ...extra] = grantsFor(employee, collection, 'read');
 		assert.notEqual(read, undefined, collection);
@@ -489,6 +488,7 @@ test('the settings root: a controller prepares drafts, a manager seals and voids
 			'leave_catalogue',
 			'loan_catalogue',
 			'claim_catalogue',
+			'adhoc_catalogue',
 			'allowance_catalogue',
 			'jurisdiction_holidays'
 		])
@@ -517,10 +517,10 @@ test('ordinary ranks authorize only their own reviewed claim; HR may raise any f
 	// A claim is the only family they may raise. Raising an adjustment is raising an entry with
 	// the tick set, so "may an employee correct their own pay" is answered by this same grant —
 	// and it is answered by the approval on it, not by a separate authority.
-	assert.equal(may(employee, 'allowances', 'mutate.new'), false, 'allowance');
+	assert.equal(may(employee, 'adhoc_requests', 'mutate.new'), false, 'ad hoc');
 
 	for (const policy of [hrController, hrManager, seniorManagement]) {
-		for (const collection of ['claim_requests', 'allowances']) {
+		for (const collection of ['claim_requests', 'adhoc_requests']) {
 			const [newGrant] = grantsFor(policy, collection, 'mutate.new');
 			assert.notEqual(newGrant, undefined, `${nameOf(policy)} ${collection}`);
 			assert.equal(
@@ -529,8 +529,6 @@ test('ordinary ranks authorize only their own reviewed claim; HR may raise any f
 				`${nameOf(policy)} ${collection} mutate.new must be unconditional`
 			);
 		}
-		// The priced entries are the run's: nobody keys one.
-		assert.equal(may(policy, 'allowance_entries', 'mutate.new'), false, nameOf(policy));
 	}
 });
 
@@ -616,8 +614,7 @@ test('the kiosk sees one app and may only key time entries and face enrollments'
 	// collections the ledger is made of were never granted at all.
 	for (const collection of [
 		'claim_requests',
-		'allowances',
-		'allowance_entries',
+		'adhoc_requests',
 		'correction_requests',
 		'loans',
 		'payslips',

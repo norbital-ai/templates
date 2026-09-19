@@ -251,20 +251,7 @@ export function admitPayRequests(
 						const signOf = (row: Readonly<Record<string, unknown>>) =>
 							(guard.sign ?? 1) * (row.as_adjustment_entry === true ? -1 : 1);
 						const context = entryContext({
-							entry: {
-								id: String(candidate.id ?? '\uffff'),
-								family: guard.family,
-								source_id: String(candidate.id ?? '\uffff'),
-								employment_id: employmentId,
-								catalogue_id: componentId,
-								amount,
-								approval_id: null,
-								pay_period: null,
-								event_date: eventDate,
-								sign: signOf(candidate),
-								window: null,
-								captured: false
-							},
+							entry: { amount, event_date: eventDate },
 							subject: person.subject,
 							period: eventDate.slice(0, 7),
 							periodStart: `${eventDate.slice(0, 7)}-01`,

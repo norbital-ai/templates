@@ -95,6 +95,12 @@ export type Configuration = {
 	readonly catalogueLeaves: readonly CatalogueLeave[];
 	/** Every live version of the company's lineage, for the readers that cite older revisions. */
 	readonly lineageVersions: readonly Jurisdiction[];
+	/**
+	 * Every allowance class of the lineage by id, to its code. A contract lists a class by the row
+	 * of the version it was signed under; a later version clones the row under a new id, and the
+	 * code is what carries the class across (`contractAllowanceClass`).
+	 */
+	readonly allowanceCodeById: ReadonlyMap<string, string>;
 	readonly hash: string;
 };
 
@@ -181,6 +187,7 @@ export function pickConfiguration(
 		const familyConfiguration = yield* prepareFamilyCatalogues({
 			api: options.api,
 			jurisdiction,
+			lineageIds: versionRows.map((row) => row.id),
 			companyId: company.id,
 			windowStart,
 			windowEnd,

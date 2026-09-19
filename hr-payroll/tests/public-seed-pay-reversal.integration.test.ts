@@ -13,17 +13,18 @@ import {
 import { markRunPaid } from './helpers/mark-paid.ts';
 
 /**
- * HR19 (b): an Allowance adjustment against a settled payslip line in the same family and contract.
+ * HR19 (b): a claw-back of a settled line, as an ad hoc request on the same contract.
  *
- * January pays the fixture employment its standing TRANSPORT allowance and is marked paid. The
- * controller (HQ Payroll HR) then posts a reversal naming that settled line; the next regular run
- * pays exactly the negated amount, the frozen January payslip is byte-for-byte what it was, and an
- * Employee cannot post the same entry.
+ * January pays the fixture employment the TRANSPORT allowance on its contract and is marked paid.
+ * The controller (HQ Payroll HR) then posts an ad hoc claw-back of that amount; the next regular
+ * run pays the allowance again and exactly the negated amount beside it, the frozen January
+ * payslip is byte-for-byte what it was, and an Employee cannot post the same request.
  */
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 type Row = Readonly<Record<string, unknown>>;
 
-const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
+/** The public seed's one ad hoc class, which a controller may raise by hand with the claw-back tick. */
+const ADHOC_CLASS_ID = '77777777-7777-4777-8777-777777777778';
 
 const teamHeaders = (session: Session, team: string) => ({
 	...bearerHeaders(session.credential),
@@ -69,15 +70,15 @@ async function payslipOf(session: Session, runId: string) {
 const postReversal = (session: Session, headers: Readonly<Record<string, string>>) =>
 	writeRows(
 		session,
-		'allowances',
+		'adhoc_requests',
 		'create',
 		[
 			{
 				employment_id: EMPLOYMENT_ID,
-				catalogue_id: TRANSPORT_ID,
+				catalogue_id: ADHOC_CLASS_ID,
 				amount: 310,
-				effective_from: `${FEBRUARY_2026}-01`,
-				effective_to: `${FEBRUARY_2026}-28`,
+				event_date: `${FEBRUARY_2026}-05`,
+				reason: 'claw back January transport',
 				as_adjustment_entry: true
 			}
 		],
@@ -93,10 +94,11 @@ test(
 			const januaryRun = await createRun(session, JANUARY_2026);
 			await markPaid(session, januaryRun);
 			const january = await payslipOf(session, januaryRun);
-			const settled = january.adjustments.find(
-				(row) => row.label === 'TRANSPORT' && row.bucket === 'EARNING'
-			);
-			assert.ok(settled, `January settled the allowance: ${JSON.stringify(january.adjustments)}`);
+			const [januaryRow] = (await session.query('select base from payslips where id = $1', [
+				String(january.payslip.id)
+			])) as ReadonlyArray<{ readonly base: ReadonlyArray<Row> }>;
+			const settled = januaryRow.base.find((row) => row.component_code === 'TRANSPORT');
+			assert.ok(settled, `January paid the allowance: ${JSON.stringify(januaryRow.base)}`);
 			assert.equal(Number(settled.amount), 310);
 
 			const employee = await postReversal(session, teamHeaders(session, 'Employee'));
@@ -121,17 +123,21 @@ test(
 
 			const februaryRun = await createRun(session, FEBRUARY_2026);
 			const february = await payslipOf(session, februaryRun);
-			// Both entries retain the Allowance catalogue: the standing amount pays and its adjustment reverses it.
-			const allowance = february.adjustments.filter((row) => row.label === 'TRANSPORT');
+			// The allowance on the contract pays again as a base line; the claw-back is the ad hoc
+			// line beside it, settled the opposite way.
+			const [februaryRow] = (await session.query('select base from payslips where id = $1', [
+				String(february.payslip.id)
+			])) as ReadonlyArray<{ readonly base: ReadonlyArray<Row> }>;
 			assert.equal(
-				allowance.length,
-				2,
-				`February still carries the standing allowance: ${JSON.stringify(february.adjustments)}`
+				Number(februaryRow.base.find((row) => row.component_code === 'TRANSPORT')?.amount),
+				310,
+				`February still carries the allowance: ${JSON.stringify(februaryRow.base)}`
 			);
+			const clawback = february.adjustments.filter((row) => row.family === 'ADHOC');
 			assert.deepEqual(
-				allowance.map(signed).sort((a, b) => a - b),
-				[-310, 310],
-				'the standing Allowance and exactly its negated settled amount'
+				clawback.map(signed),
+				[-310],
+				`exactly the negated settled amount: ${JSON.stringify(february.adjustments)}`
 			);
 			assert.equal(
 				Number(february.payslip.gross),

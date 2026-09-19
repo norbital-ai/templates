@@ -122,7 +122,7 @@ test('every controller page sets the scope, and every form it opens reads it', (
 		'src/apps/hr_controller/events/+leave.svelte',
 		'src/apps/hr_controller/events/+loans.svelte',
 		'src/apps/hr_controller/events/+claims.svelte',
-		'src/apps/hr_controller/events/+allowances.svelte',
+		'src/apps/hr_controller/events/+adhoc.svelte',
 		'src/apps/hr_controller/events/+work.svelte'
 	]) {
 		const text = source(page);
@@ -136,7 +136,7 @@ test('every controller page sets the scope, and every form it opens reads it', (
 		'src/collections/leave_entries/+representation.svelte',
 		'src/collections/loans/+representation.svelte',
 		'src/collections/claim_requests/+representation.svelte',
-		'src/collections/allowances/+representation.svelte'
+		'src/collections/adhoc_requests/+representation.svelte'
 	]) {
 		const text = source(representation);
 		assert.match(text, /hrCreateScope\(\)/, `${representation} does not read the create scope`);

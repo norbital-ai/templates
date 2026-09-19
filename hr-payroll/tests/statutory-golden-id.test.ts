@@ -42,6 +42,7 @@ import { ordinaryDivisorDays } from '../src/collections/payroll_runs/lib/ordinar
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { restBreakAssessment } from '../src/lib/scheduling/rest-break.ts';
 import { settingsVersions, leaveCatalogue } from './fixtures/statutory-world.ts';
+import { assignAllowance } from './fixtures/contract-allowances.ts';
 
 const ID_PEOPLE = [
 	// Exactly the Kabupaten Bekasi UMK 2026: what five of the bank's sixteen contracts are paid.
@@ -472,7 +473,7 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 		approval_id: null
 	});
 	const fixed = world.employments.find((row) => row.employee_number === 'ID-FIXED')!;
-	world.allowances.push({
+	assignAllowance(world, {
 		id: 'a1a1a1a1-0000-4000-8000-000000000002',
 		employment_id: fixed.id,
 		catalogue_id: HOUSE_ALLOWANCE_ID,
@@ -484,21 +485,39 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 		as_adjustment_entry: false,
 		approval_id: null
 	});
+	// A one-month housing payment is not an allowance on the contract: it is ad hoc pay, raised
+	// once, and enters no wage a statute defines as basic plus fixed allowances.
+	const HOUSE_ONCE_ID = 'a1a1a1a1-0000-4000-8000-0000000000a3';
+	world.adhoc_catalogue!.push({
+		id: HOUSE_ONCE_ID,
+		settings_id: version,
+		code: 'HOUSE_ONCE',
+		name: 'One-off housing payment',
+		eligibility: '',
+		evidence: 'NONE',
+		destination: 'PAY',
+		direction: 'ADD',
+		bands: [{ when: '', amount: 'entry.amount', limit: null }],
+		counts_toward: ['JHT', 'JP', 'JKK', 'JKM', 'JKP', 'KESEHATAN', 'PPH21.ADDITIONAL', 'PPH26'],
+		raised_by: 'MANUAL',
+		approval_id: null
+	});
 	const oneOff = world.employments.find((row) => row.employee_number === 'ID-ONEOFF')!;
-	world.allowances.push({
+	world.adhoc_requests!.push({
 		id: 'a1a1a1a1-0000-4000-8000-000000000003',
 		employment_id: oneOff.id,
-		catalogue_id: HOUSE_ALLOWANCE_ID,
+		catalogue_id: HOUSE_ONCE_ID,
 		amount: 5_000_000,
-		effective_from: '2026-03-01',
-		effective_to: '2026-03-31',
+		event_date: '2026-03-01',
+		pay_period: null,
+		payslip_id: null,
 		reason: 'one month, one payment',
 		evidence_file: null,
 		as_adjustment_entry: false,
 		approval_id: null
 	});
 	const twoMonths = world.employments.find((row) => row.employee_number === 'ID-TWO-MONTHS')!;
-	world.allowances.push({
+	assignAllowance(world, {
 		id: 'a1a1a1a1-0000-4000-8000-000000000004',
 		employment_id: twoMonths.id,
 		catalogue_id: HOUSE_ALLOWANCE_ID,
@@ -545,9 +564,9 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 	assert.deepEqual(slip('ID-NEW').thr, []);
 	assert.deepEqual(slip('ID-FIXED').thr, [25_000_000]);
 	// Permenaker 6/2016 art.3(2) with SE-07/MEN/1990 §I(2)(b): a tunjangan tetap is paid regularly
-	// and irrespective of attendance. An allowance whose window is the one pay month is a single
-	// payment, so the wage a THR is a multiple of is the 20,000,000 basic alone — the 5,000,000 is
-	// still paid in March, it just does not become 5,000,000 more of THR.
+	// and irrespective of attendance. A one-month housing payment is ad hoc pay, so the wage a THR
+	// is a multiple of is the 20,000,000 basic alone — the 5,000,000 is still paid in March, it
+	// just does not become 5,000,000 more of THR.
 	assert.deepEqual(slip('ID-ONEOFF').thr, [20_000_000]);
 	assert.deepEqual(slip('ID-TWO-MONTHS').thr, [25_000_000]);
 	assert.deepEqual(slip('ID-PERM-25MAR').thr, [10_000_000]);
@@ -562,14 +581,16 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 	assert.equal(slip('ID-24M').base('JHT'), 10_000_000);
 	assert.equal(slip('ID-FIXED').base('JHT'), 25_000_000);
 	assert.equal(slip('ID-FIXED').base('PPH21'), 50_690_000); // 25,000,000 + THR 25,000,000 + the employer premiums
-	// The open-ended standing allowance is paid as a March entry; the source row itself is never
-	// pinned, so April prices its own entry. The THR is an ad hoc request: captured once, pinned.
+	// The allowance on the contract is a March base line with its own proration segment; the THR
+	// is an ad hoc request: captured once, pinned.
 	const fixedSlip = slips.find((row) => String(row.employment_id) === fixed.id)!;
 	const capture = built.captures.find((row) => row.payslipId === fixedSlip.id)!;
 	assert.deepEqual(
-		capture.materialised.map((row) => [row.values.amount, row.values.from, row.values.to]),
-		[[5_000_000, '2026-03-01T00:00:00.000Z', '2026-03-31T00:00:00.000Z']],
-		'the March entry of the house allowance is materialised'
+		fixedSlip.proration
+			.filter((row) => row.component_code === 'HOUSE_ALLOWANCE')
+			.map((row) => [row.prorated_amount, row.from, row.to]),
+		[[5_000_000, '2026-03-01', '2026-03-31']],
+		'the March segment of the house allowance'
 	);
 	assert.deepEqual(
 		capture.adhoc,

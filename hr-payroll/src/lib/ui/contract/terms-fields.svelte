@@ -51,6 +51,13 @@
 			{/if}
 			<Field name="base_salary" label={t('component.base_salary')} />
 			<Field name="pay_frequency" label={t('component.pay_frequency')} />
+			<Column span="all">
+				<Field
+					name="allowances"
+					label={t('component.allowances')}
+					description={t('component.allowances_hint')}
+				/>
+			</Column>
 		</Grid>
 	</FormSection>
 

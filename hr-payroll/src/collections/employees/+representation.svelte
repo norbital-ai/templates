@@ -543,21 +543,20 @@
 	</CollectionTable>
 {/snippet}
 
-{#snippet allowanceEvents()}
+{#snippet adhocEvents()}
 	<CollectionTable
 		{client}
-		collection="allowances"
-		view="employees:events:allowances"
-		title={t('family.allowance')}
-		query={{ where: byContract, orderBy: { effective_from: 'desc' } }}
+		collection="adhoc_requests"
+		view="employees:events:adhoc"
+		title={t('family.adhoc')}
+		query={{ where: byContract, orderBy: { event_date: 'desc' } }}
 	>
 		{#snippet columns({ Column: TableColumn })}
 			<TableColumn name="catalogue_id" label={t('component.component')} card="title" />
 			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
 			<TableColumn name="amount" label={t('component.amount')} />
 			<TableColumn name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-			<TableColumn name="effective_from" label={t('component.effective')} />
-			<TableColumn name="effective_to" />
+			<TableColumn name="event_date" label={t('component.adhoc_event_date')} />
 		{/snippet}
 	</CollectionTable>
 {/snippet}
@@ -598,10 +597,10 @@
 				content: claimEvents
 			},
 			{
-				name: 'allowance',
-				label: t('family.allowance'),
+				name: 'adhoc',
+				label: t('family.adhoc'),
 				icon: 'lucide:hand-coins',
-				content: allowanceEvents
+				content: adhocEvents
 			},
 			{ name: 'loan', label: t('family.loan'), icon: 'lucide:landmark', content: loanEvents }
 		] satisfies TabConfig[]}

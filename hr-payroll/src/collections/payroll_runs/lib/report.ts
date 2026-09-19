@@ -205,7 +205,6 @@ const OTHER_SECTION_NAME = 'Other';
  * no absence, no statute. Same rows and identity block as the payroll workbook, fewer columns.
  */
 const CATALOGUE_SECTIONS: readonly { readonly name: string; readonly family: string }[] = [
-	{ name: 'Allowances', family: 'ALLOWANCE' },
 	{ name: 'Ad hoc', family: 'ADHOC' },
 	{ name: 'Claims', family: 'CLAIM' },
 	{ name: 'Loans', family: 'LOAN_REPAYMENT' }

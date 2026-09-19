@@ -1,4 +1,4 @@
-/** Normalized money inputs supplied by Claim and Allowance. */
+/** Normalized money inputs supplied by Claim and Ad hoc. */
 import type { CollectionPayload } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
@@ -7,7 +7,7 @@ import type {
 	Configuration
 } from '../../collections/payroll_runs/lib/configuration.js';
 import { requiredDateKey, type IsoDate } from '../../collections/payroll_runs/lib/dates.js';
-import { dayInstant } from '../iso-day.js';
+import { contractAllowancesOn } from './contract-allowances.js';
 import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
@@ -57,31 +57,26 @@ import {
 
 type ClaimRequest =
 	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'claim_requests'>;
-type Allowance = import('../../collections/payroll_runs/$types.js').WorkspaceRow<'allowances'>;
 type AdhocRequest =
 	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'adhoc_requests'>;
 
 /** Which collection a request came from. The engine names it in refusals and in provenance. */
-export const PAY_REQUEST_FAMILIES = ['CLAIM', 'ADHOC', 'ALLOWANCE'] as const;
+export const PAY_REQUEST_FAMILIES = ['CLAIM', 'ADHOC'] as const;
 export type PayRequestFamily = (typeof PAY_REQUEST_FAMILIES)[number];
 
-/** The window a standing allowance is in force across; `end` null is open-ended. */
-type RequestWindow = { readonly start: IsoDate; readonly end: IsoDate | null };
-
 /**
- * One pay request as the run reads it: a claim as itself, a standing allowance as the one entry
- * this run will price and create. Every derived answer is settled by the builder that made it, so
- * nothing downstream re-derives economics from storage shape.
+ * One pay request as the run reads it: a claim or an ad hoc request, as itself. Every derived
+ * answer is settled by the builder that made it, so nothing downstream re-derives economics from
+ * storage shape.
  */
 export type PayRequest = {
-	/** A claim's own row id; an allowance's is the id of the entry the run creates under the slip. */
 	readonly id: string;
 	readonly family: PayRequestFamily;
-	/** What the payslip adjustment names and what a ceiling counts: the claim, or the allowance. */
+	/** What the payslip adjustment names and what a ceiling counts: the request's own row. */
 	readonly source_id: string;
 	readonly employment_id: string;
 	readonly catalogue_id: string;
-	/** A positive magnitude, exactly as stored; a monthly amount for an allowance. */
+	/** A positive magnitude, exactly as stored. */
 	readonly amount: unknown;
 	readonly approval_id: string | null;
 	readonly pay_period: string | null;
@@ -95,8 +90,6 @@ export type PayRequest = {
 	 * the same payslip line as the one it corrects.
 	 */
 	readonly sign: number;
-	/** A standing allowance's own window, which prorates it beside the employment; null for a claim. */
-	readonly window: RequestWindow | null;
 	/** A payslip already captured this single-use request. */
 	readonly captured: boolean;
 };
@@ -125,7 +118,6 @@ export const claimRequest = (row: ClaimRequest): PayRequest => ({
 	event_date: requiredDateKey(row.incurred_on, 'claim incurred date'),
 	// The catalogue says which way this settles; the tick says settle it the other way.
 	sign: row.as_adjustment_entry === true ? -1 : 1,
-	window: null,
 	captured: row.payslip_id != null
 });
 
@@ -141,34 +133,8 @@ const adhocRequest = (row: AdhocRequest): PayRequest => ({
 	pay_period: row.pay_period ?? null,
 	event_date: requiredDateKey(row.event_date, 'ad hoc event date'),
 	sign: row.as_adjustment_entry === true ? -1 : 1,
-	window: null,
 	captured: row.payslip_id != null
 });
-
-/**
- * A standing allowance as one period's entry: the amount is the month's, the window is the
- * allowance's own, and the id is the entry the run creates under the payslip that prices it.
- */
-export const allowanceEntryRequest = (row: Allowance): PayRequest => {
-	const start = requiredDateKey(row.effective_from, 'allowance start');
-	return {
-		id: crypto.randomUUID(),
-		family: 'ALLOWANCE',
-		source_id: row.id,
-		employment_id: row.employment_id,
-		catalogue_id: row.catalogue_id,
-		amount: row.amount,
-		approval_id: row.approval_id ?? null,
-		pay_period: null,
-		event_date: start,
-		sign: row.as_adjustment_entry === true ? -1 : 1,
-		window: {
-			start,
-			end: row.effective_to == null ? null : requiredDateKey(row.effective_to, 'allowance end')
-		},
-		captured: false
-	};
-};
 
 /**
  * Which run a request settles in. The stored `pay_period` wins; the cutoff supplies the default, in
@@ -183,7 +149,7 @@ export function requestPayPeriod(
 	return defaultPayPeriod(request.event_date, cutoffDay, cadence);
 }
 
-/** Late approvals settle once in the next regular period; standing amounts keep their window. */
+/** Late approvals settle once in the next regular period. */
 export function requestIsDue(
 	request: PayRequest,
 	period: string,
@@ -192,9 +158,6 @@ export function requestIsDue(
 	cadence: PayCadence
 ): boolean {
 	if (request.approval_id != null || request.captured) return false;
-	const window = request.window;
-	if (window != null)
-		return window.start <= salary.end && (window.end == null || window.end >= salary.start);
 	// Every claim is dated, so the cutoff rule places it on its incurred date. Anything already
 	// due is picked up by this run rather than lost.
 	return requestPayPeriod(request, cutoffDay, cadence) <= period;
@@ -207,7 +170,8 @@ export function requestIsDue(
  * and `amount` are evaluated here, and the same blank instance compiled the expression at write.
  */
 export function entryContext(options: {
-	readonly entry: PayRequest;
+	/** What the context reads of the entry: its magnitude and its day. */
+	readonly entry: Pick<PayRequest, 'amount' | 'event_date'>;
 	readonly subject: PersonContext;
 	readonly period: string;
 	readonly periodStart: string;
@@ -233,10 +197,6 @@ export function entryContext(options: {
 			quantity: 0,
 			event_date: entry.event_date,
 			period: options.period,
-			window: {
-				start: entry.window?.start ?? '',
-				end: entry.window?.end ?? ''
-			},
 			captures: {
 				remaining: options.captures.remaining
 			}
@@ -287,6 +247,16 @@ function selectBand(
 	return null;
 }
 
+/** The governing band's amount over the context, or null where no band governs. */
+export function priceBand(
+	bands: readonly CatalogueBand[],
+	context: Record<string, unknown>,
+	engine: ExpressionEngine
+): number | null {
+	const band = selectBand(bands, context, engine);
+	return band == null ? null : bandAmount(band, context, engine);
+}
+
 /** The band's amount: its money expression evaluated over the entry context. */
 function bandAmount(
 	band: CatalogueBand,
@@ -296,65 +266,9 @@ function bandAmount(
 	return evaluateNumber(engine, band.amount, context);
 }
 
-/** The proration facts of one allowance entry, as the payslip stores them beside the money. */
-type AllowanceProration = {
-	readonly from: IsoDate;
-	readonly to: IsoDate;
-	readonly basis: NonNullable<Configuration['work']['proration']>;
-	readonly days: number;
-	readonly denominator: number;
-	readonly unpaid_days: number;
-};
-
 /**
- * How much of the period a standing allowance earns, on the same basis as basic salary.
- *
- * The covered span is the allowance's window ∩ the employment's own days of the period, so a
- * joiner, a leaver, an allowance that opens or closes mid-period all prorate everywhere. Unpaid
- * leave comes off it only where the jurisdiction says so (`payroll.allowance_npl_prorates`): the
- * Philippines' "no work, no pay" reaches the allowance; Singapore, Malaysia, Taiwan, Indonesia and
- * Vietnam leave a fixed allowance whole. `null` is a span that never touches the period.
- */
-function allowanceProration(options: {
-	readonly window: RequestWindow;
-	readonly employed: PayRange;
-	readonly salary: PayRange;
-	readonly configuration: Configuration;
-	readonly person: PersonContext;
-	readonly workingDaysIn: (window: PayRange) => number;
-	readonly instalments: number;
-	readonly unpaidDaysIn: (window: PayRange) => number;
-}): AllowanceProration | null {
-	const covered = intersectDays(
-		{ start: options.window.start, end: options.window.end ?? options.salary.end },
-		options.employed
-	);
-	const segment = prorationSegment({
-		work: options.configuration.work,
-		person: options.person,
-		period: options.salary,
-		covered,
-		workingDaysIn: options.workingDaysIn,
-		instalments: options.instalments
-	});
-	if (segment == null) return null;
-	const unpaid = options.configuration.jurisdiction.payroll.allowance_npl_prorates
-		? options.unpaidDaysIn({ start: segment.from, end: segment.to })
-		: 0;
-	return {
-		from: segment.from,
-		to: segment.to,
-		basis: segment.basis,
-		days: Math.max(0, segment.days - unpaid),
-		denominator: segment.denominator,
-		unpaid_days: unpaid
-	};
-}
-
-/**
- * One entry as MEASURE prices it. The catalogue's bands decide the amount, the limit and the
- * opt-ins; with no bands the entry's own amount stands unchanged. An allowance entry is prorated
- * first and carries its proration out with the measurement, for the row the run creates.
+ * One entry as MEASURE prices it. The catalogue's bands decide the amount and the limit; with no
+ * bands the entry's own amount stands unchanged. A request is due whole: nothing here prorates.
  */
 function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null {
 	const definition = options.component.definition;
@@ -364,24 +278,6 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		);
 	if (options.entry == null) return null;
 	const bucket = settlementBucket(options.component.destination, options.component.direction);
-	const prorationOf = (
-		source: PreparedPayRequest,
-		person: PersonContext
-	): AllowanceProration | null =>
-		source.window == null
-			? null
-			: allowanceProration({
-					window: source.window,
-					employed: options.employed,
-					salary: options.salary,
-					configuration: options.configuration,
-					person,
-					workingDaysIn: options.workingDaysIn,
-					instalments: options.instalments,
-					unpaidDaysIn: options.unpaidDaysIn
-				});
-	const fractionOf = (proration: AllowanceProration | null): number =>
-		proration == null ? 0 : proration.denominator <= 0 ? 0 : proration.days / proration.denominator;
 	const currency = options.configuration.jurisdiction.payroll.currency;
 
 	// The entry site's engine: a band can read the version's minimum wage for a region (PH de
@@ -395,7 +291,11 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			personContext({
 				employee: options.bundle.employee,
 				employment: stint(options.bundle.employment),
-				fixedAllowances: fixedAllowancesOn(options.bundle.payRequests, source.event_date),
+				fixedAllowances: contractAllowancesOn(
+					options.bundle,
+					options.configuration,
+					source.event_date
+				),
 				// A post-departure obligation reads the final terms of its own contract: an event
 				// after the exit is still priced against the last terms that covered the service.
 				terms: payRequestTerms(
@@ -416,8 +316,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		const subject = subjectOn(entry);
 		/**
 		 * A skipped request is captured, so it has to be reported: the entry is consumed whether or
-		 * not it paid, and without a note an approved allowance disappears between periods with
-		 * nothing to look at.
+		 * not it paid, and without a note an approved request disappears with nothing to look at.
 		 */
 		const skipped = (reason: string): null => {
 			options.note({
@@ -426,12 +325,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				message:
 					`${options.bundle.employment.employee_number}: ${options.component.family.toLowerCase()} ` +
 					`${options.component.code} was captured for ${options.period} and paid nothing — ${reason}.`,
-				collection:
-					entry.family === 'CLAIM'
-						? 'claim_requests'
-						: entry.family === 'ADHOC'
-							? 'adhoc_requests'
-							: 'allowances',
+				collection: entry.family === 'CLAIM' ? 'claim_requests' : 'adhoc_requests',
 				recordId: entry.source_id
 			});
 			return null;
@@ -476,20 +370,15 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		if (band == null && options.component.bands.length > 0)
 			return skipped('no band of the catalogue covers this entry');
 		const sign = entry.sign;
-		const proration = prorationOf(entry, subject);
-		// A claim is never prorated; an allowance whose window and employment cover none of the
-		// period is not an entry at all — the source is silent rather than captured at nothing.
-		if (entry.window != null && proration == null) return null;
-		// What prorates is a component's cadence: a standing allowance earns by the days it is in
-		// force beside the salary; a claim or an ad hoc request — a bonus, back pay, an ex-gratia
-		// sum — is due in its period whole, whatever the joiner's days (no statute prorates a
-		// bonus; SG CPF counts the AW "payable in the month"; MY EA s.18A prorates monthly wages only).
-		const fraction = entry.window == null ? 1 : fractionOf(proration);
-		if (fraction <= 0 && entry.window != null)
-			return skipped('unpaid leave covered every day of the period the allowance was in force');
-		const raw = band == null ? decodeNumber(entry.amount) : bandAmount(band, context, engine);
-		const reimbursable = cents(raw * fraction, currency);
-		let payable = reimbursable;
+		// A claim or an ad hoc request — a bonus, back pay, an ex-gratia sum — is due in its period
+		// whole, whatever the joiner's days: no statute prorates a lump sum (SG CPF counts the AW
+		// "payable in the month"; MY EA s.18A prorates monthly wages only). What prorates is the
+		// contract's own money, the wage and the allowances on it.
+		const reimbursable = cents(
+			band == null ? decodeNumber(entry.amount) : bandAmount(band, context, engine),
+			currency
+		);
+		const payable = reimbursable;
 		if (band?.limit != null) {
 			const limitAmount = evaluateNumber(engine, band.limit.amount, context);
 			// The ceiling spans catalogue revisions of one code: a request agreed under an earlier
@@ -509,29 +398,15 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 							{
 								id: candidate.id,
 								employment_id: candidate.employment_id,
-								event_date: candidate.window == null ? candidate.event_date : options.salary.start,
-								// A sibling is valued the way the run will price it: an allowance by this
-								// period's proration, a claim by its amount.
-								amount:
-									candidate.sign *
-									cents(
-										decodeNumber(candidate.amount) *
-											(candidate.window == null
-												? 1
-												: fractionOf(prorationOf(candidate, subjectOn(candidate)))),
-										currency
-									)
+								event_date: candidate.event_date,
+								amount: candidate.sign * cents(decodeNumber(candidate.amount), currency)
 							}
 						];
-					// Each period a standing allowance paid is its own use of the ceiling, dated in the
-					// period it occurred; a claim's capture keeps the claim's own event date.
+					// A capture keeps the request's own event date.
 					return candidate.captures.map((capture) => ({
-						id: candidate.window == null ? candidate.id : `${candidate.source_id}:${capture.id}`,
+						id: candidate.id,
 						employment_id: candidate.employment_id,
-						event_date:
-							candidate.window != null && capture.period !== ''
-								? `${capture.period}-15`
-								: candidate.event_date,
+						event_date: candidate.event_date,
 						amount: candidate.sign * capture.amount
 					}));
 				});
@@ -540,17 +415,10 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				limitAmount,
 				entryId: entry.id,
 				employmentId: entry.employment_id,
-				eventDate: entry.window == null ? entry.event_date : options.salary.start,
+				eventDate: entry.event_date,
 				siblings
 			});
 			if (resolved == null) throw new Error('A stated limit must resolve against its siblings.');
-			// A standing allowance is bounded per period: it pays what the ceiling has left rather
-			// than stopping the whole run, so the next period continues from the remainder.
-			if (entry.window != null && sign > 0 && band.limit.on_exceed === 'BLOCK')
-				payable = Math.min(
-					reimbursable,
-					Math.max(0, cents(limitAmount - resolved.exceededBy, currency))
-				);
 			const refusal = entryLimitRefusal({
 				limit: band.limit,
 				resolved,
@@ -572,8 +440,6 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			proration: [],
 			adjustments: [
 				{
-					// The adjustment names the standing source an allowance entry repeats, which is what
-					// the capture and its ceiling key on; a claim names itself.
 					input: { family: entry.family, id: entry.source_id },
 					catalogueComponent: options.component,
 					bucket: landing,
@@ -583,26 +449,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					rate: null,
 					statutoryRuleKey: null
 				}
-			],
-			...(proration == null
-				? {}
-				: {
-						allowanceEntry: {
-							id: entry.id,
-							sourceId: entry.source_id,
-							collection: 'allowance_entries' as const,
-							values: {
-								derived_from_id: entry.source_id,
-								employment_id: entry.employment_id,
-								catalogue_id: entry.catalogue_id,
-								...proration,
-								from: dayInstant(proration.from),
-								to: dayInstant(proration.to),
-								contract_amount: decodeNumber(entry.amount),
-								amount
-							}
-						}
-					})
+			]
 		};
 	};
 
@@ -615,7 +462,7 @@ export function prepareMoneySteps(
 	}
 ): readonly FamilyStep[] {
 	// A request prices under the catalogue row it was raised against, not the run version's row of
-	// the same code: a loan or allowance agreed under an earlier revision still carries that
+	// the same code: a loan agreed under an earlier revision still carries that
 	// revision's bands and opt-ins, and a later version may not carry the row at all.
 	return options.requests.map((entry) => ({
 		item: entry.catalogueComponent,
@@ -627,23 +474,32 @@ export function prepareMoneySteps(
 export function prepareMoneyCatalogues(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly settingsId: string;
+	readonly lineageIds: readonly string[];
 }) {
 	return Effect.gen(function* () {
 		const where = {
 			settings_id: { eq: options.settingsId },
 			approval_id: { isNull: true }
 		} as const;
-		const [claims, adhoc, allowances] = yield* Effect.all(
+		const [claims, adhoc, allowances, lineageClasses] = yield* Effect.all(
 			[
 				options.api.db.claim_catalogue.findMany({ where, limit: PAGE_LIMIT }),
 				options.api.db.adhoc_catalogue.findMany({ where, limit: PAGE_LIMIT }),
-				options.api.db.allowance_catalogue.findMany({ where, limit: PAGE_LIMIT })
+				options.api.db.allowance_catalogue.findMany({ where, limit: PAGE_LIMIT }),
+				// Every version's allowance classes by id: a contract lists the row of the version
+				// it was signed under, and the code carries the class into this one.
+				options.api.db.allowance_catalogue.findMany({
+					where: { settings_id: { in: options.lineageIds }, approval_id: { isNull: true } },
+					columns: { id: true, code: true },
+					limit: PAGE_LIMIT
+				})
 			],
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claims, 'claim catalogue');
 		options.api.reads.assertComplete(adhoc, 'ad hoc catalogue');
 		options.api.reads.assertComplete(allowances, 'allowance catalogue');
+		options.api.reads.assertComplete(lineageClasses, 'allowance classes of the lineage');
 		const components: CatalogueComponent[] = [
 			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
 			...adhoc.map((row) => ({ ...row, family: 'ADHOC' as const, definition: entryOf() })),
@@ -653,7 +509,10 @@ export function prepareMoneyCatalogues(options: {
 				definition: entryOf()
 			}))
 		] as unknown as CatalogueComponent[];
-		return components;
+		return {
+			components,
+			allowanceCodeById: new Map(lineageClasses.map((row) => [row.id, row.code]))
+		};
 	});
 }
 
@@ -711,35 +570,21 @@ function captureLinksOf(
 ): Effect.Effect<readonly PayRequestCaptureLink[]> {
 	return Effect.gen(function* () {
 		if (sourceIds.length === 0) return [];
-		if (family === 'CLAIM' || family === 'ADHOC') {
-			// The two request tables share the pin columns; the union of their clients is not
-			// callable, the claim client's shape reads either.
-			const requests = (
-				family === 'CLAIM' ? api.db.claim_requests : api.db.adhoc_requests
-			) as typeof api.db.claim_requests;
-			const rows = yield* requests.findMany({
-				where: { id: { in: [...sourceIds] }, payslip_id: { isNull: false } },
-				columns: { id: true, payslip_id: true },
-				limit: PAGE_LIMIT
-			});
-			return rows.map((row): PayRequestCaptureLink => ({
-				family,
-				payslipId: row.payslip_id!,
-				period: '',
-				sourceId: row.id
-			}));
-		}
-		const rows = yield* api.db.allowance_entries.findMany({
-			where: { derived_from_id: { in: [...sourceIds] } },
-			columns: { id: true, payslip_id: true, derived_from_id: true, from: true },
+		// The two request tables share the pin columns; the union of their clients is not
+		// callable, the claim client's shape reads either.
+		const requests = (
+			family === 'CLAIM' ? api.db.claim_requests : api.db.adhoc_requests
+		) as typeof api.db.claim_requests;
+		const rows = yield* requests.findMany({
+			where: { id: { in: [...sourceIds] }, payslip_id: { isNull: false } },
+			columns: { id: true, payslip_id: true },
 			limit: PAGE_LIMIT
 		});
 		return rows.map((row): PayRequestCaptureLink => ({
 			family,
-			payslipId: row.payslip_id,
-			// The period the entry paid for names the month its cap usage belongs to.
-			period: monthKey(requiredDateKey(row.from, 'allowance entry start')),
-			sourceId: row.derived_from_id
+			payslipId: row.payslip_id!,
+			period: '',
+			sourceId: row.id
 		}));
 	});
 }
@@ -761,8 +606,7 @@ function requestCaptures(options: {
 		];
 		const links = [
 			...(yield* captureLinksOf('CLAIM', options.api, idsOf('CLAIM'))),
-			...(yield* captureLinksOf('ADHOC', options.api, idsOf('ADHOC'))),
-			...(yield* captureLinksOf('ALLOWANCE', options.api, idsOf('ALLOWANCE')))
+			...(yield* captureLinksOf('ADHOC', options.api, idsOf('ADHOC')))
 		];
 		if (links.length === 0) return captures;
 		const payslips = yield* options.api.db.payslips.findMany({
@@ -772,8 +616,6 @@ function requestCaptures(options: {
 		});
 		options.api.reads.assertComplete(payslips, 'captured pay-request outputs');
 		const bySource = captureAmounts(links, payslips);
-		// An allowance entry carries its source's capture history, so its cap usage is read from the
-		// standing allowance it repeats.
 		for (const request of options.requests)
 			captures.set(request.id, [...(bySource.get(request.source_id) ?? [])]);
 		return captures;
@@ -785,15 +627,11 @@ type MoneyPreparationOptions = {
 	readonly configuration: Configuration;
 	readonly employmentIds: readonly string[];
 	readonly period: string;
-	/** The salary window this run settles; an allowance in force inside it is an entry. */
+	/** The salary window this run settles. */
 	readonly periodWindow: { readonly start: string; readonly end: string };
 };
 
-/**
- * Build the requests the run prices: every unpinned approved claim of these people, and one entry
- * per standing allowance in force in the window. The entry is created with the run under the
- * payslip that priced it and deleted with that payslip, so the source is due again next period.
- */
+/** Build the requests the run prices: every unpinned approved claim and ad hoc request of these people. */
 export function prepareMoneyInputs(options: MoneyPreparationOptions) {
 	return Effect.gen(function* () {
 		const db = options.api.db;
@@ -803,37 +641,18 @@ export function prepareMoneyInputs(options: MoneyPreparationOptions) {
 			...approved,
 			payslip_id: { isNull: true }
 		} as const;
-		const [claimRows, adhocRows, allowanceRows] = yield* Effect.all(
+		const [claimRows, adhocRows] = yield* Effect.all(
 			[
 				db.claim_requests.findMany({ where: unpinned, limit: PAGE_LIMIT }),
-				db.adhoc_requests.findMany({ where: unpinned, limit: PAGE_LIMIT }),
-				db.allowances.findMany({
-					where: {
-						employment_id: { in: [...options.employmentIds] },
-						...approved,
-						effective_from: { lte: dayInstant(options.periodWindow.end) }
-					},
-					limit: PAGE_LIMIT
-				})
+				db.adhoc_requests.findMany({ where: unpinned, limit: PAGE_LIMIT })
 			],
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claimRows, 'claim requests');
 		options.api.reads.assertComplete(adhocRows, 'ad hoc requests');
-		options.api.reads.assertComplete(allowanceRows, 'allowances');
-		// One month back as well as this one: a deferred joining period is measured against the
-		// previous month, and the standing allowances in force then are part of what it owes.
-		const earliest = monthBounds(shiftPeriod(monthKey(options.periodWindow.start), -1)).start;
 		const requests: readonly PayRequest[] = [
 			...claimRows.map(claimRequest),
-			...adhocRows.map(adhocRequest),
-			...allowanceRows
-				.filter(
-					(row) =>
-						row.effective_to == null ||
-						requiredDateKey(row.effective_to, 'allowance end') >= earliest
-				)
-				.map(allowanceEntryRequest)
+			...adhocRows.map(adhocRequest)
 		];
 		const capturesByRequest = yield* requestCaptures({ api: options.api, requests });
 		const requestCatalogues = yield* prepareRequestCatalogues(options, requests);
@@ -864,7 +683,7 @@ function prepareRequestCatalogues(
 			)
 		];
 		const approved = { approval_id: { isNull: true } } as const;
-		const [claims, adhoc, allowances] = yield* Effect.all(
+		const [claims, adhoc] = yield* Effect.all(
 			[
 				options.api.db.claim_catalogue.findMany({
 					where: { id: { in: idsOf('CLAIM') }, ...approved },
@@ -873,25 +692,15 @@ function prepareRequestCatalogues(
 				options.api.db.adhoc_catalogue.findMany({
 					where: { id: { in: idsOf('ADHOC') }, ...approved },
 					limit: PAGE_LIMIT
-				}),
-				options.api.db.allowance_catalogue.findMany({
-					where: { id: { in: idsOf('ALLOWANCE') }, ...approved },
-					limit: PAGE_LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claims, 'source Claim catalogue');
 		options.api.reads.assertComplete(adhoc, 'source Ad hoc catalogue');
-		options.api.reads.assertComplete(allowances, 'source Allowance catalogue');
 		const components = [
 			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
-			...adhoc.map((row) => ({ ...row, family: 'ADHOC' as const, definition: entryOf() })),
-			...allowances.map((row) => ({
-				...row,
-				family: 'ALLOWANCE' as const,
-				definition: entryOf()
-			}))
+			...adhoc.map((row) => ({ ...row, family: 'ADHOC' as const, definition: entryOf() }))
 		] as unknown as CatalogueComponent[];
 		// The lineage's versions are already in hand; only a component from outside it is read.
 		const settingsById = new Map(
@@ -942,16 +751,16 @@ export function prepareMoneyConsumption(options: {
 		const db = options.api.db;
 		const priorPayslipIds = [...options.payslipIds];
 		const consumedEntries = new Map<string, number>();
-		const [claims, entries, payslips] = yield* Effect.all(
+		const [claims, adhoc, payslips] = yield* Effect.all(
 			[
 				db.claim_requests.findMany({
 					where: { payslip_id: { in: priorPayslipIds } },
 					columns: { id: true },
 					limit: PAGE_LIMIT
 				}),
-				db.allowance_entries.findMany({
+				db.adhoc_requests.findMany({
 					where: { payslip_id: { in: priorPayslipIds } },
-					columns: { id: true, derived_from_id: true },
+					columns: { id: true },
 					limit: PAGE_LIMIT
 				}),
 				db.payslips.findMany({
@@ -963,10 +772,9 @@ export function prepareMoneyConsumption(options: {
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claims, 'prior claim captures');
-		options.api.reads.assertComplete(entries, 'prior allowance entries');
+		options.api.reads.assertComplete(adhoc, 'prior ad hoc captures');
 		options.api.reads.assertComplete(payslips, 'prior payslips');
-		for (const row of claims) consumedEntries.set(row.id, 0);
-		for (const row of entries) consumedEntries.set(row.derived_from_id, 0);
+		for (const row of [...claims, ...adhoc]) consumedEntries.set(row.id, 0);
 		for (const payslip of payslips)
 			for (const row of payslip.adjustments) {
 				if (!(PAY_REQUEST_FAMILIES as readonly string[]).includes(row.family)) continue;
@@ -978,48 +786,3 @@ export function prepareMoneyConsumption(options: {
 		return consumedEntries;
 	});
 }
-
-/**
- * The standing PAY allowances in force for one employment on a day, summed: what a statute means by
- * "one month's wage" when it names the fixed allowances (ID THR and pesangon, Permenaker 6/2016
- * art. 3(2): upah pokok + tunjangan tetap). A deduction is not wage, and neither is an allowance
- * whose window is confined to one pay month — a one-month reimbursement keyed as an allowance is
- * paid once, not "regularly and irrespective of attendance" (SE-07/MEN/1990 §I(2)(b)), so it does
- * not carry into the month's wage a THR is a multiple of.
- */
-export function fixedAllowancesOn(requests: readonly PreparedPayRequest[], asOf: IsoDate): number {
-	const month = monthBounds(monthKey(asOf));
-	return requests
-		.filter(
-			(request) =>
-				request.family === 'ALLOWANCE' &&
-				request.sign === 1 &&
-				request.window != null &&
-				request.window.start <= asOf &&
-				(request.window.end == null || asOf <= request.window.end) &&
-				// Standing: the window reaches beyond the pay month the day sits in.
-				(request.window.start < month.start ||
-					request.window.end == null ||
-					request.window.end > month.end) &&
-				request.catalogueComponent.destination === 'PAY' &&
-				request.catalogueComponent.direction === 'ADD' &&
-				// Fixed by its catalogue row: a reimbursement or per-day allowance is not, whatever its window.
-				request.catalogueComponent.fixed !== false
-		)
-		.reduce((sum, request) => sum + Math.abs(decodeNumber(request.amount)), 0);
-}
-
-/**
- * One allowance entry the run materialised, ready to create under its payslip.
- *
- * `id` is the engine's own identity for the entry and the stored row's id; the payslip adjustment
- * names the standing `sourceId` it repeats, which is what the capture and its ceiling key on.
- */
-export type MaterialisedMoney = {
-	readonly id: string;
-	readonly sourceId: string;
-	/** The table the run creates the row in when the payslip is written. */
-	readonly collection: 'allowance_entries';
-	/** The row as the payslip's nested `create` submits it; the pin is the parent's to fill. */
-	readonly values: Omit<CollectionPayload<WorkspaceSchema, 'allowance_entries'>, 'payslip_id'>;
-};

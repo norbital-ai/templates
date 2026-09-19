@@ -1,5 +1,5 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
-/** Standing allowances price one entry per period; a window of one period is priced once. */
+/** An allowance on the contract is a base line every period; an ad hoc request is priced once. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { requireAccepted } from '@norbital-ai/test-utilities';
@@ -8,8 +8,6 @@ import { writeRows } from './helpers/write.ts';
 import {
 	ONE_OFF_ENTRY_ID,
 	COMPANY_ID,
-	EMPLOYMENT_ID,
-	STANDING_ENTRY_ID,
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
 import {
@@ -19,13 +17,9 @@ import {
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
-const PUBLIC_STANDING_ENTRY_ID = '88888888-8888-4888-8888-888888888888';
 const CREATE_PAYROLL_COMMAND = 'collections.write';
 
 const JAN_RUN = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
-const FEB_RUN = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
-const JAN_PAYSLIP = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1';
-const FEB_PAYSLIP = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2';
 
 /** The run's transform over the world, stored as the database would hold it: pins and all. */
 async function createPayrollRun(world, period, runId = crypto.randomUUID()) {
@@ -39,10 +33,11 @@ async function createPayrollRun(world, period, runId = crypto.randomUUID()) {
 	return { ...created, payslip_payroll_run: payslipsOf(created) };
 }
 
-/** The entries a run priced from the standing allowances, read back off the world. */
-function materialisedOf(world, payslipId) {
-	return (world.allowance_entries ?? []).filter((row) => row.payslip_id === payslipId);
-}
+/** The allowance's segments on a payslip, read back off the stored slip. */
+const transportOf = (slip) =>
+	slip.proration
+		.filter((row) => row.component_code === 'TRANSPORT')
+		.map((row) => [row.from, row.to, row.prorated_amount]);
 
 /** Pay the stored run: consumption is read as history only off paid slips. */
 function persistPayslip(world, options) {
@@ -50,64 +45,46 @@ function persistPayslip(world, options) {
 		if (slip.payroll_run_id === options.runId) slip.paid_at = `${options.period}-28`;
 }
 
-test('a standing allowance is captured on two periods and two payslips', async () => {
+test('an allowance on the contract is priced on two periods and two payslips', async () => {
 	const world = createPublicPayrollWorld();
 	const january = await createPayrollRun(world, '2026-01', JAN_RUN);
-	const januarySlip = january.payslip_payroll_run[0];
-	const januaryRows = materialisedOf(world, januarySlip.id);
-	assert.deepEqual(
-		januaryRows.map((row) => row.derived_from_id),
-		[STANDING_ENTRY_ID]
-	);
-	persistPayslip(world, {
-		runId: JAN_RUN,
-		payslipId: januarySlip.id,
-		payslip: januarySlip,
-		period: '2026-01',
-		paid: true
-	});
-
+	assert.deepEqual(transportOf(january.payslip_payroll_run[0]), [
+		['2026-01-01', '2026-01-31', 310]
+	]);
+	persistPayslip(world, { runId: JAN_RUN, period: '2026-01' });
 	const february = await createPayrollRun(world, '2026-02');
-	const februarySlip = february.payslip_payroll_run[0];
-	const februaryRows = materialisedOf(world, februarySlip.id);
-	assert.deepEqual(
-		februaryRows.map((row) => row.derived_from_id),
-		[STANDING_ENTRY_ID]
-	);
-	assert.equal(String(januaryRows[0].from).slice(0, 7), '2026-01');
-	assert.equal(String(februaryRows[0].from).slice(0, 7), '2026-02');
-	assert.notEqual(januarySlip.employment_id, undefined);
-	assert.equal(februarySlip.employment_id, EMPLOYMENT_ID);
+	assert.deepEqual(transportOf(february.payslip_payroll_run[0]), [
+		['2026-02-01', '2026-02-28', 310]
+	]);
 });
 
-test('an allowance whose window is one period is priced once and not raised again', async () => {
+test('an ad hoc request is priced once and not raised again', async () => {
 	const world = createPublicPayrollWorld({ includePayment: true });
 	const january = await createPayrollRun(world, '2026-01', JAN_RUN);
 	const januarySlip = january.payslip_payroll_run[0];
 	assert.ok(
-		materialisedOf(world, januarySlip.id).some((row) => row.derived_from_id === ONE_OFF_ENTRY_ID),
-		'January prices the one-period window'
+		januarySlip.adjustments.some((row) => row.source_id === ONE_OFF_ENTRY_ID),
+		'January prices the request'
 	);
-	persistPayslip(world, {
-		runId: JAN_RUN,
-		payslipId: januarySlip.id,
-		payslip: januarySlip,
-		period: '2026-01',
-		paid: true
-	});
+	assert.equal(
+		world.adhoc_requests.find((row) => row.id === ONE_OFF_ENTRY_ID).payslip_id,
+		januarySlip.id,
+		'and pins it'
+	);
+	persistPayslip(world, { runId: JAN_RUN, period: '2026-01' });
 
 	const february = await createPayrollRun(world, '2026-02');
 	const februarySlip = february.payslip_payroll_run[0];
 	assert.equal(
-		materialisedOf(world, februarySlip.id).some((row) => row.derived_from_id === ONE_OFF_ENTRY_ID),
+		februarySlip.adjustments.some((row) => row.source_id === ONE_OFF_ENTRY_ID),
 		false,
-		'the window closed in January'
+		'a request settled in January is not priced again'
 	);
-	assert.equal(materialisedOf(world, februarySlip.id).length, 1);
+	assert.deepEqual(transportOf(februarySlip), [['2026-02-01', '2026-02-28', 310]]);
 });
 
 test(
-	'public seed standing allowance lands on January and February payslips',
+	'public seed allowance on the contract lands on January and February payslips',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-pay-request-capture');
@@ -132,24 +109,27 @@ test(
 				}
 			}
 
-			const captures = (await session.query(
-				// A day-precision instant is midnight in the entity's own zone; read it back there.
-				`select to_char("from" at time zone 'Asia/Kuala_Lumpur', 'YYYY-MM-DD') as from_date, payslip_id
-				 from allowance_entries
-				 where derived_from_id = $1
-				 order by "from"`,
-				[PUBLIC_STANDING_ENTRY_ID]
-			)) as ReadonlyArray<{ readonly from_date: string; readonly payslip_id: string }>;
-			const periods = [...new Set(captures.map((row) => row.from_date.slice(0, 7)))].toSorted();
+			const lines = (await session.query(
+				`select r.period, s.base
+				 from payslips s join payroll_runs r on r.id = s.payroll_run_id
+				 where r.company_id = $1
+				 order by r.period`,
+				[COMPANY_ID]
+			)) as ReadonlyArray<{
+				readonly period: string;
+				readonly base: readonly { component_code: string; amount: number | string }[];
+			}>;
 			assert.deepEqual(
-				periods,
-				[JANUARY_2026, FEBRUARY_2026],
-				`standing entry must land on both public periods, got ${JSON.stringify(captures)}`
+				lines.map((row) => [
+					row.period,
+					row.base.find((line) => line.component_code === 'TRANSPORT')?.amount
+				]),
+				[
+					[JANUARY_2026, 310],
+					[FEBRUARY_2026, 310]
+				],
+				`the allowance on the contract must land on both public periods, got ${JSON.stringify(lines)}`
 			);
-			for (const period of [JANUARY_2026, FEBRUARY_2026]) {
-				const rows = captures.filter((row) => row.from_date.slice(0, 7) === period);
-				assert.equal(rows.length, 1, `one entry for ${period}`);
-			}
 		} finally {
 			await session.stop();
 		}

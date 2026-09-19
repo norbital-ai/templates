@@ -225,8 +225,6 @@
 				return t('app.claims.title');
 			case 'ADHOC':
 				return t('app.adhoc.title');
-			case 'ALLOWANCE':
-				return t('app.allowances.title');
 			case 'WORK_DAY':
 				return t('component.attendance');
 			case 'LEAVE':
@@ -346,7 +344,7 @@
 											{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
 												<tr class="border-t border-border">
 													<td class="py-0.5 pr-2 whitespace-nowrap"
-														>{formatCalendarDate(segment.from)} → {formatCalendarDate(
+														>{segment.component_code} · {formatCalendarDate(segment.from)} → {formatCalendarDate(
 															segment.to
 														)}</td
 													>

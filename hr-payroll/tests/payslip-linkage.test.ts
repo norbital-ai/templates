@@ -31,7 +31,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateFamilies } from '../src/lib/payroll/families.ts';
-import { allowanceEntryRequest, claimRequest } from '../src/lib/payroll/money.ts';
+import { claimRequest } from '../src/lib/payroll/money.ts';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { workPayItems } from '../src/lib/payroll/work-lines.ts';
 
@@ -222,6 +222,7 @@ function configuration(overrides = {}) {
 	return {
 		company: COMPANY,
 		jurisdiction: JURISDICTION,
+		allowanceCodeById: new Map(),
 		work,
 		holidayRestPrecedence: overrides.holidayRestPrecedence ?? WORK.holiday_rest_precedence,
 		contributions: [],
@@ -984,22 +985,26 @@ test('a mid-month raise is two recorded proration segments, summing to one month
 		{
 			// The label snapshot `payslip_proration.term_key` states: title (or employment type),
 			// the day the terms range opens, and the contract amount.
+			component_code: 'BASIC',
 			term_key: 'PERMANENT @ 2020-01-01 · 4000.00',
 			from: '2026-03-01',
 			to: '2026-03-15',
 			basis: { by: 'CALENDAR_DAYS' },
 			days: 15,
 			denominator: 31,
+			unpaid_days: 0,
 			contract_amount: 4000,
 			prorated_amount: 1935.48
 		},
 		{
+			component_code: 'BASIC',
 			term_key: 'PERMANENT @ 2026-03-16 · 4600.00',
 			from: '2026-03-16',
 			to: '2026-03-31',
 			basis: { by: 'CALENDAR_DAYS' },
 			days: 16,
 			denominator: 31,
+			unpaid_days: 0,
 			// 2,374.19 on its own. The month rounds once, to 4,309.68, and the residue lands here
 			// rather than being left as a cent nobody can account for.
 			contract_amount: 4600,
@@ -1051,12 +1056,14 @@ test('two overlapping terms that both cover a whole month stay one segment and o
 	);
 	assert.deepEqual(measured.proration, [
 		{
+			component_code: 'BASIC',
 			term_key: 'PERMANENT @ 2023-02-24 · 1927.00',
 			from: '2026-01-01',
 			to: '2026-01-31',
 			basis: { by: 'CALENDAR_DAYS' },
 			days: 31,
 			denominator: 31,
+			unpaid_days: 0,
 			contract_amount: 1927,
 			prorated_amount: 1927
 		}
@@ -1117,31 +1124,24 @@ test('a whole month is still one recorded segment, not an absence of one', () =>
 	const measured = measure();
 	assert.deepEqual(measured.proration, [
 		{
+			component_code: 'BASIC',
 			term_key: 'PERMANENT @ 2020-01-01 · 3451.00',
 			from: '2026-03-01',
 			to: '2026-03-31',
 			basis: { by: 'CALENDAR_DAYS' },
 			days: 31,
 			denominator: 31,
+			unpaid_days: 0,
 			contract_amount: 3451,
 			prorated_amount: 3451
 		}
 	]);
 });
 
-test('a standing allowance prorates with the employment; a claim does not', () => {
-	// The allowance's own window is its cadence: it pays every period the window covers, on the
-	// same basis as basic salary, and no other arm prorates at all.
-	const standing = allowanceEntryRequest({
-		id: 'entry-recurring',
-		employment_id: 'emp-1',
-		catalogue_id: TRANSPORT.id,
-		amount: 310,
-		effective_from: '2020-01-01',
-		effective_to: null,
-		as_adjustment_entry: false,
-		approval_id: null
-	});
+test('an allowance on the contract prorates with the employment; a claim does not', () => {
+	// The contract's allowance pays every period, on the same basis as basic salary; a claim is
+	// a whole amount for a moment in time and no other arm prorates at all.
+	const listed = { allowances: [{ catalogue_id: TRANSPORT.id, amount: 310 }] };
 	const oneOff = claimRequest({
 		id: 'entry-once',
 		employment_id: 'emp-1',
@@ -1154,18 +1154,16 @@ test('a standing allowance prorates with the employment; a claim does not', () =
 	const joined = {
 		employedDays: { start: '2026-03-16', end: '2026-03-31' },
 		wageDays: { start: '2026-03-16', end: '2026-03-31' },
-		terms: [terms({ effective_range: { start: '2026-03-16', end: null } })]
+		terms: [terms({ ...listed, effective_range: { start: '2026-03-16', end: null } })]
 	};
 
-	assert.equal(amountOf(measure({ payRequests: [standing] }), 'TRANSPORT'), 310);
-	assert.equal(
-		amountOf(measure({ ...joined, payRequests: [standing] }), 'TRANSPORT'),
-		160,
-		'310 × 16/31'
-	);
-	assert.equal(
-		amountOf(measure({ ...joined, payRequests: [oneOff] }), 'TRANSPORT'),
-		310,
-		'a claim is a whole amount for a moment in time and is never divided by a month'
+	assert.equal(amountOf(measure({ terms: [terms(listed)] }), 'TRANSPORT'), 310);
+	assert.equal(amountOf(measure({ ...joined }), 'TRANSPORT'), 160, '310 × 16/31');
+	assert.deepEqual(
+		paid(measure({ ...joined, payRequests: [oneOff] }))
+			.filter((item) => item.label === 'TRANSPORT')
+			.map((item) => item.amount),
+		[160, 310],
+		'the claim is whole beside the prorated allowance'
 	);
 });

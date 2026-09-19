@@ -1,6 +1,7 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { dateKey } from '../../iso-day.js';
 import { shiftDayKey } from '../calendar.js';
+import type { ContractAllowance } from '../../../datatypes/contract_allowances/+definition.js';
 
 /** The day before: a successor starting `start` closes its predecessor on this day. */
 export function previousDay(start: string): string {
@@ -11,6 +12,7 @@ export type ChangeTermsFacts = {
 	readonly residency_status: string | null;
 	readonly residency_since: string | null;
 	readonly base_salary: { readonly value: number; readonly currency: string };
+	readonly allowances: readonly ContractAllowance[];
 	readonly pay_frequency: string;
 	readonly work_classification: string;
 	readonly statutory_work_category: string;
