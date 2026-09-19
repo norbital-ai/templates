@@ -1,4 +1,6 @@
 import { Effect } from 'effect';
+import { isCalendarDate } from '@norbital-ai/std/date';
+import { dateKey } from './iso-day.js';
 
 /**
  * Reads answered from rows already in hand.
@@ -17,8 +19,27 @@ type MemoryQuery = { readonly where?: unknown; readonly limit?: number | undefin
 
 const OPERATORS = ['eq', 'ne', 'in', 'isNull', 'isNotNull', 'lt', 'lte', 'gt', 'gte'] as const;
 
-const valuesEqual = (left: unknown, right: unknown): boolean =>
-	left === right || (left == null && right == null);
+/**
+ * A day column is compared as a day when either side names one bare. A stored row carries the
+ * day's UTC midnight and the engine's bounds are the same instants, so text order is exact for
+ * them; a fixture row holding `2026-01-19` beside a bound of `2026-01-19T00:00:00.000Z` would sort
+ * before it as text, so both are read to their calendar day first, as `dateKey` reads any row.
+ */
+const dayOf = (value: unknown): string | null =>
+	typeof value === 'string' && isCalendarDate(value) ? value : null;
+const asDays = (left: unknown, right: unknown): readonly [string, string] | null => {
+	if (dayOf(left) == null && dayOf(right) == null) return null;
+	if (typeof left !== 'string' || typeof right !== 'string') return null;
+	const a = dateKey(left);
+	const b = dateKey(right);
+	return a === '' || b === '' ? null : [a, b];
+};
+
+const valuesEqual = (left: unknown, right: unknown): boolean => {
+	const days = asDays(left, right);
+	if (days != null) return days[0] === days[1];
+	return left === right || (left == null && right == null);
+};
 
 const asOrderable = (value: unknown): string | number | null =>
 	typeof value === 'number' || typeof value === 'string'
@@ -28,8 +49,9 @@ const asOrderable = (value: unknown): string | number | null =>
 			: String(value);
 
 const compare = (left: unknown, right: unknown): number => {
-	const a = asOrderable(left);
-	const b = asOrderable(right);
+	const days = asDays(left, right);
+	const a = days == null ? asOrderable(left) : days[0];
+	const b = days == null ? asOrderable(right) : days[1];
 	if (a == null || b == null) return 0;
 	return a < b ? -1 : a > b ? 1 : 0;
 };

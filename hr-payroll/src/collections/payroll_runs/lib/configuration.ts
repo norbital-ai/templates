@@ -18,6 +18,7 @@ import { effectiveOn, live } from './effective.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
 import { addDays } from '../../../lib/period.js';
+import { dayInstant } from '../../../lib/iso-day.js';
 
 import type { FamilyPayItem } from '../../../lib/payroll/family.js';
 
@@ -197,7 +198,7 @@ export function pickConfiguration(
 				company_id: { eq: company.id },
 				// A bare day as the upper bound is cast in the server's zone, before the day's own
 				// instant: the window's last day went unread. Exclusive next-day bound instead.
-				date: { gte: windowStart, lt: addDays(windowEnd, 1) },
+				date: { gte: dayInstant(windowStart), lt: dayInstant(addDays(windowEnd, 1)) },
 				published_at: { isNotNull: true },
 				...approved
 			},

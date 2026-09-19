@@ -50,7 +50,7 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 	);
 	assert.deepEqual(
 		[pinned[0].from, pinned[0].to, pinned[0].days, pinned[0].denominator, pinned[0].amount],
-		['2026-01-01', '2026-01-31', 31, 31, 310]
+		['2026-01-01T00:00:00.000Z', '2026-01-31T00:00:00.000Z', 31, 31, 310]
 	);
 	// And nothing from the families this month has no rows in.
 	for (const source of ['claim_requests'])

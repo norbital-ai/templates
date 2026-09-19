@@ -72,3 +72,46 @@ export const calendarDay = Schema.String.check(
 		{ title: 'realCalendarDay' }
 	)
 );
+
+/**
+ * Whether a record id is a settled UUID. A live answer overlays a write still in flight as a row
+ * whose id is its idempotency key with a piece index (`<key>:0`); a dependent `id in [...]` query
+ * built from such rows is refused by Postgres as a malformed uuid and takes every live query on
+ * the page down with it, so ids are filtered through this before they are asked about.
+ */
+export const isSettledId = (value: string): boolean =>
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+/**
+ * The stored form of a day-precision instant: the UTC midnight of the calendar day.
+ *
+ * A `precision: 'day'` column is a `timestamptz`, and a bare `2026-01-31` handed to it is read at
+ * the database session's zone — midnight Singapore on this machine, midnight UTC on a deployed
+ * host — so the same write lands on two instants. The platform's pickers and the seed loader both
+ * store the UTC day, and every SQL reader (`bolt_instant`, the list renderers) takes the date
+ * prefix; a value written any other way prints a day early there and escapes the day's unique
+ * key. Bounds are instants for the same reason: `lte '2026-01-31'` is midnight Singapore, which is
+ * before the day's own rows. `dateKey` reads the result back as the same business day.
+ */
+export function dayInstant(day: string): string {
+	if (!isCalendarDate(day)) throw new Error(`"${day}" is not a YYYY-MM-DD calendar day.`);
+	return `${day}T00:00:00.000Z`;
+}
+
+/** The same, for a value that may already be an instant; absent stays absent. */
+function canonicalDay<T extends string | null | undefined>(value: T): T {
+	if (value == null || value === '') return value;
+	const day = dateKey(value);
+	return (day === '' ? value : dayInstant(day)) as T;
+}
+
+/** A write's day columns in their stored form, so every writer lands on the same instant. */
+export function canonicalDays<T extends Record<string, unknown>>(
+	input: T,
+	keys: readonly (keyof T & string)[]
+): T {
+	const out: Record<string, unknown> = { ...input };
+	for (const key of keys)
+		if (typeof out[key] === 'string') out[key] = canonicalDay(out[key] as string);
+	return out as T;
+}

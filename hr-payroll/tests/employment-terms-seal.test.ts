@@ -242,9 +242,9 @@ test('a Work day carries no holiday: moving it, editing it and deleting it touch
 		approval_id: null
 	};
 	const write = (input: Record<string, unknown>) => transformOne(workDays, input, existing, workDb);
-	// The write passes through as the row it was given: the holiday on a date is the calendar's
-	// to say when the day is read, never a column the transform stamps or releases.
-	assert.deepEqual(write({ work_date: date }), { work_date: date });
+	// The write passes through as the row it was given, the day in its stored form: the holiday on
+	// a date is the calendar's to say when the day is read, never a column the transform stamps.
+	assert.deepEqual(write({ work_date: date }), { work_date: `${date}T00:00:00.000Z` });
 	assert.deepEqual(write({ worked_intervals: [] }), { worked_intervals: [] });
 });
 

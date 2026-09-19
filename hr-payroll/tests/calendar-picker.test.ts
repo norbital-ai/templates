@@ -55,11 +55,12 @@ describe('calendar-day picker adapters', () => {
 		assert.equal(workDateCalendarKey('2026-02-01'), '2026-02-01');
 	});
 
-	it('A1: a February work-date query bound starts at local midnight, not UTC midnight', () => {
+	it("A1: a February work-date query bound is the stored UTC day, not the zone's midnight", () => {
 		const bounds = monthWorkDateInstantBounds('2026-02');
-		assert.equal(bounds.start, '2026-01-31T16:00:00.000Z');
-		assert.equal(bounds.end, '2026-02-27T16:00:00.000Z');
-		assert.notEqual(bounds.start, '2026-02-01T00:00:00.000Z');
+		assert.equal(bounds.start, '2026-02-01T00:00:00.000Z');
+		assert.equal(bounds.end, '2026-02-28T00:00:00.000Z');
+		// A `lte` on the zone's midnight of the 28th sat before the 28th's own stored row.
+		assert.ok('2026-02-28T00:00:00.000Z' <= bounds.end);
 	});
 
 	it('roster month options are YYYY-MM across years, not a 2026 list', () => {
@@ -98,19 +99,14 @@ describe('periodInCompanyGrammar', () => {
 });
 
 describe('dayWindowInstantBounds', () => {
-	it('spans the payroll-zone day starts, with the end exclusive, so both instant anchors match', () => {
+	it('spans the stored UTC days, with the end exclusive', () => {
 		const bounds = dayWindowInstantBounds({ start: '2026-01-16', end: '2026-01-31' });
 		assert.deepEqual(bounds, {
-			start: '2026-01-15T16:00:00.000Z',
-			end: '2026-01-31T16:00:00.000Z'
+			start: '2026-01-16T00:00:00.000Z',
+			end: '2026-02-01T00:00:00.000Z'
 		});
 		const inside = (instant: string) => instant >= bounds.start && instant < bounds.end;
-		// A 31 January stored at UTC midnight, and one stored at the zone's day start.
-		assert.ok(inside('2026-01-31T00:00:00.000Z'));
-		assert.ok(inside('2026-01-30T16:00:00.000Z'));
-		// The 16th on either anchor is in; the 15th and 1 February on either anchor are out.
-		assert.ok(inside('2026-01-16T00:00:00.000Z') && inside('2026-01-15T16:00:00.000Z'));
-		assert.ok(!inside('2026-01-15T00:00:00.000Z') && !inside('2026-01-14T16:00:00.000Z'));
-		assert.ok(!inside('2026-02-01T00:00:00.000Z') && !inside('2026-01-31T16:00:00.000Z'));
+		assert.ok(inside('2026-01-16T00:00:00.000Z') && inside('2026-01-31T00:00:00.000Z'));
+		assert.ok(!inside('2026-01-15T00:00:00.000Z') && !inside('2026-02-01T00:00:00.000Z'));
 	});
 });

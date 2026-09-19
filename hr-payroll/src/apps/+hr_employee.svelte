@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolveEmployment } from '../lib/employment-contract.js';
+	import { isSettledId } from '../lib/iso-day.js';
 	import { settingsInForce } from '../lib/jurisdiction_settings.js';
 	import { PATTERN_WITH } from '../lib/scheduling/work-pattern.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../lib/ui/holiday-calendar.js';
@@ -338,8 +339,8 @@
 						// Time off is the activity whose charges are its dated days.
 						charges: { ne: [] },
 						leave_original_reversals: { none: { approval_id: { isNull: true } } },
-						from_date: { lte: scheduleMonthEnd },
-						to_date: { gte: scheduleMonthStart }
+						from_date: { lte: scheduleWorkDateBounds.end },
+						to_date: { gte: scheduleWorkDateBounds.start }
 					},
 					with: { leave_entry_leave_catalogue: { columns: { code: true } } },
 					limit: 200
@@ -354,8 +355,8 @@
 						employment_id: { eq: employmentId },
 						charges: { ne: [] },
 						leave_original_reversals: { none: { approval_id: { isNull: true } } },
-						from_date: { lte: scheduleMonthEnd },
-						to_date: { gte: scheduleMonthStart }
+						from_date: { lte: scheduleWorkDateBounds.end },
+						to_date: { gte: scheduleWorkDateBounds.start }
 					},
 					with: { leave_entry_leave_catalogue: { columns: { code: true } } },
 					limit: 200
@@ -400,7 +401,7 @@
 					where: {
 						...approved,
 						company_id: { eq: scheduleCalendarCompanyId },
-						date: { gte: scheduleMonthStart, lte: scheduleMonthEnd },
+						date: { gte: scheduleWorkDateBounds.start, lte: scheduleWorkDateBounds.end },
 						published_at: { isNotNull: true }
 					},
 					limit: HOLIDAY_QUERY_LIMIT
@@ -471,7 +472,7 @@
 	 * deliberately — see `src/lib/policy_grants.ts`.
 	 */
 	const scheduleSettlementsQuery = $derived.by(() => {
-		const ids = scheduleWorkDays.map((row) => row.id);
+		const ids = scheduleWorkDays.map((row) => row.id).filter(isSettledId);
 		if (ids.length === 0) return null;
 		return client.db.work_days.findMany({
 			where: { id: { in: ids }, payslip_id: { isNull: false } },

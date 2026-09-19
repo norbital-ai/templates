@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate } from '@norbital-ai/std/date';
 import model from './+model.js';
-import { dateKey } from '../../lib/iso-day.js';
+import { canonicalDays, dateKey } from '../../lib/iso-day.js';
 import { capturingRuns, type HolidayCapturingRun } from '../../lib/holiday-capture.js';
 
 const columns = {
@@ -61,14 +61,15 @@ export default defineCollection({
 				if (!String(row.name ?? '').trim()) refuse('A holiday needs a name.');
 				if (row.replaces != null && !isCalendarDate(dateKey(row.replaces)))
 					refuse('The replaced date must be a valid calendar day.');
-				if (stored == null) return input;
+				const canonical = canonicalDays(input, ['date', 'replaces']);
+				if (stored == null) return canonical;
 				const unpublishing = input.published_at === null && stored.published_at != null;
 				const movingIdentity = IDENTITY.some(
 					(column) =>
 						input[column] !== undefined &&
 						String(input[column] ?? '') !== String(stored[column] ?? '')
 				);
-				if (!unpublishing && !movingIdentity) return input;
+				if (!unpublishing && !movingIdentity) return canonical;
 				const run = capturingRuns(runs, stored.id)[0];
 				if (run != null)
 					refuse(
@@ -76,7 +77,7 @@ export default defineCollection({
 							`${unpublishing ? 'be unpublished' : 'move its day or entity'}. ` +
 							'Delete that draft run to release it; a paid run holds it permanently.'
 					);
-				return input;
+				return canonical;
 			});
 		})
 });

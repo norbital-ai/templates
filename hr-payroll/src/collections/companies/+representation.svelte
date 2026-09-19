@@ -2,8 +2,9 @@
 	/**
 	 * A company is its identity, the jurisdiction settings lineage it operates under, and three
 	 * payroll facts: the attendance cutoff, how often it pays, and the risk class its regime rates it
-	 * in. The risk class is shown only where the lineage levies a risk-keyed scheme; everywhere else
-	 * it is empty and not a question.
+	 * in. The risk class is a plain field with its hint: deciding whether to show it meant reading
+	 * every version's scheme rules on this form, a query past the sync engine's initial-answer
+	 * ceiling on a lineage the size of Malaysia's.
 	 *
 	 * `settings_code` is a lineage, not a row: `MY`, `SG`, or `SG-norbital` where this entity forked
 	 * the shared law. The picker offers every lineage the workspace holds and the version in force
@@ -19,30 +20,10 @@
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
 	import SchedulingSettings from '../../lib/ui/scheduling-settings.svelte';
-	import { onLineage } from '../../lib/ui/settings-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 
-	/**
-	 * Whether the entity's lineage prices any scheme by risk class: only then is the field asked.
-	 * A scheme's key is what its rule selectors say, so the lineage's schemes are read with their
-	 * rules and the question is answered here.
-	 */
-	const schemesQuery = $derived(
-		record?.settings_code == null
-			? null
-			: client.db.statutory_contributions.findMany({
-					where: { contribution_settings: { some: onLineage(record.settings_code) } },
-					columns: { rules: true },
-					limit: 200
-				})
-	);
-	const riskKeyed = $derived(
-		(schemesQuery?.current ?? []).some((scheme) =>
-			scheme.rules.some((rule) => rule.when.includes('risk_class'))
-		)
-	);
 	/** The lineages the workspace holds, so the code is chosen rather than typed. */
 	const lineagesQuery = $derived(
 		client.db.jurisdiction_settings.findMany({
@@ -104,7 +85,6 @@
 					<Field
 						name="risk_class"
 						label={t('component.statutory_risk_class')}
-						hidden={!riskKeyed}
 						placeholder={t('component.risk_class_hint', { class_iv: 'IV', class_i: 'I' })}
 					/>
 					<Column span="all">

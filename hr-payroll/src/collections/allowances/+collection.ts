@@ -5,7 +5,7 @@ import model from './+model.js';
 import { boundToContract } from '../../lib/employment-contract.js';
 import { capSubjects } from '../../lib/component_entry_cap_subject.js';
 import { compileEligibility, isEligible } from '../../collections/payroll_runs/lib/eligibility.js';
-import { dateKey } from '../../lib/iso-day.js';
+import { canonicalDays, dateKey } from '../../lib/iso-day.js';
 
 const columns = {
 	employment_id: true,
@@ -117,7 +117,7 @@ export default defineCollection({
 							`${component.code} is not offered to ${person.label}: its eligibility rule does not hold for them.`
 						);
 				}
-				return boundToContract(input, stored);
+				return boundToContract(canonicalDays(input, ['effective_from', 'effective_to']), stored);
 			});
 		})
 });

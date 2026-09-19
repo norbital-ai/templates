@@ -61,15 +61,25 @@
 		}))
 	);
 
-	/** One live query per catalogue, both sides at once. */
+	/**
+	 * One read per catalogue, both sides at once — except the contribution catalogue, which is
+	 * read once per version and one-shot (an anchored page, not a live prefix): a lineage's rules
+	 * run to a megabyte a version (Malaysia's MTD rungs), and the sync engine caps a live
+	 * connection's initial answer at two, which two versions in one prefix — or two live queries
+	 * opened together — exceed whole. A comparison is a reading, not a subscription.
+	 */
 	const diffQueries = $derived.by(() => {
 		if (!comparing || baseVersion == null || compareVersion == null) return null;
 		const settings_id = { in: [baseVersion.id, compareVersion.id] };
+		const rulesOf = (id: string) =>
+			client.records.findMany('statutory_contributions', {
+				where: { settings_id: { eq: id } },
+				limit: 2_000,
+				after: ''
+			});
 		return {
-			statutory_contributions: client.db.statutory_contributions.findMany({
-				where: { settings_id },
-				limit: 2_000
-			}),
+			statutory_contributions_base: rulesOf(baseVersion.id),
+			statutory_contributions_compare: rulesOf(compareVersion.id),
 			leave_catalogue: client.db.leave_catalogue.findMany({ where: { settings_id }, limit: 2_000 }),
 			claim_catalogue: client.db.claim_catalogue.findMany({ where: { settings_id }, limit: 2_000 }),
 			allowance_catalogue: client.db.allowance_catalogue.findMany({
@@ -96,8 +106,13 @@
 		const rowsOf = (query: unknown): readonly object[] =>
 			(query as { current?: readonly object[] }).current ?? [];
 		const result: CollectionDiff[] = [];
-		for (const [collection, query] of Object.entries(diffQueries)) {
-			const rows = rowsOf(query);
+		// The contribution catalogue arrives as two queries; the diff reads them as one collection.
+		const byCollection = new Map<string, readonly object[]>();
+		for (const [key, query] of Object.entries(diffQueries)) {
+			const collection = key.replace(/_(base|compare)$/, '');
+			byCollection.set(collection, [...(byCollection.get(collection) ?? []), ...rowsOf(query)]);
+		}
+		for (const [collection, rows] of byCollection) {
 			const previous = rows.filter((row) => settingsIdOf(row) === baseVersion.id);
 			const proposed = rows.filter((row) => settingsIdOf(row) === compareVersion.id);
 			if (previous.length === 0 && proposed.length === 0) continue;

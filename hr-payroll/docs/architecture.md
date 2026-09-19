@@ -360,8 +360,14 @@ Three dates remain distinct:
 
 Every day-precision column (`pay_date`, `attendance_from`, `work_date`, `effective_range`, …) stores
 one canonical UTC day, not the viewer's local midnight: the picker converts at the renderer boundary
-and the day prints the same for every viewer. A stored range's membership is resolved with `dateKey`,
-never by slicing the instant prefix. Jurisdiction settings read their range half-open (`[start,
+and the day prints the same for every viewer. The template's own writers hold the same line —
+`dayInstant(day)` where the engine or a page names a day (a run's dates, a payslip's, an allowance
+entry's, a loan's schedule, the kiosk's punch day) and `canonicalDays` in the transforms of the
+collections a form or an automation writes bare days to — because a bare `YYYY-MM-DD` handed to a
+`timestamptz` is read at the database session's zone, which differs between this machine and a
+host. Query bounds on those columns are instants for the same reason: `lte: '2026-01-31'` is
+midnight in the session's zone, and on a UTC+8 session that is before the day's own rows. A stored
+range's membership is resolved with `dateKey`, never by slicing the instant prefix. Jurisdiction settings read their range half-open (`[start,
 end)`); every other effective-dated collection reads it inclusively, as its exclusion constraint
 does.
 

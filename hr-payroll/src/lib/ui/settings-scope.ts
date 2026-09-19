@@ -7,7 +7,7 @@
  * version is the one in force on a day, as one relationship predicate on the child query rather
  * than a second query for the versions.
  */
-import { startOfDayInstant, PAYROLL_TIME_ZONE } from './calendar.js';
+import { dayInstant } from '../iso-day.js';
 
 /** Every version of the lineage, draft, sealed and voided alike: what a code-to-name map reads. */
 export function onLineage(code: string) {
@@ -26,6 +26,6 @@ export function inForceSettings(code: string, day: string) {
 		approval_id: { isNull: true },
 		sealed_at: { isNotNull: true },
 		voided_at: { isNull: true },
-		effective_range: { contains_date: startOfDayInstant(day, PAYROLL_TIME_ZONE) }
+		effective_range: { contains_date: dayInstant(day) }
 	} as const;
 }

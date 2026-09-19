@@ -7,7 +7,7 @@ import type { LeaveWindow } from './entitlement.js';
 import { withPendingLeaveEntries, type LeaveActivity } from './pending.js';
 import { normaliseLeaveDays } from './activity-fields.js';
 import { computedEntitlement } from './entitlement.js';
-import { dateKey } from '../iso-day.js';
+import { dateKey, dayInstant } from '../iso-day.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { addDays } from '../../collections/payroll_runs/lib/dates.js';
@@ -281,7 +281,9 @@ export function readLeaveContext(
 				api.db.work_days.findMany({
 					where: {
 						employment_id: { in: window == null ? [] : ids },
-						...(window == null ? {} : { work_date: { gte: window.start, lte: window.end } }),
+						...(window == null
+							? {}
+							: { work_date: { gte: dayInstant(window.start), lte: dayInstant(window.end) } }),
 						approval_id: { isNull: true }
 					},
 					columns: { id: true, employment_id: true, work_date: true, shift_definition_id: true },
@@ -417,7 +419,9 @@ export function readLeaveContext(
 						// The entities of the employments in scope, not their jurisdictions: a holiday
 						// belongs to the employer that observes it.
 						company_id: { in: window == null ? [] : companyIds },
-						...(window == null ? {} : { date: { gte: window.start, lte: window.end } }),
+						...(window == null
+							? {}
+							: { date: { gte: dayInstant(window.start), lte: dayInstant(window.end) } }),
 						published_at: { isNotNull: true },
 						approval_id: { isNull: true }
 					},
@@ -480,7 +484,10 @@ export function readLeaveContext(
 					: api.db.work_days.findMany({
 							where: {
 								employment_id: { in: ids },
-								work_date: { gte: addDays(window.end, -366), lte: window.end },
+								work_date: {
+									gte: dayInstant(addDays(window.end, -366)),
+									lte: dayInstant(window.end)
+								},
 								worked_intervals: { eq: [] },
 								approval_id: { isNull: true }
 							},

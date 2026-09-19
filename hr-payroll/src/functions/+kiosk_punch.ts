@@ -1,11 +1,7 @@
 import { resolveEmployment } from '../lib/employment-contract.js';
 import { defineCommandHandler, refuse } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
-import {
-	calendarDateInTimeZone,
-	PAYROLL_TIME_ZONE,
-	startOfDayInstant
-} from '../lib/ui/calendar.js';
+import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../lib/ui/calendar.js';
 import {
 	KIOSK_PUNCH_COOLDOWN_MS,
 	nextPunch,
@@ -13,7 +9,7 @@ import {
 	type PunchOutcome
 } from '../lib/kiosk/punch.js';
 import type { Api } from './$types.js';
-import { dateKey } from '../lib/iso-day.js';
+import { dateKey, dayInstant } from '../lib/iso-day.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { patternAnchor, patternRosterCodeId } from '../lib/scheduling/work-pattern.js';
 import { rosterCodeKind } from '../lib/scheduling/roster-code.js';
@@ -53,7 +49,7 @@ export default defineCommandHandler({
 			if (employee === undefined) refuse('Employee does not exist.');
 			if (kind === 'FACE' && employee.face_enrollment_status !== 'APPROVED')
 				refuse('Face attendance requires an approved enrollment.');
-			const workDate = startOfDayInstant(dayKey, PAYROLL_TIME_ZONE);
+			const workDate = dayInstant(dayKey);
 			const stored = yield* api.db.work_days.findFirst({
 				where: { employment_id: { eq: employment_id }, work_date: { eq: workDate } },
 				columns: { id: true, worked_intervals: true, shift_definition_id: true }

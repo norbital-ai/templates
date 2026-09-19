@@ -1,7 +1,6 @@
 import { decodeNumber } from '@norbital-ai/std/json';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
-import { dateKey, PAYROLL_TIME_ZONE } from './iso-day.js';
-import { startOfDayInstant } from './ui/calendar.js';
+import { dateKey, dayInstant } from './iso-day.js';
 
 /**
  * One repayment line on the loan form. The matrix owns this draft; submit maps it onto the
@@ -206,12 +205,12 @@ export function loanScheduleActions(
 	rows: readonly LoanRepaymentDraft[],
 	storedIds: ReadonlySet<string>
 ): {
-	readonly create: ReadonlyArray<{ due_date?: string; amount_due?: number; sequence: number }>;
-	readonly update: ReadonlyArray<{
+	readonly create?: ReadonlyArray<{ due_date?: string; amount_due?: number; sequence: number }>;
+	readonly update?: ReadonlyArray<{
 		id: string;
 		set: { due_date?: string; amount_due?: number; sequence: number };
 	}>;
-	readonly delete: ReadonlyArray<{ id: string }>;
+	readonly delete?: ReadonlyArray<{ id: string }>;
 } {
 	const ordered = loanScheduleOrdered(rows);
 	const values = (row: LoanRepaymentDraft) => ({
@@ -220,12 +219,17 @@ export function loanScheduleActions(
 		sequence: row.sequence
 	});
 	const named = new Set(ordered.map((row) => row.id));
+	const create = ordered.filter((row) => !storedIds.has(row.id)).map(values);
+	const update = ordered
+		.filter((row) => storedIds.has(row.id))
+		.map((row) => ({ id: row.id, set: values(row) }));
+	const remove = [...storedIds].filter((id) => !named.has(id)).map((id) => ({ id }));
+	// Only the actions taken are named: a create declares `create` alone on the nested relation,
+	// and an empty `update` key is still an update action it refuses.
 	return {
-		create: ordered.filter((row) => !storedIds.has(row.id)).map(values),
-		update: ordered
-			.filter((row) => storedIds.has(row.id))
-			.map((row) => ({ id: row.id, set: values(row) })),
-		delete: [...storedIds].filter((id) => !named.has(id)).map((id) => ({ id }))
+		...(create.length === 0 ? {} : { create }),
+		...(update.length === 0 ? {} : { update }),
+		...(remove.length === 0 ? {} : { delete: remove })
 	};
 }
 
@@ -326,7 +330,7 @@ export function generateLoanSchedule(input: {
 			: roundedUp;
 	const generated = openDays.map((day, index) => ({
 		id: reusable[index]?.id ?? crypto.randomUUID(),
-		due_date: startOfDayInstant(day, PAYROLL_TIME_ZONE),
+		due_date: dayInstant(day),
 		amount_due:
 			index === openDays.length - 1 ? residual - instalment * (openDays.length - 1) : instalment,
 		sequence: 0

@@ -1,10 +1,7 @@
 import { defineCommandHandler, refuse } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
-import {
-	calendarDateInTimeZone,
-	PAYROLL_TIME_ZONE,
-	startOfDayInstant
-} from '../lib/ui/calendar.js';
+import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../lib/ui/calendar.js';
+import { dayInstant } from '../lib/iso-day.js';
 import { KIOSK_EMBEDDING_DIMENSIONS } from '../lib/kiosk/embed.js';
 import type { Api } from './$types.js';
 
@@ -74,7 +71,7 @@ export default defineCommandHandler({
 			const employeeNumber = new_person.employee_number?.trim() || `KIOSK-${crypto.randomUUID()}`;
 			if (new_person.name.trim().length === 0) refuse('A new person needs a name.');
 			const todayKey = calendarDateInTimeZone(new Date(now), PAYROLL_TIME_ZONE);
-			const hireDate = startOfDayInstant(todayKey, PAYROLL_TIME_ZONE);
+			const hireDate = dayInstant(todayKey);
 			// The person and their employment commit together; the committed row carries the id.
 			const created = yield* api.collection.employees.create({
 				name: new_person.name.trim(),

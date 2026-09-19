@@ -3,6 +3,8 @@ import type { WorkspaceRow } from '$bolt/types.js';
 import { boundToContract } from '../employment-contract.js';
 import type { LeaveContext } from './context.js';
 import { planLeaveActivity, type LeaveSubmission } from './activity.js';
+import { LEAVE_DAY_COLUMNS } from './activity-fields.js';
+import { canonicalDays } from '../iso-day.js';
 
 /**
  * One batch of leave submissions, planned in order against one context.
@@ -53,6 +55,9 @@ export function planLeaveBatch(
 			refuse('A certificate is required for this time off.');
 		entries.push({ ...planned, id, approval_id: 'batch-reservation' });
 		const { certificateRequired: _certificateRequired, ...entry } = planned;
-		return { ...boundToContract(entry), certificate_file: input.certificate_file ?? null };
+		return {
+			...boundToContract(canonicalDays(entry, LEAVE_DAY_COLUMNS)),
+			certificate_file: input.certificate_file ?? null
+		};
 	});
 }

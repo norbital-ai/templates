@@ -175,7 +175,8 @@ const WORK_DAYS = [
 	{
 		id: 'work-day:override',
 		employment_id: 'employment:pattern',
-		work_date: OVERRIDE_DATE,
+		// A day column holds the stored form: the UTC midnight of the day, as the transform writes it.
+		work_date: `${OVERRIDE_DATE}T00:00:00.000Z`,
 		shift_definition_id: NIGHT_SHIFT.id,
 		worked_intervals: null
 	}

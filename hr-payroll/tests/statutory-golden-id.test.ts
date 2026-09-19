@@ -568,8 +568,8 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 			.map((row) => [row.values.amount, row.values.from, row.values.to])
 			.toSorted((left, right) => Number(left[0]) - Number(right[0])),
 		[
-			[5_000_000, '2026-03-01', '2026-03-31'],
-			[25_000_000, '2026-03-01', '2026-03-31']
+			[5_000_000, '2026-03-01T00:00:00.000Z', '2026-03-31T00:00:00.000Z'],
+			[25_000_000, '2026-03-01T00:00:00.000Z', '2026-03-31T00:00:00.000Z']
 		],
 		'the March entry of the house allowance and the THR are both materialised'
 	);

@@ -7,6 +7,7 @@ import type {
 	Configuration
 } from '../../collections/payroll_runs/lib/configuration.js';
 import { requiredDateKey, type IsoDate } from '../../collections/payroll_runs/lib/dates.js';
+import { dayInstant } from '../iso-day.js';
 import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
@@ -574,6 +575,8 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 								employment_id: entry.employment_id,
 								catalogue_id: entry.catalogue_id,
 								...proration,
+								from: dayInstant(proration.from),
+								to: dayInstant(proration.to),
 								contract_amount: decodeNumber(entry.amount),
 								amount
 							}
@@ -779,7 +782,7 @@ export function prepareMoneyInputs(options: MoneyPreparationOptions) {
 					where: {
 						employment_id: { in: [...options.employmentIds] },
 						...approved,
-						effective_from: { lte: options.periodWindow.end }
+						effective_from: { lte: dayInstant(options.periodWindow.end) }
 					},
 					limit: PAGE_LIMIT
 				})

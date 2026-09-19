@@ -28,6 +28,7 @@
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
+	import { dayInstant } from '../../../lib/iso-day.js';
 	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
 	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
@@ -44,7 +45,7 @@
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		companyId: () => selectedCompanyId ?? undefined,
 		settingsCode: () => companyById(selectedCompanyId)?.settings_code ?? undefined,
-		allowanceFrom: () => pay.window?.start
+		allowanceFrom: () => (pay.window == null ? undefined : dayInstant(pay.window.start))
 	});
 
 	type Named = {

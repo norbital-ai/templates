@@ -2,6 +2,7 @@
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { resolveEmployment } from '../../../lib/employment-contract.js';
+	import { isSettledId } from '../../../lib/iso-day.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../../../lib/ui/holiday-calendar.js';
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 	import { client } from '../../../lib/workspace-client.js';
@@ -146,7 +147,7 @@
 			new Date(Date.parse(`${shiftMonthKey(calendarMonth, 1)}-01T00:00:00.000Z`) - 86_400_000)
 		)
 	);
-	/** Day-precision instants: a calendar `gte` on UTC midnight misses the first local work date. */
+	/** Day-precision instants, as stored: a bare calendar day is read at the replica's own zone. */
 	const monthWorkDateBounds = $derived(monthWorkDateInstantBounds(calendarMonth));
 	const monthDateKeys = $derived(monthDays(period));
 
@@ -343,8 +344,9 @@
 	});
 	const workDays = $derived(workDaysQuery?.current ?? []);
 	const workDayIndexes = $derived.by(() => {
+		// A write still in flight is overlaid with a provisional id; only settled ids are asked about.
 		const ids: string[] = [];
-		for (const day of workDays) ids.push(day.id);
+		for (const day of workDays) if (isSettledId(day.id)) ids.push(day.id);
 		return { ids, byPersonDay: indexWorkDaysByPersonDay(workDays) };
 	});
 	const workDayIds = $derived(workDayIndexes.ids);
@@ -390,8 +392,8 @@
 				// Time off is the activity whose charges are its dated days.
 				charges: { ne: [] },
 				leave_original_reversals: { none: { approval_id: { isNull: true } } },
-				from_date: { lte: monthEnd },
-				to_date: { gte: monthStart }
+				from_date: { lte: monthWorkDateBounds.end },
+				to_date: { gte: monthWorkDateBounds.start }
 			},
 			columns: {
 				id: true,
@@ -469,7 +471,7 @@
 					where: {
 						...approved,
 						company_id: { eq: selectedCompanyId },
-						date: { gte: monthStart, lte: monthEnd },
+						date: { gte: monthWorkDateBounds.start, lte: monthWorkDateBounds.end },
 						published_at: { isNotNull: true }
 					},
 					limit: HOLIDAY_QUERY_LIMIT

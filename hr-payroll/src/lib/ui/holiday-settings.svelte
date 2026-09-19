@@ -12,6 +12,7 @@
 	import { setContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { HOLIDAY_COMPANY } from '../holiday-scope.js';
+	import { dayInstant } from '../iso-day.js';
 	import { holidayCompanyImportPayload } from '../holiday-workbook.js';
 	import { runWorkbookImport } from './workbook-import.js';
 	import { importCollectionRecords } from '@norbital-ai/bolt/client';
@@ -39,7 +40,10 @@
 	setContext(HOLIDAY_COMPANY, () => companyId);
 
 	let year = $state(new Date().getFullYear());
-	const yearRange = $derived({ start: `${year}-01-01`, end: `${year}-12-31` });
+	const yearRange = $derived({
+		start: dayInstant(`${year}-01-01`),
+		end: dayInstant(`${year}-12-31`)
+	});
 
 	type Holiday = WorkspaceRow<'jurisdiction_holidays'>;
 	/**

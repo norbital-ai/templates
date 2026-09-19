@@ -3,7 +3,7 @@ import { defineCollection } from '@norbital-ai/bolt/authoring';
 import model from './+model.js';
 import { boundToContract } from '../../lib/employment-contract.js';
 import { admitPayRequests, type PayRequestGuard } from '../../lib/pay_request_rules.js';
-import { dateKey } from '../../lib/iso-day.js';
+import { canonicalDays, dateKey } from '../../lib/iso-day.js';
 
 const columns = {
 	employment_id: true,
@@ -39,6 +39,8 @@ export default defineCollection({
 	delete: {},
 	transform: (inputs, { existing, db }) =>
 		Effect.map(admitPayRequests(GUARD, db, inputs, existing), () =>
-			inputs.map((input, index) => boundToContract(input, existing[index]))
+			inputs.map((input, index) =>
+				boundToContract(canonicalDays(input, ['incurred_on']), existing[index])
+			)
 		)
 });
