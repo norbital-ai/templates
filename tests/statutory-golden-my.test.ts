@@ -1308,3 +1308,62 @@ test('Malaysia — a part-timer’s hours beyond their own day up to a full-time
 		['2026-01-05', 'PT-1.5X', 2, 30]
 	]);
 });
+
+test('MY-nihon — a roster that mixes 7.5-hour and 9-hour shifts owes no overtime on a 9-hour shift worked whole (s.60A(1) proviso)', () => {
+	// Rostered six 7.5-hour days a week through 18 January, then five 9-hour days a week on a
+	// five-day pattern: both are 45-hour weeks inside the proviso, so a 9-hour shift is its own
+	// normal day. The roster's
+	// average day (8.2 h) is nobody's normal hours: it priced 0.8 h of overtime on every 9-hour
+	// shift. The hourly rate stays the shift over the agreed week — 1,700 ÷ 26 over the rostered
+	// average day; only the overtime threshold moves. Clocked whole on 19 January: no line.
+	// Clocked to 19:30 on the 20th: one hour beyond the nine.
+	const NINE = 'c0000000-0000-4000-8000-0000000000e1';
+	const { slips } = buildStatutory(
+		{
+			code: 'MY-nihon',
+			period: '2026-01',
+			people: [
+				{ key: 'NHPMY0357', wage: 1700, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
+			]
+		},
+		(world) => {
+			rostered(world, 'NHPMY0357', '2025-12-01', '2026-01-18', 6);
+			// The terms in force declare the five-day week the 9-hour shifts run on.
+			world.shift_patterns.find((row) => row.id === ROSTER_PATTERN)!.pattern = {
+				expectation: {
+					days_per_week: 5,
+					minimum_paid_minutes_per_week: null,
+					maximum_paid_minutes_per_week: null
+				}
+			};
+			world.shift_definitions.push({
+				...world.shift_definitions.find((row) => row.id === SHIFT_7H30)!,
+				id: NINE,
+				code: 'AM0830',
+				name: 'Day, 9 h',
+				variant: { kind: 'WORK', start_time: '08:30', end_time: '18:30', break_minutes: 60 }
+			});
+			const employment = world.employments.find((row) => row.employee_number === 'NHPMY0357')!;
+			for (const day of ['19', '20', '21', '22', '23', '26', '27', '28', '29', '30'])
+				world.work_days.push({
+					id: `wd-NHPMY0357-2026-01-${day}`,
+					employment_id: employment.id,
+					work_date: `2026-01-${day}`,
+					shift_definition_id: NINE,
+					worked_intervals: null,
+					approval_id: null
+				});
+			world.work_days.find((row) => row.id === 'wd-NHPMY0357-2026-01-19')!.worked_intervals = [
+				{ start: '2026-01-19T08:30:00+08:00', end: '2026-01-19T18:30:00+08:00' }
+			];
+			world.work_days.find((row) => row.id === 'wd-NHPMY0357-2026-01-20')!.worked_intervals = [
+				{ start: '2026-01-20T08:30:00+08:00', end: '2026-01-20T19:30:00+08:00' }
+			];
+		}
+	);
+	const lines = workLines(slips.get('NHPMY0357')!);
+	assert.deepEqual(
+		lines.map((line) => [line[0], line[1], line[2]]),
+		[['2026-01-20', 'WORKDAY-OT-1.5X', 1]]
+	);
+});
