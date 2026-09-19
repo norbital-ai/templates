@@ -135,14 +135,14 @@
 {/snippet}
 
 {#snippet catalogueTable(
-	collection: 'claim_catalogue' | 'allowance_catalogue' | 'loan_catalogue',
+	collection: 'claim_catalogue' | 'adhoc_catalogue' | 'allowance_catalogue' | 'loan_catalogue',
 	title: string,
 	description: string
 )}
 	<!--
-		Three catalogues, one table. They share one spine — a code, its destination and direction,
+		Four catalogues, one table. They share one spine — a code, its destination and direction,
 		its place in the reduction order and who it covers — and the family is the table rather than
-		a column on it. Three copies of this markup would be three places for the order column to go
+		a column on it. Four copies of this markup would be four places for the order column to go
 		missing from one. `leave_catalogue` is not one of them: its row is a leave first and a pay
 		line second, so it has its own snippet below.
 	-->
@@ -187,6 +187,14 @@
 		'claim_catalogue',
 		t('app.settings.claim_catalogue'),
 		t('app.settings.claim_catalogue_description')
+	)}
+{/snippet}
+
+{#snippet catalogueAdhoc()}
+	{@render catalogueTable(
+		'adhoc_catalogue',
+		t('app.settings.adhoc_catalogue'),
+		t('app.settings.adhoc_catalogue_description')
 	)}
 {/snippet}
 
@@ -260,6 +268,12 @@
 				label: t('app.settings.allowance_catalogue'),
 				icon: 'lucide:calendar-clock',
 				content: catalogueAllowances
+			},
+			{
+				name: 'adhoc_catalogue',
+				label: t('app.settings.adhoc_catalogue'),
+				icon: 'lucide:hand-coins',
+				content: catalogueAdhoc
 			},
 			{
 				name: 'loan_catalogue',

@@ -125,16 +125,6 @@
 							label={t('component.fixed_allowance')}
 							description={t('component.fixed_allowance_hint')}
 						/>
-						<Field
-							name="one_off"
-							label={t('component.one_off')}
-							description={t('component.one_off_hint')}
-						/>
-						<Field
-							name="on_separation"
-							label={t('component.on_separation')}
-							description={t('component.on_separation_hint')}
-						/>
 						<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
 					</Grid>
 				</Stack>

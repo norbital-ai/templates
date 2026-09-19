@@ -341,7 +341,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 
 Used by: `statutory_contributions.assessed_on` and `ordinary_on` — one scheme’s wage.
 
-Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`, `ALLOWANCES`, `CLAIMS`.
+Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`, `ALLOWANCES`, `ADHOC`, `CLAIMS`.
 
 Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person.company.facts.<key>`.
 
@@ -458,12 +458,16 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `ENCASHMENT` | Every encashed leave day |
 | `INCENTIVE` | The overtime lines a band funnelled above its named limit — the hours beyond the statutory ceiling, priced at the band’s award; also inside OVERTIME |
 | `ALLOWANCES` | The signed sum of this payslip’s allowance lines whose class counts toward this scheme |
+| `ADHOC` | The signed sum of this payslip’s ad hoc lines (bonus, back pay, separation pay, claw-backs) whose class counts toward this scheme |
 | `CLAIMS` | The signed sum of this payslip’s claim lines whose class counts toward this scheme |
 | `<PART>.ALLOWANCES` | The allowance lines counting toward this scheme as the named part, where the scheme declares parts (SG CPF ORDINARY / ADDITIONAL) |
+| `<PART>.ADHOC` | The ad hoc lines counting toward the named part |
 | `<PART>.CLAIMS` | The claim lines counting toward the named part |
 | `year.ALLOWANCES` | The allowance lines counting toward this scheme over the tax year’s earlier PAID payslips (this payslip excluded — add `ALLOWANCES` for it) |
+| `year.ADHOC` | The same over the ad hoc lines |
 | `year.CLAIMS` | The same over the claim lines |
 | `year.<PART>.ALLOWANCES` | The year’s earlier allowance lines of the named part |
+| `year.<PART>.ADHOC` | The year’s earlier ad hoc lines of the named part |
 | `year.<PART>.CLAIMS` | The year’s earlier claim lines of the named part |
 
 | Function | Meaning |

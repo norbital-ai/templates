@@ -16,9 +16,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
-		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"]
+		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "c865d731-f7b4-5103-89af-d275927ca697",
@@ -37,9 +36,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
-		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"]
+		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "5694f146-1c65-59f0-93d4-7b1e62e52d3f",
@@ -58,9 +56,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
-		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"]
+		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "ad069fca-7764-5b93-9f51-597c6d22f803",
@@ -79,8 +76,7 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
-		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"]
+		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"raised_by": "MANUAL"
 	}
 ]

@@ -58,9 +58,11 @@ import {
 type ClaimRequest =
 	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'claim_requests'>;
 type Allowance = import('../../collections/payroll_runs/$types.js').WorkspaceRow<'allowances'>;
+type AdhocRequest =
+	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'adhoc_requests'>;
 
 /** Which collection a request came from. The engine names it in refusals and in provenance. */
-export const PAY_REQUEST_FAMILIES = ['CLAIM', 'ALLOWANCE'] as const;
+export const PAY_REQUEST_FAMILIES = ['CLAIM', 'ADHOC', 'ALLOWANCE'] as const;
 export type PayRequestFamily = (typeof PAY_REQUEST_FAMILIES)[number];
 
 /** The window a standing allowance is in force across; `end` null is open-ended. */
@@ -122,6 +124,22 @@ export const claimRequest = (row: ClaimRequest): PayRequest => ({
 	pay_period: row.pay_period ?? null,
 	event_date: requiredDateKey(row.incurred_on, 'claim incurred date'),
 	// The catalogue says which way this settles; the tick says settle it the other way.
+	sign: row.as_adjustment_entry === true ? -1 : 1,
+	window: null,
+	captured: row.payslip_id != null
+});
+
+/** An ad hoc request's economics belong to the day it is for; it is due whole, never prorated. */
+const adhocRequest = (row: AdhocRequest): PayRequest => ({
+	id: row.id,
+	family: 'ADHOC',
+	source_id: row.id,
+	employment_id: row.employment_id,
+	catalogue_id: row.catalogue_id,
+	amount: row.amount,
+	approval_id: row.approval_id ?? null,
+	pay_period: row.pay_period ?? null,
+	event_date: requiredDateKey(row.event_date, 'ad hoc event date'),
 	sign: row.as_adjustment_entry === true ? -1 : 1,
 	window: null,
 	captured: row.payslip_id != null
@@ -408,7 +426,12 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				message:
 					`${options.bundle.employment.employee_number}: ${options.component.family.toLowerCase()} ` +
 					`${options.component.code} was captured for ${options.period} and paid nothing — ${reason}.`,
-				collection: entry.family === 'CLAIM' ? 'claim_requests' : 'allowances',
+				collection:
+					entry.family === 'CLAIM'
+						? 'claim_requests'
+						: entry.family === 'ADHOC'
+							? 'adhoc_requests'
+							: 'allowances',
 				recordId: entry.source_id
 			});
 			return null;
@@ -458,12 +481,10 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		// period is not an entry at all — the source is silent rather than captured at nothing.
 		if (entry.window != null && proration == null) return null;
 		// What prorates is a component's cadence: a standing allowance earns by the days it is in
-		// force beside the salary; a row the catalogue marks `one_off` — a bonus, back pay, an
-		// ex-gratia sum — is due in the period it lands in, whole, whatever the window or the
-		// joiner's days (no statute prorates a bonus; SG CPF counts the AW "payable in the month";
-		// MY EA s.18A prorates monthly wages only).
-		const lumpSum = options.component.one_off === true;
-		const fraction = entry.window == null || lumpSum ? 1 : fractionOf(proration);
+		// force beside the salary; a claim or an ad hoc request — a bonus, back pay, an ex-gratia
+		// sum — is due in its period whole, whatever the joiner's days (no statute prorates a
+		// bonus; SG CPF counts the AW "payable in the month"; MY EA s.18A prorates monthly wages only).
+		const fraction = entry.window == null ? 1 : fractionOf(proration);
 		if (fraction <= 0 && entry.window != null)
 			return skipped('unpaid leave covered every day of the period the allowance was in force');
 		const raw = band == null ? decodeNumber(entry.amount) : bandAmount(band, context, engine);
@@ -612,17 +633,20 @@ export function prepareMoneyCatalogues(options: {
 			settings_id: { eq: options.settingsId },
 			approval_id: { isNull: true }
 		} as const;
-		const [claims, allowances] = yield* Effect.all(
+		const [claims, adhoc, allowances] = yield* Effect.all(
 			[
 				options.api.db.claim_catalogue.findMany({ where, limit: PAGE_LIMIT }),
+				options.api.db.adhoc_catalogue.findMany({ where, limit: PAGE_LIMIT }),
 				options.api.db.allowance_catalogue.findMany({ where, limit: PAGE_LIMIT })
 			],
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claims, 'claim catalogue');
+		options.api.reads.assertComplete(adhoc, 'ad hoc catalogue');
 		options.api.reads.assertComplete(allowances, 'allowance catalogue');
 		const components: CatalogueComponent[] = [
 			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
+			...adhoc.map((row) => ({ ...row, family: 'ADHOC' as const, definition: entryOf() })),
 			...allowances.map((row) => ({
 				...row,
 				family: 'ALLOWANCE' as const,
@@ -687,8 +711,13 @@ function captureLinksOf(
 ): Effect.Effect<readonly PayRequestCaptureLink[]> {
 	return Effect.gen(function* () {
 		if (sourceIds.length === 0) return [];
-		if (family === 'CLAIM') {
-			const rows = yield* api.db.claim_requests.findMany({
+		if (family === 'CLAIM' || family === 'ADHOC') {
+			// The two request tables share the pin columns; the union of their clients is not
+			// callable, the claim client's shape reads either.
+			const requests = (
+				family === 'CLAIM' ? api.db.claim_requests : api.db.adhoc_requests
+			) as typeof api.db.claim_requests;
+			const rows = yield* requests.findMany({
 				where: { id: { in: [...sourceIds] }, payslip_id: { isNull: false } },
 				columns: { id: true, payslip_id: true },
 				limit: PAGE_LIMIT
@@ -732,6 +761,7 @@ function requestCaptures(options: {
 		];
 		const links = [
 			...(yield* captureLinksOf('CLAIM', options.api, idsOf('CLAIM'))),
+			...(yield* captureLinksOf('ADHOC', options.api, idsOf('ADHOC'))),
 			...(yield* captureLinksOf('ALLOWANCE', options.api, idsOf('ALLOWANCE')))
 		];
 		if (links.length === 0) return captures;
@@ -768,16 +798,15 @@ export function prepareMoneyInputs(options: MoneyPreparationOptions) {
 	return Effect.gen(function* () {
 		const db = options.api.db;
 		const approved = { approval_id: { isNull: true } } as const;
-		const [claimRows, allowanceRows] = yield* Effect.all(
+		const unpinned = {
+			employment_id: { in: [...options.employmentIds] },
+			...approved,
+			payslip_id: { isNull: true }
+		} as const;
+		const [claimRows, adhocRows, allowanceRows] = yield* Effect.all(
 			[
-				db.claim_requests.findMany({
-					where: {
-						employment_id: { in: [...options.employmentIds] },
-						...approved,
-						payslip_id: { isNull: true }
-					},
-					limit: PAGE_LIMIT
-				}),
+				db.claim_requests.findMany({ where: unpinned, limit: PAGE_LIMIT }),
+				db.adhoc_requests.findMany({ where: unpinned, limit: PAGE_LIMIT }),
 				db.allowances.findMany({
 					where: {
 						employment_id: { in: [...options.employmentIds] },
@@ -790,12 +819,14 @@ export function prepareMoneyInputs(options: MoneyPreparationOptions) {
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claimRows, 'claim requests');
+		options.api.reads.assertComplete(adhocRows, 'ad hoc requests');
 		options.api.reads.assertComplete(allowanceRows, 'allowances');
 		// One month back as well as this one: a deferred joining period is measured against the
 		// previous month, and the standing allowances in force then are part of what it owes.
 		const earliest = monthBounds(shiftPeriod(monthKey(options.periodWindow.start), -1)).start;
 		const requests: readonly PayRequest[] = [
 			...claimRows.map(claimRequest),
+			...adhocRows.map(adhocRequest),
 			...allowanceRows
 				.filter(
 					(row) =>
@@ -833,10 +864,14 @@ function prepareRequestCatalogues(
 			)
 		];
 		const approved = { approval_id: { isNull: true } } as const;
-		const [claims, allowances] = yield* Effect.all(
+		const [claims, adhoc, allowances] = yield* Effect.all(
 			[
 				options.api.db.claim_catalogue.findMany({
 					where: { id: { in: idsOf('CLAIM') }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				options.api.db.adhoc_catalogue.findMany({
+					where: { id: { in: idsOf('ADHOC') }, ...approved },
 					limit: PAGE_LIMIT
 				}),
 				options.api.db.allowance_catalogue.findMany({
@@ -847,9 +882,11 @@ function prepareRequestCatalogues(
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claims, 'source Claim catalogue');
+		options.api.reads.assertComplete(adhoc, 'source Ad hoc catalogue');
 		options.api.reads.assertComplete(allowances, 'source Allowance catalogue');
 		const components = [
 			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
+			...adhoc.map((row) => ({ ...row, family: 'ADHOC' as const, definition: entryOf() })),
 			...allowances.map((row) => ({
 				...row,
 				family: 'ALLOWANCE' as const,

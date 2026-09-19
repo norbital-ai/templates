@@ -79,7 +79,7 @@ const harness = (
 	standing: readonly Record<string, unknown>[] = []
 ) => {
 	const writes: Record<string, unknown>[] = [];
-	const raisedAllowances: Record<string, unknown>[] = [];
+	const raisedAdhoc: Record<string, unknown>[] = [];
 	const employment = {
 		...context.employments[0]!,
 		employee_number: 'E-1',
@@ -104,14 +104,14 @@ const harness = (
 			payslips: rows([]),
 			statutory_contributions: rows([]),
 			employment_statutory_facts: rows([]),
-			allowance_catalogue: rows(separation),
-			allowances: rows(standing)
+			adhoc_catalogue: rows(separation),
+			adhoc_requests: rows(standing)
 		},
 		collection: {
-			allowances: {
+			adhoc_requests: {
 				createMany: (inputs: Record<string, unknown>[]) =>
 					Effect.sync(() => {
-						raisedAllowances.push(...inputs);
+						raisedAdhoc.push(...inputs);
 						return inputs;
 					})
 			},
@@ -129,7 +129,7 @@ const harness = (
 			}
 		}
 	} as unknown as Parameters<typeof runLeaveEncashmentOnExit>[0];
-	return { api, writes, raisedAllowances };
+	return { api, writes, raisedAdhoc };
 };
 const run = (
 	context: LeaveContext,
@@ -137,11 +137,11 @@ const run = (
 	separation: readonly Record<string, unknown>[] = [],
 	standing: readonly Record<string, unknown>[] = []
 ) => {
-	const { api, writes, raisedAllowances } = harness(context, exitReason, separation, standing);
+	const { api, writes, raisedAdhoc } = harness(context, exitReason, separation, standing);
 	return Effect.runPromise(runLeaveEncashmentOnExit(api, id(1))).then((result) => ({
 		result,
 		writes,
-		raisedAllowances
+		raisedAdhoc
 	}));
 };
 
@@ -188,13 +188,14 @@ test('off-boarding raises the separation payments the version owes the leaver, o
 	const redundant = await run(closed(leaveContext()), 'REDUNDANCY', rows);
 	assert.equal(redundant.result.status, 'raised');
 	assert.deepEqual(
-		redundant.raisedAllowances.map((row) => [
+		redundant.raisedAdhoc.map((row) => [
 			row.catalogue_id,
-			row.effective_from,
-			row.effective_to,
+			row.event_date,
+			row.pay_period,
 			row.amount
 		]),
-		[[id(95), EXIT, EXIT, 0]]
+		// Dated the last day, due in the last day's own month — not the cutoff's next period.
+		[[id(95), EXIT, EXIT.slice(0, 7), 0]]
 	);
 	assert.deepEqual(
 		redundant.result.raised.map((row) => row.code),
@@ -202,11 +203,11 @@ test('off-boarding raises the separation payments the version owes the leaver, o
 	);
 	// A resignation owes neither; and a row already standing on the day is not raised again.
 	const resigned = await run(closed(leaveContext()), 'RESIGNATION', rows);
-	assert.deepEqual(resigned.raisedAllowances, []);
+	assert.deepEqual(resigned.raisedAdhoc, []);
 	const again = await run(closed(leaveContext()), 'REDUNDANCY', rows, [
-		{ catalogue_id: id(95), effective_from: EXIT }
+		{ catalogue_id: id(95), event_date: EXIT }
 	]);
-	assert.deepEqual(again.raisedAllowances, []);
+	assert.deepEqual(again.raisedAdhoc, []);
 	// A payment owed in a window before a dated event (ID THR for a leaver in the thirty days
 	// before Idulfitri, Permenaker 6/2016 art.7(1)): the eligibility compares the exit day.
 	const thr = [
@@ -218,11 +219,11 @@ test('off-boarding raises the separation payments the version owes the leaver, o
 	];
 	const inWindow = await run(closed(leaveContext()), 'RESIGNATION', thr);
 	assert.deepEqual(
-		inWindow.raisedAllowances.map((row) => row.catalogue_id),
+		inWindow.raisedAdhoc.map((row) => row.catalogue_id),
 		[id(97)]
 	);
 	const outside = await run(closed(leaveContext()), 'RESIGNATION', [
 		{ ...thr[0], eligibility: 'employment.exit_date >= "2026-07-01"' }
 	]);
-	assert.deepEqual(outside.raisedAllowances, []);
+	assert.deepEqual(outside.raisedAdhoc, []);
 });

@@ -11,7 +11,7 @@
  * at the run where the person who typed it is long gone.
  *
  * Leave carries no pricing and no catalogue money: an unpaid or encashed day is an engine-priced
- * reserved line, so `code(...)` names the three money catalogues only.
+ * reserved line, so `code(...)` names the money catalogues only.
  */
 
 import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
@@ -20,7 +20,7 @@ import { compileEligibility } from '../collections/payroll_runs/lib/eligibility.
 import { refuseUnlessDraftOnBoth, type SealedVersion } from './settings_seal.js';
 import { assessedOnMentions, compileExpression, type DeclaredKey } from './expressions/compile.js';
 
-const CATALOGUE_FAMILIES = ['ALLOWANCE', 'CLAIM', 'LOAN'] as const;
+const CATALOGUE_FAMILIES = ['ALLOWANCE', 'ADHOC', 'CLAIM', 'LOAN'] as const;
 /** `code('X')` may also name a leave row's encashment line, `<code>_ENCASHMENT`. */
 const CODE_FAMILIES = [...CATALOGUE_FAMILIES, 'LEAVE'] as const;
 type CatalogueFamily = (typeof CODE_FAMILIES)[number];
@@ -38,14 +38,18 @@ type CatalogueCodes = ReadonlyMap<
 >;
 
 /**
- * The money catalogue codes of every version named, in one wave: the three family reads issued
+ * The money catalogue codes of every version named, in one wave: the family reads issued
  * together. A transform reads this beside the versions it checks, so a formula's mentions are
  * judged without a read of their own.
  */
 export function catalogueCodesByVersion(
 	db: Pick<
 		CollectionTransformDatabase,
-		'allowance_catalogue' | 'claim_catalogue' | 'loan_catalogue' | 'leave_catalogue'
+		| 'allowance_catalogue'
+		| 'adhoc_catalogue'
+		| 'claim_catalogue'
+		| 'loan_catalogue'
+		| 'leave_catalogue'
 	>,
 	settingsIds: ReadonlyArray<unknown>
 ): Effect.Effect<CatalogueCodes> {
@@ -60,13 +64,14 @@ export function catalogueCodesByVersion(
 		Effect.all(
 			[
 				db.allowance_catalogue.findMany(query),
+				db.adhoc_catalogue.findMany(query),
 				db.claim_catalogue.findMany(query),
 				db.loan_catalogue.findMany(query),
 				db.leave_catalogue.findMany(query)
 			],
 			{ concurrency: 'unbounded' }
 		),
-		([allowances, claims, loans, leaves]) => {
+		([allowances, adhoc, claims, loans, leaves]) => {
 			const byVersion = new Map<string, Map<CatalogueFamily, Map<string, string>>>();
 			const file = (
 				family: CatalogueFamily,
@@ -82,6 +87,7 @@ export function catalogueCodesByVersion(
 				}
 			};
 			file('ALLOWANCE', allowances);
+			file('ADHOC', adhoc);
 			file('CLAIM', claims);
 			file('LOAN', loans);
 			file(

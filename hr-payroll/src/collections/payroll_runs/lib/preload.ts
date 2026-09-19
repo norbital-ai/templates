@@ -29,6 +29,7 @@ type Wave1 = Readonly<{
 	employments: ReadonlyArray<MemoryRow>;
 	payroll_runs: ReadonlyArray<MemoryRow>;
 	claim_requests: ReadonlyArray<MemoryRow>;
+	adhoc_requests: ReadonlyArray<MemoryRow>;
 	allowances: ReadonlyArray<MemoryRow>;
 }>;
 
@@ -67,6 +68,10 @@ const readWave1 = (db: PayrollReadApi['db'], companyId: string): Effect.Effect<W
 					where: { claim_request_employment: { some: { company_id: { eq: companyId } } } },
 					limit: PAGE_LIMIT
 				}),
+				db.adhoc_requests.findMany({
+					where: { adhoc_request_employment: { some: { company_id: { eq: companyId } } } },
+					limit: PAGE_LIMIT
+				}),
 				db.allowances.findMany({
 					where: { allowance_employment: { some: { company_id: { eq: companyId } } } },
 					limit: PAGE_LIMIT
@@ -82,6 +87,7 @@ const readWave1 = (db: PayrollReadApi['db'], companyId: string): Effect.Effect<W
 			employments,
 			payroll_runs,
 			claim_requests,
+			adhoc_requests,
 			allowances
 		]) => ({
 			companies: complete(companies, 'companies'),
@@ -91,6 +97,7 @@ const readWave1 = (db: PayrollReadApi['db'], companyId: string): Effect.Effect<W
 			employments: complete(employments, 'employments'),
 			payroll_runs: complete(payroll_runs, 'payroll runs'),
 			claim_requests: complete(claim_requests, 'claim requests'),
+			adhoc_requests: complete(adhoc_requests, 'ad hoc requests'),
 			allowances: complete(allowances, 'allowances')
 		})
 	);
@@ -136,6 +143,7 @@ const readWave2 = (
 			schemeIndex,
 			leave_catalogue,
 			claim_catalogue,
+			adhoc_catalogue,
 			allowance_catalogue,
 			loan_catalogue,
 			jurisdiction_holidays,
@@ -168,6 +176,7 @@ const readWave2 = (
 				}),
 				db.leave_catalogue.findMany({ where: under, limit: PAGE_LIMIT }),
 				db.claim_catalogue.findMany({ where: under, limit: PAGE_LIMIT }),
+				db.adhoc_catalogue.findMany({ where: under, limit: PAGE_LIMIT }),
 				db.allowance_catalogue.findMany({ where: under, limit: PAGE_LIMIT }),
 				db.loan_catalogue.findMany({ where: under, limit: PAGE_LIMIT }),
 				db.jurisdiction_holidays.findMany({
@@ -221,6 +230,7 @@ const readWave2 = (
 			employments: wave1.employments,
 			payroll_runs: wave1.payroll_runs,
 			claim_requests: wave1.claim_requests,
+			adhoc_requests: wave1.adhoc_requests,
 			allowances: wave1.allowances,
 			employees: complete(employees, 'employees'),
 			employment_terms: complete(employment_terms, 'employment terms'),
@@ -228,6 +238,7 @@ const readWave2 = (
 			statutory_contributions: [...byId.values()],
 			leave_catalogue: complete(leave_catalogue, 'leave catalogue'),
 			claim_catalogue: complete(claim_catalogue, 'claim catalogue'),
+			adhoc_catalogue: complete(adhoc_catalogue, 'ad hoc catalogue'),
 			allowance_catalogue: complete(allowance_catalogue, 'allowance catalogue'),
 			loan_catalogue: complete(loan_catalogue, 'loan catalogue'),
 			jurisdiction_holidays: complete(jurisdiction_holidays, 'published holidays'),

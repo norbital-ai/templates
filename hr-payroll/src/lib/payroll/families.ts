@@ -168,6 +168,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				workDays: [],
 				payRequests: {
 					CLAIM: requests.filter((entry) => entry.family === 'CLAIM').map((entry) => entry.id),
+					ADHOC: requests.filter((entry) => entry.family === 'ADHOC').map((entry) => entry.id),
 					ALLOWANCE: []
 				},
 				leave: leave.captures,

@@ -352,6 +352,8 @@ export const requestGrants = (): Grants =>
 	mergeGrants(
 		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing']),
 		grantOn('claim_requests', 'delete', { authorize: unpinned }),
+		grantsOn('adhoc_requests', ['read', 'mutate.new', 'mutate.existing']),
+		grantOn('adhoc_requests', 'delete', { authorize: unpinned }),
 		grantsOn('allowances', ['read', 'mutate.new', 'mutate.existing']),
 		grantOn('allowances', 'delete', { authorize: unpriced }),
 		// The lines a run priced from a standing allowance: read beside the source, written by no one.
@@ -407,6 +409,7 @@ export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Gran
 		// The base an employee's own days are projected from; read in full, like the codes it names.
 		grantsOn('shift_patterns', actions),
 		grantsOn('claim_catalogue', actions),
+		grantsOn('adhoc_catalogue', actions),
 		grantsOn('allowance_catalogue', actions),
 		grantsOn('loan_catalogue', actions),
 		grantsOn('leave_catalogue', actions)
@@ -499,6 +502,7 @@ export const settingsCatalogueGrants = (
 		...(writes.length === 0 ? [] : [grantsOn('statutory_contributions', writes)]),
 		grantsOn('leave_catalogue', others),
 		grantsOn('claim_catalogue', others),
+		grantsOn('adhoc_catalogue', others),
 		grantsOn('allowance_catalogue', others),
 		grantsOn('loan_catalogue', others),
 		grantsOn('jurisdiction_holidays', others),
@@ -507,6 +511,7 @@ export const settingsCatalogueGrants = (
 					grantOn('statutory_contributions', 'delete', { authorize: unreferencedDraftScheme }),
 					grantOn('leave_catalogue', 'delete', { authorize: draftSettingsRow }),
 					grantOn('claim_catalogue', 'delete', { authorize: draftSettingsRow }),
+					grantOn('adhoc_catalogue', 'delete', { authorize: draftSettingsRow }),
 					grantOn('allowance_catalogue', 'delete', { authorize: draftSettingsRow }),
 					grantOn('loan_catalogue', 'delete', { authorize: draftSettingsRow }),
 					grantOn('jurisdiction_holidays', 'delete', { authorize: uncapturedHoliday })
@@ -683,9 +688,9 @@ const LEAVE_ENTRY_FIELDS = [
 	'event_date'
 ] as const;
 
-/** The separation payment off-boarding raises: a standing allowance row on the last day, held for the HR Manager. */
+/** The separation payment off-boarding raises: an ad hoc request for the last day, held for the HR Manager. */
 export const separationPaymentGrant = (): Grants =>
-	grantOn('allowances', 'mutate.new', {
+	grantOn('adhoc_requests', 'mutate.new', {
 		approval: {
 			flow: () => approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
 			superceded_by: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM]

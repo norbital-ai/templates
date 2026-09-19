@@ -547,13 +547,18 @@ const CODE_FUNCTIONS: readonly ExpressionFunction[] = [
  * declares parts reads a part as `<PART>.<WORD>` — `ORDINARY.ALLOWANCES` — and the tax year's
  * earlier PAID payslips as `year.<WORD>` / `year.<PART>.<WORD>`.
  */
-export const CATALOGUE_WORDS = ['ALLOWANCES', 'CLAIMS'] as const;
+export const CATALOGUE_WORDS = ['ALLOWANCES', 'ADHOC', 'CLAIMS'] as const;
 export type CatalogueWord = (typeof CATALOGUE_WORDS)[number];
 const CATALOGUE_WORD_FIELDS: readonly ContextField[] = [
 	{
 		path: 'ALLOWANCES',
 		description:
 			'The signed sum of this payslip’s allowance lines whose class counts toward this scheme'
+	},
+	{
+		path: 'ADHOC',
+		description:
+			'The signed sum of this payslip’s ad hoc lines (bonus, back pay, separation pay, claw-backs) whose class counts toward this scheme'
 	},
 	{
 		path: 'CLAIMS',
@@ -565,17 +570,20 @@ const CATALOGUE_WORD_FIELDS: readonly ContextField[] = [
 		description:
 			'The allowance lines counting toward this scheme as the named part, where the scheme declares parts (SG CPF ORDINARY / ADDITIONAL)'
 	},
+	{ path: '<PART>.ADHOC', description: 'The ad hoc lines counting toward the named part' },
 	{ path: '<PART>.CLAIMS', description: 'The claim lines counting toward the named part' },
 	{
 		path: 'year.ALLOWANCES',
 		description:
 			'The allowance lines counting toward this scheme over the tax year’s earlier PAID payslips (this payslip excluded — add `ALLOWANCES` for it)'
 	},
+	{ path: 'year.ADHOC', description: 'The same over the ad hoc lines' },
 	{ path: 'year.CLAIMS', description: 'The same over the claim lines' },
 	{
 		path: 'year.<PART>.ALLOWANCES',
 		description: 'The year’s earlier allowance lines of the named part'
 	},
+	{ path: 'year.<PART>.ADHOC', description: 'The year’s earlier ad hoc lines of the named part' },
 	{ path: 'year.<PART>.CLAIMS', description: 'The year’s earlier claim lines of the named part' }
 ];
 
@@ -798,6 +806,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			months_employed: 0,
 			earned: { BASIC: 0 },
 			ALLOWANCES: 0,
+			ADHOC: 0,
 			CLAIMS: 0
 		},
 		scheme: {
@@ -820,6 +829,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		ENCASHMENT: 0,
 		INCENTIVE: 0,
 		ALLOWANCES: 0,
+		ADHOC: 0,
 		CLAIMS: 0
 	}
 };

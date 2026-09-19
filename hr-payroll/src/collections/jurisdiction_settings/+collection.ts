@@ -103,6 +103,22 @@ const children = {
 			}
 		}
 	},
+	adhoc_catalogue_settings: {
+		create: {
+			columns: {
+				code: true,
+				name: true,
+				authority: true,
+				destination: true,
+				direction: true,
+				bands: true,
+				eligibility: true,
+				evidence: true,
+				counts_toward: true,
+				raised_by: true
+			}
+		}
+	},
 	allowance_catalogue_settings: {
 		create: {
 			columns: {
@@ -114,9 +130,7 @@ const children = {
 				bands: true,
 				eligibility: true,
 				evidence: true,
-				on_separation: true,
 				fixed: true,
-				one_off: true,
 				counts_toward: true
 			}
 		}
@@ -271,13 +285,15 @@ export default defineCollection({
 								Effect.all(
 									[
 										db.allowance_catalogue.findMany(membershipQuery),
-										db.claim_catalogue.findMany(membershipQuery)
+										db.claim_catalogue.findMany(membershipQuery),
+										db.adhoc_catalogue.findMany(membershipQuery)
 									],
 									{ concurrency: 'unbounded' }
 								),
-								([allowances, claims]) => [
+								([allowances, claims, adhoc]) => [
 									...allowances.map((row) => ({ ...row, noun: 'Allowance' })),
-									...claims.map((row) => ({ ...row, noun: 'Claim' }))
+									...claims.map((row) => ({ ...row, noun: 'Claim' })),
+									...adhoc.map((row) => ({ ...row, noun: 'Ad hoc' }))
 								]
 							)
 				],

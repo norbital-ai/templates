@@ -17,6 +17,7 @@ import {
 const CONTRACT_INPUT_SOURCES = [
 	'employment_terms',
 	'claim_requests',
+	'adhoc_requests',
 	'allowances',
 	'loans',
 	'loan_repayments',
@@ -37,6 +38,7 @@ type ContractReader = {
 const LABEL: Readonly<Record<(typeof CONTRACT_INPUT_SOURCES)[number], string>> = {
 	employment_terms: 'employment terms',
 	claim_requests: 'a claim',
+	adhoc_requests: 'an ad hoc payment',
 	allowances: 'an allowance',
 	loans: 'a loan',
 	loan_repayments: 'a loan repayment',

@@ -14,7 +14,12 @@
 	import { inForceCatalogue } from './create-scope.js';
 	import { eligibleTypeIds, eligibleTypeWhere, personAsOf } from '../eligible-types.js';
 
-	type Catalogue = 'claim_catalogue' | 'allowance_catalogue' | 'loan_catalogue' | 'leave_catalogue';
+	type Catalogue =
+		| 'claim_catalogue'
+		| 'adhoc_catalogue'
+		| 'allowance_catalogue'
+		| 'loan_catalogue'
+		| 'leave_catalogue';
 	let {
 		catalogue,
 		employmentId,
@@ -73,6 +78,8 @@
 		switch (catalogue) {
 			case 'claim_catalogue':
 				return client.db.claim_catalogue.findMany(rows);
+			case 'adhoc_catalogue':
+				return client.db.adhoc_catalogue.findMany(rows);
 			case 'allowance_catalogue':
 				return client.db.allowance_catalogue.findMany(rows);
 			case 'loan_catalogue':

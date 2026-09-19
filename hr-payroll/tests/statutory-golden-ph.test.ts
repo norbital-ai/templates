@@ -575,13 +575,14 @@ function payslipsOf(
 ) {
 	const world = createStatutoryWorld(options);
 	for (const [index, employment] of world.employments.entries())
-		world.allowances.push({
+		world.adhoc_requests!.push({
 			id: `d1000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 			employment_id: employment.id,
 			catalogue_id: THIRTEENTH_MONTH_ID,
 			amount: 1,
-			effective_from: window.from,
-			effective_to: window.to,
+			event_date: window.from,
+			pay_period: null,
+			payslip_id: null,
 			reason: '13th month',
 			evidence_file: null,
 			as_adjustment_entry: false,
@@ -603,12 +604,11 @@ function payslipsOf(
 			(row) => row.component_code === 'THIRTEENTH_MONTH_PAY'
 		);
 		const wtax = slip.statutory.find((row) => row.scheme_code === 'WTAX')!;
-		// The entry the run materialises for the month, priced at what the payslip paid.
-		const entries = built.captures
+		// The ad hoc request the payslip captured: pinned, its money on the adjustment above.
+		const captured = built.captures
 			.filter((capture) => capture.payslipId === slip.id)
-			.flatMap((capture) => capture.materialised)
-			.map((row) => [row.collection, row.values.amount]);
-		return { thirteenth, wtaxBase: wtax.base_amount, entries };
+			.flatMap((capture) => capture.adhoc);
+		return { thirteenth, wtaxBase: wtax.base_amount, captured };
 	};
 }
 
@@ -632,7 +632,7 @@ test('Philippines — 13th month pay keyed for December is a twelfth of the year
 		slip('PH-30000').thirteenth.map((row) => [row.bucket, row.amount]),
 		[['NON_WAGE_PAYMENT', 2500]]
 	);
-	assert.deepEqual(slip('PH-30000').entries, [['allowance_entries', 2500]]);
+	assert.deepEqual(slip('PH-30000').captured, ['d1000000-0000-4000-8000-000000000000']);
 	assert.equal(slip('PH-30000').wtaxBase, 30_000);
 	assert.deepEqual(
 		slip('PH-1200000').thirteenth.map((row) => row.amount),
@@ -1382,18 +1382,19 @@ test('Philippines — separation pay: a month per year on redundancy, half a mon
 			]
 		},
 		(world) => {
-			const row = world.allowance_catalogue.find(
+			const row = world.adhoc_catalogue!.find(
 				(item) => item.code === 'SEPARATION_PAY' && item.settings_id === PH_2026
 			)!;
 			for (const [index, key] of ['PH-REDUNDANT', 'PH-RETRENCHED', 'PH-RETRENCHED-8M'].entries()) {
 				const employment = world.employments.find((item) => item.employee_number === key)!;
-				world.allowances.push({
+				world.adhoc_requests!.push({
 					id: `d0000000-0000-4000-8000-0000000000f${index}`,
 					employment_id: employment.id,
 					catalogue_id: row.id,
 					amount: 0,
-					effective_from: '2026-01-31',
-					effective_to: '2026-01-31',
+					event_date: '2026-01-31',
+					pay_period: '2026-01',
+					payslip_id: null,
 					reason: 'separation pay',
 					evidence_file: null,
 					as_adjustment_entry: false,
@@ -1463,17 +1464,18 @@ test('a reversed deduction lands as a payment of its magnitude, never a deductio
 	const { slips } = buildStatutory(
 		{ code: 'PH', period: '2026-01', people: [{ key: 'PH-REFUND', wage: 30_000 }] },
 		(world) => {
-			const row = world.allowance_catalogue.find(
+			const row = world.adhoc_catalogue!.find(
 				(item) => item.code === 'STATUTORY_ADJUSTMENT' && item.settings_id === PH_2026
 			)!;
 			const employment = world.employments.find((item) => item.employee_number === 'PH-REFUND')!;
-			world.allowances.push({
+			world.adhoc_requests!.push({
 				id: 'd0000000-0000-4000-8000-0000000000a9',
 				employment_id: employment.id,
 				catalogue_id: row.id,
 				amount: 750,
-				effective_from: '2026-01-01',
-				effective_to: '2026-01-31',
+				event_date: '2026-01-01',
+				pay_period: null,
+				payslip_id: null,
 				reason: 'PhilHealth adjustment Dec 2025',
 				evidence_file: null,
 				as_adjustment_entry: true,

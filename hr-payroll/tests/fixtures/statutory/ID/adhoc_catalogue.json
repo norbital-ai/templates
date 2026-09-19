@@ -1,0 +1,824 @@
+[
+	{
+		"id": "f547d4b8-782b-4492-b0fc-be90bea10cf2",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "BONUS_THR",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Bonus / THR",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f54286f3-9b7c-4258-a02c-43f252b7626e",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "MEDICAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "2700000.0"
+				}
+			}
+		],
+		"authority": "Applied 2026-09-18 (4): a capped reimbursement (tunjangan tidak tetap): outside `terms.monthly_wage`, THR and the BPJS bases (`fixed: false`).",
+		"name": "Medical allowance",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b0cc4983-0bd3-46fa-85ef-fbdda3a9103f",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "BONUS_THR",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Bonus / THR",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "08611bdf-30e7-4750-aab9-343d4a4151c4",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "MEDICAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "2700000.0"
+				}
+			}
+		],
+		"authority": "Applied 2026-09-18 (4): a capped reimbursement (tunjangan tidak tetap): outside `terms.monthly_wage`, THR and the BPJS bases (`fixed: false`).",
+		"name": "Medical allowance",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "cc19b377-ad56-4f4c-a79e-25327af77a94",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "BONUS_THR",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Bonus / THR",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "13a28ce4-771e-453e-950f-83a3fc09bba8",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "MEDICAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "2700000.0"
+				}
+			}
+		],
+		"authority": "Applied 2026-09-18 (4): a capped reimbursement (tunjangan tidak tetap): outside `terms.monthly_wage`, THR and the BPJS bases (`fixed: false`).",
+		"name": "Medical allowance",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d326b479-ae16-4f6c-ba8f-e13d66ae2126",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "CLAWBACK_OVERTIME",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Overtime claw-back",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "507dbd44-3e80-456c-8cfb-349f9e106677",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "BACK_PAY_SALARY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – salary",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "aba2f4a5-c474-42f1-afe7-87848ec2ceac",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "BPJS Kesehatan, termination month (employer share)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "cf721e46-4c65-4f86-8037-ac975e1358ec",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Deduction",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e4286d03-8917-4003-bb8c-9c75ac61e201",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "BPJS Kesehatan, termination month (employee share)",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7a0678a8-c8c7-4a64-bb3e-efa71ff1c1bb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "RETROACTIVE_PAY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Retroactive pay",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8683dc63-2ff3-4681-8f0d-a5efbe676a9c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "TAX_INCENTIVE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Tax incentive (advance / reimburse)",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e669a4a7-5cca-4651-bcf0-770548d160df",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "CLAWBACK_OVERTIME",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Overtime claw-back",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "5ce7cac6-b07f-4726-b27f-b7303d25eb58",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "BACK_PAY_SALARY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – salary",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e6f62eae-0f22-45aa-a2ef-653e3fbf5d44",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "BPJS Kesehatan, termination month (employer share)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "77b85334-5cbc-4148-95b3-d4f763a273f3",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Deduction",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "6c5ae1ea-e3f0-49da-81c5-d0ef2464399e",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "BPJS Kesehatan, termination month (employee share)",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "16b158f9-c464-457e-adc5-dc1712ca17be",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "RETROACTIVE_PAY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Retroactive pay",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "60abc022-7617-42b1-bd7b-e835873671e4",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "TAX_INCENTIVE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Tax incentive (advance / reimburse)",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "49b0ff00-7f1d-4418-ad37-962fab829e01",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "CLAWBACK_OVERTIME",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Overtime claw-back",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8c06178a-bb1e-4105-a8e7-5aa2c41511fd",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "BACK_PAY_SALARY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – salary",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ce017c3d-7859-4966-aa11-f4521f655391",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "BPJS Kesehatan, termination month (employer share)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "de91f937-0590-49f7-81cb-b816b6326ba4",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Deduction",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "abd8f66a-9a80-4e72-8694-0d739d92e09b",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "BPJS Kesehatan, termination month (employee share)",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c17bcb1b-4016-4db0-ae32-efe31962c8bc",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "RETROACTIVE_PAY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Retroactive pay",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "96b6dfd9-799b-4ceb-aabd-998ba99fb886",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "TAX_INCENTIVE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Tax incentive (advance / reimburse)",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c1c29931-0148-47f0-9b10-884469777322",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "COMPENSATION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Compensation",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "62f8706d-ee7b-4d8a-b38f-7d38bab45362",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "COMPENSATION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Compensation",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "24bc77bc-7de0-4c80-857a-b65dfddf53b1",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "COMPENSATION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Compensation",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7a9279fd-7afa-5917-ad54-bbdf9e630950",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "THR",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || ((employee.religion == \"CHRISTIAN\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"CATHOLIC\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"HINDU\" ? (employment.exit_date >= \"2026-03-19\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-17\")) : (employee.religion == \"BUDDHIST\" ? (employment.exit_date >= \"2026-05-31\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-05-01\")) : (employee.religion == \"CONFUCIAN\" ? (employment.exit_date >= \"2026-02-17\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-01-18\")) : (employment.exit_date >= \"2026-03-21\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\")))))))))",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		],
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
+		"name": "THR (religious holiday allowance)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "d21a02ca-669c-5295-8f16-124fa8d4143d",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "THR",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || ((employee.religion == \"CHRISTIAN\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"CATHOLIC\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"HINDU\" ? (employment.exit_date >= \"2026-03-19\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-17\")) : (employee.religion == \"BUDDHIST\" ? (employment.exit_date >= \"2026-05-31\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-05-01\")) : (employee.religion == \"CONFUCIAN\" ? (employment.exit_date >= \"2026-02-17\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-01-18\")) : (employment.exit_date >= \"2026-03-21\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\")))))))))",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		],
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
+		"name": "THR (religious holiday allowance)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "6905cf49-a5ed-5833-ad3d-d08074b60c4e",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "THR",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || ((employee.religion == \"CHRISTIAN\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"CATHOLIC\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"HINDU\" ? (employment.exit_date >= \"2026-03-19\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-17\")) : (employee.religion == \"BUDDHIST\" ? (employment.exit_date >= \"2026-05-31\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-05-01\")) : (employee.religion == \"CONFUCIAN\" ? (employment.exit_date >= \"2026-02-17\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-01-18\")) : (employment.exit_date >= \"2026-03-21\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\")))))))))",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		],
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
+		"name": "THR (religious holiday allowance)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "2cbb52d9-ae7d-5bb4-a459-731cc93799c1",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PESANGON",
+		"name": "Uang pesangon (severance pay)",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason in [\"DISMISSAL\", \"RETRENCHMENT\"] ? 0.5 : 1.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "0497b4dd-be21-52c8-b1f2-87a7df6b3275",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "UPMK",
+		"name": "Uang penghargaan masa kerja (service award)",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 36 ? 0.0 : person.employment.service_months < 72 ? 2.0 : person.employment.service_months < 108 ? 3.0 : person.employment.service_months < 144 ? 4.0 : person.employment.service_months < 180 ? 5.0 : person.employment.service_months < 216 ? 6.0 : person.employment.service_months < 252 ? 7.0 : person.employment.service_months < 288 ? 8.0 : 10.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "c746e6e3-c341-56aa-9004-1ee481f71f07",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PKWT_COMPENSATION",
+		"name": "Uang kompensasi PKWT (fixed-term compensation)",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends. Applied 2026-09-19 (2): PP 35/2021 art.15(1): compensation at the end of a fixed-term contract; art.17: where either party ends it before its term, compensation for the period served; art.15(5): a foreign worker on a fixed term is outside it.",
+		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "c7c0212e-551f-5349-bb41-77fe682a24ed",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "PESANGON",
+		"name": "Uang pesangon (severance pay)",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason in [\"DISMISSAL\", \"RETRENCHMENT\"] ? 0.5 : 1.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "4c2f2cbe-49e3-5e93-b246-6f7efa5a1263",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "UPMK",
+		"name": "Uang penghargaan masa kerja (service award)",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 36 ? 0.0 : person.employment.service_months < 72 ? 2.0 : person.employment.service_months < 108 ? 3.0 : person.employment.service_months < 144 ? 4.0 : person.employment.service_months < 180 ? 5.0 : person.employment.service_months < 216 ? 6.0 : person.employment.service_months < 252 ? 7.0 : person.employment.service_months < 288 ? 8.0 : 10.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "c173c367-fbd7-5f19-9307-eb5f71c9b693",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "PKWT_COMPENSATION",
+		"name": "Uang kompensasi PKWT (fixed-term compensation)",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends. Applied 2026-09-19 (2): PP 35/2021 art.15(1): compensation at the end of a fixed-term contract; art.17: where either party ends it before its term, compensation for the period served; art.15(5): a foreign worker on a fixed term is outside it.",
+		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "ec6e7587-3175-5004-9cb8-1fb3c56b4cd2",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "PESANGON",
+		"name": "Uang pesangon (severance pay)",
+		"authority": "PP 35/2021 art.40(2) with arts.42–57: one month’s wages under a year of service rising to nine at eight years or more, at the multiple the ground of termination states — one for redundancy without losses (art.43), 1.75 for retirement (art.56), two for death (art.57). Wages are the basic plus the fixed allowances (art.40(4)). Applied 2026-09-19 (2): PP 35/2021 art.52(1): a termination for a violation after warnings (DISMISSAL) carries half the art.40(2) pesangon; art.56 retirement 1.75×; art.57 death 2×; redundancy under art.43–44 the whole (efficiency to avert loss, art.43(1)(a): 0.5× — not distinguished by the exit reasons).",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 12 ? 1.0 : person.employment.service_months < 24 ? 2.0 : person.employment.service_months < 36 ? 3.0 : person.employment.service_months < 48 ? 4.0 : person.employment.service_months < 60 ? 5.0 : person.employment.service_months < 72 ? 6.0 : person.employment.service_months < 84 ? 7.0 : person.employment.service_months < 96 ? 8.0 : 9.0) * (person.employment.exit_reason == \"DEATH\" ? 2.0 : person.employment.exit_reason == \"RETIREMENT\" ? 1.75 : person.employment.exit_reason in [\"DISMISSAL\", \"RETRENCHMENT\"] ? 0.5 : 1.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "1ed91405-a972-5865-b8be-86f68f9dafe5",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "UPMK",
+		"name": "Uang penghargaan masa kerja (service award)",
+		"authority": "PP 35/2021 art.40(3): two months’ wages at three years of service, three at six, four at nine, five at twelve, six at fifteen, seven at eighteen, eight at twenty-one and ten at twenty-four or more, at the same grounds as the severance pay. Applied 2026-09-19 (2): PP 35/2021 art.52(1): the service award is paid whole on a dismissal after warnings.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"RETIREMENT\", \"DEATH\", \"DISMISSAL\"] && employment.service_months >= 36",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * (person.employment.service_months < 36 ? 0.0 : person.employment.service_months < 72 ? 2.0 : person.employment.service_months < 108 ? 3.0 : person.employment.service_months < 144 ? 4.0 : person.employment.service_months < 180 ? 5.0 : person.employment.service_months < 216 ? 6.0 : person.employment.service_months < 252 ? 7.0 : person.employment.service_months < 288 ? 8.0 : 10.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "36b35377-87c7-526c-afdd-0e69ef598fa7",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "PKWT_COMPENSATION",
+		"name": "Uang kompensasi PKWT (fixed-term compensation)",
+		"authority": "PP 35/2021 art.15–16: a fixed-term worker of at least a month’s service is paid one month’s wages for every twelve months, pro rata, when the term ends. Applied 2026-09-19 (2): PP 35/2021 art.15(1): compensation at the end of a fixed-term contract; art.17: where either party ends it before its term, compensation for the period served; art.15(5): a foreign worker on a fixed term is outside it.",
+		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit(person.terms.monthly_wage * person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"raised_by": "SEPARATION"
+	}
+]

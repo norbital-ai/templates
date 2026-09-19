@@ -52,7 +52,7 @@ test('Malaysia — a bonus month withholds the additional remuneration’s whole
 			people: [{ key: 'MY-BONUS', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
 		},
 		(world) => {
-			const bonus = world.allowance_catalogue.find(
+			const bonus = world.adhoc_catalogue!.find(
 				(row) =>
 					row.code === 'ADJ' &&
 					row.settings_id ===
@@ -61,13 +61,14 @@ test('Malaysia — a bonus month withholds the additional remuneration’s whole
 						)!.id
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'MY-BONUS')!;
-			world.allowances.push({
+			world.adhoc_requests!.push({
 				id: 'd0000000-0000-4000-8000-00000000ad10',
 				employment_id: employment.id,
 				catalogue_id: bonus.id,
 				amount: 12_000,
-				effective_from: '2026-01-01',
-				effective_to: '2026-01-31',
+				event_date: '2026-01-01',
+				pay_period: null,
+				payslip_id: null,
 				reason: 'bonus',
 				evidence_file: null,
 				as_adjustment_entry: false,
@@ -1196,7 +1197,7 @@ test('Malaysia — the termination benefit counts a part year to the nearest mon
 			]
 		},
 		(world) => {
-			const benefit = world.allowance_catalogue.find(
+			const benefit = world.adhoc_catalogue!.find(
 				(row) =>
 					row.code === 'TERMINATION_BENEFIT' &&
 					row.settings_id ===
@@ -1205,13 +1206,14 @@ test('Malaysia — the termination benefit counts a part year to the nearest mon
 						)!.id
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'MY-REDUNDANT')!;
-			world.allowances.push({
+			world.adhoc_requests!.push({
 				id: 'd0000000-0000-4000-8000-00000000ad21',
 				employment_id: employment.id,
 				catalogue_id: benefit.id,
 				amount: 0,
-				effective_from: '2026-01-31',
-				effective_to: '2026-01-31',
+				event_date: '2026-01-31',
+				pay_period: '2026-01',
+				payslip_id: null,
 				reason: 'termination benefit',
 				evidence_file: null,
 				as_adjustment_entry: false,

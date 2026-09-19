@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * The membership matrix of every lineage: which schemes each allowance class counts toward, and
- * which part of a split base. The matrix is the law (cited beside each row); the bank is what a
+ * The membership matrix of every lineage: which schemes each allowance and ad hoc class counts
+ * toward, and which part of a split base. The matrix is the law (cited beside each row); the bank is what a
  * transcription says. A row moving here without a statute moving is a bank defect.
  *
  * Every version of a lineage carries the same matrix — a class's membership is the statute's
@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	LINEAGES,
+	adhocCatalogue,
 	allowanceCatalogue,
 	contributionSchemes,
 	settingsVersions
@@ -89,6 +90,21 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 };
 MATRIX['MY-nihon'] = MATRIX.MY;
 
+/** The classes the law owes on separation, raised by off-boarding for an eligible leaver. */
+const SEPARATION = new Set([
+	'TERMINATION_BENEFIT',
+	'NOTICE_IN_LIEU',
+	'SEPARATION_PAY',
+	'RETIREMENT_PAY',
+	'SEVERANCE_PAY',
+	'SEVERANCE_ALLOWANCE',
+	'JOB_LOSS_ALLOWANCE',
+	'PESANGON',
+	'UPMK',
+	'PKWT_COMPENSATION',
+	'THR'
+]);
+
 for (const lineage of LINEAGES) {
 	test(`${lineage}: every version carries the membership matrix`, () => {
 		const expected = MATRIX[lineage];
@@ -102,7 +118,9 @@ for (const lineage of LINEAGES) {
 			);
 			// A version carries the classes and schemes of its date: a scheme the law added later
 			// (MY SKBBK from 2026) is absent from an earlier version's memberships, not a drift.
-			const rows = allowanceCatalogue(lineage).filter((row) => row.settings_id === version.id);
+			const rows = [...allowanceCatalogue(lineage), ...adhocCatalogue(lineage)].filter(
+				(row) => row.settings_id === version.id
+			);
 			const actual = Object.fromEntries(
 				rows.map((row) => [row.code, [...row.counts_toward].sort()])
 			);
@@ -119,6 +137,13 @@ for (const lineage of LINEAGES) {
 				})
 			);
 			assert.deepEqual(actual, wanted, `${lineage} ${version.code}`);
+			// The separation classes are the ones off-boarding raises; every other ad hoc class is HR's.
+			for (const row of adhocCatalogue(lineage).filter((row) => row.settings_id === version.id))
+				assert.equal(
+					row.raised_by,
+					SEPARATION.has(row.code) ? 'SEPARATION' : 'MANUAL',
+					`${lineage} ${row.code}`
+				);
 			// Every membership names a scheme of the same version, and a part the scheme declares.
 			for (const row of rows)
 				for (const entry of row.counts_toward) {

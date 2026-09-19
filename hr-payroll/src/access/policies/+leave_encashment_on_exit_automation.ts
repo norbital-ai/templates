@@ -37,8 +37,8 @@ export default {
 		grantsOn('employment_statutory_facts', ['read']),
 		hrLeaveEntryGrant(true),
 		// The separation payments the version owes a leaver: read the rows, raise the standing row.
-		grantsOn('allowance_catalogue', ['read']),
-		grantsOn('allowances', ['read']),
+		grantsOn('adhoc_catalogue', ['read']),
+		grantsOn('adhoc_requests', ['read']),
 		separationPaymentGrant()
 	),
 	limits: { 'collections.*': { window: '1 min', limit: 600, key: 'subject' } }

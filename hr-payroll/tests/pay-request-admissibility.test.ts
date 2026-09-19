@@ -27,6 +27,7 @@ import assert from 'node:assert/strict';
 import { Effect } from 'effect';
 import { admitPayRequests } from '../src/lib/pay_request_rules.ts';
 import claimRequests from '../src/collections/claim_requests/+collection.ts';
+import adhocRequests from '../src/collections/adhoc_requests/+collection.ts';
 import allowances from '../src/collections/allowances/+collection.ts';
 import { transformOne } from './helpers/transform.ts';
 import {
@@ -39,12 +40,20 @@ import {
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 
 const CLAIM_ID = '00000000-0000-4000-8000-0000000000c1';
+const ADHOC_ID = '00000000-0000-4000-8000-0000000000a1';
 
 /** One catalogue row per family, all sharing the spine with the evidence/eligibility under test. */
 function requestWorld(component = {}) {
 	const world = createPublicPayrollWorld();
 	world.claim_catalogue.push({ ...world.allowance_catalogue[0], id: CLAIM_ID, code: 'MEDICAL' });
-	for (const row of [world.claim_catalogue[0], world.allowance_catalogue[0]])
+	world.adhoc_catalogue = [
+		{ ...world.allowance_catalogue[0], id: ADHOC_ID, code: 'BONUS', raised_by: 'MANUAL' }
+	];
+	for (const row of [
+		world.claim_catalogue[0],
+		world.adhoc_catalogue[0],
+		world.allowance_catalogue[0]
+	])
 		Object.assign(row, component);
 	return world;
 }
@@ -158,6 +167,78 @@ test('an amount is a positive magnitude, whichever family states it', () => {
 	}
 });
 
+const ADHOC = {
+	employment_id: EMPLOYMENT_ID,
+	catalogue_id: ADHOC_ID,
+	amount: 0,
+	event_date: '2026-04-02'
+};
+
+test('an ad hoc request is a claim in another family: a band-priced class takes no amount, a stated one must be positive', () => {
+	// Separation pay is priced from the person by the class's band: the request states nothing.
+	assert.equal(
+		attempt(
+			adhocRequests,
+			{
+				code: 'BONUS',
+				evidence: 'NONE',
+				eligibility: '',
+				bands: [{ when: '', amount: '100.0', limit: null }]
+			},
+			ADHOC
+		).employment_id,
+		EMPLOYMENT_ID
+	);
+	assert.throws(
+		() => attempt(adhocRequests, { code: 'BONUS', evidence: 'NONE', eligibility: '' }, ADHOC),
+		/An ad hoc payment amount is a positive magnitude/
+	);
+	assert.throws(
+		() =>
+			attempt(
+				adhocRequests,
+				{ code: 'BONUS', evidence: 'REQUIRED', eligibility: '' },
+				{ ...ADHOC, amount: 500 }
+			),
+		/requires evidence/
+	);
+	assert.throws(
+		() =>
+			attempt(
+				adhocRequests,
+				{ code: 'BONUS', evidence: 'NONE', eligibility: 'employment.service_months >= 600' },
+				{ ...ADHOC, amount: 500 }
+			),
+		/eligibility rule does not hold/
+	);
+	// A separation class reads the leaver's exit at the write, as the run does: off-boarding's
+	// request on the last day of a redundancy is admitted, the same request on an open contract not.
+	const separation = {
+		code: 'TERMINATION_BENEFIT',
+		evidence: 'NONE',
+		eligibility: 'employment.exit_reason == "REDUNDANCY"',
+		bands: [{ when: '', amount: 'person.terms.monthly_wage', limit: null }]
+	};
+	assert.throws(() => attempt(adhocRequests, separation, ADHOC), /eligibility rule does not hold/);
+	const world = requestWorld({ ...separation });
+	Object.assign(
+		world.employments.find((row) => row.id === EMPLOYMENT_ID)!,
+		{
+			effective_range: { start: '2021-06-01', end: '2026-04-30' },
+			exit_reason: 'REDUNDANCY'
+		}
+	);
+	assert.equal(
+		transformOne(
+			adhocRequests,
+			{ ...ADHOC, event_date: '2026-04-30' },
+			undefined,
+			memoryPayrollApi(world).db
+		).employment_id,
+		EMPLOYMENT_ID
+	);
+});
+
 test('a component that is not in the catalogue at all refuses nothing here', () => {
 	// Deliberate: the foreign key is what refuses an unknown component, and it refuses it on every
 	// path including the seed. A second refusal in the transform would be a rule the database
@@ -166,6 +247,8 @@ test('a component that is not in the catalogue at all refuses nothing here', () 
 		admitPayRequests(
 			{
 				family: 'CLAIM',
+				catalogue: 'claim_catalogue',
+				requests: 'claim_requests',
 				noun: 'claim',
 				eventDate: (c) => c.incurred_on
 			},

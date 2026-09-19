@@ -16,14 +16,13 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
 		"counts_toward": [
 			"INCOME_TAX",
 			"INCOME_TAX_NON_RESIDENT",
 			"LABOR_PENSION_RESERVE",
 			"NHI_SUPPLEMENT_EMPLOYER"
-		]
+		],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "e7bd562e-914a-5133-9367-aced76ce3c9f",
@@ -35,7 +34,6 @@
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
-		"on_separation": true,
 		"bands": [
 			{
 				"when": "",
@@ -43,9 +41,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
-		"counts_toward": []
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "cbbb1203-bb6b-55d9-9908-3d3037175da9",
@@ -64,14 +61,13 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
 		"counts_toward": [
 			"INCOME_TAX",
 			"INCOME_TAX_NON_RESIDENT",
 			"LABOR_PENSION_RESERVE",
 			"NHI_SUPPLEMENT_EMPLOYER"
-		]
+		],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "d1caef0a-220b-56a4-baa5-cdb53435f23b",
@@ -83,7 +79,6 @@
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
-		"on_separation": true,
 		"bands": [
 			{
 				"when": "",
@@ -91,9 +86,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
-		"counts_toward": []
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "8d023584-6ed0-50de-823d-c7e7e17395f0",
@@ -112,14 +106,13 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
 		"counts_toward": [
 			"INCOME_TAX",
 			"INCOME_TAX_NON_RESIDENT",
 			"LABOR_PENSION_RESERVE",
 			"NHI_SUPPLEMENT_EMPLOYER"
-		]
+		],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "83947473-bf48-53eb-8c46-227c07ba0379",
@@ -131,7 +124,6 @@
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
-		"on_separation": true,
 		"bands": [
 			{
 				"when": "",
@@ -139,8 +131,7 @@
 				"limit": null
 			}
 		],
-		"fixed": false,
-		"one_off": true,
-		"counts_toward": []
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
 	}
 ]

@@ -512,13 +512,14 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 	});
 	// THR keyed for March for everyone; the row's own band prices it, the eligibility declines it.
 	for (const [index, employment] of world.employments.entries())
-		world.allowances.push({
+		world.adhoc_requests!.push({
 			id: `a1a1a1a1-0000-4000-8000-00000000001${index}`,
 			employment_id: employment.id,
 			catalogue_id: THR_ID,
 			amount: 1,
-			effective_from: '2026-03-01',
-			effective_to: '2026-03-31',
+			event_date: '2026-03-01',
+			pay_period: null,
+			payslip_id: null,
 			reason: 'THR 2026',
 			evidence_file: null,
 			as_adjustment_entry: false,
@@ -562,18 +563,18 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 	assert.equal(slip('ID-FIXED').base('JHT'), 25_000_000);
 	assert.equal(slip('ID-FIXED').base('PPH21'), 50_690_000); // 25,000,000 + THR 25,000,000 + the employer premiums
 	// The open-ended standing allowance is paid as a March entry; the source row itself is never
-	// pinned, so April prices its own entry.
+	// pinned, so April prices its own entry. The THR is an ad hoc request: captured once, pinned.
 	const fixedSlip = slips.find((row) => String(row.employment_id) === fixed.id)!;
 	const capture = built.captures.find((row) => row.payslipId === fixedSlip.id)!;
 	assert.deepEqual(
-		capture.materialised
-			.map((row) => [row.values.amount, row.values.from, row.values.to])
-			.toSorted((left, right) => Number(left[0]) - Number(right[0])),
-		[
-			[5_000_000, '2026-03-01T00:00:00.000Z', '2026-03-31T00:00:00.000Z'],
-			[25_000_000, '2026-03-01T00:00:00.000Z', '2026-03-31T00:00:00.000Z']
-		],
-		'the March entry of the house allowance and the THR are both materialised'
+		capture.materialised.map((row) => [row.values.amount, row.values.from, row.values.to]),
+		[[5_000_000, '2026-03-01T00:00:00.000Z', '2026-03-31T00:00:00.000Z']],
+		'the March entry of the house allowance is materialised'
+	);
+	assert.deepEqual(
+		capture.adhoc,
+		world.adhoc_requests!.filter((row) => row.employment_id === fixed.id).map((row) => row.id),
+		'the THR request is captured'
 	);
 });
 
@@ -1002,7 +1003,7 @@ test('Indonesia — efficiency or closure because of losses is half the pesangon
 			for (const [index, key] of ['ID-REDUNDANT', 'ID-RETRENCHED'].entries()) {
 				const employment = world.employments.find((row) => row.employee_number === key)!;
 				for (const [offset, code] of ['PESANGON', 'UPMK'].entries()) {
-					const row = world.allowance_catalogue.find(
+					const row = world.adhoc_catalogue!.find(
 						(item) =>
 							item.code === code &&
 							item.settings_id ===
@@ -1010,13 +1011,14 @@ test('Indonesia — efficiency or closure because of losses is half the pesangon
 									String(v.effective_range.start).startsWith('2026-01')
 								)!.id
 					)!;
-					world.allowances.push({
+					world.adhoc_requests!.push({
 						id: `d0000000-0000-4000-8000-0000000000b${index}${offset}`,
 						employment_id: employment.id,
 						catalogue_id: row.id,
 						amount: 0,
-						effective_from: '2026-01-31',
-						effective_to: '2026-01-31',
+						event_date: '2026-01-31',
+						pay_period: '2026-01',
+						payslip_id: null,
 						reason: code,
 						evidence_file: null,
 						as_adjustment_entry: false,

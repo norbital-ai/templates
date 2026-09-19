@@ -53,6 +53,7 @@ type PayslipCaptures = Readonly<{
 	payslipId: string;
 	workDays: readonly string[];
 	claims: readonly string[];
+	adhoc: readonly string[];
 	leave: readonly string[];
 	loanRepayments: readonly string[];
 	materialised: ReadonlyArray<MaterialisedMoney & { readonly payslipId: string }>;
@@ -72,6 +73,7 @@ export function payrollRunGraph(options: {
 			payslipId: id,
 			workDays: payslip.captured.workDays,
 			claims: payslip.captured.payRequests.CLAIM,
+			adhoc: payslip.captured.payRequests.ADHOC,
 			leave: payslip.captured.leave.map((capture) => capture.leave_entry_id),
 			loanRepayments: payslip.captured.loanRepayments,
 			materialised: payslip.captured.materialised.map((row) => ({ ...row, payslipId: id }))
@@ -164,6 +166,7 @@ export function payrollRunPayload(built: {
 			...row,
 			work_day_payslip: linkActions(capture.workDays),
 			claim_request_payslip: linkActions(capture.claims),
+			adhoc_request_payslip: linkActions(capture.adhoc),
 			...(materialised.length === 0 ? {} : { allowance_entry_payslip: { create: materialised } }),
 			leave_entry_payslip: linkActions(capture.leave),
 			loan_repayment_payslip: linkActions(capture.loanRepayments)
