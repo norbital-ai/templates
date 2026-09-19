@@ -256,7 +256,10 @@
 					where: { company_id: { eq: selectedCompanyId } },
 					orderBy: { period: 'desc' },
 					columns: PAYROLL_RUN_LIST_COLUMNS,
-					with: { payslip_payroll_run: { columns: { id: true, status: true } } }
+					with: {
+						payslip_payroll_run: { columns: { id: true, status: true } },
+						settings_payroll_run: { columns: { name: true } }
+					}
 				}}
 				exportPipelines={[
 					{
@@ -383,7 +386,19 @@
 								})
 						}}
 					/>
-					<Column name="configuration_hash" label={t('app.payroll.policy_snapshot')} />
+					<!-- The rules the run was calculated under, by the version's name: a hash means nothing
+					     to the person paying. The hash itself stays on the run record for the audit. -->
+					<Column
+						name="settings_id"
+						label={t('app.payroll.policy_snapshot')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: { settings_payroll_run?: { name?: unknown } | null } }) =>
+								typeof row.settings_payroll_run?.name === 'string'
+									? row.settings_payroll_run.name
+									: '—'
+						}}
+					/>
 				{/snippet}
 				{#snippet ListCard(run)}
 					<Stack gap="xs">

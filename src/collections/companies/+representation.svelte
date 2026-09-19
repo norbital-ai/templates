@@ -20,6 +20,7 @@
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
 	import SchedulingSettings from '../../lib/ui/scheduling-settings.svelte';
+	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -88,7 +89,11 @@
 						placeholder={t('component.risk_class_hint', { class_iv: 'IV', class_i: 'I' })}
 					/>
 					<Column span="all">
-						<Field name="effective_range" label={t('component.effective_period')} />
+						<Field
+							name="effective_range"
+							renderer={EffectiveRangeRenderer}
+							label={t('component.effective_period')}
+						/>
 					</Column>
 				</Grid>
 			</Stack>

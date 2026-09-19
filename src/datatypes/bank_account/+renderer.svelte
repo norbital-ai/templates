@@ -2,7 +2,6 @@
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Combobox } from '@norbital-ai/ui/combobox';
 	import type { RendererProps } from './$types.js';
 	import { Input } from '@norbital-ai/ui/input';
 	import { bankAccountDraftSchema, bankAccountSchema, type BankAccount } from './+definition.js';
@@ -10,19 +9,6 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	interface BankOption {
-		readonly name: string;
-		readonly code: string;
-	}
-
-	const BANKS: readonly BankOption[] = [
-		{ name: 'Maybank', code: 'MBBEMYKL' },
-		{ name: 'CIMB Bank', code: 'CIBBMYKL' },
-		{ name: 'Public Bank', code: 'PBBEMYKL' },
-		{ name: 'RHB Bank', code: 'RHBBMYKL' },
-		{ name: 'Hong Leong Bank', code: 'HLBBMYKL' },
-		{ name: 'AmBank', code: 'ARBKMYKL' }
-	];
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 
@@ -37,14 +23,6 @@
 	 */
 	let draft = $state<Partial<BankAccount>>({});
 	const account = $derived({ ...incoming, ...draft });
-	const bankOptions = $derived(
-		BANKS.map((bank) => ({
-			value: bank.code,
-			label: bank.name,
-			description: bank.code,
-			search_term: `${bank.name} ${bank.code}`
-		}))
-	);
 
 	function emit(next: BankAccount | null): void {
 		if (props.mode === 'edit') props.onValueChange(next);
@@ -65,45 +43,29 @@
 <Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
 	<label class="text-sm font-medium">
 		<Stack gap="xs">
-			Bank
-			{#if bankOptions.length > 0}
-				<Combobox
-					options={bankOptions}
-					value={account.bank_code ?? null}
-					{disabled}
-					searchPlaceholder={t('renderer.bank_account.search_banks')}
-					emptyPlaceholder={t('renderer.bank_account.no_bank')}
-					onValueChange={(code) => {
-						const selected = BANKS.find((bank) => bank.code === code);
-						if (selected) update({ bank_name: selected.name, bank_code: selected.code });
-					}}
-				/>
-			{:else}
-				<Input
-					value={account.bank_name ?? ''}
-					{disabled}
-					placeholder={t('component.bank_name')}
-					oninput={(event) => update({ bank_name: event.currentTarget.value })}
-				/>
-			{/if}
+			{t('component.bank_name')}
+			<Input
+				value={account.bank_name ?? ''}
+				{disabled}
+				placeholder={t('component.bank_name')}
+				oninput={(event) => update({ bank_name: event.currentTarget.value })}
+			/>
 		</Stack>
 	</label>
-	{#if bankOptions.length === 0}
-		<label class="text-sm font-medium">
-			<Stack gap="xs">
-				Bank code
-				<Input
-					value={account.bank_code ?? ''}
-					{disabled}
-					placeholder={t('component.swift_routing_code')}
-					oninput={(event) => update({ bank_code: event.currentTarget.value })}
-				/>
-			</Stack>
-		</label>
-	{/if}
 	<label class="text-sm font-medium">
 		<Stack gap="xs">
-			Account holder
+			{t('component.bank_code')}
+			<Input
+				value={account.bank_code ?? ''}
+				{disabled}
+				placeholder={t('component.swift_routing_code')}
+				oninput={(event) => update({ bank_code: event.currentTarget.value })}
+			/>
+		</Stack>
+	</label>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			{t('component.account_holder')}
 			<Input
 				value={account.bank_account_name ?? ''}
 				{disabled}
@@ -115,7 +77,7 @@
 	</label>
 	<label class="text-sm font-medium">
 		<Stack gap="xs">
-			Account number
+			{t('component.account_number')}
 			<Input
 				value={account.bank_account_number ?? ''}
 				{disabled}

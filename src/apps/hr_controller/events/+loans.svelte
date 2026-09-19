@@ -25,12 +25,19 @@
 		resolveCompanyId
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
-	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
+	import {
+		componentLabel,
+		EMPLOYMENT_LABEL_WITH,
+		employmentLabel,
+		HR_CREATE_SCOPE,
+		type HrCreateScope
+	} from '../../../lib/ui/create-scope.js';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { formatEffectiveRange, formatNumeric } from '../../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter } from '../../../lib/ui/calendar.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import { repaymentProgress } from '../../../lib/loan-schedule.js';
+	import EffectiveRangeRenderer from '../../../lib/ui/effective-range-renderer.svelte';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -118,8 +125,12 @@
 	});
 
 	type NestedLoan = WorkspaceRow<'loans'> & {
-		readonly loan_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly loan_loan_catalogue?: Pick<WorkspaceRow<'loan_catalogue'>, 'code'> | null;
+		readonly loan_employment?:
+			| (Pick<WorkspaceRow<'employments'>, 'employee_number'> & {
+					readonly employment_employee?: { readonly name: string } | null;
+			  })
+			| null;
+		readonly loan_loan_catalogue?: Pick<WorkspaceRow<'loan_catalogue'>, 'code' | 'name'> | null;
 	};
 
 	function progressLabel(row: NestedLoan): string {
@@ -141,12 +152,6 @@
 			paid: progress.paidRepayments,
 			total: progress.totalRepayments
 		});
-	}
-
-	function componentLabel(row: NestedLoan): string {
-		const component = row.loan_loan_catalogue;
-		if (component?.code) return component.code;
-		return '—';
 	}
 </script>
 
@@ -201,8 +206,8 @@
 			},
 			orderBy: { effective_from: 'desc' },
 			with: {
-				loan_employment: { columns: { employee_number: true } },
-				loan_loan_catalogue: { columns: { code: true } }
+				loan_employment: EMPLOYMENT_LABEL_WITH,
+				loan_loan_catalogue: { columns: { code: true, name: true } }
 			}
 		}}
 	>
@@ -214,17 +219,30 @@
 				card="subtitle"
 				renderer={FormattedValueRenderer}
 				rendererProps={{
-					format: ({ row }: { row: NestedLoan }) => row.loan_employment?.employee_number ?? '—'
+					format: ({ row }: { row: NestedLoan }) => employmentLabel(row.loan_employment)
 				}}
 			/>
 			<Column
 				name="loan_catalogue_id"
 				label={t('app.loans.deducted_as')}
 				renderer={FormattedValueRenderer}
-				rendererProps={{ format: ({ row }: { row: NestedLoan }) => componentLabel(row) }}
+				rendererProps={{
+					format: ({ row }: { row: NestedLoan }) => componentLabel(row.loan_loan_catalogue)
+				}}
 			/>
-			<Column name="principal" label={t('app.loans.principal_outstanding')} />
-			<Column name="effective_range" />
+			<Column name="principal" label={t('app.loans.principal')} />
+			<!-- What is still to recover, and how many instalments have been: the column the header promised. -->
+			<Column
+				name="effective_from"
+				label={t('app.loans.outstanding')}
+				renderer={FormattedValueRenderer}
+				rendererProps={{ format: ({ row }: { row: NestedLoan }) => progressLabel(row) }}
+			/>
+			<Column
+				name="effective_range"
+				label={t('component.effective_period')}
+				renderer={EffectiveRangeRenderer}
+			/>
 		{/snippet}
 		{#snippet ListCard(loan)}
 			<Stack gap="xs">

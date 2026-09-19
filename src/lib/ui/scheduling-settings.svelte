@@ -13,6 +13,7 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import type { WorkspaceRow } from '$bolt/types.js';
+	import EffectiveRangeRenderer from './effective-range-renderer.svelte';
 
 	let { company }: { company: WorkspaceRow<'companies'> } = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -39,7 +40,11 @@
 			<Column name="code" card="title" />
 			<Column name="name" card="subtitle" />
 			<Column name="variant" label={t('app.scheduling.roster_code_definition')} />
-			<Column name="effective_range" label={t('component.effective')} />
+			<Column
+				name="effective_range"
+				renderer={EffectiveRangeRenderer}
+				label={t('component.effective')}
+			/>
 		{/snippet}
 	</CollectionTable>
 {/snippet}
@@ -59,7 +64,11 @@
 			<Column name="code" card="title" />
 			<Column name="name" card="subtitle" />
 			<Column name="pattern" label={t('component.work_pattern')} />
-			<Column name="effective_range" label={t('component.effective')} />
+			<Column
+				name="effective_range"
+				renderer={EffectiveRangeRenderer}
+				label={t('component.effective')}
+			/>
 		{/snippet}
 	</CollectionTable>
 {/snippet}

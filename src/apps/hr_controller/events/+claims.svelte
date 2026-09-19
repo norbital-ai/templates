@@ -29,7 +29,13 @@
 		resolveCompanyId
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
-	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
+	import {
+		componentLabel,
+		EMPLOYMENT_LABEL_WITH,
+		employmentLabel,
+		HR_CREATE_SCOPE,
+		type HrCreateScope
+	} from '../../../lib/ui/create-scope.js';
 	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
 	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
@@ -51,8 +57,15 @@
 	});
 
 	type ClaimRow = WorkspaceRow<'claim_requests'> & {
-		readonly claim_request_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly claim_request_claim_catalogue?: Pick<WorkspaceRow<'claim_catalogue'>, 'code'> | null;
+		readonly claim_request_employment?:
+			| (Pick<WorkspaceRow<'employments'>, 'employee_number'> & {
+					readonly employment_employee?: { readonly name: string } | null;
+			  })
+			| null;
+		readonly claim_request_claim_catalogue?: Pick<
+			WorkspaceRow<'claim_catalogue'>,
+			'code' | 'name'
+		> | null;
 	};
 </script>
 
@@ -103,8 +116,8 @@
 					},
 					orderBy: { incurred_on: 'desc' },
 					with: {
-						claim_request_employment: { columns: { employee_number: true } },
-						claim_request_claim_catalogue: { columns: { code: true } }
+						claim_request_employment: EMPLOYMENT_LABEL_WITH,
+						claim_request_claim_catalogue: { columns: { code: true, name: true } }
 					}
 				}}
 			>
@@ -115,7 +128,8 @@
 						card="title"
 						renderer={FormattedValueRenderer}
 						rendererProps={{
-							format: ({ row }: { row: ClaimRow }) => row.claim_request_claim_catalogue?.code ?? '—'
+							format: ({ row }: { row: ClaimRow }) =>
+								componentLabel(row.claim_request_claim_catalogue)
 						}}
 					/>
 					<Column
@@ -124,8 +138,7 @@
 						card="subtitle"
 						renderer={FormattedValueRenderer}
 						rendererProps={{
-							format: ({ row }: { row: ClaimRow }) =>
-								row.claim_request_employment?.employee_number ?? '—'
+							format: ({ row }: { row: ClaimRow }) => employmentLabel(row.claim_request_employment)
 						}}
 					/>
 					<Column name="amount" label={t('component.amount')} />

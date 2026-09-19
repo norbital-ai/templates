@@ -29,6 +29,7 @@
 	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
 	import EligibleTypes from '../../lib/ui/eligible-types.svelte';
 	import FormSection from '../../lib/ui/form-section.svelte';
+	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	/**
 	 * The loan agreement, and the repayment lines it owns.
@@ -219,7 +220,11 @@
 							{/snippet}
 						</EligibleTypes>
 						<Field name="principal" label={t('component.principal')} />
-						<Field name="effective_range" label={t('component.effective_period')} />
+						<Field
+							name="effective_range"
+							renderer={EffectiveRangeRenderer}
+							label={t('component.effective_period')}
+						/>
 						<Column span="all"><Field name="reference" label={t('component.reference')} /></Column>
 					</Grid>
 				</FormSection>

@@ -27,7 +27,13 @@
 		resolveCompanyId
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
-	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
+	import {
+		componentLabel,
+		EMPLOYMENT_LABEL_WITH,
+		employmentLabel,
+		HR_CREATE_SCOPE,
+		type HrCreateScope
+	} from '../../../lib/ui/create-scope.js';
 	import { dayInstant } from '../../../lib/iso-day.js';
 	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
@@ -49,21 +55,26 @@
 	});
 
 	type Named = {
-		readonly allowance_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+		readonly allowance_employment?:
+			| (Pick<WorkspaceRow<'employments'>, 'employee_number'> & {
+					readonly employment_employee?: { readonly name: string } | null;
+			  })
+			| null;
 		readonly allowance_allowance_catalogue?: Pick<
 			WorkspaceRow<'allowance_catalogue'>,
-			'code'
+			'code' | 'name'
 		> | null;
 	};
 	type AllowanceRow = WorkspaceRow<'allowances'> & Named;
 	type EntryRow = WorkspaceRow<'allowance_entries'> & {
-		readonly allowance_entry_employment?: Pick<
-			WorkspaceRow<'employments'>,
-			'employee_number'
-		> | null;
+		readonly allowance_entry_employment?:
+			| (Pick<WorkspaceRow<'employments'>, 'employee_number'> & {
+					readonly employment_employee?: { readonly name: string } | null;
+			  })
+			| null;
 		readonly allowance_entry_allowance_catalogue?: Pick<
 			WorkspaceRow<'allowance_catalogue'>,
-			'code'
+			'code' | 'name'
 		> | null;
 	};
 	const ownCompany = $derived({ some: { company_id: { eq: selectedCompanyId } } });
@@ -124,8 +135,8 @@
 			where: { allowance_employment: ownCompany },
 			orderBy: { effective_from: 'desc' },
 			with: {
-				allowance_employment: { columns: { employee_number: true } },
-				allowance_allowance_catalogue: { columns: { code: true } }
+				allowance_employment: EMPLOYMENT_LABEL_WITH,
+				allowance_allowance_catalogue: { columns: { code: true, name: true } }
 			}
 		}}
 	>
@@ -136,7 +147,8 @@
 				card="title"
 				renderer={FormattedValueRenderer}
 				rendererProps={{
-					format: ({ row }: { row: AllowanceRow }) => row.allowance_allowance_catalogue?.code ?? '—'
+					format: ({ row }: { row: AllowanceRow }) =>
+						componentLabel(row.allowance_allowance_catalogue)
 				}}
 			/>
 			<Column
@@ -145,8 +157,7 @@
 				card="subtitle"
 				renderer={FormattedValueRenderer}
 				rendererProps={{
-					format: ({ row }: { row: AllowanceRow }) =>
-						row.allowance_employment?.employee_number ?? '—'
+					format: ({ row }: { row: AllowanceRow }) => employmentLabel(row.allowance_employment)
 				}}
 			/>
 			<Column name="amount" label={t('component.amount')} />
@@ -179,8 +190,8 @@
 					},
 					orderBy: { from: 'desc' },
 					with: {
-						allowance_entry_employment: { columns: { employee_number: true } },
-						allowance_entry_allowance_catalogue: { columns: { code: true } }
+						allowance_entry_employment: EMPLOYMENT_LABEL_WITH,
+						allowance_entry_allowance_catalogue: { columns: { code: true, name: true } }
 					}
 				}}
 			>
@@ -192,7 +203,7 @@
 						renderer={FormattedValueRenderer}
 						rendererProps={{
 							format: ({ row }: { row: EntryRow }) =>
-								row.allowance_entry_allowance_catalogue?.code ?? '—'
+								componentLabel(row.allowance_entry_allowance_catalogue)
 						}}
 					/>
 					<Column
@@ -202,7 +213,7 @@
 						renderer={FormattedValueRenderer}
 						rendererProps={{
 							format: ({ row }: { row: EntryRow }) =>
-								row.allowance_entry_employment?.employee_number ?? '—'
+								employmentLabel(row.allowance_entry_employment)
 						}}
 					/>
 					<Column name="from" label={t('component.entry_from')} />

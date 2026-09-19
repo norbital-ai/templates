@@ -8,7 +8,7 @@ test('Controller Events Leave registers one contract-scoped immutable activity t
 	assert.match(page, /collection="leave_entries"/);
 	assert.match(page, /leave_entry_employment: \{ some: \{ company_id: \{ eq: selectedCompanyId \}/);
 	assert.match(page, /operations: \['update', 'delete'\]/);
-	assert.match(page, /<Column name="summary"/);
+	assert.match(page, /<Column\s+name="summary"/);
 	assert.doesNotMatch(page, /leave_entitlements|entry_leave_entitlement|request_leave_entitlement/);
 });
 

@@ -32,6 +32,7 @@
 	import {
 		formatCalendarDate,
 		formatDurationHours,
+		formatLeaveSummary,
 		formatNumeric
 	} from '../lib/ui/display-formatters.js';
 	import type { RemoteQuery } from '@norbital-ai/std/collection';
@@ -76,6 +77,7 @@
 	import { setContext } from 'svelte';
 	import { onLineage } from '../lib/ui/settings-scope.js';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../lib/ui/create-scope.js';
+	import EffectiveRangeRenderer from '../lib/ui/effective-range-renderer.svelte';
 
 	const user = getPlatformStateContext()().user;
 	const today = todayKey();
@@ -1130,7 +1132,16 @@
 				>
 					{#snippet columns({ Column })}
 						<Column name="catalogue_id" label={t('component.catalogue_leave')} />
-						<Column name="summary" label={t('leave.activity')} card="title" />
+						<Column
+							name="summary"
+							label={t('leave.activity')}
+							card="title"
+							renderer={FormattedValueRenderer}
+							rendererProps={{
+								format: ({ row }: { row: { summary: unknown } }) =>
+									formatLeaveSummary(row.summary, t)
+							}}
+						/>
 						<Column name="reference" label={t('component.reference')} />
 						<Column name="days" label={t('component.days')} />
 						<Column name="encash_days" label={t('component.encash_days')} />
@@ -1248,7 +1259,7 @@
 			{#snippet columns({ Column })}
 				<Column name="reference" card="title" />
 				<Column name="principal" label={t('component.principal')} />
-				<Column name="effective_range" />
+				<Column name="effective_range" renderer={EffectiveRangeRenderer} />
 			{/snippet}
 		</CollectionTable>
 	</Cover>

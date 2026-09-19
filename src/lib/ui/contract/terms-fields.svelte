@@ -11,6 +11,7 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { employmentRelationOptions } from '../create-scope.js';
 	import FormSection from '../form-section.svelte';
+	import EffectiveRangeRenderer from '../effective-range-renderer.svelte';
 
 	/** The `Field` a `CollectionForm` on `employment_terms` composes with. */
 	export type TermsFieldComponent = CollectionFormComposition<
@@ -109,7 +110,11 @@
 	<FormSection title={t('component.section_period')} hint={t('component.section_period_hint')}>
 		<Grid gap="sm" minimum="compact">
 			<Column span="all">
-				<Field name="effective_range" label={t('component.effective_period')} />
+				<Field
+					name="effective_range"
+					renderer={EffectiveRangeRenderer}
+					label={t('component.effective_period')}
+				/>
 			</Column>
 		</Grid>
 	</FormSection>

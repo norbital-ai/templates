@@ -14,6 +14,7 @@
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import FormSection from '../../lib/ui/form-section.svelte';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
+	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -48,6 +49,7 @@
 					<Field name="name" />
 					<Field
 						name="effective_range"
+						renderer={EffectiveRangeRenderer}
 						label={t('component.effective_period')}
 						description={t('component.section_period_hint')}
 					/>

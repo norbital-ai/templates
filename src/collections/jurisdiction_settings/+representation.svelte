@@ -28,6 +28,7 @@
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import FormSection from '../../lib/ui/form-section.svelte';
 	import CalculationFlow from '../../lib/ui/calculation-flow.svelte';
+	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	type Section = 'GENERAL' | 'WORK_RULES';
 
@@ -120,6 +121,7 @@
 							<Field name="name" />
 							<Field
 								name="effective_range"
+								renderer={EffectiveRangeRenderer}
 								label={t('component.effective_period')}
 								description={t('component.effective_period_hint')}
 							/>
