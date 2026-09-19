@@ -17,8 +17,8 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
-	import { dateKey, PAYROLL_TIME_ZONE } from '../../iso-day.js';
-	import { startOfDayInstant, todayKey } from '../calendar.js';
+	import { dateKey } from '../../iso-day.js';
+	import { endOfDayInstant, todayKey } from '../calendar.js';
 	import FormSection from '../form-section.svelte';
 
 	type ExitReason = NonNullable<WorkspaceRow<'employments'>['exit_reason']>;
@@ -117,7 +117,7 @@
 						client.collection.employments.update(employment.id, {
 							effective_range: {
 								start: employment.range_start,
-								end: startOfDayInstant(lastDay, PAYROLL_TIME_ZONE)
+								end: endOfDayInstant(lastDay)
 							},
 							exit_reason: exitReason === '' ? null : exitReason,
 							comments: note.trim() === '' ? null : note.trim()
