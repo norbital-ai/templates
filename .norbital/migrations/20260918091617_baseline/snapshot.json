@@ -1645,6 +1645,19 @@
       "table": "employees"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "receiving_pension",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,

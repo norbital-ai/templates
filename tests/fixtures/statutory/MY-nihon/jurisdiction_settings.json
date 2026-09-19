@@ -21,8 +21,20 @@
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
+					"label": "PT-1.0X",
+					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "PT-1.5X",
+					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -182,8 +194,20 @@
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
+					"label": "PT-1.0X",
+					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "PT-1.5X",
+					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -346,8 +370,20 @@
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
+					"label": "PT-1.0X",
+					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "PT-1.5X",
+					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5",
 					"funnel_above_hours": "limits.daily_total"

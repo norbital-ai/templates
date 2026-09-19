@@ -1107,3 +1107,88 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 	assert.deepEqual(charge('VN-PENSIONER', 'SI'), [0, 0]);
 	assert.equal(equivalent('VN-PENSIONER'), 4_300_000);
 });
+
+test('Vietnam — a pensioner, a transferee and a foreigner hired at retirement age are outside insurance and owed the employer’s rate (Law 41/2024 art.2(2), 2(7); Labour Code art.168(3))', () => {
+	// 2026 retirement age (Decree 135/2020 art.4): 61 years 6 months for a man, 57 for a woman.
+	const version = settingsVersions('VN').find((v) =>
+		String(v.effective_range.start).startsWith('2026-01')
+	)!;
+	const { slips } = buildStatutory(
+		{
+			code: 'VN',
+			period: '2026-01',
+			region: 'I',
+			people: [
+				{ key: 'VN-PENSION', wage: 20_000_000, citizenship: 'CITIZEN', receiving_pension: true },
+				{
+					key: 'VN-TRANSFEREE',
+					wage: 20_000_000,
+					citizenship: 'FOREIGNER',
+					pass_type: 'INTRA_COMPANY_TRANSFER'
+				},
+				// A man born 1 May 1964 hired on 1 January 2026 is 61 years 8 months — past 61 years 6.
+				{
+					key: 'VN-F-RETIRED',
+					wage: 20_000_000,
+					citizenship: 'FOREIGNER',
+					gender: 'MALE',
+					birth_date: '1964-05-01',
+					hire_date: '2026-01-01'
+				},
+				// Born 1 September 1964: 61 years 4 months — under it, insured.
+				{
+					key: 'VN-F-NOT-YET',
+					wage: 20_000_000,
+					citizenship: 'FOREIGNER',
+					gender: 'MALE',
+					birth_date: '1964-09-01',
+					hire_date: '2026-01-01'
+				}
+			]
+		},
+		(world) => {
+			const row = world.allowance_catalogue.find(
+				(item) => item.code === 'INSURANCE_EQUIVALENT' && item.settings_id === version.id
+			)!;
+			for (const [index, key] of [
+				'VN-PENSION',
+				'VN-TRANSFEREE',
+				'VN-F-RETIRED',
+				'VN-F-NOT-YET'
+			].entries()) {
+				const employment = world.employments.find((item) => item.employee_number === key)!;
+				world.allowances.push({
+					id: `d0000000-0000-4000-8000-0000000000d${index}`,
+					employment_id: employment.id,
+					catalogue_id: row.id,
+					amount: 0,
+					effective_from: '2026-01-01',
+					effective_to: null,
+					reason: 'art.168(3)',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		}
+	);
+	const charge = (key: string, code: string) => {
+		const row = slips.get(key)!.statutory.find((item) => item.scheme_code === code);
+		return [row?.employee_amount ?? 0, row?.employer_amount ?? 0];
+	};
+	const equivalent = (key: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')
+			?.amount;
+	// The pensioner: no SI, HI or UI; 20.5% + 1% of 20,000,000 = 4,300,000 with the wage.
+	assert.deepEqual(charge('VN-PENSION', 'SI'), [0, 0]);
+	assert.deepEqual(charge('VN-PENSION', 'UI'), [0, 0]);
+	assert.equal(equivalent('VN-PENSION'), 4_300_000);
+	// The transferee and the retirement-age hire: no SI or HI; 20.5% = 4,100,000 (no UI for a foreigner).
+	assert.deepEqual(charge('VN-TRANSFEREE', 'SI'), [0, 0]);
+	assert.equal(equivalent('VN-TRANSFEREE'), 4_100_000);
+	assert.deepEqual(charge('VN-F-RETIRED', 'SI'), [0, 0]);
+	assert.equal(equivalent('VN-F-RETIRED'), 4_100_000);
+	// Under the age at hire: insured; the row the catalogue declines to price pays nothing.
+	assert.deepEqual(charge('VN-F-NOT-YET', 'SI'), [1_600_000, 3_500_000]);
+	assert.equal(equivalent('VN-F-NOT-YET'), undefined);
+});

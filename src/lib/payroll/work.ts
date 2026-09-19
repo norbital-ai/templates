@@ -851,6 +851,7 @@ export function calculateWorkAttendance(
 			consecutiveHours: derived.restBreak?.longestRunHours ?? 0,
 			continuousAttendance: false,
 			restDay: day.restDay,
+			statutoryRest: day.statutoryRest,
 			offDay: day.offDay,
 			nightHours:
 				configuration.nightPremium == null

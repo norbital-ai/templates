@@ -223,8 +223,10 @@ everything else is rooted; on every site but `person` the person sits under `per
 
 The `person` root: `employee.gender`, `age`, `age_months`, `citizenship`, `marital_status`,
 `spouse_status`, `dependents_count`, `solo_parent`, `race`, `religion`, `residency_months`,
-`disabled`; `employment.type`, `classification`, `risk_class`, `service_months`, `service_years`,
-`service_start`, `exit_date`, `exit_reason`, `absent_days_12m`; `terms.basic_salary`,
+`disabled`, `receiving_pension`, `birth_date`, `age_on(date)`, `age_months_on(date)`;
+`employment.type`, `classification`, `risk_class`, `service_days`, `service_months`,
+`service_years`, `service_start`, `exit_date`, `open_ended`, `contract_months`, `exit_reason`,
+`absent_days_12m`; `terms.basic_salary`,
 `monthly_basic`, `fixed_allowances`, `monthly_wage`, `statutory_wages`, `workman`,
 `statutory_work_category`, `department`, `payroll_group`, `grade`, `ordinary_hours_per_week`,
 `working_days_per_week`, `pay_frequency`, `pass_type`, `tax_residency`, `notice_days`;

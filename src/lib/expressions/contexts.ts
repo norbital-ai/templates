@@ -62,6 +62,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'employee.birth_date', description: 'Date of birth as `YYYY-MM-DD`, or empty' },
 	{
+		path: 'employee.age_months_on(date)',
+		description:
+			'Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026)'
+	},
+	{
 		path: 'employee.age_on(date)',
 		description:
 			'Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters'
@@ -75,6 +80,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead'
 	},
 	{ path: 'employee.solo_parent', description: 'Solo-parent flag' },
+	{
+		path: 'employee.receiving_pension',
+		description:
+			'Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3))'
+	},
 	{ path: 'employee.disabled', description: 'Disability flag' },
 	{ path: 'employee.race', description: 'Recorded race' },
 	{ path: 'employee.religion', description: 'Recorded religion' },
@@ -97,6 +107,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'employment.service_months', description: 'Completed months since the stint began' },
 	{ path: 'employment.service_years', description: 'Completed years since the stint began' },
+	{
+		path: 'employment.service_start',
+		description:
+			'First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire'
+	},
 	{ path: 'employment.exit_date', description: 'Last day of work, or empty while open' },
 	{
 		path: 'employment.open_ended',
@@ -165,12 +180,13 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'terms.pay_frequency', description: 'MONTHLY | SEMI_MONTHLY | WEEKLY | DAILY | HOURLY' },
 	{
 		path: 'terms.pass_type',
-		description: 'EMPLOYMENT_PASS | S_PASS | WORK_PERMIT | OTHER, or empty'
+		description:
+			'EMPLOYMENT_PASS | S_PASS | WORK_PERMIT | INTRA_COMPANY_TRANSFER | OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a))'
 	},
 	{
 		path: 'terms.tax_residency',
 		description:
-			'RESIDENT | NON_RESIDENT declared on the contract, or empty for the citizenship default'
+			'RESIDENT | NON_RESIDENT | NON_RESIDENT_NETB declared on the contract, or empty for the citizenship default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B))'
 	},
 	{ path: 'terms.notice_days', description: 'Notice days the contract states, 0 when none' },
 	{ path: 'terms.ordinary_hours_per_week', description: 'Roster-measured working week, hours' },
@@ -266,6 +282,7 @@ const PERSON_BLANK = {
 		age: 0,
 		age_months: 0,
 		birth_date: '',
+		receiving_pension: false,
 		citizenship: '',
 		marital_status: '',
 		spouse_status: '',
@@ -283,6 +300,7 @@ const PERSON_BLANK = {
 		service_days: 0,
 		service_months: 0,
 		service_years: 0,
+		service_start: '',
 		exit_date: '',
 		open_ended: true,
 		contract_months: 0,
@@ -633,6 +651,11 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		{ path: 'consecutive_hours', description: 'Longest unbroken work run in the day' },
 		{ path: 'continuous_attendance', description: 'Work that must be carried on continuously' },
 		{ path: 'rest_day', description: 'The roster’s weekly rest day, whatever the holiday made it' },
+		{
+			path: 'statutory_rest',
+			description:
+				'The rest day the statute forbids work on — a REST code marked `statutory` (TW 勞基法 §36 例假; §40 pays a worked one a further day’s wage and owes a day off in lieu)'
+		},
 		{ path: 'off_day', description: 'The roster left the day unassigned before the holiday' },
 		{
 			path: 'night_hours',
@@ -662,6 +685,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'consecutive_hours',
 		'continuous_attendance',
 		'rest_day',
+		'statutory_rest',
 		'off_day',
 		'night_hours',
 		'requested_by',
@@ -683,6 +707,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		consecutive_hours: 4,
 		continuous_attendance: false,
 		rest_day: false,
+		statutory_rest: false,
 		off_day: false,
 		night_hours: 0,
 		requested_by: 'EMPLOYER',

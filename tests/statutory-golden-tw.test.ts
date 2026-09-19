@@ -1254,3 +1254,37 @@ test('Taiwan — a monthly worker with regular overtime is graded on the three-m
 	assert.equal(book.get('TW-OT-REG')!.get('LI')!.base, 38_200);
 	assert.equal(book.get('TW-OT-NONE')!.get('LI')!.base, 30_300);
 });
+
+test('Taiwan — work on the 例假 earns a further day’s wage whatever the hours (勞基法 §40); the 休息日 keeps §24(2)', () => {
+	// Sunday is the REST code marked statutory (例假), Saturday the plain rest day (休息日). 60,000
+	// a month, 2,000 a day. A four-hour clock on the Sunday, in an emergency, is 3.5 hours net of
+	// the §35 break and earns one further day's wage, 2,000, not the 休息日's 4/3 and 5/3 hours
+	// (and a day off in lieu is owed, a CREDITED leave row HR raises). The same clock on the
+	// Saturday: 2 × 333.33 + 1.5 × 416.67 = 1,291.67.
+	const STATUTORY_REST = 'c0000000-0000-4000-8000-0000000000e9';
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: [{ key: 'TW-LIJIA', wage: 60_000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			world.shift_definitions.push({
+				...world.shift_definitions[1]!,
+				id: STATUTORY_REST,
+				code: 'LIJIA',
+				name: '例假',
+				variant: { kind: 'REST', statutory: true }
+			});
+			world.shift_patterns[0]!.pattern.days[6] = { roster_code_id: STATUTORY_REST };
+			punch(world, 'TW-LIJIA', '2026-01-10', '09:00', '13:00'); // Saturday 休息日
+			punch(world, 'TW-LIJIA', '2026-01-11', '09:00', '13:00'); // Sunday 例假
+		}
+	);
+	assert.deepEqual(workLines(slips.get('TW-LIJIA')!), [
+		['2026-01-10', THIRD, 2, 666.67],
+		['2026-01-10', TWO_THIRDS, 1.5, 625],
+		['2026-01-11', 'REST-STATUTORY-DOUBLE', 3.5, 2000]
+	]);
+});

@@ -487,6 +487,8 @@
 	"component.shift_section_hint": "The roster code and the hours it stands for.",
 	"component.shift_time_range": "Shift time range",
 	"component.solo_parent": "Solo parent",
+	"component.receiving_pension": "Receiving a statutory pension",
+	"component.statutory_rest_day": "The statutory rest day (work on it is forbidden; TW 例假)",
 	"component.sources": "Sources",
 	"component.spouse": "Spouse",
 	"component.standing": "Standing",

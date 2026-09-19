@@ -18,12 +18,14 @@ Open prefixes: `company.facts.<key>`.
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
 | `employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `employee.age_months_on(date)` | Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026) |
 | `employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `employee.citizenship` | Residency standing from the effective terms |
 | `employee.marital_status` | Marital status |
 | `employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
 | `employee.dependents_count` | Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead |
 | `employee.solo_parent` | Solo-parent flag |
+| `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
 | `employee.race` | Recorded race |
 | `employee.religion` | Recorded religion |
@@ -34,6 +36,7 @@ Open prefixes: `company.facts.<key>`.
 | `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `employment.service_months` | Completed months since the stint began |
 | `employment.service_years` | Completed years since the stint began |
+| `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
@@ -52,8 +55,8 @@ Open prefixes: `company.facts.<key>`.
 | `terms.payroll_group` | Payroll group |
 | `terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
-| `terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| OTHER, or empty |
-| `terms.tax_residency` | RESIDENT \| NON_RESIDENT declared on the contract, or empty for the citizenship default |
+| `terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
+| `terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty for the citizenship default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `terms.notice_days` | Notice days the contract states, 0 when none |
 | `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `terms.working_days_per_week` | Roster-measured working week, days |
@@ -108,12 +111,14 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
 | `person.employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `person.employee.age_months_on(date)` | Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026) |
 | `person.employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `person.employee.citizenship` | Residency standing from the effective terms |
 | `person.employee.marital_status` | Marital status |
 | `person.employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
 | `person.employee.dependents_count` | Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead |
 | `person.employee.solo_parent` | Solo-parent flag |
+| `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
 | `person.employee.race` | Recorded race |
 | `person.employee.religion` | Recorded religion |
@@ -124,6 +129,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
+| `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
@@ -142,8 +148,8 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.terms.payroll_group` | Payroll group |
 | `person.terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
-| `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| OTHER, or empty |
-| `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT declared on the contract, or empty for the citizenship default |
+| `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
+| `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty for the citizenship default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
@@ -218,7 +224,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 
 Used by: work bands, breaks, limits and the night premium — one priced person-day.
 
-Bare names: `date`, `day_type`, `worked_hours`, `normal_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `off_day`, `night_hours`, `requested_by`, `ordinary_hour`, `day_wage`, `hours`.
+Bare names: `date`, `day_type`, `worked_hours`, `normal_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `ordinary_hour`, `day_wage`, `hours`.
 
 Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 
@@ -228,12 +234,14 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
 | `person.employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `person.employee.age_months_on(date)` | Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026) |
 | `person.employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `person.employee.citizenship` | Residency standing from the effective terms |
 | `person.employee.marital_status` | Marital status |
 | `person.employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
 | `person.employee.dependents_count` | Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead |
 | `person.employee.solo_parent` | Solo-parent flag |
+| `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
 | `person.employee.race` | Recorded race |
 | `person.employee.religion` | Recorded religion |
@@ -244,6 +252,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
+| `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
@@ -262,8 +271,8 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.terms.payroll_group` | Payroll group |
 | `person.terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
-| `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| OTHER, or empty |
-| `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT declared on the contract, or empty for the citizenship default |
+| `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
+| `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty for the citizenship default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
@@ -302,6 +311,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `consecutive_hours` | Longest unbroken work run in the day |
 | `continuous_attendance` | Work that must be carried on continuously |
 | `rest_day` | The roster’s weekly rest day, whatever the holiday made it |
+| `statutory_rest` | The rest day the statute forbids work on — a REST code marked `statutory` (TW 勞基法 §36 例假; §40 pays a worked one a further day’s wage and owes a day off in lieu) |
 | `off_day` | The roster left the day unassigned before the holiday |
 | `night_hours` | Hours inside the night window, 0 where none is declared; a break rule reads it too |
 | `requested_by` | EMPLOYER \| EMPLOYEE: who asked for rest-day work |
@@ -338,12 +348,14 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
 | `person.employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `person.employee.age_months_on(date)` | Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026) |
 | `person.employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `person.employee.citizenship` | Residency standing from the effective terms |
 | `person.employee.marital_status` | Marital status |
 | `person.employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
 | `person.employee.dependents_count` | Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead |
 | `person.employee.solo_parent` | Solo-parent flag |
+| `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
 | `person.employee.race` | Recorded race |
 | `person.employee.religion` | Recorded religion |
@@ -354,6 +366,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
+| `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
@@ -372,8 +385,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.terms.payroll_group` | Payroll group |
 | `person.terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
-| `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| OTHER, or empty |
-| `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT declared on the contract, or empty for the citizenship default |
+| `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
+| `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty for the citizenship default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
@@ -474,12 +487,14 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
 | `person.employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `person.employee.age_months_on(date)` | Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026) |
 | `person.employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `person.employee.citizenship` | Residency standing from the effective terms |
 | `person.employee.marital_status` | Marital status |
 | `person.employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
 | `person.employee.dependents_count` | Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead |
 | `person.employee.solo_parent` | Solo-parent flag |
+| `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
 | `person.employee.race` | Recorded race |
 | `person.employee.religion` | Recorded religion |
@@ -490,6 +505,7 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `person.employment.service_months` | Completed months since the stint began |
 | `person.employment.service_years` | Completed years since the stint began |
+| `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
@@ -508,8 +524,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.terms.payroll_group` | Payroll group |
 | `person.terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
-| `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| OTHER, or empty |
-| `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT declared on the contract, or empty for the citizenship default |
+| `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
+| `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty for the citizenship default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
@@ -600,12 +616,14 @@ Open prefixes: `company.facts.<key>`.
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
 | `employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `employee.age_months_on(date)` | Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026) |
 | `employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
 | `employee.citizenship` | Residency standing from the effective terms |
 | `employee.marital_status` | Marital status |
 | `employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
 | `employee.dependents_count` | Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead |
 | `employee.solo_parent` | Solo-parent flag |
+| `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
 | `employee.race` | Recorded race |
 | `employee.religion` | Recorded religion |
@@ -616,6 +634,7 @@ Open prefixes: `company.facts.<key>`.
 | `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
 | `employment.service_months` | Completed months since the stint began |
 | `employment.service_years` | Completed years since the stint began |
+| `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
@@ -634,8 +653,8 @@ Open prefixes: `company.facts.<key>`.
 | `terms.payroll_group` | Payroll group |
 | `terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
-| `terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| OTHER, or empty |
-| `terms.tax_residency` | RESIDENT \| NON_RESIDENT declared on the contract, or empty for the citizenship default |
+| `terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
+| `terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty for the citizenship default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `terms.notice_days` | Notice days the contract states, 0 when none |
 | `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `terms.working_days_per_week` | Roster-measured working week, days |

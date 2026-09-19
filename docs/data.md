@@ -78,8 +78,12 @@ contract. Unknown remains unknown and does not satisfy citizenship eligibility.
 
 The predicate facts a statute keys on are columns: `employees.marital_status` (`SINGLE` or
 `MARRIED`), `employees.spouse_status` (`NONE` | `WITHOUT_INCOME` | `WITH_INCOME`),
-`employees.solo_parent`, `employees.race` and `employees.religion` (only where a fund is
-selected by them), `employment_terms.residency_since`, `companies.region`, which names the row of
+`employees.solo_parent`, `employees.disabled`, `employees.receiving_pension` (drawing a statutory
+pension while employed — VN Law 41/2024 art.2(7)(a)), `employees.race` and `employees.religion`
+(only where a fund is selected by them), `employment_terms.residency_since`,
+`employment_terms.pass_type` (`INTRA_COMPANY_TRANSFER` names the transferee VN social insurance
+excludes), `employment_terms.tax_residency` (`NON_RESIDENT_NETB` the non-resident alien PH taxes at
+25% of the gross), a REST roster code's `statutory` flag (TW 例假), `companies.region`, which names the row of
 `jurisdiction_settings.work_rules.wages.by_region` a scheme's floor or cap reads, and `companies.facts`, the
 entity facts under the keys its settings version declares. What an employment has elected or
 been directed under one scheme is on its `employment_statutory_facts` row: `since`, `elections`

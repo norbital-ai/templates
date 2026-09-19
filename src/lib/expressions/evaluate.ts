@@ -10,7 +10,7 @@
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
 import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
 import { childBornOn, childCitizensUnder, childClassed, childUnder } from './child-under.js';
-import { ageOn, leaveTaken } from './person-functions.js';
+import { ageMonthsOn, ageOn, leaveTaken } from './person-functions.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -104,6 +104,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.classed(string): int', childClassed],
 	['map.born_on(string): int', childBornOn],
 	['map.age_on(string): int', ageOn],
+	['map.age_months_on(string): int', ageMonthsOn],
 	['map.taken(string): double', leaveTaken],
 	['days_under(int): double', (age) => Number(bound.daysUnder?.(Number(age)) ?? 0)],
 	['map.days(string): double', () => 0],

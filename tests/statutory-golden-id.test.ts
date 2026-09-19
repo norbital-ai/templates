@@ -976,3 +976,58 @@ test('Indonesia — a foreign worker joins JKK, JKM and JHT from six months of w
 	expectStatutory(book, 'ID-TKA-6M', 'JHT', 400_000, 740_000);
 	expectStatutory(book, 'ID-TKA-OPEN', 'JHT', 400_000, 740_000);
 });
+
+test('Indonesia — efficiency or closure because of losses is half the pesangon (PP 35/2021 art.43(1)(a), 44(1)); redundancy without losses the whole', () => {
+	// Four years' service at 10,000,000: the art.40(2) pesangon is five months' wages — 50,000,000
+	// on REDUNDANCY (art.43(1)(b)), 25,000,000 on RETRENCHMENT; UPMK (art.40(3): two months at
+	// three years) is whole on both.
+	const separation = (key: string, reason: string) => ({
+		key,
+		wage: 10_000_000,
+		hire_date: '2021-12-15',
+		exit_date: '2026-01-31',
+		exit_reason: reason
+	});
+	const { slips } = buildStatutory(
+		{
+			...idWorld('2026-01'),
+			people: [
+				separation('ID-REDUNDANT', 'REDUNDANCY'),
+				separation('ID-RETRENCHED', 'RETRENCHMENT')
+			]
+		},
+		(world) => {
+			for (const [index, key] of ['ID-REDUNDANT', 'ID-RETRENCHED'].entries()) {
+				const employment = world.employments.find((row) => row.employee_number === key)!;
+				for (const [offset, code] of ['PESANGON', 'UPMK'].entries()) {
+					const row = world.allowance_catalogue.find(
+						(item) =>
+							item.code === code &&
+							item.settings_id ===
+								world.jurisdiction_settings.find((v) =>
+									String(v.effective_range.start).startsWith('2026-01')
+								)!.id
+					)!;
+					world.allowances.push({
+						id: `d0000000-0000-4000-8000-0000000000b${index}${offset}`,
+						employment_id: employment.id,
+						catalogue_id: row.id,
+						amount: 0,
+						effective_from: '2026-01-31',
+						effective_to: '2026-01-31',
+						reason: code,
+						evidence_file: null,
+						as_adjustment_entry: false,
+						approval_id: null
+					});
+				}
+			}
+		}
+	);
+	const paid = (key: string, code: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === code)?.amount;
+	assert.equal(paid('ID-REDUNDANT', 'PESANGON'), 50_000_000);
+	assert.equal(paid('ID-RETRENCHED', 'PESANGON'), 25_000_000);
+	assert.equal(paid('ID-REDUNDANT', 'UPMK'), 20_000_000);
+	assert.equal(paid('ID-RETRENCHED', 'UPMK'), 20_000_000);
+});

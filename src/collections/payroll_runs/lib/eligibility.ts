@@ -29,7 +29,7 @@ import {
 	childUnder
 } from '../../../lib/expressions/child-under.js';
 import { roundMoney } from './rounding.js';
-import { ageOn, leaveTaken } from '../../../lib/expressions/person-functions.js';
+import { ageMonthsOn, ageOn, leaveTaken } from '../../../lib/expressions/person-functions.js';
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
 export type PersonContext = {
@@ -49,6 +49,8 @@ export type PersonContext = {
 		readonly solo_parent: boolean;
 		/** `employees.disabled`: a statute that grants a disabled worker more reads this. */
 		readonly disabled: boolean;
+		/** `employees.receiving_pension`: drawing a statutory pension while employed (VN art.2(7)(a)). */
+		readonly receiving_pension: boolean;
 		readonly race: string;
 		readonly religion: string;
 		/**
@@ -68,6 +70,8 @@ export type PersonContext = {
 		readonly service_months: number;
 		/** Completed years of service on the rule date; separation payments count in these. */
 		readonly service_years: number;
+		/** First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire. */
+		readonly service_start: string;
 		/** Last day of work, or empty while the stint is open. */
 		readonly exit_date: string;
 		/** Whether the contract states no end: a fixed-term contract's end is its `exit_date`. */
@@ -200,6 +204,7 @@ export type PersonInput = {
 		readonly dependents_count?: unknown;
 		readonly solo_parent?: boolean | null;
 		readonly disabled?: boolean | null;
+		readonly receiving_pension?: boolean | null;
 		readonly race?: string | null;
 		readonly religion?: string | null;
 	} | null;
@@ -357,6 +362,7 @@ export function personContext(input: PersonInput): PersonContext {
 			dependents_count: decodeNumber(input.employee?.dependents_count ?? 0),
 			solo_parent: input.employee?.solo_parent === true,
 			disabled: input.employee?.disabled === true,
+			receiving_pension: input.employee?.receiving_pension === true,
 			race: input.employee?.race ?? '',
 			religion: input.employee?.religion ?? '',
 			// Calendar months, not anniversary-exact ones: CPF's SPR second year begins on the first
@@ -375,6 +381,7 @@ export function personContext(input: PersonInput): PersonContext {
 					: inclusiveDays(start, input.asOf.slice(0, 10)),
 			service_months: start === '' ? 0 : completedMonths(start, input.asOf),
 			service_years: start === '' ? 0 : completedYears(start, input.asOf),
+			service_start: start,
 			exit_date: exit,
 			open_ended: exit === '',
 			contract_months:
@@ -482,6 +489,7 @@ const engine = ROUNDING.reduce(
 		.registerFunction('classed', 'map.classed(string): int', childClassed)
 		.registerFunction('born_on', 'map.born_on(string): int', childBornOn)
 		.registerFunction('age_on', 'map.age_on(string): int', ageOn)
+		.registerFunction('age_months_on', 'map.age_months_on(string): int', ageMonthsOn)
 		.registerFunction('taken', 'map.taken(string): double', leaveTaken)
 );
 

@@ -25,6 +25,12 @@ export default defineModel(
 		solo_parent: boolean().notNull().default(false),
 		/** A person with a disability under a statute that grants one more (VN art.113(1)(b), MY PCB relief); `employee.disabled`. */
 		disabled: boolean().notNull().default(false),
+		/**
+		 * Drawing a statutory pension while employed: outside compulsory insurance and owed the
+		 * employer's rate as wages instead (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3));
+		 * `employee.receiving_pension`.
+		 */
+		receiving_pension: boolean().notNull().default(false),
 		/** Only where a statutory fund is selected by it (SG's SHG funds); `employee.race`, `employee.religion`. */
 		race: text(),
 		religion: text(),

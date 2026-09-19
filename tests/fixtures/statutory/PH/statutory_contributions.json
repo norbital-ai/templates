@@ -606,6 +606,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT_NETB\"",
+				"employee": "round_cent(base * 25.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
 				"when": "period.last_of_year",
 				"employee": "round_cent(progressive((((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) > 0.0 ? ((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) : 0.0), [0.0,0.0,0.0,250000.0,0.0,15.0,400000.0,22500.0,20.0,800000.0,102500.0,25.0,2000000.0,402500.0,30.0,8000000.0,2202500.0,35.0]) - scheme.year_to_date.employee)",
 				"employer": "0.0"
@@ -701,7 +706,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(code('ANNUAL_LEAVE_ENCASHMENT'), year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
+		"assessed_on": "person.terms.tax_residency == \"NON_RESIDENT_NETB\" ? (BASE + OVERTIME + NIGHT_PREMIUM + INCENTIVE + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE) : (((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(code('ANNUAL_LEAVE_ENCASHMENT'), year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE))",
 		"short_name": null,
 		"listing_order": 6,
 		"listing_group": null
@@ -1313,6 +1318,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT_NETB\"",
+				"employee": "round_cent(base * 25.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
 				"when": "period.last_of_year",
 				"employee": "round_cent(progressive((((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) > 0.0 ? ((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) : 0.0), [0.0,0.0,0.0,250000.0,0.0,15.0,400000.0,22500.0,20.0,800000.0,102500.0,25.0,2000000.0,402500.0,30.0,8000000.0,2202500.0,35.0]) - scheme.year_to_date.employee)",
 				"employer": "0.0"
@@ -1408,7 +1418,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY', 'bonus', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(code('ANNUAL_LEAVE_ENCASHMENT'), year.earned.ANNUAL_LEAVE_ENCASHMENT, 10.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2000.0 / period.month_factor ? code('meal') - 2000.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
+		"assessed_on": "person.terms.tax_residency == \"NON_RESIDENT_NETB\" ? (BASE + OVERTIME + NIGHT_PREMIUM + INCENTIVE + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE) : (((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY', 'bonus', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(code('ANNUAL_LEAVE_ENCASHMENT'), year.earned.ANNUAL_LEAVE_ENCASHMENT, 10.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2000.0 / period.month_factor ? code('meal') - 2000.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE))",
 		"short_name": null,
 		"listing_order": 6,
 		"listing_group": null
@@ -2020,6 +2030,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT_NETB\"",
+				"employee": "round_cent(base * 25.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
 				"when": "period.last_of_year",
 				"employee": "round_cent(progressive((((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) > 0.0 ? ((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) : 0.0), [0.0,0.0,0.0,250000.0,0.0,15.0,400000.0,22500.0,20.0,800000.0,102500.0,25.0,2000000.0,402500.0,30.0,8000000.0,2202500.0,35.0]) - scheme.year_to_date.employee)",
 				"employer": "0.0"
@@ -2115,7 +2130,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(code('ANNUAL_LEAVE_ENCASHMENT'), year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
+		"assessed_on": "person.terms.tax_residency == \"NON_RESIDENT_NETB\" ? (BASE + OVERTIME + NIGHT_PREMIUM + INCENTIVE + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE) : (((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(code('ANNUAL_LEAVE_ENCASHMENT'), year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE))",
 		"short_name": null,
 		"listing_order": 6,
 		"listing_group": null
@@ -2727,6 +2742,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT_NETB\"",
+				"employee": "round_cent(base * 25.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
 				"when": "period.last_of_year",
 				"employee": "round_cent(progressive((((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) > 0.0 ? ((scheme.year_to_date.base + base) - ((produced.SSS.employee + produced.SSS_MPF.employee) + produced.PHIC.employee + produced.HDMF.employee)) : 0.0), [0.0,0.0,0.0,250000.0,0.0,15.0,400000.0,22500.0,20.0,800000.0,102500.0,25.0,2000000.0,402500.0,30.0,8000000.0,2202500.0,35.0]) - scheme.year_to_date.employee)",
 				"employer": "0.0"
@@ -2822,7 +2842,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(code('ANNUAL_LEAVE_ENCASHMENT'), year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
+		"assessed_on": "person.terms.tax_residency == \"NON_RESIDENT_NETB\" ? (BASE + OVERTIME + NIGHT_PREMIUM + INCENTIVE + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE) : (((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(code('ANNUAL_LEAVE_ENCASHMENT'), year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE))",
 		"short_name": null,
 		"listing_order": 6,
 		"listing_group": null

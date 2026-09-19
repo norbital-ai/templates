@@ -1408,3 +1408,50 @@ test('Philippines — separation pay: a month per year on redundancy, half a mon
 	assert.equal(paid('PH-RETRENCHED'), 75_000);
 	assert.equal(paid('PH-RETRENCHED-8M'), 30_000);
 });
+
+test('Philippines — a non-resident alien not engaged in trade or business is withheld 25% of the gross (NIRC s.25(B))', () => {
+	// ₱80,000 with ₱2,000 of meal allowance (de minimis to a resident): 25% of the entire
+	// compensation, 82,000 × 25% = 20,500 — no exemption, no table; the same alien engaged in
+	// trade or business is on the graduated table like a resident.
+	const book = assessStatutory(
+		{
+			code: 'PH',
+			period: '2026-01',
+			people: [
+				{
+					key: 'PH-NETB',
+					wage: 80_000,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT_NETB'
+				},
+				{ key: 'PH-NRA-ETB', wage: 80_000, citizenship: 'FOREIGNER', tax_residency: 'NON_RESIDENT' }
+			]
+		},
+		(world) => {
+			const rice = world.allowance_catalogue.find(
+				(row) => row.code === 'meal' && row.settings_id === PH_2026
+			);
+			if (rice == null) return;
+			for (const [index, key] of ['PH-NETB', 'PH-NRA-ETB'].entries()) {
+				const employment = world.employments.find((row) => row.employee_number === key)!;
+				world.allowances.push({
+					id: `d0000000-0000-4000-8000-0000000000c${index}`,
+					employment_id: employment.id,
+					catalogue_id: rice.id,
+					amount: 2000,
+					effective_from: '2026-01-01',
+					effective_to: null,
+					reason: 'meal',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		}
+	);
+	const netb = book.get('PH-NETB')!.get('WTAX')!;
+	const etb = book.get('PH-NRA-ETB')!.get('WTAX')!;
+	assert.equal(netb.base, 82_000);
+	assert.equal(netb.employee, 20_500);
+	assert.ok(etb.employee < netb.employee, 'the graduated table withholds less than the flat 25%');
+});

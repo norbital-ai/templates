@@ -71,6 +71,8 @@ export type Person = {
 	/** An exact birth date, for a test that needs one measured in months; overrides `age`. */
 	readonly birth_date?: string;
 	readonly gender?: string;
+	/** `employees.receiving_pension`. */
+	readonly receiving_pension?: boolean;
 	readonly marital_status?: string;
 	readonly spouse_status?: string;
 	readonly solo_parent?: boolean;
@@ -204,6 +206,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		gender: person.gender ?? '',
 		marital_status: person.marital_status ?? 'SINGLE',
 		spouse_status: person.spouse_status ?? 'NONE',
+		receiving_pension: person.receiving_pension ?? false,
 		solo_parent: person.solo_parent ?? false,
 		disabled: person.disabled ?? false,
 		race: person.race ?? null,
