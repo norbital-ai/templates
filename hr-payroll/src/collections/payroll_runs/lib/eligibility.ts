@@ -26,6 +26,7 @@ import {
 	childCitizensUnder,
 	childBornOn,
 	childClassed,
+	childUnclassedUnder,
 	childUnder
 } from '../../../lib/expressions/child-under.js';
 import { roundMoney } from './rounding.js';
@@ -139,7 +140,7 @@ export type PersonContext = {
 		readonly citizens: number;
 		/** Their completed years; `children.citizens_under(age)` counts these. */
 		readonly citizen_ages: readonly number[];
-		/** Each child's relief class — the declared one, else MINOR under 18 / ADULT; `children.classed(x)` counts these. */
+		/** Each child's declared relief class, '' where none; `children.classed(x)` counts these. */
 		readonly classes: readonly string[];
 		/** Confinements: the children's distinct dates of birth (twins are one). */
 		readonly births: number;
@@ -420,11 +421,7 @@ export function personContext(input: PersonInput): PersonContext {
 			citizen_ages: children
 				.filter((child) => child.citizenship === 'CITIZEN')
 				.map((child) => completedYears(dateKey(child.child_birthdate), input.asOf)),
-			classes: children.map(
-				(child) =>
-					(child.relief_class ?? '').trim() ||
-					(completedYears(dateKey(child.child_birthdate), input.asOf) < 18 ? 'MINOR' : 'ADULT')
-			),
+			classes: children.map((child) => (child.relief_class ?? '').trim()),
 			births: new Set(children.map((child) => dateKey(child.child_birthdate))).size,
 			birthdates: children.map((child) => dateKey(child.child_birthdate) ?? '')
 		},
@@ -487,6 +484,7 @@ const engine = ROUNDING.reduce(
 		.registerFunction('under', 'map.under(int): int', childUnder)
 		.registerFunction('citizens_under', 'map.citizens_under(int): int', childCitizensUnder)
 		.registerFunction('classed', 'map.classed(string): int', childClassed)
+		.registerFunction('unclassed_under', 'map.unclassed_under(int): int', childUnclassedUnder)
 		.registerFunction('born_on', 'map.born_on(string): int', childBornOn)
 		.registerFunction('age_on', 'map.age_on(string): int', ageOn)
 		.registerFunction('age_months_on', 'map.age_months_on(string): int', ageMonthsOn)

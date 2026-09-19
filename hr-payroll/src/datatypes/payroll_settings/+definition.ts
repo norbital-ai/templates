@@ -35,11 +35,12 @@ export const payrollSettingsValueSchema = Schema.Struct({
 	 */
 	holiday_in_no_pay_leave_unpaid: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	/**
-	 * A day the contract requires five hours or fewer counts as half a day in the working days a
-	 * part month and an absence are measured on (SG EA s.20A(2)). Absent or false counts every
-	 * rostered day as one.
+	 * A contracted day of at most this many hours counts as half a working day in the part-month
+	 * count (SG EA s.20A(2): five hours or less); absent or null is no half days.
 	 */
-	short_day_is_half: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
+	short_day_half_hours: Schema.optionalKey(
+		Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0)))
+	)
 });
 
 export type PayrollSettings = Schema.Schema.Type<typeof payrollSettingsValueSchema>;

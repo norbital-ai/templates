@@ -97,6 +97,7 @@ test('every declared path in the catalogue compiles as a value', () => {
 			'under',
 			'citizens_under',
 			'classed',
+			'unclassed_under',
 			'born_on',
 			'age_on',
 			'age_months_on',

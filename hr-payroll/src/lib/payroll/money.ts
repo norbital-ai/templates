@@ -40,7 +40,7 @@ import {
 import { stint } from '../employment-contract.js';
 import { payRequestTerms } from '../component_entry_cap_subject.js';
 import type { PayslipAdjustment } from '../../datatypes/payslip_adjustments/+definition.js';
-import { settlementBucket } from './family.js';
+import { oppositeBucket, settlementBucket } from './family.js';
 import type {
 	Measurement,
 	MeasureComponentOptions,
@@ -538,9 +538,14 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			});
 			if (refusal !== null) throw new Error(refusal);
 		}
-		const amount = cents(sign * payable, currency);
+		const signed = cents(sign * payable, currency);
+		// A reversal (`as_adjustment_entry`) or a negative figure lands in the opposite bucket as a
+		// magnitude: a PhilHealth adjustment of −750 on a NET/SUBTRACT row is a 750 payment, not a
+		// deduction of −750.
+		const landing = signed < 0 && bucket !== 'EMPLOYER_COST' ? oppositeBucket(bucket) : bucket;
+		const amount = landing === bucket ? signed : Math.abs(signed);
 		return {
-			amount,
+			amount: signed,
 			base: [],
 			proration: [],
 			adjustments: [
@@ -549,7 +554,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					// the capture and its ceiling key on; a claim names itself.
 					input: { family: entry.family, id: entry.source_id },
 					catalogueComponent: options.component,
-					bucket,
+					bucket: landing,
 					label: options.component.code,
 					amount,
 					quantity: null,

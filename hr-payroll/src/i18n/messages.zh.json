@@ -1070,7 +1070,7 @@
 	"component.scheme_ordinary_on_hint": "仅用于年度上限按基数一部分计量的方案（新加坡 CPF：附加工资上限为 102,000 减去当年普通工资）。该部分的公式，逐次记录并累计为 scheme.year_to_date.ordinary。其他方案留空。",
 	"component.final_pay_due_days": "离职结算期限（最后工作日后天数）",
 	"component.holiday_in_npl_unpaid": "无薪假期间的公众假期不计薪",
-	"component.short_day_is_half": "合同工时≤5小时的一天按半天计",
+	"component.short_day_half_hours": "合同工时不超过此小时数的一天按半天计（留空：不按半天）",
 	"renderer.work_rules.normal_hours": "正常工作日（小时，按人评估；留空则取班次时长）",
 	"renderer.work_rules.rate_week_hours": "时薪计算周上限（小时；留空则按日正常工时折算）",
 	"leave.lifetime_days": "终身天数（数字或按人表达式；留空为不限）",

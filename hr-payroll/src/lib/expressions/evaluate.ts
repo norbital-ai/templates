@@ -9,7 +9,13 @@
 
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
 import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
-import { childBornOn, childCitizensUnder, childClassed, childUnder } from './child-under.js';
+import {
+	childBornOn,
+	childCitizensUnder,
+	childClassed,
+	childUnclassedUnder,
+	childUnder
+} from './child-under.js';
 import { ageMonthsOn, ageOn, leaveTaken } from './person-functions.js';
 
 /**
@@ -102,6 +108,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.under(int): int', childUnder],
 	['map.citizens_under(int): int', childCitizensUnder],
 	['map.classed(string): int', childClassed],
+	['map.unclassed_under(int): int', childUnclassedUnder],
 	['map.born_on(string): int', childBornOn],
 	['map.age_on(string): int', ageOn],
 	['map.age_months_on(string): int', ageMonthsOn],

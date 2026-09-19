@@ -66,7 +66,8 @@ Open prefixes: `company.facts.<key>`.
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
-| `children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
+| `children.classed(x)` | Children in the relief class x declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY) |
+| `children.unclassed_under(n)` | Children with no declared relief class under n completed years — the ordinary child of a relief ladder (MY s.48(1)(a): under eighteen) |
 | `company.region` | Employing entity region |
 | `company.headcount` | Active employments in the entity |
 | `company.headcount_citizens` | Of them, the citizens |
@@ -159,7 +160,8 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
-| `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
+| `person.children.classed(x)` | Children in the relief class x declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY) |
+| `person.children.unclassed_under(n)` | Children with no declared relief class under n completed years — the ordinary child of a relief ladder (MY s.48(1)(a): under eighteen) |
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
@@ -282,7 +284,8 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
-| `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
+| `person.children.classed(x)` | Children in the relief class x declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY) |
+| `person.children.unclassed_under(n)` | Children with no declared relief class under n completed years — the ordinary child of a relief ladder (MY s.48(1)(a): under eighteen) |
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
@@ -396,7 +399,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
-| `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
+| `person.children.classed(x)` | Children in the relief class x declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY) |
+| `person.children.unclassed_under(n)` | Children with no declared relief class under n completed years — the ordinary child of a relief ladder (MY s.48(1)(a): under eighteen) |
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
@@ -535,7 +539,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
-| `person.children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
+| `person.children.classed(x)` | Children in the relief class x declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY) |
+| `person.children.unclassed_under(n)` | Children with no declared relief class under n completed years — the ordinary child of a relief ladder (MY s.48(1)(a): under eighteen) |
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
@@ -664,7 +669,8 @@ Open prefixes: `company.facts.<key>`.
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
-| `children.classed(x)` | Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT |
+| `children.classed(x)` | Children in the relief class x declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY) |
+| `children.unclassed_under(n)` | Children with no declared relief class under n completed years — the ordinary child of a relief ladder (MY s.48(1)(a): under eighteen) |
 | `company.region` | Employing entity region |
 | `company.headcount` | Active employments in the entity |
 | `company.headcount_citizens` | Of them, the citizens |
