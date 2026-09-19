@@ -118,11 +118,7 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
-					"suspended_by_leave": [
-						"MATERNITY_LEAVE",
-						"MEDICAL_LEAVE",
-						"HOSPITALIZATION_LEAVE"
-					]
+					"suspended_by_leave": ["MATERNITY_LEAVE", "MEDICAL_LEAVE", "HOSPITALIZATION_LEAVE"]
 				}
 			],
 			"breaks": [
@@ -283,11 +279,7 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
-					"suspended_by_leave": [
-						"MATERNITY_LEAVE",
-						"MEDICAL_LEAVE",
-						"HOSPITALIZATION_LEAVE"
-					]
+					"suspended_by_leave": ["MATERNITY_LEAVE", "MEDICAL_LEAVE", "HOSPITALIZATION_LEAVE"]
 				}
 			],
 			"breaks": [
@@ -451,11 +443,7 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
-					"suspended_by_leave": [
-						"MATERNITY_LEAVE",
-						"MEDICAL_LEAVE",
-						"HOSPITALIZATION_LEAVE"
-					]
+					"suspended_by_leave": ["MATERNITY_LEAVE", "MEDICAL_LEAVE", "HOSPITALIZATION_LEAVE"]
 				}
 			],
 			"breaks": [

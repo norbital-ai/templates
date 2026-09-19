@@ -316,8 +316,18 @@ test('Philippines — a semi-monthly company: the monthly schemes once a month, 
 			base: [{ component_code: 'BASIC', amount: basic }],
 			adjustments: [],
 			statutory: [
-				{ scheme_code: 'SSS', base_amount: 30_000, employee_amount: sss[0], employer_amount: sss[1] },
-				{ scheme_code: 'SSS_MPF', base_amount: 30_000, employee_amount: 500, employer_amount: 1000 },
+				{
+					scheme_code: 'SSS',
+					base_amount: 30_000,
+					employee_amount: sss[0],
+					employer_amount: sss[1]
+				},
+				{
+					scheme_code: 'SSS_MPF',
+					base_amount: 30_000,
+					employee_amount: 500,
+					employer_amount: 1000
+				},
 				{ scheme_code: 'SSS_EC', base_amount: 30_000, employee_amount: 0, employer_amount: 30 },
 				{ scheme_code: 'PHIC', base_amount: 30_000, employee_amount: 750, employer_amount: 750 },
 				{ scheme_code: 'HDMF', base_amount: 30_000, employee_amount: 200, employer_amount: 200 }
@@ -688,12 +698,32 @@ function opsph006(
 						}
 					],
 					statutory: [
-						{ scheme_code: 'SSS', base_amount: 17_761.9, employee_amount: firstHalf.sss[0], employer_amount: firstHalf.sss[1] },
+						{
+							scheme_code: 'SSS',
+							base_amount: 17_761.9,
+							employee_amount: firstHalf.sss[0],
+							employer_amount: firstHalf.sss[1]
+						},
 						...(firstHalf.others
 							? [
-									{ scheme_code: 'SSS_EC', base_amount: 17_761.9, employee_amount: 0, employer_amount: 30 },
-									{ scheme_code: 'PHIC', base_amount: 17_761.9, employee_amount: 391.25, employer_amount: 391.25 },
-									{ scheme_code: 'HDMF', base_amount: 17_761.9, employee_amount: 200, employer_amount: 200 }
+									{
+										scheme_code: 'SSS_EC',
+										base_amount: 17_761.9,
+										employee_amount: 0,
+										employer_amount: 30
+									},
+									{
+										scheme_code: 'PHIC',
+										base_amount: 17_761.9,
+										employee_amount: 391.25,
+										employer_amount: 391.25
+									},
+									{
+										scheme_code: 'HDMF',
+										base_amount: 17_761.9,
+										employee_amount: 200,
+										employer_amount: 200
+									}
 								]
 							: [])
 					]
