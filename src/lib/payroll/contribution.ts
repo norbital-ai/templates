@@ -152,7 +152,10 @@ import { ordinaryDivisorDays } from '../../collections/payroll_runs/lib/ordinary
 import { live, coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
-import { accumulatePayslip } from '../../collections/payroll_runs/lib/accumulate.js';
+import {
+	accumulatePayslip,
+	type MonthPrior
+} from '../../collections/payroll_runs/lib/accumulate.js';
 import { orderSchemes } from '../../collections/payroll_runs/lib/mentions.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { StatutoryFactStatus } from '../../collections/payroll_runs/lib/contribute.js';
@@ -528,6 +531,8 @@ export function prepareContributionAssessment(options: {
 	readonly yearEarned: ReadonlyMap<string, number>;
 	/** calendar month → component code → what this employee's earlier payslips earned. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/** What the month's earlier instalments settled and charged, at a semi-monthly or weekly cadence. */
+	readonly monthPrior?: MonthPrior;
 }): ContractAssessment {
 	const { measured, configuration, projection, headcount } = options;
 	const { bundle } = measured;
@@ -630,6 +635,7 @@ export function prepareContributionAssessment(options: {
 			},
 			yearEarned: options.yearEarned,
 			earnedByMonth: options.earnedByMonth,
+			monthPrior: options.monthPrior,
 			componentsByCode: new Map(
 				configuration.catalogueComponents.map((component) => [
 					component.code,

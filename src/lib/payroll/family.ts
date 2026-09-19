@@ -47,6 +47,8 @@ export type FamilyPayItem = {
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'LOAN';
 	/** `allowance_catalogue.fixed`: paid regardless of attendance; absent (a claim, a work line) reads true. */
 	readonly fixed?: boolean;
+	/** `allowance_catalogue.one_off`: a lump sum due whole in its period, never prorated. */
+	readonly one_off?: boolean;
 };
 
 import type {

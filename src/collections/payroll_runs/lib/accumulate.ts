@@ -196,3 +196,65 @@ export function catalogueSum(
 	}
 	return total;
 }
+
+/**
+ * What an earlier instalment of the same month settled, read back off its payslip: the lines
+ * re-folded into the same magnitudes and code map this run accumulates, and the statutory rows
+ * as charged. A MONTH-assessed scheme at a semi-monthly or weekly cadence prices the month on the
+ * sum of its instalments and charges the difference from what the earlier ones already took.
+ */
+export type MonthPrior = {
+	readonly accumulation: AccumulatedPayslip;
+	/** scheme code → what the earlier instalments charged and on what base. */
+	readonly charged: ReadonlyMap<
+		string,
+		{ employee: number; employer: number; base: number; ordinary: number }
+	>;
+};
+
+type SettledLine = {
+	readonly component_code: string;
+	readonly amount: unknown;
+	readonly bucket?: string;
+	readonly quantity?: unknown;
+};
+
+/**
+ * A settled payslip's lines as priced items, by the catalogue the run holds. A line whose
+ * component the version no longer carries (a leave row's encashment, a code since retired) is
+ * folded by what its code and bucket say.
+ */
+export function accumulateSettledPayslip(
+	payslip: {
+		readonly base: readonly SettledLine[];
+		readonly adjustments: readonly SettledLine[];
+	},
+	componentsByCode: ReadonlyMap<string, FamilyPayItem>,
+	ordinaryHour?: number
+): AccumulatedPayslip {
+	const items = [...payslip.base, ...payslip.adjustments].map((line) => {
+		const code = String(line.component_code);
+		const bucket = (line.bucket ?? 'EARNING') as PricedItem['bucket'];
+		const stub = (family: FamilyPayItem['family']): FamilyPayItem => ({
+			id: code,
+			settings_id: '',
+			code,
+			family,
+			destination: 'PAY',
+			direction: bucket === 'ABSENCE' || bucket === 'DEDUCTION' ? 'SUBTRACT' : 'ADD',
+			bands: [],
+			eligibility: ''
+		});
+		const component =
+			componentsByCode.get(code) ??
+			stub(code.endsWith('_ENCASHMENT') || bucket === 'ABSENCE' ? 'LEAVE' : 'ALLOWANCE');
+		return {
+			catalogueComponent: component,
+			bucket,
+			label: code,
+			amount: Number(line.amount),
+			quantity: line.quantity == null ? null : Number(line.quantity)
+		} as PricedItem & { readonly quantity?: number | null };
+	});
+	return accumulatePayslip({ items, ordinaryHour });
+}

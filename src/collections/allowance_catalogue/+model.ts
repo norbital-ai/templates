@@ -38,11 +38,19 @@ export default defineModel(
 		 * insurance salary, MY overtime wages). A reimbursement, a per-day allowance or a bonus is
 		 * not fixed, whatever its window.
 		 */
-		fixed: boolean().notNull().default(true)
+		fixed: boolean().notNull().default(true),
+		/**
+		 * A one-off amount — a bonus, back pay, an ex-gratia sum, a festival or separation payment —
+		 * is due whole in the period its window falls in, whatever the window's length or the days
+		 * the person was employed: no statute prorates a lump sum (SG: the AW "payable in the
+		 * month"; MY s.18A prorates monthly wages only). A standing row is a monthly magnitude and
+		 * prorates like basic salary.
+		 */
+		one_off: boolean().notNull().default(false)
 	},
 	{
 		description:
-			'The allowance catalogue of one jurisdiction settings version: code, destination and direction, the bands that price, cap and opt the allowance into statutory schemes, and the evidence it demands. Every allowance is standing: a monthly amount over an effective window, prorated like basic salary. Sealed with its version; the run cites the version it priced against.',
+			'The allowance catalogue of one jurisdiction settings version: code, destination and direction, the bands that price, cap and opt the allowance into statutory schemes, and the evidence it demands. A standing allowance is a monthly amount over an effective window, prorated like basic salary; a one-off amount is due whole in the period it lands in. Sealed with its version; the run cites the version it priced against.',
 		recordLabel: ['code'],
 		icon: 'lucide:calendar-clock',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

@@ -38,9 +38,11 @@ import {
 } from '../../../lib/expressions/evaluate.js';
 import {
 	catalogueSum,
+	sumAccumulations,
 	type AccumulatedPayslip,
 	type AccumulationLine,
-	type ContributionLine
+	type ContributionLine,
+	type MonthPrior
 } from './accumulate.js';
 import type { ContributionConfig } from './configuration.js';
 import { completedMonths } from './dates.js';
@@ -105,6 +107,8 @@ type SchemeAssessment = {
 	>;
 	/** calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/** The month's earlier instalments (semi-monthly, weekly): a MONTH scheme prices the month on their sum. */
+	readonly monthPrior?: MonthPrior;
 	/** The period being settled: the shared six-member root. */
 	readonly period: {
 		readonly key: string;
@@ -515,8 +519,19 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			contribution.row.assessment_period === 'MONTH' &&
 			input.period.instalments > 1 &&
 			input.period.monthlyOn !== 'SPLIT';
-		const carrying = input.period.monthlyOn === 'LAST' ? input.period.instalments : 1;
-		if (monthlyAssessed && input.period.index !== carrying) {
+		// `FIRST`: the first instalment charges on an estimate of the month (its own wage scaled to
+		// the month); every later one prices the month on what was actually paid — the earlier
+		// instalments' settled lines plus its own — and charges the difference from what the earlier
+		// ones took. `LAST`: nothing until the last instalment, which prices the month whole.
+		const estimating =
+			monthlyAssessed && input.period.monthlyOn === 'FIRST' && input.period.index === 1;
+		const truingUp =
+			monthlyAssessed && input.period.monthlyOn === 'FIRST' && input.period.index > 1;
+		const pricingMonth =
+			monthlyAssessed &&
+			input.period.monthlyOn === 'LAST' &&
+			input.period.index === input.period.instalments;
+		if (monthlyAssessed && !estimating && !truingUp && !pricingMonth) {
 			// The other instalment of a month the carrying one charges: nothing is due, and no
 			// formula is even read.
 			produced.set(code, { base: 0, employee: 0, employer: 0 });
@@ -533,31 +548,39 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			continue;
 		}
 		const reliefs = reliefReads({ input, contribution, produced, byCode });
+		// The wage a month scheme reads: the month's instalments summed where the month is priced
+		// on what was paid, this instalment alone otherwise; and the month is then one period.
+		const monthPrior = truingUp || pricingMonth ? input.monthPrior : undefined;
+		const accumulation =
+			monthPrior == null
+				? input.accumulation
+				: sumAccumulations([monthPrior.accumulation, input.accumulation]);
+		const schemeInput: SchemeAssessment =
+			truingUp || pricingMonth
+				? { ...input, accumulation, period: { ...input.period, monthFactor: 1 } }
+				: input;
+		const schemeEngine = monthPrior == null ? engine : engineFor(schemeInput, accumulation);
+		const scale = estimating ? (input.period.monthFactor ?? input.period.instalments) : 1;
 		const evaluated = assessedBase({
-			input,
+			input: schemeInput,
 			contribution,
-			accumulation: input.accumulation,
+			accumulation,
 			produced,
 			reads: reliefs
 		});
-		const base = monthlyAssessed
-			? cents(
-					evaluated.base * (input.period.monthFactor ?? input.period.instalments),
-					input.currency
-				)
-			: evaluated.base;
+		const base = cents(evaluated.base * scale, input.currency);
 		// The ordinary part of the base, where the ceiling splits it (`ordinary_on`).
 		const ordinaryOn = (contribution.row.ordinary_on ?? '').trim();
 		const ordinary =
 			ordinaryOn === ''
 				? null
 				: assessedBase({
-						input,
+						input: schemeInput,
 						contribution: {
 							...contribution,
 							row: { ...contribution.row, assessed_on: ordinaryOn }
 						},
-						accumulation: input.accumulation,
+						accumulation,
 						produced,
 						reads: reliefs
 					}).base;
@@ -592,12 +615,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 									produced,
 									reads: reliefs
 								});
-								const ownBase = monthlyAssessed
-									? cents(
-											own.base * (input.period.monthFactor ?? input.period.instalments),
-											input.currency
-										)
-									: own.base;
+								const ownBase = cents(own.base * scale, input.currency);
 								return { base: ownBase, inputs: own.selected };
 							})
 						})
@@ -619,21 +637,20 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			);
 
 		const context = {
-			...schemeContext({ input, contribution, status, expressions, produced, reads: reliefs }),
+			...schemeContext({
+				input: schemeInput,
+				contribution,
+				status,
+				expressions,
+				produced,
+				reads: reliefs
+			}),
 			base,
 			// The `ordinary_on` part of this period's base, the base itself where the scheme states
 			// none: a rule that prices the rest differently (MY MTD's additional remuneration) reads it.
-			ordinary:
-				ordinary == null
-					? base
-					: monthlyAssessed
-						? cents(
-								ordinary * (input.period.monthFactor ?? input.period.instalments),
-								input.currency
-							)
-						: ordinary
+			ordinary: ordinary == null ? base : cents(ordinary * scale, input.currency)
 		};
-		const rule = selectRule(contribution.row.rules, context, engine);
+		const rule = selectRule(contribution.row.rules, context, schemeEngine);
 		if (rule == null) {
 			// No rule matches: the scheme charges nothing and appears on no payslip, but a consumer
 			// that names it reads zero rather than a missing row.
@@ -641,16 +658,23 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			continue;
 		}
 		const directed = directedFor(status, input.period.key, input.currency);
+		// Truing the month up: the month's charge less what the earlier instalments already took,
+		// and the base stored is the month's less theirs, so the year's sum is the month once.
+		const already = truingUp ? monthPrior?.charged.get(code) : undefined;
 		const employee = cents(
-			evaluateNumber(engine, rule.employee, context) + directed,
+			evaluateNumber(schemeEngine, rule.employee, context) - (already?.employee ?? 0) + directed,
 			input.currency
 		);
-		const employer = cents(evaluateNumber(engine, rule.employer, context), input.currency);
+		const employer = cents(
+			evaluateNumber(schemeEngine, rule.employer, context) - (already?.employer ?? 0),
+			input.currency
+		);
+		const chargeBase = already == null ? base : cents(base - already.base, input.currency);
 		charge(
 			employee,
 			employer,
 			rule.when,
-			base,
+			chargeBase,
 			[...reliefs].map(([readCode, employeeAmount]) => ({
 				code: readCode,
 				employee_amount: employeeAmount,

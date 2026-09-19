@@ -1,10 +1,17 @@
 /** Families prepare their own inputs and calculations. This coordinator preserves the family pipeline and contribution staging. */
 import { decodeNumber } from '@norbital-ai/std/json';
 import type {
+	CatalogueComponent,
 	Configuration,
 	Jurisdiction
 } from '../../collections/payroll_runs/lib/configuration.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
+import {
+	accumulateSettledPayslip,
+	sumAccumulations,
+	type AccumulatedPayslip,
+	type MonthPrior
+} from '../../collections/payroll_runs/lib/accumulate.js';
 import {
 	inclusiveDays,
 	completedMonths,
@@ -649,11 +656,70 @@ export function prepareFamilyInputs(
 		return { ...work, ...loans, factsByEmployee };
 	});
 }
+/**
+ * The earlier instalments of each calendar month, per employee: what they settled (re-folded into
+ * an accumulation) and what each scheme charged on them. A MONTH-assessed scheme at a
+ * semi-monthly or weekly cadence prices the month on the sum and charges the difference.
+ */
+function monthPriorOf(options: {
+	readonly payslips: readonly WorkspaceRow<'payslips'>[];
+	readonly employmentToEmployee: ReadonlyMap<string, string>;
+	readonly periodByRun: ReadonlyMap<string, string>;
+	readonly catalogueComponents?: readonly CatalogueComponent[];
+}): Map<string, MonthPrior> {
+	const componentsByCode = new Map(
+		(options.catalogueComponents ?? []).map((component) => [component.code, component])
+	);
+	const parts = new Map<
+		string,
+		{
+			accumulations: AccumulatedPayslip[];
+			charged: Map<string, { employee: number; employer: number; base: number; ordinary: number }>;
+		}
+	>();
+	for (const payslip of options.payslips) {
+		const period = options.periodByRun.get(payslip.payroll_run_id);
+		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
+		if (period == null || employeeId == null) continue;
+		const key = `${employeeId}:${period.slice(0, 7)}`;
+		const entry = parts.get(key) ?? {
+			accumulations: [] as AccumulatedPayslip[],
+			charged: new Map<
+				string,
+				{ employee: number; employer: number; base: number; ordinary: number }
+			>()
+		};
+		entry.accumulations.push(accumulateSettledPayslip(payslip, componentsByCode));
+		for (const charge of payslip.statutory) {
+			const running = entry.charged.get(charge.scheme_code) ?? {
+				employee: 0,
+				employer: 0,
+				base: 0,
+				ordinary: 0
+			};
+			entry.charged.set(charge.scheme_code, {
+				employee: running.employee + decodeNumber(charge.employee_amount),
+				employer: running.employer + decodeNumber(charge.employer_amount),
+				base: running.base + decodeNumber(charge.base_amount),
+				ordinary: running.ordinary + decodeNumber(charge.ordinary_amount ?? 0)
+			});
+		}
+		parts.set(key, entry);
+	}
+	return new Map(
+		[...parts].map(([key, entry]) => [
+			key,
+			{ accumulation: sumAccumulations(entry.accumulations), charged: entry.charged }
+		])
+	);
+}
+
 export function prepareFamilyHistory(
 	options: Parameters<typeof contributionYearToDate>[0] & {
 		readonly api: PayrollReadApi & { readonly reads: ReadLog };
 		/** run id → its period, so a settled payslip's overtime lands in a calendar month. */
 		readonly periodByRun: ReadonlyMap<string, string>;
+		readonly catalogueComponents?: readonly CatalogueComponent[];
 	}
 ) {
 	return Effect.gen(function* () {
@@ -664,6 +730,7 @@ export function prepareFamilyHistory(
 			yearEarned: earnedYearToDate(options),
 			earnedByMonth: earnedByMonth(options),
 			priorOvertimeHours: priorOvertimeHours(options),
+			monthPrior: monthPriorOf(options),
 			consumedEntries
 		};
 	});
@@ -920,7 +987,10 @@ export function calculateFamilyAssessments(options: {
 				headcount: gathered.headcount,
 				headcountCitizens: gathered.headcountCitizens,
 				yearEarned,
-				earnedByMonth
+				earnedByMonth,
+				monthPrior: gathered.monthPrior.get(
+					`${run.measured.bundle.employment.employee_id}:${period.slice(0, 7)}`
+				)
 			})
 		})
 	);

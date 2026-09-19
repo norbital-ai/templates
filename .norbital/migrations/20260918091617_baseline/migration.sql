@@ -16,7 +16,8 @@ CREATE TABLE "allowance_catalogue" (
 	"eligibility" text DEFAULT '' NOT NULL,
 	"evidence" text DEFAULT 'NONE' NOT NULL,
 	"on_separation" boolean DEFAULT false NOT NULL,
-	"fixed" boolean DEFAULT true NOT NULL
+	"fixed" boolean DEFAULT true NOT NULL,
+	"one_off" boolean DEFAULT false NOT NULL
 );
 
 --> statement-breakpoint

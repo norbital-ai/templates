@@ -13,7 +13,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "874b6d04-8bf1-4d59-b4c4-18daf98a98e5",
@@ -31,7 +32,8 @@
 			}
 		],
 		"fixed": false,
-		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned."
+		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned.",
+		"one_off": false
 	},
 	{
 		"id": "1f411676-75cd-48f6-af21-4b0c726d50e5",
@@ -48,7 +50,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "92e2ca4a-bd53-42f5-8b62-84e892da9954",
@@ -64,7 +67,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "a4b3da46-38fa-4802-bcc6-38a965b49c31",
@@ -81,7 +85,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "b821f944-a1cd-41d9-b301-d7717c300ccb",
@@ -98,7 +103,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "a740b0db-8bab-4028-9ae4-8cd528760ef4",
@@ -114,7 +120,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "1f36debb-0b79-4aab-966e-aae5251b1026",
@@ -130,7 +137,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "411b75ed-98a1-484e-a145-c722bb5bf0c2",
@@ -146,7 +154,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "813dd923-1d58-4d34-9c5c-2c045571ac6d",
@@ -162,7 +171,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "04aad329-59bd-544c-a244-aec10577654d",
@@ -178,7 +188,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "89df9fab-45d9-585a-b243-4ddadcf1d0c4",
@@ -196,7 +207,8 @@
 			}
 		],
 		"fixed": false,
-		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned."
+		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned.",
+		"one_off": false
 	},
 	{
 		"id": "91b3de7d-2ac4-5e90-b50d-5a3e93eecb43",
@@ -213,7 +225,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "a3fbd97a-0b76-546d-bc4c-e56ac46dc4ce",
@@ -229,7 +242,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "c31d7e15-6f7f-5e49-9cce-2fb14cfcbb53",
@@ -246,7 +260,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "3cc6f251-a1ed-5a34-a1c5-28af7b86d0af",
@@ -263,7 +278,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "cb5966fe-c274-5854-bcae-953e9c893427",
@@ -279,7 +295,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "e581818c-25be-53bc-8974-af3980f6ba1c",
@@ -295,7 +312,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "fac5d564-cb50-527e-89cd-b56e920ff00f",
@@ -311,7 +329,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "fd7b594a-eca2-5483-989e-f371aa8f2b2c",
@@ -327,7 +346,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "ac52185b-ae2a-4e9e-96df-cc58a884ebeb",
@@ -343,7 +363,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "1560faf3-26ba-468f-a4d0-b2a6fccfcf65",
@@ -360,7 +381,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "d7e67d83-e853-4c73-b41f-c3897a5b650f",
@@ -377,7 +399,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "336bf95e-1c46-5e5e-8f40-633b24dcc321",
@@ -393,7 +416,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "aedef594-80d5-5f4b-a8ab-900f0973cf68",
@@ -410,7 +434,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "0d49f8dc-70b5-578c-930e-d370e8e686ec",
@@ -427,7 +452,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "4fddc3cc-7bf8-42c4-8f43-7d9ef87605d6",
@@ -444,7 +470,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "617ae8c6-9874-5f5b-808e-f6bc96bedf7a",
@@ -464,7 +491,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "4197dd92-b948-5d01-976b-1407bddf2a5e",
@@ -484,7 +512,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "10327012-fd88-50a4-9d23-4c41c671146a",
@@ -504,7 +533,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "89806dd6-8b4d-57bf-ae48-eae34f21a970",
@@ -524,7 +554,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "58641332-2b95-5c67-bfbe-deda780e70bc",
@@ -540,7 +571,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "cd593173-67e6-58d7-838c-05b13cc11cc1",
@@ -558,7 +590,8 @@
 			}
 		],
 		"fixed": false,
-		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned."
+		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned.",
+		"one_off": false
 	},
 	{
 		"id": "9cddc6ed-d931-5caf-b42b-1af8eeaf9292",
@@ -575,7 +608,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "c84a3469-3a23-5250-ae8c-096d6761c427",
@@ -591,7 +625,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "b69a74f0-ca3a-5420-a431-8e0041241493",
@@ -608,7 +643,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "54607247-ebc3-57ca-83d4-af3d7205a6de",
@@ -625,7 +661,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "cec2794d-6fda-5adb-a7ca-5bc65c3a9a8a",
@@ -641,7 +678,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "ae188624-423c-5fce-ae1c-a6ff416dacba",
@@ -657,7 +695,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "69ed9986-ea8b-58a2-a7f4-9a19e1dd4378",
@@ -673,7 +712,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "69062381-1151-5422-a85d-d35292c4a4e0",
@@ -689,7 +729,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "201b627b-f884-5051-8e80-c46837fd9ef6",
@@ -705,7 +746,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "4773c9af-9c4b-5880-b6da-feee1ea4220c",
@@ -722,7 +764,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "cb173325-6796-5126-a6d6-784cfef7e248",
@@ -739,7 +782,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "f8feae62-458e-5c9e-bfda-19ed52e20513",
@@ -756,7 +800,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "3e3639ae-6d60-5882-921f-a7b4abedd26a",
@@ -776,7 +821,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "7593d8a1-5b5e-559b-bd28-f095fe93361b",
@@ -796,7 +842,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "a00ebc44-1eba-5441-b271-d1370b87bca3",
@@ -812,7 +859,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "033e8385-671d-52d7-8cfb-2b0206e22608",
@@ -830,7 +878,8 @@
 			}
 		],
 		"fixed": false,
-		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned."
+		"authority": "Applied 2026-09-19 (2): Not fixed: a meal allowance is paid for the days it is earned.",
+		"one_off": false
 	},
 	{
 		"id": "9e0ec681-166f-5cac-9428-d103f205a63e",
@@ -847,7 +896,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "77014598-9ddf-5eca-a4a6-bf57b9685782",
@@ -863,7 +913,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "866b495e-a5c7-5fc6-9adb-8c9ac583e73e",
@@ -880,7 +931,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "2ea9618c-6cb5-5484-b2e1-650f71ee8954",
@@ -897,7 +949,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "f963491e-8e3e-57f3-9ae3-c8394c753f81",
@@ -913,7 +966,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "c3bf6a5a-f4ff-5bf8-b5e5-d0dd452f5170",
@@ -929,7 +983,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "992c03a6-6c05-5ef9-a208-4f9e460e94d7",
@@ -945,7 +1000,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "5bf7b558-65c6-517a-b5bb-a1e12f88c760",
@@ -961,7 +1017,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "fe3c8196-4a2d-5562-802b-876247390d97",
@@ -977,7 +1034,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"one_off": false
 	},
 	{
 		"id": "b9267a4a-1ed3-53c3-84df-f9e90700eb64",
@@ -994,7 +1052,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "b8deaafb-a813-5b9f-a755-51722e8c46c6",
@@ -1011,7 +1070,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "a6dc29c5-3ac7-5601-83c9-465badd6699c",
@@ -1028,7 +1088,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "6c4cfb63-a114-5de3-a5ef-d47f792589bc",
@@ -1048,7 +1109,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "023c9e25-9d43-5017-b2fa-b4353e91bcd9",
@@ -1068,6 +1130,7 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	}
 ]

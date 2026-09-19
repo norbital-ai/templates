@@ -296,15 +296,59 @@ test('Philippines — a semi-monthly company: the monthly schemes once a month, 
 	expectStatutory(first, 'PH-S-30000', 'HDMF', 200, 200);
 	// 15,000 − 2,450 = 12,550, in the ₱10,417–16,666 rung: 15% × (12,550 − 10,417) = 319.95.
 	expectStatutory(first, 'PH-S-30000', 'WTAX', 319.95, 0);
-	const second = assessStatutory({
-		code: 'PH',
-		period: '2026-02-2',
-		payFrequency: 'SEMI_MONTHLY',
-		people: [person]
-	});
-	// Nothing monthly is charged twice; the half's 15,000 carries no relief: 15% × (15,000 − 10,417).
+	// The first half charged the month on an estimate (its own 15,000 as the month's 30,000). The
+	// second half prices the month on what was actually paid — the first half's settled lines plus
+	// its own — and charges the difference: nothing more where the month came out as estimated.
+	const firstHalfSlip = (world: PayrollWorld, basic: number, sss: [number, number]) => {
+		const employment = world.employments.find((row) => row.employee_number === 'PH-S-30000')!;
+		world.payroll_runs.push({
+			id: 'ph-feb-1',
+			company_id: COMPANY_ID,
+			period: '2026-02-1',
+			lifecycle: 'PAID'
+		} as never);
+		world.payslips.push({
+			id: 'ph-feb-1-slip',
+			payroll_run_id: 'ph-feb-1',
+			employment_id: employment.id,
+			status: 'PAID',
+			paid_at: '2026-02-14T00:00:00.000Z',
+			base: [{ component_code: 'BASIC', amount: basic }],
+			adjustments: [],
+			statutory: [
+				{ scheme_code: 'SSS', base_amount: 30_000, employee_amount: sss[0], employer_amount: sss[1] },
+				{ scheme_code: 'SSS_MPF', base_amount: 30_000, employee_amount: 500, employer_amount: 1000 },
+				{ scheme_code: 'SSS_EC', base_amount: 30_000, employee_amount: 0, employer_amount: 30 },
+				{ scheme_code: 'PHIC', base_amount: 30_000, employee_amount: 750, employer_amount: 750 },
+				{ scheme_code: 'HDMF', base_amount: 30_000, employee_amount: 200, employer_amount: 200 }
+			]
+		} as never);
+	};
+	const second = assessStatutory(
+		{ code: 'PH', period: '2026-02-2', payFrequency: 'SEMI_MONTHLY', people: [person] },
+		(world) => firstHalfSlip(world, 15_000, [1000, 2000])
+	);
+	// The month came out at 30,000: nothing more; the half's 15,000 carries no relief for
+	// withholding: 15% × (15,000 − 10,417).
 	expectStatutory(second, 'PH-S-30000', 'SSS', 0, 0);
 	expectStatutory(second, 'PH-S-30000', 'WTAX', 687.45, 0);
+	// RA 11199 s.18: the contribution is on the month's actual compensation. A day of leave
+	// without pay in the second half (30,000 × 12 ÷ 261 = 1,379.31 on the five-day factor) makes
+	// the month 28,620.69 — MSC 28,500, SSS 1,425 / 2,850 where the first half charged
+	// 1,500 / 3,000 on the estimate: this half returns 75 / 150.
+	const secondShort = buildStatutory(
+		{ code: 'PH', period: '2026-02-2', payFrequency: 'SEMI_MONTHLY', people: [person] },
+		(world) => {
+			firstHalfSlip(world, 15_000, [1000, 2000]);
+			withNoPayLeaveRow(world);
+			noPayLeave(world, 'PH-S-30000', ['2026-02-17']);
+		}
+	);
+	const short = secondShort.slips.get('PH-S-30000')!;
+	const sss = short.statutory.find((row) => row.scheme_code === 'SSS')!;
+	const mpf = short.statutory.find((row) => row.scheme_code === 'SSS_MPF')!;
+	assert.equal(sss.employee_amount + mpf.employee_amount, -75);
+	assert.equal(sss.employer_amount + mpf.employer_amount, -150);
 });
 
 test('Philippines — December annualises the year and charges the difference (RR 11-2018 s.16)', () => {
@@ -425,11 +469,11 @@ test('Philippines — a weekly-paying company withholds on Annex E’s weekly co
 	// RR 11-2018 Annex E: a weekly payslip of 10,000 with nothing deducted this week sits in the
 	// weekly column's third bracket: 432.60 + 20% × (10,000 − 7,692) = 894.20. SSS, PhilHealth and
 	// Pag-IBIG are assessed over the month (RA 11199, RA 11223, RA 9679) and a weekly company
-	// charges them once, in the month's last week, on the month's wage — the weekly 10,000 × 52 ÷
-	// 12 = 43,333.33 (SSS Circular 2014-002): MSC 35,000 — the regular 20,000 → 1,000 / 2,000, the
-	// MPF 15,000 above it → 750 / 1,500. PhilHealth reads the monthly basic salary as the
-	// version's own divisor states it (a five-day week: weekly ÷ 5 × 261 ÷ 12 = 43,500): 5% →
-	// 1,087.50 each; Pag-IBIG the ₱200 cap each.
+	// charges them once, in the month's last week, on the month's actual pay — the five weeks
+	// paid in March, 50,000 (RA 11199 s.18: the month's compensation): MSC 35,000 — the regular
+	// 20,000 → 1,000 / 2,000, the MPF 15,000 above it → 750 / 1,500. PhilHealth reads the monthly
+	// basic salary as the version's own divisor states it (a five-day week: weekly ÷ 5 × 261 ÷ 12
+	// = 43,500): 5% → 1,087.50 each; Pag-IBIG the ₱200 cap each.
 	const week2 = assessStatutory({
 		code: 'PH',
 		period: '2026-03-2',
@@ -440,13 +484,37 @@ test('Philippines — a weekly-paying company withholds on Annex E’s weekly co
 	// The other weeks of the month carry the month's schemes at zero: nothing is due, no formula read.
 	expectStatutory(week2, 'PH-WEEKLY', 'SSS', 0, 0);
 	expectStatutory(week2, 'PH-WEEKLY', 'PHIC', 0, 0);
-	const week5 = assessStatutory({
-		code: 'PH',
-		period: '2026-03-5',
-		payFrequency: 'WEEKLY',
-		people: [{ key: 'PH-WEEKLY', wage: 10_000, pay_frequency: 'WEEKLY' }]
-	});
-	expectStatutoryBase(week5, 'PH-WEEKLY', 'SSS', 43_333.33);
+	const week5 = assessStatutory(
+		{
+			code: 'PH',
+			period: '2026-03-5',
+			payFrequency: 'WEEKLY',
+			people: [{ key: 'PH-WEEKLY', wage: 10_000, pay_frequency: 'WEEKLY' }]
+		},
+		(world) => {
+			// The month's four earlier weeks, settled: 10,000 each, the month's schemes at zero.
+			const employment = world.employments.find((row) => row.employee_number === 'PH-WEEKLY')!;
+			for (const week of [1, 2, 3, 4]) {
+				world.payroll_runs.push({
+					id: `ph-mar-${week}`,
+					company_id: COMPANY_ID,
+					period: `2026-03-${week}`,
+					lifecycle: 'PAID'
+				} as never);
+				world.payslips.push({
+					id: `ph-mar-${week}-slip`,
+					payroll_run_id: `ph-mar-${week}`,
+					employment_id: employment.id,
+					status: 'PAID',
+					paid_at: `2026-03-0${week}T00:00:00.000Z`,
+					base: [{ component_code: 'BASIC', amount: 10_000 }],
+					adjustments: [],
+					statutory: []
+				} as never);
+			}
+		}
+	);
+	expectStatutoryBase(week5, 'PH-WEEKLY', 'SSS', 50_000);
 	expectStatutory(week5, 'PH-WEEKLY', 'SSS', 1000, 2000);
 	expectStatutory(week5, 'PH-WEEKLY', 'SSS_MPF', 750, 1500);
 	expectStatutory(week5, 'PH-WEEKLY', 'PHIC', 1087.5, 1087.5);
@@ -583,12 +651,54 @@ test('Philippines — 13th month pay keyed for December is a twelfth of the year
 
 const OPSPH006_ALLOWANCE = '1f36debb-0b79-4aab-966e-aae5251b1026';
 
-function opsph006(period: string, cutoff: 'FIRST' | 'SPLIT' | 'LAST') {
+/**
+ * OPSPH006 in January 2026; `firstHalf` seeds the mid-month payslip as settled (its own lines,
+ * and the statutory rows it charged) so the end-month run prices the month on what was paid.
+ */
+function opsph006(
+	period: string,
+	cutoff: 'FIRST' | 'SPLIT' | 'LAST',
+	firstHalf?: { readonly sss: [number, number]; readonly others: boolean }
+) {
 	const person = { key: 'OPSPH006', wage: 15_650, pay_frequency: 'SEMI_MONTHLY' as const };
 	return assessStatutory(
 		{ code: 'PH', period, payFrequency: 'SEMI_MONTHLY', people: [person] },
 		(world) => {
 			world.companies[0]!.semi_monthly_statutory_cutoff = cutoff;
+			if (firstHalf != null) {
+				world.payroll_runs.push({
+					id: 'opsph-jan-1',
+					company_id: COMPANY_ID,
+					period: '2026-01-1',
+					lifecycle: 'PAID'
+				} as never);
+				world.payslips.push({
+					id: 'opsph-jan-1-slip',
+					payroll_run_id: 'opsph-jan-1',
+					employment_id: world.employments[0]!.id,
+					status: 'PAID',
+					paid_at: '2026-01-15T00:00:00.000Z',
+					base: [{ component_code: 'BASIC', amount: 7825 }],
+					adjustments: [
+						{
+							component_code: 'duty_allowance',
+							bucket: 'EARNING',
+							amount: 1055.95,
+							catalogue_id: OPSPH006_ALLOWANCE
+						}
+					],
+					statutory: [
+						{ scheme_code: 'SSS', base_amount: 17_761.9, employee_amount: firstHalf.sss[0], employer_amount: firstHalf.sss[1] },
+						...(firstHalf.others
+							? [
+									{ scheme_code: 'SSS_EC', base_amount: 17_761.9, employee_amount: 0, employer_amount: 30 },
+									{ scheme_code: 'PHIC', base_amount: 17_761.9, employee_amount: 391.25, employer_amount: 391.25 },
+									{ scheme_code: 'HDMF', base_amount: 17_761.9, employee_amount: 200, employer_amount: 200 }
+								]
+							: [])
+					]
+				} as never);
+			}
 			world.allowances.push({
 				id: 'd2000000-0000-4000-8000-000000000001',
 				employment_id: world.employments[0]!.id,
@@ -619,7 +729,9 @@ test('Philippines — OPSPH006, January 2026: the month’s premiums on the mid-
 	// semi-monthly table's first rung of ₱10,417: nothing withheld.
 	expectStatutory(mid, 'OPSPH006', 'WTAX', 0, 0);
 
-	const end = opsph006('2026-01-2', 'FIRST');
+	// The end-month run prices the month on what was paid — the mid-month lines plus its own, the
+	// same 17,761.90 the estimate assumed — and charges the difference: nothing.
+	const end = opsph006('2026-01-2', 'FIRST', { sss: [900, 1800], others: true });
 	for (const code of ['SSS', 'SSS_EC', 'PHIC', 'HDMF'])
 		expectStatutory(end, 'OPSPH006', code, 0, 0);
 	expectStatutory(end, 'OPSPH006', 'WTAX', 0, 0);
@@ -628,7 +740,13 @@ test('Philippines — OPSPH006, January 2026: the month’s premiums on the mid-
 test('Philippines — the entity may carry the month’s premiums on the end-month cut-off, or split them', () => {
 	// LAST: the mid-month cut-off carries nothing and the end-month one the whole month.
 	expectStatutory(opsph006('2026-01-1', 'LAST'), 'OPSPH006', 'SSS', 0, 0);
-	expectStatutory(opsph006('2026-01-2', 'LAST'), 'OPSPH006', 'SSS', 900, 1800);
+	expectStatutory(
+		opsph006('2026-01-2', 'LAST', { sss: [0, 0], others: false }),
+		'OPSPH006',
+		'SSS',
+		900,
+		1800
+	);
 	// SPLIT: each half is priced on its own compensation, 8,880.95 → MSC 9,000.
 	expectStatutory(opsph006('2026-01-1', 'SPLIT'), 'OPSPH006', 'SSS', 450, 900);
 	expectStatutory(opsph006('2026-01-2', 'SPLIT'), 'OPSPH006', 'SSS', 450, 900);
@@ -873,6 +991,24 @@ test('Philippines — a salary change mid-month is one month of pay, never more 
 });
 
 const PH_NPL = 'c1c1c1c1-0000-4000-8000-0000000000aa';
+/** The version's leave-without-pay row, which the fixture world does not carry. */
+const withNoPayLeaveRow = (world: PayrollWorld) => {
+	if (world.leave_catalogue.some((row) => row.id === PH_NPL)) return;
+	world.leave_catalogue.push({
+		id: PH_NPL,
+		settings_id: PH_2026,
+		code: 'LEAVE_WITHOUT_PAY',
+		name: 'Leave without pay',
+		eligibility: '',
+		evidence: 'NONE',
+		evidence_after_days: null,
+		entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
+		is_npl: true,
+		can_encash: false,
+		bands: [],
+		approval_id: null
+	});
+};
 /** A no-pay leave entry over `dates`, charged one day each. */
 const noPayLeave = (world: PayrollWorld, key: string, dates: readonly string[]) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
@@ -925,25 +1061,7 @@ test('Philippines — an allowance loses the unpaid days of the window it covers
 			]
 		},
 		(world) => {
-			world.leave_catalogue.push({
-				id: PH_NPL,
-				settings_id: PH_2026,
-				code: 'LEAVE_WITHOUT_PAY',
-				name: 'Leave without pay',
-				eligibility: '',
-				evidence: 'NONE',
-				evidence_after_days: null,
-				entitlement: {
-					availability: 'UNLIMITED',
-					year_start_month: 1,
-					proration: 'NONE',
-					bands: []
-				},
-				is_npl: true,
-				can_encash: false,
-				bands: [],
-				approval_id: null
-			});
+			withNoPayLeaveRow(world);
 			for (const [index, employment] of world.employments.entries())
 				world.allowances.push({
 					id: `d3000000-0000-4000-8000-${String(index).padStart(12, '0')}`,

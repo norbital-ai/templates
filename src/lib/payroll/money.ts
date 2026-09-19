@@ -434,7 +434,13 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		// A claim is never prorated; an allowance whose window and employment cover none of the
 		// period is not an entry at all — the source is silent rather than captured at nothing.
 		if (entry.window != null && proration == null) return null;
-		const fraction = entry.window == null ? 1 : fractionOf(proration);
+		// What prorates is a component's cadence: a standing allowance earns by the days it is in
+		// force beside the salary; a row the catalogue marks `one_off` — a bonus, back pay, an
+		// ex-gratia sum — is due in the period it lands in, whole, whatever the window or the
+		// joiner's days (no statute prorates a bonus; SG CPF counts the AW "payable in the month";
+		// MY EA s.18A prorates monthly wages only).
+		const lumpSum = options.component.one_off === true;
+		const fraction = entry.window == null || lumpSum ? 1 : fractionOf(proration);
 		if (fraction <= 0 && entry.window != null)
 			return skipped('unpaid leave covered every day of the period the allowance was in force');
 		const raw = band == null ? decodeNumber(entry.amount) : bandAmount(band, context);

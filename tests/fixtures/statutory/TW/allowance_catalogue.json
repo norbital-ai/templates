@@ -16,7 +16,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "e7bd562e-914a-5133-9367-aced76ce3c9f",
@@ -36,7 +37,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "cbbb1203-bb6b-55d9-9908-3d3037175da9",
@@ -55,7 +57,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "d1caef0a-220b-56a4-baa5-cdb53435f23b",
@@ -75,7 +78,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "8d023584-6ed0-50de-823d-c7e7e17395f0",
@@ -94,7 +98,8 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	},
 	{
 		"id": "83947473-bf48-53eb-8c46-227c07ba0379",
@@ -114,6 +119,7 @@
 				"limit": null
 			}
 		],
-		"fixed": false
+		"fixed": false,
+		"one_off": true
 	}
 ]
