@@ -1376,5 +1376,56 @@
 		"is_npl": false,
 		"can_encash": false,
 		"encash_on_exit": false
+	},
+	{
+		"id": "80aabf47-709c-5d95-a287-fd1f316f4364",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "STATUTORY_REST_IN_LIEU",
+		"name": "例假補假 (statutory rest day in lieu)",
+		"authority": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "4575e55f-9f6a-5111-936a-97c496ea3c7d",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "STATUTORY_REST_IN_LIEU",
+		"name": "例假補假 (statutory rest day in lieu)",
+		"authority": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "09a5b708-f5c8-5e1b-8548-bb6fcb9fdd55",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "STATUTORY_REST_IN_LIEU",
+		"name": "例假補假 (statutory rest day in lieu)",
+		"authority": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
 	}
 ]

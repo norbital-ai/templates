@@ -179,6 +179,10 @@
 			{
 				"key": "responsibility_system",
 				"type": "boolean"
+			},
+			{
+				"key": "pension_reserve_rate",
+				"type": "number"
 			}
 		]
 	},
@@ -367,6 +371,10 @@
 			{
 				"key": "responsibility_system",
 				"type": "boolean"
+			},
+			{
+				"key": "pension_reserve_rate",
+				"type": "number"
 			}
 		]
 	},
@@ -555,6 +563,10 @@
 			{
 				"key": "responsibility_system",
 				"type": "boolean"
+			},
+			{
+				"key": "pension_reserve_rate",
+				"type": "number"
 			}
 		]
 	}
