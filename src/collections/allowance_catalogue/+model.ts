@@ -34,32 +34,17 @@ export default defineModel(
 			.notNull()
 			.default(sql`'[]'::jsonb`),
 		/**
-		 * A payment the law owes on separation (termination benefits, separation or retirement pay,
-		 * severance, notice in lieu): off-boarding raises one standing row of it for the leaver on
-		 * the last day, where the row's eligibility holds over them then — held for HR like the
-		 * encashment. The band prices it from the person (service years, monthly wage, notice days).
-		 */
-		on_separation: boolean().notNull().default(false),
-		/**
 		 * A fixed allowance — paid every period regardless of attendance or output (ID tunjangan
 		 * tetap, VN phụ cấp lương, TW 經常性給與) — counts in `terms.fixed_allowances` and so in the
 		 * wage a statute defines as basic plus fixed allowances (ID THR and the BPJS bases, VN
 		 * insurance salary, MY overtime wages). A reimbursement, a per-day allowance or a bonus is
 		 * not fixed, whatever its window.
 		 */
-		fixed: boolean().notNull().default(true),
-		/**
-		 * A one-off amount — a bonus, back pay, an ex-gratia sum, a festival or separation payment —
-		 * is due whole in the period its window falls in, whatever the window's length or the days
-		 * the person was employed: no statute prorates a lump sum (SG: the AW "payable in the
-		 * month"; MY s.18A prorates monthly wages only). A standing row is a monthly magnitude and
-		 * prorates like basic salary.
-		 */
-		one_off: boolean().notNull().default(false)
+		fixed: boolean().notNull().default(true)
 	},
 	{
 		description:
-			'The allowance catalogue of one jurisdiction settings version: code, destination and direction, the bands that price, cap and opt the allowance into statutory schemes, and the evidence it demands. A standing allowance is a monthly amount over an effective window, prorated like basic salary; a one-off amount is due whole in the period it lands in. Sealed with its version; the run cites the version it priced against.',
+			'The allowance catalogue of one jurisdiction settings version: code, destination and direction, the bands that price, cap and opt the allowance into statutory schemes, and the evidence it demands. Every allowance is standing: a monthly amount over an effective window, prorated like basic salary; one-off pay belongs to the ad hoc catalogue. Sealed with its version; the run cites the version it priced against.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:calendar-clock',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

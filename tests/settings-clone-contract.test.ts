@@ -13,6 +13,7 @@ import contributions from '../src/collections/statutory_contributions/+model.ts'
 import leave from '../src/collections/leave_catalogue/+model.ts';
 import loans from '../src/collections/loan_catalogue/+model.ts';
 import claims from '../src/collections/claim_catalogue/+model.ts';
+import adhoc from '../src/collections/adhoc_catalogue/+model.ts';
 import allowances from '../src/collections/allowance_catalogue/+model.ts';
 
 const CHILDREN = {
@@ -20,6 +21,7 @@ const CHILDREN = {
 	leave_catalogue_settings: leave,
 	loan_catalogue_settings: loans,
 	claim_catalogue_settings: claims,
+	adhoc_catalogue_settings: adhoc,
 	allowance_catalogue_settings: allowances
 };
 

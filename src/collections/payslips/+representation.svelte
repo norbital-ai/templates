@@ -223,6 +223,8 @@
 		switch (family) {
 			case 'CLAIM':
 				return t('app.claims.title');
+			case 'ADHOC':
+				return t('app.adhoc.title');
 			case 'ALLOWANCE':
 				return t('app.allowances.title');
 			case 'WORK_DAY':

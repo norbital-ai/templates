@@ -80,6 +80,7 @@ const NO_REPRESENTATION = new Set(['allowance_entries', 'loan_repayments']);
  * fixtures alone. A fixture row removes the corresponding gap from this list.
  */
 const UNSEEDED_COLLECTIONS = new Set([
+	'adhoc_requests',
 	'claim_requests',
 	'loan_catalogue',
 	'loans',

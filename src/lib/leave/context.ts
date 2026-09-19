@@ -52,7 +52,10 @@ export type LeaveContext = {
 	> & {
 		readonly exit_reason?: string | null;
 	})[];
-	companies: (Pick<WorkspaceRow<'companies'>, 'id' | 'settings_code' | 'region'> & {
+	companies: (Pick<
+		WorkspaceRow<'companies'>,
+		'id' | 'settings_code' | 'region' | 'pay_frequency'
+	> & {
 		readonly facts?: WorkspaceRow<'companies'>['facts'] | null;
 	})[];
 	employees: Pick<
@@ -217,7 +220,13 @@ export function readLeaveContext(
 							}
 						},
 						employment_company: {
-							columns: { id: true, settings_code: true, region: true, facts: true }
+							columns: {
+								id: true,
+								settings_code: true,
+								region: true,
+								pay_frequency: true,
+								facts: true
+							}
 						}
 					},
 					limit: LIMIT

@@ -322,6 +322,7 @@ test('a cloned version carries every scheme’s assessed-on formula unchanged, w
 			catalogueLeaves: [{ id: 'l1', code: 'ANNUAL' }],
 			loanCatalogue: [],
 			claimCatalogue: [],
+			adhocCatalogue: [],
 			allowanceCatalogue: []
 		},
 		{ starts_on: '2026-02-01' }

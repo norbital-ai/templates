@@ -72,6 +72,8 @@ function capWorld(family: Family) {
 
 const guardFor = (family: Family): PayRequestGuard => ({
 	family: family.toUpperCase() as PayRequestGuard['family'],
+	catalogue: 'claim_catalogue',
+	requests: 'claim_requests',
 	noun: family,
 	eventDate: (row) => String(row.incurred_on)
 });

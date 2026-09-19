@@ -216,7 +216,7 @@ const WORK = {
 	holiday_rest_precedence: 'REST_DAY'
 };
 const FINAL_PAYMENT = {
-	id: 'allowance:final',
+	id: 'adhoc:final',
 	settings_id: RUN.settings_id,
 	code: 'FINAL_PAYMENT',
 	sequence: 50,
@@ -287,7 +287,7 @@ const PAYSLIPS = [
 		statutory: [],
 		adjustments: [
 			{
-				family: 'ALLOWANCE',
+				family: 'ADHOC',
 				source_id: 'capture:final-allowance',
 				component_code: FINAL_PAYMENT.code,
 				label: FINAL_PAYMENT.code,
@@ -346,7 +346,8 @@ Effect.runPromise(
 				jurisdiction_settings: [{ id: WORK.settings_id, work_rules: WORK }],
 				leave_catalogue: [],
 				claim_catalogue: [],
-				allowance_catalogue: [FINAL_PAYMENT],
+				adhoc_catalogue: [FINAL_PAYMENT],
+				allowance_catalogue: [],
 				employment_terms: TERMS,
 				work_days: WORK_DAYS,
 				employees: [

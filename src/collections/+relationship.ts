@@ -48,6 +48,7 @@ export default ((r) => ({
 		leave_catalogue_settings: r.many.leave_catalogue(),
 		loan_catalogue_settings: r.many.loan_catalogue(),
 		claim_catalogue_settings: r.many.claim_catalogue(),
+		adhoc_catalogue_settings: r.many.adhoc_catalogue(),
 		allowance_catalogue_settings: r.many.allowance_catalogue(),
 		/** The versions runs name as the law they were calculated under. */
 		settings_payroll_run: r.many.payroll_runs()
@@ -94,6 +95,16 @@ export default ((r) => ({
 			})
 		),
 		claim_request_claim_catalogue: r.many.claim_requests()
+	},
+
+	adhoc_catalogue: {
+		adhoc_catalogue_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.adhoc_catalogue.settings_id,
+				to: r.jurisdiction_settings.id
+			})
+		),
+		adhoc_request_adhoc_catalogue: r.many.adhoc_requests()
 	},
 
 	allowance_catalogue: {
@@ -151,6 +162,7 @@ export default ((r) => ({
 		}),
 		term_employment: r.many.employment_terms(),
 		claim_request_employment: r.many.claim_requests(),
+		adhoc_request_employment: r.many.adhoc_requests(),
 		allowance_employment: r.many.allowances(),
 		allowance_entry_employment: r.many.allowance_entries(),
 		loan_employment: r.many.loans(),
@@ -205,6 +217,21 @@ export default ((r) => ({
 		claim_request_claim_catalogue: r.one.claim_catalogue({
 			from: r.claim_requests.catalogue_id,
 			to: r.claim_catalogue.id
+		})
+	},
+
+	/** An ad hoc request settles once, like a claim: the same edges, the same pin. */
+	adhoc_requests: {
+		adhoc_request_employment: r.one.employments({
+			from: r.adhoc_requests.employment_id,
+			to: r.employments.id
+		}),
+		adhoc_request_payslip: deferrable(
+			setNull(r.one.payslips({ from: r.adhoc_requests.payslip_id, to: r.payslips.id }))
+		),
+		adhoc_request_adhoc_catalogue: r.one.adhoc_catalogue({
+			from: r.adhoc_requests.catalogue_id,
+			to: r.adhoc_catalogue.id
 		})
 	},
 
@@ -321,6 +348,7 @@ export default ((r) => ({
 		 */
 		work_day_payslip: r.many.work_days(),
 		claim_request_payslip: r.many.claim_requests(),
+		adhoc_request_payslip: r.many.adhoc_requests(),
 		allowance_entry_payslip: r.many.allowance_entries(),
 		leave_entry_payslip: r.many.leave_entries(),
 		loan_repayment_payslip: r.many.loan_repayments()

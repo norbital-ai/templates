@@ -934,7 +934,7 @@ test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,
 
 test('Taiwan — the second review: 災保 has no grade under the basic wage, the 勞退 table reaches down to 1,500, 28,590 is a 115年 part-time grade, and a bonus is withheld on only from the 起扣點', () => {
 	const bonusOf = (world: PayrollWorld, key: string, amount: number) => {
-		const bonus = world.allowance_catalogue.find(
+		const bonus = world.adhoc_catalogue!.find(
 			(row) =>
 				row.code === 'bonus' &&
 				row.settings_id ===
@@ -942,13 +942,14 @@ test('Taiwan — the second review: 災保 has no grade under the basic wage, th
 						.id
 		)!;
 		const employment = world.employments.find((row) => row.employee_number === key)!;
-		world.allowances.push({
+		world.adhoc_requests!.push({
 			id: `d0000000-0000-4000-8000-0000000${key.length}${amount}`.slice(0, 36).padEnd(36, '0'),
 			employment_id: employment.id,
 			catalogue_id: bonus.id,
 			amount,
-			effective_from: '2026-01-01',
-			effective_to: '2026-01-31',
+			event_date: '2026-01-01',
+			pay_period: null,
+			payslip_id: null,
 			reason: 'bonus',
 			evidence_file: null,
 			as_adjustment_entry: false,

@@ -19,6 +19,9 @@ import { expressionEngine, evaluateBoolean, evaluateNumber } from './expressions
 
 export type PayRequestGuard = {
 	readonly family: PayRequestFamily;
+	/** The class table the request names, and the table its siblings (and their pins) live in. */
+	readonly catalogue: 'claim_catalogue' | 'adhoc_catalogue';
+	readonly requests: 'claim_requests' | 'adhoc_requests';
 	readonly eventDate: (candidate: Readonly<Record<string, unknown>>) => string | null;
 	readonly sign?: number;
 	readonly noun: string;
@@ -33,7 +36,13 @@ function assertCapHistoryComplete(rows: readonly unknown[]): void {
 
 type PayRequestDb = Pick<
 	CollectionTransformDatabase,
-	'claim_catalogue' | 'claim_requests' | 'employments' | 'jurisdiction_settings' | 'payslips'
+	| 'claim_catalogue'
+	| 'claim_requests'
+	| 'adhoc_catalogue'
+	| 'adhoc_requests'
+	| 'employments'
+	| 'jurisdiction_settings'
+	| 'payslips'
 >;
 
 type CatalogueRow = {
@@ -88,7 +97,7 @@ function bandFor(
 }
 
 /**
- * Every claim in a batch, admitted together (RFC §5.3): wave 1 is keyed by the inputs — the
+ * Every claim or ad hoc request in a batch, admitted together (RFC §5.3): wave 1 is keyed by the inputs — the
  * catalogue rows they name, the people, every sibling claim of those people and the payslips that
  * captured any of them, and the settings versions — and wave 2 is the catalogue revisions of each
  * named code across its lineage. The rule then runs once per input over rows already in hand.
@@ -109,8 +118,10 @@ export function admitPayRequests(
 		const employmentIds = [
 			...new Set(candidates.map((row) => String(row.employment_id ?? '')).filter((id) => id !== ''))
 		];
-		const catalogue = db.claim_catalogue;
-		const requests = db.claim_requests;
+		// The class and request tables of the two families share every column this rule reads; the
+		// union of their clients is not callable, the claim clients' shape reads either.
+		const catalogue = db[guard.catalogue] as PayRequestDb['claim_catalogue'];
+		const requests = db[guard.requests] as PayRequestDb['claim_requests'];
 		const [components, subjectOf, siblingRows, payslips, versions] = yield* Effect.all(
 			[
 				catalogueIds.length === 0
@@ -183,12 +194,19 @@ export function admitPayRequests(
 		for (const [index, candidate] of candidates.entries()) {
 			const stored = existing[index];
 			const amount = decodeNumber(candidate.amount);
-			if (!Number.isFinite(amount) || amount <= 0)
-				refuse(
-					`A ${guard.noun} amount is a positive magnitude; direction comes from the catalogue.`
-				);
 			const componentId = String(candidate.catalogue_id ?? '');
 			const component = componentById.get(componentId);
+			// A class with bands prices the line from the person (a separation payment is a multiple
+			// of the monthly wage), so its request may state no amount; a class without bands pays
+			// the amount stated, which must be one.
+			if (
+				!Number.isFinite(amount) ||
+				amount < 0 ||
+				(amount === 0 && (component?.bands.length ?? 0) === 0)
+			)
+				refuse(
+					`${/^[aeiou]/i.test(guard.noun) ? 'An' : 'A'} ${guard.noun} amount is a positive magnitude; direction comes from the catalogue.`
+				);
 			if (component != null) {
 				const eligibilityFault = compileEligibility(component.eligibility);
 				if (eligibilityFault != null) refuse(eligibilityFault);

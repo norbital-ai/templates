@@ -18,9 +18,7 @@ const columns = {
 	bands: true,
 	eligibility: true,
 	evidence: true,
-	on_separation: true,
 	fixed: true,
-	one_off: true,
 	counts_toward: true
 } as const;
 

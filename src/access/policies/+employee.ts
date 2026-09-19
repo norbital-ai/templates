@@ -43,6 +43,7 @@ const ownWorkDay = { work_day_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownClaimRequest = {
 	claim_request_employment: { some: OWN_EMPLOYMENT }
 } as const;
+const ownAdhocRequest = { adhoc_request_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownAllowance = { allowance_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownAllowanceEntry = { allowance_entry_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownLoan = { loan_employment: { some: OWN_EMPLOYMENT } } as const;
@@ -93,6 +94,7 @@ export default {
 		 * sees of one is what they see of the entry it lives on, which is their own or nothing.
 		 */
 		grantOn('claim_requests', 'read', { where: ownClaimRequest }),
+		grantOn('adhoc_requests', 'read', { where: ownAdhocRequest }),
 		grantOn('allowances', 'read', { where: ownAllowance }),
 		grantOn('allowance_entries', 'read', { where: ownAllowanceEntry }),
 		grantOn('loans', 'read', { where: ownLoanNotTheirChildren }),

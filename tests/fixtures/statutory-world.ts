@@ -54,6 +54,7 @@ export const contributionSchemes = (code: Lineage) =>
 	}));
 export const allowanceCatalogue = (code: Lineage) =>
 	law(code, 'allowance_catalogue', { optional: true });
+export const adhocCatalogue = (code: Lineage) => law(code, 'adhoc_catalogue', { optional: true });
 
 export const COMPANY_ID = 'c0000000-0000-4000-8000-000000000001';
 const SHIFT_ID = 'c0000000-0000-4000-8000-0000000000d1';
@@ -309,6 +310,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		loan_catalogue: [],
 		claim_catalogue: [],
 		allowance_catalogue: allowanceCatalogue(code),
+		adhoc_catalogue: adhocCatalogue(code),
 		shift_definitions: [
 			{
 				id: SHIFT_ID,
@@ -364,6 +366,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		employment_statutory_facts: facts,
 		claim_requests: [],
 		allowances: [],
+		adhoc_requests: [],
 		loans: [],
 		loan_repayments: [],
 		work_days: [],

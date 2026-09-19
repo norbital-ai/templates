@@ -16,6 +16,8 @@ export type PayrollWorld = {
 	readonly statutory_contributions: PayrollRow[];
 	readonly loan_catalogue: PayrollRow[];
 	readonly claim_catalogue: PayrollRow[];
+	/** The ad hoc classes; a world that states none has no one-off pay. */
+	readonly adhoc_catalogue?: PayrollRow[];
 	readonly allowance_catalogue: PayrollRow[];
 	readonly shift_definitions: PayrollRow[];
 	readonly shift_patterns: PayrollRow[];
@@ -27,6 +29,7 @@ export type PayrollWorld = {
 	readonly employment_terms: PayrollRow[];
 	readonly employment_statutory_facts: PayrollRow[];
 	readonly claim_requests: PayrollRow[];
+	readonly adhoc_requests?: PayrollRow[];
 	readonly allowances: PayrollRow[];
 	/** The entries payroll priced from the standing allowances; a fresh world states none. */
 	readonly allowance_entries?: PayrollRow[];
@@ -93,6 +96,14 @@ const RELATIONS: Record<
 	},
 	claim_requests: {
 		claim_request_employment: {
+			target: 'employments',
+			column: 'employment_id',
+			parentColumn: 'id',
+			cardinality: 'one'
+		}
+	},
+	adhoc_requests: {
+		adhoc_request_employment: {
 			target: 'employments',
 			column: 'employment_id',
 			parentColumn: 'id',
@@ -200,6 +211,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			statutory_contributions: collection('statutory_contributions'),
 			loan_catalogue: collection('loan_catalogue'),
 			claim_catalogue: collection('claim_catalogue'),
+			adhoc_catalogue: collection('adhoc_catalogue'),
 			allowance_catalogue: collection('allowance_catalogue'),
 			shift_definitions: collection('shift_definitions'),
 			shift_patterns: collection('shift_patterns'),
@@ -211,6 +223,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			employment_terms: collection('employment_terms'),
 			employment_statutory_facts: collection('employment_statutory_facts'),
 			claim_requests: collection('claim_requests'),
+			adhoc_requests: collection('adhoc_requests'),
 			allowances: collection('allowances'),
 			allowance_entries: collection('allowance_entries'),
 			loans: collection('loans'),

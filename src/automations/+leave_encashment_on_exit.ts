@@ -4,6 +4,8 @@ import { stint } from '../lib/employment-contract.js';
 import { personAt, readLeaveContext, type LeaveContext } from '../lib/leave/context.js';
 import { settingsInForce } from '../lib/jurisdiction_settings.js';
 import { isEligible } from '../collections/payroll_runs/lib/eligibility.js';
+import { defaultPayPeriod } from '../collections/payroll_runs/lib/period.js';
+import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { exitEncashments, NO_AUTOMATIC_ENCASHMENT_EXIT } from '../lib/leave/exit-encashment.js';
 import { leaveBalanceSummaries } from '../lib/leave/summary.js';
 
@@ -55,10 +57,10 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 			),
 			reason: `Unused leave on departure ${exit_date}; raised for HR review.`
 		});
-		// The payments the law owes on separation: every `on_separation` allowance row of the
-		// version in force on the last day whose eligibility holds over the leaver then, raised as
-		// one standing row on that day (its band prices the amount from the person), unless a row
-		// of that catalogue already stands on the day.
+		// The payments the law owes on separation: every `SEPARATION` ad hoc class of the version
+		// in force on the last day whose eligibility holds over the leaver then, raised as one
+		// request for that day (its band prices the amount from the person), unless a request of
+		// that class already stands.
 		const separation = yield* separationPayments(api, context, employmentId, exit_date);
 		if (submissions.length === 0 && separation.length === 0)
 			return { employment_id: employmentId, status: 'nothing_to_encash' as const, raised: [] };
@@ -68,7 +70,7 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 		});
 		const rows =
 			submissions.length === 0 ? [] : yield* api.collection.leave_entries.createMany(submissions);
-		if (separation.length > 0) yield* api.collection.allowances.createMany(separation);
+		if (separation.length > 0) yield* api.collection.adhoc_requests.createMany(separation);
 		return {
 			employment_id: employmentId,
 			status: 'raised' as const,
@@ -83,7 +85,7 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 		};
 	});
 
-/** The separation-pay rows the version owes this leaver, as allowance rows to create. */
+/** The separation payments the version owes this leaver, as ad hoc requests to create. */
 const separationPayments = (
 	api: AutomationApi,
 	context: LeaveContext,
@@ -97,18 +99,28 @@ const separationPayments = (
 		const version = settingsInForce(context.versions, company.settings_code, exitDate);
 		if (version == null) return [];
 		const [catalogue, standing] = yield* Effect.all([
-			api.db.allowance_catalogue.findMany({
-				where: { settings_id: { eq: version.id }, on_separation: { eq: true } },
+			api.db.adhoc_catalogue.findMany({
+				where: { settings_id: { eq: version.id }, raised_by: { eq: 'SEPARATION' } },
 				columns: { id: true, code: true, eligibility: true },
 				limit: 200
 			}),
-			api.db.allowances.findMany({
+			api.db.adhoc_requests.findMany({
 				where: { employment_id: { eq: employmentId } },
-				columns: { catalogue_id: true, effective_from: true },
+				columns: { catalogue_id: true, event_date: true },
 				limit: 2000
 			})
 		]);
 		if (catalogue.length === 0) return [];
+		// The final period: the one the last day's own salary month settles in (a cutoff of the
+		// 1st is the month itself), in the grammar the leaver is paid in — not the cutoff's
+		// answer, which would carry a month-end leaver's separation pay into the next month.
+		const terms = context.terms.find(
+			(row) => row.employment_id === employmentId && coversDate(row.effective_range, exitDate)
+		);
+		const payPeriod = defaultPayPeriod(exitDate, 1, {
+			company,
+			payFrequency: terms?.pay_frequency ?? company.pay_frequency
+		});
 		return catalogue.flatMap((row) => {
 			if (standing.some((existing) => existing.catalogue_id === row.id)) return [];
 			if (!isEligible(row.eligibility, personAt(context, employmentId, exitDate))) return [];
@@ -117,8 +129,8 @@ const separationPayments = (
 					employment_id: employmentId,
 					catalogue_id: row.id,
 					amount: 0,
-					effective_from: exitDate,
-					effective_to: exitDate,
+					event_date: exitDate,
+					pay_period: payPeriod,
 					reason: `${row.code} on departure ${exitDate}; raised for HR review.`,
 					evidence_file: null,
 					as_adjustment_entry: false
@@ -137,7 +149,7 @@ export default defineAutomation(
 		output: OutputSchema,
 		policies: ['leave_encashment_on_exit_automation'],
 		description:
-			'When an employment contract closes, raises one ENCASHMENT leave entry per encashable leave type for the leaver’s unused balance on the last day, and one standing row per separation payment the version owes them (termination benefits, severance, notice in lieu), all held for the HR Manager to approve into the next payroll or reject. Keyed per contract, so it never raises twice; a dismissal raises no encashment.',
+			'When an employment contract closes, raises one ENCASHMENT leave entry per encashable leave type for the leaver’s unused balance on the last day, and one ad hoc request per separation payment the version owes them (termination benefits, severance, notice in lieu), all held for the HR Manager to approve into the next payroll or reject. Keyed per contract, so it never raises twice; a dismissal raises no encashment.',
 		handler: (api, { args, scope }) =>
 			runLeaveEncashmentOnExit(api, args.employment_id ?? scope.incoming_record.id)
 	}

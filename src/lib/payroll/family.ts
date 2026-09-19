@@ -64,13 +64,11 @@ export type FamilyPayItem = {
 	/** The ordered bands a catalogue prices its entries with; empty for engine-priced Work lines. */
 	readonly bands: readonly CatalogueBand[];
 	readonly eligibility: string;
-	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'LOAN';
+	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ADHOC' | 'ALLOWANCE' | 'LOAN';
 	/** `allowance_catalogue.fixed`: paid regardless of attendance; absent (a claim, a work line) reads true. */
 	readonly fixed?: boolean;
 	/** The schemes (and parts, `CPF.ADDITIONAL`) this class counts toward; absent (a work line) is none. */
 	readonly counts_toward?: readonly string[];
-	/** `allowance_catalogue.one_off`: a lump sum due whole in its period, never prorated. */
-	readonly one_off?: boolean;
 };
 
 import type {

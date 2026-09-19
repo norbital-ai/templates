@@ -85,7 +85,13 @@ test('Settings hoists schemes out of Catalog, and scopes shared financial catalo
 	const catalogues = snippet(page, 'catalogues');
 	assert.deepEqual(
 		[...catalogues.matchAll(/name: '([^']+)'/g)].map((match) => match[1]),
-		['leave_catalogue', 'claim_catalogue', 'allowance_catalogue', 'loan_catalogue']
+		[
+			'leave_catalogue',
+			'claim_catalogue',
+			'allowance_catalogue',
+			'adhoc_catalogue',
+			'loan_catalogue'
+		]
 	);
 	const table = snippet(page, 'catalogueTable');
 	assert.deepEqual(registrations(table), ['CollectionTable']);

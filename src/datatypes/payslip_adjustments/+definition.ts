@@ -5,6 +5,7 @@ import { Schema } from 'effect';
 export const ADJUSTMENT_FAMILIES = [
 	'WORK_DAY',
 	'CLAIM',
+	'ADHOC',
 	'ALLOWANCE',
 	'LEAVE',
 	'LOAN_REPAYMENT'

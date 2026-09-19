@@ -183,9 +183,10 @@ export function sumAccumulations(parts: readonly AccumulatedPayslip[]): Accumula
 	return { reserved, codes, familyOf, countsTowardOf, lines };
 }
 
-/** The catalogue a word sums: `ALLOWANCES` the allowance lines, `CLAIMS` the claim lines. */
+/** The catalogue a word sums: `ALLOWANCES` the allowance lines, `ADHOC` the ad hoc lines, `CLAIMS` the claim lines. */
 export const WORD_FAMILY: Readonly<Record<CatalogueWord, FamilyPayItem['family']>> = {
 	ALLOWANCES: 'ALLOWANCE',
+	ADHOC: 'ADHOC',
 	CLAIMS: 'CLAIM'
 };
 

@@ -51,8 +51,8 @@ const FILES = [
 	'statutory_contributions.json',
 	'leave_catalogue.json'
 ];
-/** Carried when the lineage has one: a scheduled allowance row is law the goldens price. */
-const OPTIONAL_FILES = ['allowance_catalogue.json'];
+/** Carried when the lineage has one: an allowance or ad hoc class is law the goldens price. */
+const OPTIONAL_FILES = ['allowance_catalogue.json', 'adhoc_catalogue.json'];
 
 for (const code of LINEAGES) {
 	const source = resolve(bank, code);
@@ -64,8 +64,8 @@ for (const code of LINEAGES) {
 	mkdirSync(target, { recursive: true });
 	for (const file of [...FILES, ...OPTIONAL_FILES]) {
 		const from = resolve(source, file);
-		if (!existsSync(from)) {
-			if (OPTIONAL_FILES.includes(file)) continue;
+		// An optional file the lineage no longer carries is removed from the fixture as well.
+		if (!existsSync(from) && !OPTIONAL_FILES.includes(file)) {
 			console.error(`${code} has no ${file}.`);
 			process.exit(1);
 		}
@@ -75,6 +75,7 @@ for (const code of LINEAGES) {
 		const to = resolve(target, file);
 		rmSync(to, { force: true });
 		rmSync(`${to}.gz`, { force: true });
+		if (!existsSync(from)) continue;
 		if (statSync(from).size > HOST_TEXT_FILE_CEILING)
 			writeFileSync(`${to}.gz`, gzipSync(readFileSync(from)));
 		else cpSync(from, to);

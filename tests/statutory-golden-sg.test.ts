@@ -617,17 +617,18 @@ test('Singapore — a bonus is an Additional Wage under the 102,000 ceiling, and
 			]
 		},
 		(world) => {
-			const bonus = world.allowance_catalogue.find(
+			const bonus = world.adhoc_catalogue!.find(
 				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'SG-BONUS')!;
-			world.allowances.push({
+			world.adhoc_requests!.push({
 				id: 'd0000000-0000-4000-8000-0000000000b0',
 				employment_id: employment.id,
 				catalogue_id: bonus.id,
 				amount: 120_000,
-				effective_from: '2026-01-01',
-				effective_to: '2026-01-31',
+				event_date: '2026-01-01',
+				pay_period: null,
+				payslip_id: null,
 				reason: 'annual bonus',
 				evidence_file: null,
 				as_adjustment_entry: false,
@@ -667,17 +668,18 @@ test('Singapore — the AW ceiling is a running annual figure: OW to date, this 
 			people: [{ key: 'SG-BONUS', wage: 6000, citizenship: 'CITIZEN' }]
 		},
 		(world) => {
-			const bonus = world.allowance_catalogue.find(
+			const bonus = world.adhoc_catalogue!.find(
 				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'SG-BONUS')!;
-			world.allowances.push({
+			world.adhoc_requests!.push({
 				id: 'd0000000-0000-4000-8000-0000000000b1',
 				employment_id: employment.id,
 				catalogue_id: bonus.id,
 				amount: 10_000,
-				effective_from: '2026-02-01',
-				effective_to: '2026-02-28',
+				event_date: '2026-02-01',
+				pay_period: null,
+				payslip_id: null,
 				reason: 'second bonus',
 				evidence_file: null,
 				as_adjustment_entry: false,
@@ -1046,7 +1048,7 @@ test('Singapore — December trues the AW ceiling up on the year’s actual OW (
 			people: [{ key: 'SG-TRUEUP', wage: 6000, citizenship: 'CITIZEN' }]
 		},
 		(world) => {
-			const bonus = world.allowance_catalogue.find(
+			const bonus = world.adhoc_catalogue!.find(
 				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'SG-TRUEUP')!;
@@ -1128,17 +1130,18 @@ test('Singapore — the AW estimate takes the monthly OW for the payslips remain
 			people: [{ key: 'SG-SIGNON', wage: 8000, hire_date: '2026-02-16', citizenship: 'CITIZEN' }]
 		},
 		(world) => {
-			const bonus = world.allowance_catalogue.find(
+			const bonus = world.adhoc_catalogue!.find(
 				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'SG-SIGNON')!;
-			world.allowances.push({
+			world.adhoc_requests!.push({
 				id: 'd0000000-0000-4000-8000-0000000000b7',
 				employment_id: employment.id,
 				catalogue_id: bonus.id,
 				amount: 100_000,
-				effective_from: '2026-02-16',
-				effective_to: '2026-02-28',
+				event_date: '2026-02-16',
+				pay_period: null,
+				payslip_id: null,
 				reason: 'sign-on bonus',
 				evidence_file: null,
 				as_adjustment_entry: false,
@@ -1164,7 +1167,7 @@ test('Singapore — a December true-up never goes below zero: an over-contributi
 			people: [{ key: 'SG-OVERPAID', wage: 8000, citizenship: 'CITIZEN' }]
 		},
 		(world) => {
-			const bonus = world.allowance_catalogue.find(
+			const bonus = world.adhoc_catalogue!.find(
 				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'SG-OVERPAID')!;

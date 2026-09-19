@@ -27,7 +27,7 @@ test('every site compiles expressions over its own context', () => {
 			'money'
 		],
 		['work_day', 'day_type == "PUBLIC_HOLIDAY" && night_hours > 0.0', 'boolean'],
-		['assessment', 'BASE + ALLOWANCES + CLAIMS - ABSENCE', 'money'],
+		['assessment', 'BASE + ALLOWANCES + ADHOC + CLAIMS - ABSENCE', 'money'],
 		['assessment', 'BASE + year.ALLOWANCES - ABSENCE', 'money'],
 		['assessment', "code('BPAYBS') + annual_exempt(100.0, 0.0, 90000.0)", 'money'],
 		['assessment', 'year.earned.BASIC + ENCASHMENT - NO_PAY_LEAVE', 'money'],
@@ -164,13 +164,14 @@ test('the assessment closures read one class by code and exempt annually; the wo
 	// The catalogue words are pre-aggregated per scheme before the formula runs (`accumulate.ts`
 	// `catalogueWords`): the formula only ever adds them.
 	assert.equal(
-		run('BASE + ALLOWANCES + ORDINARY.CLAIMS + year.ADDITIONAL.ALLOWANCES', {
+		run('BASE + ALLOWANCES + ADHOC + ORDINARY.CLAIMS + year.ADDITIONAL.ALLOWANCES', {
 			BASE: 1000,
 			ALLOWANCES: 600,
+			ADHOC: 20,
 			ORDINARY: { ALLOWANCES: 100, CLAIMS: 30 },
 			year: { ADDITIONAL: { ALLOWANCES: 50, CLAIMS: 0 } }
 		}),
-		1680
+		1700
 	);
 	assert.match(
 		compileExpression({ expression: "catalog('ALLOWANCE')", site: 'assessment', type: 'money' }) ??
@@ -184,7 +185,7 @@ test('the assessment closures read one class by code and exempt annually; the wo
 	);
 	assert.equal(
 		compileExpression({
-			expression: 'ORDINARY.ALLOWANCES + year.ORDINARY.CLAIMS',
+			expression: 'ORDINARY.ALLOWANCES + ORDINARY.ADHOC + year.ORDINARY.CLAIMS',
 			site: 'assessment',
 			type: 'money',
 			parts: ['ORDINARY']

@@ -1,3 +1,42 @@
+CREATE TABLE "adhoc_catalogue" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", '') || ' ' || coalesce("name", ''))) STORED,
+	"settings_id" uuid NOT NULL,
+	"code" text NOT NULL,
+	"name" text,
+	"authority" text,
+	"destination" text NOT NULL,
+	"direction" text,
+	"bands" jsonb DEFAULT '[]' NOT NULL,
+	"eligibility" text DEFAULT '' NOT NULL,
+	"evidence" text DEFAULT 'NONE' NOT NULL,
+	"counts_toward" jsonb DEFAULT '[]' NOT NULL,
+	"raised_by" text DEFAULT 'MANUAL' NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "adhoc_requests" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
+	"employment_id" uuid NOT NULL,
+	"catalogue_id" uuid NOT NULL,
+	"amount" numeric NOT NULL,
+	"event_date" timestamp with time zone NOT NULL,
+	"reason" text DEFAULT '' NOT NULL,
+	"evidence_file" jsonb,
+	"as_adjustment_entry" boolean DEFAULT false NOT NULL,
+	"pay_period" text,
+	"payslip_id" uuid
+);
+--> statement-breakpoint
 CREATE TABLE "allowance_catalogue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -15,12 +54,9 @@ CREATE TABLE "allowance_catalogue" (
 	"bands" jsonb DEFAULT '[]' NOT NULL,
 	"eligibility" text DEFAULT '' NOT NULL,
 	"evidence" text DEFAULT 'NONE' NOT NULL,
-	"on_separation" boolean DEFAULT false NOT NULL,
 	"fixed" boolean DEFAULT true NOT NULL,
-	"one_off" boolean DEFAULT false NOT NULL,
 	"counts_toward" jsonb DEFAULT '[]' NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "allowance_entries" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42,7 +78,6 @@ CREATE TABLE "allowance_entries" (
 	"contract_amount" numeric NOT NULL,
 	"amount" numeric NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "allowances" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,7 +95,6 @@ CREATE TABLE "allowances" (
 	"evidence_file" jsonb,
 	"as_adjustment_entry" boolean DEFAULT false NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "claim_catalogue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -80,7 +114,6 @@ CREATE TABLE "claim_catalogue" (
 	"evidence" text DEFAULT 'NONE' NOT NULL,
 	"counts_toward" jsonb DEFAULT '[]' NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "claim_requests" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -99,7 +132,6 @@ CREATE TABLE "claim_requests" (
 	"pay_period" text,
 	"payslip_id" uuid
 );
-
 --> statement-breakpoint
 CREATE TABLE "companies" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -123,7 +155,6 @@ CREATE TABLE "companies" (
 	"disbursement_account" jsonb,
 	"effective_range" jsonb NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "employees" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -159,7 +190,6 @@ CREATE TABLE "employees" (
 	"face_last_match_at" timestamp with time zone,
 	"face_match_count" integer DEFAULT 0 NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "employment_statutory_facts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -183,7 +213,6 @@ CREATE TABLE "employment_statutory_facts" (
 				ELSE 'Statutory fact'
 			END || ' · from ' || LEFT(effective_range ->> 'start', 10)) STORED
 );
-
 --> statement-breakpoint
 CREATE TABLE "employment_terms" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -213,7 +242,6 @@ CREATE TABLE "employment_terms" (
 	"effective_range" jsonb NOT NULL,
 	"summary" text GENERATED ALWAYS AS (COALESCE(job_title || ' · ', '') || employment_type) STORED
 );
-
 --> statement-breakpoint
 CREATE TABLE "employments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -232,7 +260,6 @@ CREATE TABLE "employments" (
 	"exit_reason" text,
 	"comments" text
 );
-
 --> statement-breakpoint
 CREATE TABLE "jurisdiction_holidays" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -251,7 +278,6 @@ CREATE TABLE "jurisdiction_holidays" (
 	"source" text,
 	"published_at" timestamp with time zone
 );
-
 --> statement-breakpoint
 CREATE TABLE "jurisdiction_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -275,7 +301,6 @@ CREATE TABLE "jurisdiction_settings" (
 	"change_summary" text,
 	"effective_range" jsonb NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "leave_catalogue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -301,7 +326,6 @@ CREATE TABLE "leave_catalogue" (
 	"evidence_after_days" integer,
 	"entitlement" jsonb NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "leave_entries" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -341,7 +365,6 @@ CREATE TABLE "leave_entries" (
 	"summary" text,
 	"payslip_id" uuid
 );
-
 --> statement-breakpoint
 CREATE TABLE "loan_catalogue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -362,7 +385,6 @@ CREATE TABLE "loan_catalogue" (
 	"eligibility" text DEFAULT '' NOT NULL,
 	"evidence" text DEFAULT 'NONE' NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "loan_repayments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -379,7 +401,6 @@ CREATE TABLE "loan_repayments" (
 	"as_adjustment_entry" boolean DEFAULT false NOT NULL,
 	"payslip_id" uuid
 );
-
 --> statement-breakpoint
 CREATE TABLE "loans" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -396,7 +417,6 @@ CREATE TABLE "loans" (
 	"effective_from" timestamp with time zone GENERATED ALWAYS AS (bolt_instant(effective_range ->> 'start')) STORED,
 	"reference" text
 );
-
 --> statement-breakpoint
 CREATE TABLE "payroll_runs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -419,7 +439,6 @@ CREATE TABLE "payroll_runs" (
 	"company_charges" jsonb DEFAULT '[]' NOT NULL,
 	"warnings" text DEFAULT '' NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "payslips" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -444,7 +463,6 @@ CREATE TABLE "payslips" (
 	"employer_cost" numeric NOT NULL,
 	"currency" text NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "rosters" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -456,7 +474,6 @@ CREATE TABLE "rosters" (
 	"employment_id" uuid NOT NULL,
 	"period" text NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "shift_definitions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -472,7 +489,6 @@ CREATE TABLE "shift_definitions" (
 	"variant" jsonb NOT NULL,
 	"effective_range" jsonb NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "shift_patterns" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -488,7 +504,6 @@ CREATE TABLE "shift_patterns" (
 	"pattern" jsonb NOT NULL,
 	"effective_range" jsonb NOT NULL
 );
-
 --> statement-breakpoint
 CREATE TABLE "statutory_contributions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -516,7 +531,6 @@ CREATE TABLE "statutory_contributions" (
 	"listing_order" integer,
 	"listing_group" text
 );
-
 --> statement-breakpoint
 CREATE TABLE "work_days" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -532,7 +546,20 @@ CREATE TABLE "work_days" (
 	"requested_by" text,
 	"payslip_id" uuid
 );
-
+--> statement-breakpoint
+CREATE INDEX "adhoc_catalogue_search_document_gin_idx" ON "adhoc_catalogue" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "adhoc_catalogue_search_text_trgm_idx" ON "adhoc_catalogue" USING gin ((coalesce("code", '') || ' ' || coalesce("name", '')) gin_trgm_ops);
+--> statement-breakpoint
+CREATE UNIQUE INDEX "adhoc_catalogue_settings_id_code_index" ON "adhoc_catalogue" ("settings_id","code");
+--> statement-breakpoint
+CREATE INDEX "adhoc_requests_catalogue_id_idx" ON "adhoc_requests" ("catalogue_id");
+--> statement-breakpoint
+CREATE INDEX "adhoc_requests_employment_id_event_date_index" ON "adhoc_requests" ("employment_id","event_date");
+--> statement-breakpoint
+CREATE INDEX "adhoc_requests_employment_id_pay_period_index" ON "adhoc_requests" ("employment_id","pay_period");
+--> statement-breakpoint
+CREATE INDEX "adhoc_requests_payslip_id_idx" ON "adhoc_requests" ("payslip_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "allowance_catalogue_settings_id_code_index" ON "allowance_catalogue" ("settings_id","code");
 --> statement-breakpoint
@@ -683,6 +710,14 @@ CREATE INDEX "statutory_contributions_search_text_trgm_idx" ON "statutory_contri
 CREATE UNIQUE INDEX "work_days_employment_id_work_date_index" ON "work_days" ("employment_id","work_date");
 --> statement-breakpoint
 CREATE INDEX "work_days_work_date_idx" ON "work_days" ("work_date");
+--> statement-breakpoint
+ALTER TABLE "adhoc_catalogue" ADD CONSTRAINT "adhoc_catalogue_settings_id_jurisdiction_settings_fk" FOREIGN KEY ("settings_id") REFERENCES "jurisdiction_settings"("id") ON DELETE CASCADE;
+--> statement-breakpoint
+ALTER TABLE "adhoc_requests" ADD CONSTRAINT "adhoc_requests_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id");
+--> statement-breakpoint
+ALTER TABLE "adhoc_requests" ADD CONSTRAINT "adhoc_requests_payslip_id_payslips_fk" FOREIGN KEY ("payslip_id") REFERENCES "payslips"("id") ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+--> statement-breakpoint
+ALTER TABLE "adhoc_requests" ADD CONSTRAINT "adhoc_requests_catalogue_id_adhoc_catalogue_fk" FOREIGN KEY ("catalogue_id") REFERENCES "adhoc_catalogue"("id");
 --> statement-breakpoint
 ALTER TABLE "allowance_catalogue" ADD CONSTRAINT "allowance_catalogue_settings_id_jurisdiction_settings_fk" FOREIGN KEY ("settings_id") REFERENCES "jurisdiction_settings"("id") ON DELETE CASCADE;
 --> statement-breakpoint

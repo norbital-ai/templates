@@ -4,7 +4,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
-		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -16,7 +16,7 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 21,
 		"listing_group": null,
@@ -27,7 +27,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
-		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. JP covers Indonesian nationals only (the rule `when`). The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. JP covers Indonesian nationals only (the rule `when`). The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -44,7 +44,7 @@
 				"employer": "round_unit(210948.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 22,
 		"listing_group": null,
@@ -55,7 +55,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
-		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -87,7 +87,7 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 23,
 		"listing_group": null,
@@ -98,7 +98,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
-		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -110,7 +110,7 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 24,
 		"listing_group": null,
@@ -121,7 +121,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; Applied 2026-09-18: `by_region` carries the Kabupaten Bekasi UMK (Kepgub Jabar 2026) beside the UMP, and the company’s region names it, so the floor is the workplace UMK. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; Applied 2026-09-18: `by_region` carries the Kabupaten Bekasi UMK (Kepgub Jabar 2026) beside the UMP, and the company’s region names it, so the floor is the workplace UMK. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -138,7 +138,7 @@
 				"employer": "round_unit(480000.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "extra_members",
@@ -155,7 +155,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
-		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears (the rule `when`; a NOT_REGISTERED fact for arrears). Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts. Applied 2026-09-18: PP 37/2021 art.4 covers an Indonesian national under 54 (`citizenship`, `age`); a NOT_REGISTERED fact takes an employment out where the employer is not current. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears (the rule `when`; a NOT_REGISTERED fact for arrears). Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts. Applied 2026-09-18: PP 37/2021 art.4 covers an Indonesian national under 54 (`citizenship`, `age`); a NOT_REGISTERED fact takes an employment out where the employer is not current. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -167,7 +167,7 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 26,
 		"listing_group": null,
@@ -815,7 +815,7 @@
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
 		"elections": [
 			{
 				"key": "ptkp",
@@ -826,14 +826,14 @@
 		"listing_order": 27,
 		"listing_group": null,
 		"parts": ["ORDINARY", "ADDITIONAL"],
-		"ordinary_on": "BASE + ORDINARY.ALLOWANCES"
+		"ordinary_on": "BASE + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC)"
 	},
 	{
 		"id": "1fc84b08-22b6-4d48-a2c4-e909eb29c62d",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
-		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -845,7 +845,7 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 21,
 		"listing_group": null,
@@ -856,7 +856,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
-		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. JP covers Indonesian nationals only (the rule `when`). The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. JP covers Indonesian nationals only (the rule `when`). The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -873,7 +873,7 @@
 				"employer": "round_unit(210948.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 22,
 		"listing_group": null,
@@ -884,7 +884,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
-		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -916,7 +916,7 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 23,
 		"listing_group": null,
@@ -927,7 +927,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
-		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -939,7 +939,7 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 24,
 		"listing_group": null,
@@ -950,7 +950,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; Applied 2026-09-18: `by_region` carries the Kabupaten Bekasi UMK (Kepgub Jabar 2026) beside the UMP, and the company’s region names it, so the floor is the workplace UMK. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; Applied 2026-09-18: `by_region` carries the Kabupaten Bekasi UMK (Kepgub Jabar 2026) beside the UMP, and the company’s region names it, so the floor is the workplace UMK. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -967,7 +967,7 @@
 				"employer": "round_unit(480000.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "extra_members",
@@ -984,7 +984,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
-		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears (the rule `when`; a NOT_REGISTERED fact for arrears). Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts. Applied 2026-09-18: PP 37/2021 art.4 covers an Indonesian national under 54 (`citizenship`, `age`); a NOT_REGISTERED fact takes an employment out where the employer is not current. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears (the rule `when`; a NOT_REGISTERED fact for arrears). Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts. Applied 2026-09-18: PP 37/2021 art.4 covers an Indonesian national under 54 (`citizenship`, `age`); a NOT_REGISTERED fact takes an employment out where the employer is not current. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -996,7 +996,7 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 26,
 		"listing_group": null,
@@ -1644,7 +1644,7 @@
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
 		"elections": [
 			{
 				"key": "ptkp",
@@ -1655,14 +1655,14 @@
 		"listing_order": 27,
 		"listing_group": null,
 		"parts": ["ORDINARY", "ADDITIONAL"],
-		"ordinary_on": "BASE + ORDINARY.ALLOWANCES"
+		"ordinary_on": "BASE + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC)"
 	},
 	{
 		"id": "e8af2b2c-4f82-409f-a794-f817c435054b",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
-		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1674,7 +1674,7 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 21,
 		"listing_group": null,
@@ -1685,7 +1685,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
-		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). The ceiling is 11,086,300 from 1 March 2026 (SE BPJS Ketenagakerjaan No. B/1226/022026 of 25 February 2026, the art.29(3) uplift by 2025 GDP growth of 5.11%). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. JP covers Indonesian nationals only (the rule `when`). The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). The ceiling is 11,086,300 from 1 March 2026 (SE BPJS Ketenagakerjaan No. B/1226/022026 of 25 February 2026, the art.29(3) uplift by 2025 GDP growth of 5.11%). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. JP covers Indonesian nationals only (the rule `when`). The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1702,7 +1702,7 @@
 				"employer": "round_unit(221726.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 22,
 		"listing_group": null,
@@ -1713,7 +1713,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
-		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1745,7 +1745,7 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 23,
 		"listing_group": null,
@@ -1756,7 +1756,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
-		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1768,7 +1768,7 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 24,
 		"listing_group": null,
@@ -1779,7 +1779,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; Applied 2026-09-18: `by_region` carries the Kabupaten Bekasi UMK (Kepgub Jabar 2026) beside the UMP, and the company’s region names it, so the floor is the workplace UMK. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; Applied 2026-09-18: `by_region` carries the Kabupaten Bekasi UMK (Kepgub Jabar 2026) beside the UMP, and the company’s region names it, so the floor is the workplace UMK. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1796,7 +1796,7 @@
 				"employer": "round_unit(480000.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "extra_members",
@@ -1813,7 +1813,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
-		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears (the rule `when`; a NOT_REGISTERED fact for arrears). Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts. Applied 2026-09-18: PP 37/2021 art.4 covers an Indonesian national under 54 (`citizenship`, `age`); a NOT_REGISTERED fact takes an employment out where the employer is not current. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES`); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
+		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears (the rule `when`; a NOT_REGISTERED fact for arrears). Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts. Applied 2026-09-18: PP 37/2021 art.4 covers an Indonesian national under 54 (`citizenship`, `age`); a NOT_REGISTERED fact takes an employment out where the employer is not current. Applied 2026-09-18 (4): PP 44/2015 art.19(2), PP 45/2015 art.29(1), PP 46/2015 art.17(1), Perpres 82/2018 art.32: the contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base (`ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward)); a reimbursement is not. Where the KDIT listing charged the wage alone (JHT on 22,380,750 for KDIT0002), the law charges 27,880,750.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1825,7 +1825,7 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + ALLOWANCES - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 26,
 		"listing_group": null,
@@ -2473,7 +2473,7 @@
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
 		"elections": [
 			{
 				"key": "ptkp",
@@ -2484,7 +2484,7 @@
 		"listing_order": 27,
 		"listing_group": null,
 		"parts": ["ORDINARY", "ADDITIONAL"],
-		"ordinary_on": "BASE + ORDINARY.ALLOWANCES"
+		"ordinary_on": "BASE + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC)"
 	},
 	{
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
@@ -2520,7 +2520,7 @@
 		"code": "PPH26",
 		"name": "PPh 26 (non-resident withholding)",
 		"elections": [],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
 		"rules": [
 			{
 				"when": "person.terms.tax_residency == \"NON_RESIDENT\" && base > 0.0",
@@ -2568,7 +2568,7 @@
 		"code": "PPH26",
 		"name": "PPh 26 (non-resident withholding)",
 		"elections": [],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
 		"rules": [
 			{
 				"when": "person.terms.tax_residency == \"NON_RESIDENT\" && base > 0.0",
@@ -2616,7 +2616,7 @@
 		"code": "PPH26",
 		"name": "PPh 26 (non-resident withholding)",
 		"elections": [],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE + produced.JKK.employer + produced.JKM.employer + produced.KESEHATAN.employer",
 		"rules": [
 			{
 				"when": "person.terms.tax_residency == \"NON_RESIDENT\" && base > 0.0",

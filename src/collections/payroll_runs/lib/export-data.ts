@@ -158,7 +158,7 @@ export function loadRunExports(
 			.map((run) => requiredDateKey(run.attendance_to, 'payroll_runs.attendance_to'))
 			.toSorted()
 			.at(-1)!;
-		const [employments, settingsVersions, leaves, claims, allowances, terms, workDays] =
+		const [employments, settingsVersions, leaves, claims, adhoc, allowances, terms, workDays] =
 			yield* Effect.all(
 				[
 					api.db.employments.findMany({
@@ -171,6 +171,7 @@ export function loadRunExports(
 					api.db.jurisdiction_settings.findMany({ limit: PAGE_LIMIT }),
 					api.db.leave_catalogue.findMany({ limit: PAGE_LIMIT }),
 					api.db.claim_catalogue.findMany({ limit: PAGE_LIMIT }),
+					api.db.adhoc_catalogue.findMany({ limit: PAGE_LIMIT }),
 					api.db.allowance_catalogue.findMany({ limit: PAGE_LIMIT }),
 					api.db.employment_terms.findMany({
 						where: { employment_id: { in: employmentIds } },
@@ -196,6 +197,7 @@ export function loadRunExports(
 			settingsVersions,
 			leaves,
 			claims,
+			adhoc,
 			allowances
 		}))
 			readApi.reads.assertComplete<unknown>(rows, name);
@@ -290,6 +292,7 @@ export function loadRunExports(
 			// `ENTRY` arm the run does.
 			for (const [family, rows] of [
 				['CLAIM', claims],
+				['ADHOC', adhoc],
 				['ALLOWANCE', allowances]
 			] as const)
 				for (const row of rows.filter((row) => row.settings_id === run.settings_id)) {

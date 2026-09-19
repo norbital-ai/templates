@@ -206,6 +206,7 @@ const OTHER_SECTION_NAME = 'Other';
  */
 const CATALOGUE_SECTIONS: readonly { readonly name: string; readonly family: string }[] = [
 	{ name: 'Allowances', family: 'ALLOWANCE' },
+	{ name: 'Ad hoc', family: 'ADHOC' },
 	{ name: 'Claims', family: 'CLAIM' },
 	{ name: 'Loans', family: 'LOAN_REPAYMENT' }
 ];

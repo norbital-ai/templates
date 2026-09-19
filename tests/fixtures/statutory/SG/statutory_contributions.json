@@ -4,7 +4,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "CPF",
 		"name": "Central Provident Fund",
-		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 7,400 from 1 January 2025 (Budget 2023, the step before the SGD 8,000 ceiling of 1 January 2026). Senior-worker rates in force through 31 December 2025: above 55 to 60 total 32.5% (employer 15.5, employee 17); above 60 to 65 total 23.5% (employer 12, employee 11.5). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. Applied 2026-09-18: the base is the Ordinary Wages capped at the monthly ceiling (7400) plus the Additional Wages (the bonus row and leave encashment) capped at 102,000 less the year’s basic wages to date , so the ladder’s top band prices the capped base rather than a fixed figure. December 2025 carries the tables in force from 1 January 2025 (CPF Board): above 55 to 60 at 32.5%, above 60 to 65 at 23.5%, ordinary-wage ceiling $7,400. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18 (4): CPF Act First Schedule with the Board’s AW ceiling: the Additional Wages subject to CPF in a year are 102,000 less the year’s Ordinary Wages subject to CPF — each month’s OW at its ceiling, this month included (`ordinary_on`, `scheme.year_to_date.ordinary`) — less the Additional Wages already subject this year (`year_to_date.base − year_to_date.ordinary`). Applied 2026-09-19 (2): CPF Act 1953 First Schedule: Ordinary Wages are the wages due wholly and exclusively for the month — the catalogue rows marked fixed (`ORDINARY.ALLOWANCES`); Additional Wages are the rest, a bonus or a leave encashment (`{fixed: false}` + ENCASHMENT), not a list of codes. The AW ceiling is 102,000 less the year’s total OW subject to CPF: where the year’s OW is not yet known the Board’s method estimates it as the OW to date plus this month’s capped OW over the payslips still to come (`scheme.projection.payslips_remaining`, this one included), so December re-computes on the actual year; the AW already subject this year (`year_to_date.base - year_to_date.ordinary`) is taken off the room.",
+		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 7,400 from 1 January 2025 (Budget 2023, the step before the SGD 8,000 ceiling of 1 January 2026). Senior-worker rates in force through 31 December 2025: above 55 to 60 total 32.5% (employer 15.5, employee 17); above 60 to 65 total 23.5% (employer 12, employee 11.5). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. Applied 2026-09-18: the base is the Ordinary Wages capped at the monthly ceiling (7400) plus the Additional Wages (the bonus row and leave encashment) capped at 102,000 less the year’s basic wages to date , so the ladder’s top band prices the capped base rather than a fixed figure. December 2025 carries the tables in force from 1 January 2025 (CPF Board): above 55 to 60 at 32.5%, above 60 to 65 at 23.5%, ordinary-wage ceiling $7,400. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18 (4): CPF Act First Schedule with the Board’s AW ceiling: the Additional Wages subject to CPF in a year are 102,000 less the year’s Ordinary Wages subject to CPF — each month’s OW at its ceiling, this month included (`ordinary_on`, `scheme.year_to_date.ordinary`) — less the Additional Wages already subject this year (`year_to_date.base − year_to_date.ordinary`). Applied 2026-09-19 (2): CPF Act 1953 First Schedule: Ordinary Wages are the wages due wholly and exclusively for the month — the catalogue rows marked fixed (`ORDINARY.ALLOWANCES`); Additional Wages are the rest, a bonus or a leave encashment (`{fixed: false}` + ENCASHMENT), not a list of codes. The AW ceiling is 102,000 less the year’s total OW subject to CPF: where the year’s OW is not yet known the Board’s method estimates it as the OW to date plus this month’s capped OW over the payslips still to come (`scheme.projection.payslips_remaining`, this one included), so December re-computes on the actual year; the AW already subject this year (`year_to_date.base - year_to_date.ordinary`) is taken off the room.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -311,14 +311,14 @@
 				"employer": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0 + (base) * 3.5 / 100.0) - floor_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)"
 			}
 		],
-		"assessed_on": "((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)) + (period.last_of_year ? ((((year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : (year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (((year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : (year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : ((ADDITIONAL.ALLOWANCES + ENCASHMENT) > (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 7400.0 ? 7400.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) ? ((102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 7400.0 ? 7400.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 7400.0 ? 7400.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : (ADDITIONAL.ALLOWANCES + ENCASHMENT)))",
+		"assessed_on": "((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)) + (period.last_of_year ? (((((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : ((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? ((((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : ((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : (((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT) > (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 7400.0 ? 7400.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) ? ((102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 7400.0 ? 7400.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 7400.0 ? 7400.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)))",
 		"elections": [
 			{
 				"key": "spr_full_rate",
 				"type": "boolean"
 			}
 		],
-		"ordinary_on": "((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE))",
+		"ordinary_on": "((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 7400.0 ? 7400.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE))",
 		"short_name": null,
 		"listing_order": 15,
 		"listing_group": null,
@@ -329,7 +329,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "CDAC",
 		"name": "Chinese Development Assistance Council Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -361,7 +361,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -378,7 +378,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "ECF",
 		"name": "Eurasian Community Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -420,7 +420,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -437,7 +437,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "MBMF",
 		"name": "Mosque Building and Mendaki Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -484,7 +484,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -501,7 +501,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "SINDA",
 		"name": "Singapore Indian Development Association Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18: SINDA covers Singapore Citizens, Permanent Residents and Employment Pass holders of Indian descent; a Work Permit or S Pass holder is outside it (`terms.pass_type`).",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18: SINDA covers Singapore Citizens, Permanent Residents and Employment Pass holders of Indian descent; a Work Permit or S Pass holder is outside it (`terms.pass_type`).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -548,7 +548,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -565,7 +565,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "SDL",
 		"name": "Skills Development Levy",
-		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -587,7 +587,7 @@
 				"employer": "round_cent(11.25)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 20,
 		"listing_group": null,
@@ -598,7 +598,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "CPF",
 		"name": "Central Provident Fund",
-		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2026: above 55 to 60 total 34% (employer 16, employee 18); above 60 to 65 total 25% (employer 12.5, employee 12.5). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. Applied 2026-09-18: the base is the Ordinary Wages capped at the monthly ceiling (8000) plus the Additional Wages (the bonus row and leave encashment) capped at 102,000 less the year’s basic wages to date , so the ladder’s top band prices the capped base rather than a fixed figure. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18 (4): CPF Act First Schedule with the Board’s AW ceiling: the Additional Wages subject to CPF in a year are 102,000 less the year’s Ordinary Wages subject to CPF — each month’s OW at its ceiling, this month included (`ordinary_on`, `scheme.year_to_date.ordinary`) — less the Additional Wages already subject this year (`year_to_date.base − year_to_date.ordinary`). Applied 2026-09-19 (2): CPF Act 1953 First Schedule: Ordinary Wages are the wages due wholly and exclusively for the month — the catalogue rows marked fixed (`ORDINARY.ALLOWANCES`); Additional Wages are the rest, a bonus or a leave encashment (`{fixed: false}` + ENCASHMENT), not a list of codes. The AW ceiling is 102,000 less the year’s total OW subject to CPF: where the year’s OW is not yet known the Board’s method estimates it as the OW to date plus this month’s capped OW over the payslips still to come (`scheme.projection.payslips_remaining`, this one included), so December re-computes on the actual year; the AW already subject this year (`year_to_date.base - year_to_date.ordinary`) is taken off the room.",
+		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2026: above 55 to 60 total 34% (employer 16, employee 18); above 60 to 65 total 25% (employer 12.5, employee 12.5). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. Applied 2026-09-18: the base is the Ordinary Wages capped at the monthly ceiling (8000) plus the Additional Wages (the bonus row and leave encashment) capped at 102,000 less the year’s basic wages to date , so the ladder’s top band prices the capped base rather than a fixed figure. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18 (4): CPF Act First Schedule with the Board’s AW ceiling: the Additional Wages subject to CPF in a year are 102,000 less the year’s Ordinary Wages subject to CPF — each month’s OW at its ceiling, this month included (`ordinary_on`, `scheme.year_to_date.ordinary`) — less the Additional Wages already subject this year (`year_to_date.base − year_to_date.ordinary`). Applied 2026-09-19 (2): CPF Act 1953 First Schedule: Ordinary Wages are the wages due wholly and exclusively for the month — the catalogue rows marked fixed (`ORDINARY.ALLOWANCES`); Additional Wages are the rest, a bonus or a leave encashment (`{fixed: false}` + ENCASHMENT), not a list of codes. The AW ceiling is 102,000 less the year’s total OW subject to CPF: where the year’s OW is not yet known the Board’s method estimates it as the OW to date plus this month’s capped OW over the payslips still to come (`scheme.projection.payslips_remaining`, this one included), so December re-computes on the actual year; the AW already subject this year (`year_to_date.base - year_to_date.ordinary`) is taken off the room.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -905,14 +905,14 @@
 				"employer": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0 + (base) * 3.5 / 100.0) - floor_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)"
 			}
 		],
-		"assessed_on": "((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)) + (period.last_of_year ? ((((year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : (year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (((year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : (year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : ((ADDITIONAL.ALLOWANCES + ENCASHMENT) > (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) ? ((102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : (ADDITIONAL.ALLOWANCES + ENCASHMENT)))",
+		"assessed_on": "((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)) + (period.last_of_year ? (((((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : ((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? ((((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : ((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : (((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT) > (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) ? ((102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)))",
 		"elections": [
 			{
 				"key": "spr_full_rate",
 				"type": "boolean"
 			}
 		],
-		"ordinary_on": "((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE))",
+		"ordinary_on": "((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE))",
 		"short_name": null,
 		"listing_order": 15,
 		"listing_group": null,
@@ -923,7 +923,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "CDAC",
 		"name": "Chinese Development Assistance Council Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -955,7 +955,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -972,7 +972,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "ECF",
 		"name": "Eurasian Community Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1014,7 +1014,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -1031,7 +1031,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "MBMF",
 		"name": "Mosque Building and Mendaki Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1078,7 +1078,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -1095,7 +1095,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "SINDA",
 		"name": "Singapore Indian Development Association Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18: SINDA covers Singapore Citizens, Permanent Residents and Employment Pass holders of Indian descent; a Work Permit or S Pass holder is outside it (`terms.pass_type`).",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18: SINDA covers Singapore Citizens, Permanent Residents and Employment Pass holders of Indian descent; a Work Permit or S Pass holder is outside it (`terms.pass_type`).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1142,7 +1142,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -1159,7 +1159,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "SDL",
 		"name": "Skills Development Levy",
-		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1181,7 +1181,7 @@
 				"employer": "round_cent(11.25)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 20,
 		"listing_group": null,
@@ -1192,7 +1192,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "CPF",
 		"name": "Central Provident Fund",
-		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2026: above 55 to 60 total 34% (employer 16, employee 18); above 60 to 65 total 25% (employer 12.5, employee 12.5). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. Applied 2026-09-18: the base is the Ordinary Wages capped at the monthly ceiling (8000) plus the Additional Wages (the bonus row and leave encashment) capped at 102,000 less the year’s basic wages to date , so the ladder’s top band prices the capped base rather than a fixed figure. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18 (4): CPF Act First Schedule with the Board’s AW ceiling: the Additional Wages subject to CPF in a year are 102,000 less the year’s Ordinary Wages subject to CPF — each month’s OW at its ceiling, this month included (`ordinary_on`, `scheme.year_to_date.ordinary`) — less the Additional Wages already subject this year (`year_to_date.base − year_to_date.ordinary`). Applied 2026-09-19 (2): CPF Act 1953 First Schedule: Ordinary Wages are the wages due wholly and exclusively for the month — the catalogue rows marked fixed (`ORDINARY.ALLOWANCES`); Additional Wages are the rest, a bonus or a leave encashment (`{fixed: false}` + ENCASHMENT), not a list of codes. The AW ceiling is 102,000 less the year’s total OW subject to CPF: where the year’s OW is not yet known the Board’s method estimates it as the OW to date plus this month’s capped OW over the payslips still to come (`scheme.projection.payslips_remaining`, this one included), so December re-computes on the actual year; the AW already subject this year (`year_to_date.base - year_to_date.ordinary`) is taken off the room.",
+		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2026: above 55 to 60 total 34% (employer 16, employee 18); above 60 to 65 total 25% (employer 12.5, employee 12.5). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. Applied 2026-09-18: the base is the Ordinary Wages capped at the monthly ceiling (8000) plus the Additional Wages (the bonus row and leave encashment) capped at 102,000 less the year’s basic wages to date , so the ladder’s top band prices the capped base rather than a fixed figure. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18 (4): CPF Act First Schedule with the Board’s AW ceiling: the Additional Wages subject to CPF in a year are 102,000 less the year’s Ordinary Wages subject to CPF — each month’s OW at its ceiling, this month included (`ordinary_on`, `scheme.year_to_date.ordinary`) — less the Additional Wages already subject this year (`year_to_date.base − year_to_date.ordinary`). Applied 2026-09-19 (2): CPF Act 1953 First Schedule: Ordinary Wages are the wages due wholly and exclusively for the month — the catalogue rows marked fixed (`ORDINARY.ALLOWANCES`); Additional Wages are the rest, a bonus or a leave encashment (`{fixed: false}` + ENCASHMENT), not a list of codes. The AW ceiling is 102,000 less the year’s total OW subject to CPF: where the year’s OW is not yet known the Board’s method estimates it as the OW to date plus this month’s capped OW over the payslips still to come (`scheme.projection.payslips_remaining`, this one included), so December re-computes on the actual year; the AW already subject this year (`year_to_date.base - year_to_date.ordinary`) is taken off the room.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1499,14 +1499,14 @@
 				"employer": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0 + (base) * 3.5 / 100.0) - floor_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)"
 			}
 		],
-		"assessed_on": "((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)) + (period.last_of_year ? ((((year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : (year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (((year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : (year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : ((ADDITIONAL.ALLOWANCES + ENCASHMENT) > (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) ? ((102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : (ADDITIONAL.ALLOWANCES + ENCASHMENT)))",
+		"assessed_on": "((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)) + (period.last_of_year ? (((((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : ((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? ((((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : ((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : (((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT) > (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) ? ((102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)))",
 		"elections": [
 			{
 				"key": "spr_full_rate",
 				"type": "boolean"
 			}
 		],
-		"ordinary_on": "((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE))",
+		"ordinary_on": "((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE))",
 		"short_name": null,
 		"listing_order": 15,
 		"listing_group": null,
@@ -1517,7 +1517,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "CDAC",
 		"name": "Chinese Development Assistance Council Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1549,7 +1549,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -1566,7 +1566,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "ECF",
 		"name": "Eurasian Community Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1608,7 +1608,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -1625,7 +1625,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "MBMF",
 		"name": "Mosque Building and Mendaki Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1672,7 +1672,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -1689,7 +1689,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "SINDA",
 		"name": "Singapore Indian Development Association Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18: SINDA covers Singapore Citizens, Permanent Residents and Employment Pass holders of Indian descent; a Work Permit or S Pass holder is outside it (`terms.pass_type`).",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18: SINDA covers Singapore Citizens, Permanent Residents and Employment Pass holders of Indian descent; a Work Permit or S Pass holder is outside it (`terms.pass_type`).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1736,7 +1736,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -1753,7 +1753,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "SDL",
 		"name": "Skills Development Levy",
-		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1775,7 +1775,7 @@
 				"employer": "round_cent(11.25)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 20,
 		"listing_group": null,
@@ -1786,7 +1786,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "CPF",
 		"name": "Central Provident Fund",
-		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2027: above 55 to 60 total 35.5% (employer 16.5, employee 19); above 60 to 65 total 26% (employer 13, employee 13). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. Applied 2026-09-18: the base is the Ordinary Wages capped at the monthly ceiling (8000) plus the Additional Wages (the bonus row and leave encashment) capped at 102,000 less the year’s basic wages to date , so the ladder’s top band prices the capped base rather than a fixed figure. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18 (4): CPF Act First Schedule with the Board’s AW ceiling: the Additional Wages subject to CPF in a year are 102,000 less the year’s Ordinary Wages subject to CPF — each month’s OW at its ceiling, this month included (`ordinary_on`, `scheme.year_to_date.ordinary`) — less the Additional Wages already subject this year (`year_to_date.base − year_to_date.ordinary`). Applied 2026-09-19 (2): CPF Act 1953 First Schedule: Ordinary Wages are the wages due wholly and exclusively for the month — the catalogue rows marked fixed (`ORDINARY.ALLOWANCES`); Additional Wages are the rest, a bonus or a leave encashment (`{fixed: false}` + ENCASHMENT), not a list of codes. The AW ceiling is 102,000 less the year’s total OW subject to CPF: where the year’s OW is not yet known the Board’s method estimates it as the OW to date plus this month’s capped OW over the payslips still to come (`scheme.projection.payslips_remaining`, this one included), so December re-computes on the actual year; the AW already subject this year (`year_to_date.base - year_to_date.ordinary`) is taken off the room.",
+		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2027: above 55 to 60 total 35.5% (employer 16.5, employee 19); above 60 to 65 total 26% (employer 13, employee 13). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. Applied 2026-09-18: the base is the Ordinary Wages capped at the monthly ceiling (8000) plus the Additional Wages (the bonus row and leave encashment) capped at 102,000 less the year’s basic wages to date , so the ladder’s top band prices the capped base rather than a fixed figure. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18 (4): CPF Act First Schedule with the Board’s AW ceiling: the Additional Wages subject to CPF in a year are 102,000 less the year’s Ordinary Wages subject to CPF — each month’s OW at its ceiling, this month included (`ordinary_on`, `scheme.year_to_date.ordinary`) — less the Additional Wages already subject this year (`year_to_date.base − year_to_date.ordinary`). Applied 2026-09-19 (2): CPF Act 1953 First Schedule: Ordinary Wages are the wages due wholly and exclusively for the month — the catalogue rows marked fixed (`ORDINARY.ALLOWANCES`); Additional Wages are the rest, a bonus or a leave encashment (`{fixed: false}` + ENCASHMENT), not a list of codes. The AW ceiling is 102,000 less the year’s total OW subject to CPF: where the year’s OW is not yet known the Board’s method estimates it as the OW to date plus this month’s capped OW over the payslips still to come (`scheme.projection.payslips_remaining`, this one included), so December re-computes on the actual year; the AW already subject this year (`year_to_date.base - year_to_date.ordinary`) is taken off the room.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2093,14 +2093,14 @@
 				"employer": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0 + (base) * 3.5 / 100.0) - floor_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)"
 			}
 		],
-		"assessed_on": "((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)) + (period.last_of_year ? ((((year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : (year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (((year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : (year.ADDITIONAL.ALLOWANCES + (ADDITIONAL.ALLOWANCES + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : ((ADDITIONAL.ALLOWANCES + ENCASHMENT) > (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) ? ((102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : (ADDITIONAL.ALLOWANCES + ENCASHMENT)))",
+		"assessed_on": "((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)) + (period.last_of_year ? (((((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : ((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? ((((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)) > (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) ? ((102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + ((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE)))) : 0.0) : ((year.ADDITIONAL.ALLOWANCES + year.ADDITIONAL.ADHOC) + ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT))) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : (((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT) > (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) ? ((102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) > 0.0 ? (102000.0 - (scheme.year_to_date.ordinary + (person.terms.monthly_wage > 8000.0 ? 8000.0 : person.terms.monthly_wage) * scheme.projection.payslips_remaining) - (scheme.year_to_date.base - scheme.year_to_date.ordinary)) : 0.0) : ((ADDITIONAL.ALLOWANCES + ADDITIONAL.ADHOC) + ENCASHMENT)))",
 		"elections": [
 			{
 				"key": "spr_full_rate",
 				"type": "boolean"
 			}
 		],
-		"ordinary_on": "((BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + ORDINARY.ALLOWANCES - ABSENCE - NO_PAY_LEAVE))",
+		"ordinary_on": "((BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE) > 8000.0 ? 8000.0 : (BASE + OVERTIME + (ORDINARY.ALLOWANCES + ORDINARY.ADHOC) - ABSENCE - NO_PAY_LEAVE))",
 		"short_name": null,
 		"listing_order": 15,
 		"listing_group": null,
@@ -2111,7 +2111,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "CDAC",
 		"name": "Chinese Development Assistance Council Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2143,7 +2143,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -2160,7 +2160,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "ECF",
 		"name": "Eurasian Community Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2202,7 +2202,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -2219,7 +2219,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "MBMF",
 		"name": "Mosque Building and Mendaki Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2266,7 +2266,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -2283,7 +2283,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "SINDA",
 		"name": "Singapore Indian Development Association Fund",
-		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18: SINDA covers Singapore Citizens, Permanent Residents and Employment Pass holders of Indian descent; a Work Permit or S Pass holder is outside it (`terms.pass_type`).",
+		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name. Applied 2026-09-18: SINDA covers Singapore Citizens, Permanent Residents and Employment Pass holders of Indian descent; a Work Permit or S Pass holder is outside it (`terms.pass_type`).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2330,7 +2330,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "shg_opt_out",
@@ -2347,7 +2347,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "SDL",
 		"name": "Skills Development Levy",
-		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` is in every base; a reimbursement row must be excluded by name.",
+		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01. Base: allowances are wages (CPF Act 1953 s.2 'wages': all remuneration in money including allowances; the SDL Order and the self-help-group schedules read total wages), so `ALLOWANCES` and `ADHOC` (each class listing the scheme in its counts_toward) is in every base; a reimbursement row must be excluded by name.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2369,7 +2369,7 @@
 				"employer": "round_cent(11.25)"
 			}
 		],
-		"assessed_on": "BASE + OVERTIME + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + OVERTIME + (ALLOWANCES + ADHOC) + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 20,
 		"listing_group": null,

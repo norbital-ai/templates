@@ -14,7 +14,7 @@ import { Effect } from 'effect';
 import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
 import { personContext, type PersonContext } from '../collections/payroll_runs/lib/eligibility.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
-import { childrenOn, resolveEmployment } from './employment-contract.js';
+import { childrenOn, resolveEmployment, stint } from './employment-contract.js';
 import { dateKey } from './iso-day.js';
 
 const LIMIT = 10_000;
@@ -45,6 +45,7 @@ type CapEmployment = {
 	readonly company_id: string;
 	readonly employee_number: string | null;
 	readonly effective_range: unknown;
+	readonly exit_reason: string | null;
 	readonly employment_employee: Record<string, unknown> | null;
 	readonly employment_company: { readonly region?: string | null } | null;
 	readonly term_employment: ReadonlyArray<{ readonly effective_range: unknown }>;
@@ -70,7 +71,8 @@ export function capSubjects(
 				employee_id: true,
 				company_id: true,
 				employee_number: true,
-				effective_range: true
+				effective_range: true,
+				exit_reason: true
 			},
 			with: {
 				employment_employee: {
@@ -99,13 +101,13 @@ export function capSubjects(
 				if (terms.length >= LIMIT)
 					refuse('The contract cap eligibility history exceeds the supported read limit.');
 				const contract = resolveEmployment(employment);
-				const start =
-					contract.effective_range == null ? '' : dateKey(contract.effective_range.start);
 				const employee = employment.employment_employee;
+				// The whole stint, exit included: a separation class's eligibility reads the leaver's
+				// exit reason and service on the last day, at the write as in the run.
 				const at = (date: string): PersonContext =>
 					personContext({
 						employee: employee as never,
-						employment: { service_start: start },
+						employment: stint({ ...contract, exit_reason: employment.exit_reason }),
 						terms: payRequestTerms(terms, contract, date) as never,
 						children: childrenOn(
 							(

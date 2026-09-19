@@ -27,6 +27,8 @@ const columns = {
  */
 const GUARD: PayRequestGuard = {
 	family: 'CLAIM',
+	catalogue: 'claim_catalogue',
+	requests: 'claim_requests',
 	noun: 'claim',
 	sign: 1,
 	eventDate: (candidate) => dateKey(candidate.incurred_on as string | null)

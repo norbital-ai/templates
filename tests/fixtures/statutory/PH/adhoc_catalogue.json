@@ -1,0 +1,619 @@
+[
+	{
+		"id": "1f411676-75cd-48f6-af21-4b0c726d50e5",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "bonus",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Performance bonus",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a4b3da46-38fa-4802-bcc6-38a965b49c31",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "BACKPAY_BASIC",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b821f944-a1cd-41d9-b301-d7717c300ccb",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "BACKPAY_DUTY_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – duty allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "91b3de7d-2ac4-5e90-b50d-5a3e93eecb43",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "bonus",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Performance bonus",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c31d7e15-6f7f-5e49-9cce-2fb14cfcbb53",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "BACKPAY_BASIC",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3cc6f251-a1ed-5a34-a1c5-28af7b86d0af",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "BACKPAY_DUTY_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – duty allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1560faf3-26ba-468f-a4d0-b2a6fccfcf65",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d7e67d83-e853-4c73-b41f-c3897a5b650f",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "STATUTORY_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Statutory adjustment",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "aedef594-80d5-5f4b-a8ab-900f0973cf68",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "0d49f8dc-70b5-578c-930e-d370e8e686ec",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "year.earned.BASIC / 12.0",
+				"limit": null
+			}
+		],
+		"name": "13th month pay",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4fddc3cc-7bf8-42c4-8f43-7d9ef87605d6",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "year.earned.BASIC / 12.0",
+				"limit": null
+			}
+		],
+		"name": "13th month pay",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "617ae8c6-9874-5f5b-808e-f6bc96bedf7a",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "4197dd92-b948-5d01-976b-1407bddf2a5e",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five).",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "10327012-fd88-50a4-9d23-4c41c671146a",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "89806dd6-8b4d-57bf-ae48-eae34f21a970",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five).",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "9cddc6ed-d931-5caf-b42b-1af8eeaf9292",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "bonus",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Performance bonus",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b69a74f0-ca3a-5420-a431-8e0041241493",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "BACKPAY_BASIC",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "54607247-ebc3-57ca-83d4-af3d7205a6de",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "BACKPAY_DUTY_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – duty allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4773c9af-9c4b-5880-b6da-feee1ea4220c",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "cb173325-6796-5126-a6d6-784cfef7e248",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "STATUTORY_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Statutory adjustment",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f8feae62-458e-5c9e-bfda-19ed52e20513",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "year.earned.BASIC / 12.0",
+				"limit": null
+			}
+		],
+		"name": "13th month pay",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3e3639ae-6d60-5882-921f-a7b4abedd26a",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "7593d8a1-5b5e-559b-bd28-f095fe93361b",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five).",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "9e0ec681-166f-5cac-9428-d103f205a63e",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "bonus",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Performance bonus",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "866b495e-a5c7-5fc6-9adb-8c9ac583e73e",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "BACKPAY_BASIC",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "2ea9618c-6cb5-5484-b2e1-650f71ee8954",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "BACKPAY_DUTY_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – duty allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b9267a4a-1ed3-53c3-84df-f9e90700eb64",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b8deaafb-a813-5b9f-a755-51722e8c46c6",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "STATUTORY_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Statutory adjustment",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a6dc29c5-3ac7-5601-83c9-465badd6699c",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "year.earned.BASIC / 12.0",
+				"limit": null
+			}
+		],
+		"name": "13th month pay",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "6c4cfb63-a114-5de3-a5ef-d47f792589bc",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "023c9e25-9d43-5017-b2fa-b4353e91bcd9",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five).",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	}
+]

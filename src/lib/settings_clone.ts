@@ -50,6 +50,7 @@ type SettingsCloneApi = Readonly<{
 		| 'leave_catalogue'
 		| 'loan_catalogue'
 		| 'claim_catalogue'
+		| 'adhoc_catalogue'
 		| 'allowance_catalogue'
 	>;
 	readonly collection: Pick<Api['collection'], 'jurisdiction_settings'>;
@@ -64,6 +65,7 @@ export type SettingsVersionTree = Readonly<{
 	catalogueLeaves: ReadonlyArray<Row<'leave_catalogue'>>;
 	loanCatalogue: ReadonlyArray<Row<'loan_catalogue'>>;
 	claimCatalogue: ReadonlyArray<Row<'claim_catalogue'>>;
+	adhocCatalogue: ReadonlyArray<Row<'adhoc_catalogue'>>;
 	allowanceCatalogue: ReadonlyArray<Row<'allowance_catalogue'>>;
 }>;
 
@@ -81,22 +83,30 @@ export const readSettingsVersionTree = (
 		});
 		if (source == null) refuse('The jurisdiction settings version to clone does not exist.');
 		const under = { settings_id: { eq: source.id }, approval_id: { isNull: true } } as const;
-		const [schemes, catalogueLeaves, loanCatalogue, claimCatalogue, allowanceCatalogue] =
-			yield* Effect.all(
-				[
-					api.db.statutory_contributions.findMany({ where: under, limit: LIMIT }),
-					api.db.leave_catalogue.findMany({ where: under, limit: LIMIT }),
-					api.db.loan_catalogue.findMany({ where: under, limit: LIMIT }),
-					api.db.claim_catalogue.findMany({ where: under, limit: LIMIT }),
-					api.db.allowance_catalogue.findMany({ where: under, limit: LIMIT })
-				],
-				{ concurrency: 'unbounded' }
-			);
+		const [
+			schemes,
+			catalogueLeaves,
+			loanCatalogue,
+			claimCatalogue,
+			adhocCatalogue,
+			allowanceCatalogue
+		] = yield* Effect.all(
+			[
+				api.db.statutory_contributions.findMany({ where: under, limit: LIMIT }),
+				api.db.leave_catalogue.findMany({ where: under, limit: LIMIT }),
+				api.db.loan_catalogue.findMany({ where: under, limit: LIMIT }),
+				api.db.claim_catalogue.findMany({ where: under, limit: LIMIT }),
+				api.db.adhoc_catalogue.findMany({ where: under, limit: LIMIT }),
+				api.db.allowance_catalogue.findMany({ where: under, limit: LIMIT })
+			],
+			{ concurrency: 'unbounded' }
+		);
 		for (const rows of [
 			schemes,
 			catalogueLeaves,
 			loanCatalogue,
 			claimCatalogue,
+			adhocCatalogue,
 			allowanceCatalogue
 		])
 			if (rows.length >= LIMIT) refuse('The version is too large to clone safely.');
@@ -106,6 +116,7 @@ export const readSettingsVersionTree = (
 			catalogueLeaves,
 			loanCatalogue,
 			claimCatalogue,
+			adhocCatalogue,
 			allowanceCatalogue
 		};
 	});
@@ -127,8 +138,15 @@ export function settingsDraftWrite(
 	tree: SettingsVersionTree,
 	options: SettingsDraftOptions
 ): Readonly<{ name: string; write: SettingsDraftWrite }> {
-	const { source, schemes, catalogueLeaves, loanCatalogue, claimCatalogue, allowanceCatalogue } =
-		tree;
+	const {
+		source,
+		schemes,
+		catalogueLeaves,
+		loanCatalogue,
+		claimCatalogue,
+		adhocCatalogue,
+		allowanceCatalogue
+	} = tree;
 	const sourceRange = readRange(source.effective_range);
 	const sourceStart = sourceRange == null ? '' : dateKey(sourceRange.start);
 	if (sourceStart !== '' && options.starts_on <= sourceStart)
@@ -160,6 +178,7 @@ export function settingsDraftWrite(
 			leave_catalogue_settings: { create: catalogueLeaves.map(cloneRow) },
 			loan_catalogue_settings: { create: loanCatalogue.map(cloneRow) },
 			claim_catalogue_settings: { create: claimCatalogue.map(cloneRow) },
+			adhoc_catalogue_settings: { create: adhocCatalogue.map(cloneRow) },
 			allowance_catalogue_settings: { create: allowanceCatalogue.map(cloneRow) }
 		}
 	};

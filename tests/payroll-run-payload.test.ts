@@ -13,6 +13,7 @@ import workDays from '../src/collections/work_days/+collection.ts';
 import claimRequests from '../src/collections/claim_requests/+collection.ts';
 import allowanceEntries from '../src/collections/allowance_entries/+collection.ts';
 import leaveEntries from '../src/collections/leave_entries/+collection.ts';
+import adhocRequests from '../src/collections/adhoc_requests/+collection.ts';
 
 test('every captured source becomes a link action on its payslip; allowance entries are created under it', () => {
 	const slip = { id: 'slip-1', employment_id: 'emp-1', status: 'DRAFT' };
@@ -23,6 +24,7 @@ test('every captured source becomes a link action on its payslip; allowance entr
 				payslipId: 'slip-1',
 				workDays: ['day-1', 'day-2'],
 				claims: ['claim-1'],
+				adhoc: ['adhoc-1'],
 				leave: ['leave-1'],
 				loanRepayments: ['repayment-1'],
 				materialised: [
@@ -40,6 +42,7 @@ test('every captured source becomes a link action on its payslip; allowance entr
 	assert.equal(payload.id, 'slip-1');
 	assert.deepEqual(payload.work_day_payslip, { link: [{ id: 'day-1' }, { id: 'day-2' }] });
 	assert.deepEqual(payload.claim_request_payslip, { link: [{ id: 'claim-1' }] });
+	assert.deepEqual(payload.adhoc_request_payslip, { link: [{ id: 'adhoc-1' }] });
 	assert.deepEqual(payload.leave_entry_payslip, { link: [{ id: 'leave-1' }] });
 	assert.deepEqual(payload.loan_repayment_payslip, { link: [{ id: 'repayment-1' }] });
 	// The entry is born under the slip with no pin of its own to state.
@@ -56,6 +59,7 @@ test('a payslip that consumed nothing of a family carries no action for it', () 
 				payslipId: 'slip-2',
 				workDays: [],
 				claims: [],
+				adhoc: [],
 				leave: [],
 				loanRepayments: [],
 				materialised: []
@@ -67,7 +71,13 @@ test('a payslip that consumed nothing of a family carries no action for it', () 
 });
 
 test('no source family accepts the pin as input', () => {
-	for (const collection of [workDays, claimRequests, allowanceEntries, leaveEntries]) {
+	for (const collection of [
+		workDays,
+		claimRequests,
+		adhocRequests,
+		allowanceEntries,
+		leaveEntries
+	]) {
 		assert.equal('payslip_id' in collection.create.input.columns, false);
 		if (collection.update) assert.equal('payslip_id' in collection.update.input.columns, false);
 	}
