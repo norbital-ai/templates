@@ -26,7 +26,7 @@ export default defineModel(
 	{
 		description:
 			'The claim catalogue of one jurisdiction settings version: code, destination and direction, the bands that price and cap a claim (with the schemes each opts into) and the evidence it demands. Sealed with its version; the run cites the version it priced against.',
-		recordLabel: ['code'],
+		recordLabel: ['code', 'name'],
 		icon: 'lucide:receipt-text',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]
 	}

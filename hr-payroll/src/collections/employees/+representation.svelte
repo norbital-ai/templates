@@ -40,6 +40,7 @@
 	import FaceEnrollFlow from './face-enroll-flow.svelte';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
+	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	/** Terms as the profile reads them: the pointer, and the named pattern riding the `with`. */
 	type EmploymentTerm = Pick<
@@ -573,7 +574,7 @@
 			<TableColumn name="reference" card="title" />
 			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
 			<TableColumn name="principal" label={t('component.principal')} />
-			<TableColumn name="effective_range" />
+			<TableColumn name="effective_range" renderer={EffectiveRangeRenderer} />
 		{/snippet}
 	</CollectionTable>
 {/snippet}
@@ -635,7 +636,11 @@
 				renderer={FormattedValueRenderer}
 				rendererProps={{ format: ({ value }) => formatStatutoryFactStatus(value, t) }}
 			/>
-			<TableColumn name="effective_range" label={t('component.effective')} />
+			<TableColumn
+				name="effective_range"
+				renderer={EffectiveRangeRenderer}
+				label={t('component.effective')}
+			/>
 		{/snippet}
 	</CollectionTable>
 {/snippet}

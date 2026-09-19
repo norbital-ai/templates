@@ -15,6 +15,7 @@
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import { formatLeaveSummary } from '../../../lib/ui/display-formatters.js';
 	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
@@ -101,7 +102,14 @@
 						rendererProps={{ format: ({ row }: { row: Request }) => person(row) }}
 					/>
 					<Column name="catalogue_id" label={t('component.catalogue_leave')} card="title" />
-					<Column name="summary" label={t('leave.activity')} />
+					<Column
+						name="summary"
+						label={t('leave.activity')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: Request }) => formatLeaveSummary(row.summary, t)
+						}}
+					/>
 					<Column name="days" label={t('component.days')} />
 					<Column name="reference" label={t('component.reference')} />
 					<Column name="certificate_file" label={t('component.certificate')} />

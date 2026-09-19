@@ -54,16 +54,48 @@ export const hrCreateScope = (): HrCreateScope | undefined =>
  * `limit` is the workspace ceiling rather than a page: the picker searches the loaded options, so
  * a narrower limit would silently hide people from search rather than paginate to them.
  */
+/**
+ * How a person reads everywhere on these pages: "AMIL BIN SULEIMAN (NHPMY0302)". A list that
+ * printed the employee number alone made HR look the person up by hand.
+ */
+export const employmentLabel = (
+	employment:
+		| {
+				readonly employee_number?: unknown;
+				readonly employment_employee?: { readonly name?: unknown } | null;
+		  }
+		| null
+		| undefined
+): string => {
+	if (employment == null) return '—';
+	const rawName = employment.employment_employee?.name;
+	const name = typeof rawName === 'string' ? rawName : '';
+	const rawNumber = employment.employee_number;
+	const number = rawNumber != null && rawNumber !== '' ? String(rawNumber) : '';
+	if (name !== '' && number !== '') return `${name} (${number})`;
+	return name !== '' ? name : number !== '' ? number : '—';
+};
+
+/** The relation `with` that carries the name `employmentLabel` prints. */
+export const EMPLOYMENT_LABEL_WITH = {
+	columns: { employee_number: true },
+	with: { employment_employee: { columns: { name: true } } }
+} as const;
+
+/** A catalogue row as HR reads it: its name, with the code where the name is missing. */
+export const componentLabel = (
+	component: { readonly code?: unknown; readonly name?: unknown } | null | undefined
+): string => {
+	if (component == null) return '—';
+	const name =
+		typeof component.name === 'string' && component.name.trim() !== '' ? component.name : '';
+	const code = typeof component.code === 'string' ? component.code : '';
+	return name !== '' ? name : code !== '' ? code : '—';
+};
+
 export const employmentRelationOptions = (companyId: string | undefined) => ({
-	label: (employment: Record<string, unknown>) => {
-		const employee = employment.employment_employee as
-			{ readonly name?: unknown } | null | undefined;
-		const name = employee != null && typeof employee.name === 'string' ? employee.name : '';
-		const rawNumber = employment.employee_number;
-		const number = rawNumber != null && rawNumber !== '' ? String(rawNumber) : '';
-		if (name !== '' && number !== '') return `${name} (${number})`;
-		return name !== '' ? name : number !== '' ? number : '—';
-	},
+	label: (employment: Record<string, unknown>) =>
+		employmentLabel(employment as Parameters<typeof employmentLabel>[0]),
 	with: { employment_employee: { columns: { name: true } } },
 	...(companyId == null ? {} : { where: { company_id: { eq: companyId } } }),
 	orderBy: { employee_number: 'asc' } as const,

@@ -6,6 +6,7 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { holidayBulkImportPayload } from '../../lib/holiday-workbook.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
+	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
@@ -47,7 +48,11 @@
 			<Column name="settings_code" label={t('component.settings_lineage')} />
 			<Column name="pay_cutoff_day" label={t('app.settings.cutoff_day')} />
 			<Column name="pay_frequency" label={t('component.pay_frequency')} />
-			<Column name="effective_range" label={t('component.effective')} />
+			<Column
+				name="effective_range"
+				renderer={EffectiveRangeRenderer}
+				label={t('component.effective')}
+			/>
 		{/snippet}
 	</CollectionTable>
 </AppShell>

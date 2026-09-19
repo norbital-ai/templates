@@ -23,6 +23,7 @@
 	import { formatTermsDates } from '../display-formatters.js';
 	import FormSection from '../form-section.svelte';
 	import TermsFields from './terms-fields.svelte';
+	import EffectiveRangeRenderer from '../effective-range-renderer.svelte';
 
 	let {
 		record,
@@ -170,6 +171,7 @@
 						<Column span="all">
 							<Field
 								name="effective_range"
+								renderer={EffectiveRangeRenderer}
 								label={t('component.effective_period')}
 								disabled={sealed}
 							/>

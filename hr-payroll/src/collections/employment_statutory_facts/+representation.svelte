@@ -17,6 +17,7 @@
 	import { inForceSettings } from '../../lib/ui/settings-scope.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
 	import FormSection from '../../lib/ui/form-section.svelte';
+	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -96,7 +97,11 @@
 				>
 					<Grid gap="sm" minimum="compact">
 						<Column span="all">
-							<Field name="effective_range" label={t('component.effective_period')} />
+							<Field
+								name="effective_range"
+								renderer={EffectiveRangeRenderer}
+								label={t('component.effective_period')}
+							/>
 						</Column>
 					</Grid>
 				</FormSection>

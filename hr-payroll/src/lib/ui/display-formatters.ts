@@ -164,3 +164,18 @@ export function formatStatutoryFactStatus(value: unknown, t: Translator): string
 			}`
 		: t('component.status_not_registered', { reason: status.reason });
 }
+
+/**
+ * A leave entry's stored `summary` — `TIME_OFF · 2026-09-23`, the engine's own words — as the
+ * activity HR reads: "Time off · 23 Sep 2026". A summary in a shape this does not know prints
+ * unchanged.
+ */
+export function formatLeaveSummary(value: unknown, t: Translator): string {
+	if (typeof value !== 'string') return '—';
+	const match = /^([A-Z_]+) · (\d{4}-\d{2}-\d{2})$/.exec(value);
+	if (match == null) return value;
+	const kinds = ['TIME_OFF', 'ENCASHMENT', 'CARRY_FORWARD', 'ADJUSTMENT', 'REVERSAL'] as const;
+	const kind = kinds.find((candidate) => candidate === match[1]);
+	const label = kind == null ? match[1] : t(`leave.kind.${kind}`);
+	return `${label} · ${formatCalendarDate(match[2])}`;
+}

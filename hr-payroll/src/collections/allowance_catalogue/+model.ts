@@ -51,7 +51,7 @@ export default defineModel(
 	{
 		description:
 			'The allowance catalogue of one jurisdiction settings version: code, destination and direction, the bands that price, cap and opt the allowance into statutory schemes, and the evidence it demands. A standing allowance is a monthly amount over an effective window, prorated like basic salary; a one-off amount is due whole in the period it lands in. Sealed with its version; the run cites the version it priced against.',
-		recordLabel: ['code'],
+		recordLabel: ['code', 'name'],
 		icon: 'lucide:calendar-clock',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]
 	}

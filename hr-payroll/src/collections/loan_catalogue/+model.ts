@@ -52,7 +52,7 @@ export default defineModel(
 	{
 		description:
 			'The loan catalogue of one jurisdiction settings version: the pay lines a loan recovers through, the schemes they opt into, the minimum instalment and who may borrow. Sealed with its version; the run cites the version it priced against.',
-		recordLabel: ['code'],
+		recordLabel: ['code', 'name'],
 		icon: 'lucide:landmark',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]
 	}

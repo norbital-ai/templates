@@ -30,6 +30,7 @@
 	import { setContext } from 'svelte';
 	import { todayKey } from '../../lib/ui/calendar.js';
 	import { formatTermsDates } from '../../lib/ui/display-formatters.js';
+	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
@@ -188,7 +189,11 @@
 						<Field name="employee_number" label={t('component.employee_number')} />
 						<Column span="all"><Field name="bank" label={t('component.pay_destination')} /></Column>
 						<Column span="all">
-							<Field name="effective_range" label={t('component.effective_period')} />
+							<Field
+								name="effective_range"
+								renderer={EffectiveRangeRenderer}
+								label={t('component.effective_period')}
+							/>
 						</Column>
 						<Field name="exit_reason" hidden />
 						<Field name="comments" hidden />
