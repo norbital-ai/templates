@@ -24,6 +24,7 @@
  */
 
 import type { ContributionCharge } from './contribute.js';
+import { dayInstant } from '../../../lib/iso-day.js';
 import type { MaterialisedMoney, PayRequestFamily } from '../../../lib/payroll/money.js';
 import type {
 	MeasuredAdjustment,
@@ -78,7 +79,7 @@ export function payrollRunGraph(options: {
 		return {
 			id,
 			employment_id: payslip.employmentId,
-			terms_through: payslip.termsThrough,
+			terms_through: dayInstant(payslip.termsThrough),
 			status: 'DRAFT' as const,
 			base: payslip.settlement.base.map((item: MeasuredBase) => item.entry),
 			proration: payslip.proration,

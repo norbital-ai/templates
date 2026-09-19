@@ -14,7 +14,7 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
-	import { dateKey, PAYROLL_TIME_ZONE } from '../../iso-day.js';
+	import { dateKey, dayInstant, PAYROLL_TIME_ZONE } from '../../iso-day.js';
 	import { startOfDayInstant, todayKey } from '../calendar.js';
 	import { numberFrom } from '../renderer-input.js';
 	import { coversDate, readRange } from '../../../collections/payroll_runs/lib/effective.js';
@@ -193,8 +193,7 @@
 		}
 		const facts: ChangeTermsFacts = {
 			residency_status: residencyStatus === '' ? null : residencyStatus,
-			residency_since:
-				residencySince === '' ? null : startOfDayInstant(residencySince, PAYROLL_TIME_ZONE),
+			residency_since: residencySince === '' ? null : dayInstant(residencySince),
 			base_salary: { value: salary, currency: baseSalaryCurrency.toUpperCase() },
 			pay_frequency: payFrequency,
 			work_classification: workClassification,

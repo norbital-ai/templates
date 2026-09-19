@@ -56,21 +56,10 @@ test('the company form includes identity, payroll settings, payment account and 
 		'absence_component_id'
 	])
 		assert.doesNotMatch(form, new RegExp(gone), `${gone} is not on the form`);
-	assert.match(
-		form,
-		/name="risk_class"[^>]*hidden=\{!riskKeyed\}/s,
-		'risk class only where a scheme is keyed by it'
-	);
-	assert.match(
-		form,
-		/rule\.when\.includes\('risk_class'\)/,
-		"keyed by the lineage schemes' bands, not by a country name"
-	);
-	assert.match(
-		form,
-		/contribution_settings: \{ some: onLineage\(record\.settings_code\) \}/,
-		'the risk-keyed scheme is looked up through the settings lineage'
-	);
+	// The risk class is always offered: reading a lineage's schemes here to decide whether to show
+	// it was the one query on the page that spanned every version's rules, past the sync ceiling.
+	assert.match(form, /name="risk_class"/, 'risk class is a plain field');
+	assert.doesNotMatch(form, /statutory_contributions/, 'the form reads no scheme');
 });
 
 test('the settings form declares lineage and jurisdiction identity while Work owns payroll rules', () => {
@@ -179,8 +168,13 @@ test('the Changes tab compares two snapshots and reads each catalogue by version
 		'the surface owns its own reads'
 	);
 	const changes = source('../src/apps/hr_controller/SnapshotChanges.svelte');
+	// The contribution catalogue is read once per version and one-shot: two versions' rules in
+	// one live answer exceed the sync engine's initial-answer ceiling.
+	assert.match(
+		changes,
+		/client\.records\.findMany\('statutory_contributions', \{\s*where: \{ settings_id: \{ eq: id \} \},\s*limit: 2_000,\s*after: ''/
+	);
 	assert.deepEqual(registrations(changes), [
-		'db.statutory_contributions.findMany',
 		'db.leave_catalogue.findMany',
 		'db.claim_catalogue.findMany',
 		'db.allowance_catalogue.findMany',

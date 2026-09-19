@@ -16,7 +16,7 @@ import { weeklyInstalments } from '../../collections/payroll_runs/lib/period.js'
 
 import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
 
-import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../iso-day.js';
+import { PAYROLL_TIME_ZONE, calendarDateInTimeZone, dayInstant } from '../iso-day.js';
 export { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../iso-day.js';
 
 /**
@@ -96,12 +96,11 @@ function timeZoneOffsetMs(at: Date, timeZone: string): number {
 }
 
 /**
- * The canonical UTC instant at which `calendarDate` begins in `timeZone`.
+ * The instant at which `calendarDate` begins in `timeZone`.
  *
- * A `custom('instant_range', { precision: 'day' })` bound is an instant, and its picker offers a calendar day. Appending `Z` to that
- * day — `` `${date}T00:00:00.000Z` `` — labels local wall time as UTC, which
- * [dates-and-time.md](../../../../skills/authoring-tenant-workspace/references/dates-and-time.md)
- * forbids: east of Greenwich it places the boundary eight hours into the previous local day.
+ * This is wall-clock arithmetic — the roster's minute offsets and the viewer-zone picker adapters
+ * below anchor on it. It is not how a day is *stored*: a day-precision column and a day-precision
+ * range bound hold the canonical UTC day (`dayInstant`), whatever zone the business runs in.
  *
  * The offset is resolved twice because the zone's offset at UTC midnight and at the corrected
  * instant can differ across a daylight-saving transition; the second pass settles on the offset
@@ -210,21 +209,18 @@ export function periodInCompanyGrammar(
 }
 
 /**
- * A `start`..`end` day window as the instants a day-precision column is filtered by: inclusive
- * start-of-day for `start`, exclusive start-of-day for the day after `end`, both in the payroll
- * zone. A bare `YYYY-MM-DD` bound is cast in the server's own zone and drops the boundary day —
- * a 31 January instalment stored at UTC midnight is past `lte: '2026-01-31'` on a UTC+8 host —
- * while these bounds hold for a day stored at UTC midnight and for one stored at the payroll
- * zone's day start alike.
+ * A `start`..`end` day window as the instants a day-precision column is filtered by: the stored
+ * form of `start`, and of the day after `end` as the exclusive bound. A bare `YYYY-MM-DD` bound is
+ * cast in the querying session's own zone — midnight Singapore here, midnight UTC on a deployed
+ * host — and drops the boundary day: a 31 January row stored at UTC midnight is past
+ * `lte: '2026-01-31'` on a UTC+8 host. Every day column is stored as its UTC midnight
+ * (`dayInstant`), so these bounds are exact.
  */
 export function dayWindowInstantBounds(window: { readonly start: string; readonly end: string }): {
 	readonly start: string;
 	readonly end: string;
 } {
-	return {
-		start: startOfDayInstant(window.start, PAYROLL_TIME_ZONE),
-		end: startOfDayInstant(addDays(window.end, 1), PAYROLL_TIME_ZONE)
-	};
+	return { start: dayInstant(window.start), end: dayInstant(addDays(window.end, 1)) };
 }
 
 /**
@@ -278,14 +274,12 @@ export function periodWindow(count: number, ahead: number): string[] {
 }
 
 /**
- * "Now", as the instant a `contains_date` filter wants.
- *
- * `todayKey()` is a calendar day, and a calendar day is not an instant — the server refuses one
- * rather than guessing which timezone turns it into a moment. This resolves it through the payroll
- * timezone, which is the perspective every effective-dated list on these screens is read from.
+ * "Now", as the instant a `contains_date` filter wants: today's stored form. A range starting
+ * today starts at this very instant, so the row is in force on its first day here as it is in the
+ * engine.
  */
 export function todayInstant(): string {
-	return startOfDayInstant(todayKey(), PAYROLL_TIME_ZONE);
+	return dayInstant(todayKey());
 }
 
 /**
@@ -306,14 +300,11 @@ export function workDateCalendarKey(value: string | Date): string {
 	return calendarDateInTimeZone(instant, PAYROLL_TIME_ZONE);
 }
 
-/** Inclusive start-of-day instants for a `YYYY-MM` work-date query in the payroll zone. */
+/** Inclusive stored instants of a `YYYY-MM` month's first and last day, for a day-column query. */
 export function monthWorkDateInstantBounds(month: string): {
 	readonly start: string;
 	readonly end: string;
 } {
 	const lastDay = String(daysInMonth(month)).padStart(2, '0');
-	return {
-		start: startOfDayInstant(`${month}-01`, PAYROLL_TIME_ZONE),
-		end: startOfDayInstant(`${month}-${lastDay}`, PAYROLL_TIME_ZONE)
-	};
+	return { start: dayInstant(`${month}-01`), end: dayInstant(`${month}-${lastDay}`) };
 }

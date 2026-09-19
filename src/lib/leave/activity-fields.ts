@@ -58,20 +58,24 @@ function leaveDayOf(value: string | null | undefined): string | null {
 	return value == null || value === '' ? null : dateKey(value) || null;
 }
 
+/** The day-precision instant columns of a leave entry. */
+export const LEAVE_DAY_COLUMNS = [
+	'from_date',
+	'to_date',
+	'effective_on',
+	'due_on',
+	'destination_from',
+	'destination_to',
+	'available_from',
+	'expires_on',
+	'event_date'
+] as const;
+
 /** A stored leave row with every day-instant resolved to its calendar day. */
 export function normaliseLeaveDays<T extends LeaveEntryActivity>(row: T): T {
-	return {
-		...row,
-		from_date: leaveDayOf(row.from_date),
-		to_date: leaveDayOf(row.to_date),
-		effective_on: leaveDayOf(row.effective_on),
-		due_on: leaveDayOf(row.due_on),
-		destination_from: leaveDayOf(row.destination_from),
-		destination_to: leaveDayOf(row.destination_to),
-		available_from: leaveDayOf(row.available_from),
-		expires_on: leaveDayOf(row.expires_on),
-		event_date: leaveDayOf(row.event_date)
-	} as T;
+	const out: Record<string, unknown> = { ...row };
+	for (const key of LEAVE_DAY_COLUMNS) out[key] = leaveDayOf(row[key]);
+	return out as T;
 }
 
 /** The flat time-off fields a new entry opens on: one full day, not charged yet. */ export function defaultTimeOffFields(

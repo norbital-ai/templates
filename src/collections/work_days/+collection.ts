@@ -4,7 +4,7 @@ import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/auth
 import { decodeNumber } from '@norbital-ai/std/json';
 import model from './+model.js';
 import { boundToContract } from '../../lib/employment-contract.js';
-import { dateKey } from '../../lib/iso-day.js';
+import { canonicalDays, dateKey, dayInstant } from '../../lib/iso-day.js';
 import { addDays, monthBounds } from '../../lib/period.js';
 import { settingsInForce } from '../../lib/jurisdiction_settings.js';
 import { selectBreakRule } from '../../lib/scheduling/rest-break.js';
@@ -42,12 +42,16 @@ import {
 } from './lib/schedule-rules.js';
 import { isRestLimit, type WorkRules } from '../../datatypes/work_rules/+definition.js';
 
-/** Which person, which day, the plan and the clock. `payslip_id` is the payroll run's pin. */
+/**
+ * Which person, which day, the plan, the clock, and who asked for a rest day's work — the fact a
+ * rest-day rate turns on. `payslip_id` is the payroll run's pin.
+ */
 const columns = {
 	employment_id: true,
 	work_date: true,
 	shift_definition_id: true,
-	worked_intervals: true
+	worked_intervals: true,
+	requested_by: true
 } as const;
 
 const QUERY_LIMIT = 20_000;
@@ -227,7 +231,7 @@ export default defineCollection({
 							: db.work_days.findMany({
 									where: {
 										employment_id: { in: employmentIds },
-										work_date: { gte: spanStart, lte: spanEnd }
+										work_date: { gte: dayInstant(spanStart), lte: dayInstant(spanEnd) }
 									},
 									columns: {
 										id: true,
@@ -245,8 +249,8 @@ export default defineCollection({
 										// Time off is the activity whose charges are its dated days.
 										charges: { ne: [] },
 										approval_id: { isNull: true },
-										from_date: { lte: to },
-										to_date: { gte: from }
+										from_date: { lte: dayInstant(to) },
+										to_date: { gte: dayInstant(from) }
 									},
 									columns: {
 										employment_id: true,
@@ -366,7 +370,10 @@ export default defineCollection({
 						: db.work_days.findMany({
 								where: {
 									employment_id: { in: employmentIds },
-									work_date: { gte: projectionWindow.start, lte: projectionWindow.end }
+									work_date: {
+										gte: dayInstant(projectionWindow.start),
+										lte: dayInstant(projectionWindow.end)
+									}
 								},
 								columns: {
 									id: true,
@@ -700,7 +707,7 @@ export default defineCollection({
 						...(stored === undefined ? {} : { existing_id: stored.id })
 					}
 				]);
-				return boundToContract(input, stored);
+				return boundToContract(canonicalDays(input, ['work_date']), stored);
 			});
 		})
 });

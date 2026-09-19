@@ -17,6 +17,7 @@ import { PAGE_LIMIT, type PayrollReadApi } from './api.js';
 import { monthBounds, monthKey, shiftPeriod } from './dates.js';
 import { periodGrammarFault, resolveWindow } from './period.js';
 import { addDays } from '../../../lib/period.js';
+import { dayInstant } from '../../../lib/iso-day.js';
 
 const APPROVED = { approval_id: { isNull: true } } as const;
 
@@ -123,7 +124,9 @@ const readWave2 = (
 		const ordered = [...months].toSorted();
 		const spanStart = monthBounds(ordered[0]!).start;
 		const spanEnd = monthBounds(ordered.at(-1)!).end;
-		const inSpan = (column: string) => ({ [column]: { gte: spanStart, lt: addDays(spanEnd, 1) } });
+		const inSpan = (column: string) => ({
+			[column]: { gte: dayInstant(spanStart), lt: dayInstant(addDays(spanEnd, 1)) }
+		});
 		const under = { settings_id: { in: lineageIds }, ...APPROVED } as const;
 		const [
 			employees,

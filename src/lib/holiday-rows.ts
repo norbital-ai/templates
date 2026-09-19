@@ -2,7 +2,7 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { Api } from '../collections/jurisdiction_holidays/$types.js';
-import { dateKey } from './iso-day.js';
+import { dateKey, dayInstant } from './iso-day.js';
 
 /** A holiday as an import proposes it: the spreadsheet's row or a Google event's day. */
 export type HolidayImportRow = {
@@ -82,7 +82,7 @@ export const dedupeHolidayRows = (
 		const existing = yield* api.db.jurisdiction_holidays.findMany({
 			where: {
 				company_id: { in: codes },
-				date: { gte: dates[0]!, lte: dates.at(-1)! },
+				date: { gte: dayInstant(dates[0]!), lte: dayInstant(dates.at(-1)!) },
 				approval_id: { isNull: true }
 			},
 			columns: { company_id: true, date: true },

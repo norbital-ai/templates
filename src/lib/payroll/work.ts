@@ -38,6 +38,7 @@ import {
 	readRange
 } from '../../collections/payroll_runs/lib/effective.js';
 import { addDays, weekStart } from '../period.js';
+import { dayInstant } from '../iso-day.js';
 import {
 	evaluatePersonNumber,
 	isEligible,
@@ -172,7 +173,10 @@ export function prepareWorkInputs(options: {
 						// A bare day as an upper bound is cast in the server's zone and lands before the
 						// day's stored instant, dropping the span's last day; a leaver settled to month end
 						// lost 28 February. Exclusive next-day bound instead, as the event pages read.
-						work_date: { gte: complianceSpan.start, lt: addDays(complianceSpan.end, 1) },
+						work_date: {
+							gte: dayInstant(complianceSpan.start),
+							lt: dayInstant(addDays(complianceSpan.end, 1))
+						},
 						...approved
 					},
 					limit: PAGE_LIMIT

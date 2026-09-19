@@ -149,7 +149,7 @@ test('a standing allowance materialises one entry per period; a one-period windo
 	assert.equal(first.collection, 'allowance_entries');
 	assert.deepEqual(
 		[first.values.from, first.values.to, first.values.days, first.values.denominator],
-		['2026-01-01', '2026-01-31', 31, 31]
+		['2026-01-01T00:00:00.000Z', '2026-01-31T00:00:00.000Z', 31, 31]
 	);
 	assert.equal(first.values.amount, 100);
 	assert.equal(first.values.contract_amount, 100);
@@ -180,7 +180,7 @@ test('an allowance prorates on the same basis as basic salary: a joiner takes th
 	const basic = slip.proration[0]!;
 	assert.deepEqual(
 		[entry.values.from, entry.values.to, entry.values.days, entry.values.denominator],
-		[basic.from, basic.to, basic.days, basic.denominator]
+		[`${basic.from}T00:00:00.000Z`, `${basic.to}T00:00:00.000Z`, basic.days, basic.denominator]
 	);
 	assert.deepEqual([entry.values.days, entry.values.denominator], [13, 28]);
 	assert.equal(entry.values.unpaid_days, 0);

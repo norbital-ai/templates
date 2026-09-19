@@ -65,10 +65,14 @@ test('the plan is its date order: sequence is renumbered from the dates, never f
 			['c', 3]
 		]
 	);
+	const actions = loanScheduleActions(typed, new Set());
 	assert.deepEqual(
-		loanScheduleActions(typed, new Set()).create.map((row) => row.sequence),
+		actions.create?.map((row) => row.sequence),
 		[1, 2, 3]
 	);
+	// A create names `create` alone: the nested relation refuses an `update` key on a create,
+	// even an empty one.
+	assert.deepEqual(Object.keys(actions), ['create']);
 });
 
 test('a line with no date yet stays at the bottom in the order it was added', () => {

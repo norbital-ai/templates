@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import model from './+model.js';
 import { memoryReads } from '../../lib/memory-reads.js';
+import { dayInstant } from '../../lib/iso-day.js';
 import type { PayrollReadApi } from './lib/api.js';
 import {
 	buildPayrollRun,
@@ -43,9 +44,9 @@ const derivedColumns = (prepared: PreparedRun) => ({
 	holidays: prepared.configuration.holidaySnapshots,
 	settings_id: prepared.configuration.jurisdiction.id,
 	calculation_version: CALCULATION_VERSION,
-	pay_date: prepared.window.payDate,
-	attendance_from: prepared.window.attendance.start,
-	attendance_to: prepared.window.attendance.end
+	pay_date: dayInstant(prepared.window.payDate),
+	attendance_from: dayInstant(prepared.window.attendance.start),
+	attendance_to: dayInstant(prepared.window.attendance.end)
 });
 
 export default defineCollection({

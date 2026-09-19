@@ -117,7 +117,8 @@ test('Philippines — a joiner takes the working days employed over 21.75, and a
 	assert.deepEqual(facts(built, 'UNPAID'), [20.75, 21.75, 1, 2075]);
 	// Ten working days of a part month, at the daily rate the factor states.
 	assert.deepEqual(facts(built, 'JOINER'), [10, 21.75, 0, 1000]);
-	assert.equal(built.entries.get('JOINER')![0]!.values.from, '2026-01-19');
+	// The entry's day columns land in their stored form: the UTC midnight of the day.
+	assert.equal(built.entries.get('JOINER')![0]!.values.from, '2026-01-19T00:00:00.000Z');
 });
 
 test('Singapore — a joiner takes the working days employed over the month’s, and an unpaid day leaves the allowance whole', () => {

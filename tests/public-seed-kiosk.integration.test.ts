@@ -2,8 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
-import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/iso-day.ts';
-import { startOfDayInstant } from '../src/lib/ui/calendar.ts';
+import { calendarDateInTimeZone, dayInstant, PAYROLL_TIME_ZONE } from '../src/lib/iso-day.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -92,7 +91,8 @@ test(
 			 * plan explicitly instead.
 			 */
 			const dayKey = calendarDateInTimeZone(new Date(), PAYROLL_TIME_ZONE);
-			const workDate = startOfDayInstant(dayKey, PAYROLL_TIME_ZONE);
+			// The day in its stored form, the one the punch handler looks the row up by.
+			const workDate = dayInstant(dayKey);
 			const planToday = async (shiftDefinitionId: string | null): Promise<void> => {
 				await session.query('delete from work_days where employment_id = $1 and work_date = $2', [
 					EMPLOYMENT_ID,
