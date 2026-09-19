@@ -1035,6 +1035,8 @@
 	"leave.event_child_index": "Child (1st, 2nd…)",
 	"leave.event_date": "Event date",
 	"component.on_separation": "Raised at separation",
+	"component.one_off_hint": "A bonus, back pay or separation sum: due whole in the period it lands in, never prorated by the window or the days employed.",
+	"component.one_off": "One-off amount",
 	"component.on_separation_hint": "Off-boarding raises a row of this allowance for a leaver whose eligibility holds; HR sets the amount.",
 	"component.paid_by": "Paid by",
 	"component.leave_unit": "Taken in",

@@ -27,6 +27,7 @@ import { Effect } from 'effect';
 import type { WorkspaceRow } from '../$types.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
+import type { MonthPrior } from './accumulate.js';
 import {
 	prepareFamilyObligations,
 	prepareFamilyInputs,
@@ -154,6 +155,8 @@ export type GatheredRun = {
 	readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, ReadonlyMap<string, number>>>;
 	/** employee id → calendar month → regulated overtime hours earlier payslips settled. */
 	readonly priorOvertimeHours: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/** `employee id:YYYY-MM` → what the month's earlier instalments settled and charged. */
+	readonly monthPrior: ReadonlyMap<string, MonthPrior>;
 	/**
 	 * pay request id → what earlier runs took from it.
 	 *
@@ -344,6 +347,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				yearEarned: new Map(),
 				earnedByMonth: new Map(),
 				priorOvertimeHours: new Map(),
+				monthPrior: new Map(),
 				consumedEntries: new Map()
 			};
 
@@ -484,6 +488,7 @@ type PriorSettlement = {
 	readonly yearEarned: Map<string, Map<string, number>>;
 	readonly earnedByMonth: Map<string, Map<string, Map<string, number>>>;
 	readonly priorOvertimeHours: Map<string, Map<string, number>>;
+	readonly monthPrior: Map<string, MonthPrior>;
 	readonly consumedEntries: Map<string, number>;
 };
 
@@ -539,6 +544,7 @@ function gatherPriorSettlement(
 			yearEarned: new Map<string, Map<string, number>>(),
 			earnedByMonth: new Map<string, Map<string, Map<string, number>>>(),
 			priorOvertimeHours: new Map<string, Map<string, number>>(),
+			monthPrior: new Map<string, MonthPrior>(),
 			consumedEntries
 		};
 		if (priorRuns.length === 0 || options.employeeIds.length === 0) return empty;
@@ -572,7 +578,8 @@ function gatherPriorSettlement(
 			payslips: priorPayslips,
 			inTaxYear,
 			employmentToEmployee,
-			periodByRun: new Map(priorRuns.map((run) => [run.id, run.period]))
+			periodByRun: new Map(priorRuns.map((run) => [run.id, run.period])),
+			catalogueComponents: options.configuration.catalogueComponents
 		});
 	});
 }

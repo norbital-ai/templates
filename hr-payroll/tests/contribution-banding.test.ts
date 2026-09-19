@@ -127,7 +127,7 @@ const accumulationOf = (base: number): AccumulatedPayslip => {
 		ENCASHMENT: 0,
 		INCENTIVE: 0
 	};
-	return { reserved, codes: new Map(), familyOf: new Map(), lines: [] };
+	return { reserved, codes: new Map(), familyOf: new Map(), fixedOf: new Map(), lines: [] };
 };
 
 const PERIOD = {
@@ -582,10 +582,33 @@ test('a MONTH-assessed scheme charges once, on the month wage, and nothing in th
 	assert.equal(opening.employee, 120, '3% of 4,000');
 	assert.equal(opening.employer, 160, '4% of 4,000');
 
+	// The closing instalment prices the month on what the opening one settled plus its own, and
+	// charges the difference: nothing where the month came out as estimated, the shortfall where
+	// the second half earned more (2,000 + 3,000 = 5,000, the top band: 5% and 6% = 250 / 300,
+	// less the 120 / 160 the estimate took).
+	const opened = {
+		accumulation: accumulationOf(2000),
+		charged: new Map([['MONTHLY', { employee: 120, employer: 160, base: 4000, ordinary: 0 }]])
+	};
 	const closing = charge([monthly], 2000, {
-		period: { ...PERIOD, key: '2026-03-2', index: 2, instalments: 2 }
+		period: { ...PERIOD, key: '2026-03-2', index: 2, instalments: 2 },
+		monthPrior: opened
 	})[0]!;
 	assert.deepEqual([closing.base, closing.employee, closing.employer], [0, 0, 0]);
+	const closingMore = charge([monthly], 3000, {
+		period: { ...PERIOD, key: '2026-03-2', index: 2, instalments: 2 },
+		monthPrior: opened
+	})[0]!;
+	assert.deepEqual(
+		[closingMore.base, closingMore.employee, closingMore.employer],
+		[1000, 130, 140]
+	);
+	// With no settled opening on record (a joiner in the second half) the month is this half:
+	// 2,000, the lowest band, 1% and 2%.
+	const alone = charge([monthly], 2000, {
+		period: { ...PERIOD, key: '2026-03-2', index: 2, instalments: 2 }
+	})[0]!;
+	assert.deepEqual([alone.base, alone.employee, alone.employer], [2000, 20, 40]);
 
 	const perPeriod = charge([schemeOf('PERIOD', LADDER)], 1000, {
 		period: { ...PERIOD, key: '2026-03-1', index: 1, instalments: 2 }

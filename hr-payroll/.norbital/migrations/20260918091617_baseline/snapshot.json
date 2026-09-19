@@ -388,6 +388,19 @@
       "table": "allowance_catalogue"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "one_off",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_catalogue"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,

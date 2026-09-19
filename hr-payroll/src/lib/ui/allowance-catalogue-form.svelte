@@ -125,6 +125,11 @@
 							description={t('component.fixed_allowance_hint')}
 						/>
 						<Field
+							name="one_off"
+							label={t('component.one_off')}
+							description={t('component.one_off_hint')}
+						/>
+						<Field
 							name="on_separation"
 							label={t('component.on_separation')}
 							description={t('component.on_separation_hint')}
