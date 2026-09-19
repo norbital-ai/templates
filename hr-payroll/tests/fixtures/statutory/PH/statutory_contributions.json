@@ -701,7 +701,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
+		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(ENCASHMENT, year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
 		"short_name": null,
 		"listing_order": 6,
 		"listing_group": null
@@ -1408,7 +1408,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY', 'bonus', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2000.0 / period.month_factor ? code('meal') - 2000.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
+		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['THIRTEENTH_MONTH_PAY', 'bonus', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(ENCASHMENT, year.earned.ANNUAL_LEAVE_ENCASHMENT, 10.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2000.0 / period.month_factor ? code('meal') - 2000.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
 		"short_name": null,
 		"listing_order": 6,
 		"listing_group": null
@@ -2115,7 +2115,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
+		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(ENCASHMENT, year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
 		"short_name": null,
 		"listing_order": 6,
 		"listing_group": null
@@ -2822,7 +2822,7 @@
 				"employer": "round_cent(0.0)"
 			}
 		],
-		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
+		"assessed_on": "((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : BASE + OVERTIME + NIGHT_PREMIUM) + catalog('ALLOWANCE', {'exclude': ['bonus', 'THIRTEENTH_MONTH_PAY', 'STATUTORY_ADJUSTMENT', 'SEPARATION_PAY', 'RETIREMENT_PAY', 'meal']}) + (ENCASHMENT - annual_exempt(ENCASHMENT, year.earned.ANNUAL_LEAVE_ENCASHMENT, 12.0 * person.terms.ordinary_day)) + code('THIRTEENTH_MONTH_PAY') + code('bonus') + (code('meal') > 2500.0 / period.month_factor ? code('meal') - 2500.0 / period.month_factor : 0.0) - annual_exempt(code('THIRTEENTH_MONTH_PAY') + code('bonus'), year.earned.THIRTEENTH_MONTH_PAY + year.earned.bonus, 90000.0) - ((person.terms.monthly_basic <= person.wage_floor && person.wage_floor > 0.0) ? 0.0 : ABSENCE + NO_PAY_LEAVE)",
 		"short_name": null,
 		"listing_order": 6,
 		"listing_group": null

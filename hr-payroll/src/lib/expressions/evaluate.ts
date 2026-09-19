@@ -9,7 +9,7 @@
 
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
 import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
-import { childCitizensUnder, childClassed, childUnder } from './child-under.js';
+import { childBornOn, childCitizensUnder, childClassed, childUnder } from './child-under.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -35,6 +35,8 @@ export type ExpressionEngine = {
 	) => number;
 	/** `earned_average(code, months_back, months)`: a window of earlier payslips' earnings. */
 	readonly earnedAverage?: (code: string, monthsBack: number, months: number) => number;
+	/** `year_catalog(...)`: the same selection as `catalog`, summed over the tax year's earlier PAID payslips. */
+	readonly yearCatalog?: ExpressionEngine['catalog'];
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
@@ -97,6 +99,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.under(int): int', childUnder],
 	['map.citizens_under(int): int', childCitizensUnder],
 	['map.classed(string): int', childClassed],
+	['map.born_on(string): int', childBornOn],
 	['map.days(string): double', () => 0],
 	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
 	[
@@ -114,6 +117,15 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 			Number(bound.catalog?.(String(catalogue), catalogSelection(selection)) ?? 0)
 	],
 	[
+		'year_catalog(string): double',
+		(catalogue) => Number(bound.yearCatalog?.(String(catalogue), undefined) ?? 0)
+	],
+	[
+		'year_catalog(string, dyn): double',
+		(catalogue, selection) =>
+			Number(bound.yearCatalog?.(String(catalogue), catalogSelection(selection)) ?? 0)
+	],
+	[
 		'annual_exempt(dyn, dyn, dyn): double',
 		(amount, earnedBefore, cap) =>
 			Math.min(Number(amount), Math.max(0, Number(cap) - Number(earnedBefore)))
@@ -125,7 +137,8 @@ export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {})
 		minimumWage: options.minimumWage ?? (() => 0),
 		code: options.code,
 		catalog: options.catalog,
-		earnedAverage: options.earnedAverage
+		earnedAverage: options.earnedAverage,
+		yearCatalog: options.yearCatalog
 	};
 }
 

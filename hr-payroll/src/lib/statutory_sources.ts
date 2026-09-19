@@ -75,7 +75,17 @@ const CANONICAL_ORIGINS: Readonly<Record<string, readonly string[]>> = {
 	]
 };
 
-const originOf = (url: string): string | null => (URL.canParse(url) ? new URL(url).origin : null);
+/**
+ * The Wayback Machine's dated copy of a page — `web.archive.org/web/<timestamp>[id_]/<url>` —
+ * is that page as the authority published it on the day, kept for a host that refuses the
+ * reader (kwsp.gov.my, peraturan.bpk.go.id). It vouches as the page it wraps.
+ */
+const ARCHIVE = /^https?:\/\/web\.archive\.org\/web\/\d+(?:id_)?\/(https?:\/\/.+)$/;
+const unwrapArchive = (url: string): string => ARCHIVE.exec(url)?.[1] ?? url;
+const originOf = (url: string): string | null => {
+	const inner = unwrapArchive(url);
+	return URL.canParse(inner) ? new URL(inner).origin : null;
+};
 
 /**
  * A version's research URLs, ranked and screened against the jurisdiction's canonical sites.
@@ -117,6 +127,8 @@ export function prefilterStatutorySources(
 export const researchOrigins = (jurisdictionCode: string, urls: readonly string[]): string[] => [
 	...new Set([
 		...(CANONICAL_ORIGINS[jurisdictionCode] ?? []),
-		...prefilterStatutorySources(jurisdictionCode, urls).kept
+		...prefilterStatutorySources(jurisdictionCode, urls).kept,
+		// An archived page is read on the archive's own host.
+		...(urls.some((url) => ARCHIVE.test(url)) ? ['https://web.archive.org'] : [])
 	])
 ];

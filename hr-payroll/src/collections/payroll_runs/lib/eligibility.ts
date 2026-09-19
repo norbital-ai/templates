@@ -24,6 +24,7 @@ import { dateKey } from '../../../lib/iso-day.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
 import {
 	childCitizensUnder,
+	childBornOn,
 	childClassed,
 	childUnder
 } from '../../../lib/expressions/child-under.js';
@@ -83,6 +84,8 @@ export type PersonContext = {
 		readonly monthly_basic: number;
 		/** Standing PAY allowances in force on the rule date; 0 where the caller knows none. */
 		readonly fixed_allowances: number;
+		/** The ordinary day: `monthly_basic` over the version's ordinary divisor; 0 where none was evaluated. */
+		readonly ordinary_day: number;
 		/** Basic plus the fixed allowances: "one month's wage" where a statute says so. */
 		readonly monthly_wage: number;
 		/** The same wage averaged over the last six months of the employment (VN art.46 severance). */
@@ -127,6 +130,8 @@ export type PersonContext = {
 		readonly classes: readonly string[];
 		/** Confinements: the children's distinct dates of birth (twins are one). */
 		readonly births: number;
+		/** Each child's date of birth; `children.born_on(date)` counts these. */
+		readonly birthdates: readonly string[];
 	};
 	readonly company: {
 		readonly region: string;
@@ -360,6 +365,11 @@ export function personContext(input: PersonInput): PersonContext {
 		terms: {
 			basic_salary: basic,
 			monthly_basic: monthlyBasic(basic, input.terms?.pay_frequency, input.week, input.divisorDays),
+			ordinary_day:
+				input.divisorDays != null && input.divisorDays > 0
+					? monthlyBasic(basic, input.terms?.pay_frequency, input.week, input.divisorDays) /
+						input.divisorDays
+					: 0,
 			fixed_allowances: fixed,
 			monthly_wage: basic + fixed,
 			monthly_wage_6m_average: decodeNumber(input.monthlyWage6mAverage ?? basic + fixed),
@@ -388,7 +398,8 @@ export function personContext(input: PersonInput): PersonContext {
 					(child.relief_class ?? '').trim() ||
 					(completedYears(dateKey(child.child_birthdate), input.asOf) < 18 ? 'MINOR' : 'ADULT')
 			),
-			births: new Set(children.map((child) => dateKey(child.child_birthdate))).size
+			births: new Set(children.map((child) => dateKey(child.child_birthdate))).size,
+			birthdates: children.map((child) => dateKey(child.child_birthdate) ?? '')
 		},
 		company: {
 			region: input.company?.region ?? '',
@@ -448,6 +459,7 @@ const engine = ROUNDING.reduce(
 		.registerFunction('under', 'map.under(int): int', childUnder)
 		.registerFunction('citizens_under', 'map.citizens_under(int): int', childCitizensUnder)
 		.registerFunction('classed', 'map.classed(string): int', childClassed)
+		.registerFunction('born_on', 'map.born_on(string): int', childBornOn)
 );
 
 function evaluate(expression: string, context: PersonContext): unknown {

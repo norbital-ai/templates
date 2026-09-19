@@ -98,6 +98,11 @@ type SchemeAssessment = {
 	};
 	/** component code → what earlier PAID payslips earned this tax year (BASIC always present). */
 	readonly yearEarned: ReadonlyMap<string, number>;
+	/** component code → its catalogue family and `fixed` flag, for `year_catalog(...)` over the year's codes. */
+	readonly componentsByCode?: ReadonlyMap<
+		string,
+		{ readonly family: string; readonly fixed?: boolean }
+	>;
 	/** calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/** The period being settled: the shared six-member root. */
@@ -233,7 +238,8 @@ function reliefReads(options: {
 
 /** The engine one assessment evaluates with: the region's wage and the payslip's own money. */
 function engineFor(
-	input: Pick<SchemeAssessment, 'minimumWage' | 'earnedByMonth' | 'period'>,
+	input: Pick<SchemeAssessment, 'minimumWage' | 'earnedByMonth' | 'period'> &
+		Partial<Pick<SchemeAssessment, 'yearEarned' | 'componentsByCode'>>,
 	accumulation: AccumulatedPayslip
 ): ExpressionEngine {
 	return runtimeExpressionEngine({
@@ -241,7 +247,19 @@ function engineFor(
 		code: (code) => accumulation.codes.get(code) ?? 0,
 		catalog: (catalogue, selection) => catalogueSum(accumulation, catalogue, selection),
 		earnedAverage: (code, monthsBack, months) =>
-			earnedAverage(input.earnedByMonth ?? new Map(), input.period.key, code, monthsBack, months)
+			earnedAverage(input.earnedByMonth ?? new Map(), input.period.key, code, monthsBack, months),
+		yearCatalog: (catalogue, selection) => {
+			let total = 0;
+			for (const [code, amount] of input.yearEarned ?? []) {
+				const component = input.componentsByCode?.get(code);
+				if (component == null || component.family !== catalogue) continue;
+				if (selection?.pick != null && !selection.pick.includes(code)) continue;
+				if (selection?.exclude != null && selection.exclude.includes(code)) continue;
+				if (selection?.fixed != null && (component.fixed ?? true) !== selection.fixed) continue;
+				total += amount;
+			}
+			return total;
+		}
 	});
 }
 
@@ -428,7 +446,8 @@ function assessedBase(options: {
 		OVERTIME_PREMIUM: options.accumulation.reserved.OVERTIME_PREMIUM,
 		ABSENCE: options.accumulation.reserved.ABSENCE,
 		NO_PAY_LEAVE: options.accumulation.reserved.NO_PAY_LEAVE,
-		ENCASHMENT: options.accumulation.reserved.ENCASHMENT
+		ENCASHMENT: options.accumulation.reserved.ENCASHMENT,
+		INCENTIVE: options.accumulation.reserved.INCENTIVE
 	};
 	const value = evaluateNumber(engineFor(options.input, options.accumulation), expression, context);
 	return {

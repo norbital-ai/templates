@@ -1022,3 +1022,87 @@ test('every sealed version of `SG` is priced by a golden here', () => {
 	// by nothing and stays green.
 	assertEveryVersionPriced('SG');
 });
+
+test('Singapore — December trues the AW ceiling up on the year’s actual OW (CPF Board, AW ceiling examples, Step 2)', () => {
+	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	// January: OW 8,000 (the ceiling) and a 150,000 bonus. The Step 1 estimate took the year's OW
+	// as 8,000 × 12 = 96,000, so 6,000 of the bonus was subject. The OW then fell to 6,000, and by
+	// November the year's OW stood at 8,000 + 6,000 × 10 = 68,000 with 6,000 of AW subject
+	// (base 74,000). December's OW is 6,000: the year's OW is 74,000, the ceiling 102,000 −
+	// 74,000 = 28,000, the AW subject for the year min(150,000, 28,000) = 28,000 — so December
+	// charges the 22,000 shortfall beside its own OW: base 28,000, employee 20% = 5,600, employer
+	// 37% − 20% = 4,760.
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-12',
+			people: [{ key: 'SG-TRUEUP', wage: 6000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			const bonus = world.allowance_catalogue.find(
+				(row) => row.code === 'bonus' && row.settings_id === SG_VERSION
+			)!;
+			const employment = world.employments.find((row) => row.employee_number === 'SG-TRUEUP')!;
+			world.payroll_runs.push({
+				id: 'sg-to-november',
+				company_id: COMPANY_ID,
+				period: '2026-11',
+				lifecycle: 'PAID'
+			} as never);
+			world.payslips.push({
+				id: 'sg-to-november-slip',
+				payroll_run_id: 'sg-to-november',
+				employment_id: employment.id,
+				status: 'PAID',
+				paid_at: '2026-11-28T00:00:00.000Z',
+				base: [],
+				adjustments: [
+					{ component_code: bonus.code, bucket: 'EARNING', amount: 150_000, catalogue_id: bonus.id }
+				],
+				statutory: [
+					{
+						scheme_code: 'CPF',
+						base_amount: 74_000,
+						ordinary_amount: 68_000,
+						employee_amount: 14_800,
+						employer_amount: 12_580
+					}
+				]
+			} as never);
+		}
+	);
+	assert.deepEqual(scheme(slips.get('SG-TRUEUP')!, 'CPF'), [28_000, 5600, 4760]);
+});
+
+test('Singapore — a five-hour contracted day is half a day (s.20A(2)), but a public holiday on it is a full day (s.88(7))', () => {
+	// Fridays are a 09:00–14:00 shift (five hours, no break). April 2026: twenty-two weekdays, four
+	// of them Fridays, Good Friday the 3rd among them. The month's required days: eighteen full
+	// weekdays, three short Fridays at a half, and the holiday Friday at one — 20.5. A joiner on
+	// Monday the 13th works fourteen weekdays, two of them short Fridays: 13. 4,100 × 13 ÷ 20.5 =
+	// 2,600 (without s.88(7) the holiday would weigh a half: 20 required, 2,665).
+	const SHORT_ID = 'c0000000-0000-4000-8000-0000000000e5';
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-04',
+			people: [{ key: 'SG-SHORT', wage: 4100, hire_date: '2026-04-13', citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			world.shift_definitions.push({
+				...world.shift_definitions[0]!,
+				id: SHORT_ID,
+				code: 'SHORT',
+				name: 'Short Friday',
+				variant: { kind: 'WORK', start_time: '09:00', end_time: '14:00', break_minutes: 0 }
+			});
+			world.shift_patterns[0]!.pattern.days[4] = { roster_code_id: SHORT_ID };
+			world.jurisdiction_holidays.push(holiday('2026-04-03', 'Good Friday'));
+		}
+	);
+	const slip = slips.get('SG-SHORT')!;
+	assert.deepEqual(
+		slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		[[13, 20.5, 2600]]
+	);
+	assert.equal(slip.gross, 2600);
+});

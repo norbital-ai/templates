@@ -426,7 +426,10 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 		// Six hours beyond the normal day at 150%, and art.98(2)–(3) for the two of them after 22:00:
 		// 30% of the hourly wage for night work plus 20% of the day-time unit price, 100,000 an hour.
 		['2026-01-12', 'NIGHT_PREMIUM', 2, 100_000],
-		['2026-01-12', 'OT-1.5X', 6, 900_000],
+		// Art.107(2)(b): four hours of overtime a day; Decree 253/2026 art.26(3) taxes the part
+		// beyond, so the fifth and sixth hours are their own line at the same 150%.
+		['2026-01-12', 'OT-1.5X', 4, 600_000],
+		['2026-01-12', 'OT-1.5X', 2, 300_000],
 		// An eight-hour rest-day clock with no break: the art.109(1) half hour is not working time,
 		// so the day priced from its start is seven and a half hours at 200%, never the raw clock.
 		['2026-01-17', 'OT-2.0X', 7.5, 1_500_000]
@@ -445,14 +448,14 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 	assert.deepEqual(charge(slip, 'UI'), [17_600_000, 176_000, 176_000]);
 	assert.deepEqual(companyCharges.get('UNION_FEE'), [17_600_000, 352_000]);
 	// Law 109/2025 art.4(8), in force for salary income "từ kỳ tính thuế năm 2026" (art.29(2)):
-	// overtime and night pay are exempt whole, so the January 2026 base is the salary alone —
-	// 17,600,000 — and the tax (17,600,000 − 1,848,000 − 15,500,000) × 5% = 12,600. (Law 04/2007
-	// art.4(9) exempted only the part above the ordinary rate; that is the December 2025 version.)
-	// Decree 253/2026 art.26(3): the part of overtime beyond the art.107 limits is taxable — the
-	// sixth hour here — which no assessment can separate without a funnel; the run reports it.
-	assert.deepEqual(charge(slip, 'PIT'), [17_600_000, 12_600, 0]);
-	assert.equal(slip.total_deductions, 1_860_600); // 1,408,000 + 264,000 + 176,000 + 12,600
-	assert.equal(slip.net, 22_789_400); // 24,650,000 − 1,860,600
+	// overtime and night pay are exempt whole — except, under Decree 253/2026 art.26(3), the part
+	// beyond the art.107 limits: the two hours past the four-hour day, 300,000, on their own line
+	// (`INCENTIVE`). Base 17,600,000 + 300,000 = 17,900,000; tax (17,900,000 − 1,848,000 −
+	// 15,500,000) × 5% = 27,600. (Law 04/2007 art.4(9) exempted only the part above the ordinary
+	// rate; that is the December 2025 version.)
+	assert.deepEqual(charge(slip, 'PIT'), [17_900_000, 27_600, 0]);
+	assert.equal(slip.total_deductions, 1_875_600); // 1,408,000 + 264,000 + 176,000 + 27,600
+	assert.equal(slip.net, 22_774_400); // 24,650,000 − 1,875,600
 	// The union fund is the establishment’s line, not the payslip’s employer cost.
 	assert.equal(slip.employer_cost, 3_080_000 + 528_000 + 176_000);
 });
@@ -477,14 +480,15 @@ test('Vietnam — on the July 2026 version too, the overtime and night wage are 
 			['OT-2.0X', 8, 1_600_000],
 			['OT-2.0X', 0.5, 100_000],
 			['NIGHT_PREMIUM', 2, 100_000],
-			['OT-1.5X', 6, 900_000]
+			['OT-1.5X', 4, 600_000],
+			['OT-1.5X', 2, 300_000]
 		]
 	);
-	// The third version's PIT base is BASE − ABSENCE − NO_PAY_LEAVE: 18,400,000 − 1,932,000
-	// (1,472,000 + 276,000 + 184,000) − 15,500,000 = 968,000 × 5% = 48,400, whatever was worked
-	// beyond the normal day.
+	// The third version's PIT base is BASE + the overrun beyond art.107 − ABSENCE − NO_PAY_LEAVE:
+	// 18,400,000 + 300,000 − 1,932,000 (1,472,000 + 276,000 + 184,000) − 15,500,000 = 1,268,000
+	// × 5% = 63,400; the four lawful hours stay outside.
 	assert.deepEqual(charge(slip, 'SI'), [18_400_000, 1_472_000, 3_220_000]);
-	assert.deepEqual(charge(slip, 'PIT'), [18_400_000, 48_400, 0]);
+	assert.deepEqual(charge(slip, 'PIT'), [18_700_000, 63_400, 0]);
 	assert.equal(slip.gross, 18_400_000 + 5_450_000 + 100_000);
 });
 

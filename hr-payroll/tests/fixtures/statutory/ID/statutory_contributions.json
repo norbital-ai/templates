@@ -33,12 +33,12 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10547400.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.facts.JP.registered) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10547400.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_unit((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10547400.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.facts.JP.registered) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10547400.0)",
 				"employee": "round_unit(105474.0)",
 				"employer": "round_unit(210948.0)"
 			}
@@ -157,7 +157,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\" && person.employee.age < 54) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" && (person.facts.JKP.since_months > 0 ? person.employee.age - person.facts.JKP.since_months / 12.0 : person.employee.age) < 54.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit(0.0)"
 			}
@@ -854,12 +854,12 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10547400.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.facts.JP.registered) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10547400.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_unit((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10547400.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.facts.JP.registered) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10547400.0)",
 				"employee": "round_unit(105474.0)",
 				"employer": "round_unit(210948.0)"
 			}
@@ -978,7 +978,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\" && person.employee.age < 54) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" && (person.facts.JKP.since_months > 0 ? person.employee.age - person.facts.JKP.since_months / 12.0 : person.employee.age) < 54.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit(0.0)"
 			}
@@ -1675,12 +1675,12 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11086300.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.facts.JP.registered) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11086300.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_unit((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11086300.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" || person.facts.JP.registered) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11086300.0)",
 				"employee": "round_unit(110863.0)",
 				"employer": "round_unit(221726.0)"
 			}
@@ -1799,7 +1799,7 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\" && person.employee.age < 54) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0)",
+				"when": "(person.employee.citizenship != \"FOREIGNER\" && (person.facts.JKP.since_months > 0 ? person.employee.age - person.facts.JKP.since_months / 12.0 : person.employee.age) < 54.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit(0.0)"
 			}

@@ -634,6 +634,47 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 			}),
 			[14, 14, 14]
 		);
+		if (version === 2) {
+			// Law 113/2025 art.28 (1 July 2026): a second child is seven months; triplets add a
+			// month per child from the second (eight), and the father three working days per child
+			// from the third — `children.born_on(event.date)` counts the confinement the profile
+			// records.
+			const triplets = (code: string, facts: Record<string, unknown>) =>
+				grantedDays(
+					leaveCatalogue('VN')
+						.filter((row) => row.settings_id === settingsVersions('VN')[2]!.id)
+						.find((row) => row.code === code)!.entitlement,
+					personContext({
+						employee: { date_of_birth: '1990-01-01', gender: facts.gender },
+						employment: { service_start: '2020-01-01' },
+						terms: null,
+						children: [0, 0, 0].map((_, index) => ({
+							child_birthdate: '2026-08-01',
+							citizenship: null,
+							shared_parental_weeks: null
+						})),
+						event: { kind: 'MULTIPLE_BIRTH', date: '2026-08-01', ...facts.event },
+						asOf: '2026-08-01'
+					} as never)
+				);
+			assert.equal(triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: {} }), 240);
+			assert.equal(
+				triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: { child_index: 2 } }),
+				270
+			);
+			assert.equal(triplets('PATERNITY_LEAVE', { gender: 'MALE', event: {} }), 13);
+			assert.equal(
+				triplets('PATERNITY_LEAVE', { gender: 'MALE', event: { kind: 'MULTIPLE_BIRTH_SURGERY' } }),
+				17
+			);
+			assert.deepEqual(
+				ladder('VN', version, 'PATERNITY_LEAVE', {
+					...MALE,
+					event: { kind: 'BIRTH', child_index: 2 }
+				}),
+				[10, 10, 10]
+			);
+		}
 		assert.deepEqual(
 			ladder('VN', version, 'MARRIAGE_LEAVE', {
 				event: { kind: 'MARRIAGE', relationship: 'SELF' }

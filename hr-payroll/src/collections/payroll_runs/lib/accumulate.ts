@@ -16,6 +16,7 @@
 
 import type { FamilyPayItem, PricedItem } from '../../../lib/payroll/family.js';
 import { leaveRowCode } from '../../../lib/leave/codes.js';
+import { INCENTIVE_LINE } from '../../../lib/payroll/work-bands.js';
 
 /**
  * The reserved lines of the assessment site. `OVERTIME_PREMIUM` is not a line of its own: it is
@@ -30,7 +31,9 @@ export type ReservedLine =
 	| 'OVERTIME_PREMIUM'
 	| 'ABSENCE'
 	| 'NO_PAY_LEAVE'
-	| 'ENCASHMENT';
+	| 'ENCASHMENT'
+	/** The overtime lines a band funnelled above its named limit — inside OVERTIME as well. */
+	| 'INCENTIVE';
 
 /** One priced line that fed the payslip, as the calculation trace records it. */
 export type ContributionLine = {
@@ -100,7 +103,8 @@ export function accumulatePayslip(options: {
 		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
-		ENCASHMENT: 0
+		ENCASHMENT: 0,
+		INCENTIVE: 0
 	};
 	const codes = new Map<string, number>();
 	const familyOf = new Map<string, FamilyPayItem['family']>();
@@ -122,11 +126,16 @@ export function accumulatePayslip(options: {
 		});
 		if (reserved != null) {
 			magnitudes[reserved] += item.amount;
-			if (reserved === 'OVERTIME')
+			if (reserved === 'OVERTIME') {
 				magnitudes.OVERTIME_PREMIUM += Math.max(
 					0,
 					item.amount - (item.quantity ?? 0) * (options.ordinaryHour ?? 0)
 				);
+				// The funnelled slice — the hours a band priced above its named limit — is its own
+				// magnitude too, for a law that taxes the overrun (VN Decree 253/2026 art.26(3)).
+				if ((item.catalogueComponent.output ?? '').startsWith(`${INCENTIVE_LINE}:`))
+					magnitudes.INCENTIVE += item.amount;
+			}
 			continue;
 		}
 		const signed = effect === 'REDUCE' ? -item.amount : item.amount;
@@ -147,7 +156,8 @@ export function sumAccumulations(parts: readonly AccumulatedPayslip[]): Accumula
 		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
-		ENCASHMENT: 0
+		ENCASHMENT: 0,
+		INCENTIVE: 0
 	};
 	const codes = new Map<string, number>();
 	const familyOf = new Map<string, FamilyPayItem['family']>();

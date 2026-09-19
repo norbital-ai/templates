@@ -107,6 +107,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week'
 	},
 	{
+		path: 'terms.ordinary_day',
+		description:
+			'One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — what a leave day is encashed or deducted at; 0 where no divisor was evaluated'
+	},
+	{
 		path: 'terms.fixed_allowances',
 		description: 'Standing PAY allowances in force on the rule date'
 	},
@@ -155,6 +160,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count`'
 	},
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
+	{
+		path: 'children.born_on(date)',
+		description:
+			'Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third)'
+	},
 	{ path: 'children.citizens', description: 'Children recorded as citizens' },
 	{
 		path: 'children.births',
@@ -252,6 +262,7 @@ const PERSON_BLANK = {
 	terms: {
 		basic_salary: 0,
 		monthly_basic: 0,
+		ordinary_day: 0,
 		fixed_allowances: 0,
 		monthly_wage: 0,
 		monthly_wage_6m_average: 0,
@@ -268,7 +279,15 @@ const PERSON_BLANK = {
 		ordinary_hours_per_week: 0,
 		working_days_per_week: 0
 	},
-	children: { count: 0, ages: [], citizens: 0, citizen_ages: [], classes: [], births: 0 },
+	children: {
+		count: 0,
+		ages: [],
+		citizens: 0,
+		citizen_ages: [],
+		classes: [],
+		births: 0,
+		birthdates: []
+	},
 	company: { region: '', headcount: 1, headcount_citizens: 1, facts: {} },
 	wage_floor: 0,
 	period: { working_days: 22, unpaid_days: 0 },
@@ -462,6 +481,11 @@ const CODE_FUNCTIONS: readonly ExpressionFunction[] = [
 	{
 		path: "catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude })",
 		description: 'The signed sum of a catalogue’s rows, selected or excluded'
+	},
+	{
+		path: "year_catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude | fixed })",
+		description:
+			'The same selection summed over the tax year’s earlier PAID payslips (this payslip excluded — add `catalog(...)` for it): the year’s Additional Wages for a December true-up (SG CPF)'
 	}
 ];
 
@@ -638,7 +662,12 @@ const RESERVED_LINES: readonly ContextField[] = [
 	},
 	{ path: 'ABSENCE', description: 'Unexplained absence and every unpaid leave day' },
 	{ path: 'NO_PAY_LEAVE', description: 'Unpaid leave days' },
-	{ path: 'ENCASHMENT', description: 'Every encashed leave day' }
+	{ path: 'ENCASHMENT', description: 'Every encashed leave day' },
+	{
+		path: 'INCENTIVE',
+		description:
+			'The overtime lines a band funnelled above its named limit — the hours beyond the statutory ceiling, priced at the band’s award; also inside OVERTIME'
+	}
 ];
 
 const ASSESSMENT_CONTEXT: ExpressionContext = {
@@ -676,7 +705,8 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
-		ENCASHMENT: 0
+		ENCASHMENT: 0,
+		INCENTIVE: 0
 	}
 };
 

@@ -332,7 +332,7 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 33,
 		"listing_group": null
@@ -501,7 +501,7 @@
 				"employer": "round_unit(0.0)"
 			}
 		],
-		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + catalog('ALLOWANCE', {'exclude': ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE']}) + (person.employment.exit_date == \"\" ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 33,
 		"listing_group": null
