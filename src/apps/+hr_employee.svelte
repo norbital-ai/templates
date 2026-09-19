@@ -1178,32 +1178,6 @@
 	</CollectionTable>
 {/snippet}
 
-{#snippet myAllowances()}
-	<CollectionTable
-		{client}
-		collection="allowances"
-		features={{ create: false }}
-		view="hr_employee:allowances"
-		title={t('app.hr_employee.my_allowances_title')}
-		description={t('app.hr_employee.my_allowances_description')}
-		disabled={!employmentId}
-		recordMetadata={(row: { approval_id: string | null }) =>
-			payRequestRecordMetadata(row.approval_id, [], t)}
-		query={{
-			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-			orderBy: { effective_from: 'desc' }
-		}}
-	>
-		{#snippet columns({ Column })}
-			<Column name="catalogue_id" label={t('component.component')} card="title" />
-			<Column name="amount" label={t('component.amount')} />
-			<Column name="effective_from" card="subtitle" label={t('component.effective_from')} />
-			<Column name="effective_to" label={t('component.effective_to')} />
-			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-		{/snippet}
-	</CollectionTable>
-{/snippet}
-
 <!-- The panel never scrolls: the gate is the chrome of a `Cover`, the table is its body and scrolls. -->
 {#snippet eventTable(content: import('svelte').Snippet)}
 	<Cover gap="md" top={contextGate}>
@@ -1212,7 +1186,6 @@
 {/snippet}
 
 {#snippet claimEvents()}{@render eventTable(myClaims)}{/snippet}
-{#snippet allowanceEvents()}{@render eventTable(myAllowances)}{/snippet}
 
 {#snippet events()}
 	<Tabs
@@ -1226,12 +1199,6 @@
 				label: t('family.claim'),
 				icon: 'lucide:receipt-text',
 				content: claimEvents
-			},
-			{
-				name: 'allowance',
-				label: t('family.allowance'),
-				icon: 'lucide:calendar-clock',
-				content: allowanceEvents
 			},
 			{ name: 'loan', label: t('family.loan'), icon: 'lucide:landmark', content: loans }
 		] satisfies TabConfig[]}

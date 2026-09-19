@@ -15,6 +15,7 @@ export const SHIFT_PATTERN_ID = '99999999-9999-4999-8999-999999999901';
 export const BASIC_ID = '66666666-6666-4666-8666-666666666666';
 export const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
 export const STANDING_ENTRY_ID = '88888888-8888-4888-8888-888888888888';
+export const BONUS_ID = '77777777-7777-4777-8777-777777777779';
 export const ONE_OFF_ENTRY_ID = '99999999-9999-4999-8999-999999999999';
 
 const RANGE = { start: '2020-01-01', end: null };
@@ -75,39 +76,26 @@ const WORK_RULES = {
 };
 
 export type PublicPayrollWorldOptions = {
-	/** When true, a one-period allowance sits beside the standing allowance. */
+	/** When true, a one-off ad hoc request sits beside the allowance on the contract. */
 	readonly includePayment?: boolean;
 };
 
 export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}): PayrollWorld {
-	const standing = {
-		id: STANDING_ENTRY_ID,
-		employment_id: EMPLOYMENT_ID,
-		catalogue_id: TRANSPORT_ID,
-		amount: 310,
-		// A standing allowance: a monthly amount in force across its window, priced whole in every
-		// period the window covers. There is no date column beside the window: the window is it.
-		effective_from: '2026-01-01',
-		effective_to: '2026-03-31',
-		reason: '',
-		evidence_file: null,
-		as_adjustment_entry: false,
-		approval_id: null
-	};
+	// Paid once: an ad hoc request of the bonus class, for a day of January.
 	const oneOff = {
 		id: ONE_OFF_ENTRY_ID,
 		employment_id: EMPLOYMENT_ID,
-		catalogue_id: TRANSPORT_ID,
+		catalogue_id: BONUS_ID,
 		amount: 100,
-		// Paid once: a window of one period.
-		effective_from: '2026-01-01',
-		effective_to: '2026-01-31',
+		event_date: '2026-01-15',
 		reason: 'one-off',
 		evidence_file: null,
 		as_adjustment_entry: false,
+		pay_period: null,
+		payslip_id: null,
 		approval_id: null
 	};
-	return {
+	const world: PayrollWorld = {
 		companies: [
 			{
 				id: COMPANY_ID,
@@ -155,7 +143,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				name: 'Transport allowance',
 				sequence: 50,
 				eligibility: '',
-				evidence: 'NONE',
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
@@ -228,17 +215,36 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				job_title: 'Clerk',
 				payroll_group: null,
 				shift_pattern_id: SHIFT_PATTERN_ID,
+				// The allowance on the contract: a monthly amount, prorated like the salary.
+				allowances: [{ catalogue_id: TRANSPORT_ID, amount: 310 }],
 				effective_range: { start: '2021-06-01', end: null },
 				approval_id: null
 			}
 		],
 		employment_statutory_facts: [],
 		claim_requests: [],
-		allowances: options.includePayment === true ? [standing, oneOff] : [standing],
+		adhoc_catalogue: [
+			{
+				id: BONUS_ID,
+				settings_id: JURISDICTION_ID,
+				code: 'BONUS',
+				name: 'Bonus',
+				eligibility: '',
+				evidence: 'NONE',
+				destination: 'PAY',
+				direction: 'ADD',
+				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				counts_toward: ['PUB-EPF', 'PUB-EPF-NC', 'PUB-TAX', 'PUB-FIXED'],
+				raised_by: 'MANUAL',
+				approval_id: null
+			}
+		],
+		adhoc_requests: options.includePayment === true ? [oneOff] : [],
 		loans: [],
 		loan_repayments: [],
 		work_days: rosteredWorkDays(),
 		payroll_runs: [],
 		payslips: []
 	};
+	return world;
 }

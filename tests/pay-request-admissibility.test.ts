@@ -28,7 +28,6 @@ import { Effect } from 'effect';
 import { admitPayRequests } from '../src/lib/pay_request_rules.ts';
 import claimRequests from '../src/collections/claim_requests/+collection.ts';
 import adhocRequests from '../src/collections/adhoc_requests/+collection.ts';
-import allowances from '../src/collections/allowances/+collection.ts';
 import { transformOne } from './helpers/transform.ts';
 import {
 	COMPANY_ID,
@@ -72,6 +71,13 @@ const attempt = (collection, component, input) => {
 	return transformOne(collection, input, undefined, memoryPayrollApi(world).db);
 };
 
+const ADHOC = {
+	employment_id: EMPLOYMENT_ID,
+	catalogue_id: ADHOC_ID,
+	amount: 0,
+	event_date: '2026-04-02'
+};
+
 const CLAIM = {
 	employment_id: EMPLOYMENT_ID,
 	catalogue_id: CLAIM_ID,
@@ -94,27 +100,11 @@ test('a component that demands evidence gets it, whichever family the request is
 			file_size: 1
 		}
 	});
-	// The column now exists on all three families, so an allowance line demands it the same way.
-	const allowance = {
-		employment_id: EMPLOYMENT_ID,
-		catalogue_id: '77777777-7777-4777-8777-777777777777',
-		amount: 100,
-		effective_from: '2026-04-01',
-		effective_to: '2026-04-30'
-	};
+	// The column exists on the ad hoc family too, so an ad hoc request demands it the same way.
 	assert.throws(
-		() => attempt(allowances, demanding, allowance),
-		/MEDICAL requires evidence for its allowances/
+		() => attempt(adhocRequests, demanding, { ...ADHOC, catalogue_id: ADHOC_ID, amount: 100 }),
+		/MEDICAL requires evidence for its ad hoc payments/
 	);
-	attempt(allowances, demanding, {
-		...allowance,
-		evidence_file: {
-			storage_key: 'k',
-			file_name: 'r.pdf',
-			mime_type: 'application/pdf',
-			file_size: 1
-		}
-	});
 });
 
 test('a type whose eligibility rule does not hold for the person is refused, whichever family', () => {
@@ -138,14 +128,13 @@ test('a type whose eligibility rule does not hold for the person is refused, whi
 	// An empty rule is everyone, and asks nothing of the person.
 	assert.equal(
 		attempt(
-			allowances,
+			adhocRequests,
 			{ code: 'BONUS', evidence: 'NONE', eligibility: '' },
 			{
 				employment_id: EMPLOYMENT_ID,
-				catalogue_id: TRANSPORT_ID,
+				catalogue_id: ADHOC_ID,
 				amount: 100,
-				effective_from: '2026-04-01',
-				effective_to: null
+				event_date: '2026-04-01'
 			}
 		).employment_id,
 		EMPLOYMENT_ID
@@ -166,13 +155,6 @@ test('an amount is a positive magnitude, whichever family states it', () => {
 		);
 	}
 });
-
-const ADHOC = {
-	employment_id: EMPLOYMENT_ID,
-	catalogue_id: ADHOC_ID,
-	amount: 0,
-	event_date: '2026-04-02'
-};
 
 test('an ad hoc request is a claim in another family: a band-priced class takes no amount, a stated one must be positive', () => {
 	// Separation pay is priced from the person by the class's band: the request states nothing.
@@ -256,28 +238,5 @@ test('a component that is not in the catalogue at all refuses nothing here', () 
 			[CLAIM],
 			[undefined]
 		)
-	);
-});
-
-test('an allowance is admitted with an empty reason, seals its contract, and states a window that opens before it closes', () => {
-	// The reason is a descriptive column: the transform does not gate on it, and the contract
-	// binding is still enforced by `boundToContract` on the way in.
-	const standing = {
-		employment_id: EMPLOYMENT_ID,
-		catalogue_id: TRANSPORT_ID,
-		amount: 100,
-		effective_from: '2026-04-02',
-		effective_to: null,
-		reason: ''
-	};
-	const component = { code: 'TRANSPORT', evidence: 'NONE', eligibility: '' };
-	assert.equal(attempt(allowances, component, standing).employment_id, EMPLOYMENT_ID);
-	assert.throws(
-		() => attempt(allowances, component, { ...standing, effective_to: '2026-04-01' }),
-		/cannot end before it starts/
-	);
-	assert.throws(
-		() => attempt(allowances, component, { ...standing, effective_from: undefined }),
-		/states the day it starts/
 	);
 });

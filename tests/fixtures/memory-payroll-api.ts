@@ -30,9 +30,6 @@ export type PayrollWorld = {
 	readonly employment_statutory_facts: PayrollRow[];
 	readonly claim_requests: PayrollRow[];
 	readonly adhoc_requests?: PayrollRow[];
-	readonly allowances: PayrollRow[];
-	/** The entries payroll priced from the standing allowances; a fresh world states none. */
-	readonly allowance_entries?: PayrollRow[];
 	readonly loans: PayrollRow[];
 	readonly loan_repayments: PayrollRow[];
 	readonly work_days: PayrollRow[];
@@ -104,22 +101,6 @@ const RELATIONS: Record<
 	},
 	adhoc_requests: {
 		adhoc_request_employment: {
-			target: 'employments',
-			column: 'employment_id',
-			parentColumn: 'id',
-			cardinality: 'one'
-		}
-	},
-	allowances: {
-		allowance_employment: {
-			target: 'employments',
-			column: 'employment_id',
-			parentColumn: 'id',
-			cardinality: 'one'
-		}
-	},
-	allowance_entries: {
-		allowance_entry_employment: {
 			target: 'employments',
 			column: 'employment_id',
 			parentColumn: 'id',
@@ -224,8 +205,6 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			employment_statutory_facts: collection('employment_statutory_facts'),
 			claim_requests: collection('claim_requests'),
 			adhoc_requests: collection('adhoc_requests'),
-			allowances: collection('allowances'),
-			allowance_entries: collection('allowance_entries'),
 			loans: collection('loans'),
 			loan_repayments: collection('loan_repayments'),
 			work_days: collection('work_days'),

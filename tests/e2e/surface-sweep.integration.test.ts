@@ -71,7 +71,7 @@ const SKIPPED_SURFACES = new Set(['/app/hr_controller/kiosk']);
  * it appears; the fix is the same everywhere, which is to make the skipped set a declared fact
  * that has to be edited on purpose.
  */
-const NO_REPRESENTATION = new Set(['allowance_entries', 'loan_repayments']);
+const NO_REPRESENTATION = new Set(['loan_repayments']);
 
 /**
  * Collections the public seed carries no row for, so this walk cannot render their representation.

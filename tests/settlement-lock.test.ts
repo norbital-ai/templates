@@ -271,12 +271,14 @@ test('a run captures every record it consumed, and adjustments name the captures
 				currency: 'MYR',
 				proration: [
 					{
+						component_code: 'BASIC',
 						term_key: 'Permanent @ 2020-01-01 · 1200.00',
 						from: '2026-03-01',
 						to: '2026-03-31',
 						basis: { by: 'CALENDAR_DAYS' },
 						days: 31,
 						denominator: 31,
+						unpaid_days: 0,
 						contract_amount: 1200,
 						prorated_amount: 1200
 					}
@@ -336,7 +338,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 					workDays: ['wd-1', 'wd-zero'],
 					// Each family is named even when it captured nothing: the graph emits one junction
 					// set per family, and an omitted key is a missing table rather than an empty one.
-					payRequests: Object.fromEntries(['CLAIM', 'ALLOWANCE'].map((family) => [family, []])),
+					payRequests: Object.fromEntries(['CLAIM', 'ADHOC'].map((family) => [family, []])),
 					leave: [
 						{
 							leave_entry_id: 'lr-1',
@@ -345,8 +347,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 							gross_amount: { value: -25.8, currency: 'MYR' }
 						}
 					],
-					loanRepayments: ['rp-1'],
-					materialised: []
+					loanRepayments: ['rp-1']
 				}
 			}
 		]
@@ -358,7 +359,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 	// Base, proration and statutory are columns on the payslip; the junctions and adjustments are
 	// the relations.
 	assert.deepEqual(payslip.base, [{ component_code: 'BASIC', amount: 1200 }]);
-	assert.equal(payslip.proration.length, 1);
+	assert.equal(payslip.proration.filter((row) => row.component_code === 'BASIC').length, 1);
 	assert.deepEqual(payslip.statutory, []);
 
 	// What the payslip settled: single-use sources by id (stamped after the commit), the
@@ -382,7 +383,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 	const capturedIds = new Set([
 		...captured.workDays,
 		...captured.claims,
-		...captured.materialised.map((row) => row.sourceId),
+		...captured.adhoc,
 		...captured.leave,
 		...captured.loanRepayments
 	]);

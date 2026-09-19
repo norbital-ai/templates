@@ -24,6 +24,7 @@ import {
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { assignAllowance } from './fixtures/contract-allowances.ts';
 
 test('Singapore — CPF across the age ladder and the ordinary-wage ceiling', () => {
 	const book = assessStatutory({
@@ -743,7 +744,9 @@ test('Singapore — s.20A prices an incomplete month and an unpaid day on the mo
 	// = 3,300 × 10 ÷ 20 = 1,650.00. CPF on 1,650: 330 / 37% = 610.50 → 611, employer 281.
 	const joiner = slips.get('SG-JOINER')!;
 	assert.deepEqual(
-		joiner.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		joiner.proration
+			.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]),
 		[[10, 20, 1650]]
 	);
 	assert.equal(joiner.gross, 1650);
@@ -785,7 +788,9 @@ test('Singapore — s.20A(2): a day of five contracted hours or fewer counts as 
 	);
 	const joiner = slips.get('SG-JOINER')!;
 	assert.deepEqual(
-		joiner.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		joiner.proration
+			.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]),
 		[[9, 18, 1650]]
 	);
 });
@@ -888,7 +893,9 @@ test('Singapore — s.20A counts a public holiday on a working day as a working 
 	for (const key of ['SG-JAN-JOINER', 'SG-JAN-LEAVER']) {
 		const slip = slips.get(key)!;
 		assert.deepEqual(
-			slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+			slip.proration
+				.filter((row) => row.component_code === 'BASIC')
+				.map((row) => [row.days, row.denominator, row.prorated_amount]),
 			[[11, 22, 1650]],
 			key
 		);
@@ -902,7 +909,7 @@ test('Singapore — a standing allowance is wages: prorated like the salary, and
 	// transport allowance is $20 a working day on the same WORKING_DAYS basis as the salary.
 	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
 	const TRANSPORT = 'c1c1c1c1-0000-4000-8000-000000000011';
-	const { slips, entries } = buildStatutory(
+	const { slips, allowances } = buildStatutory(
 		{
 			code: 'SG',
 			period: '2026-03',
@@ -927,7 +934,7 @@ test('Singapore — a standing allowance is wages: prorated like the salary, and
 				approval_id: null
 			});
 			for (const [index, employment] of world.employments.entries())
-				world.allowances.push({
+				assignAllowance(world, {
 					id: `d0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 					employment_id: employment.id,
 					catalogue_id: TRANSPORT,
@@ -942,8 +949,14 @@ test('Singapore — a standing allowance is wages: prorated like the salary, and
 		}
 	);
 	const facts = (key: string) => {
-		const entry = entries.get(key)![0]!.values;
-		return [entry.contract_amount, entry.amount, entry.days, entry.denominator, entry.unpaid_days];
+		const [segment] = allowances.get(key)!;
+		return [
+			segment!.contract_amount,
+			segment!.prorated_amount,
+			segment!.days,
+			segment!.denominator,
+			segment!.unpaid_days
+		];
 	};
 	// The whole month: total wages 3,440. CPF 20% = 688; 37% = 1,272.80 → 1,273; employer 585.
 	// SDL 0.25% × 3,440 = 8.60. CDAC: 3,440 is inside the "over $2,000 up to $3,500" rung, $1.
@@ -958,7 +971,8 @@ test('Singapore — a standing allowance is wages: prorated like the salary, and
 	assert.deepEqual(
 		slips
 			.get('SG-ALW-JOINER')!
-			.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+			.proration.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]),
 		[[12, 22, 1636.36]]
 	);
 	assert.equal(slips.get('SG-ALW-JOINER')!.gross, 1876.36);
@@ -1110,7 +1124,9 @@ test('Singapore — a five-hour contracted day is half a day (s.20A(2)), but a p
 	);
 	const slip = slips.get('SG-SHORT')!;
 	assert.deepEqual(
-		slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		slip.proration
+			.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]),
 		[[13, 20.5, 2600]]
 	);
 	assert.equal(slip.gross, 2600);

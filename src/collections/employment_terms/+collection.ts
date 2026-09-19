@@ -11,6 +11,7 @@ const columns = {
 	residency_status: true,
 	residency_since: true,
 	base_salary: true,
+	allowances: true,
 	pay_frequency: true,
 	work_classification: true,
 	statutory_work_category: true,
@@ -34,7 +35,9 @@ const columns = {
  * deleted either: the delete grant (`peopleGrants`) reads the same consumption.
  *
  * The shift assignment is judged here too: every terms row names a pattern that still exists —
- * the pattern is where the contract's week lives. Two waves: consumption and the named pattern rows.
+ * the pattern is where the contract's week lives — and every allowance the row lists names an
+ * allowance class that exists (the list is a column, so no key holds it). One wave: consumption,
+ * the named pattern rows and the named classes.
  */
 export default defineCollection({
 	model,
@@ -55,7 +58,12 @@ export default defineCollection({
 					})
 				)
 			];
-			const [consumed, patterns] = yield* Effect.all(
+			const classIds = [
+				...new Set(
+					inputs.flatMap((input) => (input.allowances ?? []).map((row) => String(row.catalogue_id)))
+				)
+			];
+			const [consumed, patterns, classes] = yield* Effect.all(
 				[
 					consumedTermsThrough(db, employmentIds),
 					patternIds.length === 0
@@ -64,11 +72,19 @@ export default defineCollection({
 								where: { id: { in: patternIds } },
 								columns: { id: true },
 								limit: patternIds.length
+							}),
+					classIds.length === 0
+						? Effect.succeed([] as { id: string; code: string }[])
+						: db.allowance_catalogue.findMany({
+								where: { id: { in: classIds } },
+								columns: { id: true, code: true },
+								limit: classIds.length
 							})
 				],
 				{ concurrency: 'unbounded' }
 			);
 			const patternIdsFound = new Set(patterns.map((row) => row.id));
+			const classCodeById = new Map(classes.map((row) => [row.id, row.code]));
 			return inputs.map((input, index) => {
 				const stored = existing[index];
 				const employmentId = input.employment_id ?? stored?.employment_id;
@@ -81,6 +97,15 @@ export default defineCollection({
 					);
 				if (!patternIdsFound.has(patternId))
 					refuse('The shift pattern these terms name no longer exists.');
+				// A class is one per code across the lineage's versions: two rows naming the same
+				// class under two versions' ids would price it twice.
+				const listedCodes = new Set<string>();
+				for (const listed of input.allowances ?? []) {
+					const code = classCodeById.get(String(listed.catalogue_id));
+					if (code == null) refuse('An allowance these terms list names no allowance class.');
+					if (listedCodes.has(code)) refuse(`These terms list allowance ${code} twice.`);
+					listedCodes.add(code);
+				}
 				const range = readRange(input.effective_range ?? stored?.effective_range);
 				if (!range || (range.end != null && dateKey(range.end) < dateKey(range.start)))
 					refuse('Employment terms need an ordered inclusive effective range.');

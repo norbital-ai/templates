@@ -9,12 +9,13 @@ import {
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { capturesOf, settle } from './helpers/settlement.ts';
+import { clearAllowances } from './fixtures/contract-allowances.ts';
 
 test('an ended contract recovers its due loan from later manual payments without reviving salary', async () => {
-	const world = createPublicPayrollWorld({ includePayment: true });
+	const world = createPublicPayrollWorld();
 	world.employments[0]!.effective_range = { start: '2021-06-01', end: '2026-01-20' };
-	// A leaver's later money is a claim: a standing allowance ends with the contract.
-	world.allowances = [];
+	// A leaver's later money is a claim: the contract's allowances ended with it.
+	clearAllowances(world);
 	world.claim_catalogue.push({ ...world.allowance_catalogue[0], id: 'expense', code: 'EXPENSE' });
 	world.claim_requests.push({
 		id: 'later-claim',

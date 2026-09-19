@@ -27,6 +27,7 @@ import {
 	SEMI_MONTHLY_EMPLOYMENT_ID,
 	createSemiMonthlyPayrollWorld
 } from './fixtures/semi-monthly-payroll-world.ts';
+import { assignAllowance, clearAllowances } from './fixtures/contract-allowances.ts';
 
 /** One monthly run of `2026-02` at this company, before halves existed (captured 2026-09-07). */
 const BEFORE = {
@@ -68,16 +69,9 @@ function settle(world, period, prepared, built) {
 			approval_id: null
 		});
 		const captured = capturesOf(built, slip);
-		// The allowance entries the run priced are created under the slip; file them pinned to it,
-		// then pin every captured source.
-		for (const row of captured.materialised)
-			(world.allowance_entries ??= []).push({
-				id: row.id,
-				...row.values,
-				payslip_id: slip.id,
-				approval_id: null
-			});
+		// Pin every captured source.
 		for (const id of captured.claims) settleSource(world, 'claim_requests', id, slip.id, period);
+		for (const id of captured.adhoc) settleSource(world, 'adhoc_requests', id, slip.id, period);
 		for (const id of captured.leave) settleSource(world, 'leave_entries', id, slip.id, period);
 		for (const id of captured.loanRepayments)
 			settleSource(world, 'loan_repayments', id, slip.id, period);
@@ -109,7 +103,9 @@ test('half 1 pays only the semi-monthly employment, for the 1st to the 15th, on 
 	assert.equal(slipOf(built, MONTHLY_EMPLOYMENT_ID), null);
 	const slip = slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID);
 	assert.deepEqual(
-		slip.proration.map((segment) => [segment.from, segment.to, segment.days, segment.denominator]),
+		slip.proration
+			.filter((segment) => segment.component_code === 'BASIC')
+			.map((segment) => [segment.from, segment.to, segment.days, segment.denominator]),
 		[['2026-02-01', '2026-02-15', 15, 28]],
 		"fifteen of February's twenty-eight days"
 	);
@@ -130,17 +126,16 @@ test('half 2 pays the semi-monthly employment for the 16th to the end and the mo
 	assert.equal(built.payslipCount, 2);
 	const semi = slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID);
 	assert.deepEqual(
-		semi.proration.map((segment) => [segment.from, segment.to, segment.days, segment.denominator]),
+		semi.proration
+			.filter((segment) => segment.component_code === 'BASIC')
+			.map((segment) => [segment.from, segment.to, segment.days, segment.denominator]),
 		[['2026-02-16', '2026-02-28', 13, 28]]
 	);
 	const monthly = slipOf(built, MONTHLY_EMPLOYMENT_ID);
 	assert.deepEqual(
-		monthly.proration.map((segment) => [
-			segment.from,
-			segment.to,
-			segment.days,
-			segment.denominator
-		]),
+		monthly.proration
+			.filter((segment) => segment.component_code === 'BASIC')
+			.map((segment) => [segment.from, segment.to, segment.days, segment.denominator]),
 		[['2026-02-01', '2026-02-28', 28, 28]],
 		'the whole month, as at a monthly company'
 	);
@@ -215,38 +210,28 @@ for (const [name, proration] of [
 	});
 }
 
-test('an allowance whose window is one half is priced in that half alone, at the half’s share of the month', async () => {
+test('an allowance on the terms of one half alone is priced in that half, at the half’s share of the month', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	const transport = world.allowance_catalogue.find((component) => component.code === 'TRANSPORT');
-	const allowance = (id, from, to) => ({
-		id,
+	// A terms change on the 16th drops the allowance: the first half's terms list it, the
+	// second half's do not.
+	assignAllowance(world, {
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
 		catalogue_id: transport.id,
 		amount: 100,
-		effective_from: from,
-		effective_to: to,
-		reason: id,
-		evidence_file: null,
-		as_adjustment_entry: false,
-		approval_id: null
+		effective_from: '2026-02-01',
+		effective_to: '2026-02-15'
 	});
-	world.allowances.push(
-		allowance('first-half', '2026-02-01', '2026-02-15'),
-		allowance('second-half', '2026-02-16', '2026-02-28')
-	);
 	const first = await build(world, '2026-02-1');
 	settle(world, '2026-02-1', first.prepared, first.built);
 	const second = await build(world, '2026-02-2');
-	const entries = (built) =>
-		capturesOf(built, slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID)).materialised.map((row) => [
-			row.sourceId,
-			row.values.days,
-			row.values.denominator,
-			row.values.amount
-		]);
+	const segments = (built) =>
+		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID)
+			.proration.filter((row) => row.component_code === 'TRANSPORT')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]);
 	// The public fixture prorates on calendar days: a monthly 100 over the 1st–15th is 15/28 of it.
-	assert.deepEqual(entries(first.built), [['first-half', 15, 28, 53.57]]);
-	assert.deepEqual(entries(second.built), [['second-half', 13, 28, 46.43]]);
+	assert.deepEqual(segments(first.built), [[15, 28, 53.57]]);
+	assert.deepEqual(segments(second.built), []);
 });
 
 /**
@@ -272,7 +257,7 @@ const PUB_TAX_EMPLOYEE = `round_cent((${PUB_TAX_SCALED} - scheme.year_to_date.em
 test('the tax projection over twenty-four half payslips lands where twelve monthly ones did', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	world.employment_terms[0].base_salary = { value: SEMI_MONTHLY_BASE, currency: 'MYR' };
-	world.allowances.length = 0;
+	clearAllowances(world);
 	world.statutory_contributions.push({
 		id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa9',
 		settings_id: JURISDICTION_ID,
@@ -323,9 +308,7 @@ test('a standing allowance is split across the halves and adds up to the month',
 	const world = createSemiMonthlyPayrollWorld();
 	const transport = world.allowance_catalogue.find((component) => component.code === 'TRANSPORT');
 	assert.ok(transport, 'the semi-monthly world offers a component that takes entries');
-	const STANDING_ID = 'standing-from-february';
-	world.allowances.push({
-		id: STANDING_ID,
+	assignAllowance(world, {
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
 		catalogue_id: transport.id,
 		amount: 100,
@@ -341,14 +324,13 @@ test('a standing allowance is split across the halves and adds up to the month',
 	settle(world, '2026-02-1', firstHalf.prepared, firstHalf.built);
 	const secondHalf = await build(world, '2026-02-2');
 
-	/** An adjustment names the standing source, so the month is read off the two slips by it. */
-	const paidFor = (built, sourceId) =>
-		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID)
-			.adjustments.filter((row) => row.family === 'ALLOWANCE' && row.source_id === sourceId)
-			.reduce((total, row) => total + Number(row.amount), 0);
+	/** The allowance's base line on the half's slip. */
+	const paidFor = (built) =>
+		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID).base.find((row) => row.component_code === 'TRANSPORT')
+			?.amount ?? 0;
 
-	const first = paidFor(firstHalf.built, STANDING_ID);
-	const second = paidFor(secondHalf.built, STANDING_ID);
+	const first = paidFor(firstHalf.built);
+	const second = paidFor(secondHalf.built);
 	assert.equal(first, 53.57, 'the 1st to the 15th is 15/28 of the month');
 	assert.equal(second, 46.43, 'the 16th to the 28th is 13/28 of it');
 	assert.equal(cents(first + second), 100, 'the halves are the month');
@@ -366,7 +348,7 @@ test('a standing allowance is split across the halves and adds up to the month',
 		})
 	);
 	assert.equal(
-		paidFor((await build(world, '2026-03-1')).built, STANDING_ID),
+		paidFor((await build(world, '2026-03-1')).built),
 		48.39,
 		'a standing allowance is due again next month: 15/31 of it in the first half'
 	);

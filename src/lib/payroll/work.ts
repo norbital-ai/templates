@@ -68,7 +68,7 @@ import {
 	type RateTerms
 } from '../../collections/payroll_runs/lib/ordinary-rate.js';
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
-import { fixedAllowancesOn } from './money.js';
+import { contractAllowancesOn } from './contract-allowances.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
 import { applicableLimits } from '../scheduling/work-limits.js';
@@ -582,7 +582,7 @@ export function prepareWorkContext(
 		employment: stint(bundle.employment),
 		// The standing allowances in force, so a divisor can price the hour over the monthly wage
 		// (ID PP 35/2021 art.32: 1/173 of basic plus fixed allowances).
-		fixedAllowances: fixedAllowancesOn(bundle.payRequests, options.salary.end),
+		fixedAllowances: contractAllowancesOn(bundle, configuration, options.salary.end),
 		terms: closingTerms,
 		// The working week the roster produced, so a rate row can turn on it. The Philippine day
 		// factor is 261 annual days for a five-day week and 313 for a six-day one, which is
@@ -1098,6 +1098,175 @@ export function calculateWorkAttendance(
 	};
 }
 
+/**
+ * A contracted monthly figure priced over the period's calendar, one segment per terms row.
+ *
+ * The wage and every allowance on the contract are the same arithmetic: the terms row in force
+ * on each day states the figure, consecutive days under one row are one segment, and each
+ * segment is prorated against the same full-period divisor on the person's basis. A mid-period
+ * change is two segments. Both are written down — the terms row that covered them, the days, the
+ * divisor those days were taken over, the basis that counted them, the contract amount and the
+ * prorated result — and the base entry is their sum, so a payslip can be re-read years after a
+ * jurisdiction changed how it prorates. `unpaidDaysIn` is the allowances' own rule: where the
+ * jurisdiction prorates an allowance on unpaid leave (`payroll.allowance_npl_prorates`) those
+ * days come off each segment; the wage never takes it, its absence being a line of its own.
+ */
+export function measureContractSegments(options: {
+	readonly component: CatalogueComponent;
+	readonly bundle: EmploymentBundle;
+	readonly configuration: Configuration;
+	readonly salary: PayRange;
+	readonly employed: PayRange;
+	readonly contracted: PayRange;
+	readonly workingDaysIn: (window: PayRange) => number;
+	/** The full-period figure the terms row states; 0 where the row states none. */
+	readonly contractOf: (terms: EmploymentBundle['terms'][number]) => number;
+	readonly unpaidDaysIn?: (window: PayRange) => number;
+}): Measurement | null {
+	const bucket = settlementBucket(options.component.destination, options.component.direction);
+	const currency = options.configuration.jurisdiction.payroll.currency;
+	const termsOn = (date: IsoDate): EmploymentBundle['terms'][number] =>
+		date > options.contracted.end
+			? termsAt(options.bundle, options.contracted.end)
+			: termsAt(options.bundle, date);
+	const closingFrequency = payFrequency(termsOn(options.employed.end).pay_frequency);
+	const measured: {
+		readonly segment: NonNullable<ReturnType<typeof prorationSegment>>;
+		readonly unpaid: number;
+		readonly termKey: string;
+		readonly contract: number;
+		readonly exact: number;
+	}[] = [];
+	const record = (
+		terms: EmploymentBundle['terms'][number],
+		covered: { readonly start: IsoDate; readonly end: IsoDate } | null
+	): void => {
+		const contract = options.contractOf(terms);
+		// A terms row that states no figure for this line covers no segment of it: the line is
+		// what the contract lists, and a row that lists nothing is not a zero-amount segment.
+		if (contract === 0) return;
+		const segment = prorationSegment({
+			work: options.configuration.work,
+			// The basis is the person's: read over the terms row this segment prices.
+			person: personContext({
+				employee: options.bundle.employee,
+				employment: stint(options.bundle.employment),
+				fixedAllowances: contractAllowancesOn(
+					options.bundle,
+					options.configuration,
+					options.salary.end
+				),
+				terms,
+				children: options.bundle.children,
+				company: options.configuration.company,
+				asOf: options.salary.end
+			}),
+			period: options.salary,
+			covered,
+			workingDaysIn: options.workingDaysIn,
+			instalments: terms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
+			salaryPeriod: terms.pay_frequency === 'WEEKLY' ? 'WEEK' : 'MONTH'
+		});
+		if (segment == null || segment.denominator <= 0 || segment.days <= 0) return;
+		const unpaid =
+			options.unpaidDaysIn == null
+				? 0
+				: options.unpaidDaysIn({ start: segment.from, end: segment.to });
+		const days = Math.max(0, segment.days - unpaid);
+		measured.push({
+			segment: { ...segment, days },
+			unpaid,
+			termKey: termsSnapshotKey(terms),
+			contract,
+			exact: contract * (days / segment.denominator)
+		});
+	};
+	/**
+	 * One terms row per calendar day, then collapse consecutive days. Independently clipping
+	 * every overlapping terms row to the month produced two identical full-month segments and
+	 * double BASIC whenever two history rows both covered the window.
+	 */
+	const wageDates = daysBetween(options.employed.start, options.employed.end);
+	if (wageDates.length > 0) {
+		let runStart = wageDates[0]!;
+		let runTerms = termsOn(runStart);
+		for (let index = 1; index <= wageDates.length; index += 1) {
+			const date = wageDates[index];
+			const nextTerms = date == null ? null : termsOn(date);
+			if (nextTerms != null && termsIdentity(nextTerms) === termsIdentity(runTerms)) continue;
+			record(runTerms, { start: runStart, end: wageDates[index - 1]! });
+			if (date == null || nextTerms == null) break;
+			runStart = date;
+			runTerms = nextTerms;
+		}
+	}
+	if (measured.length === 0) return null;
+	/**
+	 * The month is rounded once, and the segments are made to add up to it.
+	 *
+	 * Rounding each segment on its own and summing the results is a different number: 4,000 x
+	 * 15/31 and 4,600 x 16/31 round to 1,935.48 and 2,374.19, which total 4,309.67, while the
+	 * month itself is 4,309.68. The month's figure is the one that reconciles against the source
+	 * system, so it is the one that is paid — and the residue lands on the final segment rather
+	 * than being left as a cent nobody can account for. `payslip_proration` says the segments
+	 * sum; this is what makes that true rather than nearly true.
+	 */
+	/**
+	 * A fixed factor caps the MONTH (or the instalment), not each terms row. Two rows split on
+	 * the 24th measured 16 + 7 = 23 working days over 21.75 and paid 105.75% of a month; the
+	 * DOLE factor is what a whole month is worth, so the rows are scaled to it together and
+	 * the segments a payslip stores still sum to what was paid.
+	 */
+	const capped = ((): typeof measured => {
+		if (measured.length < 2 || measured.some((entry) => entry.segment.basis.by !== 'FIXED_DAYS'))
+			return measured;
+		const cap = measured[0]!.segment.denominator / (closingFrequency === 'SEMI_MONTHLY' ? 2 : 1);
+		const total = measured.reduce((sum, entry) => sum + entry.segment.days, 0);
+		if (total <= cap) return measured;
+		return measured.map((entry) => {
+			const days = (entry.segment.days * cap) / total;
+			return {
+				...entry,
+				segment: { ...entry.segment, days },
+				exact: entry.contract * (days / entry.segment.denominator)
+			};
+		});
+	})();
+	const amount = cents(
+		capped.reduce((total, entry) => total + entry.exact, 0),
+		currency
+	);
+	let allocated = 0;
+	const segments: PayslipProration[] = capped.map((entry, index) => {
+		const prorated =
+			index === capped.length - 1
+				? cents(amount - allocated, currency)
+				: cents(entry.exact, currency);
+		allocated = cents(allocated + prorated, currency);
+		return {
+			component_code: options.component.code,
+			term_key: entry.termKey,
+			from: entry.segment.from,
+			to: entry.segment.to,
+			basis: entry.segment.basis,
+			days: entry.segment.days,
+			denominator: entry.segment.denominator,
+			unpaid_days: entry.unpaid,
+			contract_amount: entry.contract,
+			prorated_amount: prorated
+		};
+	});
+	return {
+		amount,
+		base: [baseLine(options.component, bucket, amount)],
+		// A period one terms row covers whole is still one segment, and it is still recorded:
+		// "31 of 31 days at the contract" is a statement, and a payslip that only carries it
+		// sometimes is a payslip whose reader has to know when.
+		proration: segments,
+		adjustments: []
+	};
+}
+
 function measureWorkComponent(
 	options: Pick<
 		MeasureComponentOptions,
@@ -1135,137 +1304,22 @@ function measureWorkComponent(
 	const closingFrequency = payFrequency(termsOn(options.employed.end).pay_frequency);
 
 	/**
-	 * A `SCHEDULE` component is the contracted wage, and the calendar is recorded rather than folded
-	 * away.
-	 *
-	 * A mid-period change is two terms rows, each prorated against the same full-period divisor.
-	 * Both segments are written down — the terms row that covered them, the days, the divisor those
-	 * days were taken over, the basis that counted them, and both the contract amount and the
-	 * prorated result — and the base entry is their sum. That is the difference this restructure
-	 * exists for: the old shape summed the two fractions into one line and threw the working away,
-	 * so a payslip could not be re-read years after a jurisdiction changed how it prorates.
+	 * A `SCHEDULE` component is the contracted wage: the terms walk below, with the row's base
+	 * salary as the figure — or, for a DAILY or HOURLY contract, the units earned.
 	 */
-	const measureSchedule = (): Measurement | null => {
-		const measured: {
-			readonly segment: NonNullable<ReturnType<typeof prorationSegment>>;
-			readonly termKey: string;
-			readonly contract: number;
-			readonly exact: number;
-		}[] = [];
-		const record = (
-			terms: EmploymentBundle['terms'][number],
-			covered: { readonly start: IsoDate; readonly end: IsoDate } | null
-		): void => {
-			const segment = prorationSegment({
-				work: options.configuration.work,
-				// The basis is the person's: read over the terms row this segment prices.
-				person: personContext({
-					employee: options.bundle.employee,
-					employment: stint(options.bundle.employment),
-					fixedAllowances: fixedAllowancesOn(options.bundle.payRequests, options.salary.end),
-					terms,
-					children: options.bundle.children,
-					company: options.configuration.company,
-					asOf: options.salary.end
-				}),
-				period: options.salary,
-				covered,
-				workingDaysIn: options.workingDaysIn,
-				instalments: terms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
-				salaryPeriod: terms.pay_frequency === 'WEEKLY' ? 'WEEK' : 'MONTH'
-			});
-			if (segment == null || segment.denominator <= 0 || segment.days <= 0) return;
-			const contract = decodeNumber(baseSalaryOf(terms).value);
-			measured.push({
-				segment,
-				termKey: termsSnapshotKey(terms),
-				contract,
-				exact: contract * (segment.days / segment.denominator)
-			});
-		};
-		/**
-		 * One terms row per calendar day, then collapse consecutive days. Independently clipping
-		 * every overlapping terms row to the month produced two identical full-month segments and
-		 * double BASIC whenever two history rows both covered the window.
-		 */
-		if (closingFrequency === 'DAILY' || closingFrequency === 'HOURLY') return measureEarned();
-		const wageDates = daysBetween(options.employed.start, options.employed.end);
-		if (wageDates.length > 0) {
-			let runStart = wageDates[0]!;
-			let runTerms = termsOn(runStart);
-			for (let index = 1; index <= wageDates.length; index += 1) {
-				const date = wageDates[index];
-				const nextTerms = date == null ? null : termsOn(date);
-				if (nextTerms != null && termsIdentity(nextTerms) === termsIdentity(runTerms)) continue;
-				record(runTerms, { start: runStart, end: wageDates[index - 1]! });
-				if (date == null || nextTerms == null) break;
-				runStart = date;
-				runTerms = nextTerms;
-			}
-		}
-		/**
-		 * The month is rounded once, and the segments are made to add up to it.
-		 *
-		 * Rounding each segment on its own and summing the results is a different number: 4,000 x
-		 * 15/31 and 4,600 x 16/31 round to 1,935.48 and 2,374.19, which total 4,309.67, while the
-		 * month itself is 4,309.68. The month's figure is the one that reconciles against the source
-		 * system, so it is the one that is paid — and the residue lands on the final segment rather
-		 * than being left as a cent nobody can account for. `payslip_proration` says the segments
-		 * sum; this is what makes that true rather than nearly true.
-		 */
-		/**
-		 * A fixed factor caps the MONTH (or the instalment), not each terms row. Two rows split on
-		 * the 24th measured 16 + 7 = 23 working days over 21.75 and paid 105.75% of a month; the
-		 * DOLE factor is what a whole month is worth, so the rows are scaled to it together and
-		 * the segments a payslip stores still sum to what was paid.
-		 */
-		const capped = ((): typeof measured => {
-			if (measured.length < 2 || measured.some((entry) => entry.segment.basis.by !== 'FIXED_DAYS'))
-				return measured;
-			const cap = measured[0]!.segment.denominator / (closingFrequency === 'SEMI_MONTHLY' ? 2 : 1);
-			const total = measured.reduce((sum, entry) => sum + entry.segment.days, 0);
-			if (total <= cap) return measured;
-			return measured.map((entry) => {
-				const days = (entry.segment.days * cap) / total;
-				return {
-					...entry,
-					segment: { ...entry.segment, days },
-					exact: entry.contract * (days / entry.segment.denominator)
-				};
-			});
-		})();
-		const amount = cents(
-			capped.reduce((total, entry) => total + entry.exact, 0),
-			currency
-		);
-		let allocated = 0;
-		const segments: PayslipProration[] = capped.map((entry, index) => {
-			const prorated =
-				index === capped.length - 1
-					? cents(amount - allocated, currency)
-					: cents(entry.exact, currency);
-			allocated = cents(allocated + prorated, currency);
-			return {
-				term_key: entry.termKey,
-				from: entry.segment.from,
-				to: entry.segment.to,
-				basis: entry.segment.basis,
-				days: entry.segment.days,
-				denominator: entry.segment.denominator,
-				contract_amount: entry.contract,
-				prorated_amount: prorated
-			};
-		});
-		return {
-			amount,
-			base: [baseLine(options.component, bucket, amount)],
-			// A period one terms row covers whole is still one segment, and it is still recorded:
-			// "31 of 31 days at the contract" is a statement, and a payslip that only carries it
-			// sometimes is a payslip whose reader has to know when.
-			proration: segments,
-			adjustments: []
-		};
-	};
+	const measureSchedule = (): Measurement | null =>
+		closingFrequency === 'DAILY' || closingFrequency === 'HOURLY'
+			? measureEarned()
+			: measureContractSegments({
+					component: options.component,
+					bundle: options.bundle,
+					configuration: options.configuration,
+					salary: options.salary,
+					employed: options.employed,
+					contracted: options.contracted,
+					workingDaysIn: options.workingDaysIn,
+					contractOf: (terms) => decodeNumber(baseSalaryOf(terms).value)
+				});
 
 	/**
 	 * Earned base pay for one DAILY- or HOURLY-paid month.

@@ -28,6 +28,7 @@ const terms = {
 			residency_status: true,
 			residency_since: true,
 			base_salary: true,
+			allowances: true,
 			pay_frequency: true,
 			work_classification: true,
 			statutory_work_category: true,

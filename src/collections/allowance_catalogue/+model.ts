@@ -1,4 +1,4 @@
-import { boolean, custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -22,8 +22,6 @@ export default defineModel(
 			.default(sql`'[]'::jsonb`),
 		/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 		eligibility: text().notNull().default(''),
-		/** Whether a request against this line must, may or need not attach proof. */
-		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
 		/**
 		 * The statutory schemes whose base every line of this class enters — `EPF`, `SOCSO`; a scheme
 		 * that splits its base names the part, `CPF.ADDITIONAL`. Listed, the class is summed into the
@@ -32,19 +30,11 @@ export default defineModel(
 		 */
 		counts_toward: custom('code_list')
 			.notNull()
-			.default(sql`'[]'::jsonb`),
-		/**
-		 * A fixed allowance — paid every period regardless of attendance or output (ID tunjangan
-		 * tetap, VN phụ cấp lương, TW 經常性給與) — counts in `terms.fixed_allowances` and so in the
-		 * wage a statute defines as basic plus fixed allowances (ID THR and the BPJS bases, VN
-		 * insurance salary, MY overtime wages). A reimbursement, a per-day allowance or a bonus is
-		 * not fixed, whatever its window.
-		 */
-		fixed: boolean().notNull().default(true)
+			.default(sql`'[]'::jsonb`)
 	},
 	{
 		description:
-			'The allowance catalogue of one jurisdiction settings version: code, destination and direction, the bands that price, cap and opt the allowance into statutory schemes, and the evidence it demands. Every allowance is standing: a monthly amount over an effective window, prorated like basic salary; one-off pay belongs to the ad hoc catalogue. Sealed with its version; the run cites the version it priced against.',
+			'The allowance catalogue of one jurisdiction settings version: the static classes a contract may carry — code, destination and direction, the bands that price them, the schemes each counts toward. An allowance is assigned on the employment terms with its monthly figure and prorated like basic salary; one-off pay belongs to the ad hoc catalogue. Sealed with its version; the run cites the version it priced against.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:calendar-clock',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

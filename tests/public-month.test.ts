@@ -11,7 +11,6 @@ import { createRun, payslipsOf, settledBy, storeRun } from './helpers/settlement
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
-	STANDING_ENTRY_ID,
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
 
@@ -41,16 +40,11 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
 	assert.equal(payslip.currency, 'MYR');
 
-	const pinned = world.allowance_entries.filter((row) => row.payslip_id === payslip.id);
-	assert.equal(pinned.length, 1, 'the standing allowance materialises one entry');
-	assert.equal(
-		pinned[0].derived_from_id,
-		STANDING_ENTRY_ID,
-		'the entry says which standing allowance it repeats'
-	);
+	// The allowance on the contract is a base line with its own proration segment.
+	const transport = payslip.proration.filter((row) => row.component_code === 'TRANSPORT');
 	assert.deepEqual(
-		[pinned[0].from, pinned[0].to, pinned[0].days, pinned[0].denominator, pinned[0].amount],
-		['2026-01-01T00:00:00.000Z', '2026-01-31T00:00:00.000Z', 31, 31, 310]
+		transport.map((row) => [row.from, row.to, row.days, row.denominator, row.prorated_amount]),
+		[['2026-01-01', '2026-01-31', 31, 31, 310]]
 	);
 	// And nothing from the families this month has no rows in.
 	for (const source of ['claim_requests'])
@@ -60,7 +54,7 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 	assert.equal(settledBy(world, 'leave_entries', payslip.id).length, 0);
 	assert.equal(payslip.statutory.length, 0);
 
-	// Observed on this public world (no schemes, one standing allowance).
+	// Observed on this public world (no schemes, one allowance on the contract).
 	assert.equal(payslip.gross, 3761);
 	assert.equal(payslip.net, 3761);
 	assert.equal(payslip.total_deductions, 0);
@@ -70,7 +64,7 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 		'BASIC schedule is the 3,451 contract'
 	);
 	assert.ok(
-		payslip.adjustments.some((line) => line.label === 'TRANSPORT' && line.amount === 310),
-		'standing TRANSPORT 310 lands as an adjustment'
+		payslip.base.some((line) => line.component_code === 'TRANSPORT' && line.amount === 310),
+		'the TRANSPORT 310 on the contract lands as a base line'
 	);
 });

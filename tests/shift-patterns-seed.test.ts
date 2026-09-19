@@ -64,9 +64,8 @@ test('the manifest covers current source collections and stages consumers after 
 				existsSync(new URL(`../src/collections/${entry.name}/+model.ts`, import.meta.url))
 		)
 		.map((entry) => entry.name);
-	// Payroll output is calculated, never seeded: the runs, their slips and the allowance entries
-	// the slips priced.
-	const unseededPayrollCollections = ['payroll_runs', 'payslips', 'allowance_entries'];
+	// Payroll output is calculated, never seeded: the runs and their slips.
+	const unseededPayrollCollections = ['payroll_runs', 'payslips'];
 	assert.equal(manifest.counts.collections, collections.length);
 	for (const name of unseededPayrollCollections) assert.ok(collections.includes(name), name);
 	assert.equal(new Set(seeded).size, seeded.length, 'a collection must be seeded only once');
@@ -103,7 +102,8 @@ test('the manifest covers current source collections and stages consumers after 
 		// through `employment_terms`, and `jurisdiction_settings` precedes every catalogue here.
 		['leave_catalogue', 'leave_entries'],
 		['claim_catalogue', 'claim_requests'],
-		['allowance_catalogue', 'allowances'],
+		['adhoc_catalogue', 'adhoc_requests'],
+		['allowance_catalogue', 'employment_terms'],
 		['loan_catalogue', 'loans']
 	]) {
 		before('jurisdiction_settings', catalogue);
@@ -115,7 +115,7 @@ test('the manifest covers current source collections and stages consumers after 
 		'work_days',
 		'leave_entries',
 		'claim_requests',
-		'allowances',
+		'adhoc_requests',
 		'loans',
 		'loan_repayments'
 	]) {

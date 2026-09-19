@@ -37,15 +37,15 @@ contracts in different jurisdictions can therefore have different standings. Eli
 the term effective on the date being evaluated. An unrecorded standing remains unknown; it is not
 inferred from nationality or a shared employee-profile value.
 
-| Family       | Catalogue                                      | Contract inputs                                                                        | Results                                                                                                              |
-| ------------ | ---------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Work         | `settings.work_rules`                          | Terms, patterns, roster codes, `work_days`, holiday inputs and absence coverage        | Salary, the overtime classes, incentive and unexplained absence                                                      |
-| Leave        | `leave_catalogue`                              | Contract history and `leave_entries`                                                   | Paid/unpaid absence coverage, reductions, engine-priced encashment                                                   |
-| Claim        | `claim_catalogue`                              | `claim_requests`                                                                       | Reimbursements                                                                                                       |
-| Allowance    | `allowance_catalogue`                          | `allowances` (the standing sources) and `allowance_entries` (what each payslip priced) | Standing allowances, prorated like basic salary: transport, housing                                                  |
-| Ad hoc       | `adhoc_catalogue`                              | `adhoc_requests`                                                                       | One-off pay due whole in one period: bonus, back pay, ex-gratia, separation pay (off-boarding raises it), claw-backs |
-| Loan         | `loan_catalogue`                               | `loans` and `loan_repayments`                                                          | Recovery deductions                                                                                                  |
-| Contribution | `statutory_contributions` (with their `rules`) | Person statutory facts and source-family results                                       | Employee deductions and employer costs                                                                               |
+| Family       | Catalogue                                      | Contract inputs                                                                  | Results                                                                                                              |
+| ------------ | ---------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Work         | `settings.work_rules`                          | Terms, patterns, roster codes, `work_days`, holiday inputs and absence coverage  | Salary, the overtime classes, incentive and unexplained absence                                                      |
+| Leave        | `leave_catalogue`                              | Contract history and `leave_entries`                                             | Paid/unpaid absence coverage, reductions, engine-priced encashment                                                   |
+| Claim        | `claim_catalogue`                              | `claim_requests`                                                                 | Reimbursements                                                                                                       |
+| Allowance    | `allowance_catalogue`                          | `employment_terms.allowances` — the class and its monthly figure on the contract | Standing allowances, base lines prorated like basic salary: transport, housing                                       |
+| Ad hoc       | `adhoc_catalogue`                              | `adhoc_requests`                                                                 | One-off pay due whole in one period: bonus, back pay, ex-gratia, separation pay (off-boarding raises it), claw-backs |
+| Loan         | `loan_catalogue`                               | `loans` and `loan_repayments`                                                    | Recovery deductions                                                                                                  |
+| Contribution | `statutory_contributions` (with their `rules`) | Person statutory facts and source-family results                                 | Employee deductions and employer costs                                                                               |
 
 Different business inputs retain typed collections. A family interface does not require a universal
 entry table. `lib/payroll/family.ts` carries the shared pay-item metadata: every catalogue row and
@@ -190,13 +190,13 @@ row with no bands settles the entry's own amount; no band holding means no entit
 when the request is written and paid nothing by the run. A Loan catalogue row adds the two facts only a debt has: `loan_type` (`STAFF`,
 `GOVERNMENT`, `FESTIVE`) and `minimum_repayment`. A `GOVERNMENT` advance is owed to the authority
 rather than the employer, so the final payslip does not settle it and the balance survives the
-contract; the other two end with the employment like any deduction. The Allowance row carries no
-cadence: every allowance is standing — a monthly amount over an effective window — and a 13th
-month, a THR or a bonus is a row HR keys for the month it is paid in, priced by the row's band
-over the person and the year as they stand when the window opens. A bonus, a back payment of basic
-or a correction of an earlier period's engine-priced line is an allowance row (`ADJ` for basic and
-allowances, `BACKPAY_ADD_WAGES` for overtime and other additional wages, excluded wherever
-overtime is); there is no payment catalogue. Leave is the one catalogue with no
+contract; the other two end with the employment like any deduction. An Allowance class is static:
+it has no instances — the contract lists it with its monthly figure (`employment_terms.allowances`),
+and to change or stop one is a terms change from a date, exactly as salary. A 13th month, a THR, a
+bonus, a back payment of basic or a correction of an earlier period's engine-priced line is an Ad
+hoc class (`adhoc_catalogue`, `raised_by` MANUAL or SEPARATION) with one `adhoc_requests` row per
+payment, due whole in one period — HR raises them from Events, off-boarding raises the
+separation classes for a leaver. Leave is the one catalogue with no
 money: `is_npl`, `can_encash`, `evidence_after_days` and the entitlement bands. `employment_terms.grade` is the contract's benefit tier; the entry
 context reads it as `terms.grade` beside department, service months and the rest.
 
@@ -257,7 +257,7 @@ person, terms and entity in one query, builds the same context as of today (`lib
 and narrows the type picker to the catalogue rows whose predicate holds; with no person chosen it
 offers every row in force. The collection transforms hold the same rule on the event date, so a write that
 bypassed the form is refused with the same sentence. An event carries no entitlement of its own:
-a claim or allowance is a type, an amount, a date, a receipt when the type demands one, and
+a claim or ad hoc request is a type, an amount, a date, a receipt when the type demands one, and
 whether it claws an earlier line back.
 
 The engine phases are PICK, VALIDATE, GATHER, MEASURE, ACCUMULATE, CONTRIBUTE, SETTLE and GRAPH.
@@ -325,9 +325,10 @@ one contract and holds its `status`, base, proration, statutory and adjustment a
 adjustment names its causal input by family and source id. Every entry collection carries a
 nullable `payslip_id`: the run sets it on consumption, and deleting a `DRAFT` or `ON_HOLD` slip
 clears it — as an update the runtime names, so history, sync capture and every replica see the
-release. A standing allowance is never pinned: the run creates one `allowance_entries` row per
-period under the payslip (`derived_from_id` → the allowance; the days, divisor, basis, unpaid
-days and amount it was priced on), and the entry dies with a draft slip; a Leave entry settles
+release. An allowance on the contract is never pinned: it is the contract's money, priced every
+period as a base line beside the salary with its own proration segments (`payslip_proration`
+names the line by `component_code`, and carries the unpaid days an allowance lost where the
+jurisdiction prorates one on unpaid leave); a Leave entry settles
 whole in the one period that contains all of its days (a range that straddles periods is refused
 and entered as one entry per period); a loan repayment row is recovered whole by one payslip. One
 entry is one line on one payslip, so the pin is always the whole lock and there are no capture
@@ -343,7 +344,7 @@ What the net-pay guard could not take is reported rather than absorbed. A recove
 raises `LOAN_REPAYMENT_SHORT` as a warning — the row stays unlinked and the next run recovers it —
 and a month that recovers less than the catalogue row's `minimum_repayment` raises
 `LOAN_REPAYMENT_BELOW_MINIMUM`, which blocks: the operator resolves the deduction or holds that
-person's slip. The same rule governs money requests. A claim or allowance the run read and
+person's slip. The same rule governs money requests. A claim or ad hoc request the run read and
 priced at nothing is still linked, and every such decision — an eligibility rule the person fails,
 a band no `when` of which covers them, a period the employment did not touch — raises
 `PAY_REQUEST_SKIPPED` naming the entry and the reason, because the link removes it from the
@@ -362,8 +363,8 @@ Three dates remain distinct:
 Every day-precision column (`pay_date`, `attendance_from`, `work_date`, `effective_range`, …) stores
 one canonical UTC day, not the viewer's local midnight: the picker converts at the renderer boundary
 and the day prints the same for every viewer. The template's own writers hold the same line —
-`dayInstant(day)` where the engine or a page names a day (a run's dates, a payslip's, an allowance
-entry's, a loan's schedule, the kiosk's punch day) and `canonicalDays` in the transforms of the
+`dayInstant(day)` where the engine or a page names a day (a run's dates, a payslip's, an ad hoc
+request's, a loan's schedule, the kiosk's punch day) and `canonicalDays` in the transforms of the
 collections a form or an automation writes bare days to — because a bare `YYYY-MM-DD` handed to a
 `timestamptz` is read at the database session's zone, which differs between this machine and a
 host. Query bounds on those columns are instants for the same reason: `lte: '2026-01-31'` is
@@ -560,7 +561,8 @@ counts rest-day and holiday hours beyond the normal day for its warning while th
 `OVERTIME_HOURS` count stays the one the monthly funnel — the only company policy in the engine —
 reads. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_half_hours` carry SG s.88(2)
 and s.20A(2). A scheme whose ceiling splits ordinary from additional wages states `ordinary_on`,
-and `allowance_catalogue.fixed` says which allowances are wage-like (`terms.fixed_allowances`). A person's year is
+and `terms.fixed_allowances` is the contract's allowances — on a scheme's own expression, those
+counting toward that scheme (RFC catalogue-classes §3.4). A person's year is
 the tenant's earlier slips (person-first: sibling employments in the company) plus what an earlier
 employer declared on the statutory fact (`opening[]` by scheme and tax year: base, employee,
 employer, ordinary, months — MY TP3, PH 2316), folded into `scheme.year_to_date`, the relief pools

@@ -23,13 +23,14 @@ import {
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { clearAllowances } from './fixtures/contract-allowances.ts';
 
 /** A world whose one employment leaves inside the run period and owes one instalment. */
 function leaverOwing(loanType) {
-	const world = createPublicPayrollWorld({ includePayment: true });
+	const world = createPublicPayrollWorld();
 	world.employments[0].effective_range = { start: '2021-06-01', end: '2026-01-20' };
-	// A leaver's later money is a claim: a standing allowance ends with the contract.
-	world.allowances = [];
+	// A leaver's later money is a claim: the contract's allowances ended with it.
+	clearAllowances(world);
 	world.claim_catalogue.push({ ...world.allowance_catalogue[0], id: 'expense', code: 'EXPENSE' });
 	world.claim_requests.push({
 		id: 'later-claim',

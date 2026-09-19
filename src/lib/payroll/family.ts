@@ -65,8 +65,6 @@ export type FamilyPayItem = {
 	readonly bands: readonly CatalogueBand[];
 	readonly eligibility: string;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ADHOC' | 'ALLOWANCE' | 'LOAN';
-	/** `allowance_catalogue.fixed`: paid regardless of attendance; absent (a claim, a work line) reads true. */
-	readonly fixed?: boolean;
 	/** The schemes (and parts, `CPF.ADDITIONAL`) this class counts toward; absent (a work line) is none. */
 	readonly counts_toward?: readonly string[];
 };
@@ -77,12 +75,7 @@ import type {
 } from '../../collections/payroll_runs/lib/configuration.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
-import type {
-	MaterialisedMoney,
-	PreparedPayRequest,
-	PayRequest,
-	PayRequestFamily
-} from './money.js';
+import type { PreparedPayRequest, PayRequest, PayRequestFamily } from './money.js';
 import type { PayslipBase } from '../../datatypes/payslip_base/+definition.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
 import type { SettledLeaveCapture } from '../leave/payroll.js';
@@ -186,8 +179,6 @@ type CapturedInputs = {
 	readonly payRequests: Readonly<Record<PayRequestFamily, readonly string[]>>;
 	readonly leave: readonly SettledLeaveCapture[];
 	readonly loanRepayments: readonly string[];
-	/** The allowance entries the run materialised from standing allowances, ready to create. */
-	readonly materialised: readonly MaterialisedMoney[];
 };
 
 export type MeasuredEmployment = {
@@ -273,8 +264,6 @@ export type Measurement = {
 	readonly base: readonly MeasuredBase[];
 	readonly proration: readonly PayslipProration[];
 	readonly adjustments: readonly MeasuredAdjustment[];
-	/** The entry a standing allowance's measurement creates under the payslip, facts and money. */
-	readonly allowanceEntry?: MaterialisedMoney;
 };
 
 /** The cap rule lives in `./entry-cap.ts` so the transform enforces the same ceiling this does. */

@@ -10,10 +10,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import claimRequests from '../src/collections/claim_requests/+collection.ts';
-import allowances from '../src/collections/allowances/+collection.ts';
+import employmentTerms from '../src/collections/employment_terms/+collection.ts';
 import { Effect } from 'effect';
-import loans from '../src/collections/loans/+collection.ts';
 import { requestGrants } from '../src/lib/policy_grants.ts';
+import loans from '../src/collections/loans/+collection.ts';
 import { EMPLOYMENT_ID, createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { transformOne } from './helpers/transform.ts';
@@ -145,57 +145,45 @@ test('an uncaptured loan repayment is re-priced through its agreement', () => {
 	);
 });
 
-/** A standing allowance of the public world, and the entry a payslip priced from it. */
-const allowanceWorld = (priced: boolean) => {
+/**
+ * The allowances on a contract are terms facts: the attendance and payslips that consumed the
+ * terms freeze them with the salary, and a change is a successor row from a later date.
+ */
+test('consumed terms freeze their allowances with their salary; a successor row from a later date takes the change', () => {
 	const world = createPublicPayrollWorld();
-	const allowance = world.allowances[0]!;
-	if (priced)
-		(world.allowance_entries ??= []).push({
-			id: 'entry-1',
-			derived_from_id: allowance.id,
-			payslip_id: 'paid-slip',
-			employment_id: allowance.employment_id,
-			catalogue_id: allowance.catalogue_id,
-			from: '2026-01-01',
-			to: '2026-01-31',
-			basis: { by: 'CALENDAR_DAYS' },
-			days: 31,
-			denominator: 31,
-			unpaid_days: 0,
-			contract_amount: 310,
-			amount: 310,
-			approval_id: null
-		});
-	return { allowance, db: memoryPayrollApi(world).db };
-};
-
-test('a priced allowance freezes everything but its closing day, which may only move forward', () => {
-	const { allowance, db } = allowanceWorld(true);
-	for (const change of [
-		{ amount: 400 },
-		{ effective_from: '2026-02-01' },
-		{ catalogue_id: 'another-component' }
-	])
-		assert.throws(() => transformOne(allowances, change, allowance, db), /A payslip has priced/);
+	const terms = world.employment_terms[0]!;
+	const db = memoryPayrollApi(world).db;
+	const listing = [{ catalogue_id: terms.allowances[0]!.catalogue_id, amount: 400 }];
 	assert.throws(
-		() => transformOne(allowances, { effective_to: '2026-01-15' }, allowance, db),
-		/cannot end before that day/
+		() => transformOne(employmentTerms, { allowances: listing }, terms, db),
+		/are consumed/
 	);
-	assert.doesNotThrow(() =>
-		transformOne(allowances, { effective_to: '2026-02-28' }, allowance, db)
+	const successor = transformOne(
+		employmentTerms,
+		{
+			...terms,
+			id: undefined,
+			allowances: listing,
+			effective_range: { start: '2026-03-01', end: null }
+		},
+		undefined,
+		db
 	);
-	assert.doesNotThrow(() =>
-		transformOne(allowances, { reason: 'ends in February' }, allowance, db)
+	assert.deepEqual(successor.allowances, listing);
+	// A class the lineage does not carry is refused: the list is a column, so no key holds it.
+	assert.throws(
+		() =>
+			transformOne(
+				employmentTerms,
+				{
+					...terms,
+					id: undefined,
+					allowances: [{ catalogue_id: '00000000-0000-4000-8000-00000000dead', amount: 1 }],
+					effective_range: { start: '2026-03-01', end: null }
+				},
+				undefined,
+				db
+			),
+		/names no allowance class/
 	);
-});
-
-test('an unpriced allowance remains writable, and only an unpriced one is deletable', () => {
-	const free = allowanceWorld(false);
-	assert.doesNotThrow(() => transformOne(allowances, { amount: 400 }, free.allowance, free.db));
-	const grant = (requestGrants() as Record<string, { delete?: { authorize?: Function } }>)
-		.allowances;
-	const authorized = (world: ReturnType<typeof allowanceWorld>) =>
-		Effect.runSync(grant.delete!.authorize!({ record: world.allowance }, { db: world.db }));
-	assert.equal(authorized(free), true);
-	assert.equal(authorized(allowanceWorld(true)), false);
 });

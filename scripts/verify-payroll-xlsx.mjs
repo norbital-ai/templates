@@ -699,10 +699,12 @@ Effect.runPromise(
 			assert.ok(entries, 'the catalogue entries workbook has no sheet for the period');
 			// exceljs row values are 1-based with an empty slot at 0.
 			const entryColumns = entries.getRow(2).values.slice(1);
-			for (const code of ['TRANSPORT', 'MEDICAL_CLAIM', 'STAFF_LOAN', 'total'])
+			for (const code of ['MEDICAL_CLAIM', 'STAFF_LOAN', 'total'])
 				assert.ok(entryColumns.includes(code), `${code} has no column in the catalogue entries`);
+			// An allowance is the contract's money, a base line: the payroll workbook's, not this one's.
 			for (const absent of [
 				'BASIC',
+				'TRANSPORT',
 				'OVERTIME',
 				'UNPAID_LEAVE_DEDUCTION',
 				'grossEarnings',
@@ -715,16 +717,15 @@ Effect.runPromise(
 			// Band row 1, header row 2, VERIFIED row 3, JOINER row 4, the SUM row 5.
 			assert.equal(entries.getCell(3, entryColumn('MEDICAL_CLAIM')).value, 93.5);
 			assert.equal(
-				entries.getCell(3, entryColumn('TRANSPORT')).value,
+				entries.getCell(3, entryColumn('STAFF_LOAN')).value,
 				0,
 				'squared off with a zero'
 			);
-			assert.equal(entries.getCell(4, entryColumn('TRANSPORT')).value, 150);
 			assert.equal(entries.getCell(4, entryColumn('STAFF_LOAN')).value, 100);
-			assert.equal(entries.getCell(4, entryColumn('total')).value, 250, 'the per-row roll-up');
+			assert.equal(entries.getCell(4, entryColumn('total')).value, 100, 'the per-row roll-up');
 			assert.equal(entries.getCell(5, 1).value, 'TOTAL');
 			assert.match(
-				entries.getCell(5, entryColumn('TRANSPORT')).value?.formula ?? '',
+				entries.getCell(5, entryColumn('STAFF_LOAN')).value?.formula ?? '',
 				/^SUM\(/,
 				'the totals row sums each money column'
 			);

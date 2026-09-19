@@ -24,6 +24,7 @@ import {
 	JURISDICTION_ID
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { clearAllowances } from './fixtures/contract-allowances.ts';
 
 const NEW_SETTINGS_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0001';
 const AGREED_ROW_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0002';
@@ -75,7 +76,7 @@ function loanWorld(options: LoanWorldOptions = {}) {
 	const world = createPublicPayrollWorld();
 	// The standing transport allowance has no row under the second version, and this test is about
 	// a code that does; drop it so the only revision question is the loan's.
-	world.allowances = [];
+	clearAllowances(world);
 	// Punch every rostered day so the wage is not eaten by absence; this test is about the grid.
 	for (const day of world.work_days) {
 		day.worked_intervals = [

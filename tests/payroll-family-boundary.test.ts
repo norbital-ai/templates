@@ -79,10 +79,11 @@ test('family preparation and calculation preserve mixed source capture and cross
 	for (const line of payslip.adjustments)
 		amounts.set(line.family, (amounts.get(line.family) ?? 0) + line.amount);
 	assert.equal(amounts.get('CLAIM'), 300);
-	// The standing allowance and the one-off are one family now: 310 + 100.
-	assert.equal(amounts.get('ALLOWANCE'), 410);
+	// The one-off bonus is an ad hoc request; the allowance on the contract is a base line.
+	assert.equal(amounts.get('ADHOC'), 100);
 	assert.equal(amounts.get('LOAN_REPAYMENT'), 50);
 	assert.equal(payslip.base.find((line) => line.component_code === 'BASIC')?.amount, 3451);
+	assert.equal(payslip.base.find((line) => line.component_code === 'TRANSPORT')?.amount, 310);
 	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
 });
 
@@ -94,7 +95,7 @@ test('payroll orchestration does not read family-owned source tables or interpre
 		);
 		assert.doesNotMatch(
 			source,
-			/\bdb\.(?:claim_requests|allowances|allowance_entries|loans|loan_repayments|work_days|leave_entries|employment_statutory_facts|claim_catalogue|allowance_catalogue|loan_catalogue|leave_catalogue|statutory_contributions)\b/,
+			/\bdb\.(?:claim_requests|adhoc_requests|loans|loan_repayments|work_days|leave_entries|employment_statutory_facts|claim_catalogue|adhoc_catalogue|allowance_catalogue|loan_catalogue|leave_catalogue|statutory_contributions)\b/,
 			name
 		);
 		assert.doesNotMatch(source, /definition\??\.source/, name);

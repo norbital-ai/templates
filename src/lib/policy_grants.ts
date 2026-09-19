@@ -193,19 +193,6 @@ const unconsumedTerms = (
 const unpinned = ({ record }: { readonly record: { readonly payslip_id?: string | null } }) =>
 	record.payslip_id == null;
 
-/** A standing allowance a payslip has priced is money history: no delete takes it. */
-const unpriced = (
-	{ record }: { readonly record: { readonly id: string } },
-	api: PolicyDecisionApi
-) =>
-	Effect.map(
-		api.db.allowance_entries.findFirst({
-			where: { derived_from_id: { eq: record.id } },
-			columns: { id: true }
-		}),
-		(entry) => entry == null
-	);
-
 /** An agreement whose repayment a payslip settled is money history: the cascade must not take it. */
 const unsettledLoan = (
 	{ record }: { readonly record: { readonly id: string } },
@@ -354,10 +341,6 @@ export const requestGrants = (): Grants =>
 		grantOn('claim_requests', 'delete', { authorize: unpinned }),
 		grantsOn('adhoc_requests', ['read', 'mutate.new', 'mutate.existing']),
 		grantOn('adhoc_requests', 'delete', { authorize: unpinned }),
-		grantsOn('allowances', ['read', 'mutate.new', 'mutate.existing']),
-		grantOn('allowances', 'delete', { authorize: unpriced }),
-		// The lines a run priced from a standing allowance: read beside the source, written by no one.
-		grantsOn('allowance_entries', ['read']),
 		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing']),
 		grantOn('loans', 'delete', { authorize: unsettledLoan }),
 		// A repayment is written through its loan's schedule; the nested actions are judged here.
@@ -384,15 +367,12 @@ export const leaveCalendarGrants = (ownCompany = false): Grants =>
  *
  * A caller's cascade descends as the caller's: the `cascade(...)` edges from a run
  * to its payslips are authorized against the deleting person's own delete grant on the collection,
- * exactly as a nested row they submitted would be. A slip's allowance entries go with it the same
- * way. The pins the run wrote are released with the slip, so nothing else needs a grant here: the
- * sources are only ever re-pinned by the run's transform, as the workspace.
+ * exactly as a nested row they submitted would be. The pins the run wrote are released with the
+ * slip, so nothing else needs a grant here: the sources are only ever re-pinned by the run's
+ * transform, as the workspace.
  */
 export const payrollRunCascadeGrants = (): Grants =>
-	mergeGrants(
-		grantOn('payslips', 'delete', { authorize: deletablePayslip }),
-		grantsOn('allowance_entries', ['delete'])
-	);
+	grantOn('payslips', 'delete', { authorize: deletablePayslip });
 
 /** Run payroll: create, and delete an unpaid run newest first. A run is never edited. */
 export const payrollRunGrants = (): Grants =>

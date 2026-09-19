@@ -24,14 +24,14 @@ export const createRun = (world, period, companyId = world.companies[0].id) =>
 const PIN_FAMILIES = {
 	work_day_payslip: 'work_days',
 	claim_request_payslip: 'claim_requests',
-	allowance_entry_payslip: 'allowance_entries',
+	adhoc_request_payslip: 'adhoc_requests',
 	leave_entry_payslip: 'leave_entries',
 	loan_repayment_payslip: 'loan_repayments'
 };
 
 /**
- * Store a run's payload the way the database would hold it: the run row, its payslips, every
- * pinned source stamped with its slip, and every materialised row created under it.
+ * Store a run's payload the way the database would hold it: the run row, its payslips and every
+ * pinned source stamped with its slip.
  */
 export function storeRun(world, payload, runId = crypto.randomUUID()) {
 	const { payslip_payroll_run: nested, ...run } = payload;
@@ -62,6 +62,7 @@ export const payslipsOf = (payload) =>
 export const NO_CAPTURES = {
 	workDays: [],
 	claims: [],
+	adhoc: [],
 	leave: [],
 	loanRepayments: []
 };

@@ -120,6 +120,7 @@ test('the Entities page opens one live query and the Settings page one per surfa
 	for (const [tab, collection] of [
 		['catalogueClaims', 'claim_catalogue'],
 		['catalogueAllowances', 'allowance_catalogue'],
+		['catalogueAdhoc', 'adhoc_catalogue'],
 		['catalogueLoans', 'loan_catalogue']
 	]) {
 		assert.deepEqual(registrations(snippet(settings, tab!)), [], tab);
@@ -178,6 +179,7 @@ test('the Changes tab compares two snapshots and reads each catalogue by version
 		'db.leave_catalogue.findMany',
 		'db.claim_catalogue.findMany',
 		'db.allowance_catalogue.findMany',
+		'db.adhoc_catalogue.findMany',
 		'db.loan_catalogue.findMany'
 	]);
 	assert.match(changes, /settings_id = \{ in: \[baseVersion\.id, compareVersion\.id\] \}/);
@@ -197,6 +199,7 @@ test('the terms fields are Pay, Shift assignment, Standing, Organisation and Per
 	// One composition, shared by the terms record and the contract detail.
 	const fields = source('../src/lib/ui/contract/terms-fields.svelte');
 	assert.deepEqual(fieldNames(fields), [
+		'allowances',
 		'base_salary',
 		'department',
 		'effective_range',

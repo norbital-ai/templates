@@ -149,7 +149,8 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{
 		path: 'terms.fixed_allowances',
-		description: 'Standing PAY allowances in force on the rule date'
+		description:
+			'The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme'
 	},
 	{
 		path: 'terms.monthly_wage',

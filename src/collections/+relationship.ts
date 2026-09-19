@@ -113,9 +113,7 @@ export default ((r) => ({
 				from: r.allowance_catalogue.settings_id,
 				to: r.jurisdiction_settings.id
 			})
-		),
-		allowance_allowance_catalogue: r.many.allowances(),
-		allowance_entry_allowance_catalogue: r.many.allowance_entries()
+		)
 	},
 
 	leave_catalogue: {
@@ -163,8 +161,6 @@ export default ((r) => ({
 		term_employment: r.many.employment_terms(),
 		claim_request_employment: r.many.claim_requests(),
 		adhoc_request_employment: r.many.adhoc_requests(),
-		allowance_employment: r.many.allowances(),
-		allowance_entry_employment: r.many.allowance_entries(),
 		loan_employment: r.many.loans(),
 		loan_repayment_employment: r.many.loan_repayments(),
 		leave_entry_employment: r.many.leave_entries(),
@@ -232,44 +228,6 @@ export default ((r) => ({
 		adhoc_request_adhoc_catalogue: r.one.adhoc_catalogue({
 			from: r.adhoc_requests.catalogue_id,
 			to: r.adhoc_catalogue.id
-		})
-	},
-
-	/**
-	 * A standing allowance is the source; its entries are the lines. Restrict on every edge: an
-	 * allowance a payslip has priced is money history, and its employment stays with it.
-	 */
-	allowances: {
-		allowance_employment: r.one.employments({
-			from: r.allowances.employment_id,
-			to: r.employments.id
-		}),
-		allowance_allowance_catalogue: r.one.allowance_catalogue({
-			from: r.allowances.catalogue_id,
-			to: r.allowance_catalogue.id
-		}),
-		allowance_entry_allowance: r.many.allowance_entries()
-	},
-
-	/**
-	 * An entry is owned by the payslip that priced it (`cascade`: a deleted draft slip takes its
-	 * entries) and repeats a standing allowance (restrict: the allowance outlives no entry).
-	 */
-	allowance_entries: {
-		allowance_entry_payslip: cascade(
-			r.one.payslips({ from: r.allowance_entries.payslip_id, to: r.payslips.id })
-		),
-		allowance_entry_allowance: r.one.allowances({
-			from: r.allowance_entries.derived_from_id,
-			to: r.allowances.id
-		}),
-		allowance_entry_employment: r.one.employments({
-			from: r.allowance_entries.employment_id,
-			to: r.employments.id
-		}),
-		allowance_entry_allowance_catalogue: r.one.allowance_catalogue({
-			from: r.allowance_entries.catalogue_id,
-			to: r.allowance_catalogue.id
 		})
 	},
 
@@ -343,13 +301,11 @@ export default ((r) => ({
 		}),
 		/**
 		 * The sources this slip consumed. The run's transform pins them as `link` actions on the
-		 * slip and creates the per-period allowance entries it materialised under it; a deleted
-		 * draft slip releases every pin and takes its entries with it.
+		 * slip; a deleted draft slip releases every pin.
 		 */
 		work_day_payslip: r.many.work_days(),
 		claim_request_payslip: r.many.claim_requests(),
 		adhoc_request_payslip: r.many.adhoc_requests(),
-		allowance_entry_payslip: r.many.allowance_entries(),
 		leave_entry_payslip: r.many.leave_entries(),
 		loan_repayment_payslip: r.many.loan_repayments()
 	},

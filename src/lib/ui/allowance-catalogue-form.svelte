@@ -117,14 +117,8 @@
 
 			{#snippet limits()}
 				<Stack gap="sm">
-					<p class="text-meta">{t('component.catalogue_section_limits_hint')}</p>
+					<p class="text-meta">{t('component.allowance_section_pricing_hint')}</p>
 					<Grid gap="md" minimum="card">
-						<Field name="evidence" label={t('component.evidence')} />
-						<Field
-							name="fixed"
-							label={t('component.fixed_allowance')}
-							description={t('component.fixed_allowance_hint')}
-						/>
 						<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
 					</Grid>
 				</Stack>

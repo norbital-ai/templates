@@ -4,7 +4,6 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "HOUSE_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -14,7 +13,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "House allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
@@ -23,7 +21,6 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "CAR_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -33,7 +30,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "Car allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
@@ -42,7 +38,6 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "HOUSE_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -52,7 +47,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "House allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
@@ -61,7 +55,6 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "CAR_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -71,7 +64,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "Car allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
@@ -80,7 +72,6 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "HOUSE_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -90,7 +81,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "House allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
@@ -99,7 +89,6 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "CAR_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -109,7 +98,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "Car allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
@@ -118,7 +106,6 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "SPECIAL_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -128,7 +115,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "Special allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
@@ -137,7 +123,6 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "SPECIAL_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -147,7 +132,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "Special allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	},
@@ -156,7 +140,6 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "SPECIAL_ALLOWANCE",
 		"eligibility": "",
-		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -166,7 +149,6 @@
 				"limit": null
 			}
 		],
-		"fixed": true,
 		"name": "Special allowance",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
 	}

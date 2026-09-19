@@ -4,11 +4,15 @@ import { requireAccepted } from '@norbital-ai/test-utilities';
 import { WRITE_COMMAND, createdIds, observedVersion, writeRows } from './helpers/write.ts';
 import {
 	COMPANY_ID,
+	EMPLOYMENT_ID,
 	FEBRUARY_2026,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	MARCH_2026,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
+
+/** The public seed's one ad hoc class: the separation payment, which HR may also raise by hand. */
+const SEPARATION_CLASS_ID = '77777777-7777-4777-8777-777777777778';
 
 const MUTATE_COMMAND = WRITE_COMMAND;
 
@@ -32,9 +36,8 @@ const createDraft = async (
  * One request, one delete action naming two ids — the same batch path every write uses.
  *
  * Deleting a draft is the settlement lock's release: every source the run sealed — work days,
- * claims, leave entries, loan repayments — is free again, and every allowance entry the run priced
- * is gone with its slip. Each family the seed can seal is proven sealed first, so an empty capture
- * cannot pass for a release.
+ * claims, ad hoc requests, leave entries, loan repayments — is free again. Each family the seed
+ * can seal is proven sealed first, so an empty capture cannot pass for a release.
  */
 test(
 	'public seed deletes two draft payroll runs in one batch',
@@ -42,6 +45,17 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-delete-batch');
 		try {
+			// One ad hoc request for March, so the draft seals a source the seed does not otherwise carry.
+			const raised = await writeRows(session, 'adhoc_requests', 'create', [
+				{
+					employment_id: EMPLOYMENT_ID,
+					catalogue_id: SEPARATION_CLASS_ID,
+					amount: 50,
+					event_date: `${MARCH_2026}-05`,
+					reason: 'delete-batch probe'
+				}
+			]);
+			requireAccepted(raised.value, `${MUTATE_COMMAND} create adhoc request`);
 			// Legacy outstanding drafts must remain deletable even though new runs now enforce chronology.
 			const marchId = await createDraft(session, MARCH_2026);
 			const februaryId = crypto.randomUUID();
@@ -75,8 +89,8 @@ test(
 				 join payslips p on p.id = c.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'allowance_entry', a.id
-				 from allowance_entries a
+				 select 'adhoc_request', a.id
+				 from adhoc_requests a
 				 join payslips p on p.id = a.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
@@ -92,11 +106,10 @@ test(
 				[februaryId, marchId]
 			)) as ReadonlyArray<{ readonly kind: string; readonly source_id: string }>;
 
-			// The seal is proven before its release: the public seed pays a standing allowance, so
-			// the drafts must have priced its entries (the seed carries no rostered days, claims,
-			// leave or loans inside these periods; the Bolt runtime's own test proves the release of
-			// a pinned row).
-			for (const kind of ['allowance_entry'])
+			// The seal is proven before its release: the March draft must have pinned the ad hoc
+			// request raised above (the seed carries no rostered days, claims, leave or loans inside
+			// these periods; the Bolt runtime's own test proves the release of a pinned row).
+			for (const kind of ['adhoc_request'])
 				assert.ok(
 					captured.some((row) => row.kind === kind),
 					`the drafts sealed no ${kind}; the release below would prove nothing`
@@ -160,6 +173,10 @@ test(
 				 from claim_requests
 				 where payslip_id is not null and id = any($1::uuid[])
 				 union all
+				 select 'adhoc_request', id
+				 from adhoc_requests
+				 where payslip_id is not null and id = any($1::uuid[])
+				 union all
 				 select 'leave_request', id
 				 from leave_entries
 				 where payslip_id is not null and id = any($1::uuid[])
@@ -178,23 +195,11 @@ test(
 			const sourceTable = {
 				work_day: 'work_days',
 				claim_request: 'claim_requests',
+				adhoc_request: 'adhoc_requests',
 				leave_request: 'leave_entries',
 				loan_repayment: 'loan_repayments'
 			} as const;
 			for (const row of captured) {
-				// The entries a run priced from a standing allowance are the slip's own rows: they go
-				// with it, and the standing allowance is due again for the next run.
-				if (row.kind === 'allowance_entry') {
-					const surviving = (await session.query(`select id from allowance_entries where id = $1`, [
-						row.source_id
-					])) as ReadonlyArray<{ readonly id: string }>;
-					assert.deepEqual(
-						surviving,
-						[],
-						`deleting a draft run must delete entry ${row.source_id}`
-					);
-					continue;
-				}
 				const table = sourceTable[row.kind as keyof typeof sourceTable];
 				assert.ok(table, `unexpected capture kind ${row.kind}`);
 				const surviving = (await session.query(`select id from ${table} where id = $1`, [

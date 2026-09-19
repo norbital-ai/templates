@@ -55,6 +55,7 @@ test(
 				'statutory_contributions',
 				'leave_catalogue',
 				'claim_catalogue',
+				'adhoc_catalogue',
 				'allowance_catalogue',
 				'employees',
 				'shift_definitions',
@@ -63,8 +64,7 @@ test(
 				'employments',
 				'employment_statutory_facts',
 				'employment_terms',
-				'leave_entries',
-				'allowances'
+				'leave_entries'
 			]
 		);
 

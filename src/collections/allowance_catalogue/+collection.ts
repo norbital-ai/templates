@@ -17,8 +17,6 @@ const columns = {
 	direction: true,
 	bands: true,
 	eligibility: true,
-	evidence: true,
-	fixed: true,
 	counts_toward: true
 } as const;
 

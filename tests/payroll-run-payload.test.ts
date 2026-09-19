@@ -11,11 +11,10 @@ import assert from 'node:assert/strict';
 import { payrollRunPayload } from '../src/collections/payroll_runs/lib/graph.ts';
 import workDays from '../src/collections/work_days/+collection.ts';
 import claimRequests from '../src/collections/claim_requests/+collection.ts';
-import allowanceEntries from '../src/collections/allowance_entries/+collection.ts';
 import leaveEntries from '../src/collections/leave_entries/+collection.ts';
 import adhocRequests from '../src/collections/adhoc_requests/+collection.ts';
 
-test('every captured source becomes a link action on its payslip; allowance entries are created under it', () => {
+test('every captured source becomes a link action on its payslip', () => {
 	const slip = { id: 'slip-1', employment_id: 'emp-1', status: 'DRAFT' };
 	const [payload] = payrollRunPayload({
 		payslip_payroll_run: [slip],
@@ -26,16 +25,7 @@ test('every captured source becomes a link action on its payslip; allowance entr
 				claims: ['claim-1'],
 				adhoc: ['adhoc-1'],
 				leave: ['leave-1'],
-				loanRepayments: ['repayment-1'],
-				materialised: [
-					{
-						id: 'm-1',
-						sourceId: 'standing-1',
-						collection: 'allowance_entries',
-						payslipId: 'slip-1',
-						values: { derived_from_id: 'standing-1', employment_id: 'emp-1', amount: 10 }
-					}
-				]
+				loanRepayments: ['repayment-1']
 			}
 		]
 	});
@@ -45,10 +35,6 @@ test('every captured source becomes a link action on its payslip; allowance entr
 	assert.deepEqual(payload.adhoc_request_payslip, { link: [{ id: 'adhoc-1' }] });
 	assert.deepEqual(payload.leave_entry_payslip, { link: [{ id: 'leave-1' }] });
 	assert.deepEqual(payload.loan_repayment_payslip, { link: [{ id: 'repayment-1' }] });
-	// The entry is born under the slip with no pin of its own to state.
-	assert.deepEqual(payload.allowance_entry_payslip, {
-		create: [{ id: 'm-1', derived_from_id: 'standing-1', employment_id: 'emp-1', amount: 10 }]
-	});
 });
 
 test('a payslip that consumed nothing of a family carries no action for it', () => {
@@ -61,23 +47,16 @@ test('a payslip that consumed nothing of a family carries no action for it', () 
 				claims: [],
 				adhoc: [],
 				leave: [],
-				loanRepayments: [],
-				materialised: []
+				loanRepayments: []
 			}
 		]
 	});
 	assert.deepEqual(payload.work_day_payslip, {});
-	assert.equal('allowance_entry_payslip' in payload, false);
+	assert.deepEqual(payload.adhoc_request_payslip, {});
 });
 
 test('no source family accepts the pin as input', () => {
-	for (const collection of [
-		workDays,
-		claimRequests,
-		adhocRequests,
-		allowanceEntries,
-		leaveEntries
-	]) {
+	for (const collection of [workDays, claimRequests, adhocRequests, leaveEntries]) {
 		assert.equal('payslip_id' in collection.create.input.columns, false);
 		if (collection.update) assert.equal('payslip_id' in collection.update.input.columns, false);
 	}

@@ -93,11 +93,13 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		effective_range: { start: '2022-03-01', end: null },
 		approval_id: null
 	});
+	// The semi-monthly contract is on salary alone; a test that wants an allowance lists one.
 	world.employment_terms.push({
 		...structuredClone(world.employment_terms[0]),
 		id: SEMI_MONTHLY_TERMS_ID,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
 		base_salary: { value: SEMI_MONTHLY_BASE, currency: 'MYR' },
+		allowances: [],
 		pay_frequency: 'SEMI_MONTHLY',
 		job_title: 'Operator',
 		effective_range: { start: '2022-03-01', end: null }

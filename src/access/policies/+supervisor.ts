@@ -83,8 +83,6 @@ export default {
 		// predicate that has to keep being right.
 		grantsOn('claim_requests', ['read']),
 		grantsOn('adhoc_requests', ['read']),
-		grantsOn('allowances', ['read']),
-		grantsOn('allowance_entries', ['read']),
 		// `employeeSelfServiceGrants` already carries `settlementLedgerGrants`; restating it is a
 		// duplicate grant, which `mergeGrants` refuses.
 

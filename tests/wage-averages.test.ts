@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { monthlyWageAverage } from '../src/lib/payroll/contribution.ts';
 import { earnedAverage } from '../src/collections/payroll_runs/lib/contribute.ts';
-import { contributionSchemes, allowanceCatalogue } from './fixtures/statutory-world.ts';
+import { adhocCatalogue, contributionSchemes } from './fixtures/statutory-world.ts';
 
 const terms = (start: string, end: string | null, value: number) =>
 	({ base_salary: { value, currency: 'VND' }, effective_range: { start, end } }) as never;
@@ -16,18 +16,18 @@ test('the six-month average of the contractual wage reads the terms in force on 
 			terms('2025-01-01', '2025-10-31', 20_000_000),
 			terms('2025-11-01', null, 26_000_000)
 		],
-		terms: [terms('2025-11-01', null, 26_000_000)],
-		payRequests: []
+		terms: [terms('2025-11-01', null, 26_000_000)]
 	} as never;
-	assert.equal(monthlyWageAverage(bundle, '2026-01-31', 6), 23_000_000);
+	const configuration = { catalogueComponents: [] } as never;
+	assert.equal(monthlyWageAverage(bundle, configuration, '2026-01-31', 6), 23_000_000);
 	// An employment younger than the window averages the months it has: hired 1 Dec 2025.
 	const young = {
 		...bundle,
 		employment: { effective_range: { start: '2025-12-01', end: null } }
 	} as never;
-	assert.equal(monthlyWageAverage(young, '2026-01-31', 6), 26_000_000);
-	// The VN severance and job-loss rows measure on it.
-	for (const row of allowanceCatalogue('VN'))
+	assert.equal(monthlyWageAverage(young, configuration, '2026-01-31', 6), 26_000_000);
+	// The VN severance and job-loss classes measure on it.
+	for (const row of adhocCatalogue('VN'))
 		if (row.code === 'SEVERANCE_ALLOWANCE' || row.code === 'JOB_LOSS_ALLOWANCE')
 			assert.match(row.bands[0]!.amount, /monthly_wage_6m_average/);
 });

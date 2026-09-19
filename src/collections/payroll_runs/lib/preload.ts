@@ -30,7 +30,6 @@ type Wave1 = Readonly<{
 	payroll_runs: ReadonlyArray<MemoryRow>;
 	claim_requests: ReadonlyArray<MemoryRow>;
 	adhoc_requests: ReadonlyArray<MemoryRow>;
-	allowances: ReadonlyArray<MemoryRow>;
 }>;
 
 const complete = <T>(rows: readonly T[], what: string): readonly T[] => {
@@ -63,17 +62,13 @@ const readWave1 = (db: PayrollReadApi['db'], companyId: string): Effect.Effect<W
 				}),
 				db.payroll_runs.findMany({ where: { company_id: { eq: companyId } }, limit: PAGE_LIMIT }),
 				// The money families reach the people through the employment relation, so their
-				// consumption history (a pinned claim, a priced allowance entry) is in hand by wave 2.
+				// consumption history (a pinned claim or ad hoc request) is in hand by wave 2.
 				db.claim_requests.findMany({
 					where: { claim_request_employment: { some: { company_id: { eq: companyId } } } },
 					limit: PAGE_LIMIT
 				}),
 				db.adhoc_requests.findMany({
 					where: { adhoc_request_employment: { some: { company_id: { eq: companyId } } } },
-					limit: PAGE_LIMIT
-				}),
-				db.allowances.findMany({
-					where: { allowance_employment: { some: { company_id: { eq: companyId } } } },
 					limit: PAGE_LIMIT
 				})
 			],
@@ -87,8 +82,7 @@ const readWave1 = (db: PayrollReadApi['db'], companyId: string): Effect.Effect<W
 			employments,
 			payroll_runs,
 			claim_requests,
-			adhoc_requests,
-			allowances
+			adhoc_requests
 		]) => ({
 			companies: complete(companies, 'companies'),
 			jurisdiction_settings: complete(jurisdiction_settings, 'jurisdiction settings'),
@@ -97,8 +91,7 @@ const readWave1 = (db: PayrollReadApi['db'], companyId: string): Effect.Effect<W
 			employments: complete(employments, 'employments'),
 			payroll_runs: complete(payroll_runs, 'payroll runs'),
 			claim_requests: complete(claim_requests, 'claim requests'),
-			adhoc_requests: complete(adhoc_requests, 'ad hoc requests'),
-			allowances: complete(allowances, 'allowances')
+			adhoc_requests: complete(adhoc_requests, 'ad hoc requests')
 		})
 	);
 
@@ -152,8 +145,7 @@ const readWave2 = (
 			leave_entries,
 			loans,
 			loan_repayments,
-			payslips,
-			allowance_entries
+			payslips
 		] = yield* Effect.all(
 			[
 				db.employees.findMany({
@@ -211,10 +203,6 @@ const readWave2 = (
 				db.payslips.findMany({
 					where: { employment_id: { in: employmentIds } },
 					limit: PAGE_LIMIT
-				}),
-				db.allowance_entries.findMany({
-					where: { employment_id: { in: employmentIds } },
-					limit: PAGE_LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
@@ -231,7 +219,6 @@ const readWave2 = (
 			payroll_runs: wave1.payroll_runs,
 			claim_requests: wave1.claim_requests,
 			adhoc_requests: wave1.adhoc_requests,
-			allowances: wave1.allowances,
 			employees: complete(employees, 'employees'),
 			employment_terms: complete(employment_terms, 'employment terms'),
 			employment_statutory_facts: complete(employment_statutory_facts, 'statutory facts'),
@@ -247,8 +234,7 @@ const readWave2 = (
 			leave_entries: complete(leave_entries, 'leave entries'),
 			loans: complete(loans, 'loans'),
 			loan_repayments: complete(loan_repayments, 'loan repayments'),
-			payslips: complete(payslips, 'payslips'),
-			allowance_entries: complete(allowance_entries, 'allowance entries')
+			payslips: complete(payslips, 'payslips')
 		};
 	});
 

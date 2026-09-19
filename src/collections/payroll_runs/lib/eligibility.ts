@@ -96,7 +96,7 @@ export type PersonContext = {
 		 * monthly floor or ceiling is compared against.
 		 */
 		readonly monthly_basic: number;
-		/** Standing PAY allowances in force on the rule date; 0 where the caller knows none. */
+		/** The allowances on the contract in force on the rule date, summed; 0 where the caller knows none. */
 		readonly fixed_allowances: number;
 		/** The ordinary day: `monthly_basic` over the version's ordinary divisor; 0 where none was evaluated. */
 		readonly ordinary_day: number;
@@ -218,7 +218,7 @@ export type PersonInput = {
 		/** Unauthorised absences in the twelve months to `asOf`, where counted. */
 		readonly absent_days_12m?: number | null;
 	};
-	/** Standing PAY allowances in force on `asOf`, summed; see `fixedAllowancesOn`. */
+	/** The contract's allowances in force on `asOf`, summed; see `contractAllowancesOn`. */
 	readonly fixedAllowances?: number | null;
 	/** The contractual monthly wage averaged over the last six months; absent is this month's. */
 	readonly monthlyWage6mAverage?: number | null;

@@ -35,6 +35,7 @@ import {
 } from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
 import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
 import { leaveCatalogue, settingsVersions } from './fixtures/statutory-world.ts';
+import { assignAllowance } from './fixtures/contract-allowances.ts';
 
 const PH_PEOPLE = [
 	{ key: 'PH-4000', wage: 4000, age: 25 },
@@ -205,7 +206,7 @@ test('Philippines — the rice subsidy is de minimis and outside withholding (RR
 					[MEAL[period], 1300],
 					[TRANSPORT[period], 2700]
 				].entries())
-					world.allowances.push({
+					assignAllowance(world, {
 						id: `d3000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 						employment_id: employment.id,
 						catalogue_id: String(catalogue_id),
@@ -729,7 +730,7 @@ function opsph006(
 					]
 				} as never);
 			}
-			world.allowances.push({
+			assignAllowance(world, {
 				id: 'd2000000-0000-4000-8000-000000000001',
 				employment_id: world.employments[0]!.id,
 				catalogue_id: OPSPH006_ALLOWANCE,
@@ -1088,7 +1089,7 @@ test('Philippines — an allowance loses the unpaid days of the window it covers
 	// leave without pay on 22–25 December (OPSPH035), and a rostered Tuesday with no punch and no
 	// leave on 6 January — not the ones dated inside the salary month that the next run will charge.
 	// A ₱2,175 allowance is ₱100 a day on the factor: 17.75 and 20.75 of 21.75.
-	const { slips, entries } = buildStatutory(
+	const { slips, allowances } = buildStatutory(
 		{
 			code: 'PH',
 			period: '2026-01',
@@ -1101,7 +1102,7 @@ test('Philippines — an allowance loses the unpaid days of the window it covers
 		(world) => {
 			withNoPayLeaveRow(world);
 			for (const [index, employment] of world.employments.entries())
-				world.allowances.push({
+				assignAllowance(world, {
 					id: `d3000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 					employment_id: employment.id,
 					catalogue_id: OPSPH006_ALLOWANCE,
@@ -1126,13 +1127,8 @@ test('Philippines — an allowance loses the unpaid days of the window it covers
 		}
 	);
 	const facts = (key: string) => {
-		const entry = entries.get(key)![0]!;
-		return [
-			entry.values.days,
-			entry.values.denominator,
-			entry.values.unpaid_days,
-			entry.values.amount
-		];
+		const [segment] = allowances.get(key)!;
+		return [segment!.days, segment!.denominator, segment!.unpaid_days, segment!.prorated_amount];
 	};
 	assert.deepEqual(facts('PH-LWOP'), [17.75, 21.75, 4, 1775]);
 	assert.deepEqual(facts('PH-ABSENT'), [20.75, 21.75, 1, 2075]);
@@ -1435,7 +1431,7 @@ test('Philippines — a non-resident alien not engaged in trade or business is w
 			if (rice == null) return;
 			for (const [index, key] of ['PH-NETB', 'PH-NRA-ETB'].entries()) {
 				const employment = world.employments.find((row) => row.employee_number === key)!;
-				world.allowances.push({
+				assignAllowance(world, {
 					id: `d0000000-0000-4000-8000-0000000000c${index}`,
 					employment_id: employment.id,
 					catalogue_id: rice.id,

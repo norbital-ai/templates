@@ -11,6 +11,7 @@ import {
 	JURISDICTION_ID,
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
+import { clearAllowances } from './fixtures/contract-allowances.ts';
 
 function rehireWorld() {
 	const world = createPublicPayrollWorld();
@@ -35,7 +36,7 @@ function rehireWorld() {
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:00:00+08:00` }
 		];
 	}
-	world.allowances.length = 0;
+	clearAllowances(world);
 	world.statutory_contributions.push({
 		id: 'fixed-scheme',
 		settings_id: JURISDICTION_ID,

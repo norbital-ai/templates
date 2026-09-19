@@ -12,7 +12,9 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import ContractAllowancesEditor from '../contract-allowances-editor.svelte';
+	import type { ContractAllowance } from '../../../datatypes/contract_allowances/+definition.js';
 	import { toast } from 'svelte-sonner';
 	import { dateKey, dayInstant } from '../../iso-day.js';
 	import { endOfDayInstant, todayKey } from '../calendar.js';
@@ -43,6 +45,7 @@
 				residency_status: true,
 				residency_since: true,
 				base_salary: true,
+				allowances: true,
 				pay_frequency: true,
 				work_classification: true,
 				statutory_work_category: true,
@@ -66,6 +69,7 @@
 		readonly residency_status: string | null;
 		readonly residency_since: string | null;
 		readonly base_salary: { readonly value: number; readonly currency: string };
+		readonly allowances: readonly ContractAllowance[];
 		readonly pay_frequency: string;
 		readonly work_classification: string;
 		readonly statutory_work_category: string;
@@ -97,10 +101,18 @@
 		})
 	);
 
+	const companyQuery = $derived(
+		client.db.companies.findFirst({
+			where: { id: { eq: employment.company_id } },
+			columns: { settings_code: true }
+		})
+	);
+
 	let draftFor = $state<string | null>(null);
 	let newStart = $state(today);
 	let baseSalaryValue = $state('');
 	let baseSalaryCurrency = $state('');
+	let allowances = $state<readonly ContractAllowance[]>([]);
 	let payFrequency = $state('');
 	let employmentType = $state('');
 	let residencyStatus = $state('');
@@ -121,6 +133,7 @@
 		newStart = today;
 		baseSalaryValue = String(row.base_salary.value);
 		baseSalaryCurrency = row.base_salary.currency;
+		allowances = row.allowances ?? [];
 		payFrequency = row.pay_frequency;
 		employmentType = row.employment_type;
 		residencyStatus = row.residency_status ?? '';
@@ -195,6 +208,7 @@
 			residency_status: residencyStatus === '' ? null : residencyStatus,
 			residency_since: residencySince === '' ? null : dayInstant(residencySince),
 			base_salary: { value: salary, currency: baseSalaryCurrency.toUpperCase() },
+			allowances,
 			pay_frequency: payFrequency,
 			work_classification: workClassification,
 			statutory_work_category: statutoryWorkCategory,
@@ -285,6 +299,17 @@
 					PAY_FREQUENCIES,
 					false
 				)}
+				<Column span="all">
+					<Stack gap="xs">
+						<span class="text-sm font-medium">{t('component.allowances')}</span>
+						<ContractAllowancesEditor
+							value={allowances}
+							settingsCode={companyQuery?.current?.settings_code ?? undefined}
+							firstDay={newStart}
+							onValueChange={(next) => (allowances = next)}
+						/>
+					</Stack>
+				</Column>
 			</Grid>
 		</FormSection>
 

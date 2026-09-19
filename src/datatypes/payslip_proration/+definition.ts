@@ -16,6 +16,8 @@ import { prorationBasisValueSchema } from '../proration_basis/+definition.js';
  * `contract_amount x fraction` is `prorated_amount`; nothing downstream recomputes it.
  */
 export const payslipProrationValueSchema = Schema.Struct({
+	/** The base line this segment is the working of: the wage's code, or an allowance class's. */
+	component_code: Schema.NonEmptyString,
 	/**
 	 * The terms segment this proration came from, as an immutable label/snapshot key rather than a
 	 * `employment_terms` id: an output is a frozen fact and a naked uuid with no foreign key is not
@@ -31,6 +33,11 @@ export const payslipProrationValueSchema = Schema.Struct({
 	days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
 	/** The divisor those days were taken over. */
 	denominator: Schema.Finite.check(Schema.isGreaterThan(0)),
+	/**
+	 * Unpaid-leave days taken off `days`: an allowance's, where the jurisdiction prorates one on
+	 * unpaid leave; 0 on the wage, whose absence is a line of its own.
+	 */
+	unpaid_days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
 	/** The full-period amount the segment's terms row states. */
 	contract_amount: Schema.Finite,
 	/** `contract_amount x days / denominator`, rounded the way the run rounds. */
@@ -47,6 +54,6 @@ export const payslipProrationSchema = Schema.toStandardSchemaV1(payslipProration
 export default defineCustomType({
 	name: 'payslip_proration',
 	description:
-		'One segment of a prorated period on a payslip: the terms label it came from, the days it covered, the divisor they were taken over, and both the contract amount and the prorated result.',
+		'One segment of a prorated period on a payslip: the base line it prices (the wage, or an allowance on the contract), the terms label it came from, the days it covered, the divisor they were taken over, and both the contract amount and the prorated result.',
 	schema: payslipProrationSchema
 });
