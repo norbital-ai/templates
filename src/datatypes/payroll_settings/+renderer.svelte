@@ -61,8 +61,8 @@
 			>
 		</div>
 		<div class="flex flex-col gap-0.5 text-xs">
-			<span class="text-muted-foreground">{t('component.short_day_is_half')}</span>
-			<span class="text-sm">{current?.short_day_is_half ? t('common.yes') : t('common.no')}</span>
+			<span class="text-muted-foreground">{t('component.short_day_half_hours')}</span>
+			<span class="text-sm">{current?.short_day_half_hours ?? '—'}</span>
 		</div>
 	</Grid>
 {:else if current != null}
@@ -159,13 +159,20 @@
 		</label>
 		<label class="text-xs">
 			<Stack gap="xs">
-				<span class="text-muted-foreground">{t('component.short_day_is_half')}</span>
+				<span class="text-muted-foreground">{t('component.short_day_half_hours')}</span>
 				<input
-					type="checkbox"
-					class="h-4 w-4"
-					checked={current.short_day_is_half ?? false}
+					type="number"
+					class="border-input bg-background h-8 rounded-md border px-2"
+					min="0"
+					step="0.5"
+					value={current.short_day_half_hours ?? ''}
 					{disabled}
-					onchange={(event) => emit({ ...current, short_day_is_half: event.currentTarget.checked })}
+					onchange={(event) =>
+						emit({
+							...current,
+							short_day_half_hours:
+								event.currentTarget.value.trim() === '' ? null : Number(event.currentTarget.value)
+						})}
 				/>
 			</Stack>
 		</label>

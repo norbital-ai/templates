@@ -551,7 +551,7 @@ segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167
 `normal_hours` is that day's normal day (ID art.31(2)(b)); an `ALL_OVERTIME_HOURS` limit
 counts rest-day and holiday hours beyond the normal day for its warning while the regulated
 `OVERTIME_HOURS` count stays the one the monthly funnel — the only company policy in the engine —
-reads. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_is_half` carry SG s.88(2)
+reads. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_half_hours` carry SG s.88(2)
 and s.20A(2). A scheme whose ceiling splits ordinary from additional wages states `ordinary_on`,
 and `allowance_catalogue.fixed` says which allowances are wage-like (`terms.fixed_allowances`). A person's year is
 the tenant's earlier slips (person-first: sibling employments in the company) plus what an earlier

@@ -9,6 +9,26 @@ export type SettlementBucket =
 	'EARNING' | 'ABSENCE' | 'DEDUCTION' | 'NON_WAGE_PAYMENT' | 'EMPLOYER_COST' | 'INFORMATION';
 
 /**
+ * The bucket a negative amount really lands in: a reversal of a deduction is a payment, a clawed-back
+ * earning an absence. A line carries a magnitude, never a direction (`payslip_adjustments`), so a
+ * signed figure crosses to the opposite bucket rather than storing its sign.
+ */
+export function oppositeBucket(bucket: SettlementBucket): SettlementBucket {
+	switch (bucket) {
+		case 'EARNING':
+			return 'ABSENCE';
+		case 'ABSENCE':
+			return 'EARNING';
+		case 'DEDUCTION':
+			return 'NON_WAGE_PAYMENT';
+		case 'NON_WAGE_PAYMENT':
+			return 'DEDUCTION';
+		default:
+			return bucket;
+	}
+}
+
+/**
  * The landing table: destination × direction → the bucket the line lands in.
  *
  * One function, because settle, report, graph and export all ask the same question of a catalogue

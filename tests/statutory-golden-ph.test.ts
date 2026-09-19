@@ -1455,3 +1455,37 @@ test('Philippines — a non-resident alien not engaged in trade or business is w
 	assert.equal(netb.employee, 20_500);
 	assert.ok(etb.employee < netb.employee, 'the graduated table withholds less than the flat 25%');
 });
+
+test('a reversed deduction lands as a payment of its magnitude, never a deduction of a negative figure', () => {
+	// A PhilHealth adjustment of −750 (a refund of an earlier over-deduction) on the NET/SUBTRACT
+	// `STATUTORY_ADJUSTMENT` row, entered as an adjustment entry: the payslip carries a
+	// NON_WAGE_PAYMENT of 750 and the net rises by 750; no line stores a sign.
+	const { slips } = buildStatutory(
+		{ code: 'PH', period: '2026-01', people: [{ key: 'PH-REFUND', wage: 30_000 }] },
+		(world) => {
+			const row = world.allowance_catalogue.find(
+				(item) => item.code === 'STATUTORY_ADJUSTMENT' && item.settings_id === PH_2026
+			)!;
+			const employment = world.employments.find((item) => item.employee_number === 'PH-REFUND')!;
+			world.allowances.push({
+				id: 'd0000000-0000-4000-8000-0000000000a9',
+				employment_id: employment.id,
+				catalogue_id: row.id,
+				amount: 750,
+				effective_from: '2026-01-01',
+				effective_to: '2026-01-31',
+				reason: 'PhilHealth adjustment Dec 2025',
+				evidence_file: null,
+				as_adjustment_entry: true,
+				approval_id: null
+			});
+		}
+	);
+	const slip = slips.get('PH-REFUND')!;
+	const line = slip.adjustments.find((row) => row.component_code === 'STATUTORY_ADJUSTMENT')!;
+	assert.deepEqual([line.bucket, line.amount], ['NON_WAGE_PAYMENT', 750]);
+	assert.ok(
+		slip.adjustments.every((row) => row.amount >= 0),
+		'every line is a magnitude'
+	);
+});

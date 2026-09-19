@@ -535,17 +535,17 @@ export function prepareWorkContext(
 		// A day the contract requires five hours or fewer counts as half (SG EA s.20A(2)), where the
 		// version says so — but a public holiday on such a day pays a full day (s.88(7)), so it
 		// weighs one.
-		const halfShort = configuration.jurisdiction.payroll.short_day_is_half === true;
+		const halfHours = configuration.jurisdiction.payroll.short_day_half_hours ?? null;
 		const days = dates.reduce((total, date) => {
 			const day = prorationSchedule.get(date);
 			const working =
 				day?.dayType === 'ORDINARY' || (day?.dayType === 'PUBLIC_HOLIDAY' && day.shift != null);
 			if (!working) return total;
 			const short =
-				halfShort &&
+				halfHours != null &&
 				day?.dayType === 'ORDINARY' &&
 				day.shift != null &&
-				day.shift.paid_minutes <= 300;
+				day.shift.paid_minutes <= halfHours * 60;
 			return total + (short ? 0.5 : 1);
 		}, 0);
 		workingDaysCache.set(key, days);

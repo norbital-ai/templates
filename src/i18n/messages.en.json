@@ -1070,7 +1070,7 @@
 	"component.scheme_ordinary_on_hint": "Only for a scheme whose annual ceiling is measured on part of its base — SG CPF caps Additional Wages at 102,000 less the year’s Ordinary Wages. The formula for that part, over the same lines; each charge stores it and the year’s sum is scheme.year_to_date.ordinary. Every other scheme leaves it empty.",
 	"component.final_pay_due_days": "Final pay due (days after the last day)",
 	"component.holiday_in_npl_unpaid": "Holiday inside no-pay leave is unpaid",
-	"component.short_day_is_half": "A day of ≤ 5 contracted hours counts as half",
+	"component.short_day_half_hours": "A contracted day of at most this many hours counts as half (empty: none)",
 	"renderer.work_rules.normal_hours": "Normal working day (hours, over the person; empty is the shift’s own length)",
 	"renderer.work_rules.rate_week_hours": "Hourly-rate week cap (hours; empty is the day over the daily normal hours)",
 	"leave.lifetime_days": "Lifetime days (a number or an expression over the person; empty is no cap)",

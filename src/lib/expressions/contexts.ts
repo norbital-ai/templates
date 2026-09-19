@@ -212,7 +212,12 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'children.classed(x)',
 		description:
-			'Children in relief class x: the class declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY), else MINOR under 18 or ADULT'
+			'Children in the relief class x declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY)'
+	},
+	{
+		path: 'children.unclassed_under(n)',
+		description:
+			'Children with no declared relief class under n completed years — the ordinary child of a relief ladder (MY s.48(1)(a): under eighteen)'
 	},
 	{ path: 'company.region', description: 'Employing entity region' },
 	{ path: 'company.headcount', description: 'Active employments in the entity' },
