@@ -191,6 +191,8 @@
 	"component.allowance_section_settlement_hint": "Whether this takes the amount back instead of paying it.",
 	"component.allowance_section_when": "When",
 	"component.allowance_section_when_hint": "Every period between these two days; leave the end open for an allowance with no end.",
+	"component.allowance_priced_draft": "Payroll {periods} has already priced this allowance, so the person, type, amount and start are fixed. To stop it from a later period, set Until. To change it in that run, delete the draft run first.",
+	"component.allowance_priced_paid": "Paid payroll {periods} priced this allowance, so the person, type, amount and start are history. To stop it, set Until; to correct what was paid, record an adjustment in a later run.",
 	"component.amount": "Amount",
 	"component.amount_due": "Amount due",
 	"component.as_adjustment_entry": "Claw-back",

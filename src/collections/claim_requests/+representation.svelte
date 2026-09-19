@@ -101,7 +101,7 @@
 									name="catalogue_id"
 									label={t('component.type')}
 									relationOptions={{
-										label: (component) => String(component.code ?? '') || '—',
+										label: (row) => [row.code, row.name].filter(Boolean).join(' · '),
 										where,
 										orderBy: { code: 'asc' },
 										limit: 500

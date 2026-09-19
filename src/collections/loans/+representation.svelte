@@ -208,10 +208,7 @@
 									name="loan_catalogue_id"
 									label={t('app.loans.deducted_as')}
 									relationOptions={{
-										label: (component) =>
-											component.code != null && component.code !== ''
-												? String(component.code)
-												: '—',
+										label: (row) => [row.code, row.name].filter(Boolean).join(' · '),
 										where,
 										orderBy: { code: 'asc' },
 										limit: 200

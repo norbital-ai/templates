@@ -53,6 +53,45 @@
 			: { kind: 'NONE' as const }
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
+
+	/**
+	 * The runs that have priced this allowance. Once one has, the person, type, amount and start
+	 * are history (the transform refuses them and the delete grant refuses the row): the form says
+	 * so and offers the two moves that remain — end it with `Until`, or delete the draft run.
+	 */
+	const pricedQuery = $derived(
+		record == null
+			? null
+			: client.db.allowance_entries.findMany({
+					where: { derived_from_id: { eq: record.id } },
+					columns: { id: true },
+					with: {
+						allowance_entry_payslip: {
+							columns: { status: true },
+							with: { payslip_payroll_run: { columns: { period: true } } }
+						}
+					},
+					limit: 200
+				})
+	);
+	const pricedBy = $derived.by(() => {
+		const periods = new Set<string>();
+		let paid = false;
+		type Priced = {
+			readonly allowance_entry_payslip?: {
+				readonly status?: string;
+				readonly payslip_payroll_run?: { readonly period?: string } | null;
+			} | null;
+		};
+		for (const entry of (pricedQuery?.current ?? []) as readonly Priced[]) {
+			const slip = entry.allowance_entry_payslip;
+			const period = slip?.payslip_payroll_run?.period;
+			if (typeof period === 'string') periods.add(period);
+			if (slip?.status === 'PAID') paid = true;
+		}
+		return { periods: [...periods].toSorted(), paid };
+	});
+	const priced = $derived(pricedBy.periods.length > 0);
 </script>
 
 <RecordShell>
@@ -82,6 +121,7 @@
 								name="employment_id"
 								label={t('component.person')}
 								relationOptions={employmentRelationOptions(scopedCompanyId)}
+								disabled={priced}
 							/>
 						{/if}
 						<EligibleTypes
@@ -93,8 +133,9 @@
 								<Field
 									name="catalogue_id"
 									label={t('component.type')}
+									disabled={priced}
 									relationOptions={{
-										label: (component) => String(component.code ?? '') || '—',
+										label: (row) => [row.code, row.name].filter(Boolean).join(' · '),
 										where,
 										orderBy: { code: 'asc' },
 										limit: 500
@@ -102,8 +143,20 @@
 								/>
 							{/snippet}
 						</EligibleTypes>
-						<Field name="amount" label={t('component.entry_amount')} />
+						<Field name="amount" label={t('component.entry_amount')} disabled={priced} />
 					</Grid>
+					{#if priced}
+						<p class="text-sm text-muted-foreground" data-allowance-priced>
+							{t(
+								pricedBy.paid
+									? 'component.allowance_priced_paid'
+									: 'component.allowance_priced_draft',
+								{
+									periods: pricedBy.periods.join(', ')
+								}
+							)}
+						</p>
+					{/if}
 				</FormSection>
 
 				<FormSection
@@ -111,7 +164,7 @@
 					hint={t('component.allowance_section_when_hint')}
 				>
 					<Grid gap="sm" minimum="compact">
-						<Field name="effective_from" label={t('component.effective_from')} />
+						<Field name="effective_from" label={t('component.effective_from')} disabled={priced} />
 						<Field name="effective_to" label={t('component.effective_to')} />
 					</Grid>
 				</FormSection>

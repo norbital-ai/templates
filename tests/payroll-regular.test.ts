@@ -169,6 +169,12 @@ test('a standing allowance materialises one entry per period; a one-period windo
 	standing.approval_id = null;
 	standing.effective_from = '2026-03-01';
 	assert.equal((await build(world)).captured.materialised.length, 0);
+	// The allowance works like salary: the standing row is the only source, and a run creates the
+	// period's entry from it. Removing the row removes the entry from every cycle built after.
+	standing.effective_from = '2026-01-01';
+	assert.equal((await build(world)).captured.materialised.length, 1);
+	world.allowances.splice(world.allowances.indexOf(standing), 1);
+	assert.equal((await build(world)).captured.materialised.length, 0);
 });
 
 test('an allowance prorates on the same basis as basic salary: a joiner takes the covered days', async () => {
