@@ -18,7 +18,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "3bff0645-9c44-5883-80e2-c5e4b95e0014",
@@ -39,7 +40,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "59d27ee1-618d-55ed-9eca-a713114c943b",
@@ -60,7 +62,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "4aeef978-a594-5af4-bd53-12a500f1ef44",
@@ -81,7 +84,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "b0967652-05b0-5fd0-bfa3-28ac9f65edb7",
@@ -102,7 +106,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "a29696db-7dd4-5f17-94dd-62b3078f1f61",
@@ -123,7 +128,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "4ed19a3f-e40e-5344-b9d2-67427d8a28f7",
@@ -144,7 +150,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": false
+		"one_off": false,
+		"counts_toward": ["PIT"]
 	},
 	{
 		"id": "c8ea427e-276c-596c-bad3-c28317c057ff",
@@ -165,7 +172,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": false
+		"one_off": false,
+		"counts_toward": ["PIT"]
 	},
 	{
 		"id": "753a0f34-dc12-501f-99ac-55c0b99bf326",
@@ -186,6 +194,7 @@
 			}
 		],
 		"fixed": false,
-		"one_off": false
+		"one_off": false,
+		"counts_toward": ["PIT"]
 	}
 ]

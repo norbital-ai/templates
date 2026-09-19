@@ -15,7 +15,8 @@
 			}
 		],
 		"one_off": false,
-		"name": "Scale-up allowance"
+		"name": "Scale-up allowance",
+		"counts_toward": ["EIS", "EPF", "EPF_NON_CITIZEN", "EPF_PR", "HRDF", "PCB.ORDINARY", "SOCSO"]
 	},
 	{
 		"id": "129b6012-34b2-5058-827f-538f6613dcce",
@@ -34,7 +35,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – basic"
+		"name": "Back pay – basic",
+		"counts_toward": ["EIS", "EPF", "EPF_NON_CITIZEN", "EPF_PR", "HRDF", "PCB.ADDITIONAL", "SOCSO"]
 	},
 	{
 		"id": "0247f143-27d8-5725-879b-ec6daf6d21be",
@@ -53,7 +55,8 @@
 		],
 		"fixed": false,
 		"one_off": false,
-		"name": "On-call allowance"
+		"name": "On-call allowance",
+		"counts_toward": ["EIS", "EPF", "EPF_NON_CITIZEN", "EPF_PR", "HRDF", "PCB.ADDITIONAL", "SOCSO"]
 	},
 	{
 		"id": "81277ef9-a189-5899-9715-f2f45e7c26dd",
@@ -72,7 +75,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Adjustment"
+		"name": "Adjustment",
+		"counts_toward": ["EIS", "EPF", "EPF_NON_CITIZEN", "EPF_PR", "PCB.ADDITIONAL", "SOCSO"]
 	},
 	{
 		"id": "497ad32c-b463-523b-bd62-a65dcb551fb9",
@@ -90,7 +94,17 @@
 			}
 		],
 		"one_off": false,
-		"name": "Scale-up allowance"
+		"name": "Scale-up allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF",
+			"EPF_NON_CITIZEN",
+			"EPF_PR",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SKBBK",
+			"SOCSO"
+		]
 	},
 	{
 		"id": "f562deb3-3c28-527b-9507-b52e9f957acc",
@@ -109,7 +123,17 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – basic"
+		"name": "Back pay – basic",
+		"counts_toward": [
+			"EIS",
+			"EPF",
+			"EPF_NON_CITIZEN",
+			"EPF_PR",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		]
 	},
 	{
 		"id": "14f8f2c0-e531-5303-a7e4-2b2b1acd5dff",
@@ -128,7 +152,17 @@
 		],
 		"fixed": false,
 		"one_off": false,
-		"name": "On-call allowance"
+		"name": "On-call allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF",
+			"EPF_NON_CITIZEN",
+			"EPF_PR",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		]
 	},
 	{
 		"id": "6891a62b-a528-5d83-86de-f6bb062855cf",
@@ -147,7 +181,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Adjustment"
+		"name": "Adjustment",
+		"counts_toward": ["EIS", "EPF", "EPF_NON_CITIZEN", "EPF_PR", "PCB.ADDITIONAL", "SKBBK", "SOCSO"]
 	},
 	{
 		"id": "4fd08c8d-4531-5576-b16a-f16bbdc871e5",
@@ -165,7 +200,17 @@
 			}
 		],
 		"one_off": false,
-		"name": "Scale-up allowance"
+		"name": "Scale-up allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF",
+			"EPF_NON_CITIZEN",
+			"EPF_PR",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SKBBK",
+			"SOCSO"
+		]
 	},
 	{
 		"id": "0bdc1e3b-0c90-5f9b-8780-1d09077ab840",
@@ -184,7 +229,17 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – basic"
+		"name": "Back pay – basic",
+		"counts_toward": [
+			"EIS",
+			"EPF",
+			"EPF_NON_CITIZEN",
+			"EPF_PR",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		]
 	},
 	{
 		"id": "98f2b585-059b-5906-a1d2-5006f6d704f3",
@@ -203,7 +258,17 @@
 		],
 		"fixed": false,
 		"one_off": false,
-		"name": "On-call allowance"
+		"name": "On-call allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF",
+			"EPF_NON_CITIZEN",
+			"EPF_PR",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		]
 	},
 	{
 		"id": "18815b85-b148-5744-b219-3bc7c39f6562",
@@ -222,7 +287,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Adjustment"
+		"name": "Adjustment",
+		"counts_toward": ["EIS", "EPF", "EPF_NON_CITIZEN", "EPF_PR", "PCB.ADDITIONAL", "SKBBK", "SOCSO"]
 	},
 	{
 		"id": "6079a9bf-a843-5d85-9f68-4c4faaf05aa8",
@@ -241,7 +307,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – additional wages"
+		"name": "Back pay – additional wages",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"]
 	},
 	{
 		"id": "5c2bf993-2791-52da-aad0-818d645dfb5a",
@@ -260,7 +327,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – additional wages"
+		"name": "Back pay – additional wages",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"]
 	},
 	{
 		"id": "e0a7077d-a559-50e7-9a87-f76cc91b5d42",
@@ -279,7 +347,8 @@
 		],
 		"fixed": false,
 		"one_off": true,
-		"name": "Back pay – additional wages"
+		"name": "Back pay – additional wages",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"]
 	},
 	{
 		"id": "1ae82969-72cf-53ad-b9a9-15390ca98e78",
@@ -300,7 +369,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "365e5404-bd27-558f-9c42-f5ae38f3d27b",
@@ -321,7 +391,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": ["PCB.ADDITIONAL"]
 	},
 	{
 		"id": "d636ca4f-fb43-5bfa-9700-85bfa786e01e",
@@ -342,7 +413,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "2325884c-3ac5-58d3-a576-907187b1b193",
@@ -363,7 +435,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": ["PCB.ADDITIONAL"]
 	},
 	{
 		"id": "fe908050-b908-5c1c-87b7-79b66f4d234d",
@@ -384,7 +457,8 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": []
 	},
 	{
 		"id": "f562c9a6-661f-5fbf-9ef3-746d064a8f60",
@@ -405,6 +479,7 @@
 			}
 		],
 		"fixed": false,
-		"one_off": true
+		"one_off": true,
+		"counts_toward": ["PCB.ADDITIONAL"]
 	}
 ]

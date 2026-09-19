@@ -13,7 +13,8 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"counts_toward": ["PUB-EPF", "PUB-EPF-NC"]
 	},
 	{
 		"id": "77777777-7777-4777-8777-777777777778",
@@ -29,6 +30,7 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"counts_toward": []
 	}
 ]

@@ -127,7 +127,7 @@ const accumulationOf = (base: number): AccumulatedPayslip => {
 		ENCASHMENT: 0,
 		INCENTIVE: 0
 	};
-	return { reserved, codes: new Map(), familyOf: new Map(), fixedOf: new Map(), lines: [] };
+	return { reserved, codes: new Map(), familyOf: new Map(), countsTowardOf: new Map(), lines: [] };
 };
 
 const PERIOD = {

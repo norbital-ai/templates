@@ -7,6 +7,7 @@ import { describeVersion, halfOpenOverlap, stableJson } from '../../lib/jurisdic
 import {
 	catalogueCodesByVersion,
 	refuseUnknownAssessedOnMentions,
+	refuseUnknownMemberships,
 	schemeFault
 } from '../../lib/catalogue_rules.js';
 import { openKeyMentions } from '../../lib/expressions/contexts.js';
@@ -46,6 +47,7 @@ const children = {
 				rules: true,
 				assessed_on: true,
 				ordinary_on: true,
+				parts: true,
 				short_name: true,
 				listing_order: true,
 				listing_group: true
@@ -96,7 +98,8 @@ const children = {
 				direction: true,
 				bands: true,
 				eligibility: true,
-				evidence: true
+				evidence: true,
+				counts_toward: true
 			}
 		}
 	},
@@ -113,7 +116,8 @@ const children = {
 				evidence: true,
 				on_separation: true,
 				fixed: true,
-				one_off: true
+				one_off: true,
+				counts_toward: true
 			}
 		}
 	}
@@ -206,7 +210,12 @@ export default defineCollection({
 				)
 			];
 			// One wave: every read is keyed by the inputs and their stored rows.
-			const [versionRuns, schemes, catalogues, siblings] = yield* Effect.all(
+			const membershipQuery = {
+				where: { settings_id: { in: sealing }, approval_id: { isNull: true } },
+				columns: { settings_id: true, code: true, counts_toward: true },
+				limit: 5000
+			} as const;
+			const [versionRuns, schemes, catalogues, siblings, memberships] = yield* Effect.all(
 				[
 					voiding.length === 0
 						? Effect.succeed([])
@@ -230,6 +239,8 @@ export default defineCollection({
 									settings_id: true,
 									code: true,
 									assessed_on: true,
+									ordinary_on: true,
+									parts: true,
 									rules: true,
 									elections: true
 								},
@@ -253,7 +264,22 @@ export default defineCollection({
 									effective_range: true
 								},
 								limit: 500
-							})
+							}),
+					sealing.length === 0
+						? Effect.succeed([])
+						: Effect.map(
+								Effect.all(
+									[
+										db.allowance_catalogue.findMany(membershipQuery),
+										db.claim_catalogue.findMany(membershipQuery)
+									],
+									{ concurrency: 'unbounded' }
+								),
+								([allowances, claims]) => [
+									...allowances.map((row) => ({ ...row, noun: 'Allowance' })),
+									...claims.map((row) => ({ ...row, noun: 'Claim' }))
+								]
+							)
 				],
 				{ concurrency: 'unbounded' }
 			);
@@ -334,7 +360,8 @@ export default defineCollection({
 							rules: scheme.rules,
 							assessed_on: String(scheme.assessed_on ?? ''),
 							ordinary_on: String(scheme.ordinary_on ?? ''),
-							elections: scheme.elections ?? []
+							elections: scheme.elections ?? [],
+							parts: scheme.parts ?? []
 						});
 						if (fault != null) refuse(`Scheme ${scheme.code} ${fault}`);
 						refuseUnknownAssessedOnMentions(
@@ -344,6 +371,12 @@ export default defineCollection({
 							`Scheme ${scheme.code}`
 						);
 					}
+					// Every class of the version counts toward schemes the version has, by the parts
+					// they declare — a membership nothing honours would read as "no base" at payroll.
+					const ownParts = new Map(own.map((scheme) => [scheme.code, scheme.parts ?? []]));
+					for (const row of memberships)
+						if (row.settings_id === stored.id)
+							refuseUnknownMemberships(ownParts, row.counts_toward, `${row.noun} ${row.code}`);
 					// A `person.company.facts.<key>` mention is legal only when this version
 					// declares the key and its type; otherwise a typo reads zero at payroll.
 					const declaredFacts = new Set((row.facts ?? []).map((fact) => fact.key));

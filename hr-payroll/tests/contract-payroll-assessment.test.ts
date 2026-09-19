@@ -49,7 +49,8 @@ function rehireWorld() {
 		shared_cap_group: null,
 		project_relief_annually: false,
 		rules: [{ when: 'base >= 0.0', employee: 'round_cent(30.01)', employer: 'round_cent(60.01)' }],
-		assessed_on: "BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE + catalog('ALLOWANCE')",
+		assessed_on: 'BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE + ALLOWANCES',
+		parts: [],
 		approval_id: null
 	});
 	return world;

@@ -536,17 +536,47 @@ const ANNUAL_EXEMPT: ExpressionFunction = {
 const CODE_FUNCTIONS: readonly ExpressionFunction[] = [
 	{
 		path: "code('X')",
-		description: 'The signed total of the version’s row X this payslip'
-	},
-	{
-		path: "catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude })",
-		description: 'The signed sum of a catalogue’s rows, selected or excluded'
-	},
-	{
-		path: "year_catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick | exclude | fixed })",
 		description:
-			'The same selection summed over the tax year’s earlier PAID payslips (this payslip excluded — add `catalog(...)` for it): the year’s Additional Wages for a December true-up (SG CPF)'
+			'The signed total of the version’s class X this payslip — for a law that caps or exempts one class alone (MY’s termination-benefit exemption, PH’s de-minimis rice subsidy)'
 	}
+];
+
+/**
+ * The catalogue words: one per money catalogue, each the sum of that catalogue's lines on this
+ * payslip whose class lists the scheme being assessed in its `counts_toward`. A scheme that
+ * declares parts reads a part as `<PART>.<WORD>` — `ORDINARY.ALLOWANCES` — and the tax year's
+ * earlier PAID payslips as `year.<WORD>` / `year.<PART>.<WORD>`.
+ */
+export const CATALOGUE_WORDS = ['ALLOWANCES', 'CLAIMS'] as const;
+export type CatalogueWord = (typeof CATALOGUE_WORDS)[number];
+const CATALOGUE_WORD_FIELDS: readonly ContextField[] = [
+	{
+		path: 'ALLOWANCES',
+		description:
+			'The signed sum of this payslip’s allowance lines whose class counts toward this scheme'
+	},
+	{
+		path: 'CLAIMS',
+		description:
+			'The signed sum of this payslip’s claim lines whose class counts toward this scheme'
+	},
+	{
+		path: '<PART>.ALLOWANCES',
+		description:
+			'The allowance lines counting toward this scheme as the named part, where the scheme declares parts (SG CPF ORDINARY / ADDITIONAL)'
+	},
+	{ path: '<PART>.CLAIMS', description: 'The claim lines counting toward the named part' },
+	{
+		path: 'year.ALLOWANCES',
+		description:
+			'The allowance lines counting toward this scheme over the tax year’s earlier PAID payslips (this payslip excluded — add `ALLOWANCES` for it)'
+	},
+	{ path: 'year.CLAIMS', description: 'The same over the claim lines' },
+	{
+		path: 'year.<PART>.ALLOWANCES',
+		description: 'The year’s earlier allowance lines of the named part'
+	},
+	{ path: 'year.<PART>.CLAIMS', description: 'The year’s earlier claim lines of the named part' }
 ];
 
 const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
@@ -753,15 +783,23 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		...yearFields('year.'),
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
-		...RESERVED_LINES
+		...RESERVED_LINES,
+		...CATALOGUE_WORD_FIELDS
 	],
-	bare: RESERVED_LINES.map((field) => field.path),
+	bare: [...RESERVED_LINES.map((field) => field.path), ...CATALOGUE_WORDS],
 	open: ['produced', 'year', 'scheme.elections', 'person.company.facts'],
 	functions: functionsFor('assessment'),
 	blank: {
 		person: personBlank(),
 		period: structuredClone(PERIOD_BLANK),
-		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0 } },
+		year: {
+			start: '',
+			end: '',
+			months_employed: 0,
+			earned: { BASIC: 0 },
+			ALLOWANCES: 0,
+			CLAIMS: 0
+		},
 		scheme: {
 			code: '',
 			assessment_period: 'PAY_PERIOD',
@@ -780,7 +818,9 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
 		ENCASHMENT: 0,
-		INCENTIVE: 0
+		INCENTIVE: 0,
+		ALLOWANCES: 0,
+		CLAIMS: 0
 	}
 };
 

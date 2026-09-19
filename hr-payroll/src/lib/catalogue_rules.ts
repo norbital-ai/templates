@@ -3,14 +3,15 @@
  * draft and its own predicate compiles. The bands' expressions and the entitlement amounts are
  * compiled by their own datatype schemas, so they are already refused by the time this runs.
  *
- * What every scheme's `assessed_on` formula must satisfy: each `code('X')` and every code in a
- * `catalog(...)` pick or exclude names a row of the scheme's own settings version, and a code()
- * that two catalogues carry is refused rather than guessed between. A `year.earned.<code>` is
- * checked the same way. Refused at the write, rather than at the run where the person who typed
- * it is long gone.
+ * What every scheme's `assessed_on` formula must satisfy: each `code('X')` names a row of the
+ * scheme's own settings version, and a code() that two catalogues carry is refused rather than
+ * guessed between; a `year.earned.<code>` is checked the same way; a `<PART>.` word names a part
+ * the scheme declares. And what every class's `counts_toward` must satisfy: each entry names a
+ * scheme of the same version, with a part that scheme declares. Refused at the write, rather than
+ * at the run where the person who typed it is long gone.
  *
  * Leave carries no pricing and no catalogue money: an unpaid or encashed day is an engine-priced
- * reserved line, so `catalog(...)` and `code(...)` name the three money catalogues only.
+ * reserved line, so `code(...)` names the three money catalogues only.
  */
 
 import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
@@ -108,20 +109,6 @@ export function refuseUnknownAssessedOnMentions(
 	const rowsOf = (family: CatalogueFamily): ReadonlyMap<string, string> =>
 		families?.get(family) ?? new Map();
 	const mentions = assessedOnMentions(expression);
-	for (const selection of mentions.catalogues) {
-		if (!(CATALOGUE_FAMILIES as readonly string[]).includes(selection.catalogue))
-			refuse(
-				`${what} selects catalog('${selection.catalogue}'), which is not one of the money ` +
-					`catalogues (${CATALOGUE_FAMILIES.join(', ')}).`
-			);
-		const rows = rowsOf(selection.catalogue as CatalogueFamily);
-		for (const code of [...selection.pick, ...selection.exclude])
-			if (!rows.has(code))
-				refuse(
-					`${what} selects ${selection.catalogue} ${code}, which is not a row of its settings ` +
-						'version. Add the row to that version first, or take it out of the formula.'
-				);
-	}
 	for (const code of [...mentions.codes, ...mentions.yearEarned]) {
 		const carrying = CODE_FAMILIES.filter((family) => rowsOf(family).has(code));
 		if (carrying.length === 0)
@@ -132,7 +119,7 @@ export function refuseUnknownAssessedOnMentions(
 		if (carrying.length > 1)
 			refuse(
 				`${what} names ${code} with code('${code}'), but ${carrying.join(' and ')} both carry it ` +
-					'in this version. Select it with catalog(...) instead.'
+					'in this version. Give one of them another code.'
 			);
 	}
 }
@@ -151,22 +138,46 @@ export function schemeFault(scheme: {
 	readonly assessed_on: string;
 	readonly ordinary_on?: string;
 	readonly elections: readonly DeclaredKey[];
+	/** The parts the scheme splits its base into; a formula's `<PART>.<WORD>` must name one. */
+	readonly parts?: readonly string[];
 }): string | null {
 	const { rules, assessed_on: assessedOn, elections } = scheme;
-	const formula = compileExpression({
-		expression: assessedOn,
-		site: 'assessment',
-		type: 'money',
-		elections
-	});
-	if (formula != null) return `Assessed-on: ${formula}`;
-	if ((scheme.ordinary_on ?? '').trim() !== '') {
-		const ordinary = compileExpression({
-			expression: scheme.ordinary_on ?? '',
+	const parts = scheme.parts ?? [];
+	for (const part of parts)
+		if (!/^[A-Z0-9_]+$/.test(part))
+			return `Parts: ${part} is not a part name (upper-case letters, digits and underscores).`;
+	const undeclaredPart = (expression: string): string | null => {
+		for (const word of assessedOnMentions(expression).words) {
+			const chain = word.split('.');
+			const part = chain[0] === 'year' ? chain[1] : chain[0];
+			if (chain.length >= 2 && part != null && !parts.includes(part) && part !== 'year')
+				return (
+					`names ${word}, but the scheme declares no part ${part}. Declare it under Parts, ` +
+					`or read the whole base as ${chain.at(-1)}.`
+				);
+		}
+		return null;
+	};
+	const formula =
+		undeclaredPart(assessedOn) ??
+		compileExpression({
+			expression: assessedOn,
 			site: 'assessment',
 			type: 'money',
-			elections
+			elections,
+			parts
 		});
+	if (formula != null) return `Assessed-on: ${formula}`;
+	if ((scheme.ordinary_on ?? '').trim() !== '') {
+		const ordinary =
+			undeclaredPart(scheme.ordinary_on ?? '') ??
+			compileExpression({
+				expression: scheme.ordinary_on ?? '',
+				site: 'assessment',
+				type: 'money',
+				elections,
+				parts
+			});
 		if (ordinary != null) return `Ordinary-on: ${ordinary}`;
 	}
 	if (assessedOn.trim() === '')
@@ -215,3 +226,64 @@ export const admitCatalogueRow = <TInput extends CatalogueRowLike>(
 	if (problem != null) refuse(problem);
 	return input;
 };
+
+/**
+ * Every scheme a class counts toward is a scheme of its own settings version, and a part it
+ * names is one the scheme declares — a membership the version cannot honour would read as "in no
+ * base" at payroll, silently. `schemes` is the version's scheme code → declared parts.
+ */
+export function refuseUnknownMemberships(
+	schemes: ReadonlyMap<string, readonly string[]> | undefined,
+	countsToward: readonly string[] | null | undefined,
+	what: string
+): void {
+	if (schemes == null) return;
+	for (const membership of countsToward ?? []) {
+		const [scheme, part, ...rest] = membership.split('.');
+		const declared = scheme == null ? undefined : schemes.get(scheme);
+		if (declared == null)
+			refuse(
+				`${what} counts toward ${membership}, but the version has no scheme ${scheme}. ` +
+					'Add the scheme to the version first, or take it off the class.'
+			);
+		if (rest.length > 0)
+			refuse(`${what} counts toward ${membership}, which is not scheme or scheme.PART.`);
+		if (part != null && !declared.includes(part))
+			refuse(
+				`${what} counts toward ${membership}, but scheme ${scheme} declares no part ${part}` +
+					(declared.length === 0
+						? '; it has one base, so name it as just ' + scheme + '.'
+						: `; its parts are ${declared.join(', ')}.`)
+			);
+		if (part == null && declared.length > 0)
+			refuse(
+				`${what} counts toward ${scheme}, which splits its base into ${declared.join(' and ')}: ` +
+					`name the part, ${scheme}.${declared[0]}.`
+			);
+	}
+}
+
+/** scheme code → declared parts, per settings version, in one read. */
+export function schemePartsByVersion(
+	db: Pick<CollectionTransformDatabase, 'statutory_contributions'>,
+	settingsIds: ReadonlyArray<unknown>
+): Effect.Effect<ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>> {
+	const ids = [...new Set(settingsIds.filter((id): id is string => id != null && id !== ''))];
+	if (ids.length === 0) return Effect.succeed(new Map());
+	return Effect.map(
+		db.statutory_contributions.findMany({
+			where: { settings_id: { in: ids }, approval_id: { isNull: true } },
+			columns: { settings_id: true, code: true, parts: true },
+			limit: 5000
+		}),
+		(rows) => {
+			const byVersion = new Map<string, Map<string, readonly string[]>>();
+			for (const row of rows) {
+				const schemes = byVersion.get(row.settings_id) ?? new Map<string, readonly string[]>();
+				schemes.set(row.code, row.parts ?? []);
+				byVersion.set(row.settings_id, schemes);
+			}
+			return byVersion;
+		}
+	);
+}

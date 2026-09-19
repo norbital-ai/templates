@@ -47,7 +47,7 @@ test('every fixture formula names a row of its own settings version, and no sche
 				assert.ok(
 					mentions.reserved.length > 0 ||
 						mentions.codes.length > 0 ||
-						mentions.catalogues.length > 0 ||
+						mentions.words.length > 0 ||
 						/person\.terms\.(basic_salary|monthly_basic|monthly_wage|statutory_wages)|produced\./.test(
 							formula
 						),
@@ -65,15 +65,18 @@ test('every fixture formula names a row of its own settings version, and no sche
 						`${lineage} ${scheme.code}: ${code} is a row of two catalogues (${families.join(', ')})`
 					);
 				}
-				for (const selection of mentions.catalogues) {
-					if (!present.has(selection.catalogue)) continue;
-					for (const code of [...selection.pick, ...selection.exclude]) {
-						checked += 1;
-						assert.ok(
-							codes.has(`${scheme.settings_id}/${selection.catalogue}/${code}`),
-							`${lineage} ${scheme.code}: ${selection.catalogue} ${code} is not a row of its settings version`
-						);
-					}
+				// A part word names a part the scheme declares: `ORDINARY.ALLOWANCES` needs `ORDINARY`.
+				for (const word of mentions.words) {
+					const part = word
+						.replace(/^year\./, '')
+						.split('.')
+						.at(-2);
+					if (part === undefined) continue;
+					checked += 1;
+					assert.ok(
+						(scheme.parts ?? []).includes(part),
+						`${lineage} ${scheme.code}: ${word} names a part the scheme does not declare`
+					);
 				}
 			}
 		}

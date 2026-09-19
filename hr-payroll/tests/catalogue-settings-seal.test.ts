@@ -17,7 +17,8 @@ const db = {
 					sealed_at: id === 'sealed' ? '2026-01-01T00:00:00.000Z' : null
 				}))
 			)
-	}
+	},
+	statutory_contributions: { findMany: () => Effect.succeed([]) }
 };
 // A loan row must also recover (NET/SUBTRACT); the other families ignore the two columns.
 const catalogue = {

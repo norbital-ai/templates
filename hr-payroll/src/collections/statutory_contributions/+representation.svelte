@@ -40,6 +40,37 @@
 	);
 	const sealed = $derived(version?.sealed_at != null);
 
+	/**
+	 * The classes that enter this scheme's base, read from their own `counts_toward`: the scheme
+	 * declares nothing about them, so the form prints the derived list for the reader and lets the
+	 * class forms own the decision.
+	 */
+	const code = $derived(record == null ? '' : String(record.code));
+	const memberQuery = (collection: 'allowance_catalogue' | 'claim_catalogue') =>
+		versionId === ''
+			? null
+			: client.db[collection].findMany({
+					where: { settings_id: { eq: versionId } },
+					columns: { code: true, counts_toward: true },
+					orderBy: { code: 'asc' },
+					limit: 500
+				});
+	const allowanceMembers = $derived(memberQuery('allowance_catalogue'));
+	const claimMembers = $derived(memberQuery('claim_catalogue'));
+	const members = $derived(
+		[
+			...(allowanceMembers?.current ?? []).map((row) => ({ word: 'ALLOWANCES', ...row })),
+			...(claimMembers?.current ?? []).map((row) => ({ word: 'CLAIMS', ...row }))
+		].flatMap((row) => {
+			const entry = (Array.isArray(row.counts_toward) ? row.counts_toward : [])
+				.map(String)
+				.find((item) => item === code || item.startsWith(`${code}.`));
+			return entry == null
+				? []
+				: [{ word: row.word, code: row.code, part: entry.slice(code.length + 1) }];
+		})
+	);
+
 	const tabs = $derived<TabConfig[]>([
 		{
 			name: 'scheme',
@@ -110,6 +141,28 @@
 							empty: t('component.scheme_ordinary_on_empty')
 						}}
 					/>
+					<Field
+						name="parts"
+						label={t('component.scheme_parts')}
+						description={t('component.scheme_parts_hint')}
+					/>
+					{#if record != null}
+						<Stack gap="xs">
+							<span class="text-sm font-medium">{t('component.scheme_enters_base')}</span>
+							{#if members.length === 0}
+								<p class="text-meta">{t('component.scheme_enters_base_none')}</p>
+							{:else}
+								<p class="text-sm">
+									{members
+										.map(
+											(member) =>
+												`${member.code} (${member.word}${member.part === '' ? '' : ` · ${member.part}`})`
+										)
+										.join(', ')}
+								</p>
+							{/if}
+						</Stack>
+					{/if}
 				</FormSection>
 
 				<FormSection

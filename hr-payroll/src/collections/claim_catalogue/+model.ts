@@ -21,7 +21,11 @@ export default defineModel(
 		/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 		eligibility: text().notNull().default(''),
 		/** Whether a request against this line must, may or need not attach proof. */
-		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE')
+		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
+		/** The schemes whose base a paid claim of this class enters (`CLAIMS`); see the allowance catalogue. */
+		counts_toward: custom('code_list')
+			.notNull()
+			.default(sql`'[]'::jsonb`)
 	},
 	{
 		description:

@@ -159,6 +159,8 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				// The public schemes the tests invent: the allowance counts toward each of them.
+				counts_toward: ['PUB-EPF', 'PUB-EPF-NC', 'PUB-TAX', 'PUB-FIXED'],
 				approval_id: null
 			}
 		],

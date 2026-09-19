@@ -26,15 +26,15 @@ test('a scheme whose formula selects one more row reads as that change', () => {
 	assert.equal(
 		diffCollection(
 			'statutory_contributions',
-			scheme("BASE + catalog('LEAVE')"),
-			scheme("BASE + catalog('LEAVE')")
+			scheme('BASE + ENCASHMENT'),
+			scheme('BASE + ENCASHMENT')
 		),
 		null
 	);
 	const moved = diffCollection(
 		'statutory_contributions',
 		scheme('BASE'),
-		scheme("BASE + catalog('ALLOWANCE', {'pick': ['TRANSPORT']})")
+		scheme('BASE + ALLOWANCES')
 	);
 	assert.equal(moved?.rows[0]?.code, 'EPF');
 	assert.equal(moved?.rows[0]?.changes[0]?.path, 'assessed_on');

@@ -638,6 +638,14 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				// A recurring allowance is 工資: salary income (所得稅法 §14), and the insured wage reaches
+				// it through `terms.fixed_allowances` on the rows marked fixed.
+				counts_toward: [
+					'INCOME_TAX',
+					'INCOME_TAX_NON_RESIDENT',
+					'NHI_SUPPLEMENT_EMPLOYER',
+					'LABOR_PENSION_RESERVE'
+				],
 				approval_id: null
 			});
 			for (const [index, employment] of world.employments.entries())

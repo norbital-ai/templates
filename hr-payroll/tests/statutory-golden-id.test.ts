@@ -467,6 +467,8 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 		destination: 'PAY',
 		direction: 'ADD',
 		bands: [{ when: '', amount: 'entry.amount', limit: null }],
+		// A fixed allowance is upah for every BPJS scheme and ordinary income for PPh 21.
+		counts_toward: ['JHT', 'JP', 'JKK', 'JKM', 'JKP', 'KESEHATAN', 'PPH21.ORDINARY', 'PPH26'],
 		approval_id: null
 	});
 	const fixed = world.employments.find((row) => row.employee_number === 'ID-FIXED')!;

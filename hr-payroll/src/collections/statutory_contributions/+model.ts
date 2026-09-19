@@ -60,11 +60,22 @@ export default defineModel(
 			.notNull()
 			.default(sql`'[]'::jsonb`),
 		/**
-		 * What this scheme is assessed on: one CEL over the reserved lines and the version's
-		 * catalogue rows, e.g. `BASE + catalog('ALLOWANCE', {'exclude': ['BACKPAY_ADD_WAGES']})`. A
-		 * catalogue row returns its own landing, so the formula is a selection written with `+`.
+		 * What this scheme is assessed on: one CEL over the reserved lines and the catalogue words —
+		 * `BASE + ALLOWANCES + ADHOC + ENCASHMENT - ABSENCE - NO_PAY_LEAVE`. A catalogue word is the
+		 * sum of that catalogue's lines whose class lists this scheme in its `counts_toward`; the
+		 * scheme never names a class. `code('X')` reads one class's amount where the law caps or
+		 * exempts that class alone.
 		 */
 		assessed_on: text().notNull().default(''),
+		/**
+		 * The parts a scheme splits its base into where the law caps them differently — SG CPF's
+		 * ordinary and additional wages, MY PCB's normal and additional remuneration. Empty for the
+		 * common single base. A class that counts toward a scheme with parts names the part
+		 * (`CPF.ADDITIONAL`), and the expressions select it as `ADDITIONAL.ALLOWANCES`.
+		 */
+		parts: custom('code_list')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/**
 		 * The ordinary part of the base, where a ceiling splits ordinary from additional wages: the
 		 * same CEL over the same lines, stored beside each charge (`ordinary_amount`) and summed into

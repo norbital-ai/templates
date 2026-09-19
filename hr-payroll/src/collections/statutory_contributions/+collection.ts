@@ -23,6 +23,7 @@ const columns = {
 	rules: true,
 	assessed_on: true,
 	ordinary_on: true,
+	parts: true,
 	short_name: true,
 	listing_order: true,
 	listing_group: true
@@ -86,7 +87,8 @@ export default defineCollection({
 					rules,
 					assessed_on: assessedOn,
 					ordinary_on: String(row.ordinary_on ?? ''),
-					elections: row.elections ?? []
+					elections: row.elections ?? [],
+					parts: row.parts ?? []
 				});
 				if (fault != null) refuse(fault);
 				const settingsId = row.settings_id;

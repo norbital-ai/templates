@@ -920,6 +920,8 @@ test('Singapore — a standing allowance is wages: prorated like the salary, and
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				// Ordinary wages for CPF; total wages for the levy and the self-help funds.
+				counts_toward: ['CPF.ORDINARY', 'SDL', 'CDAC', 'ECF', 'MBMF', 'SINDA'],
 				approval_id: null
 			});
 			for (const [index, employment] of world.employments.entries())

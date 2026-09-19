@@ -8,14 +8,16 @@
  * written rather than discovered when a payroll is priced.
  *
  * The AST literal walk at the bottom serves the version-bound checks: an `assessed_on` formula's
- * `code('X')` and `catalog(...)` selections are checked against the rows of the version the write
- * carries, and `year.earned.<code>` the same way.
+ * `code('X')` is checked against the rows of the version the write carries, `year.earned.<code>`
+ * the same way, and every `<PART>.ALLOWANCES`-shaped word against the parts the scheme declares.
  */
 
 import { programFor } from './evaluate.js';
 import {
+	CATALOGUE_WORDS,
 	EXPRESSION_CONTEXTS,
 	openKeyMentions,
+	type CatalogueWord,
 	type ExpressionContext,
 	type ExpressionSite,
 	type ExpressionType
@@ -50,6 +52,34 @@ function declaredPaths(context: ExpressionContext): readonly string[] {
 const STRING_LITERAL = /(['"])(?:\\.|(?!\1).)*\1/g;
 const CHAIN = /(?<![\w.])([a-z_][a-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)/g;
 const BARE = /(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)(?![.\w(])/g;
+
+/**
+ * The assessment context of one scheme: the site's context with the scheme's parts as roots of
+ * the catalogue words (`ORDINARY.ALLOWANCES`, `year.ADDITIONAL.CLAIMS`). A part is a bare
+ * upper-case root, so it is declared as a bare name and given its blank.
+ */
+function withParts(context: ExpressionContext, parts: readonly string[]): ExpressionContext {
+	if (parts.length === 0 || context.site !== 'assessment') return context;
+	const words = Object.fromEntries(CATALOGUE_WORDS.map((word) => [word, 0]));
+	const blank = structuredClone(context.blank) as Record<string, unknown>;
+	const year = { ...((blank.year ?? {}) as Record<string, unknown>) };
+	for (const part of parts) {
+		blank[part] = { ...words };
+		year[part] = { ...words };
+	}
+	blank.year = year;
+	return {
+		...context,
+		fields: [
+			...context.fields,
+			...parts.flatMap((part) =>
+				CATALOGUE_WORDS.map((word) => ({ path: `${part}.${word}`, description: '' }))
+			)
+		],
+		bare: [...context.bare, ...parts],
+		blank
+	};
+}
 
 /** Whether a written chain sits under an open prefix, whose remaining segments are data keys. */
 function underOpen(context: ExpressionContext, chain: string): boolean {
@@ -174,10 +204,12 @@ export function compileExpression(options: {
 	readonly site: ExpressionSite;
 	readonly type: ExpressionType;
 	readonly elections?: readonly DeclaredKey[];
+	/** The scheme's declared parts, each a root of the catalogue words: `ORDINARY.ALLOWANCES`. */
+	readonly parts?: readonly string[];
 }): string | null {
 	const expression = (options.expression ?? '').trim();
 	if (expression === '') return null;
-	const context = EXPRESSION_CONTEXTS[options.site];
+	const context = withParts(EXPRESSION_CONTEXTS[options.site], options.parts ?? []);
 	const memberFault = unknownMember(context, expression);
 	if (memberFault != null) return memberFault;
 	const electionMentions = openKeyMentions(expression, 'scheme.elections');
@@ -233,26 +265,26 @@ export function memberChain(node: unknown): readonly string[] | null {
 	return chain == null ? null : [...chain, property];
 }
 
-/** One `catalog(...)` selection as written: what it names and which rows it picks or excludes. */
-type CatalogueSelection = {
-	readonly catalogue: string;
-	readonly pick: readonly string[];
-	readonly exclude: readonly string[];
-};
-
 type AssessedOnMentions = {
 	/** Every literal inside `code('X')`, in first-seen order. */
 	readonly codes: readonly string[];
-	/** Every `catalog(...)` selection, in first-seen order. */
-	readonly catalogues: readonly CatalogueSelection[];
+	/**
+	 * Every catalogue word named, as written: `ALLOWANCES`, `ORDINARY.ALLOWANCES`,
+	 * `year.CLAIMS`, `year.ADDITIONAL.ALLOWANCES`; in first-seen order.
+	 */
+	readonly words: readonly string[];
 	/** Every `year.earned.<code>` member, in first-seen order. */
 	readonly yearEarned: readonly string[];
 	/** Every reserved line named as an identifier, in first-seen order. */
 	readonly reserved: readonly string[];
 };
 
-/** The six reserved lines, read off the assessment site so the list cannot drift from it. */
-const RESERVED_LINES = new Set(EXPRESSION_CONTEXTS.assessment.bare);
+const isCatalogueWord = (name: string): name is CatalogueWord =>
+	(CATALOGUE_WORDS as readonly string[]).includes(name);
+/** The reserved lines, read off the assessment site so the list cannot drift from it. */
+const RESERVED_LINES = new Set(
+	EXPRESSION_CONTEXTS.assessment.bare.filter((name) => !isCatalogueWord(name))
+);
 
 function stringsOf(node: unknown): string[] {
 	if (!isNode(node)) return [];
@@ -265,7 +297,7 @@ function walkAssessedOn(
 	node: unknown,
 	mentions: AssessedOnMentions & {
 		codes: string[];
-		catalogues: CatalogueSelection[];
+		words: string[];
 		yearEarned: string[];
 		reserved: string[];
 	}
@@ -274,6 +306,9 @@ function walkAssessedOn(
 	if (node.op === 'id' && typeof node.args === 'string' && RESERVED_LINES.has(node.args)) {
 		if (!mentions.reserved.includes(node.args)) mentions.reserved.push(node.args);
 	}
+	if (node.op === 'id' && typeof node.args === 'string' && isCatalogueWord(node.args)) {
+		if (!mentions.words.includes(node.args)) mentions.words.push(node.args);
+	}
 	if (node.op === 'call') {
 		const [name, callArgs] = node.args as [unknown, unknown];
 		const args = Array.isArray(callArgs) ? callArgs : [];
@@ -281,29 +316,21 @@ function walkAssessedOn(
 			for (const literal of stringsOf(args[0]))
 				if (!mentions.codes.includes(literal)) mentions.codes.push(literal);
 		}
-		if (name === 'catalog') {
-			const catalogue = stringsOf(args[0])[0] ?? '';
-			const selection: { catalogue: string; pick: string[]; exclude: string[] } = {
-				catalogue,
-				pick: [],
-				exclude: []
-			};
-			const map = args[1];
-			if (isNode(map) && map.op === 'map') {
-				for (const [key, value] of map.args as [unknown, unknown][]) {
-					const name = isNode(key) && key.op === 'value' ? String(key.args) : '';
-					if (name === 'pick') selection.pick = stringsOf(value);
-					if (name === 'exclude') selection.exclude = stringsOf(value);
-				}
-			}
-			mentions.catalogues.push(selection);
-		}
 	}
 	if (node.op === '.') {
 		const chain = memberChain(node);
 		if (chain != null && chain.length === 3 && chain[0] === 'year' && chain[1] === 'earned') {
 			const code = chain[2]!;
 			if (!mentions.yearEarned.includes(code)) mentions.yearEarned.push(code);
+		}
+		// `ORDINARY.ALLOWANCES`, `year.ALLOWANCES`, `year.ORDINARY.CLAIMS`: a chain ending in a
+		// catalogue word is that word, part and year included. The walk below reaches the inner
+		// `year.ORDINARY` chain too, which ends in no word and names nothing.
+		const last = chain?.at(-1);
+		if (chain != null && last != null && isCatalogueWord(last)) {
+			const written = chain.join('.');
+			if (!mentions.words.includes(written)) mentions.words.push(written);
+			return;
 		}
 	}
 	const args = Array.isArray(node.args) ? node.args : [node.args];
@@ -322,7 +349,7 @@ function walkAssessedOn(
 export function assessedOnMentions(expression: string): AssessedOnMentions {
 	const mentions = {
 		codes: [] as string[],
-		catalogues: [] as CatalogueSelection[],
+		words: [] as string[],
 		yearEarned: [] as string[],
 		reserved: [] as string[]
 	};

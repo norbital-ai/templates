@@ -632,7 +632,7 @@ export function prepareContributionAssessment(options: {
 			componentsByCode: new Map(
 				configuration.catalogueComponents.map((component) => [
 					component.code,
-					{ family: component.family, fixed: component.fixed }
+					{ family: component.family, counts_toward: component.counts_toward }
 				])
 			),
 			period: {
