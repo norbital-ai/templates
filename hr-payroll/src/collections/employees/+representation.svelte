@@ -38,6 +38,7 @@
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import Icon from '@iconify/svelte';
 	import FaceEnrollFlow from './face-enroll-flow.svelte';
+	import HireForm from '../../lib/ui/contract/hire-form.svelte';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
@@ -115,6 +116,7 @@
 					columns: { settings_code: true }
 				})
 	);
+	let hireOpen = $state(false);
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		employmentId: () => scopedEmployment?.id,
 		employeeId: () => record?.id,
@@ -390,6 +392,26 @@
 {#snippet engagements()}
 	{#if record}
 		<Stack gap="lg">
+			<!-- The hire lives here, on the person: a contract is theirs before it is an entity's. -->
+			<Inline justify="end">
+				<Button variant="outline" size="sm" onclick={() => (hireOpen = true)}>
+					<Icon icon="lucide:briefcase" class="size-4" />
+					{t('component.hire')}
+				</Button>
+			</Inline>
+			<Dialog.Root bind:open={hireOpen}>
+				<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
+					<Dialog.Header>
+						<Dialog.Title
+							>{t('component.hire_title', { name: String(record.name ?? '') })}</Dialog.Title
+						>
+						<Dialog.Description>{t('component.hire_description')}</Dialog.Description>
+					</Dialog.Header>
+					{#if hireOpen}
+						<HireForm askCompany onDone={() => (hireOpen = false)} />
+					{/if}
+				</Dialog.Content>
+			</Dialog.Root>
 			{#if timeline.columns.length > 0}
 				<FormSection
 					first

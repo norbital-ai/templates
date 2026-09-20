@@ -38,6 +38,7 @@
 	import SettingsRepresentation from '../../collections/jurisdiction_settings/+representation.svelte';
 	import JurisdictionScopeCombobox from './JurisdictionScopeCombobox.svelte';
 	import SnapshotChanges from './SnapshotChanges.svelte';
+	import VersionLifecycle from './VersionLifecycle.svelte';
 	import {
 		jurisdictionsError as jurisdictionsErrorOf,
 		jurisdictionsUnknown as jurisdictionsUnknownOf,
@@ -99,12 +100,21 @@
 {#snippet general()}
 	{#if selectedVersion}
 		<Scroll name={t('app.settings.general')} layout="stack" gap="lg">
-			<SettingsRepresentation
-				record={selectedVersion}
-				close={() => {}}
-				embedded
-				section="GENERAL"
+			<VersionLifecycle
+				version={selectedVersion}
+				lineage={versions}
+				onChosen={(versionId) => (chosenVersionId = versionId)}
 			/>
+			<!-- Keyed: a form keeps its first values, and a draft chosen after a sealed version
+			     would otherwise show — and save — the sealed version's figures as its own. -->
+			{#key selectedVersion.id}
+				<SettingsRepresentation
+					record={selectedVersion}
+					close={() => {}}
+					embedded
+					section="GENERAL"
+				/>
+			{/key}
 		</Scroll>
 	{/if}
 {/snippet}
@@ -172,12 +182,14 @@
 {#snippet workRules()}
 	{#if selectedVersion}
 		<Scroll name={t('component.work_rules')} layout="stack" gap="lg">
-			<SettingsRepresentation
-				record={selectedVersion}
-				close={() => {}}
-				embedded
-				section="WORK_RULES"
-			/>
+			{#key selectedVersion.id}
+				<SettingsRepresentation
+					record={selectedVersion}
+					close={() => {}}
+					embedded
+					section="WORK_RULES"
+				/>
+			{/key}
 		</Scroll>
 	{/if}
 {/snippet}
