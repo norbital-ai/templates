@@ -27,6 +27,8 @@ export type PayrollWorld = {
 	readonly employments: PayrollRow[];
 	readonly employees: PayrollRow[];
 	readonly employment_terms: PayrollRow[];
+	/** Reference wage periods; a world that states none has no stored wage history. */
+	readonly employment_wage_periods?: PayrollRow[];
 	readonly employment_statutory_facts: PayrollRow[];
 	readonly claim_requests: PayrollRow[];
 	readonly adhoc_requests?: PayrollRow[];
@@ -202,6 +204,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			employments: collection('employments'),
 			employees: collection('employees'),
 			employment_terms: collection('employment_terms'),
+			employment_wage_periods: collection('employment_wage_periods'),
 			employment_statutory_facts: collection('employment_statutory_facts'),
 			claim_requests: collection('claim_requests'),
 			adhoc_requests: collection('adhoc_requests'),

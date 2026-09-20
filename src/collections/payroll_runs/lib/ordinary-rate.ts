@@ -13,11 +13,8 @@
  * employee-level law and cannot be a company-wide divisor. A statute stated in hours is written as
  * hours over the contract's normal daily hours, so both rates below derive from one figure.
  *
- * Two details matter for parity:
- *
- * - the numerator is the **unprorated** contract salary, so a mid-month joiner's overtime is priced
- *   at their full-month rate, not their part-month pay (decision E4);
- * - each rate is rounded to cents **before** it is multiplied by hours, never after.
+ * Rates retain their full quotient until the completed payroll amount is rounded. The salary
+ * numerator is the unprorated contract wage, including qualifying components in the rule.
  *
  * Normal hours in an overtime-rate day are the employment's contractual weekly hours divided by
  * its contractual working days. That is the employee's normal day; a payroll-system convention
@@ -31,7 +28,6 @@ import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 import { monthDays } from './dates.js';
-import { cents } from './rounding.js';
 import { normalDailyHours } from './schedule.js';
 import { prorationBasisFor } from './proration.js';
 import { evaluateNumber, expressionEngine } from '../../../lib/expressions/evaluate.js';
@@ -98,15 +94,15 @@ function monthlyBaseSalary(terms: RateTerms): number {
 	}
 }
 
-/** Pay for one ordinary hour, rounded to cents before any multiplication. */
+/** Pay for one ordinary hour; round only the completed award. */
 export function ordinaryHourlyRate(terms: RateTerms, divisorDays: number): number {
 	// DAILY and HOURLY staff are paid from the stated rate, never annualised: the rate is what the
 	// contract says an hour costs. Monthly staff are untouched by this branch.
-	if (terms.pay_frequency === 'HOURLY') return cents(decodeNumber(terms.base_salary.value));
+	if (terms.pay_frequency === 'HOURLY') return decodeNumber(terms.base_salary.value);
 	if (terms.pay_frequency === 'DAILY')
-		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
+		return decodeNumber(terms.base_salary.value) / normalDailyHours(terms);
 	if (!(divisorDays > 0)) throw new Error('work_rules.ordinary_divisor_days must be positive.');
-	return cents(monthlyBaseSalary(terms) / divisorDays / normalDailyHours(terms));
+	return monthlyBaseSalary(terms) / divisorDays / normalDailyHours(terms);
 }
 
 /**
@@ -116,10 +112,10 @@ export function ordinaryHourlyRate(terms: RateTerms, divisorDays: number): numbe
 export function ordinaryDayWage(terms: RateTerms, divisorDays: number): number {
 	// A DAILY contract states its day wage; an HOURLY one states it per hour, so a day is the
 	// contracted daily hours priced at that rate. Monthly staff read the divisor.
-	if (terms.pay_frequency === 'DAILY') return cents(decodeNumber(terms.base_salary.value));
+	if (terms.pay_frequency === 'DAILY') return decodeNumber(terms.base_salary.value);
 	if (terms.pay_frequency === 'HOURLY')
-		return cents(decodeNumber(terms.base_salary.value) * normalDailyHours(terms));
-	return cents(monthlyBaseSalary(terms) / divisorDays);
+		return decodeNumber(terms.base_salary.value) * normalDailyHours(terms);
+	return monthlyBaseSalary(terms) / divisorDays;
 }
 
 /** One day of withheld pay: the contract terms and the work's proration divisor over a period. */
@@ -142,9 +138,7 @@ type AbsenceDayRateOptions = {
  * Conflating the two over-deducts by the ratio between the divisors: 31/26 in a 31-day Malaysian
  * month, about 19% on every employee with unpaid leave.
  *
- * The rate is rounded to the cent **before** the day count multiplies it. Rounding after instead
- * moves the result by a cent or two on most absences, which is the difference between reproducing
- * the source system and merely being close to it.
+ * Round the completed deduction in the payroll currency, not this intermediate rate.
  */
 export function absenceDayRate(options: AbsenceDayRateOptions): number {
 	const monthly = monthlyBaseSalary(options.terms);
@@ -152,7 +146,7 @@ export function absenceDayRate(options: AbsenceDayRateOptions): number {
 	if (proration == null) throw new Error('The work states no proration basis.');
 	switch (proration.by) {
 		case 'CALENDAR_DAYS':
-			return cents(monthly / monthDays(options.period.start));
+			return monthly / monthDays(options.period.start);
 		case 'WORKING_DAYS': {
 			const days = options.workingDaysIn(options.period);
 			if (!(days > 0))
@@ -160,12 +154,12 @@ export function absenceDayRate(options: AbsenceDayRateOptions): number {
 					`The period ${options.period.start}..${options.period.end} has no working days, so an ` +
 						'absence in it cannot be priced.'
 				);
-			return cents(monthly / days);
+			return monthly / days;
 		}
 		case 'FIXED_DAYS': {
 			if (!(proration.days > 0))
 				throw new Error('A FIXED_DAYS proration basis needs a positive divisor.');
-			return cents(monthly / proration.days);
+			return monthly / proration.days;
 		}
 	}
 	throw new Error(`Unsupported proration basis: ${Reflect.get(proration, 'by')}`);

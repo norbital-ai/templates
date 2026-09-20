@@ -53,25 +53,21 @@ export default defineModel(
 		 * component entry in a later draft run.
 		 */
 		status: enums(['DRAFT', 'ON_HOLD', 'PAID']).notNull().default('DRAFT'),
-		/**
-		 * When this person was paid. Null until they were, and set with `status` to `PAID`.
-		 *
-		 * **This is the authority on payment.** Payment is per slip:
-		 * one person's pay can settle while a colleague's is still held for a correction, and a run
-		 * that had to move as a block made "pay everyone or nobody" the only gesture there was.
-		 * The run's paid state is read from these — `PAID` when every slip of the run carries
-		 * one — so a reader that means "this whole run is settled" is unchanged, while a reader that
-		 * means "this person's pay is settled" reads it here and stops being wrong about a run that
-		 * is half paid.
-		 *
-		 * Set once and never cleared. It is the one column of an otherwise immutable output row that
-		 * may move, for the same reason a sealed settings version's holiday source may: paying is an
-		 * operational act, not a recalculation, and nothing about the figures changes when it happens.
-		 */
+		/** Settlement date, required with PAID and immutable afterward, including for zero cash pay. */
 		paid_at: instant(),
 		gross: numeric().notNull(),
 		total_deductions: numeric().notNull(),
 		net: numeric().notNull(),
+		/** Employee statutory liability not covered by this payroll's funds; no automatic future recovery. */
+		unfunded_contributions: numeric()
+			.notNull()
+			.default(sql`0`),
+		/** Employee funds received outside payroll against the calculated shortfall. */
+		funding_received: numeric()
+			.notNull()
+			.default(sql`0`),
+		funding_received_on: instant({ precision: 'day' }),
+		funding_reference: text(),
 		employer_cost: numeric().notNull(),
 		currency: text({ search: true }).notNull()
 	},

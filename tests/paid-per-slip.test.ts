@@ -142,8 +142,68 @@ test('paid_at travels only with PAID', async () => {
 	);
 });
 
-test('every other column is still engine output: the update input is the payment state alone', () => {
-	assert.deepEqual(Object.keys(payslips.update.input.columns), ['status', 'paid_at']);
+test('only payment state and contribution funding evidence are editable', () => {
+	assert.deepEqual(Object.keys(payslips.update.input.columns), [
+		'status',
+		'paid_at',
+		'funding_received',
+		'funding_received_on',
+		'funding_reference'
+	]);
+});
+
+test('a contribution shortfall requires dated funding evidence before payment', async () => {
+	const draft = slip('funding', RUN, 'emp-a', {
+		net: 0,
+		unfunded_contributions: 150,
+		funding_received: 0
+	});
+	const { api } = world([RUN], [draft]);
+	assert.match(await refusalOf(() => pay(api, draft)), /remain unfunded/);
+	for (const funding_received of [-1, 151, Number.NaN])
+		assert.match(await refusalOf(() => write(api, draft, { funding_received })), /between zero/);
+	for (const [currency, funding_received] of [
+		['MYR', 100.001],
+		['VND', 100.5]
+	])
+		assert.match(
+			await refusalOf(() => write(api, { ...draft, currency }, { funding_received })),
+			/currency precision/
+		);
+	assert.match(
+		await refusalOf(() => write(api, draft, { funding_received: 150 })),
+		/receipt date and reference/
+	);
+	assert.match(
+		await refusalOf(() =>
+			write(api, draft, {
+				funding_received: 150,
+				funding_received_on: '2026-02-20',
+				funding_reference: ' '
+			})
+		),
+		/receipt date and reference/
+	);
+	Object.assign(
+		draft,
+		await write(api, draft, {
+			funding_received: 100,
+			funding_received_on: '2026-02-20',
+			funding_reference: 'RECEIPT-1'
+		})
+	);
+	assert.match(await refusalOf(() => pay(api, draft)), /remain unfunded/);
+	Object.assign(
+		draft,
+		await write(api, draft, {
+			funding_received: 150,
+			funding_received_on: '2026-02-25',
+			funding_reference: 'RECEIPTS-1-2'
+		})
+	);
+	assert.match(await refusalOf(() => pay(api, draft, '2026-02-24')), /cannot precede/);
+	Object.assign(draft, await pay(api, draft));
+	assert.match(await refusalOf(() => write(api, draft, { funding_received: 0 })), /already paid/);
 });
 
 test('a slip is created by its run, never standing alone', async () => {
@@ -170,4 +230,9 @@ test('a paid slip cannot be deleted, and an unpaid one only while no later slip 
 	assert.match(await refusalOf(() => decide(slips[0])), /2026-02 payslip stands on this one/);
 	assert.equal(await decide(slips[1]), true, 'the latest unpaid slip of a person leaves freely');
 	assert.equal(await decide(slips[3]), true);
+	assert.equal(
+		await decide({ ...slips[3], funding_received: 1 }),
+		false,
+		'a recorded receipt prevents deletion, including a run cascade'
+	);
 });

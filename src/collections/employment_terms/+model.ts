@@ -25,9 +25,9 @@ export default defineModel(
 			'OTHER'
 		]),
 		/**
-		 * Tax residency declared for this contract, where it is not what citizenship implies (TW
-		 * 所得稅法 §7(3): domicile and days present decide it); null reads as the citizenship
-		 * default. `terms.tax_residency`.
+		 * Tax residency declared for this contract as `terms.tax_residency`; null is unrecorded.
+		 * The applicable jurisdiction's rules determine whether an unknown value stops calculation
+		 * or selects a statutory withholding default. Citizenship does not establish tax residence.
 		 */
 		/**
 		 * `NON_RESIDENT_NETB`: a non-resident alien not engaged in trade or business — in the

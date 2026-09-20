@@ -318,6 +318,8 @@ function matches(row, where = {}) {
 					return String(value) <= String(operand);
 				case 'lt':
 					return String(value) < String(operand);
+				case 'gt':
+					return value != null && value > operand;
 				default:
 					throw new Error(`The stub does not implement ${operator} on ${column}.`);
 			}

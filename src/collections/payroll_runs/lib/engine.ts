@@ -63,7 +63,7 @@ import {
  * change and leave nothing on the run to explain the difference. Bump this when the payroll
  * algorithm changes in a way a settled payslip's reader would need to know.
  */
-export const CALCULATION_VERSION = '2026-09-contract-payroll-families' as const;
+export const CALCULATION_VERSION = '2026-09-statutory-funding' as const;
 
 /** What one build produced, and what the run's transform returns alongside its own columns. */
 type PayrollRunGraph = {
@@ -200,6 +200,11 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	);
 	for (const { employment, measured, termsThrough } of measuredContracts) {
 		const charges = chargesByEmployment.get(employment.id)!;
+		if (
+			measured.bundle.deferral != null &&
+			charges.every((charge) => charge.employee === 0 && charge.employer === 0)
+		)
+			continue;
 		// 7 — SETTLE
 		//
 		// A recovery the guard dropped is not carried anywhere: its repayment row stays unlinked
@@ -216,6 +221,14 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 				.filter((row) => row.input.family === 'LOAN_REPAYMENT')
 				.map((row) => row.input.id)
 		);
+		if (settlement.unfundedContributions > 0)
+			issues.push({
+				code: 'STATUTORY_FUNDING_REQUIRED',
+				severity: 'WARNING',
+				collection: 'employments',
+				recordId: employment.id,
+				message: `${employment.employee_number}: employee statutory contributions of ${settlement.unfundedContributions} ${measured.currency} remain unfunded. Arrange and reconcile funding separately; later payroll does not automatically recover this amount.`
+			});
 		// What the guard could not take is a fact about the month, not a rounding: an agreement with
 		// a stated minimum blocks here, one without it warns. Nothing read `shortfalls` before.
 		issues.push(

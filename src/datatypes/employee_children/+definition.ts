@@ -36,9 +36,9 @@ export const employeeChildSchema = Schema.Struct({
 		Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
 	),
 	/**
-	 * The class a tax relief ladder puts the child in, as the employee declares it (MY ITA s.48:
-	 * STUDYING at 18 or over, TERTIARY, DISABLED, DISABLED_TERTIARY); absent is an ordinary child,
-	 * counted by age alone (`children.unclassed_under(n)`); `children.classed(x)` counts the declared.
+	 * A recorded family classification, available through `children.classed(x)`.
+	 * It does not establish a tax claim. MY child relief uses the statutory registration's
+	 * tax-year child_claims declaration and entitlement share.
 	 */
 	relief_class: Schema.optionalKey(Schema.NullOr(Schema.String))
 }).check(

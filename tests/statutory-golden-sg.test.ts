@@ -140,7 +140,10 @@ test('Singapore — the SPR first- and second-year graduated ladders', () => {
 				citizenship: 'PERMANENT_RESIDENT',
 				residency_since: '2025-06-15',
 				registrations: {
-					CPF: { kind: 'REGISTERED', elections: { spr_full_rate: true } }
+					CPF: {
+						kind: 'REGISTERED',
+						elections: { spr_full_rate: true, spr_approval_reference: 'CPF-APPROVAL' }
+					}
 				}
 			}
 		]
@@ -211,7 +214,10 @@ test('Singapore — an SHG opt-out turns the fund off for that employment', () =
 				citizenship: 'CITIZEN',
 				race: 'CHINESE',
 				registrations: {
-					CDAC: { kind: 'REGISTERED', elections: { shg_opt_out: true } }
+					CDAC: {
+						kind: 'REGISTERED',
+						elections: { shg_opt_out: true, shg_instruction_reference: 'FUND-NOTICE' }
+					}
 				}
 			}
 		]
@@ -1249,4 +1255,98 @@ test('Singapore — a part-timer’s hours beyond their own day up to a full-tim
 		['2026-01-05', 'PT-1.0X', 5, 60],
 		['2026-01-05', 'PT-1.5X', 1, 18]
 	]);
+});
+
+test('Singapore — cash allowances, expense refunds, overtime and leave conversion use their distinct wage bases', () => {
+	// MOM gross/basic salary definitions; CPF Board payments and reimbursements guidance.
+	// https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary
+	// https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-reimbursements
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [{ key: 'BASES', wage: 2288, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			const version = world.jurisdiction_settings.find(
+				(row) => String(row.effective_range.start).slice(0, 10) === '2026-01-01'
+			)!;
+			version.work_rules.encashment!.include_allowances = ['SHIFT'];
+			version.work_rules.encashment!.exclude_allowances = [
+				'TRAVEL',
+				'FOOD',
+				'HOUSING',
+				'PRODUCTIVITY',
+				'REFUND'
+			];
+			const payments = [
+				{ code: 'SHIFT', amount: 250 },
+				{ code: 'TRAVEL', amount: 200 },
+				{ code: 'FOOD', amount: 300 },
+				{ code: 'HOUSING', amount: 400 },
+				{ code: 'PRODUCTIVITY', amount: 500 },
+				{ code: 'REFUND', amount: 100 }
+			];
+			for (const [index, payment] of payments.entries()) {
+				const id = `a2000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
+				world.allowance_catalogue.push({
+					id,
+					settings_id: version.id,
+					code: payment.code,
+					name: payment.code,
+					eligibility: '',
+					destination: payment.code === 'REFUND' ? 'NET' : 'PAY',
+					direction: 'ADD',
+					bands: [{ when: '', amount: 'entry.amount', limit: null }],
+					counts_toward: payment.code === 'REFUND' ? [] : ['CPF.ORDINARY', 'SDL'],
+					approval_id: null
+				});
+				assignAllowance(world, {
+					employment_id: world.employments[0]!.id,
+					catalogue_id: id,
+					amount: payment.amount,
+					effective_from: '2015-01-01'
+				});
+			}
+			world.leave_catalogue.push(
+				...leaveCatalogue('SG').map((row) => ({ ...row, approval_id: null }))
+			);
+			const annual = world.leave_catalogue.find(
+				(row) => row.settings_id === version.id && row.code === 'ANNUAL_LEAVE'
+			)!;
+			world.leave_entries.push({
+				id: 'a2000000-0000-4000-8000-000000000020',
+				employment_id: world.employments[0]!.id,
+				catalogue_id: annual.id,
+				leave_code: 'ANNUAL_LEAVE',
+				reference: 'SG-BASES',
+				from_date: '2026-01-01',
+				to_date: '2026-12-31',
+				days: 1.5,
+				encash_days: 1.5,
+				effective_on: '2026-01-31',
+				due_on: '2026-01-31',
+				charges: [],
+				allocations: [],
+				approval_id: null,
+				payslip_id: null,
+				as_adjustment_entry: false
+			} as never);
+			punch(world, 'BASES', '2026-01-05', '09:00', '20:00');
+		}
+	);
+	const slip = slips.get('BASES')!;
+	// Basic hourly: 2,288 × 12 / (52 × 40) = 13.20. All allowances are excluded.
+	assert.deepEqual(workLines(slip), [['2026-01-05', 'OT-1.5X', 2, 39.6]]);
+	// Gross daily: (2,288 + 250) × 12 / (52 × 5); 1.5 days rounds once to 175.71.
+	assert.equal(
+		slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')!.amount,
+		175.71
+	);
+	// CPF/SDL include every cash wage allowance, including travel/food/housing/productivity.
+	// Official expense reimbursement adds 100 to net without entering either statutory base.
+	assert.equal(slip.gross, 4153.31);
+	assert.deepEqual(scheme(slip, 'CPF'), [4153.31, 830, 707]);
+	assert.deepEqual(scheme(slip, 'SDL'), [4153.31, 0, 10.38]);
+	assert.equal(slip.net, 3423.31);
 });

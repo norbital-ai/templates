@@ -1,0 +1,342 @@
+[
+	{
+		"id": "130b9e77-f2e3-5827-967b-d0a7547a76e8",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "BPAYBS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f15ad7d7-959d-537a-ab8d-c87a6ad0fd88",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "ADJ",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Adjustment",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ead2a99d-4a29-5e6d-a616-bfb222d35dec",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "36b80c79-5020-591a-8b39-40a9ced246d1",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "BPAYBS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "6f759f05-55c5-5f06-a07b-9aaafcebd23c",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "ADJ",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Adjustment",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1a2227f4-5b07-5f3a-9203-ba099f1affc3",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a1751155-b5ca-579e-a451-eef70aaa95ee",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "BPAYBS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7ab4a02f-8051-5a2e-86ce-a0d87820404e",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "ADJ",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Adjustment",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1e33ff0b-bc9e-5a4b-a2d3-41315012e75e",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "867bb94f-b5c5-561e-bcba-673e2f4bc691",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "TERMINATION_BENEFIT",
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "cdde8f38-6caa-5453-a033-8ebe7d5600b9",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "NOTICE_IN_LIEU",
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PCB.ADDITIONAL"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "33731426-ac6f-5b40-af6a-4de3b57097b0",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "TERMINATION_BENEFIT",
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "f06e7843-5f46-58dc-9931-2529e30d081d",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "NOTICE_IN_LIEU",
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PCB.ADDITIONAL"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "593b0c0e-4578-599d-b856-ecd298a722dc",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "TERMINATION_BENEFIT",
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "9052232d-d259-5b2d-a23e-8d01166571be",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "NOTICE_IN_LIEU",
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PCB.ADDITIONAL"],
+		"raised_by": "SEPARATION"
+	}
+]

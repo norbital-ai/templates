@@ -112,6 +112,7 @@ export const assertNoErrors = (
  * `Scroll` somewhere beneath them.
  *
  * `inertContain` — a container carrying `overscroll-behavior-y: contain` with nothing to scroll.
+ * The one-pixel rounding tolerance matches Scroll's measured overflow edges; two pixels scroll.
  * Chrome halts scroll chaining at every contain'ed container whether or not it overflows, so an
  * inert one swallows the wheel meant for the scrollport above it. `Scroll` applies containment
  * from the measured edges precisely to avoid this; anything hand-rolling `overscroll-contain`
@@ -153,8 +154,9 @@ const SCROLL_AUDIT = `(() => {
 				children
 			});
 		}
-		if (style.overscrollBehaviorY === 'contain' && overshoot <= 2) {
-			inertContain.push({ node: describe(node), overflowY });
+		if (style.overscrollBehaviorY === 'contain' && overshoot <= 1) {
+			inertContain.push({ node: describe(node), overflowY, overshoot,
+				name: node.getAttribute('aria-label'), edges: node.getAttribute('data-overflow') });
 		}
 	}
 	return JSON.stringify({ clipped, inertContain });
@@ -267,6 +269,48 @@ export const auditFill = async (page: HeadedPage, label: string): Promise<readon
 				`child(ren) span ${entry.spread}px (${Math.round(entry.fill * 100)}%)`
 		);
 };
+
+/**
+ * The three ways a phone gives a surface away as a web page, measured in the page.
+ *
+ * Sideways scroll: the body must never pan; only a table, a code block or a diagram may, inside
+ * its own scrollport. Small targets: on a coarse pointer every visible control is at least 44
+ * pixels on its shorter side (`base.css` sets that under `(pointer: coarse)`, so a smaller one
+ * has opted out or escaped the tokens). Small text entry: a field under 16 pixels makes iOS
+ * zoom the whole page on focus. Each finding names its element so the fix is one search away.
+ */
+const NARROW_AUDIT = `(() => {
+	const root = document.documentElement;
+	const findings = [];
+	if (root.scrollWidth > root.clientWidth + 1)
+		findings.push('page scrolls sideways: ' + root.scrollWidth + 'px wide in a ' + root.clientWidth + 'px viewport');
+	const describe = (node) => {
+		const id = node.getAttribute('data-testid') ?? node.getAttribute('aria-label') ?? (node.textContent ?? '').trim().slice(0, 40);
+		return node.tagName.toLowerCase() + (id ? '[' + id + ']' : '');
+	};
+	const visible = (node) => {
+		const rect = node.getBoundingClientRect();
+		const style = getComputedStyle(node);
+		return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+	};
+	for (const node of document.querySelectorAll('button, [role=button], [role=menuitem], [role=option], [role=tab]')) {
+		if (!visible(node) || node.closest('[data-narrow-audit=skip]')) continue;
+		const rect = node.getBoundingClientRect();
+		const shorter = Math.min(rect.width, rect.height);
+		if (shorter < 43) findings.push(describe(node) + ' is ' + Math.round(rect.width) + 'x' + Math.round(rect.height) + 'px, under the 44px thumb target');
+	}
+	for (const node of document.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]), textarea, select')) {
+		if (!visible(node)) continue;
+		const size = parseFloat(getComputedStyle(node).fontSize);
+		if (size < 16) findings.push(describe(node) + ' text is ' + size + 'px; iOS zooms the page on focus under 16px');
+	}
+	return JSON.stringify(findings);
+})()`;
+
+export const auditNarrow = async (page: HeadedPage, label: string): Promise<readonly string[]> =>
+	(JSON.parse(String(await page.evaluate(NARROW_AUDIT))) as string[]).map(
+		(finding) => `${label}: ${finding}`
+	);
 
 /**
  * Boxes that clip on purpose and hide nothing anyone needs to reach.

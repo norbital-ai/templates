@@ -7,6 +7,28 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { orderSchemes, producedMentions } from '../src/collections/payroll_runs/lib/mentions.ts';
 
+test('ordinary bases and conditional requirements participate in dependency ordering', () => {
+	for (const extra of [
+		{ ordinary_on: 'produced.Z.employee' },
+		{ elections: [{ required_when: 'produced.Z.base > 0.0' }] }
+	]) {
+		const consumer = { row: { code: 'A', rules: [], ...extra } };
+		assert.deepEqual(
+			orderSchemes([consumer, { row: { code: 'Z', rules: [] } }]).map((entry) => entry.row.code),
+			['Z', 'A']
+		);
+		assert.throws(() => orderSchemes([consumer]), /Z is not a statutory scheme/);
+		assert.throws(
+			() =>
+				orderSchemes([
+					consumer,
+					{ row: { code: 'Z', rules: [], ordinary_on: 'produced.A.employee' } }
+				]),
+			/loop/
+		);
+	}
+});
+
 test('a mention is read from the expression AST, not the raw text', () => {
 	const rules = [
 		{ when: 'base > 0.0', employee: 'produced.EPF.employee * 0.0', employer: '0.0' },

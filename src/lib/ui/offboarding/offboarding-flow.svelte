@@ -20,6 +20,7 @@
 	import { dateKey } from '../../iso-day.js';
 	import { endOfDayInstant, todayKey } from '../calendar.js';
 	import FormSection from '../form-section.svelte';
+	import ExitFactsRenderer from './exit-facts-renderer.svelte';
 
 	type ExitReason = NonNullable<WorkspaceRow<'employments'>['exit_reason']>;
 	const EXIT_REASONS: readonly ExitReason[] = [
@@ -52,6 +53,7 @@
 	let lastDay = $state(todayKey());
 	let exitReason = $state<ExitReason | ''>('');
 	let note = $state('');
+	let exitFacts = $state<NonNullable<WorkspaceRow<'employments'>['exit_facts']>>({});
 	let stepError = $state<string | null>(null);
 	let submitting = $state(false);
 
@@ -98,6 +100,19 @@
 				></label
 			>
 			<p class="text-meta">{t('offboarding.leave_hint')}</p>
+			<FormSection title={t('component.exit_facts')} hint={t('component.exit_facts_hint')}>
+				<ExitFactsRenderer
+					mode="edit"
+					field={{ name: 'exit_facts', type: 'entity_facts' }}
+					value={exitFacts}
+					disabled={submitting}
+					companyId={employment.company_id}
+					lastDay={lastDay || null}
+					onValueChange={(value) => {
+						exitFacts = value ?? {};
+					}}
+				/>
+			</FormSection>
 		</Stack>
 	</FormSection>
 	{#if stepError}<p class="text-sm text-destructive" role="alert">{stepError}</p>{/if}
@@ -120,6 +135,7 @@
 								end: endOfDayInstant(lastDay)
 							},
 							exit_reason: exitReason === '' ? null : exitReason,
+							exit_facts: exitFacts,
 							comments: note.trim() === '' ? null : note.trim()
 						})
 					).pipe(

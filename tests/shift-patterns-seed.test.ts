@@ -64,8 +64,9 @@ test('the manifest covers current source collections and stages consumers after 
 				existsSync(new URL(`../src/collections/${entry.name}/+model.ts`, import.meta.url))
 		)
 		.map((entry) => entry.name);
-	// Payroll output is calculated, never seeded: the runs and their slips.
-	const unseededPayrollCollections = ['payroll_runs', 'payslips'];
+	// Payroll output is calculated, never seeded: the runs, their slips and the wage history
+	// they pin.
+	const unseededPayrollCollections = ['payroll_runs', 'payslips', 'payslip_wage_periods'];
 	assert.equal(manifest.counts.collections, collections.length);
 	for (const name of unseededPayrollCollections) assert.ok(collections.includes(name), name);
 	assert.equal(new Set(seeded).size, seeded.length, 'a collection must be seeded only once');

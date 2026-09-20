@@ -180,6 +180,61 @@ test('a run with no payslips answers a manifest with nothing in it', async () =>
 	assert.deepEqual(manifest, [], 'no payslips is no artefacts, not a file with a header in it');
 });
 
+test('zero cash pay retains the contribution shortfall in reports and has no bank payment', async () => {
+	const { world, run } = await januaryWorld({ bank: true });
+	Object.assign(world.payslips[0], {
+		gross: 0,
+		total_deductions: 150,
+		net: 0,
+		unfunded_contributions: 150
+	});
+	const byKind = assertManifestShape(await exportRuns(world, [run]));
+	const bank = byKind.get('bank-files');
+	assert.equal(bank?.metadata.included_payslips ?? 0, 0);
+	assert.equal(bank?.metadata.skipped_payslips ?? 0, 0);
+	assert.match(
+		String(byKind.get('payslip-pdfs').attachments[0].content),
+		/Contribution shortfall: 150.00/
+	);
+	Object.assign(world.payslips[0], {
+		funding_received: 100,
+		funding_received_on: '2026-01-31',
+		funding_reference: 'RECEIPT-1'
+	});
+	const funded = assertManifestShape(await exportRuns(world, [run]));
+	const pdf = String(funded.get('payslip-pdfs').attachments[0].content);
+	assert.match(pdf, /Funding received: 100.00/);
+	assert.match(pdf, /Funding outstanding: 50.00/);
+});
+
+test('later bank payments require earlier contribution shortfalls to be funded by the payment date', async () => {
+	const first = await januaryWorld({ bank: true });
+	for (const stored of first.world.payroll_runs) stored.lifecycle = 'PAID';
+	const second = await januaryWorld({
+		bank: true,
+		period: '2026-02',
+		runId: 'run:2026-02',
+		world: first.world
+	});
+	const earlier = first.world.payslips.find((row) => row.payroll_run_id === first.run.id);
+	Object.assign(earlier, { net: 0, unfunded_contributions: 150, funding_received: 0 });
+	await assert.rejects(exportRuns(first.world, [second.run]), /2026-01.*contribution funding/);
+	Object.assign(earlier, {
+		funding_received: 149,
+		funding_received_on: '2026-02-27',
+		funding_reference: 'RECEIPT-1'
+	});
+	await assert.rejects(exportRuns(first.world, [second.run]), /2026-01.*contribution funding/);
+	Object.assign(earlier, { funding_received: 150, funding_received_on: '2026-03-01' });
+	await assert.rejects(exportRuns(first.world, [second.run]), /2026-01.*contribution funding/);
+	earlier.funding_received_on = '2026-02-28';
+	const manifest = await exportRuns(first.world, [second.run]);
+	assert.equal(
+		manifest.find((action) => action.metadata.kind === 'bank-files').metadata.included_payslips,
+		1
+	);
+});
+
 test('two runs selected together export as two sets, each named by its own period', async () => {
 	// The bulk case the collection's action bar actually sends: `records` is whatever the operator
 	// ticked. Every test above passes one run, so a manifest that collapsed two runs into one set —

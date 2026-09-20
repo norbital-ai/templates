@@ -4,6 +4,7 @@ import {
 	hrLeaveEntryGrant,
 	mergeGrants,
 	payrollGrants,
+	payslipPaymentGrants,
 	payrollRunCascadeGrants,
 	payrollRunGrants,
 	peopleGrants,
@@ -93,6 +94,7 @@ export default {
 		// The payroll authority, identical to `hr_manager`'s. Stated as the same builder calls so
 		// that a change to what "running payroll" costs in permissions lands on both policies at once.
 		payrollGrants('read'),
+		payslipPaymentGrants(),
 		// Deleting a run cascades as this person: delete on what the run owns, nothing else.
 		payrollRunCascadeGrants(),
 		payrollRunGrants()

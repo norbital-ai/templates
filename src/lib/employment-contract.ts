@@ -247,12 +247,19 @@ export function serviceStart(employment: { readonly effective_range: StoredRange
 export function stint(employment: {
 	readonly effective_range: StoredRange | null;
 	readonly exit_reason?: string | null;
-}): { service_start: string; exit_date: string | null; exit_reason: string | null } {
+	readonly exit_facts?: Readonly<Record<string, string | number | boolean>> | null;
+}): {
+	service_start: string;
+	exit_date: string | null;
+	exit_reason: string | null;
+	exit_facts: Readonly<Record<string, string | number | boolean>>;
+} {
 	const end = employment.effective_range?.end;
 	return {
 		service_start: serviceStart(employment),
 		exit_date: end == null ? null : dateKey(end),
-		exit_reason: employment.exit_reason ?? null
+		exit_reason: employment.exit_reason ?? null,
+		exit_facts: employment.exit_facts ?? {}
 	};
 }
 

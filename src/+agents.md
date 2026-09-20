@@ -24,19 +24,22 @@ corresponding tool result is present.** Keep final answers concise.
   nothing was worked. **Overtime is derived from these intervals and the settings version's work
   rules — it is never a component somebody sets.** If asked to "add overtime", say that overtime
   follows the work days and the work rules, and ask what the day should say.
-- A **claim request** or **allowance request** is one employee-specific monetary fact: a claim,
-  a standing allowance, a bonus, an arrears settlement or an HR manual correction. `amount` is
-  always a positive magnitude, and direction comes from the referenced catalogue row.
+- A **claim request** is an expense reimbursement or recovery. An **ad hoc request** is a one-time
+  bonus, back-pay item, separation payment or correction. `amount` is a positive magnitude;
+  destination and direction come from the referenced catalogue row.
+- **Recurring allowances** are monthly amounts on `employment_terms.allowances`. Payroll derives
+  their period amounts from the effective contract terms; there is no `allowance_requests` or
+  `allowance_entries` collection.
 - A **loan** is the agreement; a **loan repayment** is one amount due under it. Payroll consumes
   repayment rows, never the loan master.
 - A **payroll run** covers a period and produces payslips. A run that exists asserts that a period
   was calculated, so a run without payslips under it is a refused or failed build, not a calculated
   payroll.
 - **Consumption is an exact stored link, not a date inference.** Every entry — a `work_days` row,
-  a claim or allowance request, a leave entry, a loan repayment — is consumed when its own
+  a claim or ad hoc request, a leave entry, a loan repayment — is consumed when its own
   nullable `payslip_id` names the payslip that settled it, and the payslip's run names the period.
-  A recurring allowance materialises one per-period row per payslip, each with its own pin; a
-  leave entry and a loan repayment are consumed whole by one payslip. A link with no monetary
+  A recurring allowance is calculated from effective terms. A leave entry and a loan repayment
+  are consumed whole by one payslip. A link with no monetary
   output still counts: it says the run read the source and priced it at nothing, and the record is
   frozen just the same. Approval and a past date do not prove consumption.
 
@@ -51,3 +54,7 @@ corresponding tool result is present.** Keep final answers concise.
 - When asked what consumed a source record, read its own `payslip_id`, then the run that payslip
   belongs to. If `payslip_id` is null, say it is not linked; never guess from a nearby run window.
 - Never quote a figure for a person whose record the tools did not return.
+- A sealed configuration or passing calculation does not establish complete legal compliance.
+  Drift detection covers contribution rules and leave entitlements; other statutory requirements
+  need separate review. Exit automation submits leave days for approval, not a verified cash value
+  or proof of timely final payment. Keep unresolved valuation and settlement requirements visible.

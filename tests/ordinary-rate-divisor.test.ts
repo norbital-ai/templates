@@ -26,16 +26,18 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
 	ordinaryDayWage,
+	ordinaryHourlyRate,
 	ordinaryDivisorDays,
 	type RateTerms
 } from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { settingsVersions } from './fixtures/statutory-world.ts';
 
 /** The Philippine Work as the bank seeds it, not a fixture invented here. */
 const PH_WORK = (
 	JSON.parse(
 		readFileSync(
-			fileURLToPath(new URL('fixtures/statutory/PH/jurisdiction_settings.json', import.meta.url)),
+			fileURLToPath(new URL('../seed/jurisdiction/PH/jurisdiction_settings.json', import.meta.url)),
 			'utf8'
 		)
 	)[0] as { work_rules: { ordinary_divisor_days: string } }
@@ -101,16 +103,16 @@ test('a six-day Philippine week is priced over 313/12, chosen by the Work', () =
 });
 
 test('a five-day week keeps 261/12, and forty hours is not more than forty', () => {
-	assert.deepEqual(dayWageOf(40, 5), { divisor: 261 / 12, wage: 719.54 });
+	assert.deepEqual(dayWageOf(40, 5), { divisor: 261 / 12, wage: 15_650 / (261 / 12) });
 	// Four long days is still forty hours: the predicate reads the week, not the day.
-	assert.deepEqual(dayWageOf(40, 4), { divisor: 261 / 12, wage: 719.54 });
+	assert.deepEqual(dayWageOf(40, 4), { divisor: 261 / 12, wage: 15_650 / (261 / 12) });
 });
 
 test('a monthly-paid employee keeps 365/12, whatever their roster', () => {
 	// They are paid for all 365 days, so the 261-against-313 question is not theirs. The bank
 	// rosters one of them on the six-day pattern, so the ordering of the rows is load-bearing.
-	assert.deepEqual(dayWageOf(48, 6, 'MONTHLY'), { divisor: 365 / 12, wage: 514.52 });
-	assert.deepEqual(dayWageOf(40, 5, 'MONTHLY'), { divisor: 365 / 12, wage: 514.52 });
+	assert.deepEqual(dayWageOf(48, 6, 'MONTHLY'), { divisor: 365 / 12, wage: 15_650 / (365 / 12) });
+	assert.deepEqual(dayWageOf(40, 5, 'MONTHLY'), { divisor: 365 / 12, wage: 15_650 / (365 / 12) });
 });
 
 test('the Work states every week shape it rosters, so no person falls through', () => {
@@ -119,3 +121,28 @@ test('the Work states every week shape it rosters, so no person falls through', 
 	assert.match(PH_WORK.ordinary_divisor_days, /: \(261\.0 \/ 12\.0\)$/);
 	assert.doesNotThrow(() => dayWageOf(0, 0, ''));
 });
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code}: weekly ordinary pay retains monthly allowance units (EA 60I)`, () => {
+		const original = person(40, 5);
+		const subject = {
+			...original,
+			terms: {
+				...original.terms,
+				basic_salary: 601,
+				monthly_wage: 861,
+				fixed_allowances: 260,
+				pay_frequency: 'WEEKLY'
+			}
+		};
+		const weekly = { ...terms(40, 5, 601), pay_frequency: 'WEEKLY' as const };
+		for (const version of settingsVersions(code)) {
+			const divisor = ordinaryDivisorDays({
+				expression: version.work_rules.ordinary_divisor_days,
+				person: subject
+			});
+			// Weekly basic 601 / 6 plus monthly normal-hours allowance 260 / 26.
+			assert.ok(Math.abs(ordinaryDayWage(weekly, divisor) - (601 / 6 + 10)) < 1e-10);
+			assert.ok(Math.abs(ordinaryHourlyRate(weekly, divisor) - (601 / 6 + 10) / 8) < 1e-10);
+		}
+	});

@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * A synthetic payroll world bound to one **sealed lineage of the seed bank**, snapshotted into
- * `tests/fixtures/statutory/<CODE>/` by `scripts/refresh-statutory-fixtures.mjs`.
+ * A synthetic payroll world bound to one **sealed lineage of the template's public seed** at
+ * `seed/jurisdiction/<CODE>/` — the same files the reset pipeline loads into a workspace.
  *
  * The point is to price a real statute rather than an invented one: the settings versions, the
  * contribution schemes with their published band tables, the work regime and its treatment grid are
@@ -25,14 +25,16 @@ import type { PayslipProration } from '../../src/datatypes/payslip_proration/+de
 import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
+/** The template's public seed: the jurisdiction law the reset pipeline loads, read in place. */
+const jurisdictionRoot = resolve(here, '../../seed/jurisdiction');
 
 /**
- * Every lineage snapshotted under `tests/fixtures/statutory/`, read from the directory.
+ * Every lineage under `seed/jurisdiction/`, read from the directory.
  *
- * Listing them by hand means a lineage added to the bank is silently absent from every test that
- * iterates them — the golden files would still pass, having never been asked about it.
+ * Listing them by hand means a lineage added to the public seed is silently absent from every test
+ * that iterates them — the golden files would still pass, having never been asked about it.
  */
-export const LINEAGES = readdirSync(resolve(here, 'statutory'), { withFileTypes: true })
+export const LINEAGES = readdirSync(jurisdictionRoot, { withFileTypes: true })
 	.filter((entry) => entry.isDirectory())
 	.map((entry) => entry.name)
 	.sort() as readonly Lineage[];
@@ -40,7 +42,7 @@ export const LINEAGES = readdirSync(resolve(here, 'statutory'), { withFileTypes:
 export type Lineage = 'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID';
 
 function law(code: Lineage, file: string, options?: { optional: true }): any[] {
-	return readLawFile(resolve(here, 'statutory', code, file), options);
+	return readLawFile(resolve(jurisdictionRoot, code, file), options);
 }
 
 export const settingsVersions = (code: Lineage) => law(code, 'jurisdiction_settings');
@@ -104,14 +106,32 @@ export type Person = {
 			string,
 			{
 				readonly kind: string;
+				/** Force the declaration person-wide or bind it to this synthetic employment. */
+				readonly scope?: 'EMPLOYMENT' | 'PERSON';
 				readonly rate_override?: number | null;
+				readonly first_contribution_due_on?: string | null;
 				readonly elections?: Readonly<Record<string, boolean | number | string>>;
+				readonly deduction_claims?: ReadonlyArray<{
+					period: string;
+					category: string;
+					amount: number;
+					source: 'EMPLOYEE' | 'PRIOR_EMPLOYER';
+					reference: string;
+				}>;
+				readonly child_claims?: ReadonlyArray<{
+					readonly year: string;
+					readonly relief_class: string;
+					readonly full_count: number;
+					readonly half_count: number;
+					readonly reference: string;
+				}>;
 				/** An earlier employer's figures for a tax year (MY TP3, PH 2316). */
 				readonly opening?: ReadonlyArray<{
 					readonly year: string;
 					readonly base: number;
 					readonly employee: number;
 					readonly employer: number;
+					readonly rebate?: number;
 					readonly ordinary?: number | null;
 					readonly months?: number | null;
 					readonly reference: string;
@@ -248,7 +268,13 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		residency_status: person.citizenship ?? null,
 		residency_since: person.residency_since ?? null,
 		pass_type: person.pass_type ?? null,
-		tax_residency: person.tax_residency ?? null,
+		// Synthetic golden cases declare tax residence. Explicit null tests missing declarations.
+		tax_residency:
+			person.tax_residency === undefined && (code === 'MY' || code === 'MY-nihon' || code === 'TW')
+				? code === 'TW' && person.citizenship === 'FOREIGNER'
+					? 'NON_RESIDENT'
+					: 'RESIDENT'
+				: (person.tax_residency ?? null),
 		notice_days: null,
 		department: null,
 		job_title: 'Fixture',
@@ -263,22 +289,108 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	// a registered employment is charged and a NOT_REGISTERED case is a deliberate override rather
 	// than an absence of data.
 	const facts: PayrollWorld['employment_statutory_facts'] = [];
+	const taiwanVersion =
+		code === 'TW'
+			? versions.find(
+					(version) =>
+						String(version.effective_range.start).slice(0, 7) <= period.slice(0, 7) &&
+						(version.effective_range.end == null ||
+							String(version.effective_range.end).slice(0, 10) > `${period.slice(0, 7)}-01`)
+				)
+			: null;
+	// Synthetic initial declarations use the published grade choices. Tests of changed pay,
+	// variable wages or insurer notices must change the dated declaration independently.
+	const taiwanInsuredAmount = (person: Person, schemeCode: string): number | undefined => {
+		if (taiwanVersion == null) return undefined;
+		const scheme = schemes.find(
+			(row) => row.code === schemeCode && row.settings_id === taiwanVersion.id
+		);
+		const choices = scheme?.elections.find((field) => field.key === 'insured_amount')?.options;
+		if (choices == null) return undefined;
+		const floor = taiwanVersion.work_rules.wages.by_region.Taiwan;
+		const lowerGrades =
+			person.employment_type === 'PART_TIME' &&
+			['LI', 'EI', 'LABOR_PENSION', 'WAGE_ARREARS_BASE'].includes(schemeCode);
+		const grades = choices.filter(
+			(amount) =>
+				// 115年度 replaces the 28,800 grade with 29,500; lower part-time grades remain.
+				(period.slice(0, 7) < '2026-01' ? amount !== 29500 : amount !== 28800) &&
+				(lowerGrades || amount >= floor)
+		);
+		const monthly =
+			person.wage *
+			(person.pay_frequency === 'HOURLY'
+				? 240
+				: person.pay_frequency === 'DAILY'
+					? 30
+					: person.pay_frequency === 'WEEKLY'
+						? 6
+						: 1);
+		return grades.find((amount) => amount >= monthly) ?? grades.at(-1);
+	};
 	for (const [index, person] of people.entries())
 		for (const scheme of schemes) {
 			const declared = person.registrations?.[scheme.code];
+			const insuredAmount = taiwanInsuredAmount(person, scheme.code);
+			const employmentScoped =
+				declared?.scope === 'EMPLOYMENT' ||
+				(declared?.scope !== 'PERSON' &&
+					scheme.elections.some(
+						(field) =>
+							field.scope === 'EMPLOYMENT' && Object.hasOwn(declared?.elections ?? {}, field.key)
+					));
+			const [birthYear, birthMonth, birthDay] =
+				employees[index]!.date_of_birth.split('-').map(Number);
+			const adult = new Date(Date.UTC(birthYear! + 18, birthMonth! - 1, birthDay!))
+				.toISOString()
+				.slice(0, 10);
+			const firstDue =
+				scheme.code === 'EIS'
+					? [person.hire_date ?? '2015-01-01', '2018-01-01', adult].sort().at(-1)!
+					: (person.hire_date ?? '2015-01-01');
 			facts.push({
 				id: `f-${index}-${scheme.id}`,
 				employee_id: employees[index]!.id,
+				employment_id: employmentScoped ? employmentIds[index]! : null,
 				statutory_contribution_id: scheme.id,
 				status: {
 					kind: declared?.kind ?? 'REGISTERED',
 					reference_number: 'FIXTURE',
 					rate_override: declared?.rate_override ?? null,
-					elections: declared?.elections ?? {},
+					elections: {
+						...(insuredAmount == null ? {} : { insured_amount: insuredAmount }),
+						// Synthetic unpaid-leave cases explicitly state whether continuation was agreed.
+						...(code === 'VN' && scheme.code === 'SI' ? { continue_si_unpaid: false } : {}),
+						// Synthetic Taiwan table cases have an explicit withholding declaration.
+						// Production family records alone do not establish this exemption count.
+						...(code === 'TW' && scheme.code === 'INCOME_TAX'
+							? {
+									table_declaration_reference: 'FIXTURE-TABLE-DECLARATION',
+									table_dependants:
+										(person.children ?? 0) + (person.spouse_status === 'WITHOUT_INCOME' ? 1 : 0)
+								}
+							: {}),
+						...(code === 'TW' && scheme.code === 'NHI'
+							? {
+									enrolled_dependants:
+										(person.children ?? 0) + (person.spouse_status === 'WITHOUT_INCOME' ? 1 : 0)
+								}
+							: {}),
+						...declared?.elections
+					},
+					...(declared?.deduction_claims == null
+						? {}
+						: { deduction_claims: declared.deduction_claims }),
+					...(declared?.child_claims == null ? {} : { child_claims: declared.child_claims }),
 					...(declared?.opening == null ? {} : { opening: declared.opening }),
-					// The employment's first day is its registration day: registration history, not
-					// current age, is what the seniority limbs read.
+					// Synthetic registration and liability dates remain independent inputs.
 					since: person.hire_date ?? '2015-01-01',
+					first_contribution_due_on:
+						declared?.first_contribution_due_on === undefined
+							? firstDue > monthEnd(period)
+								? null
+								: firstDue
+							: declared.first_contribution_due_on,
 					reason: ''
 				},
 				effective_range: RANGE,
@@ -536,6 +648,7 @@ export function buildStatutory(
 	readonly warnings: readonly string[];
 	/** The entity's own levies, charged once on the run: `[base, employer]` by scheme code. */
 	readonly companyCharges: Map<string, readonly [number, number]>;
+	readonly trace: ReturnType<typeof buildPayrollRun>['calculation_trace'];
 } {
 	const world = createStatutoryWorld(options);
 	prepareWorld?.(world, options.period);
@@ -556,6 +669,7 @@ export function buildStatutory(
 	);
 	return {
 		slips,
+		trace: built.calculation_trace,
 		allowances: new Map(
 			[...slips].map(([key, slip]) => [
 				key,

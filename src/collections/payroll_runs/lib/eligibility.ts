@@ -30,7 +30,12 @@ import {
 	childUnder
 } from '../../../lib/expressions/child-under.js';
 import { roundMoney } from './rounding.js';
-import { ageMonthsOn, ageOn, leaveTaken } from '../../../lib/expressions/person-functions.js';
+import {
+	ageMonthsOn,
+	ageOn,
+	birthday,
+	leaveTaken
+} from '../../../lib/expressions/person-functions.js';
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
 export type PersonContext = {
@@ -81,6 +86,8 @@ export type PersonContext = {
 		readonly contract_months: number;
 		/** `employments.exit_reason`, or empty while the stint is open or unrecorded. */
 		readonly exit_reason: string;
+		readonly exit_facts: Readonly<Record<string, string | number | boolean>>;
+		readonly exit_fact_keys: readonly string[];
 		/**
 		 * Rostered working days with an empty punch — absent without leave — in the twelve months
 		 * to the rule date, where the caller counted them (the leave context does; payroll reads 0).
@@ -117,8 +124,10 @@ export type PersonContext = {
 		readonly pay_frequency: string;
 		/** The foreigner's work pass (`employment_terms.pass_type`), or empty. */
 		readonly pass_type: string;
-		/** `RESIDENT` | `NON_RESIDENT` where declared on the contract, else empty: citizenship decides. */
+		/** `RESIDENT` | `NON_RESIDENT` where declared on the contract, else empty for the scheme's statutory default. */
 		readonly tax_residency: string;
+		/** The date residency began, or empty when unrecorded. */
+		readonly residency_since: string;
 		/** Notice days the contract states, 0 when none. */
 		readonly notice_days: number;
 		/**
@@ -162,7 +171,13 @@ export type PersonContext = {
 	 */
 	readonly wage_floor: number;
 	/** The pay month, where a rate divisor turns on it; zero outside payroll. */
-	readonly period: { readonly working_days: number; readonly unpaid_days: number };
+	readonly period: {
+		readonly working_days: number;
+		readonly unpaid_days: number;
+		readonly unpaid_full_days: number;
+		readonly leave_full_days: Readonly<Record<string, number>>;
+		readonly leave_days: Readonly<Record<string, number>>;
+	};
 	/**
 	 * The employment's statutory facts by scheme code, where the caller supplied them: whether it
 	 * is registered and for how many completed months. A leave rule that turns on insurance years
@@ -171,7 +186,13 @@ export type PersonContext = {
 	readonly facts: Readonly<
 		Record<
 			string,
-			{ readonly registered: boolean; readonly since: string; readonly since_months: number }
+			{
+				readonly registered: boolean;
+				readonly since: string;
+				readonly since_months: number;
+				readonly elections: Readonly<Record<string, string | number | boolean>>;
+				readonly election_keys: readonly string[];
+			}
 		>
 	>;
 	/**
@@ -213,6 +234,7 @@ export type PersonInput = {
 		readonly service_start: string;
 		readonly exit_date?: string | null;
 		readonly exit_reason?: string | null;
+		readonly exit_facts?: Readonly<Record<string, string | number | boolean>> | null;
 		/** The entity's statutory risk class, where a regime prices one. */
 		readonly risk_class?: string | null;
 		/** Unauthorised absences in the twelve months to `asOf`, where counted. */
@@ -260,6 +282,9 @@ export type PersonInput = {
 	readonly period?: {
 		readonly working_days?: number | null;
 		readonly unpaid_days?: number | null;
+		readonly unpaid_full_days?: number | null;
+		readonly leave_full_days?: Readonly<Record<string, number>> | null;
+		readonly leave_days?: Readonly<Record<string, number>> | null;
 	} | null;
 	readonly children?: ReadonlyArray<{
 		readonly child_birthdate: string;
@@ -273,6 +298,8 @@ export type PersonInput = {
 		readonly code: string;
 		readonly registered: boolean;
 		readonly since?: string | null;
+		readonly elections?: Readonly<Record<string, string | number | boolean>>;
+		readonly election_keys?: readonly string[];
 	}> | null;
 	/** The event one per-event entry answers to; absent reads as none. */
 	readonly event?: {
@@ -390,6 +417,8 @@ export function personContext(input: PersonInput): PersonContext {
 			contract_months:
 				exit === '' || start === '' || exit < start ? 0 : completedMonths(start, addDays(exit, 1)),
 			exit_reason: input.employment.exit_reason ?? '',
+			exit_facts: input.employment.exit_facts ?? {},
+			exit_fact_keys: Object.keys(input.employment.exit_facts ?? {}),
 			absent_days_12m: decodeNumber(input.employment.absent_days_12m ?? 0)
 		},
 		terms: {
@@ -412,6 +441,7 @@ export function personContext(input: PersonInput): PersonContext {
 			pay_frequency: input.terms?.pay_frequency ?? '',
 			pass_type: input.terms?.pass_type ?? '',
 			tax_residency: input.terms?.tax_residency ?? '',
+			residency_since: residency,
 			notice_days: decodeNumber(input.terms?.notice_days ?? 0),
 			ordinary_hours_per_week: input.week?.ordinary_hours_per_week ?? 0,
 			working_days_per_week: input.week?.working_days_per_week ?? 0
@@ -438,7 +468,10 @@ export function personContext(input: PersonInput): PersonContext {
 		wage_floor: decodeNumber(input.wageFloor ?? 0),
 		period: {
 			working_days: decodeNumber(input.period?.working_days ?? 0),
-			unpaid_days: decodeNumber(input.period?.unpaid_days ?? 0)
+			unpaid_days: decodeNumber(input.period?.unpaid_days ?? 0),
+			unpaid_full_days: decodeNumber(input.period?.unpaid_full_days ?? 0),
+			leave_full_days: input.period?.leave_full_days ?? {},
+			leave_days: input.period?.leave_days ?? {}
 		},
 		event: {
 			kind: input.event?.kind ?? '',
@@ -459,7 +492,9 @@ export function personContext(input: PersonInput): PersonContext {
 						registered: fact.registered,
 						since,
 						since_months:
-							since === '' || since > input.asOf ? 0 : completedMonths(since, input.asOf)
+							since === '' || since > input.asOf ? 0 : completedMonths(since, input.asOf),
+						elections: fact.elections ?? {},
+						election_keys: fact.election_keys ?? Object.keys(fact.elections ?? {})
 					}
 				];
 			})
@@ -488,6 +523,7 @@ const engine = ROUNDING.reduce(
 		.registerFunction('classed', 'map.classed(string): int', childClassed)
 		.registerFunction('unclassed_under', 'map.unclassed_under(int): int', childUnclassedUnder)
 		.registerFunction('born_on', 'map.born_on(string): int', childBornOn)
+		.registerFunction('birthday', 'map.birthday(int): string', birthday)
 		.registerFunction('age_on', 'map.age_on(string): int', ageOn)
 		.registerFunction('age_months_on', 'map.age_months_on(string): int', ageMonthsOn)
 		.registerFunction('taken', 'map.taken(string): double', leaveTaken)

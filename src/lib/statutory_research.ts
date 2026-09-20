@@ -3,7 +3,10 @@ import { getErrorMessage } from '@norbital-ai/std';
 import { sha256Text } from '@norbital-ai/std/reckon';
 import { Cause, Clock, Effect, Exit, Schema } from 'effect';
 import { contributionRuleSchema } from '../datatypes/contribution_rules/+definition.js';
+import { codeListValueSchema } from '../datatypes/code_list/+definition.js';
+import { factKeySchema, type FactKey } from '../datatypes/fact_keys/+definition.js';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
+import { workRulesValueSchema, type WorkRules } from '../datatypes/work_rules/+definition.js';
 import { stableJson } from './jurisdiction_settings.js';
 
 /** One research URL that could not be read, with the page reader's reason. */
@@ -16,15 +19,56 @@ type UnreachableSource = Schema.Schema.Type<typeof unreachableSourceSchema>;
 
 /** One row the drift check found changed, and the page it stands on. */
 const statutoryProposalChangeSchema = Schema.Struct({
-	collection: Schema.Literals(['statutory_contributions', 'leave_catalogue']),
+	collection: Schema.Literals([
+		'jurisdiction_settings',
+		'statutory_contributions',
+		'leave_catalogue'
+	]),
 	code: Schema.NonEmptyString,
-	field: Schema.Literals(['rules', 'entitlement']),
+	field: Schema.Literals([
+		'facts',
+		'exit_facts',
+		'proration',
+		'proration_by',
+		'ordinary_divisor_days',
+		'encashment',
+		'overtime_when',
+		'normal_hours',
+		'rate_week_hours',
+		'bands',
+		'limits',
+		'breaks',
+		'wages',
+		'authority',
+		'night_premium',
+		'holiday_rest_precedence',
+		'rules',
+		'assessment_period',
+		'assessment_scope',
+		'elections',
+		'employee_share_annual_cap',
+		'shared_cap_group',
+		'project_relief_annually',
+		'assessed_on',
+		'parts',
+		'ordinary_on',
+		'entitlement',
+		'eligibility',
+		'is_npl',
+		'pay_fraction',
+		'paid_by',
+		'consumes_code',
+		'unit',
+		'can_encash',
+		'encash_on_exit'
+	]),
 	previous: Schema.Unknown,
 	proposed: Schema.Unknown,
 	source_url: Schema.NonEmptyString,
 	quote: Schema.NonEmptyString,
 	retrieved_at: Schema.String,
-	sha256: Schema.String
+	sha256: Schema.String,
+	effective_from: Schema.String
 });
 export type StatutoryProposalChange = Schema.Schema.Type<typeof statutoryProposalChangeSchema>;
 
@@ -45,7 +89,7 @@ export type StatutoryProposal = Schema.Schema.Type<typeof statutoryProposalValue
  * they state with the statutory rows the version sealed.
  *
  * Everything here is either pure or a bounded page read through the runtime's own reader. The
- * model is asked one question per lineage, with `read_official_page` as its only tool, and the
+ * model browses official sources for one lineage, and the
  * answer is decoded to `StatutoryFindingsSchema`: the official rule table of each scheme, the
  * official entitlement of each leave, each with the page and quote it stands on. `diffStatutoryFindings` then decides what changed; the
  * model never does.
@@ -152,9 +196,10 @@ const unreachableReason = (cause: Cause.Cause<unknown>): string => {
 /** One sentence for a run's history: how many sources answered, and which did not and why. */
 export const describeSourcesRead = (
 	named: number,
-	unreachable: ReadonlyArray<UnreachableSource>
+	unreachable: ReadonlyArray<UnreachableSource>,
+	readCount = Math.max(0, named - unreachable.length)
 ): string => {
-	const read = `${named - unreachable.length} of ${named} sources read`;
+	const read = `${readCount} of ${named} sources read`;
 	if (unreachable.length === 0) return `${read}.`;
 	return `${read}; unreachable: ${unreachable
 		.map((source) => `${source.url} (${source.reason})`)
@@ -197,8 +242,40 @@ const evidence = {
 	/** The exact URL of a page that was given or opened. */
 	source_url: Schema.NonEmptyString,
 	/** A short passage copied exactly from that page, which the automation verifies. */
-	quote: Schema.NonEmptyString
+	quote: Schema.NonEmptyString,
+	/** The instrument's commencement date, not the research or publication date. Null if unknown. */
+	effective_from: Schema.NullOr(Schema.String)
 } as const;
+
+const declarationFindingSchema = Schema.Struct({
+	key: Schema.NonEmptyString,
+	proposed: factKeySchema,
+	...evidence
+});
+
+const contributionConfigurationValueSchema = Schema.Struct({
+	assessment_period: Schema.Literals(['PAY_PERIOD', 'MONTH']),
+	assessment_scope: Schema.Literals(['EMPLOYMENT', 'COMPANY']),
+	employee_share_annual_cap: Schema.NullOr(Schema.Int),
+	shared_cap_group: Schema.NullOr(Schema.String),
+	project_relief_annually: Schema.Boolean,
+	assessed_on: Schema.String,
+	parts: codeListValueSchema,
+	ordinary_on: Schema.String
+});
+type ContributionConfiguration = Schema.Schema.Type<typeof contributionConfigurationValueSchema>;
+
+const leaveConfigurationValueSchema = Schema.Struct({
+	eligibility: Schema.String,
+	is_npl: Schema.Boolean,
+	pay_fraction: Schema.String,
+	paid_by: Schema.Literals(['EMPLOYER', 'FUND']),
+	consumes_code: Schema.NullOr(Schema.String),
+	unit: Schema.Literals(['DAY', 'HOUR']),
+	can_encash: Schema.Boolean,
+	encash_on_exit: Schema.Boolean
+});
+type LeaveConfiguration = Schema.Schema.Type<typeof leaveConfigurationValueSchema>;
 
 export { contributionRuleSchema };
 
@@ -208,12 +285,132 @@ export { contributionRuleSchema };
  * guessed. A scheme names only the rules that differ from the sealed row, never the whole table.
  */
 export const StatutoryFindingsSchema = Schema.Struct({
+	jurisdiction_settings: Schema.optionalKey(
+		Schema.Struct({
+			facts: Schema.optionalKey(Schema.Array(declarationFindingSchema)),
+			exit_facts: Schema.optionalKey(Schema.Array(declarationFindingSchema)),
+			work_rules: Schema.optionalKey(
+				Schema.Struct({
+					proration: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.proration, ...evidence })
+					),
+					proration_by: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.proration_by, ...evidence })
+					),
+					ordinary_divisor_days: Schema.optionalKey(
+						Schema.Struct({
+							proposed: workRulesValueSchema.fields.ordinary_divisor_days,
+							...evidence
+						})
+					),
+					ordinary_rate_reference: Schema.optionalKey(
+						Schema.Struct({
+							proposed: workRulesValueSchema.fields.ordinary_rate_reference,
+							...evidence
+						})
+					),
+					encashment: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.encashment, ...evidence })
+					),
+					overtime_when: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.overtime_when, ...evidence })
+					),
+					normal_hours: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.normal_hours, ...evidence })
+					),
+					rate_week_hours: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.rate_week_hours, ...evidence })
+					),
+					bands: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.bands, ...evidence })
+					),
+					limits: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.limits, ...evidence })
+					),
+					breaks: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.breaks, ...evidence })
+					),
+					wages: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.wages, ...evidence })
+					),
+					authority: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.authority, ...evidence })
+					),
+					night_premium: Schema.optionalKey(
+						Schema.Struct({ proposed: workRulesValueSchema.fields.night_premium, ...evidence })
+					),
+					holiday_rest_precedence: Schema.optionalKey(
+						Schema.Struct({
+							proposed: workRulesValueSchema.fields.holiday_rest_precedence,
+							...evidence
+						})
+					)
+				})
+			)
+		})
+	),
 	contributions: Schema.Array(
 		Schema.Struct({
 			code: Schema.NonEmptyString,
 			rules: Schema.Array(contributionRuleSchema),
 			...evidence
 		})
+	),
+	contribution_configuration: Schema.optionalKey(
+		Schema.Array(
+			Schema.Struct({
+				code: Schema.NonEmptyString,
+				assessment_period: Schema.optionalKey(
+					Schema.Struct({
+						proposed: contributionConfigurationValueSchema.fields.assessment_period,
+						...evidence
+					})
+				),
+				assessment_scope: Schema.optionalKey(
+					Schema.Struct({
+						proposed: contributionConfigurationValueSchema.fields.assessment_scope,
+						...evidence
+					})
+				),
+				elections: Schema.optionalKey(Schema.Array(declarationFindingSchema)),
+				employee_share_annual_cap: Schema.optionalKey(
+					Schema.Struct({
+						proposed: contributionConfigurationValueSchema.fields.employee_share_annual_cap,
+						...evidence
+					})
+				),
+				shared_cap_group: Schema.optionalKey(
+					Schema.Struct({
+						proposed: contributionConfigurationValueSchema.fields.shared_cap_group,
+						...evidence
+					})
+				),
+				project_relief_annually: Schema.optionalKey(
+					Schema.Struct({
+						proposed: contributionConfigurationValueSchema.fields.project_relief_annually,
+						...evidence
+					})
+				),
+				assessed_on: Schema.optionalKey(
+					Schema.Struct({
+						proposed: contributionConfigurationValueSchema.fields.assessed_on,
+						...evidence
+					})
+				),
+				parts: Schema.optionalKey(
+					Schema.Struct({
+						proposed: contributionConfigurationValueSchema.fields.parts,
+						...evidence
+					})
+				),
+				ordinary_on: Schema.optionalKey(
+					Schema.Struct({
+						proposed: contributionConfigurationValueSchema.fields.ordinary_on,
+						...evidence
+					})
+				)
+			})
+		)
 	),
 	leave_catalogue: Schema.Array(
 		Schema.Struct({
@@ -222,6 +419,46 @@ export const StatutoryFindingsSchema = Schema.Struct({
 			...evidence
 		})
 	),
+	leave_configuration: Schema.optionalKey(
+		Schema.Array(
+			Schema.Struct({
+				code: Schema.NonEmptyString,
+				eligibility: Schema.optionalKey(
+					Schema.Struct({ proposed: leaveConfigurationValueSchema.fields.eligibility, ...evidence })
+				),
+				is_npl: Schema.optionalKey(
+					Schema.Struct({ proposed: leaveConfigurationValueSchema.fields.is_npl, ...evidence })
+				),
+				pay_fraction: Schema.optionalKey(
+					Schema.Struct({
+						proposed: leaveConfigurationValueSchema.fields.pay_fraction,
+						...evidence
+					})
+				),
+				paid_by: Schema.optionalKey(
+					Schema.Struct({ proposed: leaveConfigurationValueSchema.fields.paid_by, ...evidence })
+				),
+				consumes_code: Schema.optionalKey(
+					Schema.Struct({
+						proposed: leaveConfigurationValueSchema.fields.consumes_code,
+						...evidence
+					})
+				),
+				unit: Schema.optionalKey(
+					Schema.Struct({ proposed: leaveConfigurationValueSchema.fields.unit, ...evidence })
+				),
+				can_encash: Schema.optionalKey(
+					Schema.Struct({ proposed: leaveConfigurationValueSchema.fields.can_encash, ...evidence })
+				),
+				encash_on_exit: Schema.optionalKey(
+					Schema.Struct({
+						proposed: leaveConfigurationValueSchema.fields.encash_on_exit,
+						...evidence
+					})
+				)
+			})
+		)
+	),
 	/** Observations that are not a row: a notice of a future change, a page that had no table. */
 	notes: Schema.Array(Schema.String.check(Schema.isMaxLength(600)))
 });
@@ -229,16 +466,27 @@ type StatutoryFindings = Schema.Schema.Type<typeof StatutoryFindingsSchema>;
 
 /** The statutory rows a sealed version states, as the diff and the prompt read them. */
 export type SealedStatutoryFacts = Readonly<{
+	work_rules: WorkRules;
+	facts: ReadonlyArray<FactKey>;
+	exit_facts: ReadonlyArray<FactKey>;
 	contributions: ReadonlyArray<
 		Readonly<{
 			code: string;
 			name: string;
 			authority: string | null;
 			rules: ReadonlyArray<Schema.Schema.Type<typeof contributionRuleSchema>>;
+			configuration: ContributionConfiguration;
+			elections: ReadonlyArray<FactKey>;
 		}>
 	>;
 	leave_catalogue: ReadonlyArray<
-		Readonly<{ code: string; name: string; authority: string | null; entitlement: unknown }>
+		Readonly<{
+			code: string;
+			name: string;
+			authority: string | null;
+			entitlement: unknown;
+			configuration: LeaveConfiguration;
+		}>
 	>;
 }>;
 
@@ -249,6 +497,7 @@ export const ruleKey = (rule: Schema.Schema.Type<typeof contributionRuleSchema>)
 type StatutoryDiff = Readonly<{
 	changes: ReadonlyArray<StatutoryProposalChange>;
 	notes: ReadonlyArray<string>;
+	requires_review: boolean;
 }>;
 
 /**
@@ -263,8 +512,14 @@ export function diffStatutoryFindings(
 ): StatutoryDiff {
 	const changes: StatutoryProposalChange[] = [];
 	const notes: string[] = [];
+	const reviewed = new Set<string>();
 	const verified = (
-		finding: Readonly<{ code: string; source_url: string; quote: string }>,
+		finding: Readonly<{
+			code: string;
+			source_url: string;
+			quote: string;
+			effective_from?: string | null;
+		}>,
 		what: string
 	): ResearchPage | null => {
 		const page = pages.find(
@@ -287,7 +542,8 @@ export function diffStatutoryFindings(
 		finding: Readonly<{ code: string; source_url: string; quote: string }>,
 		page: ResearchPage,
 		previous: unknown,
-		proposed: unknown
+		proposed: unknown,
+		effectiveFrom: string
 	): StatutoryProposalChange => ({
 		collection,
 		code: finding.code,
@@ -297,37 +553,80 @@ export function diffStatutoryFindings(
 		source_url: page.url,
 		quote: statutoryPageText(finding.quote),
 		retrieved_at: page.retrieved_at,
-		sha256: page.sha256
+		sha256: page.sha256,
+		effective_from: effectiveFrom
 	});
+	const effectiveDate = (finding: {
+		code: string;
+		effective_from?: string | null;
+	}): string | null => {
+		const day = finding.effective_from;
+		const parsed = day == null ? NaN : Date.parse(`${day}T00:00:00.000Z`);
+		if (
+			day == null ||
+			!/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+			!Number.isFinite(parsed) ||
+			new Date(parsed).toISOString().slice(0, 10) !== day
+		) {
+			notes.push(
+				`${finding.code}: the statutory effective date is missing or invalid; review required`
+			);
+			return null;
+		}
+		return day;
+	};
 	for (const finding of findings.contributions) {
 		const scheme = sealed.contributions.find((row) => row.code === finding.code);
 		if (scheme == null) {
 			notes.push(`Scheme ${finding.code}: not a statutory scheme of this version`);
 			continue;
 		}
-		if (finding.rules.length === 0) continue;
 		// A finding names only the rules that differ from the sealed row. Each is matched to the
-		// sealed rule with the same selector: a changed award replaces it, a selector the sealed
-		// table does not hold adds a rule, and a rule the pages restate unchanged is dropped rather
-		// than proposed. This is what keeps a four-thousand-rule table out of the model's answer.
+		// sealed rule with the same selector. New conditions require review of the full table;
+		// appending them could leave an earlier rule matching the same wages. Unchanged rules
+		// produce no proposal. This is what keeps a four-thousand-rule table out of the model's answer.
 		const page = verified(finding, 'Scheme');
 		if (page == null) continue;
+		reviewed.add(`Scheme ${finding.code}`);
 		for (const rule of finding.rules) {
 			const key = ruleKey(rule);
 			const prior = scheme.rules.find((row) => ruleKey(row) === key);
+			if (prior === undefined) {
+				notes.push(
+					`Scheme ${finding.code}: a new or changed rule condition requires manual review of the complete table`
+				);
+				continue;
+			}
+			// Omitted optional fields retain the sealed value; an explicit 0.0 removes a rebate.
+			const proposed = { ...prior, ...rule };
 			if (
-				prior !== undefined &&
-				stableJson([prior.employee, prior.employer]) === stableJson([rule.employee, rule.employer])
+				stableJson([
+					prior.employee,
+					prior.employer,
+					prior.rebate ?? '0.0',
+					prior.deduction ?? '0.0',
+					prior.refusal ?? ''
+				]) ===
+				stableJson([
+					proposed.employee,
+					proposed.employer,
+					proposed.rebate ?? '0.0',
+					proposed.deduction ?? '0.0',
+					proposed.refusal ?? ''
+				])
 			)
 				continue;
+			const effectiveFrom = effectiveDate(finding);
+			if (effectiveFrom == null) continue;
 			changes.push(
 				change(
 					'statutory_contributions',
 					'rules',
 					finding,
 					page,
-					prior === undefined ? [] : [prior],
-					[rule]
+					[prior],
+					[proposed],
+					effectiveFrom
 				)
 			);
 		}
@@ -338,12 +637,153 @@ export function diffStatutoryFindings(
 			notes.push(`Leave ${finding.code}: not a statutory leave of this version`);
 			continue;
 		}
-		if (stableJson(type.entitlement) === stableJson(finding.entitlement)) continue;
 		const page = verified(finding, 'Leave');
 		if (page == null) continue;
+		reviewed.add(`Leave ${finding.code}`);
+		if (stableJson(type.entitlement) === stableJson(finding.entitlement)) continue;
+		const effectiveFrom = effectiveDate(finding);
+		if (effectiveFrom == null) continue;
 		changes.push(
-			change('leave_catalogue', 'entitlement', finding, page, type.entitlement, finding.entitlement)
+			change(
+				'leave_catalogue',
+				'entitlement',
+				finding,
+				page,
+				type.entitlement,
+				finding.entitlement,
+				effectiveFrom
+			)
 		);
 	}
-	return { changes, notes: [...notes, ...findings.notes] };
+	const compareConfiguration = (
+		collection: StatutoryProposalChange['collection'],
+		code: string,
+		field: StatutoryProposalChange['field'],
+		previous: unknown,
+		finding: Readonly<{
+			proposed: unknown;
+			source_url: string;
+			quote: string;
+			effective_from?: string | null;
+		}>,
+		what: string
+	) => {
+		const supported = { code, ...finding };
+		const page = verified(supported, what);
+		if (page == null || stableJson(previous) === stableJson(finding.proposed)) return false;
+		const effectiveFrom = effectiveDate(supported);
+		if (effectiveFrom == null) return false;
+		changes.push(
+			change(collection, field, supported, page, previous, finding.proposed, effectiveFrom)
+		);
+		return true;
+	};
+	const compareDeclaration = (
+		collection: StatutoryProposalChange['collection'],
+		field: 'facts' | 'exit_facts' | 'elections',
+		code: string,
+		stored: readonly FactKey[],
+		finding: Schema.Schema.Type<typeof declarationFindingSchema>,
+		what: string
+	) => {
+		if (finding.proposed.key !== finding.key) {
+			notes.push(
+				`${what} ${finding.key}: the proposed declaration changes its key; review required`
+			);
+			return;
+		}
+		const previous = stored.find((row) => row.key === finding.key);
+		if (previous == null) {
+			notes.push(`${what} ${finding.key}: a new declaration requires workflow review`);
+			return;
+		}
+		compareConfiguration(collection, code, field, previous, finding, what);
+	};
+	for (const field of ['facts', 'exit_facts'] as const)
+		for (const finding of findings.jurisdiction_settings?.[field] ?? [])
+			compareDeclaration(
+				'jurisdiction_settings',
+				field,
+				finding.key,
+				sealed[field],
+				finding,
+				`Settings ${field}`
+			);
+	for (const [field, finding] of Object.entries(findings.jurisdiction_settings?.work_rules ?? {})) {
+		if (finding == null || typeof finding !== 'object' || !('proposed' in finding)) continue;
+		compareConfiguration(
+			'jurisdiction_settings',
+			'settings',
+			field as StatutoryProposalChange['field'],
+			(sealed.work_rules as unknown as Readonly<Record<string, unknown>>)[field],
+			finding as Readonly<{
+				proposed: unknown;
+				source_url: string;
+				quote: string;
+				effective_from?: string | null;
+			}>,
+			'Work rule'
+		);
+	}
+	for (const finding of findings.contribution_configuration ?? []) {
+		const scheme = sealed.contributions.find((row) => row.code === finding.code);
+		if (scheme == null) {
+			notes.push(`Scheme ${finding.code}: not a statutory scheme of this version`);
+			continue;
+		}
+		for (const [field, value] of Object.entries(finding)) {
+			if (field === 'code' || field === 'elections' || value == null) continue;
+			if (typeof value !== 'object' || !('proposed' in value)) continue;
+			const compared = compareConfiguration(
+				'statutory_contributions',
+				finding.code,
+				field as StatutoryProposalChange['field'],
+				scheme.configuration[field as keyof ContributionConfiguration],
+				value,
+				'Scheme configuration'
+			);
+			if (compared) reviewed.add(`Scheme ${finding.code}`);
+		}
+		for (const declaration of finding.elections ?? []) {
+			compareDeclaration(
+				'statutory_contributions',
+				'elections',
+				finding.code,
+				scheme.elections,
+				declaration,
+				`Scheme ${finding.code} election`
+			);
+			reviewed.add(`Scheme ${finding.code}`);
+		}
+	}
+	for (const finding of findings.leave_configuration ?? []) {
+		const type = sealed.leave_catalogue.find((row) => row.code === finding.code);
+		if (type == null) {
+			notes.push(`Leave ${finding.code}: not a statutory leave of this version`);
+			continue;
+		}
+		for (const [field, value] of Object.entries(finding)) {
+			if (field === 'code' || value == null) continue;
+			if (typeof value !== 'object' || !('proposed' in value)) continue;
+			const compared = compareConfiguration(
+				'leave_catalogue',
+				finding.code,
+				field as StatutoryProposalChange['field'],
+				type.configuration[field as keyof LeaveConfiguration],
+				value,
+				'Leave configuration'
+			);
+			if (compared) reviewed.add(`Leave ${finding.code}`);
+		}
+	}
+	for (const label of [
+		...sealed.contributions.map((row) => `Scheme ${row.code}`),
+		...sealed.leave_catalogue.map((row) => `Leave ${row.code}`)
+	])
+		if (!reviewed.has(label)) notes.push(`${label}: no verified comparison; review required`);
+	return {
+		changes,
+		requires_review: notes.length > 0 || findings.notes.length > 0 || reviewed.size === 0,
+		notes: [...notes, ...findings.notes]
+	};
 }

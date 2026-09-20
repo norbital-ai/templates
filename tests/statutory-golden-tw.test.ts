@@ -10,8 +10,8 @@
  * 四捨五入, and the 分擔金額表 both bureaus publish — the figures an employer deducts and is billed —
  * are the per-scheme exact share rounded to the dollar. 勞保 and 就保 round separately, which is
  * exactly how the Bureau's combined table is built (29,500: 勞工 679 + 59 = 738, 單位 2,375 + 207 =
- * 2,582 — BLI Files/25697, 30-day row). Withholding tax is left to the cent; the standard states no
- * rounding.
+ * 2,582 — BLI Files/25697, 30-day row). Withholding tax discards fractional dollars under
+ * 財政部財政資訊中心受託代印繳款書及相關作業要點 §5.
  *
  * A part month insures at the declared grade for the enrolled days on a thirty-day month (勞保施行
  * 細則 §28-1; the scheme rules read `period.days_employed` and `period.days_in_month`), and 健保 is
@@ -38,6 +38,171 @@ import {
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
+
+function declareInsuredAmount(world: PayrollWorld, employeeNumber: string, amount: number) {
+	const employment = world.employments.find((row) => row.employee_number === employeeNumber)!;
+	const ids = new Set(
+		world.statutory_contributions
+			.filter((row) =>
+				['LI', 'EI', 'NHI', 'OCC_INJURY', 'LABOR_PENSION', 'WAGE_ARREARS_BASE'].includes(row.code)
+			)
+			.map((row) => row.id)
+	);
+	for (const fact of world.employment_statutory_facts)
+		if (
+			fact.employee_id === employment.employee_id &&
+			ids.has(fact.statutory_contribution_id) &&
+			fact.status.kind === 'REGISTERED'
+		)
+			fact.status.elections = { ...fact.status.elections, insured_amount: amount };
+}
+
+for (const period of ['2025-12', '2026-01', '2027-01'])
+	test(`Taiwan ${period} — part-time NHI uses its own minimum insured grade for supplementary premiums`, () => {
+		const { slips, companyCharges } = buildStatutory(
+			{
+				code: 'TW',
+				period,
+				riskClass: '1',
+				people: [{ key: 'PART', wage: 12000, citizenship: 'CITIZEN', employment_type: 'PART_TIME' }]
+			},
+			(world) => {
+				const settings = settingsVersions('TW').find((row) =>
+					String(row.effective_range.start).startsWith(period)
+				)!;
+				const bonus = world.adhoc_catalogue!.find(
+					(row) => row.code === 'bonus' && row.settings_id === settings.id
+				)!;
+				world.adhoc_requests!.push({
+					id: 'd3000000-0000-4000-8000-000000000001',
+					employment_id: world.employments[0]!.id,
+					catalogue_id: bonus.id,
+					amount: 60000,
+					event_date: `${period}-01`,
+					pay_period: null,
+					payslip_id: null,
+					reason: 'Bonus',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		);
+		const rows = slips.get('PART')!.statutory;
+		assert.equal(
+			rows.find((row) => row.scheme_code === 'NHI')?.base_amount,
+			period === '2025-12' ? 28590 : 29500
+		);
+		assert.equal(rows.find((row) => row.scheme_code === 'NHI_SUPPLEMENT')?.employee_amount ?? 0, 0);
+		assert.deepEqual(companyCharges.get('NHI_SUPPLEMENT_EMPLOYER'), [
+			72000,
+			period === '2025-12' ? 916 : 897
+		]);
+	});
+
+for (const period of ['2025-12', '2026-01', '2027-01'])
+	test(`Taiwan ${period} — NHI counts enrolled dependants independently of family records`, () => {
+		const book = assessStatutory({
+			code: 'TW',
+			period,
+			riskClass: '1',
+			people: [
+				{
+					key: 'FAMILY_ELSEWHERE',
+					wage: 40000,
+					citizenship: 'CITIZEN',
+					children: 4,
+					spouse_status: 'WITHOUT_INCOME',
+					registrations: { NHI: { kind: 'REGISTERED', elections: { enrolled_dependants: 0 } } }
+				},
+				{
+					key: 'ENROLLED',
+					wage: 40000,
+					citizenship: 'CITIZEN',
+					children: 0,
+					registrations: { NHI: { kind: 'REGISTERED', elections: { enrolled_dependants: 2 } } }
+				},
+				{
+					key: 'CAPPED',
+					wage: 40000,
+					citizenship: 'CITIZEN',
+					children: 0,
+					registrations: { NHI: { kind: 'REGISTERED', elections: { enrolled_dependants: 5 } } }
+				}
+			]
+		});
+		// Published NT$40,100 grade: NT$622 per insured person/dependant, maximum four heads.
+		expectStatutory(book, 'FAMILY_ELSEWHERE', 'NHI', 622, 1940);
+		expectStatutory(book, 'ENROLLED', 'NHI', 1866, 1940);
+		expectStatutory(book, 'CAPPED', 'NHI', 2488, 1940);
+		for (const count of [undefined, -1, 0.5])
+			assert.throws(
+				() =>
+					assessStatutory(
+						{
+							code: 'TW',
+							period,
+							riskClass: '1',
+							people: [{ key: 'UNKNOWN', wage: 40000, citizenship: 'CITIZEN' }]
+						},
+						(world) => {
+							const ids = new Set(
+								world.statutory_contributions
+									.filter((row) => row.code === 'NHI')
+									.map((row) => row.id)
+							);
+							for (const fact of world.employment_statutory_facts)
+								if (ids.has(fact.statutory_contribution_id))
+									fact.status.elections =
+										count === undefined
+											? { insured_amount: 40100 }
+											: { insured_amount: 40100, enrolled_dependants: count };
+						}
+					),
+				count === undefined
+					? /NHI enrolled dependants is required/
+					: count < 0
+						? /NHI enrolled dependants must be at least 0/
+						: /NHI enrolled dependants must be a whole number/
+			);
+	});
+
+for (const period of ['2025-12', '2026-01', '2027-01'])
+	test(`Taiwan ${period} — tax residence is declared independently of citizenship`, () => {
+		for (const citizenship of ['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER']) {
+			assert.throws(
+				() =>
+					assessStatutory({
+						code: 'TW',
+						period,
+						riskClass: '1',
+						people: [{ key: 'UNKNOWN', wage: 60000, citizenship, tax_residency: null }]
+					}),
+				/Record tax residency/
+			);
+			const book = assessStatutory({
+				code: 'TW',
+				period,
+				riskClass: '1',
+				people: [
+					{
+						key: 'RESIDENT',
+						wage: 60000,
+						citizenship,
+						tax_residency: 'RESIDENT',
+						registrations: {
+							INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+						}
+					},
+					{ key: 'NONRESIDENT', wage: 60000, citizenship, tax_residency: 'NON_RESIDENT' }
+				]
+			});
+			expectStatutory(book, 'RESIDENT', 'INCOME_TAX', 3000, 0);
+			expectStatutorySkipped(book, 'RESIDENT', 'INCOME_TAX_NON_RESIDENT');
+			expectStatutory(book, 'NONRESIDENT', 'INCOME_TAX_NON_RESIDENT', 10800, 0);
+			expectStatutorySkipped(book, 'NONRESIDENT', 'INCOME_TAX');
+		}
+	});
 
 test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 民國115年 tables', () => {
 	const book = assessStatutory({
@@ -99,23 +264,16 @@ test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 
 	expectStatutory(book, 'TW-60000', 'LABOR_PENSION', 0, 3648); // 60,800 × 6%
 });
 
-test('Taiwan — labour and employment insurance end at 65, and the run still builds', () => {
-	// 勞保條例 §6(1) and 就保法 §5 both cover 「年滿十五歲以上，六十五歲以下」, so cover ends at 65.
-	// The limit was on the BANDS, and a band that has no row for an age refuses the whole run by
-	// name — so one 65-year-old employee stopped every Taiwanese payroll, for everybody. A scheme
-	// the person is outside is skipped instead: no charge, no zero row, and the payslip is built.
-	//
-	// 職災保險 and 健保 keep going: 災保法 covers a worker whatever their age, which is why it is a
-	// separate scheme, and 健保 is residence-based rather than employment-age-based.
+test('Taiwan — registered labour insurance continues after 65; employment insurance ends at 65', () => {
+	// Labor Insurance Act article 9 permits continued LI. EI stops on the 65th birthday.
+
 	const book = assessStatutory({
 		code: 'TW',
 		period: '2026-01',
 		riskClass: '1',
 		people: [
 			{ key: 'TW-64', wage: 40_000, age: 64, citizenship: 'CITIZEN' },
-			// Sixty-five on 15 January: cover ends on the birthday, and 施行細則 §28-1 charges the
-			// fourteen enrolled days before it — 40,100 × 11.5% × 20% × 14/30 = 430, × 70% = 1,506;
-			// 就保 40,100 × 1% × 20% × 14/30 = 37, × 70% = 131.
+			// EI charges January 1–14: 40,100 × 1% × 14/30 × the 20%/70% shares.
 			{ key: 'TW-65', wage: 40_000, birth_date: '1961-01-15', citizenship: 'CITIZEN' },
 			// Sixty-five on the 31st: thirty enrolled days is the whole month.
 			{ key: 'TW-65-LAST', wage: 40_000, birth_date: '1961-01-31', citizenship: 'CITIZEN' },
@@ -124,10 +282,10 @@ test('Taiwan — labour and employment insurance end at 65, and the run still bu
 	});
 	expectStatutory(book, 'TW-64', 'LI', 922, 3228);
 	expectStatutory(book, 'TW-64', 'EI', 80, 281);
-	expectStatutory(book, 'TW-65', 'LI', 430, 1506);
+	expectStatutory(book, 'TW-65', 'LI', 922, 3228);
 	expectStatutory(book, 'TW-65', 'EI', 37, 131);
 	expectStatutory(book, 'TW-65-LAST', 'LI', 922, 3228);
-	expectStatutorySkipped(book, 'TW-70', 'LI');
+	expectStatutory(book, 'TW-70', 'LI', 922, 3228);
 	expectStatutorySkipped(book, 'TW-70', 'EI');
 	for (const key of ['TW-65', 'TW-70']) {
 		// Still insured for health and for occupational injury, and still priced.
@@ -164,6 +322,194 @@ test('Taiwan — occupational-injury insurance is charged on its own grade ladde
 	// The other Taiwanese schemes have their own, lower ceilings and are unmoved by this one.
 	expectStatutory(book, 'TW-150000', 'LI', 1053, 3687);
 });
+
+for (const period of ['2025-12', '2026-01', '2027-01']) {
+	test(`Taiwan ${period} — a withholding declaration selects the table and its dependant count`, () => {
+		// 薪資所得扣繳辦法 §§3–6: table withholding requires the declaration. Without it,
+		// regular salary follows 5%; a family record alone is not a declared tax exemption.
+		const missing = assessStatutory({
+			code: 'TW',
+			period,
+			riskClass: '1',
+			people: [
+				{
+					key: 'MISSING',
+					wage: 60000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { table_declaration_reference: '' } }
+					}
+				}
+			]
+		});
+		expectStatutory(missing, 'MISSING', 'INCOME_TAX', 3000, 0);
+		const noRegistration = assessStatutory(
+			{
+				code: 'TW',
+				period,
+				riskClass: '1',
+				people: [{ key: 'NONE', wage: 60000, citizenship: 'CITIZEN' }]
+			},
+			(world) => {
+				const incomeSchemes = new Set(
+					contributionSchemes('TW')
+						.filter((row) => row.code === 'INCOME_TAX')
+						.map((row) => row.id)
+				);
+				world.employment_statutory_facts = world.employment_statutory_facts.filter(
+					(row) => !incomeSchemes.has(String(row.statutory_contribution_id))
+				);
+			}
+		);
+		expectStatutory(noRegistration, 'NONE', 'INCOME_TAX', 3000, 0);
+		const declared = assessStatutory({
+			code: 'TW',
+			period,
+			riskClass: '1',
+			people: [
+				{
+					key: 'DECLARED',
+					wage: 60000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: {
+							kind: 'REGISTERED',
+							elections: { table_declaration_reference: 'DECL-01', table_dependants: 0 }
+						}
+					}
+				},
+				{
+					key: 'DECLARED-12',
+					wage: 300250,
+					citizenship: 'CITIZEN',
+					children: 0,
+					registrations: {
+						INCOME_TAX: {
+							kind: 'REGISTERED',
+							elections: { table_declaration_reference: 'DECL-12', table_dependants: 12 }
+						}
+					}
+				}
+			]
+		});
+		expectStatutory(declared, 'DECLARED', 'INCOME_TAX', 0, 0);
+		assert.throws(
+			() =>
+				assessStatutory(
+					{
+						code: 'TW',
+						period,
+						riskClass: '1',
+						people: [{ key: 'NO-COUNT', wage: 60000, citizenship: 'CITIZEN' }]
+					},
+					(world) => {
+						for (const fact of world.employment_statutory_facts) {
+							if (fact.status?.kind !== 'REGISTERED') continue;
+							const { table_dependants: _count, ...elections } = fact.status.elections ?? {};
+							fact.status = { ...fact.status, elections };
+						}
+					}
+				),
+			/Declared spouse and dependants is required/
+		);
+		expectStatutory(declared, 'DECLARED-12', 'INCOME_TAX', period === '2025-12' ? 18725 : 17091, 0);
+		for (const count of [-1, 1.5])
+			assert.throws(
+				() =>
+					assessStatutory({
+						code: 'TW',
+						period,
+						riskClass: '1',
+						people: [
+							{
+								key: 'INVALID',
+								wage: 60000,
+								citizenship: 'CITIZEN',
+								registrations: {
+									INCOME_TAX: {
+										kind: 'REGISTERED',
+										elections: {
+											table_declaration_reference: 'DECL-INVALID',
+											table_dependants: count
+										}
+									}
+								}
+							}
+						]
+					}),
+				count < 0
+					? /Declared spouse and dependants must be at least 0/
+					: /Declared spouse and dependants must be a whole number/
+			);
+	});
+
+	test(`Taiwan ${period} — withholding discards fractions before the exemption test`, () => {
+		// Tax remittance rules §5 discard fractions of NT$1. The published salary threshold
+		// is NT$40,020: NT$40,019 × 5% truncates to NT$2,000 and remains exempt.
+		// https://law-out.mof.gov.tw/LawContent.aspx?id=FL051526
+		// https://ga.ntc.edu.tw/p/405-1003-25441,c610.php?Lang=zh-tw
+		const cases = [
+			{ key: 'EXACT', wage: 40000, tax: 0 },
+			{ key: 'CENT', wage: 40001, tax: 0 },
+			{ key: 'BELOW', wage: 40019.99, tax: 0 },
+			{ key: 'THRESHOLD', wage: 40020, tax: 2001 },
+			{ key: 'FRACTION', wage: 56352, tax: 2817 }
+		];
+		const bonus = period === '2025-12' ? 88519 : 90519;
+		const book = assessStatutory(
+			{
+				code: 'TW',
+				period,
+				riskClass: '1',
+				people: [
+					...cases.map(({ key, wage }) => ({
+						key,
+						wage,
+						citizenship: 'CITIZEN',
+						registrations: {
+							INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+						}
+					})),
+					{ key: 'NR-6', wage: 40019, citizenship: 'FOREIGNER' },
+					{ key: 'NR-18', wage: 60009, citizenship: 'FOREIGNER' },
+					{ key: 'TABLE', wage: 600001, citizenship: 'CITIZEN' },
+					{ key: 'TABLE-12', wage: 300250, citizenship: 'CITIZEN', children: 12 },
+					{ key: 'BONUS', wage: 60000, citizenship: 'CITIZEN' }
+				]
+			},
+			(world) => {
+				const settings = settingsVersions('TW').find((row) =>
+					String(row.effective_range.start).startsWith(period)
+				)!;
+				const catalogue = world.adhoc_catalogue!.find(
+					(row) => row.code === 'bonus' && row.settings_id === settings.id
+				)!;
+				world.adhoc_requests!.push({
+					id: 'd2000000-0000-4000-8000-000000000001',
+					employment_id: world.employments.find((row) => row.employee_number === 'BONUS')!.id,
+					catalogue_id: catalogue.id,
+					amount: bonus,
+					event_date: `${period}-01`,
+					pay_period: null,
+					payslip_id: null,
+					reason: 'Bonus',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		);
+		for (const { key, tax } of cases) expectStatutory(book, key, 'INCOME_TAX', tax, 0);
+		expectStatutory(book, 'NR-6', 'INCOME_TAX_NON_RESIDENT', 2401, 0);
+		expectStatutory(book, 'NR-18', 'INCOME_TAX_NON_RESIDENT', 10801, 0);
+		expectStatutory(book, 'TABLE', 'INCOME_TAX', period === '2025-12' ? 144792 : 140908, 0);
+		// Table explanation (3) uses actual salary when the dependant count exceeds 11.
+		// 2026: (300,250 × 12 − 600,000 − 12 × 101,000) = 1,791,000 taxable annually;
+		// (122,900 + (1,791,000 − 1,380,000) × 20%) / 12 truncates to NT$17,091.
+		expectStatutory(book, 'TABLE-12', 'INCOME_TAX', period === '2025-12' ? 18725 : 17091, 0);
+		expectStatutory(book, 'BONUS', 'INCOME_TAX_BONUS', period === '2025-12' ? 4425 : 4525, 0);
+	});
+}
 
 test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemption', () => {
 	const book = assessStatutory({
@@ -288,9 +634,9 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 	expectStatutory(book, 'TW-40000', 'LABOR_PENSION', 0, 2406);
 
 	// 各類所得扣繳率標準 §3(2) on this version's own breakpoint: 6% at or below 1.5 × 28,590 =
-	// 42,885, and 18% above it. 6% × 42,885 = 2,573.10; 18% × 42,886 = 7,719.48.
-	expectStatutory(book, 'TW-NR-42885', 'INCOME_TAX_NON_RESIDENT', 2573.1, 0);
-	expectStatutory(book, 'TW-NR-42886', 'INCOME_TAX_NON_RESIDENT', 7719.48, 0);
+	// 42,885, and 18% above it. Tax truncates to whole NT dollars: 2,573 and 7,719.
+	expectStatutory(book, 'TW-NR-42885', 'INCOME_TAX_NON_RESIDENT', 2573, 0);
+	expectStatutory(book, 'TW-NR-42886', 'INCOME_TAX_NON_RESIDENT', 7719, 0);
 	// 就業保險法 §5 keeps employment insurance to ROC nationals on this version too.
 	expectStatutorySkipped(book, 'TW-NR-42885', 'EI');
 	// 職災 charges on the 民國114年 投保薪資 grade (勞動部 113-11-15 勞動保3字第1130087585號令,
@@ -425,7 +771,7 @@ test('Taiwan — the pension and health ceilings sit far above the labour-insura
 	// 15,146 — the top row of the 115年 負擔金額表.
 	expectStatutory(book, 'TW-313001', 'NHI', 4855, 15_146);
 	expectStatutory(book, 'TW-313001', 'LABOR_PENSION', 0, 9000);
-	expectStatutory(book, 'TW-313001', 'INCOME_TAX', 15_650.05, 0);
+	expectStatutory(book, 'TW-313001', 'INCOME_TAX', 15_650, 0);
 });
 
 test('Taiwan — the occupational-injury rate follows the industry class', () => {
@@ -668,6 +1014,8 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 					as_adjustment_entry: false,
 					approval_id: null
 				});
+			for (const employment of world.employments)
+				declareInsuredAmount(world, employment.employee_number, 43900);
 			world.leave_catalogue.push({
 				id: NPL,
 				settings_id: TW_2026,
@@ -760,21 +1108,11 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	// 43,100 of 薪資所得 is over the 5% election's threshold, so 2,155 is withheld where 40,000 alone was not.
 	assert.deepEqual(charge(slips.get('TW-WHOLE')!, 'INCOME_TAX'), [43_100, 2155, 0]);
 
-	// The part month. 勞保施行細則 §28-1 counts the premium per enrolled day on a thirty-day month at
-	// the DECLARED grade — the contract's 40,000 plus the recurring 3,100 transport allowance
-	// (勞基法 §2(3)), 43,100 → grade 43,900 — never the prorated wage that would fall to the floor
-	// grade. Same arithmetic as BLI Files/25697's 16-day row one grade down (40,100: 492 / 1,722):
-	// 勞保 43,900 × 11.5% × 20% × 16/30 = 538.5 → 539 and × 70% = 1,884.8 → 1,885; 就保 43,900 ×
-	// 1% × 20% × 16/30 = 46.8 → 47 and × 70% = 163.9 → 164; 勞退 43,900 × 6% = 2,634 × 16/30 =
-	// 1,404.8 → 1,405; 健保 43,900 × 5.17% × 30% = 680.9 → 681, employer × 60% × 1.56 = 2,124;
-	// the leaver's fifteen days: 勞保 504.85 → 505 / 1,767, 就保 43.9 → 44 / 153.65 → 154, 勞退 1,317. BLI Files/25697, 16-day row: 勞工 535 / 單位 1,872 for 勞保+就保
-	// together, each scheme rounded once from the rate after the day fraction: 勞保 40,100 × 11.5%
-	// × 20% × 16/30 = 491.89 → 492 and × 70% = 1,721.63 → 1,722; 就保 40,100 × 1% × 20% × 16/30 =
-	// 42.77 → 43 and × 70% = 149.71 → 150.
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LI'), [43_900, 539, 1885]);
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'EI'), [43_900, 47, 164]);
-	// 勞退條例 §14 on the same thirty-day month: 40,100 × 6% = 2,406 × 16/30 = 1,283.2 → 1,283.
-	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LABOR_PENSION'), [43_900, 0, 1405]);
+	// BLI's thirty-day calendar gives Jan 16–31 fifteen insured days. Salary proration
+	// remains 16/31. Insurance uses the declared 43,900 grade, rounded after the 15/30 share.
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LI'), [43_900, 505, 1767]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'EI'), [43_900, 44, 154]);
+	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LABOR_PENSION'), [43_900, 0, 1317]);
 	// 健保法 §30: a whole-month premium at the declared grade, billed to the unit the person is
 	// insured with at month end — the joiner's employer pays January whole (622 / 1,940), the
 	// leaver's pays nothing and carries no 健保 row at all.
@@ -791,7 +1129,7 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LABOR_PENSION'), [43_900, 0, 1317]);
 });
 
-test('Taiwan — a variable wage insures on the three months before the February and August declarations (施行細則 §27)', () => {
+test('Taiwan — a variable wage uses the recorded three-month-average declaration from its effective month', () => {
 	// An hourly worker (DAILY / HOURLY / WEEKLY pay) has no fixed monthly wage to declare; 勞保條例
 	// §14(2) with 施行細則 §27 grades them on the average of the three months before each
 	// declaration: May–July from 1 September, November–January from 1 March. In September the
@@ -814,6 +1152,7 @@ test('Taiwan — a variable wage insures on the three months before the February
 				people: [{ key: 'TW-HOURLY', wage: 200, citizenship: 'CITIZEN', pay_frequency: 'HOURLY' }]
 			},
 			(world) => {
+				if (period === '2026-09') declareInsuredAmount(world, 'TW-HOURLY', 33300);
 				const employment = world.employments.find((row) => row.employee_number === 'TW-HOURLY')!;
 				for (const [month, amount] of Object.entries(priorBasic)) {
 					world.payroll_runs.push({ id: `prior-${month}`, company_id: COMPANY_ID, period: month });
@@ -898,10 +1237,7 @@ test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,
 	// read from the PDF, not derived. The rung is evaluated the way the run evaluates it, on a wage
 	// at the top of each bracket, so the anchor to the bracket's lower bound is what is tested.
 	const table = JSON.parse(
-		readFileSync(
-			new URL('./fixtures/statutory/TW/withholding-table-115.json', import.meta.url),
-			'utf8'
-		)
+		readFileSync(new URL('./fixtures/withholding-table-115.json', import.meta.url), 'utf8')
 	) as { from: number; to: number; withhold: number[] }[];
 	const rung = contributionSchemes('TW')
 		.find((row) => row.code === 'INCOME_TAX' && row.settings_id === settingsVersions('TW')[1]!.id)!
@@ -909,7 +1245,14 @@ test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,
 	// The column is 配偶及受扶養親屬人數 (說明(三)): a spouse without income is one head of it.
 	const context = (base: number, dependants: number) => ({
 		base,
-		scheme: { elections: { five_percent_withholding: false }, rate_override: 0 },
+		scheme: {
+			elections: {
+				five_percent_withholding: false,
+				table_declaration_reference: 'TABLE-115',
+				table_dependants: dependants
+			},
+			rate_override: 0
+		},
 		person: {
 			employee: {
 				dependents_count: dependants > 0 ? dependants - 1 : 0,
@@ -1056,8 +1399,8 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 	// holiday-work pay under the ruling and outside the withholding base — 3,000 on the salary
 	// alone. Fifty ordinary-day overtime hours in the month: the 46 within 勞基法 §32 are exempt,
 	// the four beyond are the INCENTIVE line and taxable — the 47th hour is the tenth day's second
-	// 4/3 hour and the 48th to 50th its 5/3 hours: 333.33 + 3 × 416.67 = 1,583.34 at 5% = 79.17
-	// beside the 3,000.
+	// 4/3 hour and the 48th to 50th its 5/3 hours: 333.33 + 3 × 416.67 = 1,583.34.
+	// The full taxable salary × 5% truncates to NT$3,079.
 	const { slips } = buildStatutory(
 		{
 			code: 'TW',
@@ -1119,7 +1462,7 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 	);
 	assert.deepEqual(charge(encash, 'INCOME_TAX'), [60_000, 3000, 0]);
 	const fifty = slips.get('TW-FIFTY')!;
-	assert.deepEqual(charge(fifty, 'INCOME_TAX'), [61_583.34, 3079.17, 0]);
+	assert.deepEqual(charge(fifty, 'INCOME_TAX'), [61_583.34, 3079, 0]);
 });
 
 test('Taiwan — thirty half-paid 普通傷病假 days a year, hospitalised or not, across entries (勞工請假規則 §4(3))', () => {
@@ -1216,7 +1559,7 @@ test('Taiwan — thirty half-paid 普通傷病假 days a year, hospitalised or n
 	assert.equal(off(build(true).slips.get('TW-SICK')!), 20_000);
 });
 
-test('Taiwan — a monthly worker with regular overtime is graded on the three-month average with it (施行細則 §27)', () => {
+test('Taiwan — a monthly worker retains the declared grade including regular overtime', () => {
 	// 30,000 a month with 8,000 of overtime in each of November, December and January on file:
 	// the March declaration reads the November–January average of 工資 — 38,000 — the 38,200
 	// grade, not the 30,300 of the basic alone. A worker whose three months carried no overtime
@@ -1265,6 +1608,7 @@ test('Taiwan — a monthly worker with regular overtime is graded on the three-m
 		(world) => {
 			prior(world, 'TW-OT-REG', 8_000);
 			prior(world, 'TW-OT-NONE', 0);
+			declareInsuredAmount(world, 'TW-OT-REG', 38200);
 		}
 	);
 	assert.equal(book.get('TW-OT-REG')!.get('LI')!.base, 38_200);

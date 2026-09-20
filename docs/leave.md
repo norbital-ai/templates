@@ -18,7 +18,8 @@ overlap.
 
 A linked input seals the employment contract. Recording departure separately bounds its service
 without rewriting the signed contract. Closing a contract raises the leaver's encashment through
-the `leave_encashment_on_exit` automation (below); it creates no separation payment.
+the `leave_encashment_on_exit` automation (below). Eligible separation payments are submitted
+separately as ad hoc requests for HR approval.
 
 ## Catalogue and entitlement
 
@@ -40,7 +41,7 @@ The entitlement definition contains:
 | `bands`               | Annual quantities by completed months of service on this contract; `days` is a number or an expression over `leave_day` (`leave.month_index`, `leave.day_index`, `leave.days`, the person root). |
 
 The catalogue row beside it: `pay_fraction` (an expression over `leave_day`, the share of the day
-wage deducted — ID sick leave steps down by month), `paid_by: EMPLOYER | FUND` (a FUND day is
+wage paid — ID sick leave steps down by month), `paid_by: EMPLOYER | FUND` (a FUND day is
 deducted from the wage and reimbursed by the fund outside payroll), `consumes_code` (the row draws
 from another row's pool — TW menstrual leave inside sick leave — and the pool's summary shows its
 consumers), `unit: DAY | HOUR` (an hourly row's entry states `hours`, charged in eighths of a day).
@@ -86,7 +87,7 @@ followed by terms beginning 1 July. Reversal and consumer deletion do not erase 
 
 An upfront annual amount remains a query, including its future eligibility projection. January
 leave permits a July salary or residency amendment; the projection may change, while January's
-approved charges and agreed money remain fixed. Time off approved for July consumes its actual
+approved charges and allocations remain fixed. Time off approved for July consumes its actual
 July charge dates even if approval occurs in January. Previewing a balance creates no seal.
 
 There are no materialised annual accounts, generated opening/accrual entries, or reconciliation
@@ -117,7 +118,7 @@ substitute those approval inputs.
 | Category        | Entered facts                                                                    | Effect                                                                    |
 | --------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `TIME_OFF`      | Start/end dates and halves, optional reason and required certificate.            | Charges scheduled work time on exact dates.                               |
-| `ENCASHMENT`    | Source window, `encash_days`, effective and due dates; a `can_encash` row only.  | Reserves earned leave; payroll prices the days at the ordinary day wage.  |
+| `ENCASHMENT`    | Source window, `encash_days`, effective and due dates; a `can_encash` row only.  | Reserves earned leave; payroll uses the dated leave cash-out rate.        |
 | `CARRY_FORWARD` | Source/destination windows, days, availability date and expiry.                  | Debits the source; the approved entry is the expiring destination credit. |
 | `ADJUSTMENT`    | Window, signed days, effective date and reason.                                  | Applies a documented exceptional change to the balance.                   |
 | `REVERSAL`      | Original entry, effective date, reason and a due date when reversing paid money. | Reverses the original allocations and any paid outputs exactly.           |
@@ -202,8 +203,8 @@ says which of them it charges.
 - Unpaid time off supplies reductions for its exact linked dates, using Work's applicable rate and
   the reserved `NO_PAY_LEAVE` line each scheme's formula subtracts or ignores; the deduction
   covers whom the leave covers.
-- Encashment supplies its days; payroll prices them at the ordinary day wage as `ENCASHMENT`.
-  Leave carries no pricing of its own, so nothing is entered and nothing is repriceable.
+- Encashment supplies its days; payroll uses the dated `work_rules.encashment` rate as `ENCASHMENT`.
+  No monetary amount is entered on a leave entry. This implemented rate requires jurisdiction-specific validation; see compliance item C01.
 - Carry and adjustments change quantities without directly creating payroll money.
 - A paid reversal negates the original linked amount and economic direction. A
   draft link must first be deleted or settled before its source can be reversed.
@@ -212,30 +213,57 @@ Standing links prevent the same dated slice or single monetary obligation being 
 A time-off entry settles whole in the one period that contains all of its days; a range that would
 straddle periods is refused at payroll and entered as one entry per period. The entry's own `payslip_id` is the link, and
 its frozen pay items retain the exact catalogue/settings identifiers, quantity, rate and signed
-amount, priced by the engine at the ordinary day wage.
+amount. Cash-out uses the jurisdiction’s dated leave valuation rule; unpaid leave uses its deduction basis.
 
 There is one regular payroll per entity and period. Late approved encashment and monetary
 corrections settle in a later regular period. Outstanding Leave money can include an ended
-contract without restoring its salary, roster or overtime. Other separation payments are explicit
-Allowance-family entries.
+contract without restoring its salary, roster or overtime. Other separation payments use the Ad hoc family.
+
+### Cash-out valuation
+
+`work_rules.encashment` declares the conversion rate separately from overtime. Payroll selects
+sealed rules and salary terms on the conversion date, capped at the contract's termination date.
+Vietnam uses the preceding month's contract salary and normal working days. Taiwan preserves the
+original year-end salary for carried leave. Included and excluded standing allowances must be
+classified explicitly. Monthly and semi-monthly salaries are supported by the supplied profiles;
+other wage arrangements require an evidenced profile. Indonesia has no verified default profile.
+A missing rule, unsupported wage frequency or unclassified allowance stops payroll. The completed
+award rounds once in the payroll currency; the daily quotient retains its precision.
 
 ### Encashment on departure
 
-Closing a contract (recording its last day) trips `automations/+leave_encashment_on_exit.ts`. It
-reads the leaver's balances on the last day and, when the annual leave row (the code beginning
-`ANNUAL`, `lib/leave/codes.ts`) is `can_encash` and has days left, submits one `ENCASHMENT` entry
-for the whole balance, settling on the last day and referenced `exit:<employment_id>:<code>`. No
-other row is paid out at departure, whatever its `can_encash` says: that flag only admits a manual
-encashment. The entry goes through the ordinary HR leave door under the
-automation's own policy, so it lands held for the HR Manager or Senior Management: the collection's
-`approvalStepRequested` rule puts an `inbox` notification in front of every member of those teams in
-the same statement that holds the row, and their decision is the review — approve and the next regular payroll prices
-the days at the ordinary day wage; reject and HR enters the agreed figure by hand. The reference is
-the idempotency key: a re-run, a later departure-note edit or an entry HR posted first raises
-nothing more. A zero balance raises nothing. An `exit_reason` of `DISMISSAL` raises nothing — every
-jurisdiction's payout carries a misconduct exception and the engine carries no jurisdiction, so a
-dismissed leaver's encashment, if owed, is HR's manual entry. Beyond that there is no encashment
-eligibility matrix or exit policy.
+`leave_encashment_on_exit` reads the contract's balance on its last service date. Each leave
+catalogue row must have both `can_encash` and `encash_on_exit` enabled. A positive available
+balance produces one encashment request with reference `exit:<employment_id>:<leave_code>`.
+Future departures return `not_due` without reserving leave or raising separation requests.
+`leave_encashment_due` checks recorded `not_due` outcomes daily at 01:00 UTC and uses the departure
+jurisdiction's time zone to determine whether each request is due. It resumes registered future
+departures after downtime. Imported historical departures without a recorded deferral require
+an explicit HR review and on-demand run. Its result reports contracts checked, requests raised,
+failures and completed departures. Completion prevents automatic resubmission after HR rejects
+or reverses a request. Retain deferral and completion records together; deleting only a completion
+record can reopen an old deferral. Task queue cleanup preserves these automation outcomes.
+A zero balance or an existing reference produces no additional request.
+
+The automation submits requests under its own approval policy. The HR Manager or Senior
+Management reviews the held entries before they become payable. Dismissal does not prove
+misconduct or statutory forfeiture; it receives the same review. Any rejection must follow the
+applicable law and documented facts.
+
+Approval makes an entry eligible for payroll; it does not establish that the ordinary day rate
+is the correct statutory conversion basis. Jurisdiction-specific valuation, final-pay deadlines,
+tax-clearance holds and corrections after a request is raised remain subject to the
+[compliance matrix](compliance-matrix.md#release-blockers).
+
+Before approval, HR reconciles attendance, approved leave and pending applications through the
+last service date. Reject an incorrect held request and record the corrected transaction with
+its supporting evidence. Existing departure references prevent duplicate requests. A manual rerun
+can submit a new request after rejection; the daily catch-up does not. An approved entry requires reversal and replacement;
+a paid entry also requires reconciliation of the linked monetary reversal. Retain the final
+balance, conversion basis, payment deadline and any required tax-clearance direction together.
+
+Eligible `SEPARATION` rows in `adhoc_catalogue` also produce held `adhoc_requests`. Their
+eligibility expressions determine which departure reasons and service conditions apply.
 
 ## Implementation entry points
 

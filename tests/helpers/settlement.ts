@@ -64,7 +64,8 @@ export const NO_CAPTURES = {
 	claims: [],
 	adhoc: [],
 	leave: [],
-	loanRepayments: []
+	loanRepayments: [],
+	wagePeriods: []
 };
 
 /** The sources one payslip of a build settled. */

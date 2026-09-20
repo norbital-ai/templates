@@ -10,7 +10,9 @@
  * other deductions = Σ DEDUCTION
  * payments         = Σ NON_WAGE_PAYMENT
  *
- * net              = gross − statutory − other + payments
+ * balance          = gross − statutory − other + payments
+ * net              = max(0, balance)
+ * unfunded         = max(0, −balance)
  * employer cost    = Σ employer_amount + Σ EMPLOYER_COST
  * ```
  *
@@ -28,8 +30,8 @@
  * A loan repayment is recovered whole or not at all: one repayment row is one payslip line on one
  * payslip. When net would go negative, whole recoveries are dropped in reverse emission order and
  * the row stays unlinked, so the next regular run recovers it. Single-use entries and statutory
- * charges must settle in full. If those alone make net negative, refuse the payroll before any
- * input is captured.
+ * charges remain assessed in full. A statutory shortfall is recorded separately from cash pay;
+ * it does not authorize recovery from later wages. A deficit from non-statutory items is refused.
  */
 
 import { refuse } from '@norbital-ai/bolt/authoring';
@@ -46,6 +48,7 @@ export type Settlement = {
 	readonly gross: number;
 	readonly totalDeductions: number;
 	readonly net: number;
+	readonly unfundedContributions: number;
 	readonly employerCost: number;
 	/** Both planes after the guard has run; identical to the input when net never went negative. */
 	readonly base: readonly MeasuredBase[];
@@ -109,7 +112,7 @@ export function settle(options: {
 		net = cents(gross - statutoryEmployee - otherDeductions + payments, currency);
 	}
 
-	if (net < 0)
+	if (cents(gross - otherDeductions + payments, currency) < 0)
 		refuse(
 			`Payroll net pay is negative${options.employeeNumber == null ? '' : ` for ${options.employeeNumber}`} ` +
 				`(gross ${gross}, statutory ${cents(statutoryEmployee, currency)}, other deductions ${cents(otherDeductions, currency)}, payments ${cents(payments, currency)}; ` +
@@ -122,7 +125,8 @@ export function settle(options: {
 	return {
 		gross,
 		totalDeductions: cents(statutoryEmployee + otherDeductions, currency),
-		net,
+		net: Math.max(0, net),
+		unfundedContributions: Math.max(0, -net),
 		employerCost: cents(statutoryEmployer + employerAmounts, currency),
 		base,
 		adjustments,

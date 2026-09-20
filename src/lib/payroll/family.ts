@@ -179,6 +179,8 @@ type CapturedInputs = {
 	readonly payRequests: Readonly<Record<PayRequestFamily, readonly string[]>>;
 	readonly leave: readonly SettledLeaveCapture[];
 	readonly loanRepayments: readonly string[];
+	/** Approved dated wage periods consumed by rates or leave valuation. */
+	readonly wagePeriods: readonly string[];
 };
 
 export type MeasuredEmployment = {
@@ -231,6 +233,19 @@ export type MeasuredEmployment = {
 	readonly periodWorkingDays: number;
 	/** Employed working days the run did not pay — what `person.period.unpaid_days` reads. */
 	readonly periodUnpaidDays: number;
+	/** Dates with no employer-paid portion; partial days remain separate. */
+	readonly periodFullyUnpaidDays: number;
+	readonly periodLeaveDays: Readonly<Record<string, number>>;
+	readonly periodFullLeaveDays: Readonly<Record<string, number>>;
+	/** Calendar-month eligibility counts, independent of this payroll's wage window. */
+	readonly monthlyContributionDays?: {
+		readonly employed: number;
+		readonly unpaid: number;
+		readonly fullyUnpaid: number;
+		readonly leaveDays: Readonly<Record<string, number>>;
+		readonly fullLeaveDays: Readonly<Record<string, number>>;
+		readonly working: number;
+	};
 	/** The contract's week as the run resolved it — what `terms.ordinary_hours_per_week` and the monthly basic read. */
 	readonly week: {
 		readonly ordinary_hours_per_week: number;

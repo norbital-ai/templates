@@ -85,7 +85,12 @@ export function prepareAllowanceSteps(
 						company: configuration.company,
 						facts: personFacts(
 							configuration.contributions,
-							factStatusesOn(bundle.statutoryFacts, options.salary.end)
+							factStatusesOn(
+								bundle.statutoryFacts,
+								options.salary.end,
+								bundle.employment.id,
+								configuration.contributions
+							)
 						),
 						asOf: options.salary.end
 					});
@@ -139,6 +144,7 @@ export function prepareAllowanceSteps(
 					contracted: options.contracted,
 					workingDaysIn: options.workingDaysIn,
 					contractOf: monthlyOf,
+					contractPeriod: 'MONTH',
 					unpaidDaysIn: prorates ? options.unpaidDaysIn : undefined
 				});
 			}

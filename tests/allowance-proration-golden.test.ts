@@ -151,7 +151,7 @@ test('Philippines — a joiner takes the working days employed over 21.75, and a
 	// Ten working days of a part month, at the daily rate the factor states.
 	assert.deepEqual(facts(built, 'JOINER'), [10, 21.75, 0, 1000]);
 	// The same joiner on a six-day roster: twelve working days over the 313 factor.
-	assert.deepEqual(facts(built, 'SIXDAY'), [12, 26.0833, 0, 1000.64]);
+	assert.deepEqual(facts(built, 'SIXDAY'), [12, 313 / 12, 0, 1000.64]);
 	// The segment opens on the joiner's first day.
 	assert.equal(built.allowances.get('JOINER')![0]!.from, '2026-01-19');
 });

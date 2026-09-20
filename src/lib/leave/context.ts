@@ -12,7 +12,8 @@ import { settingsInForce } from '../jurisdiction_settings.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { addDays } from '../../collections/payroll_runs/lib/dates.js';
 import { rosterCodeKind } from '../scheduling/roster-code.js';
-import { EMPTY_OF } from '../expressions/compile.js';
+import { resolveCompanyFacts } from '../declared-facts.js';
+import { personFactsOn } from '../payroll/facts.js';
 import {
 	isEligible,
 	personContext,
@@ -51,6 +52,7 @@ export type LeaveContext = {
 		'id' | 'employee_id' | 'company_id' | 'effective_range'
 	> & {
 		readonly exit_reason?: string | null;
+		readonly exit_facts?: Readonly<Record<string, string | number | boolean>> | null;
 	})[];
 	companies: (Pick<
 		WorkspaceRow<'companies'>,
@@ -93,9 +95,16 @@ export type LeaveContext = {
 	>[];
 	/** The lineage's scheme codes, so `facts.<CODE>` reads false rather than failing for an unregistered one. */
 	schemeCodes?: string[];
+	schemes?: Array<{
+		id: string;
+		code: string;
+		elections: WorkspaceRow<'statutory_contributions'>['elections'];
+	}>;
 	/** Statutory facts by employee, with the scheme's code resolved: what `person.facts.<CODE>` reads; absent is none. */
 	facts?: {
 		employee_id: string;
+		employment_id: string | null;
+		statutory_contribution_id: string;
 		code: string;
 		effective_range: WorkspaceRow<'employment_statutory_facts'>['effective_range'];
 		status: WorkspaceRow<'employment_statutory_facts'>['status'];
@@ -129,6 +138,7 @@ export type LeaveContext = {
 		| 'effective_range'
 		| 'approval_id'
 		| 'facts'
+		| 'exit_facts'
 	>[];
 	catalogues: Pick<
 		WorkspaceRow<'leave_catalogue'>,
@@ -202,7 +212,8 @@ export function readLeaveContext(
 						employee_id: true,
 						company_id: true,
 						effective_range: true,
-						exit_reason: true
+						exit_reason: true,
+						exit_facts: true
 					},
 					with: {
 						employment_employee: {
@@ -309,7 +320,8 @@ export function readLeaveContext(
 						voided_at: true,
 						effective_range: true,
 						approval_id: true,
-						facts: true
+						facts: true,
+						exit_facts: true
 					},
 					limit: LIMIT
 				})
@@ -331,7 +343,8 @@ export function readLeaveContext(
 				company_id: row.company_id,
 				effective_range: row.effective_range
 			}),
-			exit_reason: row.exit_reason
+			exit_reason: row.exit_reason,
+			exit_facts: row.exit_facts
 		}));
 		const companies = [
 			...new Map(
@@ -473,13 +486,14 @@ export function readLeaveContext(
 						settings_id: { in: lineage.map((row) => row.id) },
 						approval_id: { isNull: true }
 					},
-					columns: { id: true, code: true },
+					columns: { id: true, code: true, elections: true },
 					limit: LIMIT
 				}),
 				api.db.employment_statutory_facts.findMany({
 					where: { employee_id: { in: employeeIds }, approval_id: { isNull: true } },
 					columns: {
 						employee_id: true,
+						employment_id: true,
 						statutory_contribution_id: true,
 						effective_range: true,
 						status: true
@@ -522,6 +536,8 @@ export function readLeaveContext(
 				: [
 						{
 							employee_id: row.employee_id,
+							employment_id: row.employment_id,
+							statutory_contribution_id: row.statutory_contribution_id,
 							code,
 							effective_range: row.effective_range,
 							status: row.status
@@ -572,6 +588,7 @@ export function readLeaveContext(
 			employees,
 			terms,
 			schemeCodes: [...new Set(codeOfScheme.values())],
+			schemes,
 			facts,
 			absences,
 			entries,
@@ -695,6 +712,7 @@ export function personAt(
 			service_start: range == null ? '' : dateKey(range.start),
 			exit_date: range?.end == null ? null : dateKey(range.end),
 			exit_reason: employment.exit_reason ?? null,
+			exit_facts: employment.exit_facts ?? {},
 			absent_days_12m: (context.absences ?? []).filter(
 				(row) =>
 					row.employment_id === employmentId && row.work_date > yearBefore && row.work_date <= date
@@ -702,32 +720,38 @@ export function personAt(
 		},
 		terms: terms.find((row) => coversDate(row.effective_range, date)) ?? null,
 		children: childrenOn(employee.children ?? [], date),
-		// Every fact the version in force declares reads as its type's empty until the entity
-		// states it, so a rule may name one without guarding it.
 		company: {
 			...company,
-			facts: {
-				...Object.fromEntries(
-					(settingsInForce(context.versions, company.settings_code, date)?.facts ?? []).map(
-						(fact) => [fact.key, EMPTY_OF[fact.type]]
-					)
-				),
-				...(company.facts ?? {})
-			}
+			facts: resolveCompanyFacts(
+				settingsInForce(context.versions, company.settings_code, date)?.facts ?? [],
+				company
+			)
 		},
-		facts: [
-			// Every scheme of the lineage reads as unregistered until a fact says otherwise.
-			...(context.schemeCodes ?? []).map((code) => ({ code, registered: false, since: null })),
-			...(context.facts ?? [])
-				.filter(
-					(fact) => fact.employee_id === employee.id && coversDate(fact.effective_range, date)
-				)
-				.map((fact) => ({
-					code: fact.code,
-					registered: fact.status?.kind === 'REGISTERED',
-					since: fact.status?.kind === 'REGISTERED' ? (fact.status.since ?? null) : null
-				}))
-		],
+		facts:
+			context.schemes == null
+				? [
+						// Every scheme of the lineage reads as unregistered until a fact says otherwise.
+						...(context.schemeCodes ?? []).map((code) => ({
+							code,
+							registered: false,
+							since: null
+						})),
+						...(context.facts ?? [])
+							.filter(
+								(fact) => fact.employee_id === employee.id && coversDate(fact.effective_range, date)
+							)
+							.map((fact) => ({
+								code: fact.code,
+								registered: fact.status?.kind === 'REGISTERED',
+								since: fact.status?.kind === 'REGISTERED' ? (fact.status.since ?? null) : null
+							}))
+					]
+				: personFactsOn(
+						(context.facts ?? []).filter((fact) => fact.employee_id === employee.id),
+						context.schemes,
+						date,
+						employmentId
+					),
 		asOf: date
 	});
 }

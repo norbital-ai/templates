@@ -63,6 +63,15 @@
 			"holiday_rest_precedence": "REST_DAY",
 			"wages": {
 				"by_region": {}
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.basic_salary / 26.0",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY"],
+				"include_allowances": [],
+				"exclude_allowances": ["TRANSPORT"],
+				"preserve_year_end_rate": false,
+				"authority": "Synthetic fixture: monthly basic salary divided by 26; transport excluded."
 			}
 		}
 	}

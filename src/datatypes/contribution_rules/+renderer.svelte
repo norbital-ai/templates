@@ -15,7 +15,15 @@
 	import type { ExpressionType } from '../../lib/expressions/contexts.js';
 	import type { RendererProps, Value } from './$types.js';
 
-	type RuleRow = { id: string; when: string; employee: string; employer: string };
+	type RuleRow = {
+		id: string;
+		when: string;
+		employee: string;
+		employer: string;
+		rebate: string;
+		deduction: string;
+		refusal: string;
+	};
 
 	let props: RendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -42,13 +50,16 @@
 				id: String(index),
 				when: rule.when,
 				employee: rule.employee,
-				employer: rule.employer
+				employer: rule.employer,
+				rebate: rule.rebate ?? '',
+				deduction: rule.deduction ?? '',
+				refusal: rule.refusal ?? ''
 			}));
 		},
 		{ lazy: false }
 	);
 
-	const columns: MatrixColumn<RuleRow>[] = [
+	const columns: MatrixColumn<RuleRow>[] = $derived([
 		{
 			key: 'when',
 			label: t('component.rule_condition'),
@@ -56,6 +67,20 @@
 			renderer: ExpressionCell,
 			placeholder: 'base > 0.0 && base <= 5000.0',
 			width: 360
+		},
+		{
+			key: 'deduction',
+			label: t('renderer.statutory_deductions.allowable_deduction'),
+			field: schemeExpr('deduction', 'money'),
+			renderer: ExpressionCell,
+			placeholder: '0.0',
+			width: 280
+		},
+		{
+			key: 'refusal',
+			label: t('renderer.statutory_deductions.refusal'),
+			field: fieldOf('refusal', 'text'),
+			width: 280
 		},
 		{
 			key: 'employee',
@@ -66,6 +91,14 @@
 			width: 280
 		},
 		{
+			key: 'rebate',
+			label: t('renderer.statutory_deductions.rebate'),
+			field: schemeExpr('rebate', 'money'),
+			renderer: ExpressionCell,
+			placeholder: '0.0',
+			width: 280
+		},
+		{
 			key: 'employer',
 			label: t('component.rule_employer'),
 			field: schemeExpr('employer', 'money'),
@@ -73,7 +106,7 @@
 			placeholder: 'base * 13.0 / 100.0',
 			width: 280
 		}
-	];
+	]);
 
 	function commit(next: RuleRow[]): void {
 		projected = next;
@@ -82,7 +115,10 @@
 			next.map((row): Value[number] => ({
 				when: row.when,
 				employee: row.employee,
-				employer: row.employer
+				employer: row.employer,
+				...(row.rebate.trim() === '' ? {} : { rebate: row.rebate }),
+				...(row.deduction.trim() === '' ? {} : { deduction: row.deduction }),
+				...(row.refusal.trim() === '' ? {} : { refusal: row.refusal })
 			}))
 		);
 	}
@@ -103,7 +139,10 @@
 			id: String(projected.length),
 			when: 'base > 0.0',
 			employee: '0.0',
-			employer: '0.0'
+			employer: '0.0',
+			rebate: '',
+			deduction: '',
+			refusal: ''
 		})}
 		onChange={commit}
 	/>

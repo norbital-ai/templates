@@ -30,11 +30,13 @@ import {
 	expectStatutorySkipped,
 	assertEveryVersionPriced,
 	settingsVersions,
+	contributionSchemes,
 	COMPANY_ID,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
+import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 
 const VN_PEOPLE = [
 	{ key: 'VN-20M', wage: 20_000_000, age: 25, citizenship: 'CITIZEN' },
@@ -42,6 +44,56 @@ const VN_PEOPLE = [
 	{ key: 'VN-60M', wage: 60_000_000, age: 55, citizenship: 'CITIZEN' },
 	{ key: 'VN-FOREIGN', wage: 20_000_000, citizenship: 'FOREIGNER' }
 ];
+
+for (const period of ['2025-12', '2026-01', '2026-06', '2026-07', '2026-12'])
+	test(`Vietnam — declared non-residence selects 20% in ${period} without an override`, () => {
+		// Circular 111/2013 art.18 and Law 109/2025 art.21: salary 20m × 20%.
+		// No personal, dependant or insurance deduction; nationality does not determine residence.
+		const book = assessStatutory({
+			code: 'VN',
+			period,
+			region: 'I',
+			people: [
+				{
+					key: 'NONRES-FOREIGN',
+					wage: 20_000_000,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					children: 2
+				},
+				{
+					key: 'NONRES-CITIZEN',
+					wage: 20_000_000,
+					citizenship: 'CITIZEN',
+					tax_residency: 'NON_RESIDENT',
+					registrations: {
+						PIT: { kind: 'REGISTERED', rate_override: 15, elections: { commitment_form: true } }
+					}
+				}
+			]
+		});
+		expectStatutory(book, 'NONRES-FOREIGN', 'PIT', 4_000_000, 0);
+		expectStatutory(book, 'NONRES-CITIZEN', 'PIT', 4_000_000, 0);
+	});
+
+test('Vietnam — short contracts do not replace non-resident withholding with the resident 10% rule', () => {
+	const book = assessStatutory({
+		code: 'VN',
+		period: '2026-07',
+		region: 'I',
+		people: [
+			{
+				key: 'NONRES-SHORT',
+				wage: 20_000_000,
+				citizenship: 'FOREIGNER',
+				tax_residency: 'NON_RESIDENT',
+				hire_date: '2026-06-01',
+				exit_date: '2026-07-31'
+			}
+		]
+	});
+	expectStatutory(book, 'NONRES-SHORT', 'PIT', 4_000_000, 0);
+});
 
 test('Vietnam — SI, HI, UI and the union fee under the 1 January 2026 version', () => {
 	// Region I: `companies.region` picks the minimum wage the UI cap is a multiple of.
@@ -373,6 +425,63 @@ const punch = (world: PayrollWorld, key: string, date: string, start: string, en
 		approval_id: null
 	});
 };
+
+test('Vietnam — non-resident overtime exemption changes on 1 July, independently of the resident tax year', () => {
+	for (const [period, workDate, wage, base, tax] of [
+		['2026-06', '2026-06-08', 17_600_000, 17_800_000, 3_560_000],
+		['2026-07', '2026-07-06', 18_400_000, 18_400_000, 3_680_000]
+	] as const) {
+		// 22 June / 23 July weekdays × 8 hours give a VND100,000 ordinary hour.
+		// Two OT hours pay 300,000. Before July only the 100,000 premium is exempt;
+		// from July the full statutory 300,000 is exempt (Decree 253/2026 arts.26,69).
+		const { slips } = buildStatutory(
+			{
+				code: 'VN',
+				period,
+				region: 'I',
+				people: [
+					{
+						key: 'NONRES-OT',
+						wage,
+						citizenship: 'FOREIGNER',
+						tax_residency: 'NON_RESIDENT'
+					}
+				]
+			},
+			(world) => punch(world, 'NONRES-OT', workDate, '09:00', '20:00')
+		);
+		assert.deepEqual(charge(slips.get('NONRES-OT')!, 'PIT'), [base, tax, 0]);
+	}
+});
+
+test('Vietnam — leave exemption respects residence commencement and a future departure is not cessation', () => {
+	const versions = new Map(settingsVersions('VN').map((row) => [row.id, row]));
+	for (const row of contributionSchemes('VN').filter((row) => row.code === 'PIT')) {
+		const start = versions.get(row.settings_id).effective_range.start.slice(0, 10);
+		for (const residency of ['RESIDENT', 'NON_RESIDENT']) {
+			for (const exit of ['', '2026-12-31', '2025-11-30']) {
+				const exempt =
+					(start >= '2026-07-01' || (start >= '2026-01-01' && residency === 'RESIDENT')) &&
+					exit !== '' &&
+					exit <= start;
+				const actual = evaluateNumber(expressionEngine, row.assessed_on, {
+					BASE: 1000000,
+					ALLOWANCES: 0,
+					ADHOC: 0,
+					OVERTIME: 0,
+					OVERTIME_PREMIUM: 0,
+					ENCASHMENT: 100000,
+					INCENTIVE: 0,
+					ABSENCE: 0,
+					NO_PAY_LEAVE: 0,
+					person: { terms: { tax_residency: residency }, employment: { exit_date: exit } },
+					period: { end: start }
+				});
+				assert.equal(actual, exempt ? 1000000 : 1100000, `${start} ${residency} exit=${exit}`);
+			}
+		}
+	}
+});
 /** The work-day lines one payslip carries, as `[date, label, hours, amount]`, in date order. */
 const workLines = (slip: BuiltPayslip) =>
 	slip.adjustments

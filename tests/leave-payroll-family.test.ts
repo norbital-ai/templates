@@ -5,6 +5,8 @@ import {
 	calculateLeavePayroll,
 	hasLeavePayment,
 	leaveCoverage,
+	fullyUnpaidDays,
+	unpaidLeaveDays,
 	type PreparedLeavePayroll
 } from '../src/lib/leave/payroll.ts';
 import { leavePayItemsValueSchema } from '../src/datatypes/leave_pay_items/+definition.ts';
@@ -112,8 +114,47 @@ const calculate = (facts: PreparedLeavePayroll, window = january, rate = 100) =>
 		dueThrough: window.end,
 		currency: 'MYR',
 		absenceRate: () => rate,
-		ordinaryDayRate: () => rate
+		encashmentRate: () => rate
 	});
+
+test('fully unpaid days combine portions on the same date, not across dates', () => {
+	const facts = prepared([
+		timeOff(10, [charge('2027-01-04', 0.5)]),
+		timeOff(11, [charge('2027-01-05', 0.5)]),
+		timeOff(12, [charge('2027-01-06', 0.5)]),
+		timeOff(13, [charge('2027-01-06', 0.5)])
+	]);
+	assert.equal(unpaidLeaveDays(facts, january), 2);
+	assert.equal(fullyUnpaidDays(facts, january, []), 1);
+	assert.equal(fullyUnpaidDays(facts, january, [{ date: '2027-01-04', days: 0.5 }]), 2);
+	assert.equal(fullyUnpaidDays(facts, january, [{ date: '2026-12-31', days: 1 }]), 1);
+});
+
+test('part-paid and ineligible leave do not become fully unpaid days', () => {
+	const partPaid = timeOff(10, [charge('2027-01-04')]);
+	const excused = timeOff(11, [charge('2027-01-05')]);
+	const facts = prepared([partPaid, excused], {
+		deductionShare: { [`${partPaid.id}/2027-01-04`]: 0.5 },
+		deductionEligibility: { [`${partPaid.id}/2027-01-04`]: true }
+	});
+	assert.equal(unpaidLeaveDays(facts, january), 0.5);
+	assert.equal(fullyUnpaidDays(facts, january, []), 0);
+});
+
+test('benefit day counts retain separate fractions and exclude nonworking dates', () => {
+	const facts = prepared([
+		timeOff(10, [charge('2027-01-04', 0.5)]),
+		timeOff(11, [charge('2027-01-05', 0.5)]),
+		timeOff(12, [charge('2027-01-06', 0.5)]),
+		timeOff(13, [charge('2027-01-06', 0.5)]),
+		timeOff(14, [charge('2027-01-09')])
+	]);
+	const working = (date: string) => date !== '2027-01-09';
+	const coverage = leaveCoverage(facts, january, working);
+	assert.equal(coverage.byCode.UNPAID, 2);
+	assert.equal(coverage.fullDaysByCode.UNPAID, 1);
+	assert.equal(fullyUnpaidDays(facts, january, [], working), 1);
+});
 
 test('cross-year unpaid leave settles exact dated halves once, with each period’s rate', () => {
 	// The split is the caller’s now: a time-off entry settles whole in one window, so the standing
@@ -168,7 +209,7 @@ test('manual encashment stays due after departure and prices at the ordinary day
 		absenceRate: () => {
 			throw new Error('An encashment never reads the absence rate');
 		},
-		ordinaryDayRate: () => 68.625
+		encashmentRate: () => 68.625
 	});
 	assert.equal(output.adjustments[0]!.amount, 137.25, 'two days at the ordinary day wage');
 	assert.equal(output.captures[0]!.gross_amount.value, 137.25);
@@ -180,6 +221,80 @@ test('manual encashment stays due after departure and prices at the ordinary day
 		false
 	);
 });
+
+// ISO 4217 List One: MYR and IDR have two minor-unit digits; VND has none.
+// https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml
+for (const [currency, expected] of [
+	['MYR', 102.94],
+	['VND', 103],
+	['IDR', 102.94]
+] as const) {
+	test(`encashment rounds its pay line and captured total to the same ${currency} amount`, () => {
+		const output = calculateLeavePayroll({
+			prepared: prepared([cash(11, 1.5)], {
+				catalogues: [{ ...catalogue, is_npl: false, can_encash: true }]
+			}),
+			window: january,
+			dueThrough: january.end,
+			currency,
+			absenceRate: () => 0,
+			encashmentRate: () => 68.625
+		});
+		assert.equal(output.adjustments[0]!.amount, expected);
+		assert.equal(output.captures[0]!.pay_items[0]!.amount, expected);
+		assert.deepEqual(output.captures[0]!.gross_amount, { value: expected, currency });
+	});
+}
+
+for (const [currency, salary, expected] of [
+	['VND', 22000000, 10521739],
+	['MYR', 2200, 1052.17]
+] as const) {
+	test(`${currency} unpaid deductions round once per salary basis across separate requests`, () => {
+		const charges = Array.from({ length: 11 }, (_, i) =>
+			charge(`2027-01-${String(i + 1).padStart(2, '0')}`)
+		);
+		for (const entries of [
+			[timeOff(10, charges)],
+			charges.map((day, i) => timeOff(10 + i, [day])),
+			charges.map((day, i) => timeOff(10 + i, [day])).reverse()
+		]) {
+			const output = calculateLeavePayroll({
+				prepared: prepared(entries),
+				window: january,
+				dueThrough: january.end,
+				currency,
+				absenceRate: () => salary / 23,
+				encashmentRate: () => 0
+			});
+			assert.equal(
+				Math.round(output.adjustments.reduce((sum, row) => sum + row.amount, 0) * 100) / 100,
+				expected
+			);
+			assert.equal(
+				Math.round(output.captures.reduce((sum, row) => sum + row.gross_amount.value, 0) * 100) /
+					100,
+				-expected
+			);
+		}
+	});
+}
+
+for (const rate of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+	test(`encashment refuses an invalid day rate (${rate})`, () => {
+		assert.throws(
+			() =>
+				calculate(
+					prepared([cash(11)], {
+						catalogues: [{ ...catalogue, is_npl: false, can_encash: true }]
+					}),
+					january,
+					rate
+				),
+			/nonnegative Leave encashment rate/
+		);
+	});
+}
 
 test('a paid reversal preserves the original amounts and contribution direction', () => {
 	const original = timeOff(10, [charge('2026-12-30', 0.5), charge('2026-12-31')]);
@@ -263,7 +378,7 @@ test('a reversal refuses a payroll currency that differs from the money it negat
 				dueThrough: january.end,
 				currency: 'SGD',
 				absenceRate: () => 100,
-				ordinaryDayRate: () => 100
+				encashmentRate: () => 100
 			}),
 		/currency differs/
 	);

@@ -185,6 +185,7 @@ const openHrGateway = async (
 				environment: String(session.scope.environment),
 				releaseId: String(session.scope.releaseId),
 				principal: `${label}-founder`,
+				email: `${label}-founder@example.test`,
 				syncPrincipal: `${label}-founder`,
 				organizationName: 'HR payroll public seed',
 				commandPrefix: '/__bolt/command/',
@@ -1362,7 +1363,8 @@ it('HR self-host Norbius shows the user text immediately', async () => {
 					return JSON.stringify({
 						pending: pending !== null,
 						composerHas,
-						transcript
+						transcript,
+						panelText: document.querySelector('[data-agent-composer]')?.parentElement?.innerText?.slice(-1800) ?? ''
 					});
 				})()`)
 		);

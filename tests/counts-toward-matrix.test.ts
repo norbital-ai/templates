@@ -18,7 +18,8 @@ import {
 	settingsVersions
 } from './fixtures/statutory-world.ts';
 
-const MY_WAGES = ['EIS', 'EPF', 'EPF_NON_CITIZEN', 'EPF_PR', 'HRDF', 'SKBBK', 'SOCSO'];
+const MY_WAGES = ['EIS', 'HRDF', 'SKBBK', 'SOCSO'];
+const MY_ADDITIONAL_EPF = ['EPF.ADDITIONAL', 'EPF_NON_CITIZEN.ADDITIONAL', 'EPF_PR.ADDITIONAL'];
 const PH_SSS = ['SSS', 'SSS_EC', 'SSS_MPF'];
 const ID_BPJS = ['JHT', 'JKK', 'JKM', 'JKP', 'JP', 'KESEHATAN'];
 
@@ -27,13 +28,20 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	SG: { bonus: ['CDAC', 'CPF.ADDITIONAL', 'ECF', 'MBMF', 'SDL', 'SINDA'] },
 	// EPF Act s.2 (wages, no retirement/termination benefit), SOCSO/EIS s.2 wages, PSMB Act wages,
 	// ITA 1967 s.13(1)(a) with PCB's additional-remuneration method for one-off pay.
+	// LHDN 2026 D(b), E(13): normal/additional EPF classification controls tax-relief projection.
 	MY: {
-		ADJ: [...MY_WAGES.filter((code) => code !== 'HRDF'), 'PCB.ADDITIONAL'],
+		ADJ: [...MY_WAGES.filter((code) => code !== 'HRDF'), ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
 		BACKPAY_ADD_WAGES: ['EIS', 'PCB.ADDITIONAL', 'SKBBK', 'SOCSO'],
-		BPAYBS: [...MY_WAGES, 'PCB.ADDITIONAL'],
+		BPAYBS: [...MY_WAGES, ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
 		NOTICE_IN_LIEU: ['PCB.ADDITIONAL'],
-		ONCALL: [...MY_WAGES, 'PCB.ADDITIONAL'],
-		SUA: [...MY_WAGES, 'PCB.ORDINARY'],
+		ONCALL: [...MY_WAGES, ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
+		SUA: [
+			...MY_WAGES,
+			'EPF.ORDINARY',
+			'EPF_NON_CITIZEN.ORDINARY',
+			'EPF_PR.ORDINARY',
+			'PCB.ORDINARY'
+		],
 		TERMINATION_BENEFIT: []
 	},
 	// RA 11199 s.8(f) compensation; NIRC s.32(B)(7)(e) 13th month and other benefits (de minimis meal).
@@ -80,11 +88,13 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		KESEHATAN_TERMINATION_MONTH_EMPLOYER: ['PPH21.ADDITIONAL', 'PPH26'],
 		MEDICAL_ALLOWANCE: ['PPH21.ADDITIONAL', 'PPH26'],
 		PESANGON: [],
+		PENSION_OFFSET: [],
 		PKWT_COMPENSATION: ['PPH21.ADDITIONAL', 'PPH26'],
 		RETROACTIVE_PAY: ['PPH21.ADDITIONAL', 'PPH26'],
 		SPECIAL_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH26'],
 		TAX_INCENTIVE: [],
 		THR: ['PPH21.ADDITIONAL', 'PPH26'],
+		UANG_PISAH: [],
 		UPMK: []
 	}
 };
@@ -100,7 +110,9 @@ const SEPARATION = new Set([
 	'SEVERANCE_ALLOWANCE',
 	'JOB_LOSS_ALLOWANCE',
 	'PESANGON',
+	'PENSION_OFFSET',
 	'UPMK',
+	'UANG_PISAH',
 	'PKWT_COMPENSATION',
 	'THR'
 ]);

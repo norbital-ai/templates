@@ -104,6 +104,7 @@ it('HR payroll run form closes on create and the new draft appears in the runs t
 					environment: 'test',
 					releaseId: 'hr-payroll-run-form',
 					principal: 'hr-payroll-run-form-founder',
+					email: 'hr-payroll-run-form-founder@example.test',
 					syncPrincipal: 'hr-payroll-run-form-founder',
 					organizationName: 'HR payroll public seed',
 					commandPrefix: '/__bolt/command/',

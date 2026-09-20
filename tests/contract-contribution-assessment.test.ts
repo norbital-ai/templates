@@ -21,6 +21,26 @@ const accumulationOf = (base: number) => {
 	const accumulated = accumulatePayslip({ items: [] });
 	return { ...accumulated, reserved: { ...accumulated.reserved, BASE: base } };
 };
+
+test('ordinary wages retain their contract shares when only one contract has additional wages', () => {
+	const config = scheme('BASES', [{ when: 'true', employee: 'base * 0.1', employer: '0.0' }]);
+	config.row.assessed_on = 'BASE + ENCASHMENT';
+	config.row.ordinary_on = 'BASE';
+	const own = accumulationOf(1000);
+	const result = assessContributions([
+		contract('a', 1000, [config], {
+			accumulation: { ...own, reserved: { ...own.reserved, ENCASHMENT: 4000 } }
+		}),
+		contract('b', 3000, [config])
+	]);
+	assert.deepEqual(
+		[...result.values()].map((rows) => [rows[0]!.base, rows[0]!.ordinary]),
+		[
+			[5000, 1000],
+			[3000, 3000]
+		]
+	);
+});
 type Band = ContributionConfig['rules'][number];
 
 function scheme(
@@ -101,6 +121,60 @@ test('two contracts receive one fixed assessment, with deterministic cent alloca
 	assert.deepEqual(assessContributions(contracts.toReversed()), result);
 });
 
+for (const cutoff of ['FIRST', 'SPLIT'] as const)
+	test(`monthly ${cutoff} assessment bases are allocated once across concurrent contracts`, () => {
+		const monthly = {
+			...fixed,
+			row: { ...fixed.row, assessment_period: 'MONTH' as const, ordinary_on: 'BASE' }
+		};
+		const half = (index: number) => ({
+			...contract('a', 0, [monthly]).calculation.period,
+			key: `2026-12-${index}`,
+			index,
+			instalments: 2,
+			monthlyOn: cutoff
+		});
+		const first = assessContributions([
+			contract('a', 1000, [monthly], { period: half(1) }),
+			contract('b', 2000, [monthly], { period: half(1) })
+		]);
+		const amounts = [...first.values()].flat();
+		const fraction = cutoff === 'SPLIT' ? 0.5 : 1;
+		assert.deepEqual(
+			amounts.map((row) => row.base),
+			[2000 * fraction, 4000 * fraction]
+		);
+		assert.deepEqual(
+			amounts.map((row) => row.ordinary),
+			[2000 * fraction, 4000 * fraction]
+		);
+		const monthPrior = {
+			accumulation: accumulationOf(3000),
+			charged: new Map([
+				[
+					monthly.row.code,
+					{
+						base: amounts.reduce((sum, row) => sum + row.base, 0),
+						ordinary: amounts.reduce((sum, row) => sum + row.ordinary!, 0),
+						employee: amounts.reduce((sum, row) => sum + row.employee, 0),
+						employer: amounts.reduce((sum, row) => sum + row.employer, 0)
+					}
+				]
+			])
+		};
+		const last = assessContributions([
+			contract('a', 1000, [monthly], { period: half(2), monthPrior }),
+			contract('b', 2000, [monthly], { period: half(2), monthPrior })
+		]);
+		for (const [id, expected] of [
+			['a', 2000],
+			['b', 4000]
+		] as const) {
+			assert.equal(first.get(id)![0]!.base + last.get(id)![0]!.base, expected);
+			assert.equal(first.get(id)![0]!.ordinary! + last.get(id)![0]!.ordinary!, expected);
+		}
+	});
+
 test('a periodic progressive threshold applies to combined contract remuneration', () => {
 	const ladder = scheme('PUB_PERIOD', [
 		{ when: 'base <= 1000.0', employee: 'round_cent(0.0)', employer: '0.0' },
@@ -113,6 +187,65 @@ test('a periodic progressive threshold applies to combined contract remuneration
 	const result = assessContributions([contract('a', 750, [ladder]), contract('b', 750, [ladder])]);
 	assert.equal(result.get('a')![0]!.employee + result.get('b')![0]!.employee, 50);
 	assert.equal(result.get('a')![0]!.ruleReference, 'base > 1000.0');
+});
+
+test('rebatable payments are recorded once and allocated across the person’s contracts', () => {
+	const tax = scheme('PUB_REBATE', [
+		{ when: 'true', employee: '0.0', employer: '0.0', rebate: '100.01' }
+	]);
+	const result = assessContributions([contract('a', 1000, [tax]), contract('b', 1000, [tax])]);
+	assert.deepEqual(
+		[...result.values()].map((charges) => charges[0]!.rebate),
+		[50.01, 50]
+	);
+	const invalid = scheme('PUB_REBATE', [
+		{ when: 'true', employee: '0.0', employer: '0.0', rebate: '-1.0' }
+	]);
+	assert.throws(
+		() => assessContributions([contract('a', 1000, [invalid])]),
+		/rebatable payments must be finite and nonnegative/
+	);
+});
+
+test('deduction declarations apply once per person and conflicting contract histories refuse', () => {
+	const tax = scheme('PUB_TAX', [
+		{
+			when: 'true',
+			deduction: 'scheme.deductions.EDUCATION',
+			employee: 'base - scheme.deduction',
+			employer: '0.0'
+		}
+	]);
+	const status = {
+		kind: 'REGISTERED' as const,
+		reference_number: 'R',
+		rate_override: null,
+		deduction_claims: [
+			{
+				period: '2026-12',
+				category: 'EDUCATION',
+				amount: 150,
+				source: 'EMPLOYEE' as const,
+				reference: 'Synthetic TP1'
+			}
+		]
+	};
+	const facts = new Map([['PUB_TAX', status]]);
+	const result = assessContributions([
+		contract('a', 1000, [tax], { facts }),
+		contract('b', 1000, [tax], { facts })
+	]);
+	assert.equal(result.get('a')![0]!.employee + result.get('b')![0]!.employee, 1850);
+	assert.throws(
+		() =>
+			assessContributions([
+				contract('a', 1000, [tax], { facts }),
+				contract('b', 1000, [tax], {
+					facts: new Map([['PUB_TAX', { ...status, deduction_claims: [] }]])
+				})
+			]),
+		/conflicting.*registrations/
+	);
 });
 
 test('personal relief, a shared relief cap and prior YTD are applied once for the person', () => {
@@ -182,6 +315,22 @@ test('another entity and another person each retain their own assessment', () =>
 test('single-contract calculation is unchanged', () => {
 	const only = contract('a', 1234.56, [fixed]);
 	assert.deepEqual(assessContributions([only]).get('a'), contribute(only.calculation));
+});
+
+test('conflicting first-liability dates cannot be merged across concurrent contracts', () => {
+	const fact = { kind: 'REGISTERED' as const, reference_number: 'R', rate_override: null };
+	assert.throws(
+		() =>
+			assessContributions([
+				contract('a', 1000, [fixed], {
+					facts: new Map([[fixed.row.id, { ...fact, first_contribution_due_on: '2010-01-01' }]])
+				}),
+				contract('b', 1000, [fixed], {
+					facts: new Map([[fixed.row.id, { ...fact, first_contribution_due_on: '2020-01-01' }]])
+				})
+			]),
+		/conflicting.*registrations/
+	);
 });
 
 for (const status of [

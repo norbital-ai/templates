@@ -1,6 +1,7 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import { compileExpression } from '../../lib/expressions/compile.js';
+import { openKeyMentions } from '../../lib/expressions/contexts.js';
 
 /**
  * The rules of one statutory scheme: an ordered ladder of expressions.
@@ -24,13 +25,22 @@ export const contributionRuleSchema = Schema.Struct({
 	/** CEL returning the employee share for a matching rule. */
 	employee: cel,
 	/** CEL returning the employer share for a matching rule. */
-	employer: cel
+	employer: cel,
+	/** Rebatable payments made this period, retained separately for subsequent assessments. */
+	rebate: Schema.optionalKey(cel),
+	/** Allowable deduction evaluated once after selection, readable as scheme.deduction. */
+	deduction: Schema.optionalKey(cel),
+	/** A matching rule refuses calculation with this explanation. */
+	refusal: Schema.optionalKey(cel)
 });
 export type ContributionRule = Schema.Schema.Type<typeof contributionRuleSchema>;
 
 export const contributionRulesValueSchema = Schema.Array(contributionRuleSchema).check(
 	Schema.makeFilter((rules) => {
 		for (const rule of rules) {
+			for (const expression of [rule.when, rule.deduction ?? '0.0'])
+				if (openKeyMentions(expression, 'scheme').includes('deduction'))
+					return 'The deduction is evaluated after rule selection and cannot select or depend on itself.';
 			const when = compileExpression({ expression: rule.when, site: 'scheme', type: 'boolean' });
 			if (when != null) return when;
 			const employee = compileExpression({
@@ -45,6 +55,22 @@ export const contributionRulesValueSchema = Schema.Array(contributionRuleSchema)
 				type: 'money'
 			});
 			if (employer != null) return employer;
+			if (rule.rebate != null) {
+				const rebate = compileExpression({
+					expression: rule.rebate,
+					site: 'scheme',
+					type: 'money'
+				});
+				if (rebate != null) return rebate;
+			}
+			if (rule.deduction != null) {
+				const deduction = compileExpression({
+					expression: rule.deduction,
+					site: 'scheme',
+					type: 'money'
+				});
+				if (deduction != null) return deduction;
+			}
 		}
 		return true;
 	})

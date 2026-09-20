@@ -30,6 +30,8 @@ import {
 } from '../../collections/payroll_runs/lib/entry-cap.js';
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
 import { factStatusesOn, personFacts } from './facts.js';
+import { settingsInForce } from '../jurisdiction_settings.js';
+import { resolveCompanyFacts, resolveExitFacts, resolveFactValues } from '../declared-facts.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import {
 	intersectDays,
@@ -287,32 +289,81 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			decodeNumber(options.configuration.jurisdiction.work_rules.wages?.by_region?.[region] ?? 0)
 	});
 	const measureEntry = (entry: PreparedPayRequest): Measurement | null => {
-		const subjectOn = (source: PayRequest): PersonContext =>
-			personContext({
+		// Only a class whose own rules read departure inputs owes them: ID's THR is classed for
+		// off-boarding but prices a festival wage, not a termination benefit.
+		const readsExitFacts = [
+			options.component.eligibility,
+			...options.component.bands.flatMap((band) => [
+				band.when ?? '',
+				band.amount ?? '',
+				typeof band.limit === 'string' ? band.limit : ''
+			])
+		].some((expression) => expression.includes('employment.exit_facts'));
+		const subjectOn = (source: PayRequest): PersonContext => {
+			const employment = stint(options.bundle.employment);
+			// A separation-classed row raised while the contract still runs — ID's THR for an
+			// active employee — is an ordinary payment on its event date, not a final obligation.
+			const separation =
+				'raised_by' in options.component &&
+				options.component.raised_by === 'SEPARATION' &&
+				employment.exit_date != null;
+			const asOf = separation ? employment.exit_date! : source.event_date;
+			const version = separation
+				? settingsInForce(
+						options.configuration.lineageVersions,
+						options.configuration.company.settings_code,
+						asOf
+					)
+				: options.configuration.jurisdiction;
+			if (version == null) refuse(`No sealed settings govern the final service day ${asOf}.`);
+			if (separation && version.id !== options.component.settings_id)
+				refuse(
+					'A separation payment must use the catalogue version governing the final service day.'
+				);
+			const company = separation
+				? {
+						...options.configuration.company,
+						facts: resolveCompanyFacts(version.facts ?? [], {
+							...options.configuration.company,
+							facts: options.configuration.recordedCompanyFacts
+						})
+					}
+				: options.configuration.company;
+			const subject = personContext({
 				employee: options.bundle.employee,
-				employment: stint(options.bundle.employment),
-				fixedAllowances: contractAllowancesOn(
-					options.bundle,
-					options.configuration,
-					source.event_date
-				),
-				// A post-departure obligation reads the final terms of its own contract: an event
-				// after the exit is still priced against the last terms that covered the service.
-				terms: payRequestTerms(
-					options.bundle.termsHistory,
-					options.bundle.employment,
-					source.event_date
-				),
+				employment:
+					separation && readsExitFacts
+						? employment
+						: {
+								// Eligibility over an active contract reads declared exit facts with their
+								// defaults; requiredness is enforced only where the rules read them.
+								...employment,
+								exit_facts: resolveFactValues(
+									version.exit_facts ?? [],
+									employment.exit_facts ?? {},
+									options.bundle.employment.employee_number,
+									false
+								)
+							},
+				fixedAllowances: contractAllowancesOn(options.bundle, options.configuration, asOf),
+				terms: payRequestTerms(options.bundle.termsHistory, options.bundle.employment, asOf),
 				children: options.bundle.children,
-				company: options.configuration.company,
-				// The registration facts on the day, so a row owed to those outside a scheme (VN
-				// art.168(3)) can read `facts.<CODE>.registered`.
+				company,
 				facts: personFacts(
 					options.configuration.contributions,
-					factStatusesOn(options.bundle.statutoryFacts, source.event_date)
+					factStatusesOn(
+						options.bundle.statutoryFacts,
+						asOf,
+						options.bundle.employment.id,
+						options.configuration.contributions
+					)
 				),
-				asOf: source.event_date
+				asOf
 			});
+			return separation && readsExitFacts
+				? resolveExitFacts(version.exit_facts ?? [], employment.exit_facts, subject)
+				: subject;
+		};
 		const subject = subjectOn(entry);
 		/**
 		 * A skipped request is captured, so it has to be reported: the entry is consumed whether or

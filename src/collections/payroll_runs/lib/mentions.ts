@@ -86,7 +86,13 @@ export function producedMentions(
 	if (cached == null) {
 		const mentions: string[] = [];
 		for (const rule of rules)
-			for (const expression of [rule.when, rule.employee, rule.employer])
+			for (const expression of [
+				rule.when,
+				rule.employee,
+				rule.employer,
+				rule.rebate ?? '0.0',
+				rule.deduction ?? '0.0'
+			])
 				mentionsIn(expression, mentions);
 		cached = mentions;
 		cache.set(rules, cached);
@@ -107,15 +113,21 @@ export function orderSchemes<
 			readonly code: string;
 			readonly rules: readonly ContributionRule[];
 			readonly assessed_on?: string | null;
+			readonly ordinary_on?: string | null;
+			readonly elections?: readonly { readonly required_when?: string }[];
 		};
 	}
 >(entries: readonly T[]): readonly T[] {
 	const byCode = new Map(entries.map((entry) => [entry.row.code, entry]));
 	const dependencies = new Map<string, ReadonlySet<string>>();
 	for (const entry of entries) {
-		const deps = producedMentions(entry.row.rules, entry.row.assessed_on ?? undefined).filter(
-			(code) => code !== entry.row.code
-		);
+		const deps = [
+			...producedMentions(entry.row.rules, entry.row.assessed_on ?? undefined),
+			...producedMentionsOf(entry.row.ordinary_on ?? ''),
+			...(entry.row.elections ?? []).flatMap((field) =>
+				producedMentionsOf(field.required_when ?? '')
+			)
+		].filter((code) => code !== entry.row.code);
 		for (const code of deps)
 			if (!byCode.has(code))
 				throw new Error(

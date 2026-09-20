@@ -13,7 +13,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assessedOnMentions } from '../src/lib/expressions/compile.ts';
+import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 import { nightAddsFor, priceWorkDay } from '../src/lib/payroll/work-bands.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { settingsVersions, contributionSchemes } from './fixtures/statutory-world.ts';
@@ -260,18 +260,40 @@ test('Philippines — the night differential follows the day’s own rate', () =
 	}
 });
 
-test('Vietnam — from the 2026 tax year the overtime wage is outside personal income tax', () => {
+test('Vietnam — full overtime exemption starts in January for residents and July for non-residents', () => {
 	// Law 109/2025/QH15 art.4(8): "Tiền lương làm việc ban đêm, làm thêm giờ" is exempt income —
 	// the whole overtime wage, where Law 04/2007 exempted only the part above the ordinary rate.
-	// Art.29(2): the salary-income rules apply "từ kỳ tính thuế năm 2026" — both 2026 versions.
+	// Art.29(2) and Decree 253/2026 art.69: resident salary rules apply from tax year 2026.
 	const [december, january, july] = settingsVersions('VN');
 	const pit = (version) =>
 		contributionSchemes('VN').find((row) => row.settings_id === version.id && row.code === 'PIT');
 	assert.equal(january.effective_range.start.slice(0, 10), '2026-01-01');
 	assert.equal(july.effective_range.start.slice(0, 10), '2026-07-01');
-	const chargesOvertime = (version) =>
-		assessedOnMentions(pit(version).assessed_on).reserved.includes('OVERTIME');
-	assert.equal(chargesOvertime(december), true);
-	assert.equal(chargesOvertime(january), false);
-	assert.equal(chargesOvertime(july), false);
+	for (const [version, residentBase, nonresidentBase] of [
+		[december, 1200, 1200],
+		[january, 1000, 1200],
+		[july, 1000, 1000]
+	]) {
+		for (const [residency, expected] of [
+			['RESIDENT', residentBase],
+			['NON_RESIDENT', nonresidentBase]
+		]) {
+			assert.equal(
+				evaluateNumber(expressionEngine, pit(version).assessed_on, {
+					BASE: 1000,
+					ALLOWANCES: 0,
+					ADHOC: 0,
+					OVERTIME: 300,
+					OVERTIME_PREMIUM: 100,
+					ENCASHMENT: 0,
+					INCENTIVE: 0,
+					ABSENCE: 0,
+					NO_PAY_LEAVE: 0,
+					person: { terms: { tax_residency: residency }, employment: { exit_date: '' } },
+					period: { end: version.effective_range.start.slice(0, 10) }
+				}),
+				expected
+			);
+		}
+	}
 });

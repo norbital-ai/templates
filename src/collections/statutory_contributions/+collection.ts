@@ -70,7 +70,9 @@ export default defineCollection({
 									settings_id: true,
 									code: true,
 									rules: true,
-									assessed_on: true
+									assessed_on: true,
+									ordinary_on: true,
+									elections: true
 								},
 								limit: LIMIT
 							})
@@ -83,13 +85,29 @@ export default defineCollection({
 				refuseUnlessDraftOnBoth(versions, existing[index]?.settings_id, input.settings_id, what);
 				const rules = row.rules ?? [];
 				const assessedOn = String(row.assessed_on ?? '');
-				const fault = schemeFault({
-					rules,
-					assessed_on: assessedOn,
-					ordinary_on: String(row.ordinary_on ?? ''),
-					elections: row.elections ?? [],
-					parts: row.parts ?? []
-				});
+				const fault = schemeFault(
+					{
+						rules,
+						assessed_on: assessedOn,
+						ordinary_on: String(row.ordinary_on ?? ''),
+						elections: row.elections ?? [],
+						parts: row.parts ?? []
+					},
+					Object.fromEntries([
+						...stored
+							.filter(
+								(other) =>
+									other.settings_id === row.settings_id &&
+									other.id !== row.id &&
+									other.code !== row.code
+							)
+							.map((other) => [other.code, other.elections ?? []]),
+						...inputs
+							.map((pending, pendingIndex) => ({ ...existing[pendingIndex], ...pending }))
+							.filter((pending) => pending.settings_id === row.settings_id && pending.code != null)
+							.map((pending) => [String(pending.code), pending.elections ?? []])
+					])
+				);
 				if (fault != null) refuse(fault);
 				const settingsId = row.settings_id;
 				if (settingsId == null || settingsId === '') return input;
@@ -101,9 +119,17 @@ export default defineCollection({
 								other.settings_id === settingsId && other.id !== row.id && other.code !== row.code
 						)
 						.map((other) => ({
-							row: { code: other.code, rules: other.rules, assessed_on: other.assessed_on }
+							row: other
 						})),
-					{ row: { code: String(row.code ?? ''), rules, assessed_on: assessedOn } }
+					{
+						row: {
+							code: String(row.code ?? ''),
+							rules,
+							assessed_on: assessedOn,
+							ordinary_on: row.ordinary_on,
+							elections: row.elections
+						}
+					}
 				];
 				try {
 					orderSchemes(entries);

@@ -11,6 +11,7 @@ import {
 	schemeFault
 } from '../../lib/catalogue_rules.js';
 import { openKeyMentions } from '../../lib/expressions/contexts.js';
+import { compileExpression } from '../../lib/expressions/compile.js';
 import type { Row } from './$types.js';
 
 /** The root's own columns: what the Settings form and the clone write. */
@@ -26,6 +27,7 @@ const columns = {
 	sources: true,
 	work_rules: true,
 	facts: true,
+	exit_facts: true,
 	change_summary: true,
 	effective_range: true
 } as const;
@@ -361,6 +363,34 @@ export default defineCollection({
 					refuse('Only a sealed version can be voided; delete a draft instead.');
 				if (row.payroll?.currency == null || !String(row.jurisdiction_code ?? '').trim())
 					refuse('Settings require a currency and payroll jurisdiction.');
+				for (const field of row.facts ?? []) {
+					for (const [kind, expression] of [
+						['requirement', field.required_when],
+						['validation', field.valid_when]
+					] as const) {
+						const fault = compileExpression({
+							expression,
+							site: 'entity',
+							type: 'boolean',
+							facts: row.facts ?? []
+						});
+						if (fault != null) refuse(`${field.key} ${kind}: ${fault}`);
+					}
+				}
+				for (const field of row.exit_facts ?? []) {
+					for (const [kind, expression] of [
+						['requirement', field.required_when],
+						['validation', field.valid_when]
+					] as const) {
+						const fault = compileExpression({
+							expression,
+							site: 'person',
+							type: 'boolean',
+							exitFacts: row.exit_facts ?? []
+						});
+						if (fault != null) refuse(`${field.key} departure ${kind}: ${fault}`);
+					}
+				}
 				for (const [region, wage] of Object.entries(row.work_rules?.wages?.by_region ?? {}))
 					if (!(Number(wage) > 0))
 						refuse(`The minimum wage of region ${region} must be a positive amount.`);
@@ -370,13 +400,16 @@ export default defineCollection({
 				if (stored != null) {
 					const own = schemes.filter((scheme) => scheme.settings_id === stored.id);
 					for (const scheme of own) {
-						const fault = schemeFault({
-							rules: scheme.rules,
-							assessed_on: String(scheme.assessed_on ?? ''),
-							ordinary_on: String(scheme.ordinary_on ?? ''),
-							elections: scheme.elections ?? [],
-							parts: scheme.parts ?? []
-						});
+						const fault = schemeFault(
+							{
+								rules: scheme.rules,
+								assessed_on: String(scheme.assessed_on ?? ''),
+								ordinary_on: String(scheme.ordinary_on ?? ''),
+								elections: scheme.elections ?? [],
+								parts: scheme.parts ?? []
+							},
+							Object.fromEntries(own.map((row) => [row.code, row.elections ?? []]))
+						);
 						if (fault != null) refuse(`Scheme ${scheme.code} ${fault}`);
 						refuseUnknownAssessedOnMentions(
 							catalogues,
@@ -398,7 +431,15 @@ export default defineCollection({
 						...(row.work_rules == null ? [] : workRuleExpressions(row.work_rules)),
 						...own.flatMap((scheme) => [
 							scheme.assessed_on ?? '',
-							...scheme.rules.flatMap((rule) => [rule.when, rule.employee, rule.employer])
+							scheme.ordinary_on ?? '',
+							...scheme.elections.map((field) => field.required_when ?? ''),
+							...scheme.rules.flatMap((rule) => [
+								rule.when,
+								rule.employee,
+								rule.employer,
+								rule.rebate ?? '',
+								rule.deduction ?? ''
+							])
 						])
 					];
 					for (const expression of expressions)

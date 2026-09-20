@@ -30,6 +30,8 @@ export const payslipStatutoryValueSchema = Schema.Struct({
 	base_amount: Schema.Finite,
 	/** The ordinary part of it, where the scheme states `ordinary_on`; summed into `year_to_date.ordinary`. */
 	ordinary_amount: Schema.optionalKey(Schema.Finite),
+	/** Payroll cadence when this assessment was calculated; historical period keys alone are ambiguous. */
+	assessment_frequency: Schema.optionalKey(Schema.Literals(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY'])),
 	/**
 	 * What the scheme took from the employee. Negative in a year-end rung's refund month: the
 	 * annual reckoning found the year over-withheld, and the refund flows through net as it is.
@@ -42,6 +44,8 @@ export const payslipStatutoryValueSchema = Schema.Struct({
 	 * scheme's own charge and the direction as the two things they are.
 	 */
 	directed_amount: Schema.optionalKey(Schema.Finite),
+	/** Rebatable payments settled this period; a closing adjustment may reverse an earlier estimate. */
+	rebate_amount: Schema.optionalKey(Schema.Finite),
 	/** The `when` of the scheme's own rule the amounts were read from, where one governed. */
 	rule_when: Schema.NullOr(Schema.String)
 });

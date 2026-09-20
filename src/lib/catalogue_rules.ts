@@ -19,6 +19,7 @@ import { Effect } from 'effect';
 import { compileEligibility } from '../collections/payroll_runs/lib/eligibility.js';
 import { refuseUnlessDraftOnBoth, type SealedVersion } from './settings_seal.js';
 import { assessedOnMentions, compileExpression, type DeclaredKey } from './expressions/compile.js';
+import { openKeyMentions } from './expressions/contexts.js';
 
 const CATALOGUE_FAMILIES = ['ALLOWANCE', 'ADHOC', 'CLAIM', 'LOAN'] as const;
 /** `code('X')` may also name a leave row's encashment line, `<code>_ENCASHMENT`. */
@@ -135,19 +136,42 @@ export function refuseUnknownAssessedOnMentions(
  * the rules compile against the scheme context, the `assessed_on` formula against the assessment
  * site, and the formula is not empty — a scheme that charges nothing cannot be sealed.
  */
-export function schemeFault(scheme: {
-	readonly rules: readonly {
-		readonly when: string;
-		readonly employee: string;
-		readonly employer: string;
-	}[];
-	readonly assessed_on: string;
-	readonly ordinary_on?: string;
-	readonly elections: readonly DeclaredKey[];
-	/** The parts the scheme splits its base into; a formula's `<PART>.<WORD>` must name one. */
-	readonly parts?: readonly string[];
-}): string | null {
+export function schemeFault(
+	scheme: {
+		readonly rules: readonly {
+			readonly when: string;
+			readonly employee: string;
+			readonly employer: string;
+			readonly rebate?: string;
+			readonly deduction?: string;
+		}[];
+		readonly assessed_on: string;
+		readonly ordinary_on?: string;
+		readonly elections: readonly DeclaredKey[];
+		/** The parts the scheme splits its base into; a formula's `<PART>.<WORD>` must name one. */
+		readonly parts?: readonly string[];
+	},
+	schemeElections?: Readonly<Record<string, readonly DeclaredKey[]>>
+): string | null {
 	const { rules, assessed_on: assessedOn, elections } = scheme;
+	for (const field of elections) {
+		for (const [kind, expression] of [
+			['requirement', field.required_when],
+			['validation', field.valid_when]
+		] as const) {
+			if (expression == null) continue;
+			if (openKeyMentions(expression, 'scheme').includes('deduction'))
+				return `${field.key}: a ${kind} cannot read the deduction calculated after rule selection.`;
+			const fault = compileExpression({
+				expression,
+				site: 'scheme',
+				type: 'boolean',
+				elections,
+				schemeElections
+			});
+			if (fault != null) return `${field.key} ${kind}: ${fault}`;
+		}
+	}
 	const parts = scheme.parts ?? [];
 	for (const part of parts)
 		if (!/^[A-Z0-9_]+$/.test(part))
@@ -171,6 +195,7 @@ export function schemeFault(scheme: {
 			site: 'assessment',
 			type: 'money',
 			elections,
+			schemeElections,
 			parts
 		});
 	if (formula != null) return `Assessed-on: ${formula}`;
@@ -182,6 +207,7 @@ export function schemeFault(scheme: {
 				site: 'assessment',
 				type: 'money',
 				elections,
+				schemeElections,
 				parts
 			});
 		if (ordinary != null) return `Ordinary-on: ${ordinary}`;
@@ -189,27 +215,53 @@ export function schemeFault(scheme: {
 	if (assessedOn.trim() === '')
 		return 'Assessed-on: the scheme charges nothing, so it states what it is assessed on.';
 	for (const [index, rule] of rules.entries()) {
+		for (const expression of [rule.when, rule.deduction ?? '0.0'])
+			if (openKeyMentions(expression, 'scheme').includes('deduction'))
+				return `Rule ${index + 1}: the deduction is evaluated after rule selection and cannot select or depend on itself.`;
 		const when = compileExpression({
 			expression: rule.when,
 			site: 'scheme',
 			type: 'boolean',
-			elections
+			elections,
+			schemeElections
 		});
 		if (when != null) return `Rule ${index + 1}: ${when}`;
 		const employee = compileExpression({
 			expression: rule.employee,
 			site: 'scheme',
 			type: 'money',
-			elections
+			elections,
+			schemeElections
 		});
 		if (employee != null) return `Rule ${index + 1} employee: ${employee}`;
 		const employer = compileExpression({
 			expression: rule.employer,
 			site: 'scheme',
 			type: 'money',
-			elections
+			elections,
+			schemeElections
 		});
 		if (employer != null) return `Rule ${index + 1} employer: ${employer}`;
+		if (rule.rebate != null) {
+			const rebate = compileExpression({
+				expression: rule.rebate,
+				site: 'scheme',
+				type: 'money',
+				elections,
+				schemeElections
+			});
+			if (rebate != null) return `Rule ${index + 1} rebate: ${rebate}`;
+		}
+		if (rule.deduction != null) {
+			const deduction = compileExpression({
+				expression: rule.deduction,
+				site: 'scheme',
+				type: 'money',
+				elections,
+				schemeElections
+			});
+			if (deduction != null) return `Rule ${index + 1} deduction: ${deduction}`;
+		}
 	}
 	return null;
 }

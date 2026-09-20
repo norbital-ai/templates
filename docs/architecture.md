@@ -5,9 +5,7 @@ activity and calculation rules. Payroll combines monetary results, applies Contr
 one result graph. Catalogue content is the policy; there is no separate policy object for each
 business action.
 
-This document describes the implemented family source boundary. The combined contract, catalogue
-and contribution changes are verified locally by artifact sync, generated migrations, type checks,
-full-suite checks and browser acceptance. No deployment status is implied.
+This document describes the implementation. Verification is specific to the tested source and fixtures. See the [compliance matrix](compliance-matrix.md) for legal coverage and unresolved release requirements. Local verification does not establish deployment status.
 
 ## Identity and family ownership
 
@@ -24,10 +22,9 @@ The first committed reference seals the contract: while any employee event, term
 names it, it cannot be edited, reassigned, reopened or deleted, and a held (provisionally
 committed) reference guards it the same way. There is no separate seal log; a contract whose every consumer has been removed is editable
 again. Consumed term dates are read off the consumers (`work_days.work_date`, approved Leave charges,
-`payslips.terms_through`). Departure is recorded once on the contract (`exit_date`, `exit_reason`, `exit_note`);
-once set, those three columns are immutable and the sealed contract terms stay unchanged. Closing
+`payslips.terms_through`). Departure closes `effective_range.end` once. `exit_reason` and `comments` record the cause and supporting notes; the contract transform governs subsequent corrections. Closing
 the range raises the leaver's encashment, held for review ([leave.md](leave.md#encashment-on-departure));
-it generates no carry or departure package.
+eligible separation catalogue rows also generate held ad hoc requests. No automatic carry-forward is created.
 
 Effective terms amendments belong to the same stint and do not reset service. Contribution retains
 any person/entity/year aggregation required by its scheme; a new contract does not erase paid YTD.
@@ -74,9 +71,7 @@ remain visible in the outcome; a failed retrieval is not evidence that the law i
 
 A version is identified by its snapshot id `<code>_<index>`, counting from the lineage's oldest
 version (`MY_1`, `MY_2`, …), so a successor extends the roll without renumbering an id an operator
-has already seen. The window is read half-open — `[start, end)` — so a version governs from its
-start day up to, but not including, its end; the end is the first day its successor governs, and the
-display prints the last governed day. `change_summary` records, in the operator's words, what the
+has already seen. Effective dates are inclusive: a version governs through its end date, and its successor begins the following day. `change_summary` records, in the operator's words, what the
 version changes against its predecessor; the engine never reads it. The Settings app's **Compare
 snapshots** tab diffs two versions of one lineage: the settings fields (`payroll`,
 `work_rules`, `sources`, `facts`) and every catalogue that hangs off a version — Contribution,
@@ -118,10 +113,9 @@ their own rows with an `original_date`. Work applies explicit rest/holiday prece
 inventing personal substitute holidays; a SUBSTITUTE row's `given_to` is evaluated per person
 (pattern plus `work_days` plus Leave).
 
-### No figure of the engine's
+### Configuration-owned statutory rules
 
-Every figure and every code-keyed decision lives on a version's row, never in the engine. What the
-engine used to infer it now reads: the row that off-boarding pays out is `leave_catalogue.encash_on_exit`,
+Statutory configuration belongs to effective versions. Explicit fields select behaviour: the row that off-boarding pays out is `leave_catalogue.encash_on_exit`,
 not a code prefix; a day-in-lieu row is `entitlement.availability: CREDITED`, not a code; a scheme's
 printed name, its place in the entity's listing and the column it folds into are
 `statutory_contributions.short_name`, `listing_order` and `listing_group`, frozen on each charge; a
@@ -170,8 +164,7 @@ The family processing boundary has four responsibilities:
 | `calculateFamilies`           | Coordinate source-family calculations in dependency order                          |
 | `calculateFamilyAssessments`  | Validate family inputs/results and assess grouped Contribution                     |
 
-The owners are `lib/payroll/work.ts` for Work, `money.ts` for the shared Claim/Allowance
-implementation, `loan.ts` for Loan, `contribution.ts` for Contribution and `lib/leave/payroll.ts`
+The owners are `lib/payroll/work.ts` for Work, `money.ts` for Claim and Ad hoc requests, `contract-allowances.ts` for recurring allowances, `loan.ts` for Loan, `contribution.ts` for Contribution and `lib/leave/payroll.ts`
 for Leave. The family modules own their source/catalogue reads and definition dispatch. The
 coordinator preserves cross-family ordering and the Work/Leave dependency without creating another
 editable catalogue or a universal entry table.
@@ -316,9 +309,8 @@ slips are all paid is immutable; a run holding any paid slip refuses deletion, w
 still unwind newest first, judged over the whole delete batch, because a run below a later one
 holds inputs that later run has already read and priced. Payment stays ordered: a run cannot
 be marked paid while an earlier one is a draft, and a period the company skipped is still refused,
-because the skip is the fault. A late approved entry or correction remains outstanding for a later
-regular period. **A standing draft does not block the next period** — a month waiting on one
-person's correction used to freeze the next month's payroll for everybody.
+to preserve chronological settlement. A late approved entry or correction remains outstanding for
+a later regular period. A standing draft does not prevent calculation of the next period.
 
 `payroll_runs` stores configuration and calculation identity once per run. Each `payslip` belongs to
 one contract and holds its `status`, base, proration, statutory and adjustment arrays; an
@@ -395,12 +387,12 @@ recurring allowances or entitlement.
 
 Recording a departure creates one thing: the `leave_encashment_on_exit` automation raises a held
 `ENCASHMENT` for the leaver's unused annual leave, when that row is `can_encash`, for the HR Manager to approve or reject
-(none for a `DISMISSAL`). Every other item HR submits independently through its owning family.
+including dismissals that require HR review. Other payments are submitted through their owning families.
 
 For example, a contract ending 30 June has six days of computed final entitlement and four used days.
 The automation submits a Leave `ENCASHMENT` for the remaining two days, effective and due 30 June.
 Leave validates the available quantity; approval consumes those two days and the next regular
-payroll prices them at the ordinary day wage. Payroll does not calculate a resignation-specific price.
+payroll uses `work_rules.encashment` on the conversion or termination date. The rule declares the salary reference date, qualifying allowances and daily divisor. Missing rules or unclassified allowances stop the calculation.
 
 A separate approved separation payment belongs to Allowance. An outstanding expense belongs to Claim;
 contracted wages belong to Work; repayment belongs to Loan. A shared supporting reference can group
@@ -494,14 +486,14 @@ pay month, across a cutoff.
 An annualised hourly-rate configuration uses:
 
 ```text
-hourly rate = round(monthly salary × 12 / (weekly hours × 52), 2)
-dated rate  = round(hourly rate × statutory multiple, 2)
+hourly rate = monthly salary × 12 / (weekly hours × 52)
+dated rate  = hourly rate × statutory multiple
 dated pay   = round(dated units × dated rate, 2)
 period pay  = sum(dated pay inside the settlement window)
 ```
 
 Where the applicable Work rules require the Malaysian statutory floor, the comparison is with
-`round((monthly salary / 26) / normal daily hours, 2)`. The higher hourly rate applies. Ordinary and
+`(qualifying monthly wages / 26) / normal daily hours`. The higher hourly rate applies. Ordinary and
 off-day work use the ordinary ladder. Rest and public-holiday work may combine a day-wage award
 within normal hours and an hourly award beyond them; a flat source multiplier cannot express that.
 
@@ -522,12 +514,13 @@ of the divisor. None is inferred from an output workbook.
 
 ### Time off in lieu
 
-**Nothing is issued automatically.** Whether a worked premium day is paid or banked is a
-conversation with the person, and it is recorded entirely by hand in `leave_entries`, under the
+Time off in lieu is recorded manually after determining the lawful entitlement and any required
+employee agreement. Entries use `leave_entries`, under the
 `PUBLIC_HOLIDAY_IN_LIEU` leave code: an `ADJUSTMENT` grants the day, a `TIME_OFF` on a fixed date
 takes it, a candidate `TIME_OFF` leaves the choice to the person, and a `REVERSAL` returns the
-credit. Nothing is minted by the engine and no day carries a paid-or-banked compensation column, so
-the entries are the whole balance and a credit already spent refuses reversal.
+credit. The engine does not automatically grant compensatory leave. The entries determine the
+balance, and a spent credit cannot be reversed. Applicable law may require compensatory rest in
+addition to pay; a payment choice cannot remove that entitlement.
 
 ### Overtime classes and the incentive funnel
 
@@ -625,8 +618,8 @@ the result of `assessed_on`; `person.*`; the eight-member `period.*`; `year.*`; 
 declaration order; the first `when` that holds governs. A year-end reckoning is the first rung,
 guarded by `period.last_of_year`, charging the annual scale less the year's withholding; a rung may
 charge a negative employee amount, which settles through net as a refund, the payslip prints it as
-one, and a relief read of a scheme in its refund month is floored at zero. Every piece of arithmetic that used to be typed — base transform, relief, household share,
-rounding, threshold, annualisation — is a call to a registered helper (`round_cent`, `round_unit`,
+one, and a relief read of a scheme in its refund month is floored at zero. Base transforms, reliefs,
+household shares, rounding, thresholds and annualisation use registered helpers (`round_cent`, `round_unit`,
 `bracket`, `ladder`, `progressive`, `up_to_unit`, …) or a plain expression inside a rule; a
 progressive rung is just `when base > x && base <= y`, `employee: constant + (base - x) * rate`. A
 rule that names `produced.<code>.employee|employee_this_period|employer` declares its dependency: the engine reads the

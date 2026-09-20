@@ -38,6 +38,10 @@ export default defineModel(
 		facts: custom('fact_keys')
 			.notNull()
 			.default(sql`'[]'::jsonb`),
+		/** Inputs required to classify and value a departure under this effective version. */
+		exit_facts: custom('fact_keys')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/**
 		 * What this version changes against its predecessor, in the operator's words: the instrument
 		 * that moved and the value it moved. Prose for the snapshot beside its sources; the engine

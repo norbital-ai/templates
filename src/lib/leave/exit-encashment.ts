@@ -1,20 +1,13 @@
 import type { LeaveSubmission } from './activity.js';
 import type { LeaveBalanceSummaries } from './summary.js';
 
-/**
- * The one departure reason that never raises an automatic encashment. A dismissal is where every
- * jurisdiction's statutory payout has its exception (misconduct forfeits accrued leave), and the
- * engine carries no jurisdiction: HR enters a dismissed leaver's encashment by hand if it is owed.
- */
-export const NO_AUTOMATIC_ENCASHMENT_EXIT = 'DISMISSAL';
-
 /** Deterministic per employment and leave, so a retried run never double-pays. */
 export function exitReference(employmentId: string, leaveCode: string): string {
 	return `exit:${employmentId}:${leaveCode}`;
 }
 
 /**
- * The `ENCASHMENT` submissions a departure raises: the annual leave row, when its catalogue row is
+ * The `ENCASHMENT` submissions a departure raises: each eligible leave row, when its catalogue row is
  * `can_encash` and a balance is left on the last day — the whole balance, settling on that day. A
  * balance queried on the exit date of a closed contract is already bounded by it, so the available
  * quantity is the encashable one. A row whose reference is already on the record (posted or

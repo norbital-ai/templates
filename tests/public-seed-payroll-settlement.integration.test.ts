@@ -279,10 +279,10 @@ test(
 			);
 			assert.ok(slip);
 			// Leave carries no keyed money: eight encashed days at the ordinary rate of pay — the month
-			// over 26 (EA s.60I(1)(a), s.60E(3B)): 2,800 ÷ 26 = 107.69, not the calendar-day absence
+			// over 26 (EA s.60I(1)(a), s.60E(3B)): 2,800 ÷ 26 × 8 = 861.53846… → 861.54, not the calendar-day absence
 			// rate. The fixture's hospitalisation row is `can_encash` too and is not paid out: exit
 			// pays annual leave.
-			assert.equal(Number(slip.gross), 861.52);
+			assert.equal(Number(slip.gross), 861.54);
 			assert.deepEqual(slip.base, []);
 			assert.equal(
 				(

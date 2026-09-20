@@ -531,7 +531,7 @@ export function planLeaveActivity(
 			if (date < source.start) refuse('The source window falls after this employment ended.');
 			if (date < rules.hire) refuse('Encashment cannot consume leave before employment began.');
 			// Leave carries no pricing: the days are the entry's own quantity and payroll prices them
-			// at the ordinary day wage when the entry settles.
+			// using the dated leave cash-out rule when the entry settles.
 			debit(source, date, fields.encash_days, 'earned');
 			fields = { ...fields, days: fields.encash_days };
 			break;

@@ -50,6 +50,17 @@ export type ContributionLine = {
 export type AccumulationLine = ContributionLine & {
 	readonly family: FamilyPayItem['family'];
 	readonly reserved: ReservedLine | null;
+	readonly quantity?: number | null;
+	readonly rate?: number | null;
+};
+
+/** A paid cash-out retains its units and the rate used when it was valued. */
+export type QuantityPayment = {
+	/** Payroll period that supplied this historical payment. */
+	readonly period?: string;
+	readonly quantity: number | null;
+	readonly amount: number;
+	readonly rate: number | null;
 };
 
 /** Everything one payslip's money says to CONTRIBUTE, before any scheme has been read. */
@@ -93,7 +104,10 @@ function catalogueCode(item: PricedItem): string {
 
 /** One payslip's priced lines, folded into the reserved magnitudes and the code map. */
 export function accumulatePayslip(options: {
-	readonly items: readonly (PricedItem & { readonly quantity?: number | null })[];
+	readonly items: readonly (PricedItem & {
+		readonly quantity?: number | null;
+		readonly rate?: number | null;
+	})[];
 	/** The ordinary hour the premium is measured above; 0 prices every overtime line as premium. */
 	readonly ordinaryHour?: number;
 }): AccumulatedPayslip {
@@ -123,6 +137,8 @@ export function accumulatePayslip(options: {
 			effect,
 			amount: item.amount,
 			family: item.catalogueComponent.family,
+			quantity: item.quantity,
+			rate: item.rate,
 			reserved
 		});
 		if (reserved != null) {
@@ -243,11 +259,23 @@ export function catalogueWords(
  */
 export type MonthPrior = {
 	readonly accumulation: AccumulatedPayslip;
-	/** scheme code → what the earlier instalments charged and on what base. */
+	/** Ordinary charges and base, with authority-directed instalments tracked separately. */
 	readonly charged: ReadonlyMap<
 		string,
-		{ employee: number; employer: number; base: number; ordinary: number }
+		{
+			employee: number;
+			employer: number;
+			base: number;
+			ordinary: number;
+			directed?: number;
+			rebate?: number;
+		}
 	>;
+};
+
+/** Earlier company payments and levies in the month, including employees absent from this run. */
+export type CompanyMonthPrior = MonthPrior & {
+	readonly produced: MonthPrior['charged'];
 };
 
 type SettledLine = {
@@ -255,6 +283,7 @@ type SettledLine = {
 	readonly amount: unknown;
 	readonly bucket?: string;
 	readonly quantity?: unknown;
+	readonly rate?: unknown;
 };
 
 /**
@@ -291,7 +320,8 @@ export function accumulateSettledPayslip(
 			bucket,
 			label: code,
 			amount: Number(line.amount),
-			quantity: line.quantity == null ? null : Number(line.quantity)
+			quantity: line.quantity == null ? null : Number(line.quantity),
+			rate: line.rate == null ? null : Number(line.rate)
 		} as PricedItem & { readonly quantity?: number | null };
 	});
 	return accumulatePayslip({ items, ordinaryHour });

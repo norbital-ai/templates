@@ -24,6 +24,7 @@
 	import FormSection from '../form-section.svelte';
 	import TermsFields from './terms-fields.svelte';
 	import EffectiveRangeRenderer from '../effective-range-renderer.svelte';
+	import ExitFactsRenderer from '../offboarding/exit-facts-renderer.svelte';
 
 	let {
 		record,
@@ -181,6 +182,19 @@
 							><Field name="exit_reason" label={t('component.exit_reason')} /></Column
 						>
 						<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
+						<Column span="all">
+							<Field
+								name="exit_facts"
+								label={t('component.exit_facts')}
+								description={t('component.exit_facts_hint')}
+								renderer={ExitFactsRenderer}
+								rendererProps={{
+									companyId: record.company_id,
+									lastDay: readRange(record.effective_range)?.end ?? null
+								}}
+								hidden={readRange(record.effective_range)?.end == null}
+							/>
+						</Column>
 					</Grid>
 				</FormSection>
 			{/snippet}

@@ -135,17 +135,33 @@ const run = (
 	context: LeaveContext,
 	exitReason: string | null,
 	separation: readonly Record<string, unknown>[] = [],
-	standing: readonly Record<string, unknown>[] = []
+	standing: readonly Record<string, unknown>[] = [],
+	now = new Date('2026-06-30T12:00:00Z')
 ) => {
 	const { api, writes, raisedAdhoc } = harness(context, exitReason, separation, standing);
-	return Effect.runPromise(runLeaveEncashmentOnExit(api, id(1))).then((result) => ({
+	return Effect.runPromise(runLeaveEncashmentOnExit(api, id(1), now)).then((result) => ({
 		result,
 		writes,
 		raisedAdhoc
 	}));
 };
 
-test('closing a contract raises the held encashment once; a dismissal or an open contract raises nothing', async () => {
+test('a future departure reserves no leave; the due-day run includes intervening leave', async () => {
+	const context = closed(leaveContext());
+	// Future law need not have been configured to record a planned departure.
+	context.versions[0]!.effective_range = { start: '2026-01-01', end: '2026-06-15' };
+	const future = await run(context, 'RESIGNATION', [], [], new Date('2026-06-01T00:00:00Z'));
+	assert.equal(future.result.status, 'not_due');
+	assert.equal(future.writes.length, 0);
+	assert.equal(future.raisedAdhoc.length, 0);
+	context.versions[0]!.effective_range = { start: '2026-01-01', end: '2026-12-31' };
+	approve(context, timeOff('2026-06-15'), 11);
+	const due = await run(context, 'RESIGNATION');
+	assert.equal(due.result.status, 'raised');
+	assert.equal(due.result.raised[0]?.days, 11);
+});
+
+test('closing a contract raises the held encashment once, including dismissals; an open contract raises nothing', async () => {
 	const context = closed(leaveContext());
 	const first = await run(context, 'RESIGNATION');
 	assert.equal(first.result.status, 'raised');
@@ -167,11 +183,17 @@ test('closing a contract raises the held encashment once; a dismissal or an open
 	assert.equal(again.result.status, 'nothing_to_encash');
 	assert.equal(again.writes.length, 0);
 	const dismissed = await run(closed(leaveContext()), 'DISMISSAL');
-	assert.equal(dismissed.result.status, 'dismissal');
-	assert.equal(dismissed.writes.length, 0);
+	assert.equal(dismissed.result.status, 'raised');
+	assert.equal(dismissed.writes.length, 1);
 	const open = await run(leaveContext(), null);
 	assert.equal(open.result.status, 'open');
 	assert.equal(open.writes.length, 0);
+	const unbounded = leaveContext();
+	unbounded.employments[0]!.effective_range = {
+		start: '2025-01-01',
+		end: '9999-12-31T23:59:59.999Z'
+	};
+	assert.equal((await run(unbounded, null)).result.status, 'open');
 });
 
 test('off-boarding raises the separation payments the version owes the leaver, once, where their eligibility holds', async () => {
@@ -226,4 +248,38 @@ test('off-boarding raises the separation payments the version owes the leaver, o
 		{ ...thr[0], eligibility: 'employment.exit_date >= "2026-07-01"' }
 	]);
 	assert.deepEqual(outside.raisedAdhoc, []);
+});
+
+test('departure automation validates the final-day input declaration before creating requests', async () => {
+	const context = closed(leaveContext());
+	context.versions[0]!.exit_facts = [
+		{
+			key: 'legal_cause',
+			type: 'string',
+			label: 'Legal cause',
+			required: true,
+			options: ['LOSS', 'OTHER']
+		}
+	];
+	const rows = [
+		{
+			id: id(95),
+			code: 'TERMINATION_BENEFIT',
+			eligibility: 'employment.exit_facts.legal_cause == "LOSS"'
+		}
+	];
+	const missing = harness(context, 'RETRENCHMENT', rows);
+	await assert.rejects(
+		Effect.runPromise(
+			runLeaveEncashmentOnExit(missing.api, id(1), new Date('2026-06-30T12:00:00Z'))
+		),
+		/Legal cause is required/
+	);
+	assert.equal(missing.writes.length, 0);
+	assert.equal(missing.raisedAdhoc.length, 0);
+	context.employments[0]!.exit_facts = { legal_cause: 'LOSS' };
+	const resolved = await run(context, 'RETRENCHMENT', rows);
+	assert.equal(resolved.raisedAdhoc.length, 1);
+	context.employments[0]!.exit_facts = { legal_cause: 'OTHER' };
+	assert.equal((await run(context, 'RETRENCHMENT', rows)).raisedAdhoc.length, 0);
 });

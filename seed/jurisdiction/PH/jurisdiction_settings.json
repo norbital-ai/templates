@@ -1,0 +1,787 @@
+[
+	{
+		"id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "PH",
+		"name": "Philippines",
+		"sealed_at": "2025-12-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": null,
+		"effective_range": {
+			"start": "2025-12-01T00:00:00.000Z",
+			"end": "2026-01-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "PH",
+		"change_summary": "The base law: SSS 15% under RA 11199 with Circular 2024-006, SSS_EC ₱30, PhilHealth 5% between ₱10,000 and ₱100,000, HDMF 2%/2% on a ₱10,000 fund salary, the TRAIN withholding table, the Labor Code working-time rules and the statutory leave types. No later change of law moves a seeded value (RR 29-2025 and the wage orders touch unmodelled caps — see the lineage README).",
+		"work_rules": {
+			"proration": {
+				"by": "FIXED_DAYS",
+				"days": 21.75
+			},
+			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.payroll_group == \"MONTHLY\" ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"bands": [
+				{
+					"label": "OT-2.6X-REST",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-3.38X-REST",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.38"
+				},
+				{
+					"label": "OT-1.5X-REST",
+					"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "OT-1.95X-REST",
+					"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.95"
+				},
+				{
+					"label": "OT-1.25X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.6X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				}
+			],
+			"limits": [
+				{
+					"key": "normal_day",
+					"period": "DAY",
+					"measure": "NORMAL_HOURS",
+					"max_hours": 8,
+					"unit": "WORKED_HOURS",
+					"authority": "Labor Code of the Philippines art.83"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST_OR_OFF"
+				}
+			],
+			"breaks": [
+				{
+					"when": "continuous_attendance",
+					"owed_minutes": "20.0",
+					"counts_as_worked_time": true
+				},
+				{
+					"when": "true",
+					"owed_minutes": "60.0",
+					"counts_as_worked_time": false
+				}
+			],
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": "rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 15.0 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 13.0 : day_type == \"PUBLIC_HOLIDAY\" ? 20.0 : 10.0",
+				"overtime_add": "rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 33.8 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 19.5 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 16.9 : day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : 12.5"
+			},
+			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. Applied 2026-09-18 (2): art.86 and Handbook ch.5: the night shift differential is 10% of the hour’s own rate, so 13 on a rest day or a special day, 20 on a regular holiday, 26 on a regular holiday falling on the rest day, 15 on a special day on the rest day, and on the overtime hours of each 12.5, 16.9, 26, 33.8 and 19.5 (`night_premium` adds as expressions over the day; the first eight night hours of a rest day or holiday are its ordinary ones). Handbook ch.2 §E: a monthly-paid employee (`payroll_group` MONTHLY) is prorated and has an absence deducted on the 365 factor, 30.4167 a month (`proration_by`); the daily-paid keep 21.75 or 26.0833. Applied 2026-09-19 (2): The night-differential ladder reads the day type (`day_type`, which the holiday takes under `holiday_rest_precedence: PUBLIC_HOLIDAY`); `holiday.kind` is the published row’s kind (PUBLIC | SPECIAL | SUBSTITUTE), and a day-type literal against it never matched.",
+			"normal_hours": "8.0",
+			"proration_by": [
+				{
+					"when": "terms.payroll_group == \"MONTHLY\"",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 30.416666666666668
+					}
+				},
+				{
+					"when": "terms.pay_frequency != \"DAILY\" && terms.payroll_group != \"MONTHLY\" && terms.ordinary_hours_per_week > 40.0",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 26.083333333333332
+					}
+				}
+			],
+			"wages": {
+				"by_region": {
+					"IV-A": 15650.0,
+					"NCR": 18127.92,
+					"IV-A-1ST": 14345.83,
+					"IV-A-RECLASSIFIED-1ST": 13302.5,
+					"IV-A-2ND-5TH": 13302.5
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
+				"authority": "Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75). Applied 2026-09-19 (3): Wage Order No. IVA-22 (effective 5 Oct 2025; nwpc.dole.gov.ph/region-iva): non-agriculture ₱600 in the Extended Metropolitan Area and the component cities (`IV-A`), ₱550 in 1st-class municipalities, ₱510 in reclassified 1st-class and 2nd–5th-class municipalities, the last two stepping to ₱550 and ₱525 on 1 April 2026 — the version from that date carries the second tranche. Each figure is the daily rate × 313 ÷ 12."
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"preserve_year_end_rate": false,
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.basic_salary / (terms.payroll_group == \"MONTHLY\" ? 365.0 / 12.0 : (terms.working_days_per_week >= 6.0 ? 313.0 : 261.0) / 12.0)",
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"authority": "DOLE Handbook on Workers Statutory Monetary Benefits, Service Incentive Leave, Conversion: salary rate on the conversion date, with pro-rata conversion. A daily contract supplies its daily salary; an hourly contract uses its normal scheduled hours per workday. Monthly equivalent factors follow paid-day coverage. Standing allowances require express basic-salary classification. https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf"
+			}
+		},
+		"payroll": {
+			"currency": "PHP",
+			"timezone": "Asia/Manila",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 30
+		},
+		"sources": {
+			"urls": [
+				"https://www.sss.gov.ph/pay-contribution/",
+				"https://www.sss.gov.ph/sss-circulars/",
+				"https://www.philhealth.gov.ph/advisories/2025/PA2025-0002.pdf",
+				"https://www.philhealth.gov.ph/advisories/",
+				"https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
+				"https://www.bir.gov.ph/WithHoldingTax",
+				"https://nwpc.dole.gov.ph/ncr/",
+				"https://nwpc.dole.gov.ph/region-iva/",
+				"https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/",
+				"https://www.sss.gov.ph/employees/",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf"
+			],
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nofficialgazette.gov.ph — the Official Gazette: Republic Acts, proclamations, executive orders. A proclamation is /<yyyy>/<mm>/<dd>/proclamation-no-<n>-s-<year>/ (HTML, full text); /section/proclamations/ lists the newest first; /nationwide-holidays/<year>/ is the holiday calendar. lawphil.net mirrors the same texts and is corroboration only.\nsss.gov.ph — /pay-contribution/ carries the contribution schedule (the 2025 table PDF under /wp-content/uploads/ is 6.3 MB, over the reader limit: read the HTML page); /sss-circulars/ lists circulars by year.\nphilhealth.gov.ph — /advisories/<year>/ lists advisories; each is /advisories/<year>/PA<year>-<nnnn>.pdf (small, text). /partners/employers/ContributionTable_v2.pdf is the premium table.\npagibigfund.gov.ph — Circular 460 at /document/pdf/circulars/provident/Circular No. 460 - Guidelines on the Pag-IBIG Fund… (1.9 MB, text): the 1%/2% tiers and the ₱10,000 fund salary cap.\nbir.gov.ph — bir-cdn.bir.gov.ph/local/pdf/Annex E RR 11-2018.pdf is the withholding table (monthly and semi-monthly columns, 0.3 MB); revenue regulation digests are under bir-cdn.bir.gov.ph/BIR/pdf/.\nnwpc.dole.gov.ph — regional wage orders: /ncr/, /region-iva/ (and the other regions); /bwc-handbook-workers-statutory-monetary-benefits/ is the DOLE Handbook (factors, premiums, 13th month).\npco.gov.ph answers 403 to the reader; use the Gazette."
+		},
+		"facts": [
+			{
+				"key": "small_establishment",
+				"type": "boolean",
+				"label": "Small establishment"
+			}
+		]
+	},
+	{
+		"id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "PH",
+		"name": "Philippines",
+		"sealed_at": "2026-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"effective_range": {
+			"start": "2026-01-01T00:00:00.000Z",
+			"end": "2026-04-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "PH",
+		"change_summary": "No change of law. This version exists to carry the STATUTORY_ADJUSTMENT payment code the company records name from January 2026; every statutory row is a clone of the 2025-12-01 version. The next change of law (a 2027 wage order, an SSS or PhilHealth circular) is a new version from its own date.",
+		"work_rules": {
+			"proration": {
+				"by": "FIXED_DAYS",
+				"days": 21.75
+			},
+			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.payroll_group == \"MONTHLY\" ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"bands": [
+				{
+					"label": "OT-2.6X-REST",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-3.38X-REST",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.38"
+				},
+				{
+					"label": "OT-1.5X-REST",
+					"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "OT-1.95X-REST",
+					"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.95"
+				},
+				{
+					"label": "OT-1.25X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.6X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				}
+			],
+			"limits": [
+				{
+					"key": "normal_day",
+					"period": "DAY",
+					"measure": "NORMAL_HOURS",
+					"max_hours": 8,
+					"unit": "WORKED_HOURS",
+					"authority": "Labor Code of the Philippines art.83"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST_OR_OFF"
+				}
+			],
+			"breaks": [
+				{
+					"when": "continuous_attendance",
+					"owed_minutes": "20.0",
+					"counts_as_worked_time": true
+				},
+				{
+					"when": "true",
+					"owed_minutes": "60.0",
+					"counts_as_worked_time": false
+				}
+			],
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": "rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 15.0 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 13.0 : day_type == \"PUBLIC_HOLIDAY\" ? 20.0 : 10.0",
+				"overtime_add": "rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 33.8 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 19.5 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 16.9 : day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : 12.5"
+			},
+			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. Applied 2026-09-18 (2): art.86 and Handbook ch.5: the night shift differential is 10% of the hour’s own rate, so 13 on a rest day or a special day, 20 on a regular holiday, 26 on a regular holiday falling on the rest day, 15 on a special day on the rest day, and on the overtime hours of each 12.5, 16.9, 26, 33.8 and 19.5 (`night_premium` adds as expressions over the day; the first eight night hours of a rest day or holiday are its ordinary ones). Handbook ch.2 §E: a monthly-paid employee (`payroll_group` MONTHLY) is prorated and has an absence deducted on the 365 factor, 30.4167 a month (`proration_by`); the daily-paid keep 21.75 or 26.0833. Applied 2026-09-19 (2): The night-differential ladder reads the day type (`day_type`, which the holiday takes under `holiday_rest_precedence: PUBLIC_HOLIDAY`); `holiday.kind` is the published row’s kind (PUBLIC | SPECIAL | SUBSTITUTE), and a day-type literal against it never matched.",
+			"normal_hours": "8.0",
+			"proration_by": [
+				{
+					"when": "terms.payroll_group == \"MONTHLY\"",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 30.416666666666668
+					}
+				},
+				{
+					"when": "terms.pay_frequency != \"DAILY\" && terms.payroll_group != \"MONTHLY\" && terms.ordinary_hours_per_week > 40.0",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 26.083333333333332
+					}
+				}
+			],
+			"wages": {
+				"by_region": {
+					"IV-A": 15650.0,
+					"NCR": 18127.92,
+					"IV-A-1ST": 14345.83,
+					"IV-A-RECLASSIFIED-1ST": 13302.5,
+					"IV-A-2ND-5TH": 13302.5
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
+				"authority": "Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75). Applied 2026-09-19 (3): Wage Order No. IVA-22 (effective 5 Oct 2025; nwpc.dole.gov.ph/region-iva): non-agriculture ₱600 in the Extended Metropolitan Area and the component cities (`IV-A`), ₱550 in 1st-class municipalities, ₱510 in reclassified 1st-class and 2nd–5th-class municipalities, the last two stepping to ₱550 and ₱525 on 1 April 2026 — the version from that date carries the second tranche. Each figure is the daily rate × 313 ÷ 12."
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"preserve_year_end_rate": false,
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.basic_salary / (terms.payroll_group == \"MONTHLY\" ? 365.0 / 12.0 : (terms.working_days_per_week >= 6.0 ? 313.0 : 261.0) / 12.0)",
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"authority": "DOLE Handbook on Workers Statutory Monetary Benefits, Service Incentive Leave, Conversion: salary rate on the conversion date, with pro-rata conversion. A daily contract supplies its daily salary; an hourly contract uses its normal scheduled hours per workday. Monthly equivalent factors follow paid-day coverage. Standing allowances require express basic-salary classification. https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf"
+			}
+		},
+		"payroll": {
+			"currency": "PHP",
+			"timezone": "Asia/Manila",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 30
+		},
+		"sources": {
+			"urls": [
+				"https://www.sss.gov.ph/pay-contribution/",
+				"https://www.sss.gov.ph/sss-circulars/",
+				"https://www.philhealth.gov.ph/advisories/2026/PA2026-0042.pdf",
+				"https://www.philhealth.gov.ph/advisories/",
+				"https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
+				"https://www.bir.gov.ph/WithHoldingTax",
+				"https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025%20digest%20FINAL.pdf",
+				"https://nwpc.dole.gov.ph/ncr/",
+				"https://nwpc.dole.gov.ph/region-iva/",
+				"https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/",
+				"https://www.sss.gov.ph/employees/",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf"
+			],
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nofficialgazette.gov.ph — the Official Gazette: Republic Acts, proclamations, executive orders. A proclamation is /<yyyy>/<mm>/<dd>/proclamation-no-<n>-s-<year>/ (HTML, full text); /section/proclamations/ lists the newest first; /nationwide-holidays/<year>/ is the holiday calendar. lawphil.net mirrors the same texts and is corroboration only.\nsss.gov.ph — /pay-contribution/ carries the contribution schedule (the 2025 table PDF under /wp-content/uploads/ is 6.3 MB, over the reader limit: read the HTML page); /sss-circulars/ lists circulars by year.\nphilhealth.gov.ph — /advisories/<year>/ lists advisories; each is /advisories/<year>/PA<year>-<nnnn>.pdf (small, text). /partners/employers/ContributionTable_v2.pdf is the premium table.\npagibigfund.gov.ph — Circular 460 at /document/pdf/circulars/provident/Circular No. 460 - Guidelines on the Pag-IBIG Fund… (1.9 MB, text): the 1%/2% tiers and the ₱10,000 fund salary cap.\nbir.gov.ph — bir-cdn.bir.gov.ph/local/pdf/Annex E RR 11-2018.pdf is the withholding table (monthly and semi-monthly columns, 0.3 MB); revenue regulation digests are under bir-cdn.bir.gov.ph/BIR/pdf/.\nnwpc.dole.gov.ph — regional wage orders: /ncr/, /region-iva/ (and the other regions); /bwc-handbook-workers-statutory-monetary-benefits/ is the DOLE Handbook (factors, premiums, 13th month).\npco.gov.ph answers 403 to the reader; use the Gazette."
+		},
+		"facts": [
+			{
+				"key": "small_establishment",
+				"type": "boolean",
+				"label": "Small establishment"
+			}
+		]
+	},
+	{
+		"id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "PH",
+		"name": "Philippines",
+		"sealed_at": "2026-04-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"effective_range": {
+			"start": "2026-04-01T00:00:00.000Z",
+			"end": "2026-09-26T00:00:00.000Z"
+		},
+		"jurisdiction_code": "PH",
+		"change_summary": "Wage Order IVA-22 second tranche (1 April 2026): reclassified 1st-class municipalities ₱510 → ₱550, 2nd–5th-class ₱510 → ₱525 (non-agriculture). Nothing else moves.",
+		"work_rules": {
+			"proration": {
+				"by": "FIXED_DAYS",
+				"days": 21.75
+			},
+			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.payroll_group == \"MONTHLY\" ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"bands": [
+				{
+					"label": "OT-2.6X-REST",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-3.38X-REST",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.38"
+				},
+				{
+					"label": "OT-1.5X-REST",
+					"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "OT-1.95X-REST",
+					"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.95"
+				},
+				{
+					"label": "OT-1.25X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.6X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				}
+			],
+			"limits": [
+				{
+					"key": "normal_day",
+					"period": "DAY",
+					"measure": "NORMAL_HOURS",
+					"max_hours": 8,
+					"unit": "WORKED_HOURS",
+					"authority": "Labor Code of the Philippines art.83"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST_OR_OFF"
+				}
+			],
+			"breaks": [
+				{
+					"when": "continuous_attendance",
+					"owed_minutes": "20.0",
+					"counts_as_worked_time": true
+				},
+				{
+					"when": "true",
+					"owed_minutes": "60.0",
+					"counts_as_worked_time": false
+				}
+			],
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": "rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 15.0 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 13.0 : day_type == \"PUBLIC_HOLIDAY\" ? 20.0 : 10.0",
+				"overtime_add": "rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 33.8 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 19.5 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 16.9 : day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : 12.5"
+			},
+			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. Applied 2026-09-18 (2): art.86 and Handbook ch.5: the night shift differential is 10% of the hour’s own rate, so 13 on a rest day or a special day, 20 on a regular holiday, 26 on a regular holiday falling on the rest day, 15 on a special day on the rest day, and on the overtime hours of each 12.5, 16.9, 26, 33.8 and 19.5 (`night_premium` adds as expressions over the day; the first eight night hours of a rest day or holiday are its ordinary ones). Handbook ch.2 §E: a monthly-paid employee (`payroll_group` MONTHLY) is prorated and has an absence deducted on the 365 factor, 30.4167 a month (`proration_by`); the daily-paid keep 21.75 or 26.0833. Applied 2026-09-19 (2): The night-differential ladder reads the day type (`day_type`, which the holiday takes under `holiday_rest_precedence: PUBLIC_HOLIDAY`); `holiday.kind` is the published row’s kind (PUBLIC | SPECIAL | SUBSTITUTE), and a day-type literal against it never matched.",
+			"normal_hours": "8.0",
+			"proration_by": [
+				{
+					"when": "terms.payroll_group == \"MONTHLY\"",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 30.416666666666668
+					}
+				},
+				{
+					"when": "terms.pay_frequency != \"DAILY\" && terms.payroll_group != \"MONTHLY\" && terms.ordinary_hours_per_week > 40.0",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 26.083333333333332
+					}
+				}
+			],
+			"wages": {
+				"by_region": {
+					"IV-A": 15650.0,
+					"NCR": 18127.92,
+					"IV-A-1ST": 14345.83,
+					"IV-A-RECLASSIFIED-1ST": 14345.83,
+					"IV-A-2ND-5TH": 13693.75
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
+				"authority": "Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75). Applied 2026-09-19 (3): Wage Order No. IVA-22 (effective 5 Oct 2025; nwpc.dole.gov.ph/region-iva): non-agriculture ₱600 in the Extended Metropolitan Area and the component cities (`IV-A`), ₱550 in 1st-class municipalities, ₱510 in reclassified 1st-class and 2nd–5th-class municipalities, the last two stepping to ₱550 and ₱525 on 1 April 2026 — the version from that date carries the second tranche. Each figure is the daily rate × 313 ÷ 12."
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"preserve_year_end_rate": false,
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.basic_salary / (terms.payroll_group == \"MONTHLY\" ? 365.0 / 12.0 : (terms.working_days_per_week >= 6.0 ? 313.0 : 261.0) / 12.0)",
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"authority": "DOLE Handbook on Workers Statutory Monetary Benefits, Service Incentive Leave, Conversion: salary rate on the conversion date, with pro-rata conversion. A daily contract supplies its daily salary; an hourly contract uses its normal scheduled hours per workday. Monthly equivalent factors follow paid-day coverage. Standing allowances require express basic-salary classification. https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf"
+			}
+		},
+		"payroll": {
+			"currency": "PHP",
+			"timezone": "Asia/Manila",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 30
+		},
+		"sources": {
+			"urls": [
+				"https://www.sss.gov.ph/pay-contribution/",
+				"https://www.sss.gov.ph/sss-circulars/",
+				"https://www.philhealth.gov.ph/advisories/2026/PA2026-0042.pdf",
+				"https://www.philhealth.gov.ph/advisories/",
+				"https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
+				"https://www.bir.gov.ph/WithHoldingTax",
+				"https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025%20digest%20FINAL.pdf",
+				"https://nwpc.dole.gov.ph/ncr/",
+				"https://nwpc.dole.gov.ph/region-iva/",
+				"https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/",
+				"https://www.sss.gov.ph/employees/",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf"
+			],
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nofficialgazette.gov.ph — the Official Gazette: Republic Acts, proclamations, executive orders. A proclamation is /<yyyy>/<mm>/<dd>/proclamation-no-<n>-s-<year>/ (HTML, full text); /section/proclamations/ lists the newest first; /nationwide-holidays/<year>/ is the holiday calendar. lawphil.net mirrors the same texts and is corroboration only.\nsss.gov.ph — /pay-contribution/ carries the contribution schedule (the 2025 table PDF under /wp-content/uploads/ is 6.3 MB, over the reader limit: read the HTML page); /sss-circulars/ lists circulars by year.\nphilhealth.gov.ph — /advisories/<year>/ lists advisories; each is /advisories/<year>/PA<year>-<nnnn>.pdf (small, text). /partners/employers/ContributionTable_v2.pdf is the premium table.\npagibigfund.gov.ph — Circular 460 at /document/pdf/circulars/provident/Circular No. 460 - Guidelines on the Pag-IBIG Fund… (1.9 MB, text): the 1%/2% tiers and the ₱10,000 fund salary cap.\nbir.gov.ph — bir-cdn.bir.gov.ph/local/pdf/Annex E RR 11-2018.pdf is the withholding table (monthly and semi-monthly columns, 0.3 MB); revenue regulation digests are under bir-cdn.bir.gov.ph/BIR/pdf/.\nnwpc.dole.gov.ph — regional wage orders: /ncr/, /region-iva/ (and the other regions); /bwc-handbook-workers-statutory-monetary-benefits/ is the DOLE Handbook (factors, premiums, 13th month).\npco.gov.ph answers 403 to the reader; use the Gazette."
+		},
+		"facts": [
+			{
+				"key": "small_establishment",
+				"type": "boolean",
+				"label": "Small establishment"
+			}
+		]
+	},
+	{
+		"id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "PH",
+		"name": "Philippines",
+		"sealed_at": "2026-09-26T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"effective_range": {
+			"start": "2026-09-26T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"jurisdiction_code": "PH",
+		"change_summary": "Wage Order No. NCR-28: NCR non-agriculture minimum wage PHP 755 a day (PHP 695 + 60) from 26 September 2026, 313-factor 19,692.92 a month. Everything else as the 1 April 2026 version.",
+		"work_rules": {
+			"proration": {
+				"by": "FIXED_DAYS",
+				"days": 21.75
+			},
+			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.payroll_group == \"MONTHLY\" ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"bands": [
+				{
+					"label": "OT-2.6X-REST",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-3.38X-REST",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.38"
+				},
+				{
+					"label": "OT-1.5X-REST",
+					"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "OT-1.95X-REST",
+					"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.95"
+				},
+				{
+					"label": "OT-1.25X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.6X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				}
+			],
+			"limits": [
+				{
+					"key": "normal_day",
+					"period": "DAY",
+					"measure": "NORMAL_HOURS",
+					"max_hours": 8,
+					"unit": "WORKED_HOURS",
+					"authority": "Labor Code of the Philippines art.83"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST_OR_OFF"
+				}
+			],
+			"breaks": [
+				{
+					"when": "continuous_attendance",
+					"owed_minutes": "20.0",
+					"counts_as_worked_time": true
+				},
+				{
+					"when": "true",
+					"owed_minutes": "60.0",
+					"counts_as_worked_time": false
+				}
+			],
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": "rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 15.0 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 13.0 : day_type == \"PUBLIC_HOLIDAY\" ? 20.0 : 10.0",
+				"overtime_add": "rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 33.8 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 19.5 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 16.9 : day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : 12.5"
+			},
+			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. Applied 2026-09-18 (2): art.86 and Handbook ch.5: the night shift differential is 10% of the hour’s own rate, so 13 on a rest day or a special day, 20 on a regular holiday, 26 on a regular holiday falling on the rest day, 15 on a special day on the rest day, and on the overtime hours of each 12.5, 16.9, 26, 33.8 and 19.5 (`night_premium` adds as expressions over the day; the first eight night hours of a rest day or holiday are its ordinary ones). Handbook ch.2 §E: a monthly-paid employee (`payroll_group` MONTHLY) is prorated and has an absence deducted on the 365 factor, 30.4167 a month (`proration_by`); the daily-paid keep 21.75 or 26.0833. Applied 2026-09-19 (2): The night-differential ladder reads the day type (`day_type`, which the holiday takes under `holiday_rest_precedence: PUBLIC_HOLIDAY`); `holiday.kind` is the published row’s kind (PUBLIC | SPECIAL | SUBSTITUTE), and a day-type literal against it never matched.",
+			"normal_hours": "8.0",
+			"proration_by": [
+				{
+					"when": "terms.payroll_group == \"MONTHLY\"",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 30.416666666666668
+					}
+				},
+				{
+					"when": "terms.pay_frequency != \"DAILY\" && terms.payroll_group != \"MONTHLY\" && terms.ordinary_hours_per_week > 40.0",
+					"basis": {
+						"by": "FIXED_DAYS",
+						"days": 26.083333333333332
+					}
+				}
+			],
+			"wages": {
+				"by_region": {
+					"IV-A": 15650.0,
+					"NCR": 19692.92,
+					"IV-A-1ST": 14345.83,
+					"IV-A-RECLASSIFIED-1ST": 14345.83,
+					"IV-A-2ND-5TH": 13693.75
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "(employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.payroll_group == \"MONTHLY\" ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0)",
+				"authority": "Applied 2026-09-18 (2): the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75). Applied 2026-09-19 (3): Wage Order No. IVA-22 (effective 5 Oct 2025; nwpc.dole.gov.ph/region-iva): non-agriculture ₱600 in the Extended Metropolitan Area and the component cities (`IV-A`), ₱550 in 1st-class municipalities, ₱510 in reclassified 1st-class and 2nd–5th-class municipalities, the last two stepping to ₱550 and ₱525 on 1 April 2026 — the version from that date carries the second tranche. Each figure is the daily rate × 313 ÷ 12."
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"preserve_year_end_rate": false,
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.basic_salary / (terms.payroll_group == \"MONTHLY\" ? 365.0 / 12.0 : (terms.working_days_per_week >= 6.0 ? 313.0 : 261.0) / 12.0)",
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"authority": "DOLE Handbook on Workers Statutory Monetary Benefits, Service Incentive Leave, Conversion: salary rate on the conversion date, with pro-rata conversion. A daily contract supplies its daily salary; an hourly contract uses its normal scheduled hours per workday. Monthly equivalent factors follow paid-day coverage. Standing allowances require express basic-salary classification. https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf"
+			}
+		},
+		"payroll": {
+			"currency": "PHP",
+			"timezone": "Asia/Manila",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 30
+		},
+		"sources": {
+			"urls": [
+				"https://www.sss.gov.ph/pay-contribution/",
+				"https://www.sss.gov.ph/sss-circulars/",
+				"https://www.philhealth.gov.ph/advisories/2026/PA2026-0042.pdf",
+				"https://www.philhealth.gov.ph/advisories/",
+				"https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
+				"https://www.bir.gov.ph/WithHoldingTax",
+				"https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025%20digest%20FINAL.pdf",
+				"https://nwpc.dole.gov.ph/ncr/",
+				"https://nwpc.dole.gov.ph/region-iva/",
+				"https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-NCR-28.pdf",
+				"https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025.pdf",
+				"https://www.sss.gov.ph/employees/",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf"
+			],
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nofficialgazette.gov.ph — the Official Gazette: Republic Acts, proclamations, executive orders. A proclamation is /<yyyy>/<mm>/<dd>/proclamation-no-<n>-s-<year>/ (HTML, full text); /section/proclamations/ lists the newest first; /nationwide-holidays/<year>/ is the holiday calendar. lawphil.net mirrors the same texts and is corroboration only.\nsss.gov.ph — /pay-contribution/ carries the contribution schedule (the 2025 table PDF under /wp-content/uploads/ is 6.3 MB, over the reader limit: read the HTML page); /sss-circulars/ lists circulars by year.\nphilhealth.gov.ph — /advisories/<year>/ lists advisories; each is /advisories/<year>/PA<year>-<nnnn>.pdf (small, text). /partners/employers/ContributionTable_v2.pdf is the premium table.\npagibigfund.gov.ph — Circular 460 at /document/pdf/circulars/provident/Circular No. 460 - Guidelines on the Pag-IBIG Fund… (1.9 MB, text): the 1%/2% tiers and the ₱10,000 fund salary cap.\nbir.gov.ph — bir-cdn.bir.gov.ph/local/pdf/Annex E RR 11-2018.pdf is the withholding table (monthly and semi-monthly columns, 0.3 MB); revenue regulation digests are under bir-cdn.bir.gov.ph/BIR/pdf/.\nnwpc.dole.gov.ph — regional wage orders: /ncr/, /region-iva/ (and the other regions); /bwc-handbook-workers-statutory-monetary-benefits/ is the DOLE Handbook (factors, premiums, 13th month).\npco.gov.ph answers 403 to the reader; use the Gazette."
+		},
+		"facts": [
+			{
+				"key": "small_establishment",
+				"type": "boolean",
+				"label": "Small establishment"
+			}
+		]
+	}
+]

@@ -43,6 +43,27 @@
 	/** A readonly form renders values, not muted controls. */
 	const readonly = $derived(props.mode !== 'edit');
 	const current = $derived((props.value ?? null) as WorkRules | null);
+	const frequencies = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
+	const ordinaryFrequencies = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
+	const codes = (value: string) => [
+		...new Set(
+			value
+				.split(',')
+				.map((code) => code.trim())
+				.filter(Boolean)
+		)
+	];
+	function editEncashment(change: Partial<NonNullable<WorkRules['encashment']>>): void {
+		if (current?.encashment != null) edit({ encashment: { ...current.encashment, ...change } });
+	}
+	function editOrdinaryReference(
+		change: Partial<NonNullable<WorkRules['ordinary_rate_reference']>>
+	): void {
+		if (current?.ordinary_rate_reference != null)
+			edit({
+				ordinary_rate_reference: { ...current.ordinary_rate_reference, ...change }
+			});
+	}
 
 	/** A matrix column's field metadata: the cell kind and any option bag the cell reads. */
 	const fieldOf = (
@@ -490,6 +511,211 @@
 				</div>
 			</Stack>
 		</Grid>
+
+		<Stack gap="sm">
+			<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary_reference')}</span>
+			<p class="text-meta">{t('renderer.work_rules.ordinary_reference_hint')}</p>
+			{#if !readonly}
+				<label class="flex items-center gap-2 text-xs">
+					<input
+						type="checkbox"
+						{disabled}
+						checked={current.ordinary_rate_reference != null}
+						onchange={(event) =>
+							edit({
+								ordinary_rate_reference: event.currentTarget.checked
+									? {
+											reference: 'PREVIOUS_WAGE_PERIOD',
+											pay_frequencies: ['DAILY', 'HOURLY'],
+											authority: ''
+										}
+									: null
+							})}
+					/>
+					{t('renderer.work_rules.ordinary_reference_enabled')}
+				</label>
+			{/if}
+			{#if current.ordinary_rate_reference != null}
+				<Grid gap="sm" minimum="compact">
+					<label class="text-xs"
+						><Stack gap="xs">
+							<span>{t('renderer.work_rules.ordinary_reference_mode')}</span>
+							<Combobox
+								value={current.ordinary_rate_reference.reference}
+								{disabled}
+								options={[
+									{
+										value: 'PREVIOUS_WAGE_PERIOD',
+										label: t('renderer.work_rules.ordinary_reference_PREVIOUS_WAGE_PERIOD')
+									},
+									{
+										value: 'LATEST_DUE_MONTH',
+										label: t('renderer.work_rules.ordinary_reference_LATEST_DUE_MONTH')
+									}
+								]}
+								onValueChange={(reference) => {
+									if (reference === 'PREVIOUS_WAGE_PERIOD' || reference === 'LATEST_DUE_MONTH')
+										editOrdinaryReference({ reference });
+								}}
+							/>
+						</Stack></label
+					>
+					<fieldset class="flex flex-wrap gap-3 text-xs">
+						<legend class="mb-2">{t('renderer.work_rules.ordinary_reference_frequencies')}</legend>
+						{#each ordinaryFrequencies as frequency}
+							<label class="flex items-center gap-1"
+								><input
+									type="checkbox"
+									{disabled}
+									checked={current.ordinary_rate_reference.pay_frequencies.includes(frequency)}
+									onchange={(event) => {
+										const previous = current.ordinary_rate_reference!.pay_frequencies;
+										editOrdinaryReference({
+											pay_frequencies: event.currentTarget.checked
+												? [...previous, frequency]
+												: previous.filter((item) => item !== frequency)
+										});
+									}}
+								/>
+								{t(
+									`renderer.work_rules.encashment_frequency_${frequency}` as TenantI18nKeys
+								)}</label
+							>
+						{/each}
+					</fieldset>
+					<label class="text-xs"
+						><Stack gap="xs">
+							<span>{t('renderer.work_rules.ordinary_reference_authority')}</span>
+							<Input
+								value={current.ordinary_rate_reference.authority}
+								{disabled}
+								oninput={(event) => editOrdinaryReference({ authority: event.currentTarget.value })}
+							/>
+						</Stack></label
+					>
+				</Grid>
+			{/if}
+		</Stack>
+
+		<Stack gap="sm">
+			<span class="text-sm font-semibold">{t('renderer.work_rules.encashment')}</span>
+			<p class="text-meta">{t('renderer.work_rules.encashment_hint')}</p>
+			{#if !readonly}
+				<label class="flex items-center gap-2 text-xs">
+					<input
+						type="checkbox"
+						{disabled}
+						checked={current.encashment != null}
+						onchange={(event) =>
+							edit({
+								encashment: event.currentTarget.checked
+									? {
+											reference: 'EVENT_DATE',
+											day_amount: '',
+											pay_frequencies: ['MONTHLY', 'SEMI_MONTHLY'],
+											include_allowances: [],
+											exclude_allowances: [],
+											preserve_year_end_rate: false,
+											authority: ''
+										}
+									: null
+							})}
+					/>
+					{t('renderer.work_rules.encashment_enabled')}
+				</label>
+			{/if}
+			{#if current.encashment != null}
+				<Grid gap="sm" minimum="card">
+					<label class="text-xs"
+						><Stack gap="xs">
+							<span>{t('renderer.work_rules.encashment_reference')}</span>
+							<Combobox
+								value={current.encashment.reference}
+								{disabled}
+								options={(['EVENT_DATE', 'PREVIOUS_MONTH', 'PREVIOUS_DAY_OR_MONTH'] as const).map(
+									(value) => ({
+										value,
+										label: t(`renderer.work_rules.encashment_${value}` as TenantI18nKeys)
+									})
+								)}
+								onValueChange={(value) => {
+									if (
+										value === 'EVENT_DATE' ||
+										value === 'PREVIOUS_MONTH' ||
+										value === 'PREVIOUS_DAY_OR_MONTH'
+									)
+										editEncashment({ reference: value });
+								}}
+							/>
+						</Stack></label
+					>
+					<Stack gap="xs"
+						><span class="text-xs">{t('renderer.work_rules.encashment_day')}</span>
+						<ExpressionField
+							site="person"
+							type="money"
+							value={current.encashment.day_amount}
+							mode={readonly ? 'display' : 'edit'}
+							{disabled}
+							onValueChange={(day_amount) => editEncashment({ day_amount })}
+						/>
+					</Stack>
+					{#each ['include_allowances', 'exclude_allowances'] as key}
+						{@const field = key as 'include_allowances' | 'exclude_allowances'}
+						<label class="text-xs"
+							><Stack gap="xs"
+								><span>{t(`renderer.work_rules.encashment_${field}` as TenantI18nKeys)}</span>
+								<Input
+									value={current.encashment[field].join(', ')}
+									{disabled}
+									oninput={(event) => editEncashment({ [field]: codes(event.currentTarget.value) })}
+								/>
+							</Stack></label
+						>
+					{/each}
+				</Grid>
+				<fieldset class="flex flex-wrap gap-3 text-xs">
+					<legend class="mb-2">{t('renderer.work_rules.encashment_frequencies')}</legend>
+					{#each frequencies as frequency}
+						<label class="flex items-center gap-1"
+							><input
+								type="checkbox"
+								{disabled}
+								checked={current.encashment.pay_frequencies.includes(frequency)}
+								onchange={(event) => {
+									const previous = current.encashment!.pay_frequencies;
+									editEncashment({
+										pay_frequencies: event.currentTarget.checked
+											? [...previous, frequency]
+											: previous.filter((item) => item !== frequency)
+									});
+								}}
+							/>
+							{t(`renderer.work_rules.encashment_frequency_${frequency}` as TenantI18nKeys)}</label
+						>
+					{/each}
+				</fieldset>
+				<label class="flex items-center gap-2 text-xs"
+					><input
+						type="checkbox"
+						{disabled}
+						checked={current.encashment.preserve_year_end_rate}
+						onchange={(event) =>
+							editEncashment({ preserve_year_end_rate: event.currentTarget.checked })}
+					/>{t('renderer.work_rules.encashment_year_end')}</label
+				>
+				<label class="text-xs"
+					><Stack gap="xs"
+						><span>{t('renderer.work_rules.encashment_authority')}</span>
+						<Input
+							value={current.encashment.authority}
+							{disabled}
+							oninput={(event) => editEncashment({ authority: event.currentTarget.value })}
+						/>
+					</Stack></label
+				>
+			{/if}
+		</Stack>
 
 		<!-- Day-pricing bands. -->
 		<Stack gap="xs">

@@ -258,9 +258,14 @@ test('payroll writes the consumed terms date on the payslip; previews leave sour
 	const [payslip] = buildPayrollRun(prepared).payslip_payroll_run;
 	assert.ok(payslip);
 	assert.equal(dateKey(payslip.terms_through), '2026-01-31');
-	// A payslip is born under its run: the collection exposes no create of its own, and its one
-	// editable half is the payment status.
+	// The run creates calculated outputs; direct edits are limited to payment and funding evidence.
 	assert.equal(payslips.create, undefined);
-	assert.deepEqual(Object.keys(payslips.update.input.columns), ['status', 'paid_at']);
+	assert.deepEqual(Object.keys(payslips.update.input.columns), [
+		'status',
+		'paid_at',
+		'funding_received',
+		'funding_received_on',
+		'funding_reference'
+	]);
 	assert.throws(() => transformOne(payslips, { status: 'ON_HOLD' }, undefined, {}), /payroll run/);
 });

@@ -266,9 +266,16 @@ test('hr_manager and senior management create and delete payroll runs without a 
 			assert.equal(may(policy, collection, 'mutate.new'), false, `${nameOf(policy)} ${collection}`);
 			assert.equal(
 				may(policy, collection, 'mutate.existing'),
-				false,
+				true,
 				`${nameOf(policy)} ${collection}`
 			);
+			assert.deepEqual(grantsFor(policy, collection, 'mutate.existing')[0].fields, [
+				'status',
+				'paid_at',
+				'funding_received',
+				'funding_received_on',
+				'funding_reference'
+			]);
 			assert.equal(may(policy, collection, 'delete'), true, `${nameOf(policy)} ${collection}`);
 			const [slipDelete] = grantsFor(policy, collection, 'delete');
 			// The decision reads the person's later slips; `paid-per-slip.test.ts` exercises it.

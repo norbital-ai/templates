@@ -1,6 +1,7 @@
 import { formatNumeric } from '../../lib/ui/display-formatters.js';
 
-type PayslipAmountColumn = 'gross' | 'total_deductions' | 'net' | 'employer_cost';
+type PayslipAmountColumn =
+	'gross' | 'total_deductions' | 'net' | 'unfunded_contributions' | 'employer_cost';
 
 export interface PayrollRunPayslipRow {
 	readonly id: string;
@@ -13,6 +14,7 @@ export interface PayrollRunPayslipRow {
 	readonly gross: unknown;
 	readonly total_deductions: unknown;
 	readonly net: unknown;
+	readonly unfunded_contributions: unknown;
 	readonly employer_cost: unknown;
 	readonly payslip_employment?: { readonly employee_number?: string | null } | null;
 }
@@ -37,6 +39,7 @@ export function payrollRunPayslipsQuery(payrollRunId: string) {
 			gross: true,
 			total_deductions: true,
 			net: true,
+			unfunded_contributions: true,
 			employer_cost: true,
 			created_at: true
 		},

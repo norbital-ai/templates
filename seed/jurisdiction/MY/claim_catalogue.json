@@ -1,0 +1,185 @@
+[
+	{
+		"id": "3f29845d-6e75-53ad-b533-1865083a430a",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "63b1d765-c092-5081-9c75-1bcc08435a5c",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "ea918467-b138-549a-900b-8490b07f62be",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "ea6e36c3-e865-5185-b219-8079d0ed2feb",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "b14f3505-b505-5e06-af0c-3194a5d1a0c0",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "d0ef07f6-2e61-5280-801c-c76fa7bd1e07",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "8ff1177f-fc7b-56e7-bc71-08a5dc9092f7",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "58cdd20b-21b7-50c9-8b7d-1a2b589fd1f9",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "3db64eba-cbe5-5d92-ab4a-eb22b8478b07",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	}
+]

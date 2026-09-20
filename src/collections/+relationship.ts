@@ -159,6 +159,7 @@ export default ((r) => ({
 			to: r.companies.id
 		}),
 		term_employment: r.many.employment_terms(),
+		statutory_fact_employment: r.many.employment_statutory_facts(),
 		claim_request_employment: r.many.claim_requests(),
 		adhoc_request_employment: r.many.adhoc_requests(),
 		loan_employment: r.many.loans(),
@@ -166,7 +167,18 @@ export default ((r) => ({
 		leave_entry_employment: r.many.leave_entries(),
 		work_day_employment: r.many.work_days(),
 		roster_employment: r.many.rosters(),
-		payslip_employment: r.many.payslips()
+		payslip_employment: r.many.payslips(),
+		wage_period_employment: r.many.employment_wage_periods()
+	},
+
+	employment_wage_periods: {
+		wage_period_employment: cascade(
+			r.one.employments({
+				from: r.employment_wage_periods.employment_id,
+				to: r.employments.id
+			})
+		),
+		wage_period_capture: r.many.payslip_wage_periods()
 	},
 
 	employment_terms: {
@@ -184,6 +196,10 @@ export default ((r) => ({
 	},
 
 	employment_statutory_facts: {
+		statutory_fact_employment: r.one.employments({
+			from: r.employment_statutory_facts.employment_id,
+			to: r.employments.id
+		}),
 		statutory_fact_employee: cascade(
 			r.one.employees({
 				from: r.employment_statutory_facts.employee_id,
@@ -307,7 +323,22 @@ export default ((r) => ({
 		claim_request_payslip: r.many.claim_requests(),
 		adhoc_request_payslip: r.many.adhoc_requests(),
 		leave_entry_payslip: r.many.leave_entries(),
-		loan_repayment_payslip: r.many.loan_repayments()
+		loan_repayment_payslip: r.many.loan_repayments(),
+		payslip_wage_period: r.many.payslip_wage_periods()
+	},
+
+	payslip_wage_periods: {
+		payslip_wage_period: cascade(
+			r.one.payslips({
+				from: r.payslip_wage_periods.payslip_id,
+				to: r.payslips.id
+			})
+		),
+		/** Restrict: wage evidence used by a standing payslip is immutable. */
+		wage_period_capture: r.one.employment_wage_periods({
+			from: r.payslip_wage_periods.wage_period_id,
+			to: r.employment_wage_periods.id
+		})
 	},
 
 	loans: {

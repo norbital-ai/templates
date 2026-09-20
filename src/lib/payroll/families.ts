@@ -10,6 +10,7 @@ import {
 	accumulateSettledPayslip,
 	sumAccumulations,
 	type AccumulatedPayslip,
+	type QuantityPayment,
 	type MonthPrior
 } from '../../collections/payroll_runs/lib/accumulate.js';
 import {
@@ -17,6 +18,7 @@ import {
 	completedMonths,
 	addDays,
 	monthDays,
+	monthBounds,
 	monthKey,
 	periodMonth,
 	requiredDateKey
@@ -30,9 +32,16 @@ import {
 	type PayCadence,
 	type PayFrequency
 } from '../../collections/payroll_runs/lib/period.js';
-import { calculateLeavePayroll, unpaidLeaveDays } from '../leave/payroll.js';
+import {
+	calculateLeavePayroll,
+	unpaidLeaveDays,
+	fullyUnpaidDays,
+	leaveCoverage
+} from '../leave/payroll.js';
+import { leaveEncashmentRate } from '../leave/encashment-rate.js';
 import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
+import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
 import { stint } from '../employment-contract.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
 import type {
@@ -57,6 +66,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	/** What the family measurements reported about the requests they read and did not pay. */
 	const notes: RunIssue[] = [];
 	const { bundle } = options;
+	const referenceWageIds = new Set<string>();
 	// A request prices under the catalogue row it was raised against; its bands carry the opt-ins, so
 	// a scheme sealed after that revision is simply not opted into (silence means no effect).
 	const configuration = options.configuration;
@@ -71,9 +81,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const currency = configuration.jurisdiction.payroll.currency;
 		const finalDate = employmentDates(bundle.employment).exit;
 		if (finalDate == null) throw new Error('An ended contract requires a final service date.');
-		// An ended contract acquires no new time off, but it can still settle an encashment agreed
-		// before the exit; that money prices at the ordinary day wage the Work context resolves,
-		// and the resolution is deferred to the run that actually settles one.
 		const leave = calculateLeavePayroll({
 			prepared: bundle.leave,
 			window: options.salary,
@@ -82,13 +89,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			absenceRate: () => {
 				throw new Error('An ended employment cannot acquire new time-off charges in this period.');
 			},
-			ordinaryDayRate: () =>
-				prepareWorkContext({
-					bundle,
-					configuration,
-					salary: options.salary,
-					employed: { start: finalDate, end: finalDate }
-				}).dayWage
+			encashmentRate: (entry) =>
+				leaveEncashmentRate({ bundle, configuration, entry, referenceWageIds })
 		});
 		const finalTerms = termsAt(bundle, finalDate);
 		const cadence: PayCadence = {
@@ -168,7 +170,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 					ADHOC: requests.filter((entry) => entry.family === 'ADHOC').map((entry) => entry.id)
 				},
 				leave: leave.captures,
-				loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id)
+				loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
+				wagePeriods: [...referenceWageIds]
 			},
 			arrears: null,
 			componentAmounts,
@@ -183,10 +186,19 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			limits: [],
 			periodWorkingDays: 0,
 			periodUnpaidDays: 0,
+			periodFullyUnpaidDays: 0,
+			periodLeaveDays: {},
+			periodFullLeaveDays: {},
 			week: { ordinary_hours_per_week: 0, working_days_per_week: 0 }
 		};
 	}
-	const work = prepareWorkContext({ bundle, configuration, salary: options.salary, employed });
+	const work = prepareWorkContext({
+		bundle,
+		configuration,
+		salary: options.salary,
+		employed,
+		referenceWageIds
+	});
 	const {
 		wageDays,
 		closingTerms,
@@ -266,10 +278,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		dueThrough: options.salary.end,
 		currency,
 		absenceRate: work.absenceRate,
-		// An encashed day is paid at the ordinary day — the month over the version's ordinary
-		// divisor (SG EA: the gross rate of pay for a day; MY s.60E(3B): the ordinary rate; PH:
-		// the daily wage) — not at the absence day, which is the month over its own working days.
-		ordinaryDayRate: () => dayWage
+		encashmentRate: (entry) =>
+			leaveEncashmentRate({ bundle, configuration, entry, referenceWageIds })
 	});
 
 	const componentAmounts = new Map<string, number>();
@@ -405,6 +415,21 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	 * neighbouring period. Capturing them would freeze attendance a future run has not settled yet.
 	 */
 	const capturedWorkDayIds = [...new Set(workAttendance.capturedWorkDayIds)];
+	const month = monthBounds(periodMonth(options.period));
+	const monthThrough = {
+		...month,
+		end: options.salary.end < month.end ? options.salary.end : month.end
+	};
+	const dates = employmentDates(bundle.employment);
+	const monthlyProration = prorationSegment({
+		work: configuration.work,
+		person: subject,
+		period: month,
+		covered: { start: dates.hire, end: dates.exit ?? month.end },
+		workingDaysIn
+	});
+	const periodLeave = leaveCoverage(bundle.leave, options.salary, work.isOrdinaryWorkingDay);
+	const monthlyLeave = leaveCoverage(bundle.leave, monthThrough, work.isOrdinaryWorkingDay);
 
 	return {
 		bundle,
@@ -420,7 +445,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				])
 			) as unknown as Record<PayRequestFamily, readonly string[]>,
 			leave: measuredLeave.captures,
-			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id)
+			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
+			wagePeriods: [...referenceWageIds]
 		},
 		arrears,
 		notes,
@@ -436,6 +462,29 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		limits: workAttendance.limits,
 		periodWorkingDays: subject.period.working_days,
 		periodUnpaidDays: unpaidDaysIn(options.salary),
+		periodFullyUnpaidDays: fullyUnpaidDays(
+			bundle.leave,
+			options.salary,
+			work.absentDaysIn(options.salary),
+			work.isOrdinaryWorkingDay
+		),
+		periodLeaveDays: periodLeave.byCode,
+		periodFullLeaveDays: periodLeave.fullDaysByCode,
+		monthlyContributionDays: {
+			employed: monthlyProration?.days ?? 0,
+			working: workingDaysIn(month),
+			fullyUnpaid: fullyUnpaidDays(
+				bundle.leave,
+				monthThrough,
+				work.absentDaysIn(monthThrough),
+				work.isOrdinaryWorkingDay
+			),
+			leaveDays: monthlyLeave.byCode,
+			fullLeaveDays: monthlyLeave.fullDaysByCode,
+			unpaid:
+				unpaidLeaveDays(bundle.leave, monthThrough) +
+				work.absentDaysIn(monthThrough).reduce((total, day) => total + day.days, 0)
+		},
 		week: {
 			ordinary_hours_per_week: rateTerms.ordinary_hours_per_week,
 			working_days_per_week: rateTerms.working_days_per_week
@@ -492,9 +541,8 @@ function measureArrears(
 		// until somebody reads more than gross out of it.
 		consumedEntries: options.consumedEntries
 	});
-	// The deferred period's **gross**, by SETTLE's own definition of it and not a second one. What is
-	// owed for a month is what that month's payslip would have said was earned; charging statutory
-	// on it is this run's job, on this run's combined wage, which is what the source system does.
+	// The deferred period's gross uses the same settlement arithmetic. Earnings-based contributions
+	// read it when paid; calendar-based insurance remains assessed in its own coverage month.
 	const amount = settle({
 		base: measured.base,
 		adjustments: measured.adjustments,
@@ -519,6 +567,7 @@ import {
 	contributionYearToDate,
 	monthlyWageAverage
 } from './contribution.js';
+import { buildStatutoryHistory } from './statutory-history.js';
 import { prepareLeaveCatalogue, prepareLeavePayroll } from '../leave/payroll.js';
 import type { PayrollReadApi, ReadLog } from '../../collections/payroll_runs/lib/api.js';
 import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
@@ -673,7 +722,17 @@ function monthPriorOf(options: {
 		string,
 		{
 			accumulations: AccumulatedPayslip[];
-			charged: Map<string, { employee: number; employer: number; base: number; ordinary: number }>;
+			charged: Map<
+				string,
+				{
+					employee: number;
+					employer: number;
+					base: number;
+					ordinary: number;
+					directed: number;
+					rebate: number;
+				}
+			>;
 		}
 	>();
 	for (const payslip of options.payslips) {
@@ -685,7 +744,14 @@ function monthPriorOf(options: {
 			accumulations: [] as AccumulatedPayslip[],
 			charged: new Map<
 				string,
-				{ employee: number; employer: number; base: number; ordinary: number }
+				{
+					employee: number;
+					employer: number;
+					base: number;
+					ordinary: number;
+					directed: number;
+					rebate: number;
+				}
 			>()
 		};
 		entry.accumulations.push(accumulateSettledPayslip(payslip, componentsByCode));
@@ -694,13 +760,18 @@ function monthPriorOf(options: {
 				employee: 0,
 				employer: 0,
 				base: 0,
-				ordinary: 0
+				ordinary: 0,
+				directed: 0,
+				rebate: 0
 			};
+			const directed = decodeNumber(charge.directed_amount ?? 0);
 			entry.charged.set(charge.scheme_code, {
-				employee: running.employee + decodeNumber(charge.employee_amount),
+				employee: running.employee + decodeNumber(charge.employee_amount) - directed,
 				employer: running.employer + decodeNumber(charge.employer_amount),
 				base: running.base + decodeNumber(charge.base_amount),
-				ordinary: running.ordinary + decodeNumber(charge.ordinary_amount ?? 0)
+				ordinary: running.ordinary + decodeNumber(charge.ordinary_amount ?? 0),
+				directed: running.directed + directed,
+				rebate: running.rebate + decodeNumber(charge.rebate_amount ?? 0)
 			});
 		}
 		parts.set(key, entry);
@@ -726,13 +797,51 @@ export function prepareFamilyHistory(
 		const consumedEntries = yield* prepareMoneyConsumption(scope);
 		return {
 			yearToDate: contributionYearToDate(options),
+			statutoryHistory: buildStatutoryHistory(options),
 			yearEarned: earnedYearToDate(options),
+			yearQuantityPayments: earnedQuantityPaymentsYearToDate(options),
 			earnedByMonth: earnedByMonth(options),
 			priorOvertimeHours: priorOvertimeHours(options),
 			monthPrior: monthPriorOf(options),
 			consumedEntries
 		};
 	});
+}
+
+/** Paid units remain units when a later salary changes their monetary value. */
+function earnedQuantityPaymentsYearToDate(
+	options: Parameters<typeof earnedYearToDate>[0] & {
+		readonly periodByRun: ReadonlyMap<string, string>;
+	}
+): Map<string, Map<string, QuantityPayment[]>> {
+	const totals = new Map<string, Map<string, QuantityPayment[]>>();
+	const slips = options.payslips.toSorted(
+		(a, b) =>
+			(options.periodByRun.get(a.payroll_run_id) ?? '').localeCompare(
+				options.periodByRun.get(b.payroll_run_id) ?? ''
+			) ||
+			String(a.paid_at ?? '').localeCompare(String(b.paid_at ?? '')) ||
+			a.id.localeCompare(b.id)
+	);
+	for (const payslip of slips) {
+		if (!options.inTaxYear.has(payslip.payroll_run_id)) continue;
+		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
+		if (employeeId == null) continue;
+		const byCode = totals.get(employeeId) ?? new Map<string, QuantityPayment[]>();
+		for (const line of payslip.adjustments) {
+			if (!line.component_code.endsWith('_ENCASHMENT')) continue;
+			const payments = byCode.get(line.component_code) ?? [];
+			payments.push({
+				period: options.periodByRun.get(payslip.payroll_run_id),
+				quantity: line.quantity == null ? null : decodeNumber(line.quantity),
+				amount: (line.bucket === 'ABSENCE' ? -1 : 1) * decodeNumber(line.amount),
+				rate: line.rate == null ? null : decodeNumber(line.rate)
+			});
+			byCode.set(line.component_code, payments);
+		}
+		totals.set(employeeId, byCode);
+	}
+	return totals;
 }
 
 /**
@@ -904,11 +1013,6 @@ export function calculateFamilyAssessments(options: {
 	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
 
 	for (const bundle of gathered.bundles) {
-		// A skipped joining period is skipped: no payslip, no lines, no statutory charge. The days it
-		// covers are not lost — the next run derives them from this employment's own contract, which
-		// is why nothing has to be handed over here for that to work.
-		if (bundle.deferral != null) continue;
-
 		// 4 — MEASURE
 		//
 		// On the employment's own cadence: one run settles the instalment its period names for each
@@ -923,7 +1027,7 @@ export function calculateFamilyAssessments(options: {
 		const projection = payProjection(period, taxYearStartMonth, bundle.window);
 		const yearEarned = gathered.yearEarned.get(bundle.employment.employee_id) ?? new Map();
 		const earnedByMonth = gathered.earnedByMonth.get(bundle.employment.employee_id) ?? new Map();
-		const measured = calculateFamilies({
+		const wages = calculateFamilies({
 			bundle,
 			configuration,
 			period,
@@ -934,6 +1038,26 @@ export function calculateFamilyAssessments(options: {
 			yearEarned,
 			priorOvertimeHours: gathered.priorOvertimeHours.get(bundle.employment.employee_id)
 		});
+		// Deferral moves the wage payment, not insurance coverage. Preserve the employment and
+		// calendar measurements, but leave monetary inputs available for the run that pays them.
+		const measured: MeasuredEmployment =
+			bundle.deferral == null
+				? wages
+				: {
+						...wages,
+						base: [],
+						adjustments: [],
+						proration: [],
+						arrears: null,
+						componentAmounts: new Map(),
+						captured: {
+							workDays: [],
+							payRequests: { CLAIM: [], ADHOC: [] },
+							leave: [],
+							loanRepayments: [],
+							wagePeriods: []
+						}
+					};
 
 		// What the family measurements said about requests they read and paid nothing for. Warnings:
 		// the run is correct, and the operator has to be able to see that the entry was consumed.
@@ -989,6 +1113,11 @@ export function calculateFamilyAssessments(options: {
 				configuration,
 				projection,
 				yearToDate: gathered.yearToDate,
+				statutoryHistory:
+					gathered.statutoryHistory.get(run.measured.bundle.employment.employee_id) ?? [],
+				yearQuantityPayments: gathered.yearQuantityPayments?.get(
+					run.measured.bundle.employment.employee_id
+				),
 				headcount: gathered.headcount,
 				headcountCitizens: gathered.headcountCitizens,
 				yearEarned,

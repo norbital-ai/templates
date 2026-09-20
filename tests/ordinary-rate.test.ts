@@ -36,7 +36,7 @@ test('the ordinary rate divisor is one expression over the person; period.workin
 		ordinary_hours_per_week: 48,
 		working_days_per_week: 6
 	} as const;
-	assert.equal(ordinaryHourlyRate(terms, 22), 19.61);
+	assert.equal(ordinaryHourlyRate(terms, 22), 3451 / 22 / 8);
 	// A month with no working days under a WORKING_DAYS divisor stops the run by name.
 	assert.throws(
 		() => divisor({ base_salary: { value: 3451 } }, 0),

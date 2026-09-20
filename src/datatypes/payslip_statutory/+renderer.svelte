@@ -61,6 +61,7 @@
 						<th class="py-1 pr-3 text-right font-normal"
 							>{t('renderer.payslip_statutory.employer_amount')}</th
 						>
+						<th class="py-1 pr-3 text-right font-normal">Rebatable payments</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -71,6 +72,7 @@
 								>{formatNumeric(charge.employee_amount)}</td
 							>
 							<td class="py-1 pr-3 text-right">{formatNumeric(charge.employer_amount)}</td>
+							<td class="py-1 pr-3 text-right">{formatNumeric(charge.rebate_amount ?? 0)}</td>
 						</tr>
 					{/each}
 				</tbody>

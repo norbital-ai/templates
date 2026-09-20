@@ -1,11 +1,10 @@
 /**
- * Statutory leave entitlements, per jurisdiction, against the law the seed bank transcribes.
+ * Statutory leave entitlements, per jurisdiction, against the law the template publishes.
  *
- * Same contract as `statutory-golden.test.ts`: the rows are the bank's own `leave_catalogue` JSON,
- * snapshotted under `tests/fixtures/statutory/<CODE>/` by `scripts/refresh-statutory-fixtures.mjs`,
- * and every expected number is the one the bank's per-lineage test
- * (`seed_bank/norbital_hr/statutory/<code>-lineage.test.mjs`) derives from those rows. The law is
- * the expectation; `computedEntitlement` is what is being measured.
+ * Same contract as `statutory-golden.test.ts`: the rows are the public seed's own
+ * `leave_catalogue` JSON under `seed/jurisdiction/<CODE>/`, and every expected number is derived
+ * from those rows by the lineage's own vetting report. The law is the expectation;
+ * `computedEntitlement` is what is being measured.
  *
  * Each lineage is asked for its statutory leaves at three service lengths — 3, 30 and 70 completed
  * months — and for the predicate cases the bands actually turn on: gender, marital status, solo

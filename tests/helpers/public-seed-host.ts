@@ -1,4 +1,6 @@
 import { fileURLToPath } from 'node:url';
+import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import {
 	authoredSeedStages as stagesFromManifest,
 	jsonSqlParameter,
@@ -33,6 +35,15 @@ export const templateManifestPath = fileURLToPath(
 );
 export const publicSeedDirectory = fileURLToPath(new URL('../fixtures/seed/', import.meta.url));
 
+export const publicSeedRows = async () => {
+	const rows: Record<string, Readonly<Record<string, unknown>>[]> = {};
+	for (const name of await readdir(publicSeedDirectory)) {
+		if (name.endsWith('.json'))
+			rows[name.slice(0, -5)] = JSON.parse(await readFile(join(publicSeedDirectory, name), 'utf8'));
+	}
+	return rows;
+};
+
 export const startPublicSeedHost = async (
 	label: string,
 	options?: {
@@ -41,6 +52,7 @@ export const startPublicSeedHost = async (
 		readonly connector?: WithSelfHostInput['connector'];
 		readonly hostTools?: WithSelfHostInput['hostTools'];
 		readonly files?: boolean;
+		readonly seed?: WithSelfHostInput['seed'];
 	}
 ) => {
 	const { bundlePath, schemaFingerprint } = requireReleaseBundle(artifactDirectory, [
@@ -59,7 +71,7 @@ export const startPublicSeedHost = async (
 		...(options?.connector !== undefined ? { connector: options.connector } : {}),
 		...(options?.hostTools !== undefined ? { hostTools: options.hostTools } : {}),
 		...(options?.files === true ? { files: true } : {}),
-		seed: {
+		seed: options?.seed ?? {
 			stages,
 			rows: publicSeedDirectory,
 			mapParameters: jsonSqlParameter

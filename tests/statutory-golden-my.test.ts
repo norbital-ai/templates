@@ -35,6 +35,81 @@ const MY_LOCAL = { EPF_NON_CITIZEN: OUT };
 /** A non-citizen: Part F only. */
 const MY_FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
 
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — child relief uses the tax-year declaration and full or half entitlement`, () => {
+		// LHDN MTD 2026: annual income 60,012 less EPF 4,000, SOCSO 35.35 and
+		// personal relief 9,000 gives P=46,976.65. In this band each RM1,000
+		// child relief reduces monthly MTD by RM5, subject to the published rounding.
+		const cases = [
+			{ key: 'NO-CLAIM', claims: [], expected: 109.9 },
+			{ key: 'FULL', category: 'UNDER_18', full: 1, half: 0, expected: 99.9 },
+			{ key: 'HALF', category: 'UNDER_18', full: 0, half: 1, expected: 104.9 },
+			{ key: 'MIXED', category: 'UNDER_18', full: 1, half: 1, expected: 94.9 },
+			{ key: 'STUDYING', category: 'STUDYING', full: 1, half: 0, expected: 99.9 },
+			{ key: 'TERTIARY', category: 'TERTIARY', full: 0, half: 1, expected: 89.9 },
+			{ key: 'DISABLED', category: 'DISABLED', full: 0, half: 1, expected: 89.9 },
+			{ key: 'DISABLED-TERTIARY', category: 'DISABLED_TERTIARY', full: 0, half: 1, expected: 69.9 },
+			{
+				key: 'PREVIOUS-YEAR',
+				category: 'UNDER_18',
+				full: 1,
+				half: 0,
+				year: '2025',
+				expected: 109.9
+			},
+			{ key: 'NEXT-YEAR', category: 'UNDER_18', full: 1, half: 0, year: '2027', expected: 109.9 }
+		];
+		const book = assessStatutory({
+			code,
+			period: '2026-01',
+			people: cases.map((row) => ({
+				key: row.key,
+				wage: 5001,
+				citizenship: 'CITIZEN',
+				// Turns 18 during the basis year: an eligible declaration continues for that year.
+				child_rows: [{ child_birthdate: '2008-01-10' }, { child_birthdate: '2015-06-01' }],
+				registrations: {
+					...MY_LOCAL,
+					PCB: {
+						kind: 'REGISTERED',
+						child_claims: row.claims ?? [
+							{
+								year: row.year ?? '2026',
+								relief_class: row.category,
+								full_count: row.full,
+								half_count: row.half,
+								reference: 'Synthetic eligible claim'
+							}
+						]
+					}
+				}
+			}))
+		});
+		for (const row of cases) expectStatutory(book, row.key, 'PCB', row.expected, 0);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — unknown tax residence uses LHDN’s 30% withholding default`, () => {
+		// LHDN MTD 2026 D(a): non-resident or not known to be resident, regardless of citizenship.
+		const book = assessStatutory({
+			code,
+			period: '2026-01',
+			people: [
+				{
+					key: 'UNKNOWN-RESIDENCE',
+					wage: 5001,
+					citizenship: 'CITIZEN',
+					tax_residency: null,
+					registrations: {
+						...MY_LOCAL,
+						PCB: { kind: 'REGISTERED', elections: { zakat: 100, pcb_disabled: true } }
+					}
+				}
+			]
+		});
+		expectStatutory(book, 'UNKNOWN-RESIDENCE', 'PCB', 1500.3, 0);
+	});
+
 test('Malaysia — a bonus month withholds the additional remuneration’s whole tax difference (MTD spec 2026, additional remuneration)', () => {
 	// MY-5001 with a 12,000 bonus (the non-fixed ADJ row) in January. The spec projects the year
 	// on the NORMAL remuneration alone — 5,001 × 12 = 60,012 — and takes the bonus's tax in full
@@ -80,13 +155,10 @@ test('Malaysia — a bonus month withholds the additional remuneration’s whole
 	assert.equal(book.get('MY-BONUS')!.get('PCB')!.base, 17_001);
 });
 
-test('Malaysia — the s.48 child relief ladder reads the children on record and their declared class', () => {
-	// ITA s.48: RM2,000 for a child under eighteen, RM8,000 for one in tertiary education,
-	// RM6,000 for a disabled child. MY-5001's household of three: a minor, a twenty-year-old at
-	// university (TERTIARY) and a disabled sixteen-year-old (DISABLED — classed, so not also a
-	// minor): 2,000 + 8,000 + 6,000 = 16,000, beside the RM9,000 personal relief. Chargeable =
-	// 60,012 − 4,035.35 − 25,000 = 30,976.65 → 20,001–35,000 at 3% with B = −250: −250 + 10,976.65
-	// × 3% = 79.2995 → over twelve = 6.6083 → under the RM10 minimum: nothing withheld.
+test('Malaysia — declared relief categories remain separate from recorded family facts', () => {
+	// MTD 2026: RM2,000 minor + RM8,000 tertiary + RM8,000 disabled = RM18,000.
+	// At RM5,001 monthly, P=28,976.65 and annual tax after rebate is RM19.2995;
+	// monthly MTD is below RM10. The same family without claims receives no child relief.
 	const book = assessStatutory({
 		code: 'MY',
 		period: '2026-01',
@@ -95,16 +167,26 @@ test('Malaysia — the s.48 child relief ladder reads the children on record and
 				key: 'MY-CHILDREN',
 				wage: 5001,
 				citizenship: 'CITIZEN',
-				registrations: MY_LOCAL,
+				registrations: {
+					...MY_LOCAL,
+					PCB: {
+						kind: 'REGISTERED',
+						child_claims: ['UNDER_18', 'TERTIARY', 'DISABLED'].map((relief_class) => ({
+							year: '2026',
+							relief_class,
+							full_count: 1,
+							half_count: 0,
+							reference: 'Synthetic declaration'
+						}))
+					}
+				},
 				child_rows: [
 					{ child_birthdate: '2015-06-01' },
 					{ child_birthdate: '2006-01-15', relief_class: 'TERTIARY' },
 					{ child_birthdate: '2010-03-03', relief_class: 'DISABLED' }
 				]
 			},
-			// The same three children, none classed: the two under eighteen are RM2,000 each and the
-			// twenty-year-old carries nothing — 4,000 of relief, chargeable 42,976.65 → 600 + 7,976.65
-			// × 6% = 1,078.599 → 89.88325 → 89.88 → 89.90.
+			// Family records remain available to leave eligibility when no tax claim is made.
 			{
 				key: 'MY-UNCLASSED',
 				wage: 5001,
@@ -119,7 +201,7 @@ test('Malaysia — the s.48 child relief ladder reads the children on record and
 		]
 	});
 	expectStatutory(book, 'MY-CHILDREN', 'PCB', 0, 0);
-	expectStatutory(book, 'MY-UNCLASSED', 'PCB', 89.9, 0);
+	expectStatutory(book, 'MY-UNCLASSED', 'PCB', 109.9, 0);
 });
 
 test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
@@ -265,15 +347,9 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
 	expectStatutorySkipped(book, 'MY-FOREIGN-75', 'HRDF');
 });
 
-test('Malaysia — registration history decides the SOCSO category for a non-citizen only', () => {
-	// Act 4 Third Schedule: an employee who first entered PERKESO at 55 or above is in the Second
-	// Category (employer only) whatever their current age. The only date the fact carries is
-	// `scheme.since`, the day THIS employment registered — a first PERKESO entry for a foreign
-	// worker, but not for a Malaysian hired at 55 with thirty years under earlier employers
-	// (Nihon Pigment NHPMY0302, hired at 56, First Category on the employer's own listing). So
-	// the limb reads the citizenship: a citizen is First Category below 60 whenever hired, and a
-	// non-citizen first registered at 55 or above is Second Category. Act 800's 57-and-never-
-	// contributed EIS exclusion has the same data gap and is NOT APPLIED: EIS applies below 60.
+test('Malaysia — prior contribution liability survives a change of employer', () => {
+	// Act 4 First Schedule 12(i), Act 800 First Schedule 9: liability history is independent
+	// of the current employer's registration date. The later local hire has earlier coverage.
 	const book = assessStatutory({
 		code: 'MY',
 		period: '2026-01',
@@ -293,7 +369,11 @@ test('Malaysia — registration history decides the SOCSO category for a non-cit
 				age: 58,
 				hire_date: '2025-01-01',
 				citizenship: 'CITIZEN',
-				registrations: MY_LOCAL
+				registrations: {
+					...MY_LOCAL,
+					SOCSO: { kind: 'REGISTERED', first_contribution_due_on: '2000-01-01' },
+					EIS: { kind: 'REGISTERED', first_contribution_due_on: '2018-01-01' }
+				}
 			},
 			{
 				key: 'MY-FOREIGN-LATE-58',
@@ -336,7 +416,21 @@ test('Malaysia — the RM4,000 EPF relief cap and the RM10 minimum monthly deduc
 				marital_status: 'MARRIED',
 				spouse_status: 'WITHOUT_INCOME',
 				children: 2,
-				registrations: MY_LOCAL
+				registrations: {
+					...MY_LOCAL,
+					PCB: {
+						kind: 'REGISTERED',
+						child_claims: [
+							{
+								year: '2026',
+								relief_class: 'UNDER_18',
+								full_count: 2,
+								half_count: 0,
+								reference: 'Synthetic declaration'
+							}
+						]
+					}
+				}
 			},
 			// Two households at the same wage, differing only in whether the spouse has income of
 			// their own. MTD Category 3 (married, spouse working) is assessed on the Category 1
@@ -440,6 +534,7 @@ test('Malaysia — a non-resident PCB override is a flat 30% without resident re
 				key: 'MY-NR',
 				wage: 5001,
 				citizenship: 'FOREIGNER',
+				tax_residency: 'NON_RESIDENT',
 				registrations: {
 					EPF: OUT,
 					EPF_PR: OUT,
@@ -450,9 +545,8 @@ test('Malaysia — a non-resident PCB override is a flat 30% without resident re
 		]
 	});
 
-	// The non-resident flat-rate branch (`contribute.ts`: a `PROGRESSIVE` scheme with a
-	// registration `rate_override`): 30% of the month's remuneration, without resident reliefs,
-	// annualising or spreading. 30% × 5,001 = 1,500.30.
+	// The declared non-resident status selects 30% without resident reliefs.
+	// The redundant matching override does not replace that declaration. 5,001×30%=1,500.30.
 	expectStatutory(book, 'MY-NR', 'PCB', 1500.3, 0);
 	// The rest of the statute prices them as the foreign worker they are: Part F EPF, 2% each,
 	// the total rounded up (201) and split 101 / 100.
@@ -471,6 +565,39 @@ test('MY-nihon prices the same statute as MY', () => {
 	expectStatutory(book, 'N-5001', 'EIS', 10.1, 10.1);
 	expectStatutory(book, 'N-5001', 'PCB', 109.9, 0);
 });
+
+for (const code of ['MY', 'MY-nihon'] as const) {
+	test(`${code}: recorded non-resident tax status selects 30% without a second rate entry`, () => {
+		// LHDN MTD 2026 section D(a), p.9: non-resident remuneration is subject to 30%.
+		// The contract already captures this status; a manual override must not be required.
+		const book = assessStatutory({
+			code,
+			period: '2026-01',
+			people: [
+				{
+					key: 'DECLARED-NONRESIDENT',
+					wage: 5001,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					registrations: MY_FOREIGN
+				},
+				{
+					key: 'NONRESIDENT-RELIEF',
+					wage: 5001,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					registrations: {
+						...MY_FOREIGN,
+						PCB: { kind: 'REGISTERED', rate_override: 15, elections: { zakat: 100 } }
+					}
+				}
+			]
+		});
+		expectStatutory(book, 'DECLARED-NONRESIDENT', 'PCB', 1500.3, 0);
+		// ITA s.6A(3), LHDN PR 6/2018 §5.5.1: zakat rebate is for a resident individual.
+		expectStatutory(book, 'NONRESIDENT-RELIEF', 'PCB', 1500.3, 0);
+	});
+}
 
 test('MY-nihon carries Malaysia’s two later sealed versions, SKBBK seams and all', () => {
 	const people = [
@@ -547,7 +674,7 @@ test('Malaysia — the Third Schedule brackets a wage in tens, then twenties, th
 // two days' wages, 3× beyond normal hours), s.18A (an incomplete month, unpaid leave included, is
 // monthly wages × eligible days ÷ days of the wage period) and First Schedule para 1A (the ladder
 // stops at wages over RM4,000 save for the para 2 categories). Wages are chosen so the rates are
-// exact in cents, because the engine rounds each rate before multiplying it by hours.
+// exact in cents; other cases verify that intermediate rates retain full precision.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 const REGISTERED_LOCAL = MY_LOCAL;
@@ -855,6 +982,69 @@ test('MY-nihon — the company incentive boundary sits at eleven hours worked in
 	);
 });
 
+test('Nihon cash allowances enter ordinary pay; the incentive funnel preserves every paid hour', () => {
+	const { slips } = buildStatutory(
+		{
+			code: 'MY-nihon',
+			period: '2026-01',
+			people: [
+				{ key: 'N-GROSS', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
+			]
+		},
+		(world) => {
+			world.employment_terms[0]!.allowances = [
+				{
+					catalogue_id: world.allowance_catalogue.find((row) => row.code === 'SUA')!.id,
+					amount: 260
+				}
+			];
+			punch(world, 'N-GROSS', '2026-01-05', '09:00', '22:00');
+		}
+	);
+	const slip = slips.get('N-GROSS')!;
+	// The display funnel preserves overtime's statutory character for contribution bases.
+	assert.equal(slip.statutory.find((row) => row.scheme_code === 'EPF')!.base_amount, 2860);
+	for (const code of ['SOCSO', 'EIS', 'PCB'])
+		assert.equal(slip.statutory.find((row) => row.scheme_code === code)!.base_amount, 2942.51);
+
+	// (2,600 + 260) / 26 / 8 = 13.75. Three hours before the daily boundary and one after it.
+	assert.deepEqual(
+		slip.adjustments.map((row) => [row.statutory_rule_key, row.quantity, row.amount]),
+		[
+			['OVERTIME:WORKDAY-OT-1.5X', 3, 61.88],
+			['INCENTIVE:WORKDAY-OT-1.5X', 1, 20.63]
+		]
+	);
+});
+
+test('MY overtime uses the salary on the worked day across a mid-month pay rise', () => {
+	const { slips } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-01',
+			people: [
+				{ key: 'M-DATED', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
+			]
+		},
+		(world) => {
+			const old = world.employment_terms[0]!;
+			world.employment_terms.push({
+				...old,
+				id: 'b0000000-0000-4000-8000-000000001234',
+				base_salary: { value: 3120, currency: 'MYR' },
+				effective_range: { start: '2026-01-10', end: null }
+			});
+			old.effective_range = { start: '2015-01-01', end: '2026-01-09T23:59:59.999Z' };
+			punch(world, 'M-DATED', '2026-01-05', '09:00', '20:00');
+			punch(world, 'M-DATED', '2026-01-12', '09:00', '20:00');
+		}
+	);
+	assert.deepEqual(workLines(slips.get('M-DATED')!), [
+		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 37.5],
+		['2026-01-12', 'WORKDAY-OT-1.5X', 2, 45]
+	]);
+});
+
 test('Malaysia — s.60A(3) overtime is work in excess of the normal hours, not the clock-out past the shift', () => {
 	const { slips } = buildStatutory(
 		{
@@ -954,11 +1144,11 @@ test('MY-nihon — a rostered person’s ordinary hour is the shift over the agr
 			];
 		}
 	);
-	// 2 h × 8.72 × 1.5 = 26.16.
+	// 2 × (1,700 / 26 / 7.5) × 1.5 = 26.153846… → 26.15.
 	assert.deepEqual(workLines(slips.get('NHPMY0339')!), [
-		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 26.16]
+		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 26.15]
 	]);
-	assert.equal(slips.get('NHPMY0339')!.gross, 1726.16);
+	assert.equal(slips.get('NHPMY0339')!.gross, 1726.15);
 });
 
 test('MY-nihon — a deferred rostered joiner is paid their arrears without a roster in the deferred window', () => {
@@ -1141,6 +1331,137 @@ test('Malaysia — a mid-year joiner’s PCB reads the previous employer’s TP3
 	// Fresh: 5,001 × 7 = 35,007 annualised; EPF 561 × 7 = 3,927; the 350 pool; personal 9,000 →
 	// 21,730 in the 20,000–35,000 band: −650 + 1,730 × 3% = −598.10 → nothing withheld.
 	expectStatutory(book, 'MY-FRESH', 'PCB', 0, 0);
+});
+
+test('Malaysia — a paid CP38 instalment does not reduce the following month’s normal PCB', () => {
+	// LHDN MTD 2026 section D, definition of X (p.11): accumulated MTD excludes
+	// tax instalments. January's RM1,000 CP38 is retained separately on its payslip.
+	const people = [{ key: 'MY-CP38', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL }];
+	const january = buildStatutory({ code: 'MY', period: '2026-01', people }, (world) => {
+		const pcbIds = new Set(
+			world.statutory_contributions.filter((row) => row.code === 'PCB').map((row) => row.id)
+		);
+		for (const fact of world.employment_statutory_facts)
+			if (pcbIds.has(fact.statutory_contribution_id) && fact.status.kind === 'REGISTERED')
+				fact.status = {
+					...fact.status,
+					instalments: [{ amount: 1000, from: '2026-01', to: '2026-01', reference: 'CP38-TEST' }]
+				};
+	});
+	const prior = january.slips.get('MY-CP38')!;
+	const januaryTax = prior.statutory.find((row) => row.scheme_code === 'PCB')!;
+	assert.equal(januaryTax.employee_amount, 1109.9);
+	assert.equal(januaryTax.directed_amount, 1000);
+	const february = assessStatutory({ code: 'MY', period: '2026-02', people }, (world) => {
+		world.payroll_runs.push({ id: 'paid-january', company_id: COMPANY_ID, period: '2026-01' });
+		world.payslips.push({
+			...prior,
+			id: 'cp38-january-slip',
+			payroll_run_id: 'paid-january',
+			status: 'PAID',
+			paid_at: '2026-01-31'
+		});
+	});
+	// P = 60,012 − 4,000 − (35.35 × 2) − 9,000 = 46,941.30.
+	// Tax = 600 + 11,941.30 × 6% = 1,316.478; (tax − 109.90) / 11 → 109.70.
+	expectStatutory(february, 'MY-CP38', 'PCB', 109.7, 0);
+});
+
+test('Malaysia — paid zakat remains in the next month’s accumulated rebate', () => {
+	const people = [
+		{
+			key: 'MY-ZAKAT-HISTORY',
+			wage: 5001,
+			citizenship: 'CITIZEN',
+			registrations: { ...MY_LOCAL, PCB: { kind: 'REGISTERED', elections: { zakat: 100 } } }
+		}
+	];
+	const january = buildStatutory({ code: 'MY', period: '2026-01', people });
+	const prior = january.slips.get('MY-ZAKAT-HISTORY')!;
+	assert.equal(prior.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 9.9);
+	assert.equal(prior.statutory.find((row) => row.scheme_code === 'PCB')!.rebate_amount, 100);
+	const february = assessStatutory({ code: 'MY', period: '2026-02', people }, (world) => {
+		world.payroll_runs.push({ id: 'zakat-january', company_id: COMPANY_ID, period: '2026-01' });
+		world.payslips.push({
+			...prior,
+			id: 'zakat-paid',
+			payroll_run_id: 'zakat-january',
+			status: 'PAID',
+			paid_at: '2026-01-31'
+		});
+	});
+	// LHDN 2026 D(1): annual tax 1,316.478 less January MTD 9.90 and zakat 100,
+	// divided by 11 gives 109.6889... -> 109.70. February zakat 100 leaves 9.70.
+	expectStatutory(february, 'MY-ZAKAT-HISTORY', 'PCB', 9.7, 0);
+});
+
+test('Malaysia — excess zakat is retained in full and TP3 can declare prior-employer rebates', () => {
+	const january = buildStatutory({
+		code: 'MY',
+		period: '2026-01',
+		people: [
+			{
+				key: 'MY-ZAKAT-EXCESS',
+				wage: 5001,
+				citizenship: 'CITIZEN',
+				registrations: { ...MY_LOCAL, PCB: { kind: 'REGISTERED', elections: { zakat: 1000 } } }
+			}
+		]
+	});
+	const prior = january.slips.get('MY-ZAKAT-EXCESS')!;
+	const tax = prior.statutory.find((row) => row.scheme_code === 'PCB')!;
+	assert.equal(tax.employee_amount, 0);
+	assert.equal(tax.rebate_amount, 1000, 'retain the payment, not just the offset against tax');
+	const february = assessStatutory(
+		{
+			code: 'MY',
+			period: '2026-02',
+			people: [
+				{
+					key: 'MY-ZAKAT-EXCESS',
+					wage: 5001,
+					citizenship: 'CITIZEN',
+					registrations: MY_LOCAL
+				}
+			]
+		},
+		(world) => {
+			world.payroll_runs.push({ id: 'excess-january', company_id: COMPANY_ID, period: '2026-01' });
+			world.payslips.push({
+				...prior,
+				id: 'excess-paid',
+				payroll_run_id: 'excess-january',
+				status: 'PAID',
+				paid_at: '2026-01-31'
+			});
+		}
+	);
+	// (1,316.478 annual tax − 1,000 January zakat − 0 prior MTD) / 11 → 28.80.
+	expectStatutory(february, 'MY-ZAKAT-EXCESS', 'PCB', 28.8, 0);
+	const opening = (base: number, employee: number, rebate = 0) => ({
+		kind: 'REGISTERED',
+		opening: [{ year: '2026', base, employee, employer: 0, rebate, months: 1, reference: 'TP3' }]
+	});
+	const joiner = assessStatutory({
+		code: 'MY',
+		period: '2026-02',
+		people: [
+			{
+				key: 'MY-ZAKAT-TP3',
+				wage: 5001,
+				citizenship: 'CITIZEN',
+				hire_date: '2026-02-01',
+				registrations: {
+					...MY_LOCAL,
+					PCB: opening(5001, 0, 1000),
+					EPF: opening(5001, 561),
+					SOCSO: opening(5001, 25.25),
+					EIS: opening(5001, 10.1)
+				}
+			}
+		]
+	});
+	expectStatutory(joiner, 'MY-ZAKAT-TP3', 'PCB', 28.8, 0);
 });
 
 test('Malaysia — EPF stops at seventy-five for citizen and foreigner alike (First Schedule para 13)', () => {
