@@ -55,7 +55,7 @@ test(
 			);
 			const [draftScheme] = (await session.query(
 				'select id, assessed_on from statutory_contributions where settings_id = $1 and code = $2',
-				[draftId, 'PUB-EPF']
+				[draftId, 'PUB_EPF']
 			)) as ReadonlyArray<{ readonly id: string; readonly assessed_on: string }>;
 			const [draftLeave] = (await session.query(
 				'select id from leave_catalogue where settings_id = $1 and code = $2',

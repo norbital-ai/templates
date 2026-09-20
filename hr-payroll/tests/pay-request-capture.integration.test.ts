@@ -8,6 +8,7 @@ import { writeRows } from './helpers/write.ts';
 import {
 	ONE_OFF_ENTRY_ID,
 	COMPANY_ID,
+	EMPLOYEE_ID,
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
 import {
@@ -111,10 +112,12 @@ test(
 
 			const lines = (await session.query(
 				`select r.period, s.base
-				 from payslips s join payroll_runs r on r.id = s.payroll_run_id
-				 where r.company_id = $1
+				 from payslips s
+				 join payroll_runs r on r.id = s.payroll_run_id
+				 join employments e on e.id = s.employment_id
+				 where r.company_id = $1 and e.employee_id = $2
 				 order by r.period`,
-				[COMPANY_ID]
+				[COMPANY_ID, EMPLOYEE_ID]
 			)) as ReadonlyArray<{
 				readonly period: string;
 				readonly base: readonly { component_code: string; amount: number | string }[];

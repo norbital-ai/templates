@@ -261,7 +261,7 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 	world.statutory_contributions.push({
 		id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa9',
 		settings_id: JURISDICTION_ID,
-		code: 'PUB-TAX',
+		code: 'PUB_TAX',
 		name: 'Public fixture withholding',
 		authority: 'Public fixture',
 		assessment_period: 'PAY_PERIOD',
@@ -276,7 +276,7 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		rules: [{ when: 'true', employee: PUB_TAX_EMPLOYEE, employer: '0.0' }]
 	});
 
-	const tax = (slip) => slip.statutory.find((line) => line.scheme_code === 'PUB-TAX');
+	const tax = (slip) => slip.statutory.find((line) => line.scheme_code === 'PUB_TAX');
 
 	const first = await build(world, '2026-01-1');
 	settle(world, '2026-01-1', first.prepared, first.built);

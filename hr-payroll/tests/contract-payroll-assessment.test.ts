@@ -40,7 +40,7 @@ function rehireWorld() {
 	world.statutory_contributions.push({
 		id: 'fixed-scheme',
 		settings_id: JURISDICTION_ID,
-		code: 'PUB-FIXED',
+		code: 'PUB_FIXED',
 		name: 'Invented fixed assessment',
 		authority: 'Public regression fixture',
 		assessment_period: 'PAY_PERIOD',
@@ -62,7 +62,7 @@ test('a company-assessed scheme lands once on the run, on no payslip', async () 
 	world.statutory_contributions.push({
 		id: 'company-levy',
 		settings_id: JURISDICTION_ID,
-		code: 'PUB-LEVY',
+		code: 'PUB_LEVY',
 		name: 'Invented establishment levy',
 		authority: 'Public regression fixture',
 		assessment_period: 'PAY_PERIOD',
@@ -82,11 +82,11 @@ test('a company-assessed scheme lands once on the run, on no payslip', async () 
 	);
 	// One charge for the whole run, and the payslips carry none of it.
 	assert.equal(built.company_charges.length, 1);
-	assert.equal(built.company_charges[0]!.scheme_code, 'PUB-LEVY');
+	assert.equal(built.company_charges[0]!.scheme_code, 'PUB_LEVY');
 	assert.ok(built.company_charges[0]!.employer_amount > 0);
 	assert.ok(
 		built.payslip_payroll_run.every(
-			(slip) => !slip.statutory.some((line) => line.scheme_code === 'PUB-LEVY')
+			(slip) => !slip.statutory.some((line) => line.scheme_code === 'PUB_LEVY')
 		)
 	);
 });
@@ -157,14 +157,14 @@ test('a person’s held earlier slip is history the next period stands on', asyn
 		adjustments: [],
 		paid_at: null,
 		statutory: [
-			{ scheme_code: 'PUB-FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
+			{ scheme_code: 'PUB_FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
 		]
 	});
 	const prepared = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-02' })
 	);
 	assert.deepEqual(
-		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB-FIXED`),
+		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB_FIXED`),
 		{ employee: 30, employer: 60, base: 1000, ordinary: 0 },
 		'the held slip is history: February is paid only after it is'
 	);
@@ -193,7 +193,7 @@ test('rehire gathers prior YTD across old contracts while excluding another enti
 			base: [],
 			adjustments: [],
 			statutory: [
-				{ scheme_code: 'PUB-FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
+				{ scheme_code: 'PUB_FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
 			]
 		});
 	}
@@ -201,7 +201,7 @@ test('rehire gathers prior YTD across old contracts while excluding another enti
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-02' })
 	);
 	assert.deepEqual(
-		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB-FIXED`),
+		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB_FIXED`),
 		{ employee: 60, employer: 120, base: 2000, ordinary: 0 },
 		'the paid and the unpaid slip of this company count; the other entity’s does not'
 	);

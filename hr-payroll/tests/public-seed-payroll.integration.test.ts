@@ -134,10 +134,10 @@ test(
 				payslips.find((payslip) => payslip.employment_id === EMPLOYMENT_ID) ?? payslips[0];
 			assert.ok(first, 'expected at least one payslip');
 			const lines = statutoryLines(first.statutory);
-			const pubEpf = lines.filter((line) => line.scheme_code === 'PUB-EPF');
+			const pubEpf = lines.filter((line) => line.scheme_code === 'PUB_EPF');
 			assert.ok(
 				pubEpf.length >= 1,
-				`expected PUB-EPF statutory lines on the first payslip, got ${JSON.stringify(first.statutory)}`
+				`expected PUB_EPF statutory lines on the first payslip, got ${JSON.stringify(first.statutory)}`
 			);
 		} finally {
 			await session.stop();
