@@ -1235,7 +1235,8 @@ export function contributeCompany(input: {
 			employee: 0,
 			employer: 0,
 			triggered: false,
-			hasOpening: false
+			hasOpening: false,
+			periodsRecorded: true
 		}),
 		period: input.period,
 		currency: input.currency,
