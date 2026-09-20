@@ -11,8 +11,7 @@
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
-	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import {
@@ -25,12 +24,12 @@
 	import OffboardingFlow from '../../lib/ui/offboarding/offboarding-flow.svelte';
 	import ChangeTermsFlow from '../../lib/ui/offboarding/change-terms-flow.svelte';
 	import ContractDetail from '../../lib/ui/contract/contract-detail.svelte';
+	import HireForm from '../../lib/ui/contract/hire-form.svelte';
 	import { coversDate, readRange } from '../payroll_runs/lib/effective.js';
 	import { HR_CREATE_SCOPE, hrCreateScope, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import { setContext } from 'svelte';
 	import { todayKey } from '../../lib/ui/calendar.js';
 	import { formatTermsDates } from '../../lib/ui/display-formatters.js';
-	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
@@ -153,53 +152,7 @@
 		{#if record != null}
 			<ContractDetail {record} {scopedCompanyId} contracts={false} />
 		{:else}
-			<CollectionForm
-				{client}
-				collection="employments"
-				defaultValues={scopedCompanyId == null ? undefined : { company_id: scopedCompanyId }}
-				submitLabel={t('component.create_employment')}
-				onAfterSubmit={close}
-			>
-				{#snippet children({ Field })}
-					<Grid gap="md" minimum="panel">
-						<Field
-							name="employee_id"
-							label={t('component.person')}
-							relationOptions={{
-								label: (person) =>
-									person.name != null && person.name !== '' ? String(person.name) : '—',
-								orderBy: { name: 'asc' },
-								limit: 10_000
-							}}
-						/>
-						{#if scopedCompanyId != null}
-							<Field name="company_id" hidden />
-						{:else}
-							<Field
-								name="company_id"
-								label={t('component.legal_entity')}
-								relationOptions={{
-									label: (company) =>
-										company.name != null && company.name !== '' ? String(company.name) : '—',
-									orderBy: { name: 'asc' },
-									limit: 500
-								}}
-							/>
-						{/if}
-						<Field name="employee_number" label={t('component.employee_number')} />
-						<Column span="all"><Field name="bank" label={t('component.pay_destination')} /></Column>
-						<Column span="all">
-							<Field
-								name="effective_range"
-								renderer={EffectiveRangeRenderer}
-								label={t('component.effective_period')}
-							/>
-						</Column>
-						<Field name="exit_reason" hidden />
-						<Field name="comments" hidden />
-					</Grid>
-				{/snippet}
-			</CollectionForm>
+			<HireForm onDone={close} />
 		{/if}
 	</Stack>
 {/snippet}
