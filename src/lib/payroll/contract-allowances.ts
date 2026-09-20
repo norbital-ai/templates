@@ -16,11 +16,9 @@ import type { ContractAllowance } from '../../datatypes/contract_allowances/+def
 
 type Terms = EmploymentBundle['terms'][number];
 
-/** The classes a terms row lists, as stored; a row from before the column reads as none. */
-export function listedAllowances(terms: Terms): readonly ContractAllowance[] {
-	const listed = (terms as { readonly allowances?: unknown }).allowances;
-	return Array.isArray(listed) ? (listed as readonly ContractAllowance[]) : [];
-}
+/** The classes a terms row lists; a row that states none lists none. */
+export const listedAllowances = (terms: Terms): readonly ContractAllowance[] =>
+	Array.isArray(terms.allowances) ? (terms.allowances as readonly ContractAllowance[]) : [];
 
 /**
  * The class a contract lists, as the period's version prices it. The listing names the row of

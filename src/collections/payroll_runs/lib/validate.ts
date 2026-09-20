@@ -121,14 +121,8 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 		);
 	}
 
-	// ── overtime completeness: a rule nothing can enter is work done for nothing ────────────────
-	//
-	// There used to be a second check here, `OVERTIME_RULE_UNMAPPED`: a stated rule that no pay
-	// component claimed paid nothing, silently. That failure mode is gone rather than fixed —
-	// MEASURE now emits a line straight from the priced segment, so every rule a day enters pays by
-	// construction and there is nothing left to map. A rule with no band is still unenterable: no
-	// hour can fall inside a band that does not exist, so it would pay nothing whatever MEASURE did.
-
+	// Overtime needs no completeness check: MEASURE emits a line straight from the priced segment,
+	// so every rule a day enters pays by construction.
 	return issues;
 }
 

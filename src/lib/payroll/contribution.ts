@@ -15,24 +15,16 @@ import { cents } from '../../collections/payroll_runs/lib/rounding.js';
  * One registration as the conflict check reads it: absent is the registered default, and every
  * optional member is spelled so an explicit default and an absent row compare equal.
  */
-function factStanding(status: StatutoryFactStatus | undefined): string {
-	if (status == null)
-		return JSON.stringify({
-			kind: 'REGISTERED',
-			rate_override: null,
-			since: null,
-			instalments: [],
-			elections: {}
-		});
-	if (status.kind === 'NOT_REGISTERED') return JSON.stringify(status);
-	return JSON.stringify({
-		kind: 'REGISTERED',
-		rate_override: status.rate_override ?? null,
-		since: status.since ?? null,
-		instalments: status.instalments ?? [],
-		elections: status.elections ?? {}
-	});
-}
+const factStanding = (status: StatutoryFactStatus | undefined): string =>
+	status?.kind === 'NOT_REGISTERED'
+		? JSON.stringify(status)
+		: JSON.stringify({
+				kind: 'REGISTERED',
+				rate_override: status?.rate_override ?? null,
+				since: status?.since ?? null,
+				instalments: status?.instalments ?? [],
+				elections: status?.elections ?? {}
+			});
 
 type ContractAssessment = {
 	readonly employment: Pick<

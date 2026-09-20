@@ -119,26 +119,8 @@ test('a named entity imports even when its source is disabled; a provider failur
 	);
 });
 
-test("an entity with no source of its own reads its country's Google calendar; the schedule never does", () => {
-	// The one place a country legitimately survives the move: the fallback is chosen by the country
-	// half of the entity's settings lineage, so `SG-norbital` and `SG` fall back alike.
+test('an entity with no source of its own imports nothing, by name or on the schedule', () => {
 	const bare = { ...company, settings_code: 'SG-norbital', holiday_source: null };
-	assert.deepEqual(holidaySources([bare], '11111111-1111-4111-8111-111111111111'), [
-		{
-			company_id: '11111111-1111-4111-8111-111111111111',
-			company_name: 'Public Fixture Co',
-			calendar_id: 'en.singapore#holiday@group.v.calendar.google.com',
-			time_zone: 'Asia/Singapore'
-		}
-	]);
-	assert.deepEqual(holidaySources([bare]), [], 'the 1 October job runs only configured sources');
-	assert.deepEqual(
-		holidaySources([{ ...bare, settings_code: 'XX' }], '11111111-1111-4111-8111-111111111111'),
-		[],
-		'a country Google has no calendar for falls back to nothing'
-	);
-	assert.equal(
-		holidaySources([company], '11111111-1111-4111-8111-111111111111')[0]!.calendar_id,
-		'public-holidays'
-	);
+	assert.deepEqual(holidaySources([bare], '11111111-1111-4111-8111-111111111111'), []);
+	assert.deepEqual(holidaySources([bare]), []);
 });

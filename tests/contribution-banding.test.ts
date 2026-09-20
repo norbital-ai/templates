@@ -18,7 +18,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { selectRule } from '../src/collections/payroll_runs/lib/rules.ts';
+import { selectRule } from '../src/collections/payroll_runs/lib/contribute.ts';
 import {
 	accumulatePayslip,
 	type AccumulatedPayslip,

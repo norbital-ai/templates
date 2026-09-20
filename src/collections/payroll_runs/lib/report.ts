@@ -89,15 +89,10 @@ type OutputSection = Schema.Schema.Type<typeof OutputSectionSchema>;
 /**
  * The salary listing's identity block: who the row is, before any money.
  *
- * This is all that survives of the old vendor projection. Everything to the right of it used to be
- * a fixed list of forty-odd output ids — `basic_salary`, `allowance`, `incentive_ot` — into which
- * the catalogue was summed: every allowance code the list did not name by hand disappeared into
- * one `allowance` column, every non-loan deduction into `adhocDeductions`, and an employer with
- * fourteen allowances exported one column and could not reconcile a line of it.
- *
- * The listing's money columns are now the catalogue's, exactly as the matrix sheet's are — same
- * codes, same order, same category headings. The layout is the arrangement (this identity block,
- * the masthead, the totals row), never a second vocabulary.
+ * The listing's money columns are the catalogue's, exactly as the matrix sheet's are — same
+ * codes, same order, same category headings — so every class an employer pays reconciles as a
+ * column of its own. The layout is the arrangement (this identity block, the masthead, the
+ * totals row), never a second vocabulary.
  */
 export const IDENTITY_OUTPUT_IDS = [
 	'designation',

@@ -36,6 +36,7 @@ import {
 	type CatalogueWord
 } from '../../../lib/expressions/contexts.js';
 import {
+	evaluateBoolean,
 	evaluateNumber,
 	runtimeExpressionEngine,
 	type ExpressionEngine
@@ -50,14 +51,28 @@ import {
 	type ContributionLine,
 	type MonthPrior
 } from './accumulate.js';
-import type { ContributionConfig } from './configuration.js';
+import type { ContributionConfig, ContributionRule } from './configuration.js';
 import { addDays, completedMonths, inclusiveDays, monthDay } from './dates.js';
 import { producedMentions, producedMentionsOf } from './mentions.js';
 import type { PersonContext } from './eligibility.js';
 import type { PayProjection } from './period.js';
 import { cents } from './rounding.js';
-import { selectRule } from './rules.js';
 import type { StatutoryFactStatus } from '../../../datatypes/statutory_fact_status/+definition.js';
+
+/**
+ * The one rule of a scheme that governs, or null when none does: rules are read in declaration
+ * order, the first whose `when` holds — exactly how a statute writes its table ("wages exceeding
+ * X but not exceeding Y"), so the seeded order is the published order. A ladder no member of which
+ * holds charges nothing.
+ */
+export function selectRule(
+	rules: readonly ContributionRule[],
+	context: Record<string, unknown>,
+	engine: ExpressionEngine
+): ContributionRule | null {
+	for (const rule of rules) if (evaluateBoolean(engine, rule.when, context)) return rule;
+	return null;
+}
 
 export type { StatutoryFactStatus } from '../../../datatypes/statutory_fact_status/+definition.js';
 
