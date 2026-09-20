@@ -116,6 +116,7 @@ test('full and unmetered entitlement never inspect eligibility after the request
 			asOf: '2026-01-31',
 			hireDate: '2025-01-01',
 			exitDate: null,
+			servedOn: () => true,
 			eligibleOn: (date) => {
 				inspected.push(date);
 				assert.ok(date <= '2026-01-31');

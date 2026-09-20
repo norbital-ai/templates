@@ -113,7 +113,7 @@
 	<Stack gap="md">
 		{#if record != null && !departed}
 			<Dialog.Root bind:open={changeTermsOpen}>
-				<Dialog.Content class="max-w-2xl">
+				<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
 					<Dialog.Header>
 						<Dialog.Title>{t('offboarding.change_terms_title')}</Dialog.Title>
 						<Dialog.Description>{t('offboarding.change_terms_description')}</Dialog.Description>
@@ -129,7 +129,7 @@
 				</Dialog.Content>
 			</Dialog.Root>
 			<Dialog.Root bind:open={offboardOpen}>
-				<Dialog.Content class="max-w-2xl">
+				<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
 					<Dialog.Header>
 						<Dialog.Title>{t('offboarding.title')}</Dialog.Title>
 						<Dialog.Description>{t('offboarding.description')}</Dialog.Description>

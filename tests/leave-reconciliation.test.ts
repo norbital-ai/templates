@@ -32,6 +32,7 @@ const calculate = (overrides: Partial<Parameters<typeof computedEntitlement>[0]>
 		asOf: '2026-06-30',
 		hireDate,
 		exitDate: null,
+		servedOn: () => true,
 		eligibleOn: () => true,
 		personOn: (date) =>
 			personContext({
@@ -91,13 +92,18 @@ test('upfront availability and earned leave are computed separately without open
 	assert.equal(monthly('2026-01-01').available, 0);
 });
 
-test('late eligibility prorates the eligible months and cannot award leave before eligibility starts', () => {
+test('late eligibility opens the grant over the whole service, and awards nothing before it opens', () => {
+	// SG EA s.43: three months of service qualify the employee; the grant is then in proportion
+	// to the completed months of service in the year, counted from the hire, not from the gate.
 	const eligibleOn = (date: string) => date >= '2026-07-10';
 	const before = calculate({ eligibleOn, asOf: '2026-07-09' });
 	assert.deepEqual([before.opening, before.entitlement, before.available], ['2026-07-10', 0, 0]);
 	const eligible = calculate({ eligibleOn, asOf: '2026-07-31' });
-	assert.deepEqual([eligible.entitlement, eligible.earned, eligible.available], [6, 1, 6]);
+	assert.deepEqual([eligible.entitlement, eligible.earned, eligible.available], [12, 7, 12]);
 	assert.equal(calculate({ eligibleOn: () => false }).entitlement, 0);
+	// Days outside a sealed version are not service the grant counts.
+	const covered = calculate({ servedOn: (date) => date >= '2026-07-01', asOf: '2026-07-31' });
+	assert.deepEqual([covered.entitlement, covered.earned], [6, 1]);
 });
 
 test('completed-month proration respects hire anniversaries and departure caps', () => {

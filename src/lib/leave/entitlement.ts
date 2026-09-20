@@ -71,6 +71,8 @@ export function computedEntitlement(options: {
 	readonly asOf: string;
 	readonly hireDate: string;
 	readonly exitDate: string | null;
+	/** A day of service the grant is measured over: employed, on terms, under a sealed version. */
+	readonly servedOn: (date: string) => boolean;
 	/** Eligibility is evaluated against the effective person facts on each date. */
 	readonly eligibleOn: (date: string) => boolean;
 	/** The person the entitlement bands are read against, as of the entitlement date. */
@@ -94,8 +96,19 @@ export function computedEntitlement(options: {
 	// A full grant or unmetered entitlement needs eligibility through the query date only.
 	// Prorated upfront grants also project the remaining eligible part of the annual window.
 	const projectionEnd = unlimited || rule.proration === 'NONE' ? through : end;
-	const active = daysBetween(start, projectionEnd).filter(options.eligibleOn);
+	/**
+	 * A qualifying period bars the taking, not the counting. SG EA s.43: an employee who has
+	 * served three months is entitled to leave in proportion to the completed months of service
+	 * *in the year*, so a 1 January hire holds 7 × 4/12 on 1 May, not 7 × 1/12 — reading the gate
+	 * as an accrual start under-granted every SG first year. Service before the leave opens
+	 * therefore counts; once open, a day the person is no longer eligible on (a rise out of the
+	 * Act's coverage) stops the count, as the grant is the Act's.
+	 */
+	const served = daysBetween(start, projectionEnd).filter(options.servedOn);
+	const active = served.filter(options.eligibleOn);
 	const opening = active[0] ?? null;
+	const counted =
+		opening == null ? [] : served.filter((date) => date < opening || options.eligibleOn(date));
 	// Ineligible (or not-yet-started) is no balance, never an unmetered one: an unlimited flag here
 	// would print a 0.00 row for a leave type the person cannot take at all.
 	const empty = { window, opening, unlimited: false, entitlement: 0, earned: 0, available: 0 };
@@ -108,18 +121,20 @@ export function computedEntitlement(options: {
 	const target = grantedDays(rule, options.personOn(through));
 	if (unlimited)
 		return { window, opening, unlimited: true, entitlement: null, earned: null, available: null };
-	const eligible = new Set(active);
+	const eligible = new Set(counted);
 	const fraction = (to: string): number => {
 		if (to < opening) return 0;
 		switch (rule.proration) {
 			case 'NONE':
 				return 1;
 			case 'CALENDAR_DAYS':
-				return active.filter((date) => date <= to).length / inclusiveDays(window.start, window.end);
+				return (
+					counted.filter((date) => date <= to).length / inclusiveDays(window.start, window.end)
+				);
 			case 'CALENDAR_MONTHS':
 				return (
-					active.filter((date) => date <= to && date === monthBounds(date.slice(0, 7)).end).length /
-					12
+					counted.filter((date) => date <= to && date === monthBounds(date.slice(0, 7)).end)
+						.length / 12
 				);
 			case 'HALF_MONTHS': {
 				// A month is counted once it has ended and at least half its days were eligible.
@@ -138,15 +153,15 @@ export function computedEntitlement(options: {
 				let complete = 0;
 				for (let month = 0; month < 12; month += 1) {
 					const from = monthDay(
-						Number(opening.slice(0, 4)),
-						Number(opening.slice(5, 7)) - 1 + month,
-						Number(opening.slice(8, 10))
+						Number(start.slice(0, 4)),
+						Number(start.slice(5, 7)) - 1 + month,
+						Number(start.slice(8, 10))
 					);
 					const until = addDays(
 						monthDay(
-							Number(opening.slice(0, 4)),
-							Number(opening.slice(5, 7)) + month,
-							Number(opening.slice(8, 10))
+							Number(start.slice(0, 4)),
+							Number(start.slice(5, 7)) + month,
+							Number(start.slice(8, 10))
 						),
 						-1
 					);

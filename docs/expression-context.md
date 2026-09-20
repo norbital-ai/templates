@@ -27,8 +27,8 @@ Open prefixes: `company.facts.<key>`.
 | `employee.solo_parent` | Solo-parent flag |
 | `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
-| `employee.race` | Recorded race |
-| `employee.religion` | Recorded religion |
+| `employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
@@ -121,8 +121,8 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`.
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race |
-| `person.employee.religion` | Recorded religion |
+| `person.employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
@@ -245,8 +245,8 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`.
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race |
-| `person.employee.religion` | Recorded religion |
+| `person.employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
@@ -360,8 +360,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race |
-| `person.employee.religion` | Recorded religion |
+| `person.employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
@@ -510,8 +510,8 @@ Open prefixes: `produced.<key>`, `year.<key>`, `scheme.elections.<key>`, `person
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race |
-| `person.employee.religion` | Recorded religion |
+| `person.employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
@@ -640,8 +640,8 @@ Open prefixes: `company.facts.<key>`.
 | `employee.solo_parent` | Solo-parent flag |
 | `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
-| `employee.race` | Recorded race |
-| `employee.religion` | Recorded religion |
+| `employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |

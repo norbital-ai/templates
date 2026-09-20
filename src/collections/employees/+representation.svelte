@@ -672,7 +672,7 @@
 			</div>
 		</Stack>
 		<Dialog.Root bind:open={enrollOpen}>
-			<Dialog.Content class="max-w-2xl">
+			<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
 				<Dialog.Header>
 					<Dialog.Title>{t('face.title')}</Dialog.Title>
 					<Dialog.Description>{t('face.description', { name: record.name })}</Dialog.Description>

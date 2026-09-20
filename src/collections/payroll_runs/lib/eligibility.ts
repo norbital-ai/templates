@@ -364,8 +364,10 @@ export function personContext(input: PersonInput): PersonContext {
 			solo_parent: input.employee?.solo_parent === true,
 			disabled: input.employee?.disabled === true,
 			receiving_pension: input.employee?.receiving_pension === true,
-			race: input.employee?.race ?? '',
-			religion: input.employee?.religion ?? '',
+			// Free text on the profile, a code in the rule: "Indian" and "INDIAN" are one person to
+			// SINDA, so the rule reads the recorded word upper-cased and trimmed.
+			race: (input.employee?.race ?? '').trim().toUpperCase(),
+			religion: (input.employee?.religion ?? '').trim().toUpperCase(),
 			// Calendar months, not anniversary-exact ones: CPF's SPR second year begins on the first
 			// day of the month after the first anniversary, so a 31 March conversion is in year two for
 			// every April payroll — day-exact counting held it in year one until May.

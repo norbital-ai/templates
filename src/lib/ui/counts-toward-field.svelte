@@ -59,10 +59,12 @@
 		{#each schemes as scheme (scheme.code)}
 			{@const parts = partsOf(scheme.parts)}
 			{@const current = membership(scheme.code)}
-			<label class="flex items-center gap-2 text-sm">
+			<!-- Not a <label>: the checkbox is a button, and a label re-dispatches the click to it — one press toggled twice. -->
+			<div class="flex items-center gap-2 text-sm">
 				<Checkbox
 					checked={current !== ''}
 					{disabled}
+					aria-label={scheme.code}
 					onCheckedChange={(checked) => set(scheme.code, checked ? scheme.code : '')}
 				/>
 				<span class="min-w-0 flex-1 truncate"
@@ -81,7 +83,7 @@
 						{/each}
 					</select>
 				{/if}
-			</label>
+			</div>
 		{/each}
 	</Stack>
 {/if}
