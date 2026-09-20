@@ -41,3 +41,6 @@ vite.config.js*
 
 # Vendored face-model JSONs for kiosk matching. Not ours to format.
 **/assets/models/
+
+# Rendered from contexts.ts by scripts/render-expression-context.ts; a test holds it byte-for-byte.
+hr-payroll/docs/expression-context.md
