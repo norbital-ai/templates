@@ -171,6 +171,42 @@ export const workRulesValueSchema = Schema.Struct({
 	 * week shape (the Philippines). The hour is that day over the contract's normal daily hours.
 	 */
 	ordinary_divisor_days: cel,
+	/** A statutory ordinary rate taken from approved dated wage history instead of the current contract. */
+	ordinary_rate_reference: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				reference: Schema.Literals(['PREVIOUS_WAGE_PERIOD', 'LATEST_DUE_MONTH']),
+				pay_frequencies: Schema.Array(
+					Schema.Literals(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'])
+				).check(Schema.isMinLength(1)),
+				authority: Schema.String.check(
+					Schema.makeFilter(
+						(value) => value.trim() !== '' || 'Ordinary-rate reference authority is required.'
+					)
+				)
+			})
+		)
+	),
+	/** Separate valuation of unused leave. Missing rules stop an encashment; overtime rates are never a fallback. */
+	encashment: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				reference: Schema.Literals(['EVENT_DATE', 'PREVIOUS_MONTH', 'PREVIOUS_DAY_OR_MONTH']),
+				day_amount: cel,
+				pay_frequencies: Schema.Array(
+					Schema.Literals(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'])
+				).check(Schema.isMinLength(1)),
+				include_allowances: Schema.Array(Schema.String),
+				exclude_allowances: Schema.Array(Schema.String),
+				preserve_year_end_rate: Schema.Boolean,
+				authority: Schema.String.check(
+					Schema.makeFilter(
+						(value) => value.trim() !== '' || 'Leave cash-out authority is required.'
+					)
+				)
+			})
+		)
+	),
 	/** Boolean over the person: who the overtime ladder covers. Empty is everyone. */
 	overtime_when: Schema.String,
 	/**
@@ -199,6 +235,12 @@ export const workRulesValueSchema = Schema.Struct({
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE'])
 }).check(
 	Schema.makeFilter((rules) => {
+		if (
+			rules.encashment?.include_allowances.some((code) =>
+				rules.encashment?.exclude_allowances.includes(code)
+			)
+		)
+			return 'Leave cash-out: an allowance cannot be both included and excluded.';
 		const limitKeys = new Set(rules.limits.map((limit) => limit.key));
 		const expressions = [
 			rules.ordinary_divisor_days,
@@ -218,6 +260,9 @@ export const workRulesValueSchema = Schema.Struct({
 				if (!limitKeys.has(key))
 					return `Limits: the expression names limits.${key}, but this version declares no such limit.`;
 		const faults = [
+			rules.encashment == null
+				? null
+				: faultIn(rules.encashment.day_amount, 'person', 'money', 'Leave cash-out daily pay'),
 			faultIn(rules.ordinary_divisor_days, 'person', 'days', 'Ordinary divisor'),
 			faultIn(rules.overtime_when, 'person', 'boolean', 'Overtime eligibility'),
 			...rules.bands.flatMap((band) => [

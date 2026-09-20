@@ -9,7 +9,7 @@
  * nothing drove is the join — `calculateFamilies`, the step that reads a bundle and decides which
  * component receives which money. Everything below is that step, and every figure is the one
  * the arithmetic gate already verifies for this employee: basic 3,451 over a six-day 48-hour week
- * in Malaysia, so the ordinary rate is 3,451 / 26 / 8 = 16.59 and a day's wages is 132.73.
+ * in Malaysia, so the ordinary rate is 3,451 / 26 / 8 = 16.591346… and a day's wages is 132.730769…. Rates retain precision until each completed award is rounded.
  *
  * MEASURE emits `base`, `proration` and `adjustments` rather than one flat list, and which plane an
  * amount lands in is derived from what caused it: the contract produces base, the calendar produces
@@ -318,6 +318,7 @@ function bundle(overrides = {}) {
 		statutoryFacts: [],
 		loans: [],
 		loanRepayments: [],
+		wagePeriods: [],
 		leave: { entries: [], catalogues: [], captures: [], deductionEligibility: {} },
 		workDays: [],
 		serviceMonths: 57,
@@ -382,8 +383,8 @@ const lineOf = (measured, code) => paid(measured).find((item) => item.label === 
 test('the ordinary rate is derived from the pattern, not from a payroll convention', () => {
 	const measured = measure();
 	// 48 contracted hours over six days: 3,451 / 26 / 8.
-	assert.equal(measured.ordinaryHourlyRate, 16.59);
-	assert.equal(measured.ordinaryDayWage, 132.73);
+	assert.equal(measured.ordinaryHourlyRate, 3451 / 26 / 8);
+	assert.equal(measured.ordinaryDayWage, 3451 / 26);
 	assert.equal(measured.currency, 'MYR');
 });
 
@@ -406,7 +407,7 @@ test('a clock past the cut-off is in the bundle, is derived, and is still not pa
 
 	// Only the day inside the attendance window is priced onto a payslip line.
 	assert.equal(lineOf(measured, OT_ORDINARY).quantity, 3);
-	assert.equal(amountOf(measured, OT_ORDINARY), 74.66, '3 h × 1.5 × 16.59');
+	assert.equal(amountOf(measured, OT_ORDINARY), 74.66, '3 h × 1.5 × (3451 / 26 / 8)');
 });
 
 test('the same clock one day earlier is inside the cut-off and is paid', () => {
@@ -547,7 +548,7 @@ test('overtime crosses into a second band only where the ladder says so', () => 
 	const three = measure({ workDays: [clock('2026-03-19', '08:30', '20:30')] });
 	const six = measure({ workDays: [clock('2026-03-19', '08:30', '23:30')] });
 	assert.equal(amountOf(three, OT_ORDINARY), 74.66);
-	assert.equal(amountOf(six, OT_ORDINARY), 149.31);
+	assert.equal(amountOf(six, OT_ORDINARY), 149.32);
 	// The row's `rate` is the band's own average over its slice; the ladder's base hour is the
 	// component's, not the line's.
 	assert.equal(lineOf(six, OT_ORDINARY).quantity, 6);
@@ -555,7 +556,7 @@ test('overtime crosses into a second band only where the ladder says so', () => 
 
 test('a rest day pays a day’s wages, and only the hours past the normal day run the ladder', () => {
 	// 15 March 2026 is the pattern's rest day. Eight hours is a full normal day: EA s.60(3) pays one
-	// day's wages for it, 132.73 — not eight hours at 2.0 × 16.59, which would be 265.44.
+	// day's wages for it, 132.73 — not eight hours at 2.0 × (3451 / 26 / 8), which would be 265.44.
 	const eight = measure({ workDays: [clock('2026-03-15', '08:30', '17:30')] });
 	assert.equal(eight.overtimeDays[0].dayType, 'REST_DAY');
 	assert.equal(amountOf(eight, OT_REST_FULL), 132.73, 'a day’s wages is paid once, at its band');
@@ -564,7 +565,7 @@ test('a rest day pays a day’s wages, and only the hours past the normal day ru
 	// Two hours past the normal day, and only those two, reach the 2.0× hourly band.
 	const ten = measure({ workDays: [clock('2026-03-15', '08:30', '19:30')] });
 	assert.equal(amountOf(ten, OT_REST_FULL), 132.73);
-	assert.equal(amountOf(ten, OT_REST_BEYOND), 66.36, '2 h × 2.0 × 16.59');
+	assert.equal(amountOf(ten, OT_REST_BEYOND), 66.37, '2 h × 2.0 × (3451 / 26 / 8)');
 	assert.equal(lineOf(ten, OT_REST_BEYOND).quantity, 2);
 
 	// Under half a normal day takes the half-day band instead of the full one.
@@ -594,13 +595,13 @@ test('a public holiday is paid at its own statutory rate, from the holiday calen
 	const worked = measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] }, { holidays });
 	assert.equal(worked.overtimeDays[0].dayType, 'PUBLIC_HOLIDAY');
 	assert.equal(amountOf(worked, OT_HOLIDAY), 265.46, 'two days’ wages: 2 × 132.73');
-	assert.equal(amountOf(worked, OT_HOLIDAY_BEYOND), 99.54, '2 h × 3.0 × 16.59');
+	assert.equal(amountOf(worked, OT_HOLIDAY_BEYOND), 99.55, '2 h × 3.0 × (3451 / 26 / 8)');
 	assert.equal(amountOf(worked, OT_ORDINARY), null, 'a holiday is not an ordinary day');
 
 	// The same clock on the same date, with no holiday declared, is ordinary overtime beyond 17:30.
 	const ordinary = measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] });
 	assert.equal(amountOf(ordinary, OT_HOLIDAY), null);
-	assert.equal(amountOf(ordinary, OT_ORDINARY), 49.77, '2 h × 1.5 × 16.59');
+	assert.equal(amountOf(ordinary, OT_ORDINARY), 49.77, '2 h × 1.5 × (3451 / 26 / 8)');
 });
 
 test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladder', () => {
@@ -630,8 +631,8 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 		{ holidays, bands: rules }
 	);
 	assert.equal(worked.overtimeDays[0].dayType, 'SPECIAL_HOLIDAY');
-	// Ten worked hours, all overtime on a holiday: 10 × 1.3 × 16.59, and nothing on the public ladder.
-	assert.equal(amountOf(worked, '1.3'), 215.67);
+	// Ten worked hours, all overtime on a holiday: 10 × 1.3 × (3451 / 26 / 8), and nothing on the public ladder.
+	assert.equal(amountOf(worked, '1.3'), 215.69);
 	assert.equal(amountOf(worked, OT_HOLIDAY), null);
 	// A regime that states no SPECIAL_HOLIDAY ladder prices the day at nothing on the overtime
 	// lines; the wage itself still settles.
@@ -763,14 +764,14 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 		configurationWithNight
 	);
 	const line = paid(late).find((item) => item.label === 'NIGHT_PREMIUM');
-	assert.equal(line?.amount, 13.27, '4 h × 20% × 16.59');
+	assert.equal(line?.amount, 13.27, '4 h × 20% × (3451 / 26 / 8)');
 	assert.equal(line?.quantity, 4);
 	assert.equal(line?.catalogueComponent.output, 'night');
 	assert.equal(line?.input.id, 'day-2026-03-10');
 	assert.equal(
 		amountOf(late, OT_ORDINARY),
-		62.21,
-		'2.5 h × 1.5 × 16.59: overtime itself is unchanged'
+		62.22,
+		'2.5 h × 1.5 × (3451 / 26 / 8): overtime itself is unchanged'
 	);
 	// A day clocked to its shift earns nothing in the window, and no line at all.
 	assert.equal(
@@ -825,7 +826,7 @@ test('a mid-month joiner is paid the days they were employed, over the month’s
 
 	// Their overtime is priced at the full-month rate, not at their part-month pay: the numerator of
 	// the ordinary rate is the contract salary, unprorated.
-	assert.equal(measured.ordinaryHourlyRate, 16.59);
+	assert.equal(measured.ordinaryHourlyRate, 3451 / 26 / 8);
 	const withOvertime = measure({ ...joined, workDays: [clock('2026-03-19', '08:30', '20:30')] });
 	assert.equal(amountOf(withOvertime, OT_ORDINARY), 74.66);
 });
@@ -971,7 +972,7 @@ test('a mid-month raise is two recorded proration segments, summing to one month
 	// and paying the opening one would give 4,000; the month is worth neither.
 	assert.equal(amountOf(measured, 'BASIC'), 4309.68);
 	// And the rate the raise leaves behind is the closing wage's, not a blend of the two.
-	assert.equal(measured.ordinaryHourlyRate, 22.12, '4,600 / 26 / 8');
+	assert.equal(measured.ordinaryHourlyRate, 4600 / 26 / 8, '4,600 / 26 / 8');
 
 	/**
 	 * The whole point of the restructure, asserted.

@@ -1,0 +1,56 @@
+[
+	{
+		"id": "95102dca-231e-4881-a846-1156ed32fecb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "SWAB_TEST_REIMBURSEMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Swab test reimbursement",
+		"counts_toward": []
+	},
+	{
+		"id": "ff1cacdc-a5cd-44b7-98f7-7e5143d17cb1",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "SWAB_TEST_REIMBURSEMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Swab test reimbursement",
+		"counts_toward": []
+	},
+	{
+		"id": "7c95c0d1-7cfe-4bf0-ba90-d315bcae2953",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "SWAB_TEST_REIMBURSEMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Swab test reimbursement",
+		"counts_toward": []
+	}
+]

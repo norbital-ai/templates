@@ -55,6 +55,7 @@ const openHrGateway = async (
 				environment: 'test',
 				releaseId: label,
 				principal: `${label}-founder`,
+				email: `${label}-founder@example.test`,
 				syncPrincipal: `${label}-founder`,
 				organizationName: 'HR payroll public seed',
 				commandPrefix: '/__bolt/command/',

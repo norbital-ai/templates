@@ -4,11 +4,20 @@ import { failure, makeWireError, success } from '@norbital-ai/bolt-protocol';
 import { makeAiBinding, makeHostToolBinding } from '@norbital-ai/bolt-server';
 import { Schema } from 'effect';
 import { Prompt } from 'effect/unstable/ai';
-import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
+import {
+	asRecord,
+	bearerHeaders,
+	postGuestCommand,
+	authoredSeedStages,
+	jsonSqlParameter
+} from '@norbital-ai/test-utilities';
 import {
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	STATUTORY_PUB_EPF_ID,
+	publicSeedRows,
+	publicSeedDirectory,
+	templateManifestPath,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
@@ -80,7 +89,13 @@ const driftAi = (failPub2: () => boolean) => {
 				code === 'PUB'
 					? {
 							contributions: [
-								{ code: 'PUB_EPF', rules: [proposedRule], source_url: url, quote: pubQuote }
+								{
+									code: 'PUB_EPF',
+									rules: [proposedRule],
+									source_url: url,
+									effective_from: '2027-01-01',
+									quote: pubQuote
+								}
 							],
 							leave_catalogue: [],
 							pay_component: [],
@@ -88,11 +103,17 @@ const driftAi = (failPub2: () => boolean) => {
 						}
 					: {
 							contributions: [
-								{ code: 'PUB2-EPF', rules: [pub2Rule], source_url: url, quote: pub2Quote }
+								{
+									code: 'PUB2-EPF',
+									rules: [pub2Rule],
+									source_url: url,
+									effective_from: null,
+									quote: pub2Quote
+								}
 							],
 							leave_catalogue: [],
 							pay_component: [],
-							notes: ['No change announced.']
+							notes: []
 						};
 			const observation = {
 				callId: request.callId,
@@ -212,6 +233,74 @@ const browserHostTools = (retrievedUrls: string[], unresolvable: ReadonlySet<str
 };
 
 test(
+	'the standalone timer runs statutory research without a signed-in caller and persists its draft',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	async () => {
+		const rows = await publicSeedRows();
+		rows.jurisdiction_settings = rows.jurisdiction_settings!.map((row) => ({
+			...row,
+			sources: { urls: [PUB_URL] }
+		}));
+		rows.bolt_schedule = [
+			{
+				id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2',
+				key: 'automations.statutory_drift',
+				command: 'automations.statutory_drift',
+				crontab: '0 3 1 * *',
+				input: {},
+				next_run_at: new Date(Date.now() - 1000).toISOString()
+			}
+		];
+		const retrieved: string[] = [];
+		const browser = browserHostTools(retrieved, new Set());
+		let callsWithoutPerson = 0;
+		const session = await startPublicSeedHost('hr-drift-timer', {
+			seed: {
+				stages: [...authoredSeedStages(templateManifestPath, publicSeedDirectory), 'bolt_schedule'],
+				rows,
+				mapParameters: jsonSqlParameter
+			},
+			ai: driftAi(() => false),
+			hostTools: {
+				call: (metadata, request, signal) => {
+					assert.equal(metadata.subject, undefined);
+					callsWithoutPerson += 1;
+					return browser.call(metadata, request, signal);
+				}
+			},
+			connector: {
+				call: async () =>
+					success({
+						output: { url: PUB_URL, contentType: 'text/html', body: `<p>${pubQuote}</p>` }
+					})
+			}
+		});
+		try {
+			const deadline = Date.now() + 10_000;
+			let tasks: Row[] = [];
+			do {
+				tasks = (await session.query(
+					"select status, result, error from bolt_task where command = 'automations.statutory_drift'"
+				)) as Row[];
+				if (tasks[0]?.status === 'done' || tasks[0]?.status === 'failed') break;
+				await new Promise((resolve) => setTimeout(resolve, 25));
+			} while (Date.now() < deadline);
+			assert.equal(tasks.length, 1);
+			assert.equal(tasks[0]!.status, 'done', JSON.stringify(tasks));
+			assert.equal(asRecord(tasks[0]!.result, 'scheduled result').proposals, 1);
+			assert.ok(callsWithoutPerson >= 3);
+			assert.ok(retrieved.includes(PUB_URL));
+			const drafts = await session.query(
+				'select id from jurisdiction_settings where sealed_at is null'
+			);
+			assert.equal(drafts.length, 1);
+		} finally {
+			await session.stop();
+		}
+	}
+);
+
+test(
 	'statutory drift proposes one draft for a changed band, nothing for an unchanged lineage, and no second draft while the first is open',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS * 2 },
 	async () => {
@@ -303,7 +392,7 @@ test(
 				lineages.map((row) => [row.code, row.status, row.changes]),
 				[
 					['PUB', 'proposed', 1],
-					['PUB2', 'unchanged', 0]
+					['PUB2', 'no_changes_detected', 0]
 				],
 				JSON.stringify(lineages)
 			);
@@ -335,6 +424,11 @@ test(
 			assert.equal(draft.code, 'PUB');
 			assert.equal(draft.cloned_from_id, JURISDICTION_ID);
 			assert.equal(draft.id, lineages[0]!.draft_id);
+			assert.equal(
+				asRecord(draft.effective_range, 'draft dates').start,
+				'2027-01-01T00:00:00.000Z'
+			);
+			assert.deepEqual(result.review_required, ['PUB']);
 			// The settings research-notes column is gone; the run result carries the
 			// structured evidence and the draft carries the summary of what it was proposed from.
 			assert.match(String(draft.change_summary), /Statutory drift: 1 change\(s\) proposed from/);
@@ -415,7 +509,7 @@ test(
 				secondLineages.map((row) => [row.code, row.status, row.draft_id]),
 				[
 					['PUB', 'proposal_open', draft.id],
-					['PUB2', 'unchanged', null]
+					['PUB2', 'no_changes_detected', null]
 				]
 			);
 			assert.equal((await drafts()).length, 1, 'no second draft while the first is open');

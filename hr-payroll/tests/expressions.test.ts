@@ -33,6 +33,7 @@ test('every site compiles expressions over its own context', () => {
 		['assessment', 'year.earned.BASIC + ENCASHMENT - NO_PAY_LEAVE', 'money'],
 		['scheme', 'base > 5000 && person.employee.age >= 60', 'boolean'],
 		['scheme', 'scheme.year_to_date.employee + produced.EPF.employee', 'money'],
+		['scheme', '2000.0 * scheme.child_claims.UNDER_18', 'money'],
 		[
 			'scheme',
 			'minimum_wage(person.company.region) > 0 && person.company.headcount > 10',
@@ -101,6 +102,7 @@ test('every declared path in the catalogue compiles as a value', () => {
 			'unclassed_under',
 			'born_on',
 			'age_on',
+			'birthday',
 			'age_months_on',
 			'taken',
 			'days',

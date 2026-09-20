@@ -13,19 +13,24 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
-	import { hrCreateScope } from '../../lib/ui/create-scope.js';
+	import { hrCreateScope, employmentRelationOptions } from '../../lib/ui/create-scope.js';
 	import { inForceSettings } from '../../lib/ui/settings-scope.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
 	import FormSection from '../../lib/ui/form-section.svelte';
 	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
+	import StatutoryFactStatusRenderer from '../../datatypes/statutory_fact_status/+renderer.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const createScope = hrCreateScope();
 	const scopedEmployeeId = $derived(createScope?.employeeId?.());
+	const scopedEmploymentId = $derived(createScope?.employmentId?.());
 	const scopedSettingsCode = $derived(createScope?.settingsCode());
 	const formValues = $derived(
-		record ?? (scopedEmployeeId ? { employee_id: scopedEmployeeId } : undefined)
+		record ?? {
+			...(scopedEmployeeId ? { employee_id: scopedEmployeeId } : {}),
+			...(scopedEmploymentId ? { employment_id: scopedEmploymentId } : {})
+		}
 	);
 	// Schemes reach their version through `contribution_settings`, like the catalogues do through
 	// `<catalogue>_settings`; unscoped, the picker offers every scheme of every version.
@@ -44,7 +49,7 @@
 		submitLabel={record ? t('component.save_registration') : t('component.record_registration')}
 		onAfterSubmit={record ? undefined : close}
 	>
-		{#snippet children({ Field })}
+		{#snippet children({ Field, form })}
 			<Stack gap="lg">
 				<FormSection
 					first
@@ -67,6 +72,25 @@
 							/>
 						{/if}
 						<Field
+							name="employment_id"
+							label={t('component.fact_employment')}
+							hidden={scopedEmploymentId != null}
+							relationOptions={{
+								...employmentRelationOptions(createScope?.companyId()),
+								where: {
+									...(createScope?.companyId()
+										? { company_id: { eq: createScope.companyId()! } }
+										: {}),
+									employee_id: { eq: String(form.values().employee_id ?? '') }
+								}
+							}}
+						/>
+						<Column span="all"
+							><p class="text-xs text-muted-foreground">
+								{t('component.fact_employment_hint')}
+							</p></Column
+						>
+						<Field
 							name="statutory_contribution_id"
 							label={t('component.statutory_scheme')}
 							relationOptions={{
@@ -87,7 +111,12 @@
 					hint={t('component.fact_section_registration_hint')}
 				>
 					<Grid gap="sm" minimum="compact">
-						<Field name="status" label={t('component.status')} />
+						<Field
+							name="status"
+							label={t('component.status')}
+							renderer={StatutoryFactStatusRenderer}
+							rendererProps={{ schemeId: String(form.values().statutory_contribution_id ?? '') }}
+						/>
 					</Grid>
 				</FormSection>
 

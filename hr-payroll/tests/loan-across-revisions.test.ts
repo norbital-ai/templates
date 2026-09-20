@@ -160,7 +160,15 @@ function loanWorld(options: LoanWorldOptions = {}) {
 			status: 'PAID',
 			paid_at: '2026-01-31',
 			statutory: [],
-			adjustments: [{ family: 'LOAN_REPAYMENT', source_id: REPAYMENT_ID, amount: INSTALMENT }],
+			adjustments: [
+				{
+					family: 'LOAN_REPAYMENT',
+					component_code: 'STAFF_LOAN',
+					bucket: 'DEDUCTION',
+					source_id: REPAYMENT_ID,
+					amount: INSTALMENT
+				}
+			],
 			approval_id: null
 		});
 	}

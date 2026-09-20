@@ -30,8 +30,8 @@ export default defineModel(
 		 * Where a `SEMI_MONTHLY` entity deducts the schemes its law assesses over the MONTH (SSS,
 		 * PhilHealth, Pag-IBIG). The premium is monthly on the month's compensation; the law leaves
 		 * the timing across cut-offs to the employer. `FIRST` takes the whole month on the mid-month
-		 * cut-off, `LAST` on the end-month one, `SPLIT` prices each half on its own base. Tax always
-		 * follows the pay period. Read by nobody at a monthly entity.
+		 * cut-off, `LAST` on the end-month one, `SPLIT` divides the monthly contribution and reconciles
+		 * the closing cut-off to actual monthly wages. Per-period schemes keep their own cadence.
 		 */
 		semi_monthly_statutory_cutoff: enums(['FIRST', 'SPLIT', 'LAST']).notNull().default('FIRST'),
 		/**
@@ -50,8 +50,8 @@ export default defineModel(
 		region: text(),
 		/**
 		 * The entity's recorded facts, keyed by the names its settings version declares: sector,
-		 * overtime consent, establishment tests. A rule reads one as `person.company.facts.<key>`;
-		 * an absent key reads 0, '' or false.
+		 * overtime consent, establishment tests. A rule reads one as `person.company.facts.<key>`.
+		 * The governing version validates required values and constraints before applying defaults.
 		 */
 		facts: custom('entity_facts')
 			.notNull()

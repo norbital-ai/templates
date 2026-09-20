@@ -82,6 +82,7 @@
 				/>
 			</Column>
 			<Field name="exit_reason" hidden />
+			<Field name="exit_facts" hidden />
 			<Field name="comments" hidden />
 		</Grid>
 	{/snippet}

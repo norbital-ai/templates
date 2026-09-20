@@ -185,6 +185,7 @@ it('the entity saves a Google source, imports unpublished holidays and publishes
 					environment: 'test',
 					releaseId: LABEL,
 					principal: `${LABEL}-founder`,
+					email: `${LABEL}-founder@example.test`,
 					syncPrincipal: `${LABEL}-founder`,
 					organizationName: 'Holiday browser fixture',
 					commandPrefix: '/__bolt/command/',

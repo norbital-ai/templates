@@ -13,7 +13,7 @@ import {
  *
  * The shared catalogue spine: availability and entitlement are computed on demand. Leave carries
  * no pricing: an unpaid day is priced at the ordinary day wage as `NO_PAY_LEAVE`, and an encashed
- * day at the same rate as `ENCASHMENT`, by the engine. Which schemes read either is each scheme's
+ * day using the dated jurisdiction cash-out rule as `ENCASHMENT`. Which schemes read either is each scheme's
  * own `assessed_on` formula. Leave adds its own facts: whether a day is unpaid and after how many
  * days evidence is owed, and whether the row may be encashed at all.
  */

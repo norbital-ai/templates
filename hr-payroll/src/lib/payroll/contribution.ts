@@ -2,11 +2,13 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import {
 	contribute,
 	contributeCompany,
+	schemeExpressions,
 	type ContributionCharge
 } from '../../collections/payroll_runs/lib/contribute.js';
 import {
 	sumAccumulations,
-	type AccumulatedPayslip
+	type AccumulatedPayslip,
+	type QuantityPayment
 } from '../../collections/payroll_runs/lib/accumulate.js';
 import type { EmploymentBundle, GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
@@ -15,15 +17,31 @@ import { cents } from '../../collections/payroll_runs/lib/rounding.js';
  * One registration as the conflict check reads it: absent is the registered default, and every
  * optional member is spelled so an explicit default and an absent row compare equal.
  */
-const factStanding = (status: StatutoryFactStatus | undefined): string =>
+type FactStanding = {
+	readonly kind?: string;
+	readonly reason?: string;
+	readonly rate_override?: number | null;
+	readonly since?: string | null;
+	readonly first_contribution_due_on?: string | null;
+	readonly instalments?: readonly unknown[];
+	readonly elections?: Readonly<Record<string, unknown>>;
+	readonly opening?: readonly unknown[];
+	readonly child_claims?: readonly unknown[];
+	readonly deduction_claims?: readonly unknown[];
+};
+const factStanding = (status: FactStanding | undefined): string =>
 	status?.kind === 'NOT_REGISTERED'
 		? JSON.stringify(status)
 		: JSON.stringify({
 				kind: 'REGISTERED',
 				rate_override: status?.rate_override ?? null,
 				since: status?.since ?? null,
+				first_contribution_due_on: status?.first_contribution_due_on ?? null,
 				instalments: status?.instalments ?? [],
-				elections: status?.elections ?? {}
+				elections: status?.elections ?? {},
+				opening: status?.opening ?? [],
+				child_claims: status?.child_claims ?? [],
+				deduction_claims: status?.deduction_claims ?? []
 			});
 
 type ContractAssessment = {
@@ -111,19 +129,30 @@ export function assessContributions(
 		for (const charge of charges) {
 			const parts = charge.parts ?? [{ base: charge.base, inputs: charge.inputs }];
 			const weights = parts.map((part) => Math.max(0, part.base));
+			const bases = allocate(charge.base, weights);
+			const ordinaryBases =
+				charge.ordinary == null
+					? undefined
+					: allocate(
+							charge.ordinary,
+							parts.map((part) => Math.max(0, part.ordinary ?? part.base))
+						);
 			const employee = allocate(charge.employee, weights);
 			const employer = allocate(charge.employer, weights);
 			const directed = allocate(charge.directed, weights);
+			const rebate = allocate(charge.rebate ?? 0, weights);
 			const { parts: _parts, ...rest } = charge;
 			for (const [position, contract] of ordered.entries()) {
 				const part = parts[position]!;
 				result.get(contract.employment.id)!.push({
 					...rest,
-					base: part.base,
+					base: bases[position]!,
+					...(ordinaryBases == null ? {} : { ordinary: ordinaryBases[position]! }),
 					inputs: part.inputs,
 					employee: employee[position]!,
 					employer: employer[position]!,
-					directed: directed[position]!
+					directed: directed[position]!,
+					rebate: rebate[position]!
 				});
 			}
 		}
@@ -159,6 +188,7 @@ import {
 	addDays,
 	inclusiveDays,
 	monthDays,
+	monthBounds,
 	periodHalf,
 	type IsoDate
 } from '../../collections/payroll_runs/lib/dates.js';
@@ -180,6 +210,78 @@ import { stint } from '../employment-contract.js';
 import { patternDaysPerWeek, termPattern } from '../scheduling/work-pattern.js';
 import { contractAllowancesOn } from './contract-allowances.js';
 import type { MeasuredEmployment } from './family.js';
+import {
+	philippinesCumulativeHistory,
+	type AssessmentFrequency,
+	type StatutoryHistorySummary,
+	type StatutoryPeriodHistory
+} from './statutory-history.js';
+
+/** Coverage-based schemes retain every registered interval, including one ending before payday. */
+function coverageFacts(bundle: EmploymentBundle, configuration: Configuration, asOf: string) {
+	const currentFacts = factStatusesOn(
+		bundle.statutoryFacts,
+		asOf,
+		bundle.employment.id,
+		configuration.contributions
+	);
+	const facts = new Map(currentFacts);
+	const coverageByScheme = new Map<string, { start: string; end: string | null }[]>();
+	const dates = employmentDates(bundle.employment);
+	for (const scheme of configuration.contributions) {
+		if (!schemeExpressions(scheme).some((expression) => expression.includes('coverage_days_30(')))
+			continue;
+		const window =
+			scheme.row.assessment_period === 'MONTH'
+				? monthBounds(bundle.window.period.slice(0, 7))
+				: bundle.window.salary;
+		const start = dates.hire > window.start ? dates.hire : window.start;
+		const end = dates.exit != null && dates.exit < window.end ? dates.exit : window.end;
+		const intervals: { start: string; end: string | null }[] = [];
+		let selected: StatutoryFactStatus | undefined;
+		let open: { start: string; end: string | null } | undefined;
+		for (let date = start; date <= end; date = addDays(date, 1)) {
+			const status = factStatusesOn(
+				bundle.statutoryFacts,
+				date,
+				bundle.employment.id,
+				configuration.contributions
+			).get(scheme.row.id);
+			if (status == null)
+				refuse(
+					`${scheme.row.code}: record the insurance registration status on ${date} before calculating payroll.`
+				);
+			if (status.kind !== 'REGISTERED' || (status.since != null && status.since > date)) {
+				open = undefined;
+				continue;
+			}
+			if (
+				selected != null &&
+				factStanding({ ...selected, since: null }) !== factStanding({ ...status, since: null })
+			)
+				refuse(
+					`${scheme.row.code}: different registered insurance declarations apply within ${window.start.slice(0, 7)}. Record the statutory effective date of each insured amount before calculating payroll.`
+				);
+			selected ??= status;
+			if (open == null) {
+				open = { start: date, end: date };
+				intervals.push(open);
+			} else open.end = date;
+		}
+		if (open != null) {
+			const next = factStatusesOn(
+				bundle.statutoryFacts,
+				addDays(end, 1),
+				bundle.employment.id,
+				configuration.contributions
+			).get(scheme.row.id);
+			if (next?.kind === 'REGISTERED') open.end = null;
+		}
+		if (selected != null) facts.set(scheme.row.id, selected);
+		coverageByScheme.set(scheme.row.id, intervals);
+	}
+	return { facts, currentFacts, coverageByScheme };
+}
 
 /**
  * The COMPANY-assessed schemes' charges: one row for the whole run, over the sum of every
@@ -219,13 +321,14 @@ export function assessCompanyContributions(options: {
 	// The year-to-date and earned facts a company formula reads are the entity's: the sum over
 	// every employee the run gathered.
 	const yearToDate = (code: string) => {
-		const total = { employee: 0, employer: 0, base: 0, ordinary: 0 };
+		const total = { employee: 0, employer: 0, base: 0, ordinary: 0, rebate: 0 };
 		for (const [key, value] of gathered.yearToDate)
 			if (key.endsWith(`:${code}`)) {
 				total.employee += value.employee;
 				total.employer += value.employer;
 				total.base += value.base;
 				total.ordinary += value.ordinary;
+				total.rebate += value.rebate ?? 0;
 			}
 		return total;
 	};
@@ -239,9 +342,14 @@ export function assessCompanyContributions(options: {
 			key: period,
 			start: window.salary.start,
 			end: window.salary.end,
-			index: 1,
-			instalments: 1,
-			monthlyOn: 'FIRST',
+			index: periodHalf(period) ?? 1,
+			instalments:
+				window.payFrequency === 'SEMI_MONTHLY'
+					? 2
+					: window.payFrequency === 'WEEKLY'
+						? weeklyInstalments(period).length
+						: 1,
+			monthlyOn: 'LAST',
 			lastOfYear: closesTaxYear(period, startMonth, window.payFrequency),
 			daysEmployed: 0,
 			daysInMonth: monthDays(window.salary.start)
@@ -253,7 +361,8 @@ export function assessCompanyContributions(options: {
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 		yearToDate,
 		yearEarned,
-		produced: producedSums(options.charges)
+		produced: producedSums(options.charges),
+		monthPrior: gathered.companyMonthPrior
 	});
 }
 
@@ -311,7 +420,7 @@ export function contributionYearToDate(options: {
 	const priorPayslips = options.payslips;
 	const totals = new Map<
 		string,
-		{ employee: number; employer: number; base: number; ordinary: number }
+		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
 	>();
 	for (const payslip of priorPayslips) {
 		if (!inTaxYear.has(payslip.payroll_run_id)) continue;
@@ -321,10 +430,16 @@ export function contributionYearToDate(options: {
 			const key = `${employeeId}:${charge.scheme_code}`;
 			const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0, ordinary: 0 };
 			totals.set(key, {
-				employee: running.employee + decodeNumber(charge.employee_amount),
+				// Directed tax instalments settle a separate liability; they are not the
+				// current year's statutory withholding or a contribution eligible for relief.
+				employee:
+					running.employee +
+					decodeNumber(charge.employee_amount) -
+					decodeNumber(charge.directed_amount ?? 0),
 				employer: running.employer + decodeNumber(charge.employer_amount),
 				base: running.base + decodeNumber(charge.base_amount),
-				ordinary: running.ordinary + decodeNumber(charge.ordinary_amount ?? 0)
+				ordinary: running.ordinary + decodeNumber(charge.ordinary_amount ?? 0),
+				rebate: (running.rebate ?? 0) + decodeNumber(charge.rebate_amount ?? 0)
 			});
 		}
 	}
@@ -520,12 +635,14 @@ export function prepareContributionAssessment(options: {
 	readonly projection: ContractAssessment['calculation']['projection'];
 	readonly yearToDate: ReadonlyMap<
 		string,
-		{ employee: number; employer: number; base: number; ordinary: number }
+		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
 	>;
 	readonly headcount: number;
 	readonly headcountCitizens?: number;
 	/** component code → what this employee's earlier payslips earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, number>;
+	readonly statutoryHistory: readonly StatutoryPeriodHistory[];
+	readonly yearQuantityPayments?: ReadonlyMap<string, readonly QuantityPayment[]>;
 	/** calendar month → component code → what this employee's earlier payslips earned. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/** What the month's earlier instalments settled and charged, at a semi-monthly or weekly cadence. */
@@ -535,7 +652,7 @@ export function prepareContributionAssessment(options: {
 	const { bundle } = measured;
 	const asOf =
 		bundle.employedDays?.end ?? employmentDates(bundle.employment).exit ?? bundle.window.salary.end;
-	const facts = factStatusesOn(bundle.statutoryFacts, asOf);
+	const { facts, currentFacts, coverageByScheme } = coverageFacts(bundle, configuration, asOf);
 	const startMonth0 = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
 	const taxYear = taxYearOf(bundle.window.period, startMonth0);
 	/** An earlier employer's figures under a scheme for this tax year, where the fact declares them. */
@@ -549,6 +666,36 @@ export function prepareContributionAssessment(options: {
 		(most, scheme) => Math.max(most, openingFor(scheme.row.code)?.months ?? 0),
 		0
 	);
+	const assessmentFrequency: AssessmentFrequency =
+		bundle.payFrequency === 'SEMI_MONTHLY'
+			? 'SEMI_MONTHLY'
+			: bundle.payFrequency === 'WEEKLY'
+				? 'WEEKLY'
+				: 'MONTHLY';
+	// Computed only when a scheme's own expressions mention `history`: the cumulative-average
+	// summary is a seed-selectable method, never a jurisdiction branch in the engine.
+	const historyPeriodCodes = new Set(
+		configuration.contributions.flatMap((scheme) =>
+			schemeExpressions(scheme).flatMap((expression) =>
+				[...expression.matchAll(/history\.([A-Z0-9_]+)\.periods\b/g)].map((match) => match[1]!)
+			)
+		)
+	);
+	let cumulativeHistory: ReadonlyMap<string, StatutoryHistorySummary> | null = null;
+	const historyFor = (code: string): StatutoryHistorySummary | undefined => {
+		cumulativeHistory ??= philippinesCumulativeHistory({
+			periods: options.statutoryHistory,
+			openings: new Map(
+				configuration.contributions.flatMap((scheme) => {
+					const opening = openingFor(scheme.row.code);
+					return opening == null ? [] : [[scheme.row.code, opening] as const];
+				})
+			),
+			frequency: assessmentFrequency,
+			requirePeriodsFor: historyPeriodCodes
+		});
+		return cumulativeHistory.get(code);
+	};
 	const minimumWage = regionalMinimumWage(configuration);
 	const personInput = {
 		employee: bundle.employee,
@@ -568,8 +715,14 @@ export function prepareContributionAssessment(options: {
 		},
 		// The pay month's working days and the employed ones it did not pay, so a scheme can count
 		// the days without wages (VN art.33(5): fourteen or more in the month contribute nothing).
-		period: { working_days: measured.periodWorkingDays, unpaid_days: measured.periodUnpaidDays },
-		facts: personFacts(configuration.contributions, facts),
+		period: {
+			working_days: measured.periodWorkingDays,
+			unpaid_days: measured.periodUnpaidDays,
+			unpaid_full_days: measured.periodFullyUnpaidDays,
+			leave_days: measured.periodLeaveDays,
+			leave_full_days: measured.periodFullLeaveDays
+		},
+		facts: personFacts(configuration.contributions, currentFacts),
 		asOf
 	};
 	const person = personContext({
@@ -600,6 +753,7 @@ export function prepareContributionAssessment(options: {
 			}),
 			contributions: configuration.contributions,
 			facts,
+			coverageByScheme,
 			// This tenant's earlier slips plus what an earlier employer declared for the year (the
 			// fact's `opening`, MY TP3 / PH 2316): the person's year, not the contract's.
 			yearToDate: (code) => {
@@ -616,12 +770,26 @@ export function prepareContributionAssessment(options: {
 							employee: own.employee + opening.employee,
 							employer: own.employer + opening.employer,
 							base: own.base + opening.base,
-							ordinary: own.ordinary + (opening.ordinary ?? 0)
+							ordinary: own.ordinary + (opening.ordinary ?? 0),
+							rebate: (own.rebate ?? 0) + (opening.rebate ?? 0)
 						};
 			},
 			yearEarned: options.yearEarned,
+			history: (code) =>
+				historyFor(code) ?? {
+					periods: 0,
+					base: 0,
+					ordinary: 0,
+					employee: 0,
+					employer: 0,
+					triggered: false,
+					hasOpening: false,
+					periodsRecorded: true
+				},
+			yearQuantityPayments: options.yearQuantityPayments,
 			earnedByMonth: options.earnedByMonth,
 			monthPrior: options.monthPrior,
+			monthlyContributionDays: measured.monthlyContributionDays,
 			componentsByCode: new Map(
 				configuration.catalogueComponents.map((component) => [
 					component.code,

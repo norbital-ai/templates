@@ -25,6 +25,7 @@ import {
 	FAILURE_COPY,
 	assertFormPresentable,
 	assertNoErrors,
+	auditNarrow,
 	auditScroll,
 	authoredNames,
 	closeOverlay,
@@ -79,6 +80,11 @@ const UNSEEDED_COLLECTIONS = new Set([
 	'suspicious_activity_logs',
 	'variation_requests'
 ]);
+
+/**
+ * Phone findings this template still carries, each a fix waiting to land; the list only shrinks.
+ */
+const KNOWN_NARROW: ReadonlyArray<RegExp> = [];
 
 const WARM_SURFACE_BUDGET_MS = 15_000;
 const SETTLE_TIMEOUT_MS = 60_000;
@@ -171,6 +177,7 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 					environment: 'test',
 					releaseId: LABEL,
 					principal: `${LABEL}-founder`,
+					email: `${LABEL}-founder@example.test`,
 					syncPrincipal: `${LABEL}-founder`,
 					organizationName: 'Field operations public seed',
 					commandPrefix: '/__bolt/command/',
@@ -268,6 +275,31 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 				formFields
 			});
 		}
+
+		// The same apps once more as a phone: 390 wide, coarse pointer, no hover. Structure changes
+		// (the sidebar is a sheet, dialogs are bottom sheets) and the three phone tells are measured.
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.emulateTouch(true);
+		const narrow: string[] = [];
+		for (const app of apps) {
+			const path = `/app/${app}`;
+			await navigate(page, path);
+			await settle(
+				page,
+				(current) => current.path.startsWith(path.split('/').slice(0, 3).join('/')),
+				`${path} (narrow)`,
+				SETTLE_TIMEOUT_MS
+			);
+			seenErrors = assertNoErrors(await readErrors(page), `${path} (narrow)`, seenErrors);
+			narrow.push(...(await auditNarrow(page, `${path} (narrow)`)));
+		}
+		await page.emulateTouch(false);
+		await page.setViewportSize({ width: 1280, height: 700 });
+		assert.deepEqual(
+			narrow.filter((finding) => !KNOWN_NARROW.some((known) => known.test(finding))),
+			[],
+			'a surface gives itself away on a phone'
+		);
 
 		// The workspace overview mounts no record-navigation surface, so the detail stack opens over
 		// an application route — which is where a tenant opens one.

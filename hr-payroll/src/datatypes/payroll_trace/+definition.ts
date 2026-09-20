@@ -24,6 +24,8 @@ const traceReadSchema = Schema.Struct({
 	code: Schema.String,
 	/** The relievable employee amount the read supplied. */
 	employee_amount: Schema.Finite,
+	/** The normal-pay relief when it differs from the full additional-pay calculation. */
+	ordinary_employee_amount: Schema.optional(Schema.Finite),
 	employer_amount: Schema.Finite
 });
 
@@ -31,7 +33,12 @@ const traceSchemeSchema = Schema.Struct({
 	scheme_code: Schema.String,
 	/** The governing rule's `when`, or null where the scheme charged at zero. */
 	rule_when: Schema.NullOr(Schema.String),
+	/** Liability history used by the selected rule, preserved independently of later declarations. */
+	first_contribution_due_on: Schema.optional(Schema.String),
 	base_amount: Schema.Finite,
+	ordinary_amount: Schema.optional(Schema.Finite),
+	/** The cadence the assessment was calculated at; period keys alone cannot state it. */
+	assessment_frequency: Schema.optionalKey(Schema.Literals(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY'])),
 	employee_amount: Schema.Finite,
 	employer_amount: Schema.Finite,
 	/** The priced lines whose signed sum is the base, in the order the engine accumulated them. */

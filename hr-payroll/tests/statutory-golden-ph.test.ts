@@ -12,7 +12,7 @@
  */
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { Effect } from 'effect';
 import {
@@ -25,6 +25,7 @@ import {
 	assertEveryVersionPriced,
 	COMPANY_ID
 } from './fixtures/statutory-world.ts';
+import { readLawFile } from './fixtures/law-file.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
@@ -545,8 +546,10 @@ test('Philippines — the salary-based schemes are monthly schedules, not per-pe
 	// catalogue to it, so a reseed that drops `assessed` fails here rather than over- or
 	// under-charging every Philippine semi-monthly payroll.
 	const read = (file: string): readonly { code: string; assessed?: string }[] =>
-		JSON.parse(
-			readFileSync(new URL(`./fixtures/statutory/PH/${file}`, import.meta.url), 'utf8')
+		readLawFile(
+			fileURLToPath(
+				new URL(`../seed/jurisdiction/PH/${file.replace(/\.json$/, '')}`, import.meta.url)
+			)
 		) as readonly { code: string; assessed?: string }[];
 	const schemes = read('statutory_contributions.json');
 	for (const code of ['SSS', 'SSS_EC', 'PHIC', 'HDMF']) {
@@ -778,9 +781,15 @@ test('Philippines — the entity may carry the month’s premiums on the end-mon
 		900,
 		1800
 	);
-	// SPLIT: each half is priced on its own compensation, 8,880.95 → MSC 9,000.
+	// SPLIT: each half carries half of the monthly MSC 18,000 contribution.
 	expectStatutory(opsph006('2026-01-1', 'SPLIT'), 'OPSPH006', 'SSS', 450, 900);
-	expectStatutory(opsph006('2026-01-2', 'SPLIT'), 'OPSPH006', 'SSS', 450, 900);
+	expectStatutory(
+		opsph006('2026-01-2', 'SPLIT', { sss: [450, 900], others: false }),
+		'OPSPH006',
+		'SSS',
+		450,
+		900
+	);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -914,16 +923,16 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 				period: { start: '2026-02-01', end: '2026-02-28' },
 				workingDaysIn: () => 20
 			});
-		assert.equal(absent('BI-MONTHLY'), 1379.31);
-		assert.equal(absent('MONTHLY'), 986.3);
+		assert.equal(absent('BI-MONTHLY'), 30_000 / (261 / 12));
+		assert.equal(absent('MONTHLY'), 30_000 / (365 / 12));
 		// A six-day week's absent day is on the 313 factor the overtime hour is built on: ₱30,000
 		// ÷ 26.0833 = ₱1,150.16 — the ₱15,650 daily-paid floor comes back as its ₱600 day.
-		assert.equal(absent('BI-MONTHLY', 48, 6), 1150.16);
+		assert.equal(absent('BI-MONTHLY', 48, 6), 30_000 / (313 / 12));
 		assert.deepEqual(version.work_rules.proration_by, [
-			{ when: 'terms.payroll_group == "MONTHLY"', basis: { by: 'FIXED_DAYS', days: 30.4167 } },
+			{ when: 'terms.payroll_group == "MONTHLY"', basis: { by: 'FIXED_DAYS', days: 365 / 12 } },
 			{
 				when: 'terms.pay_frequency != "DAILY" && terms.payroll_group != "MONTHLY" && terms.ordinary_hours_per_week > 40.0',
-				basis: { by: 'FIXED_DAYS', days: 26.0833 }
+				basis: { by: 'FIXED_DAYS', days: 313 / 12 }
 			}
 		]);
 	}
@@ -1304,40 +1313,131 @@ test('Philippines — a daily-paid employee’s hour is the day over eight, what
 	assert.deepEqual(warnings, []);
 });
 
-test('Philippines — monetised leave beyond the de minimis days is compensation (RR 2-98 s.2.78.1(A)(3)(a), RR 29-2025)', () => {
-	// Fifteen days of leave encashed in one entry. The 2026 versions exempt twelve; the three
-	// beyond — at the ordinary day the engine encashes at, 30,000 ÷ 21.75 = 1,379.31 — join the
-	// withholding base: 30,000 + 3 × 1,379.31 = 34,137.93.
+/** Synthetic cash-out and history used to check the BIR exemption limits independently. */
+function phCashOut(world: PayrollWorld, days: number, period: string) {
+	const annual = leaveCatalogue('PH').find(
+		(row) => row.code === 'ANNUAL_LEAVE' && row.settings_id === PH_2026
+	)!;
+	world.leave_catalogue.push({ ...annual, approval_id: null } as never);
+	world.leave_entries.push({
+		id: 'e1000000-0000-4000-8000-0000000enc01',
+		employment_id: world.employments[0]!.id,
+		catalogue_id: annual.id,
+		leave_code: 'ANNUAL_LEAVE',
+		reference: 'ENCASH-PH',
+		from_date: '2026-01-01',
+		to_date: '2026-12-31',
+		half_day_start: false,
+		half_day_end: false,
+		days,
+		encash_days: days,
+		effective_on: `${period}-15`,
+		due_on: `${period}-28`,
+		reason: 'Agreed',
+		allocations: [],
+		charges: [],
+		approval_id: null
+	} as never);
+}
+
+function phPaidBenefits(world: PayrollWorld, days: number, bonus: number, rice = 0) {
+	world.payroll_runs.push({ id: 'paid-benefits', company_id: COMPANY_ID, period: '2026-01' });
+	world.payslips.push({
+		id: 'paid-benefits-slip',
+		payroll_run_id: 'paid-benefits',
+		employment_id: world.employments[0]!.id,
+		status: 'PAID',
+		paid_at: '2026-01-31T00:00:00.000Z',
+		currency: 'PHP',
+		base: [],
+		statutory: [],
+		adjustments: [
+			...(days > 0
+				? [
+						{
+							component_code: 'ANNUAL_LEAVE_ENCASHMENT',
+							bucket: 'EARNING',
+							amount: days * 1000,
+							quantity: days,
+							rate: 1000
+						}
+					]
+				: []),
+			{ component_code: 'bonus', bucket: 'EARNING', amount: bonus },
+			{ component_code: 'meal', bucket: 'EARNING', amount: rice }
+		]
+	} as never);
+}
+
+test('Philippines — excess monetised vacation enters the shared ₱90,000 benefits exemption (RMC 50-2018 Q5)', () => {
+	// 15 days at 30,000 / 21.75 = 20,689.66. Twelve days are de minimis;
+	// the remainder fits within the unused ₱90,000 pool, so only salary is taxable.
 	const book = assessStatutory(
 		{ code: 'PH', period: '2026-01', people: [{ key: 'PH-ENCASH', wage: 30_000 }] },
+		(world) => phCashOut(world, 15, '2026-01')
+	);
+	expectStatutoryBase(book, 'PH-ENCASH', 'WTAX', 30_000);
+});
+
+test('Philippines — a pay rise does not renew the twelve-day cash-out exemption', () => {
+	const book = assessStatutory(
+		{ code: 'PH', period: '2026-02', people: [{ key: 'PH-ENCASH', wage: 43_500 }] },
 		(world) => {
-			const employment = world.employments.find((row) => row.employee_number === 'PH-ENCASH')!;
-			const annual = leaveCatalogue('PH').find(
-				(row) => row.code === 'ANNUAL_LEAVE' && row.settings_id === PH_2026
-			)!;
-			world.leave_catalogue.push({ ...annual, approval_id: null } as never);
-			world.leave_entries.push({
-				id: 'e1000000-0000-4000-8000-0000000enc01',
-				employment_id: employment.id,
-				catalogue_id: annual.id,
-				leave_code: 'ANNUAL_LEAVE',
-				reference: 'ENCASH-PH',
-				from_date: '2026-01-01',
-				to_date: '2026-12-31',
-				half_day_start: false,
-				half_day_end: false,
-				days: 15,
-				encash_days: 15,
-				effective_on: '2026-01-15',
-				due_on: '2026-01-31',
-				reason: 'Agreed',
-				allocations: [],
-				charges: [],
-				approval_id: null
-			} as never);
+			phPaidBenefits(world, 12, 90_000);
+			phCashOut(world, 3, '2026-02');
 		}
 	);
-	assert.equal(Math.round(book.get('PH-ENCASH')!.get('WTAX')!.base * 100) / 100, 34_137.93);
+	// January used all 12 days at 1,000 and the whole benefits pool.
+	// February's three days at 2,000 are fully taxable: 43,500 + 6,000.
+	expectStatutoryBase(book, 'PH-ENCASH', 'WTAX', 49_500);
+});
+
+test('Philippines — earlier excess leave consumes the shared cap at its original salary rate', () => {
+	const book = assessStatutory(
+		{ code: 'PH', period: '2026-02', people: [{ key: 'PH-ENCASH', wage: 43_500 }] },
+		(world) => {
+			phPaidBenefits(world, 15, 86_000);
+			phCashOut(world, 3, '2026-02');
+		}
+	);
+	// Prior benefits: 86,000 + (15 - 12) × 1,000 = 89,000.
+	// Of this month's 6,000, only 1,000 remains exempt.
+	expectStatutoryBase(book, 'PH-ENCASH', 'WTAX', 48_500);
+});
+
+test('Philippines — earlier rice excess and current leave excess share the benefits cap', () => {
+	const book = assessStatutory(
+		{ code: 'PH', period: '2026-02', people: [{ key: 'PH-ENCASH', wage: 43_500 }] },
+		(world) => {
+			phPaidBenefits(world, 0, 88_000, 3500);
+			phCashOut(world, 15, '2026-02');
+			const rice = world.allowance_catalogue.find(
+				(row) => row.code === 'meal' && row.settings_id === PH_2026
+			)!;
+			world.employment_terms[0]!.allowances = [{ catalogue_id: rice.id, amount: 3500 }];
+			// Rice is excluded from the conversion salary, as an allowance distinct from basic pay.
+			for (const version of world.jurisdiction_settings)
+				version.work_rules.encashment!.exclude_allowances = ['meal'];
+		}
+	);
+	// January: 88,000 + 1,000 rice excess. February: 6,000 leave excess
+	// + 1,000 rice excess, less the remaining 1,000 exemption = 6,000 taxable.
+	expectStatutoryBase(book, 'PH-ENCASH', 'WTAX', 49_500);
+});
+
+test('Philippines — missing paid cash-out quantities stop exemption calculation', () => {
+	assert.throws(
+		() =>
+			assessStatutory(
+				{ code: 'PH', period: '2026-02', people: [{ key: 'PH-ENCASH', wage: 43_500 }] },
+				(world) => {
+					phPaidBenefits(world, 12, 90_000);
+					delete world.payslips[0]!.adjustments[0]!.quantity;
+					phCashOut(world, 3, '2026-02');
+				}
+			),
+		/positive paid day quantities/
+	);
 });
 
 test('Philippines — SSS covers an employee not over sixty when first covered (RA 11199 s.9(a)); a member stays covered past it', () => {

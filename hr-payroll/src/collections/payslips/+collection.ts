@@ -1,10 +1,13 @@
 import { Effect } from 'effect';
 import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
+import { dateKey } from '../../lib/iso-day.js';
+import { cents } from '../payroll_runs/lib/rounding.js';
 import model from './+model.js';
 
 /**
- * A payslip is engine output, and output is create-and-delete, never edit — with exactly one
- * exception, and its payment is it.
+ * Calculated payslip amounts are immutable. Payment state and funding receipts are operational
+ * records; they remain editable until settlement.
  *
  * `status` is the run's payment state — moves `DRAFT → ON_HOLD → DRAFT`, and `DRAFT`/`ON_HOLD`
  * `→ PAID`. `PAID` is terminal: money has left the building, the slip can never be deleted, and a
@@ -24,7 +27,17 @@ const TRANSITIONS: Readonly<Record<string, readonly string[]>> = {
 
 export default defineCollection({
 	model,
-	update: { input: { columns: { status: true, paid_at: true } } },
+	update: {
+		input: {
+			columns: {
+				status: true,
+				paid_at: true,
+				funding_received: true,
+				funding_received_on: true,
+				funding_reference: true
+			}
+		}
+	},
 	delete: {},
 	transform: (inputs, { existing, db }) =>
 		Effect.gen(function* () {
@@ -66,13 +79,30 @@ export default defineCollection({
 				if (stored === undefined) refuse('A payslip must be created by its payroll run.');
 				const from = String(stored.status ?? 'DRAFT');
 				const to = String(input.status ?? from);
-				if (from === to && input.paid_at === undefined) return input;
+				const fundingChanged =
+					input.funding_received !== undefined ||
+					input.funding_received_on !== undefined ||
+					input.funding_reference !== undefined;
+				const funding = decodeNumber(input.funding_received ?? stored.funding_received ?? 0);
+				const unfunded = decodeNumber(stored.unfunded_contributions ?? 0);
+				const fundingDate =
+					input.funding_received_on === undefined
+						? stored.funding_received_on
+						: input.funding_received_on;
+				const fundingReference =
+					input.funding_reference === undefined
+						? stored.funding_reference
+						: input.funding_reference;
+				if (!Number.isFinite(funding) || funding < 0 || funding > unfunded)
+					refuse('Funding received must be between zero and the unfunded contribution amount.');
+				if (cents(funding, stored.currency) !== funding)
+					refuse('Funding received must use the payslip currency precision.');
+				if (funding > 0 && (fundingDate == null || !fundingReference?.trim()))
+					refuse('Funding received requires its receipt date and reference.');
+				if (from === to && input.paid_at === undefined && !fundingChanged) return input;
 				if (from === 'PAID')
-					refuse(
-						'This payslip is already paid. Payment is a record of money that has left the ' +
-							'building, and it is corrected by a component entry in a later draft run.'
-					);
-				if (!(TRANSITIONS[from] ?? []).includes(to))
+					refuse('This payslip is already paid. Record corrections in a later draft run.');
+				if (from !== to && !(TRANSITIONS[from] ?? []).includes(to))
 					refuse(`A payslip cannot move from ${from} to ${to}.`);
 				const paidAt = input.paid_at ?? stored.paid_at;
 				if (to === 'PAID' && paidAt == null)
@@ -80,6 +110,12 @@ export default defineCollection({
 				if (to !== 'PAID' && input.paid_at != null)
 					refuse('A payslip records the day it was paid only when it is paid.');
 				if (to !== 'PAID') return input;
+				if (funding < unfunded)
+					refuse(
+						'Employee statutory contributions remain unfunded. Record the funds received before settling this payslip.'
+					);
+				if (funding > 0 && dateKey(fundingDate!) > dateKey(paidAt!))
+					refuse('The settlement date cannot precede the contribution funding receipt.');
 				const run = runById.get(stored.payroll_run_id);
 				if (run == null) refuse('A payslip cannot be paid without its payroll run.');
 				// Paid in order, per person: January's slip before February's for the same

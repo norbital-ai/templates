@@ -35,6 +35,8 @@ export default defineModel(
 			'MUTUAL',
 			'DEATH'
 		]),
+		/** Jurisdiction-declared facts for this departure; governed by its last working day. */
+		exit_facts: custom('entity_facts'),
 		/** Free-text departure note, kept as the contract's comments; writable after the range closes. */
 		comments: text()
 	},

@@ -377,7 +377,7 @@ export function leavePayrollInputs(options: {
 		)
 			return [];
 		if (entry.due_on > options.dueThrough) return [];
-		// An encashment has no keyed amount: the engine prices its days at the ordinary day wage.
+		// An encashment has no keyed amount: the engine applies its dated valuation rule.
 		// A reversal negates the outputs it named when it was approved.
 		return [{ entry, dueOn: entry.due_on }];
 	});
@@ -398,14 +398,20 @@ export function hasLeavePayment(prepared: GatheredLeave, dueThrough: string): bo
 }
 
 /** Approved date coverage is separate from whether a source has already been paid. */
-export function leaveCoverage(prepared: PreparedLeavePayroll, window: LeaveWindow) {
+export function leaveCoverage(
+	prepared: PreparedLeavePayroll,
+	window: LeaveWindow,
+	includesDate: (date: string) => boolean = () => true
+) {
 	const days: Record<string, number> = {};
 	const byCode: Record<string, number> = {};
+	const datesByCode = new Map<string, Map<string, number>>();
 	const seen = new Set<string>();
 	const add = (entryId: string, charge: LeaveCharge) => {
 		if (
 			charge.date < window.start ||
 			charge.date > window.end ||
+			!includesDate(charge.date) ||
 			seen.has(`${entryId}/${charge.date}`)
 		)
 			return;
@@ -415,10 +421,19 @@ export function leaveCoverage(prepared: PreparedLeavePayroll, window: LeaveWindo
 		days[charge.date] = (days[charge.date] ?? 0) + charge.days;
 		if (days[charge.date]! > 1) refuse(`Approved leave exceeds one day on ${charge.date}.`);
 		byCode[code] = (byCode[code] ?? 0) + charge.days;
+		const dates = datesByCode.get(code) ?? new Map<string, number>();
+		dates.set(charge.date, (dates.get(charge.date) ?? 0) + charge.days);
+		datesByCode.set(code, dates);
 	};
 	for (const entry of activeTimeOff(prepared.entries))
 		for (const charge of entry.charges) add(entry.id, charge);
-	return { days, byCode };
+	const fullDaysByCode = Object.fromEntries(
+		[...datesByCode].map(([code, dates]) => [
+			code,
+			[...dates.values()].filter((days) => days >= 1).length
+		])
+	);
+	return { days, byCode, fullDaysByCode };
 }
 
 /**
@@ -426,8 +441,8 @@ export function leaveCoverage(prepared: PreparedLeavePayroll, window: LeaveWindo
  * charge inside the window, in days. Eligibility was prepared with the deduction, so a day the
  * catalogue's rule excuses is not counted here either.
  */
-export function unpaidLeaveDays(prepared: PreparedLeavePayroll, window: LeaveWindow): number {
-	let days = 0;
+function unpaidLeaveDaysByDate(prepared: PreparedLeavePayroll, window: LeaveWindow) {
+	const days = new Map<string, number>();
 	for (const entry of activeTimeOff(prepared.entries))
 		for (const charge of entry.charges) {
 			if (charge.date < window.start || charge.date > window.end) continue;
@@ -435,9 +450,28 @@ export function unpaidLeaveDays(prepared: PreparedLeavePayroll, window: LeaveWin
 			if (catalogue == null || !deductsWage(catalogue)) continue;
 			const key = `${entry.id}/${charge.date}`;
 			if (prepared.deductionEligibility[key] !== true) continue;
-			days += charge.days * shareOf(prepared, key);
+			days.set(charge.date, (days.get(charge.date) ?? 0) + charge.days * shareOf(prepared, key));
 		}
 	return days;
+}
+
+export function unpaidLeaveDays(prepared: PreparedLeavePayroll, window: LeaveWindow): number {
+	return [...unpaidLeaveDaysByDate(prepared, window).values()].reduce((sum, days) => sum + days, 0);
+}
+
+/** Count dates without any employer-paid portion; separate half-days do not form a full day. */
+export function fullyUnpaidDays(
+	prepared: PreparedLeavePayroll,
+	window: LeaveWindow,
+	absences: readonly { readonly date: string; readonly days: number }[],
+	includesDate: (date: string) => boolean = () => true
+): number {
+	const days = unpaidLeaveDaysByDate(prepared, window);
+	for (const absence of absences) {
+		if (absence.date < window.start || absence.date > window.end) continue;
+		days.set(absence.date, (days.get(absence.date) ?? 0) + absence.days);
+	}
+	return [...days].filter(([date, day]) => includesDate(date) && day >= 1).length;
 }
 
 function leaveCaptureAmount(items: readonly LeavePayItem[], currency: string): MoneyValue {
@@ -457,10 +491,9 @@ export function calculateLeavePayroll(options: {
 	readonly currency: string;
 	readonly absenceRate: (charge: LeaveCharge) => number;
 	/**
-	 * The ordinary day wage the engine prices an encashed day at. A thunk: an ended contract's
-	 * Work context resolves a schedule, and no run should pay for that unless an encashment settles.
+	 * The statutory day rate for this entry's conversion date and catalogue revision.
 	 */
-	readonly ordinaryDayRate: () => number;
+	readonly encashmentRate: (entry: LeaveActivity) => number;
 	/** Deferred salary replay includes dated leave only; encashed days settle in the regular pass. */
 	readonly includeMonetary?: boolean;
 }) {
@@ -484,9 +517,16 @@ export function calculateLeavePayroll(options: {
 			gross_amount: leaveCaptureAmount(items, currency)
 		});
 	};
-	for (const { entry, charges } of selected.timeOff) {
+	// Round cumulative deductions per dated salary basis. Independently rounded days can exceed
+	// the prorated salary when an entire pay period is unpaid. Each capture retains its allocated share.
+	const deductionTotals = new Map<string, number>();
+	for (const { entry, charges } of selected.timeOff.toSorted(
+		(a, b) =>
+			(a.charges[0]?.date ?? '').localeCompare(b.charges[0]?.date ?? '') ||
+			a.entry.id.localeCompare(b.entry.id)
+	)) {
 		const items: LeavePayItem[] = [];
-		for (const charge of charges) {
+		for (const charge of charges.toSorted((a, b) => a.date.localeCompare(b.date))) {
 			const catalogue = prepared.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved Leave has no captured catalogue revision.');
 			if (!deductsWage(catalogue)) continue;
@@ -497,10 +537,11 @@ export function calculateLeavePayroll(options: {
 			const rate = options.absenceRate(charge);
 			if (!Number.isFinite(rate) || rate < 0)
 				refuse('Work must supply a nonnegative Leave absence rate.');
-			const amount = fromMinorUnits(
-				toMinorUnits(rate * charge.days * shareOf(prepared, key), currency),
-				currency
-			);
+			const basis = `${charge.employment_term_id}/${charge.date.slice(0, 7)}`;
+			const previous = deductionTotals.get(basis) ?? 0;
+			const total = previous + rate * charge.days * shareOf(prepared, key);
+			const amount = cents(cents(total, currency) - cents(previous, currency), currency);
+			deductionTotals.set(basis, total);
 			if (amount === 0) continue;
 			items.push({
 				catalogue_id: catalogue.id,
@@ -522,7 +563,9 @@ export function calculateLeavePayroll(options: {
 			if (!catalogue) refuse('The agreed encashment catalogue revision is missing.');
 			if (!catalogue.can_encash)
 				refuse(`${catalogue.code} is not encashable in this settings version.`);
-			const rate = options.ordinaryDayRate();
+			const rate = options.encashmentRate(entry);
+			if (!Number.isFinite(rate) || rate < 0)
+				refuse('The valuation rule must supply a nonnegative Leave encashment rate.');
 			const encashDays = entry.encash_days ?? 0;
 			add(
 				entry.id,
@@ -534,7 +577,7 @@ export function calculateLeavePayroll(options: {
 						settings_id: catalogue.settings_id,
 						bucket: 'EARNING',
 						date: null,
-						amount: cents(rate * encashDays),
+						amount: cents(rate * encashDays, currency),
 						quantity: encashDays,
 						rate
 					}

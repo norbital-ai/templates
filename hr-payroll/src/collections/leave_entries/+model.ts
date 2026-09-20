@@ -47,7 +47,7 @@ export default defineModel(
 		hours: numeric(),
 		/**
 		 * The days an encashment entry converts to money; null on every other activity. The engine
-		 * prices them at the ordinary day wage as `ENCASHMENT`.
+		 * prices them using the dated leave cash-out rule as `ENCASHMENT`.
 		 */
 		encash_days: numeric(),
 		/** The approved entry this reversal cancels; unique, so a source reverses once. */

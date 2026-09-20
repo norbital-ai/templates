@@ -26,17 +26,13 @@ import {
 	dateKey,
 	daysBetween,
 	inclusiveDays,
+	intersectDays,
 	monthBounds,
 	monthKey,
 	requiredDateKey,
 	type IsoDate
 } from '../../collections/payroll_runs/lib/dates.js';
-import {
-	coversDate,
-	live,
-	overlapsRange,
-	readRange
-} from '../../collections/payroll_runs/lib/effective.js';
+import { coversDate, live, readRange } from '../../collections/payroll_runs/lib/effective.js';
 import { addDays, weekStart } from '../period.js';
 import { dayInstant } from '../iso-day.js';
 import {
@@ -46,6 +42,7 @@ import {
 	type PersonContext
 } from '../../collections/payroll_runs/lib/eligibility.js';
 import { stint } from '../employment-contract.js';
+import { resolveFactValues } from '../declared-facts.js';
 import {
 	dailyWorkedHours,
 	deriveDailyOvertime,
@@ -68,7 +65,7 @@ import {
 	type RateTerms
 } from '../../collections/payroll_runs/lib/ordinary-rate.js';
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
-import { contractAllowancesOn } from './contract-allowances.js';
+import { contractAllowancesOn, listedAllowances } from './contract-allowances.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
 import { applicableLimits } from '../scheduling/work-limits.js';
@@ -84,6 +81,7 @@ import {
 	type RunIssue
 } from '../../collections/payroll_runs/lib/validate.js';
 import { leaveCoverage } from '../leave/payroll.js';
+import { latestDueMonthNormalRate, previousWagePeriodOrdinaryRate } from './reference-wages.js';
 import { countryOf } from '../jurisdiction_settings.js';
 import {
 	patternAnchor,
@@ -129,15 +127,12 @@ export function prepareWorkCatalogue(options: {
 	>
 > {
 	return Effect.gen(function* () {
-		const { jurisdiction, windowStart, windowEnd, shiftRows, patternRows } = options;
+		const { jurisdiction, shiftRows, patternRows } = options;
 		const work: Configuration['work'] = {
 			...jurisdiction.work_rules,
 			settings_id: jurisdiction.id,
 			jurisdiction_code: jurisdiction.jurisdiction_code
 		};
-		const shifts = live(shiftRows).filter((row) =>
-			overlapsRange(row.effective_range, windowStart, windowEnd)
-		);
 		return {
 			work,
 			holidayRestPrecedence: work.holiday_rest_precedence,
@@ -145,7 +140,8 @@ export function prepareWorkCatalogue(options: {
 			limits: work.limits.filter((limit) => limit.measure !== 'CONSECUTIVE_WORK_DAYS'),
 			breaks: work.breaks,
 			nightPremium: work.night_premium ?? null,
-			shiftById: new Map(shifts.map((row) => [row.id, row])),
+			// Historical terms and deferred leave payments still refer to these immutable shift IDs.
+			shiftById: new Map(live(shiftRows).map((row) => [row.id, row])),
 			// A terms row still names its original pattern after that pattern's effective range ends.
 			patternById: new Map(live(patternRows).map((row) => [row.id, row]))
 		};
@@ -160,12 +156,13 @@ export function prepareWorkInputs(options: {
 }): Effect.Effect<{
 	readonly workDaysByEmployment: ReadonlyMap<string, EmploymentBundle['workDays']>;
 	readonly rostersByEmployment: ReadonlyMap<string, EmploymentBundle['rosters']>;
+	readonly wagePeriodsByEmployment: ReadonlyMap<string, EmploymentBundle['wagePeriods']>;
 }> {
 	return Effect.gen(function* () {
 		const { complianceSpan } = options;
 		const db = options.api.db;
 		const approved = { approval_id: { isNull: true } } as const;
-		const [workDayRows, rosterRows] = yield* Effect.all(
+		const [workDayRows, rosterRows, wagePeriodRows] = yield* Effect.all(
 			[
 				db.work_days.findMany({
 					where: {
@@ -191,12 +188,20 @@ export function prepareWorkInputs(options: {
 					},
 					columns: { employment_id: true, period: true, approval_id: true },
 					limit: PAGE_LIMIT
+				}),
+				db.employment_wage_periods.findMany({
+					where: {
+						employment_id: { in: [...options.employmentIds] },
+						...approved
+					},
+					limit: PAGE_LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(workDayRows, 'work days');
 		options.api.reads.assertComplete(rosterRows, 'rosters');
+		options.api.reads.assertComplete(wagePeriodRows, 'employment wage periods');
 		const rostersByEmployment = Map.groupBy(
 			live(rosterRows).map((row) => {
 				const bounds = monthBounds(row.period);
@@ -207,6 +212,7 @@ export function prepareWorkInputs(options: {
 		const workDays = new Map(live(workDayRows).map((row) => [row.id, row]));
 		return {
 			workDaysByEmployment: Map.groupBy([...workDays.values()], (row) => row.employment_id),
+			wagePeriodsByEmployment: Map.groupBy(live(wagePeriodRows), (row) => row.employment_id),
 			rostersByEmployment: new Map(
 				[...rostersByEmployment].map(([id, rows]) => [
 					id,
@@ -418,9 +424,26 @@ function termsSnapshotKey(terms: EmploymentBundle['terms'][number]): string {
 export function prepareWorkContext(
 	options: Pick<MeasureEmploymentOptions, 'bundle' | 'configuration' | 'salary'> & {
 		readonly employed: PayRange;
+		/** Consumed dated wage history, recorded for the payslip capture. */
+		readonly referenceWageIds?: Set<string>;
 	}
 ) {
 	const { bundle, configuration, employed } = options;
+	// Component eligibility runs over the whole catalogue, so departure inputs the version declares
+	// resolve to their defaults even for an active contract; requiredness is enforced where a
+	// final service day exists (money.ts).
+	const employmentForPerson = () => {
+		const employment = stint(bundle.employment);
+		return {
+			...employment,
+			exit_facts: resolveFactValues(
+				configuration.jurisdiction.exit_facts ?? [],
+				employment.exit_facts ?? {},
+				bundle.employment.employee_number,
+				false
+			)
+		};
+	};
 	const attendance = bundle.attendance;
 	const wageDays = bundle.wageDays ?? employed;
 	const closingTerms = termsAt(bundle, employed.end);
@@ -447,7 +470,7 @@ export function prepareWorkContext(
 					normalHoursRule,
 					personContext({
 						employee: bundle.employee,
-						employment: stint(bundle.employment),
+						employment: employmentForPerson(),
 						terms: closingTerms,
 						week: {
 							ordinary_hours_per_week:
@@ -527,10 +550,10 @@ export function prepareWorkContext(
 	const prorationWorkDays = bundle.workDays.filter(
 		(row) => !takenLeaveDates.has(requiredDateKey(row.work_date, 'work_days.work_date'))
 	);
-	const workingDaysCache = new Map<string, number>();
-	const workingDaysIn = (window: PayRange): number => {
+	const prorationScheduleCache = new Map<string, ReturnType<typeof resolveSchedule>>();
+	const prorationScheduleIn = (window: PayRange) => {
 		const key = `${window.start}:${window.end}`;
-		const cached = workingDaysCache.get(key);
+		const cached = prorationScheduleCache.get(key);
 		if (cached != null) return cached;
 		const dates = daysBetween(window.start, window.end);
 		const prorationSchedule = resolveSchedule({
@@ -541,6 +564,16 @@ export function prepareWorkContext(
 			rosters: bundle.rosters,
 			configuration
 		});
+		prorationScheduleCache.set(key, prorationSchedule);
+		return prorationSchedule;
+	};
+	const isOrdinaryWorkingDay = (date: string): boolean => {
+		const day = prorationScheduleIn(monthBounds(monthKey(date))).get(date);
+		return day?.dayType === 'ORDINARY' && day.shift != null;
+	};
+	const workingDaysIn = (window: PayRange): number => {
+		const dates = daysBetween(window.start, window.end);
+		const prorationSchedule = prorationScheduleIn(window);
 		// A public holiday that falls on a scheduled working day is a working day, in the numerator
 		// and the divisor alike (SG EA s.20A / MOM: the days required to work "include public
 		// holidays"; VN Decree 145/2020 art.54(1)(a) counts the same). One that falls on a rest day
@@ -561,7 +594,6 @@ export function prepareWorkContext(
 				day.shift.paid_minutes <= halfHours * 60;
 			return total + (short ? 0.5 : 1);
 		}, 0);
-		workingDaysCache.set(key, days);
 		return days;
 	};
 
@@ -579,7 +611,7 @@ export function prepareWorkContext(
 	 */
 	const subject = personContext({
 		employee: bundle.employee,
-		employment: stint(bundle.employment),
+		employment: employmentForPerson(),
 		// The standing allowances in force, so a divisor can price the hour over the monthly wage
 		// (ID PP 35/2021 art.32: 1/173 of basic plus fixed allowances).
 		fixedAllowances: contractAllowancesOn(bundle, configuration, options.salary.end),
@@ -615,32 +647,94 @@ export function prepareWorkContext(
 	});
 	const hourlyRate = ordinaryHourlyRate(rateTerms, divisorDays);
 	const dayWage = ordinaryDayWage(rateTerms, divisorDays);
-	// A worked day is priced at the hour of the calendar month it fell in: a divisor that reads
-	// `period.working_days` (VN Decree 145 art.55(1)(a): the month's wage over that month's
-	// hours) differs month to month, and a pay window that straddles two months prices each
-	// day on its own. A divisor that reads nothing of the period is the same figure everywhere.
-	const ratesByMonth = new Map<string, { ordinaryHour: number; dayWage: number }>();
+	// Resolve salary, allowances and hours on the day worked, including salary changes inside a month.
+	const ratesByDate = new Map<
+		string,
+		{ ordinaryHour: number; dayWage: number; person: PersonContext }
+	>();
 	const ratesOn = (date: IsoDate) => {
-		const month = monthKey(date);
-		let rates = ratesByMonth.get(month);
-		if (rates == null) {
-			const divisor =
-				month === monthKey(options.salary.start)
-					? divisorDays
-					: ordinaryDivisorDays({
-							expression: configuration.work.ordinary_divisor_days,
-							person: {
-								...subject,
-								period: { ...subject.period, working_days: workingDaysIn(monthBounds(month)) }
-							},
-							employeeNumber: bundle.employment.employee_number
-						});
-			rates = {
-				ordinaryHour: ordinaryHourlyRate(rateTerms, divisor),
-				dayWage: ordinaryDayWage(rateTerms, divisor)
-			};
-			ratesByMonth.set(month, rates);
+		const cached = ratesByDate.get(date);
+		if (cached != null) return cached;
+		const term = termsAt(bundle, date);
+		const month = monthBounds(monthKey(date));
+		const days = termsDaysPerWeek(term, configuration);
+		const workload = termsWorkload({
+			terms: term,
+			configuration,
+			workDays: bundle.workDays,
+			window: month
+		});
+		const datedPerson = personContext({
+			employee: bundle.employee,
+			employment: employmentForPerson(),
+			terms: term,
+			fixedAllowances: contractAllowancesOn(bundle, configuration, date),
+			children: bundle.children,
+			company: configuration.company,
+			week: {
+				ordinary_hours_per_week: decodeNumber(
+					term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60
+				),
+				working_days_per_week: days
+			},
+			period: { working_days: workingDaysIn(month) },
+			asOf: date
+		});
+		const cap =
+			normalHoursRule === ''
+				? Number.POSITIVE_INFINITY
+				: evaluatePersonNumber(normalHoursRule, datedPerson);
+		const datedTerms = asRateTerms(term, workload, days, cap, normalWeekCap);
+		const person = {
+			...datedPerson,
+			terms: { ...datedPerson.terms, ordinary_hours_per_week: datedTerms.ordinary_hours_per_week }
+		};
+		const divisor = ordinaryDivisorDays({
+			expression: configuration.work.ordinary_divisor_days,
+			person,
+			employeeNumber: bundle.employment.employee_number
+		});
+		let ordinaryHour = ordinaryHourlyRate(datedTerms, divisor);
+		let dayWage = ordinaryDayWage(datedTerms, divisor);
+		// A verified dated wage record replaces the current contract's reconstruction where the
+		// version says so (MY s.60I(1C): the preceding wage period's earnings over its worked days).
+		const reference = configuration.work.ordinary_rate_reference;
+		if (
+			reference != null &&
+			reference.pay_frequencies.some((frequency) => frequency === datedTerms.pay_frequency)
+		) {
+			const normalDailyHours =
+				datedTerms.working_days_per_week === 0
+					? 0
+					: datedTerms.ordinary_hours_per_week / datedTerms.working_days_per_week;
+			if (!(normalDailyHours > 0))
+				throw new Error('Ordinary-rate reference requires positive contractual normal hours.');
+			if (reference.reference === 'LATEST_DUE_MONTH') {
+				const prior = latestDueMonthNormalRate({
+					periods: bundle.wagePeriods ?? [],
+					boundary: date,
+					currency
+				});
+				dayWage = prior.normalDay;
+				ordinaryHour = prior.normalDay / normalDailyHours;
+				options.referenceWageIds?.add(prior.row.id);
+			} else {
+				const prior = previousWagePeriodOrdinaryRate({
+					periods: bundle.wagePeriods ?? [],
+					currentPeriodStart: monthBounds(monthKey(date)).start,
+					currency
+				});
+				dayWage = prior.ordinaryDay;
+				ordinaryHour = prior.ordinaryDay / normalDailyHours;
+				options.referenceWageIds?.add(prior.row.id);
+			}
 		}
+		const rates = {
+			ordinaryHour,
+			dayWage,
+			person
+		};
+		ratesByDate.set(date, rates);
 		return rates;
 	};
 
@@ -681,8 +775,20 @@ export function prepareWorkContext(
 		});
 	};
 
+	const absentDaysIn = (window: PayRange) =>
+		bundle.workDays.flatMap((day) => {
+			if (day.worked_intervals != null && day.worked_intervals.length > 0) return [];
+			const date = requiredDateKey(day.work_date, 'work_days.work_date');
+			if (date < window.start || date > window.end) return [];
+			const uncovered = 1 - (coverage.days[date] ?? 0);
+			if (uncovered <= 0) return [];
+			const scheduled = schedule.get(date);
+			if (scheduled?.shift == null || scheduled.dayType !== 'ORDINARY') return [];
+			return [{ id: day.id, date, days: uncovered }];
+		});
 	return {
 		attendance,
+		absentDaysIn,
 		wageDays,
 		closingTerms,
 		rateTerms,
@@ -694,6 +800,7 @@ export function prepareWorkContext(
 		schedule,
 		coverage,
 		workingDaysIn,
+		isOrdinaryWorkingDay,
 		absenceDayWage,
 		subject,
 		absenceRate
@@ -895,33 +1002,46 @@ export function calculateWorkAttendance(
 	// First Schedule para 3 — basic plus every other cash payment for work done, less overtime pay —
 	// from the employee's own components and entries. Only components this employment is eligible
 	// for count: an allowance someone is not entitled to is not part of their wages.
-	const statutoryWages = deriveStatutoryWages({
-		baseSalary: rateTerms.base_salary,
-		payments: configuration.catalogueComponents
-			.filter((component) => isEligible(component.eligibility, subject))
-			.map((component) => ({
-				category: classifyWageComparand(component),
-				amount: entryTotalByComponentId.get(component.id) ?? 0
-			}))
-	});
-	// Who the overtime ladder covers is the version's own predicate over the person, read with the
-	// statutory wage comparand this run derived.
-	const paymentEligible = isEligible(configuration.work.overtime_when, {
-		...subject,
-		terms: { ...subject.terms, statutory_wages: statutoryWages.value }
-	});
-	const pricedBandDays = paymentEligible
-		? bandDays.filter(
-				(day) => day.date >= overtimeAttendance.start && day.date <= overtimeAttendance.end
-			)
-		: [];
+	const paymentEligibleOn = (date: IsoDate) => {
+		const dated = ratesOn(date).person;
+		const allowances = new Map(
+			listedAllowances(termsAt(bundle, date)).map((row) => [
+				configuration.allowanceCodeById.get(row.catalogue_id),
+				decodeNumber(row.amount)
+			])
+		);
+		const statutoryWages = deriveStatutoryWages({
+			baseSalary: { ...rateTerms.base_salary, value: dated.terms.basic_salary },
+			payments: configuration.catalogueComponents
+				.filter((component) => isEligible(component.eligibility, subject))
+				.map((component) => ({
+					category: classifyWageComparand(component),
+					amount:
+						component.family === 'ALLOWANCE'
+							? (allowances.get(component.code) ?? 0)
+							: (entryTotalByComponentId.get(component.id) ?? 0)
+				}))
+		});
+		// Who the overtime ladder covers is the version's own predicate over the person, read with the
+		// statutory wage comparand this run derived.
+		return isEligible(configuration.work.overtime_when, {
+			...dated,
+			terms: { ...dated.terms, statutory_wages: statutoryWages.value }
+		});
+	};
+	const pricedBandDays = bandDays.filter(
+		(day) =>
+			day.date >= overtimeAttendance.start &&
+			day.date <= overtimeAttendance.end &&
+			paymentEligibleOn(day.date)
+	);
 	// The regulated-overtime ceiling governs the overtime the Act pays. A salaried engineer outside
 	// the overtime rule has no regulated hours to cap, so the ceiling is not reported against them.
 	const calendarMonthOvertimeHours = new Map<string, number>();
 	// The wider count an ALL_OVERTIME_HOURS limit reads: rest-day and holiday hours beyond the
 	// normal day too (MOM on SG's 72-hour month). Reported, never funnelled.
 	const calendarMonthAllOvertimeHours = new Map<string, number>();
-	for (const day of paymentEligible ? overtimeDays : []) {
+	for (const day of overtimeDays.filter((day) => paymentEligibleOn(day.date))) {
 		const calendarMonth = monthKey(day.date);
 		const regulated = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
 		const beyondNormal = regulated ? day.hours : Math.max(0, day.hours - day.normalHours);
@@ -965,16 +1085,7 @@ export function calculateWorkAttendance(
 			const unpriced = Math.max(0, running - weeklyNormalCap) - (weekExcessPriced.get(week) ?? 0);
 			if (unpriced > 0) unpricedWeeks.push({ week, hours: unpriced });
 		}
-	const absentDays = bundle.workDays.flatMap((day) => {
-		if (day.worked_intervals != null && day.worked_intervals.length > 0) return [];
-		const date = requiredDateKey(day.work_date, 'work_days.work_date');
-		if (date < attendance.start || date > attendance.end) return [];
-		const uncovered = 1 - (coverage.days[date] ?? 0);
-		if (uncovered <= 0) return [];
-		const scheduled = schedule.get(date);
-		if (scheduled?.shift == null || scheduled.dayType !== 'ORDINARY') return [];
-		return [{ id: day.id, date, days: uncovered }];
-	});
+	const absentDays = options.work.absentDaysIn(attendance);
 	const absentAdjustments: MeasuredAdjustment[] =
 		absentDays.length === 0 ||
 		rateTerms.pay_frequency === 'DAILY' ||
@@ -1009,7 +1120,7 @@ export function calculateWorkAttendance(
 						bandDay?.normalHours ?? priced?.normalHours ?? 0
 					);
 					// Overtime hours add nothing where the person is outside statutory overtime pay.
-					const overtime = paymentEligible ? night.overtime : 0;
+					const overtime = paymentEligibleOn(date) ? night.overtime : 0;
 					if (night.ordinary + overtime <= 0) return [];
 					// The adds follow the day where the version says so; a day the bands never saw
 					// (outside the overtime window, or an ineligible person) reads the plain figures.
@@ -1024,7 +1135,7 @@ export function calculateWorkAttendance(
 							: nightAddsFor({
 									work: { ...configuration.work, limits },
 									premium: nightPremium,
-									person: subject,
+									person: ratesOn(date).person,
 									day: bandDay,
 									rates: ratesOn(date)
 								});
@@ -1042,7 +1153,7 @@ export function calculateWorkAttendance(
 	const capped = funnelMonthlyOvertime({
 		rows: measureWorkBands({
 			work: { ...configuration.work, limits },
-			person: subject,
+			personOn: (date) => ratesOn(date).person,
 			days: pricedBandDays,
 			ratesOn,
 			catalogueComponents: configuration.catalogueComponents,
@@ -1121,6 +1232,8 @@ export function measureContractSegments(options: {
 	readonly workingDaysIn: (window: PayRange) => number;
 	/** The full-period figure the terms row states; 0 where the row states none. */
 	readonly contractOf: (terms: EmploymentBundle['terms'][number]) => number;
+	/** Standing allowances are monthly even when the basic salary is weekly. */
+	readonly contractPeriod?: 'MONTH';
 	readonly unpaidDaysIn?: (window: PayRange) => number;
 }): Measurement | null {
 	const bucket = settlementBucket(options.component.destination, options.component.direction);
@@ -1177,11 +1290,14 @@ export function measureContractSegments(options: {
 				company: options.configuration.company,
 				asOf: options.salary.end
 			}),
-			period: options.salary,
+			period:
+				options.contractPeriod === 'MONTH' && covered != null
+					? (intersectDays(options.salary, monthBounds(monthKey(covered.start))) ?? options.salary)
+					: options.salary,
 			covered,
 			workingDaysIn: options.workingDaysIn,
 			instalments: terms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
-			salaryPeriod: terms.pay_frequency === 'WEEKLY' ? 'WEEK' : 'MONTH'
+			salaryPeriod: options.contractPeriod ?? (terms.pay_frequency === 'WEEKLY' ? 'WEEK' : 'MONTH')
 		});
 		if (segment == null || segment.denominator <= 0 || segment.days <= 0) return;
 		const unpaid =
@@ -1209,7 +1325,12 @@ export function measureContractSegments(options: {
 		for (let index = 1; index <= wageDates.length; index += 1) {
 			const date = wageDates[index];
 			const nextTerms = date == null ? null : termsOn(date);
-			if (nextTerms != null && termsIdentity(nextTerms) === termsIdentity(runTerms)) continue;
+			if (
+				nextTerms != null &&
+				termsIdentity(nextTerms) === termsIdentity(runTerms) &&
+				(options.contractPeriod !== 'MONTH' || monthKey(date!) === monthKey(runStart))
+			)
+				continue;
 			record(runTerms, { start: runStart, end: wageDates[index - 1]! });
 			if (date == null || nextTerms == null) break;
 			runStart = date;
@@ -1538,7 +1659,7 @@ function measureNightPremium(options: {
  */
 function measureWorkBands(options: {
 	readonly work: Configuration['work'];
-	readonly person: PersonContext;
+	readonly personOn: (date: IsoDate) => PersonContext;
 	readonly days: readonly WorkBandDay[];
 	readonly ratesOn: (date: IsoDate) => { readonly ordinaryHour: number; readonly dayWage: number };
 	readonly catalogueComponents: readonly CatalogueComponent[];
@@ -1553,7 +1674,7 @@ function measureWorkBands(options: {
 	for (const day of options.days) {
 		for (const row of priceWorkDay({
 			work: options.work,
-			person: options.person,
+			person: options.personOn(day.date),
 			day,
 			rates: options.ratesOn(day.date)
 		})) {

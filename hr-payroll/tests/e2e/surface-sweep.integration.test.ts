@@ -29,10 +29,19 @@ import {
 	guestUrlForChromium,
 	launchChromiumOrSkip,
 	postGuestCommand,
+	requireAccepted,
 	type HeadedBrowser,
 	type HeadedPage
 } from '@norbital-ai/test-utilities';
-import { COMPANY_ID, JURISDICTION_ID, startPublicSeedHost } from '../helpers/public-seed-host.ts';
+import {
+	COMPANY_ID,
+	EMPLOYMENT_ID,
+	JANUARY_2026,
+	JURISDICTION_ID,
+	SHIFT_WORK_ID,
+	startPublicSeedHost
+} from '../helpers/public-seed-host.ts';
+import { writeRows } from '../helpers/write.ts';
 import {
 	ERROR_RECORDER,
 	FAILURE_COPY,
@@ -40,6 +49,7 @@ import {
 	assertNoErrors,
 	auditScroll,
 	auditFill,
+	auditNarrow,
 	authoredNames,
 	closeOverlay,
 	navigate,
@@ -72,23 +82,6 @@ const SKIPPED_SURFACES = new Set(['/app/hr_controller/kiosk']);
  * that has to be edited on purpose.
  */
 const NO_REPRESENTATION = new Set(['loan_repayments']);
-
-/**
- * Collections the public seed carries no row for, so this walk cannot render their representation.
- *
- * Behaviour suites create some of these records, but this independent walk starts from the public
- * fixtures alone. A fixture row removes the corresponding gap from this list.
- */
-const UNSEEDED_COLLECTIONS = new Set([
-	'adhoc_requests',
-	'claim_requests',
-	'loan_catalogue',
-	'loans',
-	'payroll_runs',
-	'payslips',
-	'rosters',
-	'work_days'
-]);
 
 /** A warm surface budget. The first navigation pays the cold start and is excluded. */
 const WARM_SURFACE_BUDGET_MS = 15_000;
@@ -145,6 +138,7 @@ const openGateway = async (session: Awaited<ReturnType<typeof startPublicSeedHos
 				environment: 'test',
 				releaseId: LABEL,
 				principal: `${LABEL}-founder`,
+				email: `${LABEL}-founder@example.test`,
 				syncPrincipal: `${LABEL}-founder`,
 				organizationName: 'HR payroll public seed',
 				commandPrefix: '/__bolt/command/',
@@ -169,6 +163,75 @@ const firstRowIds = async (
 	}
 	return found;
 };
+
+/** Populate the record types absent from the public fixtures; payroll creates its own outputs. */
+async function prepareRepresentations(session: Awaited<ReturnType<typeof startPublicSeedHost>>) {
+	const create = async (collection: string, values: Readonly<Record<string, unknown>>) => {
+		const response = await writeRows(session, collection, 'create', [values]);
+		requireAccepted(response.value, `${collection} representation fixture`);
+	};
+	await create('payroll_runs', { company_id: COMPANY_ID, period: JANUARY_2026 });
+	// Synthetic display state; the standalone funding integration test verifies calculation and settlement.
+	await session.query(`update payslips set net = 0, total_deductions = gross + 1000,
+		unfunded_contributions = 1000, funding_received_on = '2026-01-31', funding_reference = 'SURFACE-RECEIPT'`);
+	for (const family of ['claim', 'adhoc'] as const) {
+		const [catalogue] = await session.query(`select id from ${family}_catalogue limit 1`);
+		assert.ok(catalogue);
+		await create(`${family}_requests`, {
+			employment_id: EMPLOYMENT_ID,
+			catalogue_id: catalogue.id,
+			amount: 100,
+			...(family === 'claim'
+				? { incurred_on: '2026-04-02', description: 'Client travel' }
+				: { event_date: '2026-04-15', reason: 'Departure payment' })
+		});
+	}
+	const loanCatalogueId = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd1';
+	await session.query(
+		`insert into loan_catalogue (id, settings_id, code, loan_type, eligibility)
+		 values ($1, $2, 'LOAN_RECOVERY', 'STAFF', '')`,
+		[loanCatalogueId, JURISDICTION_ID]
+	);
+	await create('loans', {
+		employment_id: EMPLOYMENT_ID,
+		loan_catalogue_id: loanCatalogueId,
+		principal: 1200,
+		effective_range: { start: '2026-04-01T00:00:00Z', end: '2026-09-30T00:00:00Z' },
+		reference: 'SURFACE-LOAN',
+		repayment_loan: {
+			create: [
+				{ due_date: '2026-04-30', amount_due: 600, sequence: 1 },
+				{ due_date: '2026-05-31', amount_due: 600, sequence: 2 }
+			]
+		}
+	});
+	await create('rosters', { employment_id: EMPLOYMENT_ID, period: '2026-05' });
+	await create('work_days', {
+		employment_id: EMPLOYMENT_ID,
+		work_date: '2026-05-04',
+		shift_definition_id: SHIFT_WORK_ID,
+		worked_intervals: [{ start: '2026-05-04T01:00:00Z', end: '2026-05-04T09:00:00Z' }]
+	});
+	await create('employment_wage_periods', {
+		employment_id: EMPLOYMENT_ID,
+		period: { start: '2026-03-01T00:00:00Z', end: '2026-03-31T00:00:00Z' },
+		ordinary_wages: { currency: 'MYR', value: 3100 },
+		ordinary_days: 22,
+		due_on: '2026-04-07T00:00:00.000Z',
+		reference: 'SURFACE-WAGE'
+	});
+	// The junction is payroll output with no direct write surface; the sweep only needs one row
+	// to open the representation.
+	const [capturedPeriod] = await session.query(
+		'select id from employment_wage_periods order by created_at desc limit 1'
+	);
+	const [capturedSlip] = await session.query('select id from payslips order by id limit 1');
+	assert.ok(capturedPeriod && capturedSlip);
+	await session.query(
+		'insert into payslip_wage_periods (payslip_id, wage_period_id) values ($1, $2)',
+		[capturedSlip.id, capturedPeriod.id]
+	);
+}
 
 type Report = {
 	readonly surface: string;
@@ -328,6 +391,11 @@ const underfilled: string[] = [];
  * fails the sweep on the spot. Each entry is asserted to still match something, so the day the
  * underlying fix lands the sweep tells you to delete the entry rather than quietly carrying it.
  */
+/**
+ * Phone findings this template still carries, each a fix waiting to land; the list only shrinks.
+ */
+const KNOWN_NARROW: ReadonlyArray<RegExp> = [];
+
 const KNOWN_UNDERFILL: readonly { shape: RegExp; note: string }[] = [
 	{
 		shape: /\[data-data-renderer-control\]/,
@@ -434,7 +502,48 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 			'update employees set email = $1 where id = (select employee_id from employments where employee_number = $2)',
 			[`${LABEL}-founder@example.test`, 'PUB-EMP-0001']
 		);
+		await prepareRepresentations(session);
 		const rowIds = await firstRowIds(session.query, representations);
+		assert.equal(rowIds.size, representations.length, 'every representation needs a fixture');
+		await session.query('update jurisdiction_settings set facts = $1::jsonb where id = $2', [
+			JSON.stringify([
+				{ key: 'audit_consent', type: 'boolean', label: 'Declared consent' },
+				{
+					key: 'audit_count',
+					type: 'number',
+					label: 'Declared count',
+					required_when: 'company.facts.audit_consent',
+					minimum: 0,
+					maximum: 3,
+					integer: true
+				},
+				{ key: 'audit_category', type: 'string', label: 'Declared category', options: ['A', 'B'] }
+			]),
+			JURISDICTION_ID
+		]);
+		// Use the actual Taiwan declaration keys to exercise its typed controls on the fixture.
+		const declarations = JSON.parse(
+			readFileSync(
+				new URL('../../seed/jurisdiction/TW/statutory_contributions.json', import.meta.url),
+				'utf8'
+			)
+		)
+			.filter(
+				(row: { code: string; settings_id: string }) =>
+					row.settings_id === '1fcfa66f-40da-5792-b925-7c2fcaa8f92c' &&
+					['INCOME_TAX', 'NHI'].includes(row.code)
+			)
+			.flatMap((row: { elections: readonly { key: string; type: string }[] }) => row.elections);
+		const declarationSchemeId = 'c2222222-2222-4222-8222-222222222222';
+		await session.query(
+			`insert into statutory_contributions (id, settings_id, code, name, elections, rules)
+			values ($1, $2, 'TW_DECLARATION_TEST', 'Taiwan withholding declaration', $3::jsonb, '[]'::jsonb)`,
+			[declarationSchemeId, JURISDICTION_ID, JSON.stringify(declarations)]
+		);
+		await session.query(
+			'update employment_statutory_facts set statutory_contribution_id = $1 where id = $2',
+			[declarationSchemeId, rowIds.get('employment_statutory_facts')]
+		);
 		gateway = await openGateway(session);
 		browser = await launchChromiumOrSkip(ERROR_RECORDER);
 		assert.ok(
@@ -448,7 +557,11 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 		// A short viewport is the point: a region only traps the scroll once its content outgrows
 		// the box, and nothing outgrows a 900-pixel-tall window.
 		await page.setViewportSize({ width: 1280, height: 700 });
-		await waitForShell(page, SETTLE_TIMEOUT_MS);
+		await waitForShell(page, SETTLE_TIMEOUT_MS).catch(async (cause: unknown) => {
+			throw new Error(`Workspace startup errors: ${JSON.stringify(await readErrors(page))}`, {
+				cause
+			});
+		});
 		await unlockDeferredQueries(page);
 
 		let seenErrors = 0;
@@ -504,9 +617,14 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 			// One create form per app surface. The layout contract is the same for every collection,
 			// so opening all of them on every page would multiply the walk for no new answer.
 			let formFields: number | null = null;
-			const opened = String(
-				await page.evaluate(
-					`(() => {
+			// Settings' New version action opens a lifecycle dialog. Its catalogue create forms
+			// are exercised explicitly by the scoped-form walk below.
+			const opened =
+				path === SETTINGS_PATH
+					? 'none'
+					: String(
+							await page.evaluate(
+								`(() => {
 						const create = [...document.querySelectorAll('button')].find((node) =>
 							/^New\\b/.test((node.textContent ?? '').trim())
 						);
@@ -516,8 +634,8 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 						create.click();
 						return 'opened';
 					})()`
-				)
-			);
+							)
+						);
 			if (opened === 'opened') {
 				await settle(
 					page,
@@ -543,6 +661,32 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 			});
 		}
 
+		// The same apps once more as a phone: 390 wide, coarse pointer, no hover. Structure changes
+		// (the sidebar is a sheet, dialogs are bottom sheets) and the three phone tells are measured.
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.emulateTouch(true);
+		const narrow: string[] = [];
+		for (const app of apps) {
+			const path = `/app/${app}`;
+			if (SKIPPED_SURFACES.has(path)) continue;
+			await navigate(page, path);
+			await settle(
+				page,
+				(current) => current.path.startsWith(path.split('/').slice(0, 3).join('/')),
+				`${path} (narrow)`,
+				SETTLE_TIMEOUT_MS
+			);
+			seenErrors = assertNoErrors(await readErrors(page), `${path} (narrow)`, seenErrors);
+			narrow.push(...(await auditNarrow(page, `${path} (narrow)`)));
+		}
+		await page.emulateTouch(false);
+		await page.setViewportSize({ width: 1280, height: 700 });
+		assert.deepEqual(
+			narrow.filter((finding) => !KNOWN_NARROW.some((known) => known.test(finding))),
+			[],
+			'a surface gives itself away on a phone'
+		);
+
 		// The workspace overview mounts no record-navigation surface, so the detail stack is opened
 		// over an application route — which is also where a tenant opens one.
 		const representationBase = `/app/${apps.find((app) => !groups.has(app) && !SKIPPED_SURFACES.has(`/app/${app}`)) ?? apps[0]}`;
@@ -561,7 +705,9 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 			await navigate(page, `${representationBase}${recordStackSearch(collection, recordId)}`);
 			const { paint, elapsedMs } = await settle(
 				page,
-				(current) => current.dialogs > 0,
+				(current) =>
+					current.dialogs > 0 &&
+					(collection !== 'companies' || current.dialogBody.includes('Declared consent')),
 				label,
 				SETTLE_TIMEOUT_MS
 			);
@@ -575,6 +721,128 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 				paint.dialogBody.trim().length > 0,
 				`${label} opened an empty sheet — the representation rendered nothing`
 			);
+			if (collection === 'payslips') {
+				assert.match(paint.dialogBody, /Contribution funding/);
+				assert.match(paint.dialogBody, /Funding outstanding/);
+				await page.evaluate(`(() => {
+					const label = [...document.querySelectorAll('label')].find((node) => node.textContent.trim().startsWith('Funds received'));
+					const input = label?.control ?? label?.querySelector('input');
+					if (!input) throw new Error('Funds received control missing');
+					input.value = '100';
+					input.dispatchEvent(new Event('input', { bubbles: true }));
+				})()`);
+				await page.click('button:text-is("Save funding")');
+				await settle(
+					page,
+					(current) => current.dialogBody.includes('900.00'),
+					'funding receipt saved',
+					SETTLE_TIMEOUT_MS
+				);
+				const [stored] = await session.query(
+					'select funding_received, funding_reference from payslips where id = $1',
+					[recordId]
+				);
+				assert.equal(Number(stored?.funding_received), 100);
+				assert.equal(stored?.funding_reference, 'SURFACE-RECEIPT');
+			}
+			if (collection === 'companies') {
+				assert.match(paint.dialogBody, /Required when applicable/);
+				const declarations = await page.evaluate(`(async () => {
+					const find = (name) => [...document.querySelectorAll('label')].find(node => {
+						const label = node.cloneNode(true);
+						label.querySelectorAll('input, select, textarea').forEach(control => control.remove());
+						return label.textContent.trim() === name;
+					});
+					const consent = find('Declared consent')?.querySelector('select');
+					const count = find('Declared count')?.querySelector('input');
+					const category = find('Declared category')?.querySelector('select');
+					if (!consent || !count || !category) throw new Error('Jurisdiction declarations did not generate entity controls: ' + document.querySelector('[role="dialog"]')?.textContent);
+					if (consent.value !== '' || count.value !== '') throw new Error('Missing facts became recorded defaults');
+					consent.value = 'false'; consent.dispatchEvent(new Event('change', { bubbles: true }));
+					count.value = '0'; count.dispatchEvent(new Event('input', { bubbles: true }));
+					await new Promise(requestAnimationFrame);
+					return { consent: consent.value, count: count.value, min: count.min, max: count.max, step: count.step, options: [...category.options].map(option => option.textContent) };
+				})()`);
+				assert.deepEqual(declarations, {
+					consent: 'false',
+					count: '0',
+					min: '0',
+					max: '3',
+					step: '1',
+					options: ['Not recorded', 'A', 'B']
+				});
+			}
+			if (collection === 'employment_statutory_facts') {
+				const state = await page.evaluate(`(async () => {
+					const label = [...document.querySelectorAll('label')].find((node) => node.textContent.trim() === 'Reference number');
+					const input = label?.querySelector('input');
+					if (!input) throw new Error('Registration reference input missing');
+					input.value = '';
+					input.dispatchEvent(new Event('input', { bubbles: true }));
+					await new Promise(requestAnimationFrame);
+					const add = [...document.querySelectorAll('button')].find((node) => node.textContent.trim() === 'Add child claim');
+					if (!add) throw new Error('Incomplete reference collapsed the registration editor');
+					add.click();
+					await new Promise(requestAnimationFrame);
+					return document.body.innerText;
+				})()`);
+				assert.match(String(state), /Children claimed at 100%/);
+				assert.match(String(state), /Children claimed at 50%/);
+				assert.match(String(state), /Declaration reference/);
+				const liabilityDate = await page.evaluate(`(async () => {
+					const label = [...document.querySelectorAll('label')].find((node) => node.textContent.trim() === 'First contribution due date');
+					const input = label?.querySelector('input[type="date"]');
+					if (!input) throw new Error('First contribution liability date input missing');
+					input.value = '2018-01-01';
+					input.dispatchEvent(new Event('input', { bubbles: true }));
+					await new Promise(requestAnimationFrame);
+					return label.querySelector('input')?.value;
+				})()`);
+				assert.equal(liabilityDate, '2018-01-01');
+				const deductionState = await page.evaluate(`(async () => {
+					const details = [...document.querySelectorAll('details')].find((node) => node.querySelector('summary')?.textContent.trim() === 'Tax deductions · TP1 / TP3');
+					if (!details) throw new Error('Deduction editor missing');
+					details.open = true;
+					const add = [...details.querySelectorAll('button')].find((node) => node.textContent.trim() === 'Add deduction');
+					add.click();
+					await new Promise(requestAnimationFrame);
+					const label = [...details.querySelectorAll('label')].find((node) => node.textContent.trim() === 'Claim amount (RM)');
+					const amount = label?.querySelector('input');
+					if (!amount) throw new Error('Deduction amount input missing');
+					amount.value = '120';
+					amount.dispatchEvent(new Event('input', { bubbles: true }));
+					await new Promise(requestAnimationFrame);
+					return details.innerText;
+				})()`);
+				assert.match(String(deductionState), /Deduction declaration reference/);
+				assert.match(String(deductionState), /Current employer · TP1/);
+				assert.match(String(deductionState), /120\.00/);
+				const tableDeclaration = await page.evaluate(`(async () => {
+					const find = (name) => [...document.querySelectorAll('label')].find((node) => node.textContent.trim() === name)?.querySelector('input');
+					const reference = find('Tax table declaration reference');
+					const count = find('Declared spouse and dependants');
+					if (!reference || !count) throw new Error('Taiwan declaration controls missing');
+					if (count.value !== '') throw new Error('Missing dependant count became a declared zero');
+					reference.value = 'TW-DECL-01';
+					reference.dispatchEvent(new Event('input', { bubbles: true }));
+					await new Promise(requestAnimationFrame);
+					count.value = '0';
+					count.dispatchEvent(new Event('input', { bubbles: true }));
+					await new Promise(requestAnimationFrame);
+					return [find('Tax table declaration reference')?.value, find('Declared spouse and dependants')?.value];
+				})()`);
+				assert.deepEqual(tableDeclaration, ['TW-DECL-01', '0']);
+				const enrolledCount = await page.evaluate(`(async () => {
+					const find = () => [...document.querySelectorAll('label')].find((node) => node.textContent.trim() === 'NHI enrolled dependants')?.querySelector('input');
+					const count = find();
+					if (!count || count.value !== '') throw new Error('Missing NHI count became a declared zero');
+					count.value = '0';
+					count.dispatchEvent(new Event('input', { bubbles: true }));
+					await new Promise(requestAnimationFrame);
+					return find()?.value;
+				})()`);
+				assert.equal(enrolledCount, '0');
+			}
 			await auditScroll(page, label);
 			underfilled.push(...(await auditFill(page, label)));
 			// A representation has tabs of its own — a payroll run's payslips, a settings version's
@@ -615,13 +883,7 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 			);
 		// repository-health:allow LOG1 -- the panels behind tabs are surfaces too; name them.
 		console.log(`tab panels walked\n${JSON.stringify(walked, null, 2)}`);
-		// Compare the exact declared gap set: a retired or renamed collection must not disappear
-		// behind a filter, and a new representation without a fixture must be recorded explicitly.
-		assert.deepEqual(
-			unseeded,
-			[...UNSEEDED_COLLECTIONS].toSorted(),
-			'the set of representations no seeded row can render has changed'
-		);
+		assert.deepEqual(unseeded, [], 'every authored representation must be rendered');
 		assert.ok(
 			reports.some((report) => report.formFields !== null && report.formFields > 0),
 			'the sweep never opened a create form, so its layout contract proved nothing'
@@ -707,7 +969,11 @@ it('every scoped create form hides the scope it was opened with, and still draws
 			guestUrlForChromium('127.0.0.1', gateway.address.port, '/')
 		);
 		await page.setViewportSize({ width: 1280, height: 900 });
-		await waitForShell(page, SETTLE_TIMEOUT_MS);
+		await waitForShell(page, SETTLE_TIMEOUT_MS).catch(async (cause: unknown) => {
+			throw new Error(`Workspace startup errors: ${JSON.stringify(await readErrors(page))}`, {
+				cause
+			});
+		});
 		await unlockDeferredQueries(page);
 
 		let seenErrors = 0;

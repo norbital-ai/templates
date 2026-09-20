@@ -15,6 +15,7 @@ const row = {
 	gross: '1724.00',
 	total_deductions: '43.75',
 	net: '1680.25',
+	unfunded_contributions: '0.00',
 	employer_cost: '65.65',
 	payslip_employment: { employee_number: 'PUBEM0345' }
 };
@@ -32,6 +33,7 @@ test('the payroll-run payslip query projects the employee code and every display
 			gross: true,
 			total_deductions: true,
 			net: true,
+			unfunded_contributions: true,
 			employer_cost: true,
 			created_at: true
 		},
@@ -48,6 +50,7 @@ test('collection cells show the employee code and stored payroll totals', () => 
 	assert.equal(payslipAmount(row, 'gross'), '1,724.00');
 	assert.equal(payslipAmount(row, 'total_deductions'), '43.75');
 	assert.equal(payslipAmount(row, 'net'), '1,680.25');
+	assert.equal(payslipAmount(row, 'unfunded_contributions'), '0.00');
 	assert.equal(payslipAmount(row, 'employer_cost'), '65.65');
 	assert.equal(payslipAmount({ ...row, total_deductions: '0' }, 'total_deductions'), '0.00');
 	assert.equal(payslipEmployeeCode({ ...row, payslip_employment: null }), '—');

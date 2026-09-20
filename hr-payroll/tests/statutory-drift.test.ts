@@ -13,7 +13,7 @@ import {
 	officialUrlFor,
 	verifyStatutorySources
 } from '../src/lib/statutory_research.ts';
-import { applyProposedChanges, firstOfNextMonth } from '../src/automations/+statutory_drift.ts';
+import { applyProposedChanges } from '../src/automations/+statutory_drift.ts';
 import { settingsDraftWrite } from '../src/lib/settings_clone.ts';
 import { prefilterStatutorySources, researchOrigins } from '../src/lib/statutory_sources.ts';
 import { LINEAGES, settingsVersions } from './fixtures/statutory-world.ts';
@@ -50,7 +50,15 @@ test('a changed rule table standing on a quote from a retrieved page is one chan
 	const diff = diffStatutoryFindings(
 		sealed,
 		{
-			contributions: [{ code: 'EPF', rules: [rule('12.0')], source_url: page.url, quote }],
+			contributions: [
+				{
+					code: 'EPF',
+					rules: [rule('12.0')],
+					source_url: page.url,
+					effective_from: '2027-01-01',
+					quote
+				}
+			],
 			leave_catalogue: [],
 			notes: []
 		},
@@ -66,9 +74,10 @@ test('a changed rule table standing on a quote from a retrieved page is one chan
 		source_url: page.url,
 		quote,
 		retrieved_at: page.retrieved_at,
-		sha256: page.sha256
+		sha256: page.sha256,
+		effective_from: '2027-01-01'
 	});
-	assert.deepEqual(diff.notes, []);
+	assert.deepEqual(diff.notes, ['Leave ANNUAL: no verified comparison; review required']);
 });
 
 test('an unchanged table, in any key or rule order, is no change', () => {
@@ -76,7 +85,15 @@ test('an unchanged table, in any key or rule order, is no change', () => {
 	const diff = diffStatutoryFindings(
 		sealed,
 		{
-			contributions: [{ code: 'EPF', rules: [reordered], source_url: page.url, quote }],
+			contributions: [
+				{
+					code: 'EPF',
+					rules: [reordered],
+					source_url: page.url,
+					effective_from: '2027-01-01',
+					quote
+				}
+			],
 			leave_catalogue: [
 				{
 					code: 'ANNUAL',
@@ -96,6 +113,7 @@ test('an unchanged table, in any key or rule order, is no change', () => {
 	);
 	assert.deepEqual(diff.changes, []);
 	assert.deepEqual(diff.notes, ['A revision is announced for 2028.']);
+	assert.equal(diff.requires_review, true, 'unstructured findings must reach the reviewer');
 });
 
 test('a quote not on the page, a page not retrieved and an unknown code are notes, never changes', () => {
@@ -115,7 +133,13 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 					source_url: 'https://statutory.example.org/elsewhere',
 					quote
 				},
-				{ code: 'SOCSO', rules: [rule('1.0')], source_url: page.url, quote }
+				{
+					code: 'SOCSO',
+					rules: [rule('1.0')],
+					source_url: page.url,
+					effective_from: '2027-01-01',
+					quote
+				}
 			],
 			leave_catalogue: [],
 			notes: []
@@ -123,10 +147,40 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 		[page]
 	);
 	assert.deepEqual(diff.changes, []);
-	assert.equal(diff.notes.length, 3);
+	assert.equal(diff.notes.length, 5);
 	assert.match(diff.notes[0], /quote does not appear/);
 	assert.match(diff.notes[1], /was not retrieved/);
 	assert.match(diff.notes[2], /not a statutory scheme/);
+	assert.equal(diff.requires_review, true);
+});
+
+test('missing research and unsupported threshold changes require review', () => {
+	const missing = diffStatutoryFindings(
+		sealed,
+		{ contributions: [], leave_catalogue: [], notes: [] },
+		[page]
+	);
+	assert.equal(missing.requires_review, true);
+	const threshold = diffStatutoryFindings(
+		sealed,
+		{
+			contributions: [
+				{
+					code: 'EPF',
+					rules: [{ ...rule('12.0'), when: 'base > 100.0' }],
+					source_url: page.url,
+					effective_from: '2027-01-01',
+					quote
+				}
+			],
+			leave_catalogue: [],
+			notes: []
+		},
+		[page]
+	);
+	assert.deepEqual(threshold.changes, []);
+	assert.equal(threshold.requires_review, true);
+	assert.ok(threshold.notes.some((note) => /condition.*review/.test(note)));
 });
 
 test('the proposed rules replace the cloned ones in the draft write', () => {
@@ -158,7 +212,8 @@ test('the proposed rules replace the cloned ones in the draft write', () => {
 				source_url: page.url,
 				quote,
 				retrieved_at: page.retrieved_at,
-				sha256: page.sha256
+				sha256: page.sha256,
+				effective_from: '2027-01-01'
 			}
 		],
 		notes: [],
@@ -185,7 +240,15 @@ test('a changed rate preserves and targets its rule ladder', () => {
 	const diff = diffStatutoryFindings(
 		facts,
 		{
-			contributions: [{ code: 'EPF', rules: [proposed], source_url: page.url, quote }],
+			contributions: [
+				{
+					code: 'EPF',
+					rules: [proposed],
+					source_url: page.url,
+					effective_from: '2027-01-01',
+					quote
+				}
+			],
 			leave_catalogue: [],
 			notes: []
 		},
@@ -200,9 +263,98 @@ test('a changed rate preserves and targets its rule ladder', () => {
 	assert.deepEqual(result.contribution_settings.create[0].rules, [proposed, second]);
 });
 
-test('a proposed version begins on the first of the month after today', () => {
-	assert.equal(firstOfNextMonth('2026-09-07'), '2026-10-01');
-	assert.equal(firstOfNextMonth('2026-12-31'), '2027-01-01');
+test('drift compares deductions and refusal reasons and preserves them in unrelated rate changes', () => {
+	const previous = {
+		...rule('11.0'),
+		deduction: '100.0',
+		refusal: 'Required declaration missing.'
+	};
+	for (const proposed of [
+		{ ...rule('11.0'), deduction: '200.0' },
+		{ ...rule('11.0'), refusal: 'A different declaration is required.' },
+		rule('12.0')
+	]) {
+		const diff = diffStatutoryFindings(
+			{ ...sealed, contributions: [{ ...sealed.contributions[0], rules: [previous] }] },
+			{
+				contributions: [
+					{
+						code: 'EPF',
+						rules: [proposed],
+						source_url: page.url,
+						effective_from: '2027-01-01',
+						quote
+					}
+				],
+				leave_catalogue: [],
+				notes: []
+			},
+			[page]
+		);
+		assert.equal(diff.changes.length, 1);
+		assert.deepEqual(diff.changes[0].proposed, [{ ...previous, ...proposed }]);
+	}
+});
+
+test('drift compares rebate changes and preserves an omitted rebate in a changed rate', () => {
+	const previous = { ...rule('11.0'), rebate: '100.0' };
+	const reference = {
+		...page,
+		text: 'From 1 January 2027 rebatable payments are 120 and the employee rate is 12.'
+	};
+	const facts = { ...sealed, contributions: [{ ...sealed.contributions[0], rules: [previous] }] };
+	for (const [proposed, expected] of [
+		[
+			{ ...rule('11.0'), rebate: '120.0' },
+			{ ...rule('11.0'), rebate: '120.0' }
+		],
+		[rule('12.0'), { ...rule('12.0'), rebate: '100.0' }]
+	]) {
+		const diff = diffStatutoryFindings(
+			facts,
+			{
+				contributions: [
+					{
+						code: 'EPF',
+						rules: [proposed],
+						source_url: reference.url,
+						effective_from: '2027-01-01',
+						quote: reference.text
+					}
+				],
+				leave_catalogue: [],
+				notes: []
+			},
+			[reference]
+		);
+		assert.equal(diff.changes.length, 1);
+		assert.deepEqual(diff.changes[0].proposed, [expected]);
+		const result = applyProposedChanges(
+			{ contribution_settings: { create: [{ code: 'EPF', rules: [previous] }] } },
+			diff.changes,
+			{ changes: diff.changes }
+		);
+		assert.deepEqual(result.contribution_settings.create[0].rules, [expected]);
+	}
+});
+
+test('a changed rate without a valid statutory commencement date is not proposed', () => {
+	for (const effective_from of [null, '', '2027-02-30', '2027-1-1']) {
+		const diff = diffStatutoryFindings(
+			sealed,
+			{
+				contributions: [
+					{ code: 'EPF', rules: [rule('12.0')], source_url: page.url, quote, effective_from }
+				],
+				leave_catalogue: [],
+				notes: []
+			},
+			[page]
+		);
+		assert.deepEqual(diff.changes, []);
+		assert.equal(diff.requires_review, true);
+		assert.ok(diff.notes.some((note) => /effective date/.test(note)));
+	}
 });
 
 test('verification reads only the origins the version names, and records what it read', async () => {

@@ -16,7 +16,7 @@ import {
 	childUnclassedUnder,
 	childUnder
 } from './child-under.js';
-import { ageMonthsOn, ageOn, leaveTaken } from './person-functions.js';
+import { ageMonthsOn, ageOn, birthday, leaveTaken } from './person-functions.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -31,10 +31,15 @@ export type ExpressionEngine = {
 	readonly minimumWage: (region: string) => number;
 	/** The signed total of one catalogue code this payslip, or 0 where the payslip has none. */
 	readonly code?: (code: string) => number;
+	readonly annualQuantityExempt?: (code: string, limit: number) => number;
+	readonly earnedQuantityExempt?: (code: string, limit: number) => number;
+	readonly earnedMonthlyExcess?: (code: string, limit: number) => number;
 	/** `earned_average(code, months_back, months)`: a window of earlier payslips' earnings. */
 	readonly earnedAverage?: (code: string, monthsBack: number, months: number) => number;
 	/** `days_under(age)`: the pay window's days on which the person is under that age. */
 	readonly daysUnder?: (age: number) => number;
+	/** Covered days on a thirty-day calendar; age 0 leaves coverage uncapped by age. */
+	readonly coverageDays30?: (since: string, age: number) => number;
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
@@ -83,10 +88,27 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.unclassed_under(int): int', childUnclassedUnder],
 	['map.born_on(string): int', childBornOn],
 	['map.age_on(string): int', ageOn],
+	['map.birthday(int): string', birthday],
 	['map.age_months_on(string): int', ageMonthsOn],
 	['map.taken(string): double', leaveTaken],
 	['days_under(int): double', (age) => Number(bound.daysUnder?.(Number(age)) ?? 0)],
+	[
+		'coverage_days_30(string, int): double',
+		(since, age) => Number(bound.coverageDays30?.(String(since), Number(age)) ?? 0)
+	],
 	['map.days(string): double', () => 0],
+	[
+		'annual_quantity_exempt(string, dyn): double',
+		(code, limit) => Number(bound.annualQuantityExempt?.(String(code), Number(limit)) ?? 0)
+	],
+	[
+		'earned_quantity_exempt(string, dyn): double',
+		(code, limit) => Number(bound.earnedQuantityExempt?.(String(code), Number(limit)) ?? 0)
+	],
+	[
+		'earned_monthly_excess(string, dyn): double',
+		(code, limit) => Number(bound.earnedMonthlyExcess?.(String(code), Number(limit)) ?? 0)
+	],
 	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
 	[
 		'earned_average(string, int, int): double',
@@ -114,8 +136,12 @@ export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {})
 	return {
 		minimumWage: options.minimumWage ?? (() => 0),
 		code: options.code,
+		annualQuantityExempt: options.annualQuantityExempt,
+		earnedQuantityExempt: options.earnedQuantityExempt,
+		earnedMonthlyExcess: options.earnedMonthlyExcess,
 		earnedAverage: options.earnedAverage,
-		daysUnder: options.daysUnder
+		daysUnder: options.daysUnder,
+		coverageDays30: options.coverageDays30
 	};
 }
 

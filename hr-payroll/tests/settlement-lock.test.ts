@@ -139,6 +139,7 @@ function measure(overrides = {}) {
 		payRequests: [],
 		loans: [],
 		loanRepayments: [],
+		wagePeriods: [],
 		leave: { entries: [], catalogues: [], captures: [], balances: {}, deductionEligibility: {} },
 		children: [],
 		payFrequency: 'MONTHLY',
@@ -347,7 +348,8 @@ test('a run captures every record it consumed, and adjustments name the captures
 							gross_amount: { value: -25.8, currency: 'MYR' }
 						}
 					],
-					loanRepayments: ['rp-1']
+					loanRepayments: ['rp-1'],
+					wagePeriods: []
 				}
 			}
 		]

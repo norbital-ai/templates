@@ -8,12 +8,13 @@
 import { EXPRESSION_CONTEXTS, type ExpressionContext } from './contexts.js';
 
 const SITE_USE: Readonly<Record<ExpressionContext['site'], string>> = {
+	entity: '`jurisdiction_settings.facts[].required_when` — entity input requirements',
 	person:
 		'catalogue eligibility, a scheme’s person conditions, `wages.applies_when`, `overtime_when`',
 	entry: 'catalogue bands and entitlement amounts — one claim, allowance or loan entry',
 	work_day: 'work bands, breaks, limits and the night premium — one priced person-day',
 	assessment: '`statutory_contributions.assessed_on` and `ordinary_on` — one scheme’s wage',
-	scheme: 'contribution rules — the `when`, `employee` and `employer` of each rung',
+	scheme: 'contribution rules and `statutory_contributions.elections[].required_when`',
 	leave_day: '`leave_catalogue.pay_fraction` — one charged leave day'
 };
 
@@ -26,7 +27,7 @@ export function renderExpressionContexts(): string {
 		'',
 		'Rendered from `src/lib/expressions/contexts.ts` — do not edit by hand; `pnpm exec node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs scripts/render-expression-context.ts` rewrites it and `tests/expression-context-doc.test.ts` holds it current.',
 		'',
-		'Every expression in a sealed version is CEL over one of six sites. A site carries the roots listed here and nothing else: a member the site does not declare is refused at write. Open prefixes (`limits.<key>`, `year.earned.<code>`, `produced.<code>`, `scheme.elections.<key>`, `person.company.facts.<key>`) are keys the version itself declares.',
+		'Every expression in a sealed version is CEL over one of the sites below. A site carries the roots listed here and nothing else: a member the site does not declare is refused at write. Open prefixes (`limits.<key>`, `year.earned.<code>`, `produced.<code>`, `scheme.elections.<key>`, `company.facts.<key>`, `person.company.facts.<key>`) are keys the version itself declares.',
 		''
 	];
 	for (const context of Object.values(EXPRESSION_CONTEXTS)) {

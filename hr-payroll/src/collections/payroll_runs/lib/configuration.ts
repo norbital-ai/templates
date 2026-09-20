@@ -1,4 +1,4 @@
-import { EMPTY_OF } from '../../../lib/expressions/compile.js';
+import { resolveCompanyFacts } from '../../../lib/declared-facts.js';
 import type { HolidaySnapshot } from '../../../datatypes/holiday_snapshots/+definition.js';
 /**
  * Resolve the governing settings and family definitions once for the run. Holidays publish
@@ -69,6 +69,8 @@ export type ContributionConfig = {
 
 export type Configuration = {
 	readonly company: Company;
+	/** Raw declarations, before this run's defaults; historical cash-out uses its own version. */
+	readonly recordedCompanyFacts: Company['facts'];
 	readonly jurisdiction: Jurisdiction;
 	readonly work: Work;
 	/** In dependency order — a relief is produced before the scheme that reads it. */
@@ -219,16 +221,10 @@ export function pickConfiguration(
 		);
 
 		const configuration = {
-			// Every fact the version declares reads as its type's empty until the entity states it:
-			// a rule may name `company.facts.<key>` without guarding it.
+			recordedCompanyFacts: company.facts ?? {},
 			company: {
 				...company,
-				facts: {
-					...Object.fromEntries(
-						(jurisdiction.facts ?? []).map((fact) => [fact.key, EMPTY_OF[fact.type]])
-					),
-					...(company.facts ?? {})
-				}
+				facts: resolveCompanyFacts(jurisdiction.facts ?? [], company)
 			},
 			jurisdiction,
 			lineageVersions: live(versionRows),

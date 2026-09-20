@@ -110,6 +110,7 @@ function measure(entries) {
 			payRequests: [],
 			loans: [],
 			loanRepayments: [],
+			wagePeriods: [],
 			leave,
 			workDays: [],
 			serviceMonths: 63,

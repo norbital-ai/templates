@@ -1023,6 +1023,15 @@ test('Indonesia — efficiency or closure because of losses is half the pesangon
 		(world) => {
 			for (const [index, key] of ['ID-REDUNDANT', 'ID-RETRENCHED'].entries()) {
 				const employment = world.employments.find((row) => row.employee_number === key)!;
+				// PP 35/2021 art.43(1): the detailed cause, not the broad exit reason, chooses the
+				// multiplier — preventing loss pays the whole award, an actual loss pays half.
+				employment.exit_facts = {
+					termination_cause:
+						key === 'ID-REDUNDANT' ? 'EFFICIENCY_PREVENT_LOSS' : 'EFFICIENCY_ACTUAL_LOSS',
+					separation_wage_basis: 'MONTHLY',
+					micro_small_enterprise: false,
+					pension_offset_applies: false
+				};
 				for (const [offset, code] of ['PESANGON', 'UPMK'].entries()) {
 					const row = world.adhoc_catalogue!.find(
 						(item) =>

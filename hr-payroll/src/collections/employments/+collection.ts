@@ -1,7 +1,9 @@
 import { Effect } from 'effect';
 import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import model from './+model.js';
-import { stableJson } from '../../lib/jurisdiction_settings.js';
+import { settingsInForce, stableJson } from '../../lib/jurisdiction_settings.js';
+import { factValueFault } from '../../datatypes/fact_keys/+definition.js';
+import { dateKey } from '../../lib/iso-day.js';
 import { readRange } from '../payroll_runs/lib/effective.js';
 import {
 	assertContractDoesNotOverlap,
@@ -18,6 +20,7 @@ const columns = {
 	bank: true,
 	effective_range: true,
 	exit_reason: true,
+	exit_facts: true,
 	comments: true
 } as const;
 
@@ -63,6 +66,83 @@ export default defineCollection({
 	transform: (inputs, { existing, db }) =>
 		Effect.gen(function* () {
 			const candidates = inputs.map((input, index) => ({ ...existing[index], ...input }));
+			const declared = candidates.filter((row) => Object.keys(row.exit_facts ?? {}).length > 0);
+			const companies =
+				declared.length === 0
+					? []
+					: yield* db.companies.findMany({
+							where: {
+								id: {
+									in: [
+										...new Set(
+											declared.flatMap((row) => (row.company_id == null ? [] : [row.company_id]))
+										)
+									]
+								}
+							},
+							columns: { id: true, settings_code: true },
+							limit: LIMIT
+						});
+			const versions =
+				companies.length === 0
+					? []
+					: yield* db.jurisdiction_settings.findMany({
+							where: {
+								code: { in: [...new Set(companies.map((row) => row.settings_code))] },
+								sealed_at: { isNotNull: true },
+								voided_at: { isNull: true },
+								approval_id: { isNull: true }
+							},
+							limit: LIMIT
+						});
+			if (companies.length >= LIMIT || versions.length >= LIMIT)
+				refuse('Departure declarations are truncated; the inputs cannot be validated.');
+			for (const row of declared) {
+				const lastDay = readRange(row.effective_range)?.end;
+				if (lastDay == null) refuse('Departure inputs require a last working day.');
+				const code = companies.find((company) => company.id === row.company_id)?.settings_code;
+				const version = code == null ? null : settingsInForce(versions, code, dateKey(lastDay));
+				if (version == null)
+					refuse('Departure inputs require a sealed jurisdiction version on the last working day.');
+				for (const [key, value] of Object.entries(row.exit_facts ?? {})) {
+					const field = version.exit_facts.find((declaration) => declaration.key === key);
+					if (field == null) refuse(`${code} does not declare the departure input ${key}.`);
+					const fault = factValueFault(field, value);
+					if (fault != null) refuse(fault);
+				}
+			}
+			const changedDepartures = inputs.flatMap((input, index) => {
+				const stored = existing[index];
+				return stored != null &&
+					(['exit_reason', 'exit_facts'] as const).some(
+						(key) => Object.hasOwn(input, key) && stableJson(input[key]) !== stableJson(stored[key])
+					)
+					? [stored.id]
+					: [];
+			});
+			const paid =
+				changedDepartures.length === 0
+					? []
+					: yield* db.payslips.findMany({
+							where: { employment_id: { in: changedDepartures }, status: { eq: 'PAID' } },
+							columns: { employment_id: true, terms_through: true },
+							limit: LIMIT
+						});
+			if (paid.length >= LIMIT)
+				refuse('Paid departure history is truncated; the inputs cannot be changed.');
+			for (const row of candidates) {
+				const lastDay = readRange(row.effective_range)?.end;
+				if (
+					lastDay != null &&
+					paid.some(
+						(slip) =>
+							slip.employment_id === row.id && dateKey(slip.terms_through) >= dateKey(lastDay)
+					)
+				)
+					refuse(
+						'Departure calculation inputs are fixed by paid final payroll. Record a separate correction.'
+					);
+			}
 			const employeeIds = [
 				...new Set(candidates.flatMap((row) => (row.employee_id == null ? [] : [row.employee_id])))
 			];
@@ -76,7 +156,8 @@ export default defineCollection({
 						stableJson(input[key as keyof typeof input]) !==
 							stableJson(stored[key as keyof typeof stored])
 				);
-				const departureNote = (key: string) => key === 'comments' || key === 'exit_reason';
+				const departureNote = (key: string) =>
+					key === 'comments' || key === 'exit_reason' || key === 'exit_facts';
 				const closed = readRange(stored.effective_range)?.end != null;
 				const free = closed
 					? changed.every(departureNote)

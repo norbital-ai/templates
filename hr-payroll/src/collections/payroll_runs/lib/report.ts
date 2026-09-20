@@ -68,6 +68,8 @@ export type ReportPayslip = {
 	readonly gross: number;
 	readonly totalDeductions: number;
 	readonly net: number;
+	readonly unfundedContributions: number;
+	readonly fundingReceived: number;
 	readonly employerCost: number;
 	readonly lines: readonly ReportLine[];
 	/** Scheme code → what it charged, with the listing the version froze on the charge. */
@@ -187,6 +189,11 @@ const SECTION_LAYOUT: readonly {
 	{ name: 'Deductions', unit: 'MONEY', lines: (line) => line.bucket === 'DEDUCTION' },
 	{ name: 'Payments', unit: 'MONEY', lines: (line) => line.bucket === 'NON_WAGE_PAYMENT' },
 	{ name: 'Net', unit: 'MONEY', outputIds: ['netPay'] },
+	{
+		name: 'Contribution funding',
+		unit: 'MONEY',
+		outputIds: ['unfundedContributions', 'fundingReceived', 'fundingOutstanding']
+	},
 	{ name: 'Employer costs', unit: 'MONEY', lines: (line) => line.bucket === 'EMPLOYER_COST' },
 	{ name: 'Information', unit: 'MONEY', lines: (line) => line.bucket === 'INFORMATION' },
 	{ name: COMPANY_COST_SECTION_NAME, unit: 'MONEY', outputIds: ['companyCost'] }
@@ -319,6 +326,13 @@ function workbookRow(payslip: ReportPayslip): Record<string, number> {
 		// reconciles the sheet against the lines, and those were a second sum of the same columns.
 		grossEarnings: payslip.gross,
 		netPay: payslip.net,
+		...(payslip.unfundedContributions > 0
+			? {
+					unfundedContributions: payslip.unfundedContributions,
+					fundingReceived: payslip.fundingReceived,
+					fundingOutstanding: Math.max(0, payslip.unfundedContributions - payslip.fundingReceived)
+				}
+			: {}),
 		...statutoryOutputs(payslip),
 		// The one total that is written: what this person cost the entity, last on every sheet.
 		companyCost: payslip.employerCost

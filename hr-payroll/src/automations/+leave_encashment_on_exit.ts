@@ -1,17 +1,19 @@
 import { defineAutomation, refuse, type AutomationApi } from '@norbital-ai/bolt/authoring';
-import { Effect, Schema } from 'effect';
+import { Clock, Effect, Schema } from 'effect';
 import { stint } from '../lib/employment-contract.js';
 import { personAt, readLeaveContext, type LeaveContext } from '../lib/leave/context.js';
 import { settingsInForce } from '../lib/jurisdiction_settings.js';
 import { isEligible } from '../collections/payroll_runs/lib/eligibility.js';
 import { defaultPayPeriod } from '../collections/payroll_runs/lib/period.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
-import { exitEncashments, NO_AUTOMATIC_ENCASHMENT_EXIT } from '../lib/leave/exit-encashment.js';
+import { exitEncashments } from '../lib/leave/exit-encashment.js';
 import { leaveBalanceSummaries } from '../lib/leave/summary.js';
+import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../lib/iso-day.js';
+import { resolveExitFacts } from '../lib/declared-facts.js';
 
-const OutputSchema = Schema.Struct({
+export const OutputSchema = Schema.Struct({
 	employment_id: Schema.String,
-	status: Schema.Literals(['open', 'dismissal', 'nothing_to_encash', 'raised']),
+	status: Schema.Literals(['open', 'not_due', 'nothing_to_encash', 'raised']),
 	/** The entries this run raised, awaiting the HR Manager's decision. */
 	raised: Schema.Array(
 		Schema.Struct({ code: Schema.String, days: Schema.Number, reference: Schema.String })
@@ -19,30 +21,38 @@ const OutputSchema = Schema.Struct({
 });
 
 /**
- * Off-boarding raises the leaver's encashment. When a contract closes, every encashable leave type
- * with a balance on the last day becomes one `ENCASHMENT` entry for the whole balance, keyed
- * `exit:<employment>:<code>` so a re-run, a later departure-note edit or the off-boarding form
- * having posted it first never raises a second one. The entry goes through the ordinary HR leave
- * door under this automation's own policy, so it lands held for the HR Manager (or Senior
- * Management), who approves it into the next regular payroll — priced there at the ordinary day
- * wage — or rejects it and enters the agreed figure by hand. A dismissal raises nothing: the
- * misconduct exception is HR's call, not the engine's. A zero balance raises nothing and alerts
- * nobody.
+ * Defers future departures; due departures raise held requests from the final-day balance.
+ * The contract/leave reference prevents duplicates. HR reviews entitlement and any lawful
+ * forfeiture; valuation and payment timing remain separate payroll requirements.
  */
-export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: string) =>
+export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: string, now?: Date) =>
 	Effect.gen(function* () {
 		const employment = yield* api.db.employments.findFirst({
 			where: { id: { eq: employmentId }, approval_id: { isNull: true } },
 			columns: { id: true, employee_number: true, effective_range: true, exit_reason: true }
 		});
 		if (employment == null) refuse(`No employment contract is named ${employmentId}.`);
-		const { exit_date, exit_reason } = stint(employment);
-		if (exit_date == null)
+		const { exit_date } = stint(employment);
+		if (exit_date == null || exit_date.startsWith('9999-'))
 			return { employment_id: employmentId, status: 'open' as const, raised: [] };
-		if (exit_reason === NO_AUTOMATIC_ENCASHMENT_EXIT)
-			return { employment_id: employmentId, status: 'dismissal' as const, raised: [] };
 		yield* api.progress({ progress: 0.2, text: `Reading ${employment.employee_number} balances` });
 		const context = yield* readLeaveContext(api, [employmentId]);
+		const company = context.companies.find(
+			(row) => row.id === context.employments.find((row) => row.id === employmentId)?.company_id
+		);
+		const instant = now ?? new Date(yield* Clock.currentTimeMillis);
+		const version =
+			company == null
+				? null
+				: (settingsInForce(
+						context.versions,
+						company.settings_code,
+						calendarDateInTimeZone(instant, PAYROLL_TIME_ZONE)
+					) ?? settingsInForce(context.versions, company.settings_code, exit_date));
+		if (version == null) refuse('Departure processing requires a sealed settings version.');
+		const today = calendarDateInTimeZone(instant, version.payroll.timezone);
+		if (exit_date > today)
+			return { employment_id: employmentId, status: 'not_due' as const, raised: [] };
 		const submissions = exitEncashments({
 			employmentId,
 			exitDate: exit_date,
@@ -55,7 +65,7 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 					row.employment_id === employmentId ? [row.reference] : []
 				)
 			),
-			reason: `Unused leave on departure ${exit_date}; raised for HR review.`
+			reason: `Unused leave on departure ${exit_date}; review statutory entitlement and any forfeiture before approval.`
 		});
 		// The payments the law owes on separation: every `SEPARATION` ad hoc class of the version
 		// in force on the last day whose eligibility holds over the leaver then, raised as one
@@ -121,9 +131,14 @@ const separationPayments = (
 			company,
 			payFrequency: terms?.pay_frequency ?? company.pay_frequency
 		});
+		const person = resolveExitFacts(
+			version.exit_facts ?? [],
+			employment.exit_facts ?? {},
+			personAt(context, employmentId, exitDate)
+		);
 		return catalogue.flatMap((row) => {
 			if (standing.some((existing) => existing.catalogue_id === row.id)) return [];
-			if (!isEligible(row.eligibility, personAt(context, employmentId, exitDate))) return [];
+			if (!isEligible(row.eligibility, person)) return [];
 			return [
 				{
 					employment_id: employmentId,
@@ -149,7 +164,7 @@ export default defineAutomation(
 		output: OutputSchema,
 		policies: ['leave_encashment_on_exit_automation'],
 		description:
-			'When an employment contract closes, raises one ENCASHMENT leave entry per encashable leave type for the leaver’s unused balance on the last day, and one ad hoc request per separation payment the version owes them (termination benefits, severance, notice in lieu), all held for the HR Manager to approve into the next payroll or reject. Keyed per contract, so it never raises twice; a dismissal raises no encashment.',
+			'On or after departure, submits unused leave encashment and eligible separation payments for HR approval. Future departures are deferred to the daily check. Dismissals require review; the departure reason alone does not establish forfeiture. Existing requests are skipped on retry.',
 		handler: (api, { args, scope }) =>
 			runLeaveEncashmentOnExit(api, args.employment_id ?? scope.incoming_record.id)
 	}

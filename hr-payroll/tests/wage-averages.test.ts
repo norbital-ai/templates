@@ -50,11 +50,14 @@ test('earned_average reads a window of earlier payslips ending months_back befor
 		earnedAverage(new Map([['2025-12', new Map([['BASIC', 60_000]])]]), '2026-03', 'BASIC', 2, 3),
 		20_000
 	);
-	// Every TW insurance grades a variable wage on that window, from period.month.
+	// Every TW insurance prices the declared grade, which the employment records as a required
+	// election rather than re-deriving from the current wage.
 	for (const scheme of contributionSchemes('TW'))
-		if (['LI', 'EI', 'LABOR_PENSION', 'OCC_INJURY', 'NHI'].includes(scheme.code))
-			assert.match(
-				scheme.assessed_on,
-				/earned_average\("BASIC", \(\(int\(period\.month\) - 3 \+ 12\) % 6\) \+ 2, 3\)/
+		if (['LI', 'EI', 'LABOR_PENSION', 'OCC_INJURY', 'NHI'].includes(scheme.code)) {
+			assert.match(scheme.assessed_on, /scheme\.elections\.insured_amount/);
+			assert.ok(
+				scheme.elections.some((field) => field.key === 'insured_amount' && field.required === true),
+				`${scheme.code} requires the insured amount`
 			);
+		}
 });

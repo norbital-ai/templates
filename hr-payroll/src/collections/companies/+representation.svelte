@@ -21,6 +21,7 @@
 	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
 	import SchedulingSettings from '../../lib/ui/scheduling-settings.svelte';
 	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
+	import EntityFactsRenderer from '../../datatypes/entity_facts/+renderer.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -47,7 +48,7 @@
 		submitLabel={record ? t('component.save_company') : t('component.create_company')}
 		onAfterSubmit={record ? undefined : close}
 	>
-		{#snippet children({ Field })}
+		{#snippet children({ Field, form })}
 			<!-- The entity's Google holiday source is set on the Holidays tab, not here; the form
 			     still declares it, because a mutable field it never names is a runtime refusal. -->
 			<Field name="holiday_source" hidden />
@@ -73,6 +74,8 @@
 					<Column span="all">
 						<Field
 							name="facts"
+							renderer={EntityFactsRenderer}
+							rendererProps={{ settingsCode: String(form.values().settings_code ?? '') }}
 							label={t('component.entity_facts')}
 							description={t('component.entity_facts_hint')}
 						/>

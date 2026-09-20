@@ -69,6 +69,7 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'cloned_from_id',
 		'code',
 		'effective_range',
+		'exit_facts',
 		'facts',
 		'jurisdiction_code',
 		'name',
@@ -260,6 +261,7 @@ test('the statutory fact form is Scheme, Registration and Period: exactly the de
 	assert.deepEqual(fieldNames(form), [
 		'effective_range',
 		'employee_id',
+		'employment_id',
 		'status',
 		'statutory_contribution_id'
 	]);

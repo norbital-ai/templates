@@ -53,6 +53,7 @@ type PayslipCaptures = Readonly<{
 	adhoc: readonly string[];
 	leave: readonly string[];
 	loanRepayments: readonly string[];
+	wagePeriods: readonly string[];
 }>;
 
 /** Every payslip in the run with its adjustments and captures, and what each settled. */
@@ -71,7 +72,8 @@ export function payrollRunGraph(options: {
 			claims: payslip.captured.payRequests.CLAIM,
 			adhoc: payslip.captured.payRequests.ADHOC,
 			leave: payslip.captured.leave.map((capture) => capture.leave_entry_id),
-			loanRepayments: payslip.captured.loanRepayments
+			loanRepayments: payslip.captured.loanRepayments,
+			wagePeriods: payslip.captured.wagePeriods
 		});
 		return {
 			id,
@@ -88,14 +90,17 @@ export function payrollRunGraph(options: {
 				listing_group: charge.contribution.row.listing_group ?? null,
 				base_amount: charge.base,
 				...(charge.ordinary == null ? {} : { ordinary_amount: charge.ordinary }),
+				assessment_frequency: charge.assessmentFrequency,
 				employee_amount: charge.employee,
 				employer_amount: charge.employer,
 				directed_amount: charge.directed,
+				rebate_amount: charge.rebate ?? 0,
 				rule_when: charge.ruleReference
 			})),
 			gross: payslip.settlement.gross,
 			total_deductions: payslip.settlement.totalDeductions,
 			net: payslip.settlement.net,
+			unfunded_contributions: payslip.settlement.unfundedContributions,
 			employer_cost: payslip.settlement.employerCost,
 			currency: payslip.currency,
 			adjustments: payslip.settlement.adjustments.map((adjustment: MeasuredAdjustment) => ({
@@ -120,8 +125,12 @@ export function payrollRunGraph(options: {
 			schemes: payslip.charges.map((charge) => ({
 				scheme_code: charge.contribution.row.code,
 				rule_when: charge.ruleReference,
+				...(charge.firstContributionDueOn == null
+					? {}
+					: { first_contribution_due_on: charge.firstContributionDueOn }),
 				base_amount: charge.base,
 				...(charge.ordinary == null ? {} : { ordinary_amount: charge.ordinary }),
+				assessment_frequency: charge.assessmentFrequency,
 				employee_amount: charge.employee,
 				employer_amount: charge.employer,
 				inputs: charge.inputs.map((line) => ({
@@ -133,6 +142,11 @@ export function payrollRunGraph(options: {
 				reads: charge.reads.map((read) => ({
 					code: read.code,
 					employee_amount: read.employee_amount,
+					...(read.ordinary_employee_amount == null
+						? {}
+						: {
+								ordinary_employee_amount: read.ordinary_employee_amount
+							}),
 					employer_amount: read.employer_amount
 				}))
 			}))
@@ -162,7 +176,11 @@ export function payrollRunPayload(built: {
 			claim_request_payslip: linkActions(capture.claims),
 			adhoc_request_payslip: linkActions(capture.adhoc),
 			leave_entry_payslip: linkActions(capture.leave),
-			loan_repayment_payslip: linkActions(capture.loanRepayments)
+			loan_repayment_payslip: linkActions(capture.loanRepayments),
+			payslip_wage_period:
+				capture.wagePeriods.length === 0
+					? {}
+					: { create: capture.wagePeriods.map((wage_period_id) => ({ wage_period_id })) }
 		};
 	});
 }

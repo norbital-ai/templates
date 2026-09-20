@@ -15,6 +15,7 @@ import { dayInstant } from '../../../lib/iso-day.js';
  */
 
 import { Effect, Schema } from 'effect';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import type { PayrollReadApi } from './api.js';
 import { workPayItems } from '../../../lib/payroll/work-lines.js';
 import {
@@ -151,6 +152,20 @@ export function loadRunExports(
 
 		const payslipIds = payslips.map((row) => row.id);
 		const employmentIds = [...new Set(payslips.map((row) => row.employment_id))];
+		const shortfalls = yield* readApi.db.payslips.findMany({
+			where: { employment_id: { in: employmentIds }, unfunded_contributions: { gt: 0 } },
+			columns: {
+				employment_id: true,
+				unfunded_contributions: true,
+				funding_received: true,
+				funding_received_on: true,
+				funding_reference: true
+			},
+			with: { payslip_payroll_run: { columns: { company_id: true, period: true } } },
+			limit: PAGE_LIMIT
+		});
+		readApi.reads.assertComplete(shortfalls, 'contribution funding');
+		const shortfallsByEmployment = Map.groupBy(shortfalls, (row) => row.employment_id);
 		const attendanceFrom = runs
 			.map((run) => requiredDateKey(run.attendance_from, 'payroll_runs.attendance_from'))
 			.toSorted()[0]!;
@@ -383,8 +398,27 @@ export function loadRunExports(
 					scheduled.map((day) => [day.date, workWindow(day.shift.variant)?.break_minutes ?? 0])
 				);
 				const account = employment?.bank;
-				if (account == null) skipped.push(payslip.employment_id);
-				else
+				if (decodeNumber(payslip.net) > 0 && account != null) {
+					const outstanding = shortfallsByEmployment.get(payslip.employment_id)?.find((row) => {
+						const earlier = row.payslip_payroll_run;
+						if (earlier == null) refuse('A contribution shortfall is missing its payroll run.');
+						return (
+							earlier.company_id === run.company_id &&
+							earlier.period < run.period &&
+							(decodeNumber(row.funding_received) < decodeNumber(row.unfunded_contributions) ||
+								!row.funding_reference?.trim() ||
+								row.funding_received_on == null ||
+								requiredDateKey(row.funding_received_on, 'payslips.funding_received_on') >
+									runPayDate)
+						);
+					});
+					if (outstanding != null)
+						refuse(
+							`${employeeNumber}: ${outstanding.payslip_payroll_run!.period} contribution funding must be reconciled by the payment date before exporting this bank payment.`
+						);
+				}
+				if (decodeNumber(payslip.net) > 0 && account == null) skipped.push(payslip.employment_id);
+				else if (decodeNumber(payslip.net) > 0 && account != null)
 					bank.push({
 						employmentId: payslip.employment_id,
 						employeeNumber,
@@ -516,6 +550,8 @@ export function loadRunExports(
 					gross: decodeNumber(payslip.gross),
 					totalDeductions: decodeNumber(payslip.total_deductions),
 					net: decodeNumber(payslip.net),
+					unfundedContributions: decodeNumber(payslip.unfunded_contributions ?? 0),
+					fundingReceived: decodeNumber(payslip.funding_received ?? 0),
 					employerCost: decodeNumber(payslip.employer_cost),
 					lines: reportLines,
 					contributions: contributionTotals

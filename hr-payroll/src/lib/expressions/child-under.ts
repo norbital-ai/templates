@@ -27,7 +27,7 @@ export function childClassed(children: unknown, reliefClass: unknown): bigint {
 	return BigInt(classes.filter((value) => value === String(reliefClass)).length);
 }
 
-/** `children.unclassed_under(age)` — how many children with no declared class are under that age (MY s.48: the RM2,000 child under eighteen). */
+/** `children.unclassed_under(age)` — family records with no class below the stated age; not tax claims. */
 export function childUnclassedUnder(children: unknown, age: unknown): bigint {
 	const { classes, ages } = children as { classes?: unknown; ages?: unknown };
 	if (!Array.isArray(classes) || !Array.isArray(ages)) return 0n;

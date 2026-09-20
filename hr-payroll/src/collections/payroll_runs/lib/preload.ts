@@ -132,6 +132,7 @@ const readWave2 = (
 			employees,
 			employment_terms,
 			employment_statutory_facts,
+			employment_wage_periods,
 			schemes,
 			schemeIndex,
 			leave_catalogue,
@@ -158,6 +159,10 @@ const readWave2 = (
 				}),
 				db.employment_statutory_facts.findMany({
 					where: { employee_id: { in: employeeIds }, ...APPROVED },
+					limit: PAGE_LIMIT
+				}),
+				db.employment_wage_periods.findMany({
+					where: { employment_id: { in: employmentIds }, ...APPROVED },
 					limit: PAGE_LIMIT
 				}),
 				db.statutory_contributions.findMany({ where: under, limit: PAGE_LIMIT }),
@@ -222,6 +227,7 @@ const readWave2 = (
 			employees: complete(employees, 'employees'),
 			employment_terms: complete(employment_terms, 'employment terms'),
 			employment_statutory_facts: complete(employment_statutory_facts, 'statutory facts'),
+			employment_wage_periods: complete(employment_wage_periods, 'wage periods'),
 			statutory_contributions: [...byId.values()],
 			leave_catalogue: complete(leave_catalogue, 'leave catalogue'),
 			claim_catalogue: complete(claim_catalogue, 'claim catalogue'),

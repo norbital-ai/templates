@@ -105,7 +105,7 @@
 {#if nodes.length === 0}
 	<p class="text-meta">{t('component.scheme_used_by_empty')}</p>
 {:else}
-	<div class="overflow-x-auto">
+	<div class="max-w-full w-fit overflow-x-auto">
 		<div class="relative" style:width="{width}px" style:height="{height}px">
 			<svg class="pointer-events-none absolute inset-0" {width} {height} aria-hidden="true">
 				<defs>

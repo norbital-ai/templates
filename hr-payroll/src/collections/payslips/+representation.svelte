@@ -20,6 +20,7 @@
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import {
 		Accordion,
 		AccordionContent,
@@ -292,6 +293,50 @@
 					</Stack>
 				</Grid>
 			</Stack>
+
+			{#if decodeNumber(record.unfunded_contributions) > 0}
+				<Stack as="section" gap="sm" aria-labelledby="payslip-funding-heading">
+					<h3 id="payslip-funding-heading" class="text-subhead">
+						{t('component.contribution_funding')}
+					</h3>
+					<p class="text-meta">{t('component.contribution_funding_hint')}</p>
+					<Grid as="dl" gap="sm" minimum="compact">
+						<Stack gap="xs">
+							<dt class="text-meta">{t('component.unfunded_contributions')}</dt>
+							<dd class="tabular-nums">{formatNumeric(record.unfunded_contributions)}</dd>
+						</Stack>
+						<Stack gap="xs">
+							<dt class="text-meta">{t('component.funding_outstanding')}</dt>
+							<dd class="tabular-nums">
+								{formatNumeric(
+									Math.max(
+										0,
+										decodeNumber(record.unfunded_contributions) -
+											decodeNumber(record.funding_received)
+									)
+								)}
+							</dd>
+						</Stack>
+					</Grid>
+					<CollectionForm
+						{client}
+						collection="payslips"
+						defaultValues={record}
+						disabled={record.status === 'PAID'}
+						submitLabel={t('component.save_funding')}
+					>
+						{#snippet children({ Field })}
+							<Field name="status" hidden />
+							<Field name="paid_at" hidden />
+							<Grid gap="sm" minimum="compact">
+								<Field name="funding_received" label={t('component.funding_received')} />
+								<Field name="funding_received_on" label={t('component.funding_received_on')} />
+								<Field name="funding_reference" label={t('component.funding_reference')} />
+							</Grid>
+						{/snippet}
+					</CollectionForm>
+				</Stack>
+			{/if}
 
 			<Stack
 				as="section"

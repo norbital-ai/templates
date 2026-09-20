@@ -1,5 +1,6 @@
 import { approveBy, noApproval, refuse, type PolicyDecisionApi } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
+import { decodeNumber } from '@norbital-ai/std/json';
 import type { Policy } from '../access/policies/$types.js';
 import { leaveActivityOf, type LeaveEntryActivity } from './leave/activity-fields.js';
 import { readRange } from '../collections/payroll_runs/lib/effective.js';
@@ -253,6 +254,7 @@ const deletablePayslip = (
 			readonly id: string;
 			readonly status: string;
 			readonly paid_at?: unknown;
+			readonly funding_received?: unknown;
 			readonly payroll_run_id: string;
 			readonly employment_id: string;
 		};
@@ -260,7 +262,12 @@ const deletablePayslip = (
 	api: PolicyDecisionApi
 ) =>
 	Effect.gen(function* () {
-		if (record.status === 'PAID' || record.paid_at != null) return false;
+		if (
+			record.status === 'PAID' ||
+			record.paid_at != null ||
+			decodeNumber(record.funding_received ?? 0) > 0
+		)
+			return false;
 		const run = yield* api.db.payroll_runs.findFirst({
 			where: { id: { eq: record.payroll_run_id } },
 			columns: { period: true }
@@ -331,7 +338,8 @@ export const peopleGrants = (
 					grantOn('employment_terms', 'delete', { authorize: unconsumedTerms })
 				]
 			: []),
-		grantsOn('employment_statutory_facts', actions)
+		grantsOn('employment_statutory_facts', actions),
+		grantsOn('employment_wage_periods', actions)
 	);
 
 /** The money families and loans: every write, and a delete of anything no payslip settled. */
@@ -349,7 +357,17 @@ export const requestGrants = (): Grants =>
 	);
 
 export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>
-	mergeGrants(grantsOn('payroll_runs', actions), grantsOn('payslips', actions));
+	mergeGrants(
+		grantsOn('payroll_runs', actions),
+		grantsOn('payslips', actions),
+		grantsOn('payslip_wage_periods', actions)
+	);
+
+/** Payment evidence is editable; calculated payslip amounts remain engine-owned. */
+export const payslipPaymentGrants = (): Grants =>
+	grantOn('payslips', 'mutate.existing', {
+		fields: ['status', 'paid_at', 'funding_received', 'funding_received_on', 'funding_reference']
+	});
 
 /** Leave pickers need paid-period boundaries, without payroll inputs or results. */
 export const leaveCalendarGrants = (ownCompany = false): Grants =>

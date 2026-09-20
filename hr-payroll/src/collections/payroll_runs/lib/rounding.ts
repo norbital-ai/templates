@@ -50,7 +50,7 @@ export function roundMoney(value: number, method: RoundingMethod): number {
 }
 
 /**
- * Round to the payroll currency's minor unit — whole đồng and rupiah, cents elsewhere. Without a
+ * Round to the payroll currency's minor unit — whole đồng, two decimal places for rupiah. Without a
  * currency it is `round(x, NEAREST_CENT)`: a rate or an intermediate the currency does not reach.
  */
 export function cents(value: number, currency?: string): number {

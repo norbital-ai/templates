@@ -1,0 +1,797 @@
+[
+	{
+		"id": "eab7025d-ebed-5f30-a701-afff66ed9d46",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "SI",
+		"name": "Social Insurance (Bảo hiểm xã hội)",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18: an employer granted the reduced 0.3% occupational-accident rate (Decree 58/2020 art.5) records the entity fact `occupational_accident_reduced`; its share is then 17.3%. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Above the ceiling (twenty times the reference level) the employer’s share is the ceiling at the employer’s own rate — 17.3% where the occupational-accident fund is reduced (Decree 58/2020 art.4), 17.5% otherwise — the same choice the open rungs make. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2340000.0) and capped at twenty times it (46800000.0) — so a scheme that reads `produced.SI.base` reads the insured salary. Unpaid-leave continuation: Law 41/2024/QH15 arts.33(5) and 34(3) permit continuation by agreement at the most recent contribution base; art.31(1)(đ) sets the bounds at contribution time. The dated registration records the agreement, reference and prior base. Decree 158/2025/NĐ-CP art.43(2) retains occupational-accident contributions on the compulsory SI salary. https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm Law 41/2024/QH15 art.33(5) limits the unpaid-month waiver to the listed categories, excluding part-time employees under art.2(1)(l); art.33(6) requires SI in the first working or return month with at least 14 sickness-benefit working days. Benefit eligibility and return-month status are dated declarations. BHXH letter 371/BHXH-QLT of 7 July 2025 section 1.2 counts a paid half-day as a working day; the threshold counts fully unpaid working dates, not summed wage-deduction fractions. https://cdn.thuvienphapluat.vn/uploads/Hoidapphapluat/2025/LNMT/Thang_7/250707/QLT-%C4%90VSDL%C4%90.pdf Maternity contributions: Law 41/2024/QH15 art.53(8) exempts birth, adoption under six months, surrogate-birth and commissioning-mother benefit leave without imposing 14 working days; other maternity-benefit cases are exempt only from 14 working days in the month. The dated eligibility and category elections distinguish statutory benefit leave from ordinary unpaid absence. Article 53(1), Circular 12/2025/TT-BNV art.9(4)(c) require compulsory SI after an early return from birth leave while the maternity allowance continues. Official application (birth leave starting 14 August 2025 is exempt that month): https://chinhsachonline.chinhphu.vn/xac-dinh-thoi-gian-lam-viec-de-dong-bhxh-82176.htm Circular: https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-12-2025-tt-bnv-quy-dinh-chi-tiet-mot-so-dieu-cua-luat-bhxh-ve-bhxh-bat-buoc-11925070415595016.htm",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_unit(2340000.0 * 8.0 / 100.0)",
+				"employer": "round_unit(2340000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_unit((base) * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
+				"employee": "round_unit(3744000.0)",
+				"employer": "round_unit(46800000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			}
+		],
+		"assessed_on": "((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)) ? (scheme.elections.continue_si_unpaid ? (scheme.elections.continued_si_base < 2340000.0 ? 2340000.0 : scheme.elections.continued_si_base > 46800000.0 ? 46800000.0 : scheme.elections.continued_si_base) : 0.0) : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))))))",
+		"short_name": null,
+		"listing_order": 28,
+		"listing_group": null,
+		"parts": [],
+		"elections": [
+			{
+				"key": "sickness_benefit_eligible",
+				"type": "boolean",
+				"label": "Sickness benefit eligibility",
+				"description": "Whether the recorded sick leave qualifies for statutory sickness benefits. Set the registration dates to the relevant benefit period; leave approval alone does not establish benefit entitlement.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0)"
+			},
+			{
+				"key": "long_term_sickness",
+				"type": "boolean",
+				"label": "Listed long-term sickness",
+				"description": "Whether the qualifying sickness is on the Ministry of Health list requiring long-term treatment. The social-insurance fund pays health insurance during this benefit leave.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0 && scheme.elections.sickness_benefit_eligible)"
+			},
+			{
+				"key": "first_return_month",
+				"type": "boolean",
+				"label": "First month back at work",
+				"description": "Whether this contribution month is the first month returning to work after an interruption. Scope the dated registration to that month. The first employment month is identified from the hire date.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && person.employment.service_start < period.start)"
+			},
+			{
+				"key": "maternity_benefit_eligible",
+				"type": "boolean",
+				"label": "Maternity benefit eligibility",
+				"description": "Whether the recorded maternity or paternity leave qualifies for statutory maternity benefits. Set the registration dates to the relevant benefit period; leave approval alone does not establish benefit entitlement.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0)"
+			},
+			{
+				"key": "maternity_category",
+				"type": "string",
+				"label": "Maternity contribution category",
+				"description": "Birth, adoption under six months, surrogate birth and commissioning-mother leave are contribution-exempt whenever taken. Other maternity benefits use the statutory 14-working-day threshold.",
+				"options": ["BIRTH", "ADOPTION", "SURROGATE_BIRTH", "COMMISSIONING_MOTHER", "OTHER"],
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && scheme.elections.maternity_benefit_eligible)",
+				"valid_when": "scheme.elections.maternity_benefit_eligible && (scheme.elections.maternity_category == \"OTHER\" || (has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) > 0.0)",
+				"validation_message": "Birth, adoption and surrogacy categories require maternity leave; use Other maternity benefit for paternity leave."
+			},
+			{
+				"key": "maternity_returned_early",
+				"type": "boolean",
+				"label": "Returned early from birth maternity leave",
+				"description": "Whether the employee has returned before the birth-leave entitlement ended. Scope the dated registration from the return month; compulsory social and health insurance resume while the allowance continues.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\")",
+				"valid_when": "scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\"",
+				"validation_message": "Early return applies only to eligible birth maternity leave."
+			},
+			{
+				"key": "continue_si_unpaid",
+				"type": "boolean",
+				"label": "Continue SI during unpaid leave",
+				"description": "Record whether employer and employee agreed to continue compulsory social insurance for the covered period. Required when at least 14 working days are unpaid. Set the registration dates to the agreement period.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))"
+			},
+			{
+				"key": "continued_si_base",
+				"type": "number",
+				"label": "Last SI contribution base (VND)",
+				"description": "Actual insured salary from the most recent contributing month before unpaid leave, including a prior employer when applicable. Current statutory bounds still apply.",
+				"minimum": 1,
+				"required_when": "(!((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))) && scheme.elections.continue_si_unpaid"
+			},
+			{
+				"key": "continued_si_reference",
+				"type": "string",
+				"label": "Continuation agreement reference",
+				"description": "Reference to the employer–employee agreement and the most recent contribution record.",
+				"min_length": 1,
+				"required_when": "(!((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))) && scheme.elections.continue_si_unpaid"
+			}
+		]
+	},
+	{
+		"id": "b36127e7-0e33-59ee-8728-6c238d71adcb",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "UNION_DUES",
+		"name": "Đoàn phí công đoàn (union membership dues)",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"assessed_on": "produced.SI.base",
+		"authority": "Trade Union Law 50/2024/QH15 art.29 with Decision 1908/QĐ-TLĐ art.23: a union member pays dues of 1% of the salary the social-insurance contribution is based on, capped at 10% of the reference (base) salary; paid to the union, never by a non-member. The `union_member` election says who is one. Applied 2026-09-18. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside.",
+		"elections": [
+			{
+				"key": "union_member",
+				"type": "boolean",
+				"label": "Union member"
+			}
+		],
+		"rules": [
+			{
+				"when": "scheme.elections.union_member == true && base > 0.0",
+				"employee": "round_unit((base * 1.0 / 100.0) > (2340000.0 * 10.0 / 100.0) ? (2340000.0 * 10.0 / 100.0) : (base * 1.0 / 100.0))",
+				"employer": "round_unit(0.0)"
+			}
+		],
+		"short_name": null,
+		"listing_order": 32,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "4cf6d212-8a40-59d3-bed9-6a531e58f0c0",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "HI",
+		"name": "Health Insurance (Bảo hiểm y tế)",
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2340000.0) and capped at twenty times it (46800000.0) — so a scheme that reads `produced.HI.base` reads the insured salary. Where an unpaid-leave agreement continues compulsory SI, health insurance continues on that SI base. Vietnam Social Security guidance, 18 June 2026: https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168&ItemID=26671 Health Insurance Law art.12(2)(b), as amended by Law 51/2024/QH15 from 1 July 2025, transfers HI payment to the social-insurance fund for at least 14 sickness-benefit working days, or benefit leave for a listed long-term illness. This remains fund-paid when SI is mandatory in the first working or return month or voluntarily continued. https://congbao.cdnchinhphu.vn/CongBaoCP/VanBan/2025/2/44464/55506-1-2025539-54022-vbhn-vpqh.pdf Law 41/2024/QH15 arts.8(2)(b) and 84(2)(c), with Health Insurance Law art.12(2)(b) as amended by Law 51/2024/QH15, transfer HI payment to the social-insurance fund only for maternity-benefit leave of at least 14 working days in the month. An early return resumes payroll HI; shorter special-category leave can be SI-exempt under art.53(8) while payroll HI remains due. Official BHXH guidance on early return SI and HI: https://baohiemxahoi.gov.vn/chuyen-trang-bhxh-bhyt/tu-van-hoi-dap/Pages/default.aspx?ItemID=5831",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_unit(2340000.0 * 1.5 / 100.0)",
+				"employer": "round_unit(2340000.0 * 3.0 / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_unit((base) * 3.0 / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
+				"employee": "round_unit(702000.0)",
+				"employer": "round_unit(1404000.0)"
+			}
+		],
+		"assessed_on": "((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(person.facts.SI.elections.maternity_benefit_eligible) && person.facts.SI.elections.maternity_benefit_eligible && !(has(person.facts.SI.elections.maternity_returned_early) && person.facts.SI.elections.maternity_returned_early) && ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0)) ? 0.0 : (((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0 && has(person.facts.SI.elections.sickness_benefit_eligible) && person.facts.SI.elections.sickness_benefit_eligible && ((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 || person.facts.SI.elections.long_term_sickness)) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0 ? produced.SI.base : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))))",
+		"short_name": null,
+		"listing_order": 29,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "4c7d29eb-b1a4-563b-819c-fe475dc2e46d",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "UI",
+		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
+		"authority": "Law on Employment 38/2013/QH13 art.57 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 74/2024/NĐ-CP, Region I 4,960,000). The scheme covers Vietnamese employees; a foreign employee is outside it. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Law 41/2024 art.31(1)(đ) makes the unemployment-insurance base the social-insurance base, so its floor is the version’s reference level — 2,530,000 from 1 July 2026 as for SI, not the earlier 2,340,000. Fully unpaid working dates determine the unpaid-day threshold; a paid half-day remains a working day under BHXH letter 371/BHXH-QLT of 7 July 2025 section 1.2. Decree 28/2015/NĐ-CP art.11(2) excludes a worker from UI only for maternity-benefit leave of at least 14 working days without salary; the special SI categories do not create a shorter UI exemption.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && base > 0.0 && base < 2340000.0",
+				"employee": "round_unit(2340000.0 * 1.0 / 100.0)",
+				"employer": "round_unit(2340000.0 * 1.0 / 100.0)"
+			},
+			{
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_unit(((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
+			}
+		],
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
+		"short_name": null,
+		"listing_order": 30,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "21adb4da-a0cd-5a5b-9e75-3c4024232b0f",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "UNION_FEE",
+		"name": "Trade Union Fee (Kinh phí công đoàn)",
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): Law on Trade Unions 2024 art.29(1)(b) (Decree 191/2013 art.5): the employer’s union fund contribution is 2% of the salary fund on which social insurance is paid — one line on the establishment, the sum of the insured salaries (`produced.SI.base` over the run), not a charge on any payslip.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_unit(base * 2.0 / 100.0)"
+			}
+		],
+		"assessed_on": "produced.SI.base",
+		"short_name": null,
+		"listing_order": 31,
+		"listing_group": null,
+		"assessment_scope": "COMPANY",
+		"parts": []
+	},
+	{
+		"id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "PIT",
+		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
+		"authority": "Personal Income Tax Law 04/2007/QH12 and Circular 111/2013/TT-BTC; Law 109/2025/QH15 and Decree 253/2026/ND-CP for the 2026 rules. Declared non-residents receive 20% withholding on taxable remuneration without resident personal, dependant or insurance deductions; that rule precedes the resident short-contract withholding rule and does not require a rate override. Resident progressive withholding uses the version’s monthly scale and deduction amounts; the configured year-end rule reconciles annual withholding. Before 1 July 2026, non-residents retain the earlier overtime-premium exemption and taxable leave cash-out. The full qualifying overtime and statutory cessation leave exemptions apply to residents from tax year 2026 and non-residents from 1 July 2026 (Decree 253/2026 arts.26 and 69). A future departure does not establish cessation in the current period. Payments beyond statutory limits remain taxable. Unknown tax residence, special tax profiles and exemption allocation require further verification.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_unit(base * 20.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
+				"when": "!person.employment.open_ended && person.employment.contract_months < 3 && !scheme.elections.commitment_form",
+				"employee": "base >= 5000000.0 ? round_unit(base * 10.0 / 100.0) : 0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "period.last_of_year && person.employment.exit_date == \"\"",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (11000000.0 + 4400000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employer": "round_unit(0.0)"
+			},
+			{
+				"when": "true",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive(((base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (11000000.0 + 4400000.0 * person.employee.dependents_count) > 0.0 ? (base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (11000000.0 + 4400000.0 * person.employee.dependents_count) : 0.0), [0.0, 0.0, 5.0, 5000000.0, 250000.0, 10.0, 10000000.0, 750000.0, 15.0, 18000000.0, 1950000.0, 20.0, 32000000.0, 4750000.0, 25.0, 52000000.0, 9750000.0, 30.0, 80000000.0, 18150000.0, 35.0]))",
+				"employer": "round_unit(0.0)"
+			}
+		],
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) + OVERTIME - OVERTIME_PREMIUM + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 33,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "commitment_form",
+				"type": "boolean",
+				"label": "Valid income tax commitment"
+			}
+		],
+		"parts": []
+	},
+	{
+		"id": "5f4b1158-77e0-5029-a1ed-5c38e88550df",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "SI",
+		"name": "Social Insurance (Bảo hiểm xã hội)",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18: an employer granted the reduced 0.3% occupational-accident rate (Decree 58/2020 art.5) records the entity fact `occupational_accident_reduced`; its share is then 17.3%. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Above the ceiling (twenty times the reference level) the employer’s share is the ceiling at the employer’s own rate — 17.3% where the occupational-accident fund is reduced (Decree 58/2020 art.4), 17.5% otherwise — the same choice the open rungs make. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2340000.0) and capped at twenty times it (46800000.0) — so a scheme that reads `produced.SI.base` reads the insured salary. Unpaid-leave continuation: Law 41/2024/QH15 arts.33(5) and 34(3) permit continuation by agreement at the most recent contribution base; art.31(1)(đ) sets the bounds at contribution time. The dated registration records the agreement, reference and prior base. Decree 158/2025/NĐ-CP art.43(2) retains occupational-accident contributions on the compulsory SI salary. https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm Law 41/2024/QH15 art.33(5) limits the unpaid-month waiver to the listed categories, excluding part-time employees under art.2(1)(l); art.33(6) requires SI in the first working or return month with at least 14 sickness-benefit working days. Benefit eligibility and return-month status are dated declarations. BHXH letter 371/BHXH-QLT of 7 July 2025 section 1.2 counts a paid half-day as a working day; the threshold counts fully unpaid working dates, not summed wage-deduction fractions. https://cdn.thuvienphapluat.vn/uploads/Hoidapphapluat/2025/LNMT/Thang_7/250707/QLT-%C4%90VSDL%C4%90.pdf Maternity contributions: Law 41/2024/QH15 art.53(8) exempts birth, adoption under six months, surrogate-birth and commissioning-mother benefit leave without imposing 14 working days; other maternity-benefit cases are exempt only from 14 working days in the month. The dated eligibility and category elections distinguish statutory benefit leave from ordinary unpaid absence. Article 53(1), Circular 12/2025/TT-BNV art.9(4)(c) require compulsory SI after an early return from birth leave while the maternity allowance continues. Official application (birth leave starting 14 August 2025 is exempt that month): https://chinhsachonline.chinhphu.vn/xac-dinh-thoi-gian-lam-viec-de-dong-bhxh-82176.htm Circular: https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-12-2025-tt-bnv-quy-dinh-chi-tiet-mot-so-dieu-cua-luat-bhxh-ve-bhxh-bat-buoc-11925070415595016.htm",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_unit(2340000.0 * 8.0 / 100.0)",
+				"employer": "round_unit(2340000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_unit((base) * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
+				"employee": "round_unit(3744000.0)",
+				"employer": "round_unit(46800000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			}
+		],
+		"assessed_on": "((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)) ? (scheme.elections.continue_si_unpaid ? (scheme.elections.continued_si_base < 2340000.0 ? 2340000.0 : scheme.elections.continued_si_base > 46800000.0 ? 46800000.0 : scheme.elections.continued_si_base) : 0.0) : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))))))",
+		"short_name": null,
+		"listing_order": 28,
+		"listing_group": null,
+		"parts": [],
+		"elections": [
+			{
+				"key": "sickness_benefit_eligible",
+				"type": "boolean",
+				"label": "Sickness benefit eligibility",
+				"description": "Whether the recorded sick leave qualifies for statutory sickness benefits. Set the registration dates to the relevant benefit period; leave approval alone does not establish benefit entitlement.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0)"
+			},
+			{
+				"key": "long_term_sickness",
+				"type": "boolean",
+				"label": "Listed long-term sickness",
+				"description": "Whether the qualifying sickness is on the Ministry of Health list requiring long-term treatment. The social-insurance fund pays health insurance during this benefit leave.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0 && scheme.elections.sickness_benefit_eligible)"
+			},
+			{
+				"key": "first_return_month",
+				"type": "boolean",
+				"label": "First month back at work",
+				"description": "Whether this contribution month is the first month returning to work after an interruption. Scope the dated registration to that month. The first employment month is identified from the hire date.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && person.employment.service_start < period.start)"
+			},
+			{
+				"key": "maternity_benefit_eligible",
+				"type": "boolean",
+				"label": "Maternity benefit eligibility",
+				"description": "Whether the recorded maternity or paternity leave qualifies for statutory maternity benefits. Set the registration dates to the relevant benefit period; leave approval alone does not establish benefit entitlement.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0)"
+			},
+			{
+				"key": "maternity_category",
+				"type": "string",
+				"label": "Maternity contribution category",
+				"description": "Birth, adoption under six months, surrogate birth and commissioning-mother leave are contribution-exempt whenever taken. Other maternity benefits use the statutory 14-working-day threshold.",
+				"options": ["BIRTH", "ADOPTION", "SURROGATE_BIRTH", "COMMISSIONING_MOTHER", "OTHER"],
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && scheme.elections.maternity_benefit_eligible)",
+				"valid_when": "scheme.elections.maternity_benefit_eligible && (scheme.elections.maternity_category == \"OTHER\" || (has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) > 0.0)",
+				"validation_message": "Birth, adoption and surrogacy categories require maternity leave; use Other maternity benefit for paternity leave."
+			},
+			{
+				"key": "maternity_returned_early",
+				"type": "boolean",
+				"label": "Returned early from birth maternity leave",
+				"description": "Whether the employee has returned before the birth-leave entitlement ended. Scope the dated registration from the return month; compulsory social and health insurance resume while the allowance continues.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\")",
+				"valid_when": "scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\"",
+				"validation_message": "Early return applies only to eligible birth maternity leave."
+			},
+			{
+				"key": "continue_si_unpaid",
+				"type": "boolean",
+				"label": "Continue SI during unpaid leave",
+				"description": "Record whether employer and employee agreed to continue compulsory social insurance for the covered period. Required when at least 14 working days are unpaid. Set the registration dates to the agreement period.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))"
+			},
+			{
+				"key": "continued_si_base",
+				"type": "number",
+				"label": "Last SI contribution base (VND)",
+				"description": "Actual insured salary from the most recent contributing month before unpaid leave, including a prior employer when applicable. Current statutory bounds still apply.",
+				"minimum": 1,
+				"required_when": "(!((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))) && scheme.elections.continue_si_unpaid"
+			},
+			{
+				"key": "continued_si_reference",
+				"type": "string",
+				"label": "Continuation agreement reference",
+				"description": "Reference to the employer–employee agreement and the most recent contribution record.",
+				"min_length": 1,
+				"required_when": "(!((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))) && scheme.elections.continue_si_unpaid"
+			}
+		]
+	},
+	{
+		"id": "349d2942-1fc6-58b2-946e-f733c0ecd524",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "UNION_DUES",
+		"name": "Đoàn phí công đoàn (union membership dues)",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"assessed_on": "produced.SI.base",
+		"authority": "Trade Union Law 50/2024/QH15 art.29 with Decision 1908/QĐ-TLĐ art.23: a union member pays dues of 1% of the salary the social-insurance contribution is based on, capped at 10% of the reference (base) salary; paid to the union, never by a non-member. The `union_member` election says who is one. Applied 2026-09-18. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside.",
+		"elections": [
+			{
+				"key": "union_member",
+				"type": "boolean",
+				"label": "Union member"
+			}
+		],
+		"rules": [
+			{
+				"when": "scheme.elections.union_member == true && base > 0.0",
+				"employee": "round_unit((base * 1.0 / 100.0) > (2340000.0 * 10.0 / 100.0) ? (2340000.0 * 10.0 / 100.0) : (base * 1.0 / 100.0))",
+				"employer": "round_unit(0.0)"
+			}
+		],
+		"short_name": null,
+		"listing_order": 32,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "8339c95d-77e8-5bea-b06e-d2fc88cd8dfc",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "HI",
+		"name": "Health Insurance (Bảo hiểm y tế)",
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2340000.0) and capped at twenty times it (46800000.0) — so a scheme that reads `produced.HI.base` reads the insured salary. Where an unpaid-leave agreement continues compulsory SI, health insurance continues on that SI base. Vietnam Social Security guidance, 18 June 2026: https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168&ItemID=26671 Health Insurance Law art.12(2)(b), as amended by Law 51/2024/QH15 from 1 July 2025, transfers HI payment to the social-insurance fund for at least 14 sickness-benefit working days, or benefit leave for a listed long-term illness. This remains fund-paid when SI is mandatory in the first working or return month or voluntarily continued. https://congbao.cdnchinhphu.vn/CongBaoCP/VanBan/2025/2/44464/55506-1-2025539-54022-vbhn-vpqh.pdf Law 41/2024/QH15 arts.8(2)(b) and 84(2)(c), with Health Insurance Law art.12(2)(b) as amended by Law 51/2024/QH15, transfer HI payment to the social-insurance fund only for maternity-benefit leave of at least 14 working days in the month. An early return resumes payroll HI; shorter special-category leave can be SI-exempt under art.53(8) while payroll HI remains due. Official BHXH guidance on early return SI and HI: https://baohiemxahoi.gov.vn/chuyen-trang-bhxh-bhyt/tu-van-hoi-dap/Pages/default.aspx?ItemID=5831",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_unit(2340000.0 * 1.5 / 100.0)",
+				"employer": "round_unit(2340000.0 * 3.0 / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_unit((base) * 3.0 / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
+				"employee": "round_unit(702000.0)",
+				"employer": "round_unit(1404000.0)"
+			}
+		],
+		"assessed_on": "((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(person.facts.SI.elections.maternity_benefit_eligible) && person.facts.SI.elections.maternity_benefit_eligible && !(has(person.facts.SI.elections.maternity_returned_early) && person.facts.SI.elections.maternity_returned_early) && ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0)) ? 0.0 : (((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0 && has(person.facts.SI.elections.sickness_benefit_eligible) && person.facts.SI.elections.sickness_benefit_eligible && ((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 || person.facts.SI.elections.long_term_sickness)) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0 ? produced.SI.base : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))))",
+		"short_name": null,
+		"listing_order": 29,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "92d096bf-8260-5adb-a7f9-6073199855d9",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "UI",
+		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
+		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33, in force 1 January 2026 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP). The scheme covers Vietnamese employees; a foreign employee is outside it. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Law 41/2024 art.31(1)(đ) makes the unemployment-insurance base the social-insurance base, so its floor is the version’s reference level — 2,530,000 from 1 July 2026 as for SI, not the earlier 2,340,000. Law 74/2025/QH15 article 33(4) separately exempts months with at least 14 unpaid working days from UI; an SI continuation agreement does not remove that exemption. https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm Fully unpaid working dates determine the unpaid-day threshold; a paid half-day remains a working day under BHXH letter 371/BHXH-QLT of 7 July 2025 section 1.2. Law 74/2025/QH15 art.33(4), effective 1 January 2026, exempts UI only when the worker has at least 14 working days without salary; the special SI maternity categories do not create a shorter UI exemption.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && base > 0.0 && base < 2340000.0",
+				"employee": "round_unit(2340000.0 * 1.0 / 100.0)",
+				"employer": "round_unit(2340000.0 * 1.0 / 100.0)"
+			},
+			{
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_unit(((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
+			}
+		],
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
+		"short_name": null,
+		"listing_order": 30,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "bc474287-8417-5220-b244-f0f57bb4ae1f",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "UNION_FEE",
+		"name": "Trade Union Fee (Kinh phí công đoàn)",
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): Law on Trade Unions 2024 art.29(1)(b) (Decree 191/2013 art.5): the employer’s union fund contribution is 2% of the salary fund on which social insurance is paid — one line on the establishment, the sum of the insured salaries (`produced.SI.base` over the run), not a charge on any payslip.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_unit(base * 2.0 / 100.0)"
+			}
+		],
+		"assessed_on": "produced.SI.base",
+		"short_name": null,
+		"listing_order": 31,
+		"listing_group": null,
+		"assessment_scope": "COMPANY",
+		"parts": []
+	},
+	{
+		"id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "PIT",
+		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
+		"authority": "Personal Income Tax Law 04/2007/QH12 and Circular 111/2013/TT-BTC; Law 109/2025/QH15 and Decree 253/2026/ND-CP for the 2026 rules. Declared non-residents receive 20% withholding on taxable remuneration without resident personal, dependant or insurance deductions; that rule precedes the resident short-contract withholding rule and does not require a rate override. Resident progressive withholding uses the version’s monthly scale and deduction amounts; the configured year-end rule reconciles annual withholding. Before 1 July 2026, non-residents retain the earlier overtime-premium exemption and taxable leave cash-out. The full qualifying overtime and statutory cessation leave exemptions apply to residents from tax year 2026 and non-residents from 1 July 2026 (Decree 253/2026 arts.26 and 69). A future departure does not establish cessation in the current period. Payments beyond statutory limits remain taxable. Unknown tax residence, special tax profiles and exemption allocation require further verification.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_unit(base * 20.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
+				"when": "!person.employment.open_ended && person.employment.contract_months < 3 && !scheme.elections.commitment_form",
+				"employee": "base >= 5000000.0 ? round_unit(base * 10.0 / 100.0) : 0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "period.last_of_year && person.employment.exit_date == \"\"",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employer": "round_unit(0.0)"
+			},
+			{
+				"when": "true",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive(((base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (15500000.0 + 6200000.0 * person.employee.dependents_count) > 0.0 ? (base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (15500000.0 + 6200000.0 * person.employee.dependents_count) : 0.0), [0.0, 0.0, 5.0, 10000000.0, 500000.0, 10.0, 30000000.0, 2500000.0, 20.0, 60000000.0, 8500000.0, 30.0, 100000000.0, 20500000.0, 35.0]))",
+				"employer": "round_unit(0.0)"
+			}
+		],
+		"assessed_on": "person.terms.tax_residency == \"NON_RESIDENT\" ? (BASE + (ALLOWANCES + ADHOC) + OVERTIME - OVERTIME_PREMIUM + ENCASHMENT - ABSENCE - NO_PAY_LEAVE) : (BASE + (ALLOWANCES + ADHOC) + (person.employment.exit_date == \"\" || person.employment.exit_date > period.end ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE)",
+		"short_name": null,
+		"listing_order": 33,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "commitment_form",
+				"type": "boolean",
+				"label": "Valid income tax commitment"
+			}
+		],
+		"parts": []
+	},
+	{
+		"id": "e54fc2da-828e-5f39-94eb-e829b152eab9",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "SI",
+		"name": "Social Insurance (Bảo hiểm xã hội)",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,530,000, ceiling 50,600,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version). Applied 2026-09-18: an employer granted the reduced 0.3% occupational-accident rate (Decree 58/2020 art.5) records the entity fact `occupational_accident_reduced`; its share is then 17.3%. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Above the ceiling (twenty times the reference level) the employer’s share is the ceiling at the employer’s own rate — 17.3% where the occupational-accident fund is reduced (Decree 58/2020 art.4), 17.5% otherwise — the same choice the open rungs make. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2530000.0) and capped at twenty times it (50600000.0) — so a scheme that reads `produced.SI.base` reads the insured salary. Unpaid-leave continuation: Law 41/2024/QH15 arts.33(5) and 34(3) permit continuation by agreement at the most recent contribution base; art.31(1)(đ) sets the bounds at contribution time. The dated registration records the agreement, reference and prior base. Decree 158/2025/NĐ-CP art.43(2) retains occupational-accident contributions on the compulsory SI salary. https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm Law 41/2024/QH15 art.33(5) limits the unpaid-month waiver to the listed categories, excluding part-time employees under art.2(1)(l); art.33(6) requires SI in the first working or return month with at least 14 sickness-benefit working days. Benefit eligibility and return-month status are dated declarations. BHXH letter 371/BHXH-QLT of 7 July 2025 section 1.2 counts a paid half-day as a working day; the threshold counts fully unpaid working dates, not summed wage-deduction fractions. https://cdn.thuvienphapluat.vn/uploads/Hoidapphapluat/2025/LNMT/Thang_7/250707/QLT-%C4%90VSDL%C4%90.pdf Maternity contributions: Law 41/2024/QH15 art.53(8) exempts birth, adoption under six months, surrogate-birth and commissioning-mother benefit leave without imposing 14 working days; other maternity-benefit cases are exempt only from 14 working days in the month. The dated eligibility and category elections distinguish statutory benefit leave from ordinary unpaid absence. Article 53(1), Circular 12/2025/TT-BNV art.9(4)(c) require compulsory SI after an early return from birth leave while the maternity allowance continues. Official application (birth leave starting 14 August 2025 is exempt that month): https://chinhsachonline.chinhphu.vn/xac-dinh-thoi-gian-lam-viec-de-dong-bhxh-82176.htm Circular: https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-12-2025-tt-bnv-quy-dinh-chi-tiet-mot-so-dieu-cua-luat-bhxh-ve-bhxh-bat-buoc-11925070415595016.htm",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && base < 2530000.0",
+				"employee": "round_unit(2530000.0 * 8.0 / 100.0)",
+				"employer": "round_unit(2530000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_unit((base) * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.0",
+				"employee": "round_unit(4048000.0)",
+				"employer": "round_unit(50600000.0 * ((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) / 100.0)"
+			}
+		],
+		"assessed_on": "((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)) ? (scheme.elections.continue_si_unpaid ? (scheme.elections.continued_si_base < 2530000.0 ? 2530000.0 : scheme.elections.continued_si_base > 50600000.0 ? 50600000.0 : scheme.elections.continued_si_base) : 0.0) : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances)))))))",
+		"short_name": null,
+		"listing_order": 28,
+		"listing_group": null,
+		"parts": [],
+		"elections": [
+			{
+				"key": "sickness_benefit_eligible",
+				"type": "boolean",
+				"label": "Sickness benefit eligibility",
+				"description": "Whether the recorded sick leave qualifies for statutory sickness benefits. Set the registration dates to the relevant benefit period; leave approval alone does not establish benefit entitlement.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0)"
+			},
+			{
+				"key": "long_term_sickness",
+				"type": "boolean",
+				"label": "Listed long-term sickness",
+				"description": "Whether the qualifying sickness is on the Ministry of Health list requiring long-term treatment. The social-insurance fund pays health insurance during this benefit leave.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0 && scheme.elections.sickness_benefit_eligible)"
+			},
+			{
+				"key": "first_return_month",
+				"type": "boolean",
+				"label": "First month back at work",
+				"description": "Whether this contribution month is the first month returning to work after an interruption. Scope the dated registration to that month. The first employment month is identified from the hire date.",
+				"required_when": "(((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 680 : person.employee.age_months_on(person.employment.service_start) >= 735))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2340000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2340000.0 ? 2340000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 46800000.0 ? 46800000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0) && ((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && person.employment.service_start < period.start)"
+			},
+			{
+				"key": "maternity_benefit_eligible",
+				"type": "boolean",
+				"label": "Maternity benefit eligibility",
+				"description": "Whether the recorded maternity or paternity leave qualifies for statutory maternity benefits. Set the registration dates to the relevant benefit period; leave approval alone does not establish benefit entitlement.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0)"
+			},
+			{
+				"key": "maternity_category",
+				"type": "string",
+				"label": "Maternity contribution category",
+				"description": "Birth, adoption under six months, surrogate birth and commissioning-mother leave are contribution-exempt whenever taken. Other maternity benefits use the statutory 14-working-day threshold.",
+				"options": ["BIRTH", "ADOPTION", "SURROGATE_BIRTH", "COMMISSIONING_MOTHER", "OTHER"],
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && scheme.elections.maternity_benefit_eligible)",
+				"valid_when": "scheme.elections.maternity_benefit_eligible && (scheme.elections.maternity_category == \"OTHER\" || (has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) > 0.0)",
+				"validation_message": "Birth, adoption and surrogacy categories require maternity leave; use Other maternity benefit for paternity leave."
+			},
+			{
+				"key": "maternity_returned_early",
+				"type": "boolean",
+				"label": "Returned early from birth maternity leave",
+				"description": "Whether the employee has returned before the birth-leave entitlement ended. Scope the dated registration from the return month; compulsory social and health insurance resume while the allowance continues.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && (((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\")",
+				"valid_when": "scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\"",
+				"validation_message": "Early return applies only to eligible birth maternity leave."
+			},
+			{
+				"key": "continue_si_unpaid",
+				"type": "boolean",
+				"label": "Continue SI during unpaid leave",
+				"description": "Record whether employer and employee agreed to continue compulsory social insurance for the covered period. Required when at least 14 working days are unpaid. Set the registration dates to the agreement period.",
+				"required_when": "((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))) > 0.0 && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))"
+			},
+			{
+				"key": "continued_si_base",
+				"type": "number",
+				"label": "Last SI contribution base (VND)",
+				"description": "Actual insured salary from the most recent contributing month before unpaid leave, including a prior employer when applicable. Current statutory bounds still apply.",
+				"minimum": 1,
+				"required_when": "(!((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))) && scheme.elections.continue_si_unpaid"
+			},
+			{
+				"key": "continued_si_reference",
+				"type": "string",
+				"label": "Continuation agreement reference",
+				"description": "Reference to the employer–employee agreement and the most recent contribution record.",
+				"min_length": 1,
+				"required_when": "(!((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && !(has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early) && ((scheme.elections.maternity_category == \"BIRTH\" || scheme.elections.maternity_category == \"ADOPTION\" || scheme.elections.maternity_category == \"SURROGATE_BIRTH\" || scheme.elections.maternity_category == \"COMMISSIONING_MOTHER\") || ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0))) && ((person.employment.type != \"PART_TIME\" && !((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 && scheme.elections.sickness_benefit_eligible && (person.employment.service_start >= period.start || scheme.elections.first_return_month)) && !((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(scheme.elections.maternity_benefit_eligible) && scheme.elections.maternity_benefit_eligible && scheme.elections.maternity_category == \"BIRTH\" && has(scheme.elections.maternity_returned_early) && scheme.elections.maternity_returned_early)) && (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0)))) && scheme.elections.continue_si_unpaid"
+			}
+		]
+	},
+	{
+		"id": "1023865e-eb18-5fca-a790-27acca7b3e35",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "UNION_DUES",
+		"name": "Đoàn phí công đoàn (union membership dues)",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"assessed_on": "produced.SI.base",
+		"authority": "Trade Union Law 50/2024/QH15 art.29 with Decision 1908/QĐ-TLĐ art.23: a union member pays dues of 1% of the salary the social-insurance contribution is based on, capped at 10% of the reference (base) salary; paid to the union, never by a non-member. The `union_member` election says who is one. Applied 2026-09-18. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside.",
+		"elections": [
+			{
+				"key": "union_member",
+				"type": "boolean",
+				"label": "Union member"
+			}
+		],
+		"rules": [
+			{
+				"when": "scheme.elections.union_member == true && base > 0.0",
+				"employee": "round_unit((base * 1.0 / 100.0) > (2530000.0 * 10.0 / 100.0) ? (2530000.0 * 10.0 / 100.0) : (base * 1.0 / 100.0))",
+				"employer": "round_unit(0.0)"
+			}
+		],
+		"short_name": null,
+		"listing_order": 32,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "ee7f7408-63d3-5eca-8ceb-92e5e10c0a88",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "HI",
+		"name": "Health Insurance (Bảo hiểm y tế)",
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (50,600,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): The base recorded is the insurance salary itself — the contractual salary floored at the reference level (2530000.0) and capped at twenty times it (50600000.0) — so a scheme that reads `produced.HI.base` reads the insured salary. Where an unpaid-leave agreement continues compulsory SI, health insurance continues on that SI base. Vietnam Social Security guidance, 18 June 2026: https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168&ItemID=26671 Health Insurance Law art.12(2)(b), as amended by Law 51/2024/QH15 from 1 July 2025, transfers HI payment to the social-insurance fund for at least 14 sickness-benefit working days, or benefit leave for a listed long-term illness. This remains fund-paid when SI is mandatory in the first working or return month or voluntarily continued. https://congbao.cdnchinhphu.vn/CongBaoCP/VanBan/2025/2/44464/55506-1-2025539-54022-vbhn-vpqh.pdf Law 41/2024/QH15 arts.8(2)(b) and 84(2)(c), with Health Insurance Law art.12(2)(b) as amended by Law 51/2024/QH15, transfer HI payment to the social-insurance fund only for maternity-benefit leave of at least 14 working days in the month. An early return resumes payroll HI; shorter special-category leave can be SI-exempt under art.53(8) while payroll HI remains due. Official BHXH guidance on early return SI and HI: https://baohiemxahoi.gov.vn/chuyen-trang-bhxh-bhyt/tu-van-hoi-dap/Pages/default.aspx?ItemID=5831",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && base < 2530000.0",
+				"employee": "round_unit(2530000.0 * 1.5 / 100.0)",
+				"employer": "round_unit(2530000.0 * 3.0 / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_unit((base) * 3.0 / 100.0)"
+			},
+			{
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.0",
+				"employee": "round_unit(759000.0)",
+				"employer": "round_unit(1518000.0)"
+			}
+		],
+		"assessed_on": "((((has(person.period.leave_days.MATERNITY_LEAVE) ? person.period.leave_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_days.PATERNITY_LEAVE) ? person.period.leave_days.PATERNITY_LEAVE : 0.0)) > 0.0 && has(person.facts.SI.elections.maternity_benefit_eligible) && person.facts.SI.elections.maternity_benefit_eligible && !(has(person.facts.SI.elections.maternity_returned_early) && person.facts.SI.elections.maternity_returned_early) && ((has(person.period.leave_full_days.MATERNITY_LEAVE) ? person.period.leave_full_days.MATERNITY_LEAVE : 0.0) + (has(person.period.leave_full_days.PATERNITY_LEAVE) ? person.period.leave_full_days.PATERNITY_LEAVE : 0.0)) >= 14.0)) ? 0.0 : (((has(person.period.leave_days.SICK_LEAVE) ? person.period.leave_days.SICK_LEAVE : 0.0) > 0.0 && has(person.facts.SI.elections.sickness_benefit_eligible) && person.facts.SI.elections.sickness_benefit_eligible && ((has(person.period.leave_full_days.SICK_LEAVE) ? person.period.leave_full_days.SICK_LEAVE : 0.0) >= 14.0 || person.facts.SI.elections.long_term_sickness)) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 12 || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0 ? produced.SI.base : ((person.terms.basic_salary + person.terms.fixed_allowances) < 2530000.0 ? 2530000.0 : (person.terms.basic_salary + person.terms.fixed_allowances) > 50600000.0 ? 50600000.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))))))",
+		"short_name": null,
+		"listing_order": 29,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "fe8a9888-288e-5254-be22-d94bbec833d3",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "UI",
+		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
+		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP, unchanged on 1 July 2026). The scheme covers Vietnamese employees; a foreign employee is outside it. Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (2): Law 41/2024 art.31(1)(đ) makes the unemployment-insurance base the social-insurance base, so its floor is the version’s reference level — 2,530,000 from 1 July 2026 as for SI, not the earlier 2,340,000. Law 74/2025/QH15 article 33(4) separately exempts months with at least 14 unpaid working days from UI; an SI continuation agreement does not remove that exemption. https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm Fully unpaid working dates determine the unpaid-day threshold; a paid half-day remains a working day under BHXH letter 371/BHXH-QLT of 7 July 2025 section 1.2. Law 74/2025/QH15 art.33(4) exempts UI only when the worker has at least 14 working days without salary; the special SI maternity categories do not create a shorter UI exemption.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && base > 0.0 && base < 2530000.0",
+				"employee": "round_unit(2530000.0 * 1.0 / 100.0)",
+				"employer": "round_unit(2530000.0 * 1.0 / 100.0)"
+			},
+			{
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_unit(((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
+			}
+		],
+		"assessed_on": "(person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : ((person.employee.receiving_pension || person.terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employee.gender == \"FEMALE\" ? person.employee.age_months_on(person.employment.service_start) >= 684 : person.employee.age_months_on(person.employment.service_start) >= 738))) ? 0.0 : ((person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.basic_salary + person.terms.fixed_allowances < 2530000.0)) ? 0.0 : (person.period.working_days - period.days_employed + person.period.unpaid_full_days >= 14.0 ? 0.0 : (person.terms.basic_salary + person.terms.fixed_allowances))))",
+		"short_name": null,
+		"listing_order": 30,
+		"listing_group": null,
+		"parts": []
+	},
+	{
+		"id": "11743132-ee52-510a-81a4-4daffc29f555",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "UNION_FEE",
+		"name": "Trade Union Fee (Kinh phí công đoàn)",
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (50,600,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version). Applied 2026-09-18 (4): Circular 06/2021/TT-BLĐTBXH art.30(1)–(2): the insurance salary is the contractual salary plus the contractual allowances and fixed supplements (`terms.fixed_allowances`, the standing rows marked fixed); a meal, fuel, phone or housing allowance is a row marked not fixed and stays outside. Applied 2026-09-19 (3): Law on Trade Unions 2024 art.29(1)(b) (Decree 191/2013 art.5): the employer’s union fund contribution is 2% of the salary fund on which social insurance is paid — one line on the establishment, the sum of the insured salaries (`produced.SI.base` over the run), not a charge on any payslip.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_unit(base * 2.0 / 100.0)"
+			}
+		],
+		"assessed_on": "produced.SI.base",
+		"short_name": null,
+		"listing_order": 31,
+		"listing_group": null,
+		"assessment_scope": "COMPANY",
+		"parts": []
+	},
+	{
+		"id": "9657382b-d498-561e-b7b4-6015d946ae93",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "PIT",
+		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
+		"authority": "Personal Income Tax Law 04/2007/QH12 and Circular 111/2013/TT-BTC; Law 109/2025/QH15 and Decree 253/2026/ND-CP for the 2026 rules. Declared non-residents receive 20% withholding on taxable remuneration without resident personal, dependant or insurance deductions; that rule precedes the resident short-contract withholding rule and does not require a rate override. Resident progressive withholding uses the version’s monthly scale and deduction amounts; the configured year-end rule reconciles annual withholding. Before 1 July 2026, non-residents retain the earlier overtime-premium exemption and taxable leave cash-out. The full qualifying overtime and statutory cessation leave exemptions apply to residents from tax year 2026 and non-residents from 1 July 2026 (Decree 253/2026 arts.26 and 69). A future departure does not establish cessation in the current period. Payments beyond statutory limits remain taxable. Unknown tax residence, special tax profiles and exemption allocation require further verification.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_unit(base * 20.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
+				"when": "!person.employment.open_ended && person.employment.contract_months < 3 && !scheme.elections.commitment_form",
+				"employee": "base >= 5000000.0 ? round_unit(base * 10.0 / 100.0) : 0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "period.last_of_year && person.employment.exit_date == \"\"",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive((((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) > 0.0 ? ((scheme.year_to_date.base + base) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (15500000.0 + 6200000.0 * person.employee.dependents_count) * 12.0) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) - scheme.year_to_date.employee)",
+				"employer": "round_unit(0.0)"
+			},
+			{
+				"when": "true",
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive(((base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (15500000.0 + 6200000.0 * person.employee.dependents_count) > 0.0 ? (base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (15500000.0 + 6200000.0 * person.employee.dependents_count) : 0.0), [0.0, 0.0, 5.0, 10000000.0, 500000.0, 10.0, 30000000.0, 2500000.0, 20.0, 60000000.0, 8500000.0, 30.0, 100000000.0, 20500000.0, 35.0]))",
+				"employer": "round_unit(0.0)"
+			}
+		],
+		"assessed_on": "BASE + (ALLOWANCES + ADHOC) + (person.employment.exit_date == \"\" || person.employment.exit_date > period.end ? ENCASHMENT : 0.0) + INCENTIVE - ABSENCE - NO_PAY_LEAVE",
+		"short_name": null,
+		"listing_order": 33,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "commitment_form",
+				"type": "boolean",
+				"label": "Valid income tax commitment"
+			}
+		],
+		"parts": []
+	}
+]

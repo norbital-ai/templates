@@ -42,9 +42,7 @@ when their fixture stage is explicitly selected.
 An incomplete source migration records its unresolved originals and a
 `source_review/migration-blockers.json` file in the configured source bundle. The host seeds what
 the bank holds and prints every blocker group in its provisioning output, so the review debt is
-visible on every reset rather than a gate in front of the workspace (owner direction,
-2026-09-09). Nothing is invented for a blocked group: the rows that exist are true, and the review
-files preserve the evidence still owed. They are not workspace collections.
+visible in provisioning output. Missing records are not inferred. The review files retain unresolved source evidence; successful provisioning does not establish payroll readiness. They are not workspace collections.
 
 ## Contract and family scope
 
@@ -109,8 +107,8 @@ departure reason remains unresolved.
 | Loan         | Loan catalogue, agreement and `loan_repayments`                                                                                                                      | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
 | Contribution | Scheme catalogues, rules, `assessed_on` formulas and contract facts (registration, `since`, elections, directed instalments)                                         | Preserve effective applicability and each scheme's formula over the source-family outputs           |
 
-Bonuses, notice pay and separation payments are Allowance catalogue definitions. Who may raise a
-claim or allowance and up to what ceiling is the catalogue row's `eligibility` and
+Bonuses, notice pay and separation payments are Ad hoc catalogue definitions. Who may raise a
+claim, allowance or ad hoc request and up to what ceiling is the catalogue row's `eligibility` and
 entitlement matrix, judged against the contract terms in force on the event date; `grade` on the
 terms is the tier those predicates read. Every event form's type picker offers only the rows whose
 predicate holds for the person today, so an ineligible type is not offered rather than refused; the
@@ -120,7 +118,7 @@ the same way: its entitlement bands are `{eligibility, days}` rows read top-down
 whether a day is unpaid, `can_encash` whether it may be converted, and each scheme's `assessed_on`
 formula says whether an unpaid or encashed day enters it.
 Carry-forward is a manual Leave activity; an encashment is manual or raised at departure, carries
-`encash_days` and no amount, and the engine prices the days at the ordinary day wage. No annual
+`encash_days` and no amount, and the engine prices the days using the dated `work_rules.encashment` rule. No annual
 account rows, accrual scheduler or automatic carry-forward policies are seeded.
 
 ## Leave and holiday evidence
@@ -182,8 +180,7 @@ Use an isolated local test database with the current template and verified sourc
 regular periods chronologically and settle them in order so later contribution and YTD inputs are
 stable. Export the resulting workbooks and record the source and generated file hashes.
 
-Expected values come directly from the independent source workbooks. Generated output, previous
-reports and cached calculated values must not supply expected results.
+Reconciliation values come from independent source workbooks. Legal expected values come from the applicable official instruments and independent calculations. A historical workbook does not override statutory requirements. Generated output and cached results must not supply expected values.
 
 Compare by entity, employment contract and payroll period. A source keyed only by employee code
 must first resolve that code to the correct stint; ambiguous rehires or concurrent entity payouts

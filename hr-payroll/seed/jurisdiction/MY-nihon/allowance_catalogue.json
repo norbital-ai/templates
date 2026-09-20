@@ -1,0 +1,156 @@
+[
+	{
+		"id": "990cca82-a2f7-5e31-9eb7-053d35b7c7f5",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "SUA",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Scale-up allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SOCSO"
+		]
+	},
+	{
+		"id": "0247f143-27d8-5725-879b-ec6daf6d21be",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "ONCALL",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "On-call allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SOCSO"
+		]
+	},
+	{
+		"id": "497ad32c-b463-523b-bd62-a65dcb551fb9",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "SUA",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Scale-up allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SKBBK",
+			"SOCSO"
+		]
+	},
+	{
+		"id": "14f8f2c0-e531-5303-a7e4-2b2b1acd5dff",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "ONCALL",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "On-call allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		]
+	},
+	{
+		"id": "4fd08c8d-4531-5576-b16a-f16bbdc871e5",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "SUA",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Scale-up allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SKBBK",
+			"SOCSO"
+		]
+	},
+	{
+		"id": "98f2b585-059b-5906-a1d2-5006f6d704f3",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "ONCALL",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "On-call allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		]
+	}
+]

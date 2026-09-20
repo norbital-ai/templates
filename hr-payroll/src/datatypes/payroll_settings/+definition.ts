@@ -23,9 +23,8 @@ export const payrollSettingsValueSchema = Schema.Struct({
 	 */
 	allowance_npl_prorates: Schema.Boolean,
 	/**
-	 * Days after the last day of work by which a leaver's final pay is due, where the statute
-	 * states one (PH Labor Advisory 06-20: 30; ID PP 35/2021 art.15: 7; VN art.48: 14). A run
-	 * whose pay date falls later warns. Absent is no rule.
+	 * Configured days after the last day of work for the final-pay warning. Coverage, departure
+	 * reason and statutory exceptions require separate verification. Absent is no configured rule.
 	 */
 	final_pay_due_days: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**

@@ -675,7 +675,7 @@ test('a part-paid row deducts the unpaid share, a fund-paid row the whole day, a
 		dueThrough: '2026-04-30',
 		currency: 'MYR',
 		absenceRate: () => 100,
-		ordinaryDayRate: () => 100
+		encashmentRate: () => 100
 	});
 	const items = settled.captures.flatMap((capture) =>
 		capture.pay_items.map((item) => [item.code, item.amount])

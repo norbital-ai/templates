@@ -20,8 +20,10 @@
  * write when the site does not declare it.
  */
 
+import { DEDUCTION_TOTAL_KEYS } from '../statutory-deductions.js';
+
 export type ExpressionSite =
-	'person' | 'entry' | 'work_day' | 'assessment' | 'scheme' | 'leave_day';
+	'entity' | 'person' | 'entry' | 'work_day' | 'assessment' | 'scheme' | 'leave_day';
 /** What an expression returns: a boolean, or a number in the unit its field is named for. */
 export type ExpressionType = 'boolean' | 'money' | 'hours' | 'minutes' | 'days' | 'number';
 
@@ -62,6 +64,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'employee.birth_date', description: 'Date of birth as `YYYY-MM-DD`, or empty' },
 	{
+		path: 'employee.birthday(age)',
+		description:
+			'Date the given age is reached, as `YYYY-MM-DD`, or empty without a birth date. A leap-day anniversary in a non-leap year falls on 1 March, matching age_on.'
+	},
+	{
 		path: 'employee.age_months_on(date)',
 		description:
 			'Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026)'
@@ -77,7 +84,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'employee.dependents_count',
 		description:
-			'Dependants the person declares for a tax relief (MY child relief, ID PTKP, TW exemptions); leave and family schemes count `children` instead'
+			'Declared dependant count for schemes such as ID PTKP and TW exemptions; child-specific rules read `children`'
 	},
 	{ path: 'employee.solo_parent', description: 'Solo-parent flag' },
 	{
@@ -135,6 +142,15 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'RESIGNATION | DISMISSAL | REDUNDANCY | RETRENCHMENT | UNILATERAL | RETIREMENT | END_OF_CONTRACT | MUTUAL | DEATH, or empty'
 	},
 	{
+		path: 'employment.exit_facts.<key>',
+		description:
+			'Departure inputs declared by the settings version effective on the final service day'
+	},
+	{
+		path: 'employment.exit_fact_keys',
+		description: 'Departure keys explicitly recorded on the employment, before defaults'
+	},
+	{
 		path: 'employment.absent_days_12m',
 		description:
 			'Rostered days with an empty punch in the twelve months to the rule date (leave rules only)'
@@ -151,7 +167,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'terms.ordinary_day',
 		description:
-			'One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — what a leave day is encashed or deducted at; 0 where no divisor was evaluated'
+			'One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated'
 	},
 	{
 		path: 'terms.fixed_allowances',
@@ -193,7 +209,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'terms.tax_residency',
 		description:
-			'RESIDENT | NON_RESIDENT | NON_RESIDENT_NETB declared on the contract, or empty for the citizenship default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B))'
+			'RESIDENT | NON_RESIDENT | NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B))'
+	},
+	{
+		path: 'terms.residency_since',
+		description: 'Date residency began as `YYYY-MM-DD`, or empty when unrecorded'
 	},
 	{ path: 'terms.notice_days', description: 'Notice days the contract states, 0 when none' },
 	{ path: 'terms.ordinary_hours_per_week', description: 'Roster-measured working week, hours' },
@@ -201,7 +221,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'children.count',
 		description:
-			'Recorded children alive on the rule date — leave and family schemes read these; tax reliefs read `employee.dependents_count`'
+			'Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions'
 	},
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
 	{
@@ -219,12 +239,12 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'children.classed(x)',
 		description:
-			'Children in the relief class x declared on the child (MY: STUDYING, TERTIARY, DISABLED, DISABLED_TERTIARY)'
+			'Family records in classification x; these counts do not establish tax-relief claims'
 	},
 	{
 		path: 'children.unclassed_under(n)',
 		description:
-			'Children with no declared relief class under n completed years — the ordinary child of a relief ladder (MY s.48(1)(a): under eighteen)'
+			'Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead'
 	},
 	{ path: 'company.region', description: 'Employing entity region' },
 	{ path: 'company.headcount', description: 'Active employments in the entity' },
@@ -250,6 +270,16 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'facts.<CODE>.since_months',
 		description:
 			'Completed months since the employment registered with that scheme, 0 when unrecorded'
+	},
+	{
+		path: 'facts.<CODE>.elections.<key>',
+		description:
+			'Declared scheme inputs resolved from the statutory facts effective on the rule date'
+	},
+	{
+		path: 'facts.<CODE>.election_keys',
+		description:
+			'Keys explicitly supplied on that effective statutory declaration; distinct from resolved defaults'
 	},
 	{
 		path: 'event.kind',
@@ -279,6 +309,18 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'event.prior_employment_days',
 		description:
 			'Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded'
+	},
+	{
+		path: 'period.unpaid_full_days',
+		description: 'Scheduled dates wholly unpaid, counted once per date; paid fractions do not count'
+	},
+	{
+		path: 'period.leave_days.<CODE>',
+		description: 'Approved working-day leave fractions of the named code in the assessment window'
+	},
+	{
+		path: 'period.leave_full_days.<CODE>',
+		description: 'Approved full working dates of the named leave code in the assessment window'
 	},
 	{ path: 'period.working_days', description: 'Scheduled working days of the pay month' },
 	{
@@ -317,6 +359,8 @@ const PERSON_BLANK = {
 		open_ended: true,
 		contract_months: 0,
 		exit_reason: '',
+		exit_facts: {},
+		exit_fact_keys: [],
 		absent_days_12m: 0
 	},
 	terms: {
@@ -335,6 +379,7 @@ const PERSON_BLANK = {
 		pay_frequency: '',
 		pass_type: '',
 		tax_residency: '',
+		residency_since: '',
 		notice_days: 0,
 		ordinary_hours_per_week: 0,
 		working_days_per_week: 0
@@ -350,7 +395,13 @@ const PERSON_BLANK = {
 	},
 	company: { region: '', headcount: 1, headcount_citizens: 1, facts: {} },
 	wage_floor: 0,
-	period: { working_days: 22, unpaid_days: 0 },
+	period: {
+		working_days: 22,
+		unpaid_days: 0,
+		unpaid_full_days: 0,
+		leave_full_days: {},
+		leave_days: {}
+	},
 	facts: {},
 	event: {
 		kind: '',
@@ -447,6 +498,11 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 	{ path: 'year_to_date.employee', description: 'Employee amount already charged this tax year' },
 	{ path: 'year_to_date.employer', description: 'Employer amount already charged this tax year' },
 	{
+		path: 'year_to_date.rebate',
+		description:
+			'Rebatable payments already recorded this tax year, including declared prior-employer payments'
+	},
+	{
 		path: 'projection.payslips_remaining',
 		description: 'Payslips left in the year, this one included'
 	},
@@ -456,10 +512,67 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 		description: 'The employment flat rate override percentage, 0 when none'
 	},
 	{ path: 'since', description: 'The day this employment registered with the scheme, or empty' },
+	{
+		path: 'first_contribution_due_on',
+		description:
+			'First date contributions were legally due under this scheme, including earlier employers, or empty. Independent of registration and payment dates.'
+	},
 	{ path: 'since_months', description: 'Completed months since registration, 0 when unrecorded' },
 	{
 		path: 'elections.<key>',
 		description: 'The employment’s elections under this scheme, keys the scheme row declares'
+	},
+	{
+		path: 'election_keys',
+		description:
+			'Keys explicitly recorded on the effective statutory declaration. Test membership to distinguish a missing input from a declared zero, false or empty value.'
+	},
+	{
+		path: 'child_claims.<class>',
+		description:
+			'Declared eligible children for this tax year and relief class: full count plus half the shared count; zero without a declaration. Independent of family records.'
+	},
+	{
+		path: 'deductions.<category>',
+		description:
+			'Declared deduction amounts through this month in the current tax year, before category limits'
+	},
+	{
+		path: 'deductions_current.<category>',
+		description:
+			'This employer’s accepted deduction claims for the current month, before category limits'
+	},
+	{
+		path: 'deductions_prior.<category>',
+		description:
+			'Earlier-month and prior-employer deduction claims in the current tax year, before category limits'
+	},
+	{
+		path: 'deductions_prior_employer.<category>',
+		description: 'Prior-employer deductions in the current tax year through this month'
+	},
+	{
+		path: 'deduction_claim_counts.<category>',
+		description:
+			'Distinct claim references with a positive net amount after corrections, through this month in the current tax year'
+	},
+	{
+		path: 'deduction_claims_missing_event.<category>',
+		description:
+			'Deduction claims without a linked event reference in the current tax year through this month'
+	},
+	{
+		path: 'deduction_claims_negative_event.<category>',
+		description:
+			'Linked event references whose signed corrections produce a negative net claim in the current tax year through this month'
+	},
+	{
+		path: 'deductions_last_year.<category>',
+		description: 'Declared deductions in the preceding tax year, for claim-frequency limits'
+	},
+	{
+		path: 'deductions_two_years_ago.<category>',
+		description: 'Declared deductions two tax years earlier, for claim-frequency limits'
 	}
 ];
 
@@ -476,6 +589,11 @@ const PRODUCED_FIELDS: readonly ContextField[] = [
 			'The relievable employee share, capped and projected; for an uncapped producer it is the year to date plus this period'
 	},
 	{
+		path: 'employee_normal',
+		description:
+			'The relievable employee share for normal-pay tax: excludes current additional remuneration from projected producers, with the same prior-year-to-date contributions and annual cap'
+	},
+	{
 		path: 'employee_this_period',
 		description:
 			'The employee share charged this period alone, floored at zero — the relief a per-period withholding table subtracts'
@@ -484,7 +602,7 @@ const PRODUCED_FIELDS: readonly ContextField[] = [
 	{
 		path: 'base',
 		description:
-			'The base the producer was charged on this period — a graded insured amount another scheme measures against; on the company site, the sum over the run'
+			'The producer’s assessed base before instalment allocation. Company assessments read the sum of settled bases across their assessment interval.'
 	}
 ];
 
@@ -493,6 +611,39 @@ const producedFields = (prefix: string): ContextField[] =>
 		path: `${prefix}${field.path}`,
 		description: field.description
 	}));
+
+const HISTORY_FIELDS: readonly ContextField[] = [
+	{
+		path: 'history.<code>.periods',
+		description:
+			'Prior paid and declared opening assessment periods normalized to the current cadence; excludes this period'
+	},
+	{
+		path: 'history.<code>.base',
+		description: 'Prior assessed base in the current tax year, including selected opening amounts'
+	},
+	{
+		path: 'history.<code>.ordinary',
+		description:
+			'Prior ordinary assessed base in the current tax year, including selected opening amounts'
+	},
+	{
+		path: 'history.<code>.employee',
+		description: 'Prior employee charge in the current tax year, including selected opening amounts'
+	},
+	{
+		path: 'history.<code>.employer',
+		description: 'Prior employer charge in the current tax year, including selected opening amounts'
+	},
+	{
+		path: 'history.<code>.triggered',
+		description: 'Whether an earlier assessment used its cumulative method'
+	},
+	{
+		path: 'history.<code>.has_opening',
+		description: 'Whether a selected prior-employer declaration exists, including an all-zero one'
+	}
+];
 
 /** Representative evaluated limits for compile-time and previews; the builders supply the real ones. */
 const LIMITS_BLANK = {
@@ -526,8 +677,7 @@ const EARNED_AVERAGE: ExpressionFunction = {
 
 const DAYS_UNDER: ExpressionFunction = {
 	path: 'days_under(age)',
-	description:
-		'The calendar days of the pay window on which the person is under that age — a cover that ends on a birthday charges the days before it (TW 勞保條例施行細則 §28-1 at sixty-five)'
+	description: 'Calendar days employed in the assessment window before the specified birthday.'
 };
 
 const MINIMUM_WAGE: ExpressionFunction = {
@@ -599,8 +749,31 @@ const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 	if (site === 'person' || site === 'entry' || site === 'assessment' || site === 'scheme')
 		functions.push(MINIMUM_WAGE);
 	if (site === 'assessment') functions.push(...CODE_FUNCTIONS, EARNED_AVERAGE);
-	if (site === 'assessment' || site === 'scheme') functions.push(DAYS_UNDER);
-	if (site === 'assessment' || site === 'scheme') functions.push(ANNUAL_EXEMPT);
+	if (site === 'assessment' || site === 'scheme')
+		functions.push(DAYS_UNDER, {
+			path: 'coverage_days_30(since, age)',
+			description:
+				'Covered days in the assessment month on a thirty-day calendar, starting no earlier than employment and registration. Continuing coverage runs to day 30; termination uses its actual day capped at 30. A positive age ends coverage before that birthday; 0 applies no age limit.'
+		});
+	if (site === 'assessment' || site === 'scheme')
+		functions.push(
+			ANNUAL_EXEMPT,
+			{
+				path: 'earned_quantity_exempt(code, limit)',
+				description:
+					'Earlier paid cash-out exempt within the annual day limit, valued at each payment’s original rate.'
+			},
+			{
+				path: 'earned_monthly_excess(code, limit)',
+				description:
+					'Earlier payments in the tax year exceeding the allowance limit in each calendar month.'
+			},
+			{
+				path: 'annual_quantity_exempt(code, limit)',
+				description:
+					'Current leave cash-out exempt within an annual day limit, after days paid earlier in the tax year. Each entry retains its own rate.'
+			}
+		);
 	if (site === 'entry')
 		functions.push({
 			path: 'leave.days(code)',
@@ -609,12 +782,36 @@ const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 	return functions;
 };
 
+const ENTITY_CONTEXT: ExpressionContext = {
+	site: 'entity',
+	description: 'The employing entity and its declared jurisdiction inputs.',
+	fields: [
+		{ path: 'company.settings_code', description: 'Jurisdiction settings lineage' },
+		{ path: 'company.region', description: 'Registered payroll region' },
+		{ path: 'company.pay_frequency', description: 'MONTHLY | SEMI_MONTHLY | WEEKLY' },
+		{ path: 'company.facts.<key>', description: 'Declared jurisdiction input' },
+		{ path: 'company.fact_keys', description: 'Keys explicitly recorded on the entity' }
+	],
+	bare: [],
+	open: ['company.facts'],
+	functions: functionsFor('entity'),
+	blank: {
+		company: { settings_code: '', region: '', pay_frequency: 'MONTHLY', facts: {}, fact_keys: [] }
+	}
+};
+
 const PERSON_CONTEXT: ExpressionContext = {
 	site: 'person',
 	description: 'The person on the rule date: catalogue and scheme eligibility.',
 	fields: PERSON_ROOT_FIELDS,
 	bare: ['wage_floor'],
-	open: ['company.facts'],
+	open: [
+		'company.facts',
+		'facts',
+		'period.leave_full_days',
+		'period.leave_days',
+		'employment.exit_facts'
+	],
 	functions: functionsFor('person'),
 	blank: personBlank()
 };
@@ -634,7 +831,13 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 		}
 	],
 	bare: ['wage_floor'],
-	open: ['company.facts'],
+	open: [
+		'company.facts',
+		'facts',
+		'period.leave_full_days',
+		'period.leave_days',
+		'employment.exit_facts'
+	],
 	functions: functionsFor('person'),
 	blank: { ...personBlank(), leave: { month_index: 1, day_index: 1, days: 1, year_taken: {} } }
 };
@@ -661,7 +864,15 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		{ path: 'leave.days(code)', description: 'Charged days of one leave code in the window' }
 	],
 	bare: [],
-	open: ['limits', 'year', 'person.company.facts'],
+	open: [
+		'limits',
+		'year',
+		'person.company.facts',
+		'person.facts',
+		'person.period.leave_full_days',
+		'person.period.leave_days',
+		'person.employment.exit_facts'
+	],
 	functions: functionsFor('entry'),
 	blank: {
 		person: personBlank(),
@@ -743,7 +954,14 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'day_wage',
 		'hours'
 	],
-	open: ['limits', 'person.company.facts'],
+	open: [
+		'limits',
+		'person.company.facts',
+		'person.facts',
+		'person.period.leave_full_days',
+		'person.period.leave_days',
+		'person.employment.exit_facts'
+	],
 	functions: functionsFor('work_day'),
 	blank: {
 		person: personBlank(),
@@ -798,11 +1016,24 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		...yearFields('year.'),
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
+		...HISTORY_FIELDS,
 		...RESERVED_LINES,
 		...CATALOGUE_WORD_FIELDS
 	],
 	bare: [...RESERVED_LINES.map((field) => field.path), ...CATALOGUE_WORDS],
-	open: ['produced', 'year', 'scheme.elections', 'person.company.facts'],
+	open: [
+		'produced',
+		'history',
+		'year',
+		'scheme.elections',
+		'scheme.child_claims',
+		...DEDUCTION_TOTAL_KEYS.map((key) => `scheme.${key}`),
+		'person.company.facts',
+		'person.facts',
+		'person.period.leave_full_days',
+		'person.period.leave_days',
+		'person.employment.exit_facts'
+	],
 	functions: functionsFor('assessment'),
 	blank: {
 		person: personBlank(),
@@ -819,14 +1050,21 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		scheme: {
 			code: '',
 			assessment_period: 'PAY_PERIOD',
-			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0 },
+			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0, rebate: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',
+			first_contribution_due_on: '',
 			since_months: 0,
-			elections: {}
+			elections: {},
+			election_keys: [],
+			child_claims: {},
+			...Object.fromEntries(DEDUCTION_TOTAL_KEYS.map((key) => [key, {}]))
 		},
-		produced: { EPF: { base: 0, employee: 0, employee_this_period: 0, employer: 0 } },
+		produced: {
+			EPF: { base: 0, employee: 0, employee_normal: 0, employee_this_period: 0, employer: 0 }
+		},
+		history: {},
 		BASE: 0,
 		OVERTIME: 0,
 		NIGHT_PREMIUM: 0,
@@ -850,7 +1088,13 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		...yearFields('year.'),
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
+		...HISTORY_FIELDS,
 		{ path: 'base', description: 'The result of the scheme’s `assessed_on` formula' },
+		{
+			path: 'scheme.deduction',
+			description:
+				'The selected rule’s allowable deduction, evaluated before employee, employer and rebate expressions; zero if omitted'
+		},
 		{
 			path: 'ordinary',
 			description:
@@ -858,7 +1102,19 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		}
 	],
 	bare: ['base', 'ordinary'],
-	open: ['produced', 'year', 'scheme.elections', 'person.company.facts'],
+	open: [
+		'produced',
+		'history',
+		'year',
+		'scheme.elections',
+		'scheme.child_claims',
+		...DEDUCTION_TOTAL_KEYS.map((key) => `scheme.${key}`),
+		'person.company.facts',
+		'person.facts',
+		'person.period.leave_full_days',
+		'person.period.leave_days',
+		'person.employment.exit_facts'
+	],
 	functions: functionsFor('scheme'),
 	blank: {
 		person: personBlank(),
@@ -866,21 +1122,30 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0 } },
 		scheme: {
 			code: '',
+			deduction: 0,
 			assessment_period: 'PAY_PERIOD',
-			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0 },
+			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0, rebate: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',
+			first_contribution_due_on: '',
 			since_months: 0,
-			elections: {}
+			elections: {},
+			election_keys: [],
+			child_claims: {},
+			...Object.fromEntries(DEDUCTION_TOTAL_KEYS.map((key) => [key, {}]))
 		},
-		produced: { EPF: { base: 0, employee: 0, employee_this_period: 0, employer: 0 } },
+		produced: {
+			EPF: { base: 0, employee: 0, employee_normal: 0, employee_this_period: 0, employer: 0 }
+		},
+		history: {},
 		base: 0,
 		ordinary: 0
 	}
 };
 
 export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionContext>> = {
+	entity: ENTITY_CONTEXT,
 	person: PERSON_CONTEXT,
 	entry: ENTRY_CONTEXT,
 	work_day: WORK_DAY_CONTEXT,

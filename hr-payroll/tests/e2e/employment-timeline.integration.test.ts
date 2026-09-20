@@ -93,6 +93,7 @@ it('the employee profile draws a vertical event rail per legal entity', async ()
 					environment: 'test',
 					releaseId: LABEL,
 					principal: `${LABEL}-founder`,
+					email: `${LABEL}-founder@example.test`,
 					syncPrincipal: `${LABEL}-founder`,
 					organizationName: 'Employment timeline fixture',
 					commandPrefix: '/__bolt/command/',

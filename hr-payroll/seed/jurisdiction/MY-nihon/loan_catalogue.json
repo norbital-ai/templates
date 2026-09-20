@@ -1,0 +1,149 @@
+[
+	{
+		"id": "77638e7a-5291-5e85-aba2-518e359eb933",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "LOAN_RECOVERY_AIR_TICKET",
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Air ticket loan recovery"
+	},
+	{
+		"id": "7656aa47-b528-5baf-b8ca-224701974a92",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Hari Raya (festive) advance recovery"
+	},
+	{
+		"id": "0777270c-c699-5a10-9700-870e3cc9d743",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "LOAN_RECOVERY_AIR_TICKET",
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Air ticket loan recovery"
+	},
+	{
+		"id": "efdabb6f-5170-523f-91c5-6c6f618202aa",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Hari Raya (festive) advance recovery"
+	},
+	{
+		"id": "75b1937a-759c-5762-b0a5-cb29d09057e4",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "LOAN_RECOVERY_AIR_TICKET",
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Air ticket loan recovery"
+	},
+	{
+		"id": "f973ab54-6a42-5ac5-9fc4-5f18e8e282ec",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Hari Raya (festive) advance recovery"
+	},
+	{
+		"id": "016d1a82-3c06-5d52-b1d3-3f64f3cad749",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "AIR_TICKET_DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Air ticket deduction"
+	},
+	{
+		"id": "30607c45-3d45-579a-afd7-ae37a46ccb52",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "AIR_TICKET_DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Air ticket deduction"
+	},
+	{
+		"id": "77a8c357-f7ad-5189-99d9-f31bc2898ac8",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "AIR_TICKET_DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Air ticket deduction"
+	}
+]

@@ -27,7 +27,13 @@ import { Effect } from 'effect';
 import type { WorkspaceRow } from '../$types.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
-import type { MonthPrior } from './accumulate.js';
+import {
+	accumulateSettledPayslip,
+	sumAccumulations,
+	type CompanyMonthPrior,
+	type MonthPrior,
+	type QuantityPayment
+} from './accumulate.js';
 import {
 	prepareFamilyObligations,
 	prepareFamilyInputs,
@@ -66,6 +72,8 @@ import {
 	type EmploymentSettlement
 } from './settlement.js';
 import { decodeNumber } from '@norbital-ai/std/json';
+import type { StatutoryPeriodHistory } from '../../../lib/payroll/statutory-history.js';
+import type { ReferenceWagePeriod } from '../../../lib/payroll/reference-wages.js';
 
 type Employment = ResolvedEmployment;
 type Employee = WorkspaceRow<'employees'>;
@@ -112,6 +120,8 @@ export type EmploymentBundle = {
 	readonly termsHistory: readonly EmploymentTerms[];
 	/** Plan and punch together. */
 	readonly workDays: readonly WorkDay[];
+	/** Approved dated wage history a statutory ordinary rate or conversion may consume. */
+	readonly wagePeriods: readonly ReferenceWagePeriod[];
 	/** The rosters of record whose cycles touch the attendance span, as day ranges. */
 	readonly rosters: readonly { readonly start: IsoDate; readonly end: IsoDate }[];
 	/** Completed months of service at the period end. */
@@ -130,9 +140,7 @@ export type EmploymentBundle = {
 	/** An earlier period this run is paying out, set only after a deferred joining period. */
 	readonly arrearsFor: EmploymentSettlement['arrearsFor'];
 	/**
-	 * Set when this period is being deferred. The bundle is measured exactly like every other one —
-	 * that is the point, the amount owed is what the run *would* have paid — and then diverted at
-	 * persistence into base pay for the deferred period instead of a payslip.
+	 * Defers monetary settlement while retaining this period's statutory insurance assessment.
 	 */
 	readonly deferral: EmploymentSettlement['deferral'];
 };
@@ -147,16 +155,23 @@ export type GatheredRun = {
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<
 		string,
-		{ employee: number; employer: number; base: number; ordinary: number }
+		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
 	>;
+	/** employee id → earlier paid statutory assessments in this tax year, grouped by payroll period. */
+	readonly statutoryHistory: ReadonlyMap<string, readonly StatutoryPeriodHistory[]>;
 	/** employee id → component code → what the person's earlier payslips earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	readonly yearQuantityPayments?: ReadonlyMap<
+		string,
+		ReadonlyMap<string, readonly QuantityPayment[]>
+	>;
 	/** employee id → calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, ReadonlyMap<string, number>>>;
 	/** employee id → calendar month → regulated overtime hours earlier payslips settled. */
 	readonly priorOvertimeHours: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/** `employee id:YYYY-MM` → what the month's earlier instalments settled and charged. */
 	readonly monthPrior: ReadonlyMap<string, MonthPrior>;
+	readonly companyMonthPrior?: CompanyMonthPrior;
 	/**
 	 * pay request id → what earlier runs took from it.
 	 *
@@ -314,12 +329,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		// Headcount is who the company employs in the month, not who this run pays: a monthly
 		// employment is on the books in the first half of a semi-monthly month even though that run
 		// pays it nothing, and a headcount-banded contribution for everyone else must not move
-		// between the halves. A deferred joining period pays nobody and is not counted.
+		// between the halves. Deferring a joining wage does not remove the employee from headcount.
 		const month = monthBounds(periodMonth(period));
 		const onTheBooks = touching.filter((row) => {
 			const dates = employmentDates(row);
-			if (dates.hire > month.end || (dates.exit != null && dates.exit < month.start)) return false;
-			return settlementByEmployment.get(row.id)?.deferral == null;
+			return dates.hire <= month.end && (dates.exit == null || dates.exit >= month.start);
 		});
 		const headcount = new Set(onTheBooks.map((row) => row.employee_id)).size;
 		const headcountCitizens = new Set(
@@ -338,12 +352,13 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				bundles: [],
 				headcount,
 				headcountCitizens,
-				yearToDate: new Map(),
-				yearEarned: new Map(),
-				earnedByMonth: new Map(),
-				priorOvertimeHours: new Map(),
-				monthPrior: new Map(),
-				consumedEntries: new Map()
+				...(yield* gatherPriorSettlement({
+					api: options.api,
+					configuration: options.configuration,
+					period,
+					employeeIds: [],
+					companyId
+				}))
 			};
 
 		// One query span covers everyone: the widest attendance window any employment settles over, so
@@ -373,7 +388,8 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				loansByEmployment,
 				repaymentsByLoan,
 				workDaysByEmployment,
-				rostersByEmployment
+				rostersByEmployment,
+				wagePeriodsByEmployment
 			},
 			prior
 		] = yield* Effect.all(
@@ -413,7 +429,9 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			const hire = start == null ? null : dateKey(start);
 			if (hire == null) refuse(`Employment ${employment.employee_number} has no service start.`);
 			const dob = dateKey(employee.date_of_birth);
-			const statutoryFacts = factsByEmployee.get(employment.employee_id) ?? [];
+			const statutoryFacts = (factsByEmployee.get(employment.employee_id) ?? []).filter(
+				(fact) => fact.employment_id == null || fact.employment_id === employment.id
+			);
 			const employmentLoans = loansByEmployment.get(employment.id) ?? [];
 			bundles.push({
 				employment,
@@ -430,6 +448,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				termsHistory: termsByEmployment.get(employment.id) ?? [],
 				workDays: workDaysByEmployment.get(employment.id) ?? [],
 				rosters: rostersByEmployment.get(employment.id) ?? [],
+				wagePeriods: wagePeriodsByEmployment.get(employment.id) ?? [],
 				serviceMonths: completedMonths(hire, paid.end),
 				age: dob == null ? null : completedYears(dob, paid.end),
 				employedDays: settlement.employedDays,
@@ -478,13 +497,16 @@ type GatherPriorSettlementOptions = {
 type PriorSettlement = {
 	readonly yearToDate: Map<
 		string,
-		{ employee: number; employer: number; base: number; ordinary: number }
+		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
 	>;
 	readonly yearEarned: Map<string, Map<string, number>>;
+	readonly yearQuantityPayments: Map<string, Map<string, QuantityPayment[]>>;
 	readonly earnedByMonth: Map<string, Map<string, Map<string, number>>>;
 	readonly priorOvertimeHours: Map<string, Map<string, number>>;
 	readonly monthPrior: Map<string, MonthPrior>;
+	readonly companyMonthPrior?: CompanyMonthPrior;
 	readonly consumedEntries: Map<string, number>;
+	readonly statutoryHistory: ReadonlyMap<string, readonly StatutoryPeriodHistory[]>;
 };
 
 function gatherPriorSettlement(
@@ -520,6 +542,61 @@ function gatherPriorSettlement(
 		});
 		options.api.reads.assertComplete(priorRunRows, 'prior payroll runs');
 		const priorRuns = priorRunRows;
+		const monthRuns = priorRuns.filter(
+			(run) => run.period.slice(0, 7) === options.period.slice(0, 7)
+		);
+		let companyMonthPrior: CompanyMonthPrior | undefined;
+		if (
+			monthRuns.length > 0 &&
+			options.configuration.contributions.some(
+				(entry) =>
+					entry.row.assessment_scope === 'COMPANY' && entry.row.assessment_period === 'MONTH'
+			)
+		) {
+			const payslips = yield* db.payslips.findMany({
+				where: { payroll_run_id: { in: monthRuns.map((run) => run.id) } },
+				limit: PAGE_LIMIT
+			});
+			options.api.reads.assertComplete(payslips, 'company monthly payslips');
+			const totals = (
+				rows: readonly {
+					scheme_code: string;
+					base_amount: number;
+					employee_amount: number;
+					employer_amount: number;
+				}[]
+			) => {
+				const sums = new Map<
+					string,
+					{ base: number; ordinary: number; employee: number; employer: number }
+				>();
+				for (const row of rows) {
+					const previous = sums.get(row.scheme_code) ?? {
+						base: 0,
+						ordinary: 0,
+						employee: 0,
+						employer: 0
+					};
+					sums.set(row.scheme_code, {
+						base: previous.base + decodeNumber(row.base_amount),
+						ordinary: 0,
+						employee: previous.employee + decodeNumber(row.employee_amount),
+						employer: previous.employer + decodeNumber(row.employer_amount)
+					});
+				}
+				return sums;
+			};
+			const components = new Map(
+				options.configuration.catalogueComponents.map((component) => [component.code, component])
+			);
+			companyMonthPrior = {
+				accumulation: sumAccumulations(
+					payslips.map((slip) => accumulateSettledPayslip(slip, components))
+				),
+				produced: totals(payslips.flatMap((slip) => slip.statutory)),
+				charged: totals(monthRuns.flatMap((run) => run.company_charges ?? []))
+			};
+		}
 		const inTaxYear = new Set(
 			priorRuns
 				.filter(
@@ -535,8 +612,11 @@ function gatherPriorSettlement(
 		>();
 		const consumedEntries = new Map<string, number>();
 		const empty = {
+			companyMonthPrior,
 			yearToDate: totals,
+			statutoryHistory: new Map<string, readonly StatutoryPeriodHistory[]>(),
 			yearEarned: new Map<string, Map<string, number>>(),
+			yearQuantityPayments: new Map<string, Map<string, QuantityPayment[]>>(),
 			earnedByMonth: new Map<string, Map<string, Map<string, number>>>(),
 			priorOvertimeHours: new Map<string, Map<string, number>>(),
 			monthPrior: new Map<string, MonthPrior>(),
@@ -568,13 +648,16 @@ function gatherPriorSettlement(
 		options.api.reads.assertComplete(priorPayslips, 'prior payslips');
 		if (priorPayslips.length === 0) return empty;
 
-		return yield* prepareFamilyHistory({
-			api: options.api,
-			payslips: priorPayslips,
-			inTaxYear,
-			employmentToEmployee,
-			periodByRun: new Map(priorRuns.map((run) => [run.id, run.period])),
-			catalogueComponents: options.configuration.catalogueComponents
-		});
+		return {
+			companyMonthPrior,
+			...(yield* prepareFamilyHistory({
+				api: options.api,
+				payslips: priorPayslips,
+				inTaxYear,
+				employmentToEmployee,
+				periodByRun: new Map(priorRuns.map((run) => [run.id, run.period])),
+				catalogueComponents: options.configuration.catalogueComponents
+			}))
+		};
 	});
 }

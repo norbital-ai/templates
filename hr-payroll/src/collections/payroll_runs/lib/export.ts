@@ -69,6 +69,9 @@ const HUMAN_HEADERS: Readonly<Record<string, string>> = {
 	eis_employer: 'EIS (Employer)',
 	tax_employee: 'PCB / Tax',
 	companyCost: 'Company cost',
+	unfundedContributions: 'Contribution shortfall',
+	fundingReceived: 'Funding received',
+	fundingOutstanding: 'Funding outstanding',
 	// Spelled out because the id cannot be: `15x` beside `1x`, `2x` and `3x` reads as fifteen times
 	// the rate on a document a payroll clerk signs off. It means one and a half.
 	att_ot_15x_hours: 'ATT OT 1.5X Hours',
@@ -641,6 +644,13 @@ export function payslipPdf(options: {
 		`Gross: ${payslip.gross.toFixed(2)} ${payslip.currency}`,
 		`Total deductions: ${payslip.totalDeductions.toFixed(2)} ${payslip.currency}`,
 		`Net pay: ${payslip.net.toFixed(2)} ${payslip.currency}`,
+		...(payslip.unfundedContributions > 0
+			? [
+					`Contribution shortfall: ${payslip.unfundedContributions.toFixed(2)} ${payslip.currency}`,
+					`Funding received: ${payslip.fundingReceived.toFixed(2)} ${payslip.currency}`,
+					`Funding outstanding: ${Math.max(0, payslip.unfundedContributions - payslip.fundingReceived).toFixed(2)} ${payslip.currency}`
+				]
+			: []),
 		`Company cost: ${payslip.employerCost.toFixed(2)} ${payslip.currency}`
 	]);
 }

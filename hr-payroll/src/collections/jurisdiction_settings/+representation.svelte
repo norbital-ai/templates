@@ -136,6 +136,11 @@
 								label={t('component.entity_facts')}
 								description={t('component.entity_facts_hint')}
 							/>
+							<Field
+								name="exit_facts"
+								label={t('component.exit_facts')}
+								description={t('component.exit_facts_hint')}
+							/>
 						</Grid>
 					</FormSection>
 
@@ -172,6 +177,7 @@
 				<Field name="change_summary" hidden />
 				<Field name="sources" hidden />
 				<Field name="facts" hidden />
+				<Field name="exit_facts" hidden />
 			{/if}
 
 			{#if showWorkRules}

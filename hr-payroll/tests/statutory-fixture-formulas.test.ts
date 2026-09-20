@@ -14,7 +14,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const ROOTS = [resolve(here, 'fixtures/statutory'), resolve(here, 'fixtures/seed')];
+const ROOTS = [resolve(here, '../seed/jurisdiction'), resolve(here, 'fixtures/seed')];
 const FILES = {
 	LEAVE: 'leave_catalogue',
 	ALLOWANCE: 'allowance_catalogue',
@@ -28,8 +28,8 @@ test('every fixture formula names a row of its own settings version, and no sche
 		for (const lineage of readdirSync(root)) {
 			const dir = `${root}/${lineage}`;
 			if (!lawFileExists(`${dir}/statutory_contributions`)) continue;
-			// A curated snapshot may carry fewer catalogue files than the bank; only a family whose
-			// file is present can be checked.
+			// The public seed carries every catalogue family; a family whose file is absent is
+			// simply not checked here.
 			const codes = new Map();
 			const present = new Set();
 			for (const [family, file] of Object.entries(FILES)) {
@@ -48,7 +48,7 @@ test('every fixture formula names a row of its own settings version, and no sche
 					mentions.reserved.length > 0 ||
 						mentions.codes.length > 0 ||
 						mentions.words.length > 0 ||
-						/person\.terms\.(basic_salary|monthly_basic|monthly_wage|statutory_wages)|produced\./.test(
+						/person\.terms\.(basic_salary|monthly_basic|monthly_wage|statutory_wages)|produced\.|scheme\.elections\./.test(
 							formula
 						),
 					`${lineage} ${scheme.code}: charges nothing`

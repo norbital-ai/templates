@@ -3,6 +3,8 @@ import { custom, defineModel, sql, text, uuid } from '@norbital-ai/bolt/authorin
 export default defineModel(
 	{
 		employee_id: uuid().notNull(),
+		/** Null for personal registration; an employment binds employer-specific instructions. */
+		employment_id: uuid(),
 		statutory_contribution_id: uuid().notNull(),
 		status: custom('statutory_fact_status').notNull(),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
@@ -25,7 +27,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'Where one person stands with one statutory scheme — registered with a reference number, or not registered with a reason. An absent row means registered with nothing captured.',
+			'A person’s statutory registration or a declaration for one employment. An employment-specific row overrides the personal row for the same scheme and date. An absent row means registered with nothing captured.',
 		recordLabel: 'summary',
 		icon: 'lucide:badge-check',
 		// Exclusion: employee =, contribution =, effective range && — the same **inclusive**
@@ -38,6 +40,10 @@ export default defineModel(
 				elements: [
 					{ expr: 'employee_id', with: '=' },
 					{ expr: 'statutory_contribution_id', with: '=' },
+					{
+						expr: "COALESCE(employment_id, '00000000-0000-0000-0000-000000000000'::uuid)",
+						with: '='
+					},
 					{
 						expr: "daterange(lower(bolt_daterange(effective_range - 'end')), upper(bolt_daterange(effective_range - 'start')), '[]')",
 						with: '&&'

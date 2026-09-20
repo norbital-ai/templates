@@ -74,7 +74,8 @@ const EmploymentSettlementSchema = Schema.Struct({
 	attendance: dayRangeSchema,
 	/**
 	 * Set when the employment's own period is being skipped. `runs` is false whenever this is set,
-	 * and nothing at all is measured — the period is not half-paid, it is not paid.
+	 * and its wages are not paid in this period. Statutory coverage is still measured where the
+	 * jurisdiction requires a joining-month assessment.
 	 */
 	deferral: Schema.NullOr(
 		Schema.Struct({

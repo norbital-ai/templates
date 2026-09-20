@@ -479,6 +479,15 @@
 						}}
 					/>
 					<Column
+						name="unfunded_contributions"
+						label={t('component.unfunded_contributions')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) =>
+								payslipAmount(row, 'unfunded_contributions')
+						}}
+					/>
+					<Column
 						name="employer_cost"
 						label={t('component.employer_cost')}
 						renderer={FormattedValueRenderer}

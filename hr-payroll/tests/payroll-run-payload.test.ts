@@ -25,7 +25,8 @@ test('every captured source becomes a link action on its payslip', () => {
 				claims: ['claim-1'],
 				adhoc: ['adhoc-1'],
 				leave: ['leave-1'],
-				loanRepayments: ['repayment-1']
+				loanRepayments: ['repayment-1'],
+				wagePeriods: ['wage-period-1']
 			}
 		]
 	});
@@ -35,6 +36,9 @@ test('every captured source becomes a link action on its payslip', () => {
 	assert.deepEqual(payload.adhoc_request_payslip, { link: [{ id: 'adhoc-1' }] });
 	assert.deepEqual(payload.leave_entry_payslip, { link: [{ id: 'leave-1' }] });
 	assert.deepEqual(payload.loan_repayment_payslip, { link: [{ id: 'repayment-1' }] });
+	assert.deepEqual(payload.payslip_wage_period, {
+		create: [{ wage_period_id: 'wage-period-1' }]
+	});
 });
 
 test('a payslip that consumed nothing of a family carries no action for it', () => {
@@ -47,12 +51,14 @@ test('a payslip that consumed nothing of a family carries no action for it', () 
 				claims: [],
 				adhoc: [],
 				leave: [],
-				loanRepayments: []
+				loanRepayments: [],
+				wagePeriods: []
 			}
 		]
 	});
 	assert.deepEqual(payload.work_day_payslip, {});
 	assert.deepEqual(payload.adhoc_request_payslip, {});
+	assert.deepEqual(payload.payslip_wage_period, {});
 });
 
 test('no source family accepts the pin as input', () => {

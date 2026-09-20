@@ -1,0 +1,53 @@
+[
+	{
+		"id": "b0e2cf0d-ba65-4d4f-97bb-1128929942cd",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "STAFF_LOAN",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Staff loan"
+	},
+	{
+		"id": "ff9b5cc0-b316-46b3-8ac3-c9d0ef83b371",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "STAFF_LOAN",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Staff loan"
+	},
+	{
+		"id": "5a0b8855-ecba-4431-a7c3-5b8a4aa508da",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "STAFF_LOAN",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Staff loan"
+	}
+]
