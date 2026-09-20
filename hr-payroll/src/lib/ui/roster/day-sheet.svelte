@@ -836,6 +836,8 @@
 												</Button>
 											{/if}
 										</Cluster>
+										<!-- A rest-day worked reads differently by who asked for it (SG EA s.37, MY EA s.60). -->
+										<Field name="requested_by" label={t('component.requested_by')} />
 
 										{#if problemMessage != null}
 											<Alert variant="destructive">
@@ -845,6 +847,7 @@
 										{/if}
 									{:else}
 										<!-- Read-only actual: the same numbers, with nothing to press. -->
+										<Field name="requested_by" hidden />
 										{@render fieldRow(
 											t('roster.day_sheet_recorded'),
 											day.workedIntervalCount === 0

@@ -172,6 +172,7 @@ function grant(
 		asOf,
 		hireDate: hire,
 		exitDate: null,
+		servedOn: () => true,
 		eligibleOn: () => true,
 		personOn
 	}).entitlement;
@@ -604,6 +605,7 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 				asOf: '2026-12-31',
 				hireDate: hire,
 				exitDate: null,
+				servedOn: () => true,
 				eligibleOn: () => true,
 				personOn: (date) =>
 					personContext({

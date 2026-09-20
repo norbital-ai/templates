@@ -36,6 +36,7 @@ const calculate = (
 		hireDate,
 		exitDate,
 		window: leaveWindowOf(asOf, rule.year_start_month),
+		servedOn: () => true,
 		eligibleOn: () => true,
 		personOn: personOn(hireDate)
 	});
@@ -82,6 +83,7 @@ test('joined employment, service bands and eligibility use their effective dates
 			asOf: '2026-04-01',
 			hireDate: '2025-01-01',
 			exitDate: null,
+			servedOn: () => true,
 			eligibleOn: (date) => date >= '2026-05-01',
 			personOn: personOn('2025-01-01')
 		}).available,
@@ -139,6 +141,7 @@ test('bands read top-down: the first predicate that holds is the grant, and a ti
 			asOf: '2026-01-01',
 			hireDate: '2020-01-01',
 			exitDate: null,
+			servedOn: () => true,
 			eligibleOn: () => true,
 			personOn: withGrade(grade)
 		});
@@ -152,6 +155,7 @@ test('bands read top-down: the first predicate that holds is the grant, and a ti
 			asOf: '2026-01-01',
 			hireDate: '2020-01-01',
 			exitDate: null,
+			servedOn: () => true,
 			eligibleOn: () => true,
 			personOn: withGrade('M1')
 		}).entitlement,
@@ -165,6 +169,7 @@ test('bands read top-down: the first predicate that holds is the grant, and a ti
 			asOf: '2026-01-01',
 			hireDate: '2025-06-01',
 			exitDate: null,
+			servedOn: () => true,
 			eligibleOn: () => true,
 			personOn: (date) =>
 				personContext({
@@ -190,6 +195,7 @@ test('unmetered leave still requires an eligible employment date', () => {
 			asOf: '2026-06-01',
 			hireDate: '2025-01-01',
 			exitDate: null,
+			servedOn: () => true,
 			eligibleOn: () => false,
 			personOn: personOn('2025-01-01')
 		}).available,

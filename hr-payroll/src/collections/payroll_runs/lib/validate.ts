@@ -93,6 +93,20 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 				'statutory_contributions',
 				contribution.row.id
 			);
+		// A ladder keyed on the entity's risk class covers nobody while the entity states none
+		// (TW occupational-accident insurance, ID JKK): a mandatory premium priced at nothing
+		// because a field is blank is a configuration hole, not a rule that happened to miss.
+		if (
+			(configuration.company.risk_class ?? '') === '' &&
+			contribution.rules.every((rule) => rule.when.includes('employment.risk_class'))
+		)
+			blocker(
+				'RISK_CLASS_UNSET',
+				`${code} prices by the entity's statutory risk class, and ${configuration.company.name} ` +
+					'states none: set the class on the entity before this run can charge it.',
+				'companies',
+				configuration.company.id
+			);
 	}
 	// The dependency graph is derived from `produced.<code>` mentions and nothing else: a loop, or a
 	// mention of a scheme not in force, refuses before any charge is computed.

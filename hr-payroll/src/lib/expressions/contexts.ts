@@ -86,8 +86,14 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3))'
 	},
 	{ path: 'employee.disabled', description: 'Disability flag' },
-	{ path: 'employee.race', description: 'Recorded race' },
-	{ path: 'employee.religion', description: 'Recorded religion' },
+	{
+		path: 'employee.race',
+		description: 'Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN)'
+	},
+	{
+		path: 'employee.religion',
+		description: 'Recorded religion, upper-cased (SG MBMF reads ISLAM)'
+	},
 	{
 		path: 'employee.residency_months',
 		description:

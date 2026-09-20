@@ -812,16 +812,22 @@ export function leaveRules(
 	// A rule's verdict depends on the person's facts, not the calendar: two dates on which the
 	// person reads the same are one evaluation. A year has a dozen distinct readings, not 365.
 	const verdicts = eligibilityCache(context);
+	/**
+	 * A day of service the grant counts: employed, on terms, under a sealed version. Projection
+	 * dates outside an approved policy do not earn leave; actual balance and activity dates still
+	 * resolve through catalogueOn/settingsOn and refuse missing evidence.
+	 */
+	const servedOn = (date: string): boolean =>
+		date >= hire &&
+		(exit == null || date <= exit) &&
+		terms.some((row) => coversDate(row.effective_range, date)) &&
+		catalogueAt(date) != null;
 	const eligibleOn = (date: string): boolean => {
 		const known = eligibility.get(date);
 		if (known !== undefined) return known;
-		const term = terms.find((row) => coversDate(row.effective_range, date));
-		// Projection dates outside an approved policy do not earn leave. Actual balance and
-		// activity dates still resolve through catalogueOn/settingsOn and refuse missing evidence.
 		const catalogue = catalogueAt(date);
-		const active = date >= hire && (exit == null || date <= exit) && term != null;
 		let eligible = false;
-		if (active && catalogue != null) {
+		if (servedOn(date) && catalogue != null) {
 			// An entry with an event is judged on it, uncached: the event is the entry's own.
 			if (event != null) eligible = isEligible(catalogue.eligibility, personOn(date));
 			else {
@@ -852,6 +858,7 @@ export function leaveRules(
 			asOf,
 			hireDate: hire,
 			exitDate: exit,
+			servedOn,
 			eligibleOn,
 			personOn
 		});
