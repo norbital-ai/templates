@@ -116,7 +116,7 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 		collection: 'statutory_contributions',
 		values: {
 			settings_id: JURISDICTION_ID,
-			code: 'PUB-NEW',
+			code: 'PUB_NEW',
 			name: 'A scheme nobody may add',
 			authority: 'Public fixture',
 			assessment_period: 'PAY_PERIOD',
@@ -340,7 +340,7 @@ test(
 							values: {
 								id: JURISDICTION_ID,
 								voided_at: voidedAt,
-								void_reason: 'wrong PUB-EPF ceiling'
+								void_reason: 'wrong PUB_EPF ceiling'
 							}
 						},
 						await rowVersion(session, 'jurisdiction_settings', JURISDICTION_ID)
@@ -357,7 +357,7 @@ test(
 					continue;
 				assert.deepEqual(value, root[column], `void changed nothing but the void: ${column}`);
 			}
-			assert.equal(voided.void_reason, 'wrong PUB-EPF ceiling');
+			assert.equal(voided.void_reason, 'wrong PUB_EPF ceiling');
 			assert.ok(voided.voided_at != null);
 			// Void is one action: never undone, never re-reasoned, and still sealed.
 			refusedWith(

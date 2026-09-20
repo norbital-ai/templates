@@ -68,7 +68,7 @@ type LoanWorldOptions = {
 };
 
 /**
- * Two sealed versions of one lineage. `PUB-OLD` is levied by both; `PUB-NEW` is sealed into the
+ * Two sealed versions of one lineage. `PUB_OLD` is levied by both; `PUB_NEW` is sealed into the
  * second only, the way a scheme introduced by a law change is. The loan is agreed against the first
  * version's `STAFF_LOAN` row and recovered by a run that prices under the second.
  */
@@ -93,9 +93,9 @@ function loanWorld(options: LoanWorldOptions = {}) {
 	oldSettings.effective_range = { start: '2020-01-01', end: '2026-02-01' };
 
 	world.statutory_contributions.push(
-		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0007', JURISDICTION_ID, 'PUB-OLD'),
-		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0008', NEW_SETTINGS_ID, 'PUB-OLD'),
-		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0009', NEW_SETTINGS_ID, 'PUB-NEW')
+		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0007', JURISDICTION_ID, 'PUB_OLD'),
+		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0008', NEW_SETTINGS_ID, 'PUB_OLD'),
+		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0009', NEW_SETTINGS_ID, 'PUB_NEW')
 	);
 
 	const agreed = {
@@ -191,10 +191,10 @@ test('a loan agreed under an earlier revision is recovered, and a scheme sealed 
 
 	const baseOf = (code: string) =>
 		slip.statutory.find((line) => line.scheme_code === code)?.base_amount;
-	assert.ok(baseOf('PUB-OLD')! > 0, 'the wage itself is charged');
+	assert.ok(baseOf('PUB_OLD')! > 0, 'the wage itself is charged');
 	// Neither scheme's base names the loan row, so the recovery feeds neither base and the two
 	// bases match.
-	assert.equal(baseOf('PUB-OLD'), baseOf('PUB-NEW'));
+	assert.equal(baseOf('PUB_OLD'), baseOf('PUB_NEW'));
 });
 
 test('a loan whose code the run’s version does not carry refuses the run by name', async () => {

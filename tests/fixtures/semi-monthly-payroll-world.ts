@@ -51,13 +51,13 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 	world.statutory_contributions.push({
 		id: RETIREMENT_SCHEME_ID,
 		settings_id: JURISDICTION_ID,
-		code: 'PUB-EPF',
+		code: 'PUB_EPF',
 		name: 'Public fixture retirement fund',
 		authority: 'Public fixture',
 		assessment_period: 'PAY_PERIOD',
 		assessment_scope: 'EMPLOYMENT',
 		elections: [],
-		// PUB-EPF charges the work lines and every allowance and claim class that counts toward it.
+		// PUB_EPF charges the work lines and every allowance and claim class that counts toward it.
 		assessed_on: 'BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE + CLAIMS + ALLOWANCES',
 		parts: [],
 		employee_share_annual_cap: null,

@@ -16,6 +16,7 @@ export default {
 		leave_catalogue: { read: {}, mutate: { new: {} } },
 		loan_catalogue: { read: {}, mutate: { new: {} } },
 		claim_catalogue: { read: {}, mutate: { new: {} } },
+		adhoc_catalogue: { read: {}, mutate: { new: {} } },
 		allowance_catalogue: { read: {}, mutate: { new: {} } }
 	},
 	limits: {

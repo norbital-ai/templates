@@ -31,7 +31,7 @@ const PUB2_ID = '22222222-2222-4222-8222-222222222233';
 const PUB2_SCHEME_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaab1';
 const PUB2_URL = 'https://statutory.example.org/pub2/rates';
 
-/** The public fixture's PUB-EPF band, as seeded: employee 11%, employer 13%. */
+/** The public fixture's PUB_EPF band, as seeded: employee 11%, employer 13%. */
 const sealedBand = {
 	when: '(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0',
 	employee: 'round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0)',
@@ -80,7 +80,7 @@ const driftAi = (failPub2: () => boolean) => {
 				code === 'PUB'
 					? {
 							contributions: [
-								{ code: 'PUB-EPF', rules: [proposedRule], source_url: url, quote: pubQuote }
+								{ code: 'PUB_EPF', rules: [proposedRule], source_url: url, quote: pubQuote }
 							],
 							leave_catalogue: [],
 							pay_component: [],
@@ -353,7 +353,7 @@ test(
 				},
 				{
 					collection: 'statutory_contributions',
-					code: 'PUB-EPF',
+					code: 'PUB_EPF',
 					field: 'rules',
 					previous: [sealedBand],
 					proposed: [proposedRule],
@@ -375,8 +375,8 @@ test(
 					(row.rules as ReadonlyArray<{ employee: string }>)[0]!.employee
 				]),
 				[
-					['PUB-EPF', proposedRule.employee],
-					['PUB-EPF-NC', 'round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)']
+					['PUB_EPF', proposedRule.employee],
+					['PUB_EPF_NC', 'round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)']
 				]
 			);
 			const draftChildren = (await session.query(

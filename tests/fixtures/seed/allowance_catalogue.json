@@ -13,6 +13,6 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PUB-EPF", "PUB-EPF-NC"]
+		"counts_toward": ["PUB_EPF", "PUB_EPF_NC"]
 	}
 ]

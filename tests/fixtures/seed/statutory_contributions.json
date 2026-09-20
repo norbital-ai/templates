@@ -2,7 +2,7 @@
 	{
 		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
 		"settings_id": "22222222-2222-4222-8222-222222222222",
-		"code": "PUB-EPF",
+		"code": "PUB_EPF",
 		"name": "Public fixture retirement fund",
 		"authority": "Public fixture — not a sealed statutory table.",
 		"assessment_period": "PAY_PERIOD",
@@ -22,7 +22,7 @@
 	{
 		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
 		"settings_id": "22222222-2222-4222-8222-222222222222",
-		"code": "PUB-EPF-NC",
+		"code": "PUB_EPF_NC",
 		"name": "Public fixture non-citizen retirement fund",
 		"authority": "Public fixture — invented non-citizen scheme, not a sealed statutory table.",
 		"assessment_period": "PAY_PERIOD",

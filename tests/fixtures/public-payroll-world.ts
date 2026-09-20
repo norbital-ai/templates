@@ -147,7 +147,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
 				// The public schemes the tests invent: the allowance counts toward each of them.
-				counts_toward: ['PUB-EPF', 'PUB-EPF-NC', 'PUB-TAX', 'PUB-FIXED'],
+				counts_toward: ['PUB_EPF', 'PUB_EPF_NC', 'PUB_TAX', 'PUB_FIXED'],
 				approval_id: null
 			}
 		],
@@ -234,7 +234,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
-				counts_toward: ['PUB-EPF', 'PUB-EPF-NC', 'PUB-TAX', 'PUB-FIXED'],
+				counts_toward: ['PUB_EPF', 'PUB_EPF_NC', 'PUB_TAX', 'PUB_FIXED'],
 				raised_by: 'MANUAL',
 				approval_id: null
 			}

@@ -37,7 +37,7 @@ const statutoryLines = (value: unknown): StatutoryLine[] => {
  * Twelve REGULAR runs, each marked PAID before the next is created (the settlement
  * order the transforms enforce). December's year-to-date is a SUM over the twelve paid
  * payslips — YTD lives nowhere else — and the public schemes carry no annual cap,
- * so every month's 11%/13% PUB-EPF charge must stay linear to the cent across the
+ * so every month's 11%/13% PUB_EPF charge must stay linear to the cent across the
  * whole year: any clipped cap would break that line.
  */
 test(
@@ -112,9 +112,9 @@ test(
 				const net = Number(slip.net);
 				assert.equal(net, gross - Number(slip.total_deductions), `net ties out in ${slip.period}`);
 				const line = statutoryLines(slip.statutory).find(
-					(candidate) => candidate.scheme_code === 'PUB-EPF'
+					(candidate) => candidate.scheme_code === 'PUB_EPF'
 				);
-				assert.ok(line, `PUB-EPF line on the ${slip.period} slip`);
+				assert.ok(line, `PUB_EPF line on the ${slip.period} slip`);
 				assert.ok(
 					Math.abs(line.employee_amount - 0.11 * line.base_amount) <= 0.01,
 					`${slip.period}: 11% employee charge stays linear (no cap clip)`
