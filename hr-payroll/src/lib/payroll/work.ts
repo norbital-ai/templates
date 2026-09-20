@@ -1145,9 +1145,18 @@ export function measureContractSegments(options: {
 		// A terms row that states no figure for this line covers no segment of it: the line is
 		// what the contract lists, and a row that lists nothing is not a zero-amount segment.
 		if (contract === 0) return;
+		// The basis is the person's: read over the terms row this segment prices, with the week
+		// that row's pattern works. `terms.ordinary_hours_per_week` is the roster's, never the
+		// row's own column, and without it a `proration_by` arm keyed on the week (PH: the
+		// six-day roster's 313 factor) never held — every six-day joiner prorated on 21.75.
+		const workload = termsWorkload({
+			terms,
+			configuration: options.configuration,
+			workDays: options.bundle.workDays,
+			window: options.salary
+		});
 		const segment = prorationSegment({
 			work: options.configuration.work,
-			// The basis is the person's: read over the terms row this segment prices.
 			person: personContext({
 				employee: options.bundle.employee,
 				employment: stint(options.bundle.employment),
@@ -1157,6 +1166,13 @@ export function measureContractSegments(options: {
 					options.salary.end
 				),
 				terms,
+				week: {
+					ordinary_hours_per_week:
+						workload.work_days > 0
+							? workload.average_weekly_paid_minutes / 60
+							: decodeNumber(terms.ordinary_hours_per_week ?? 0),
+					working_days_per_week: termsDaysPerWeek(terms, options.configuration)
+				},
 				children: options.bundle.children,
 				company: options.configuration.company,
 				asOf: options.salary.end

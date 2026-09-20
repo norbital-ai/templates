@@ -92,31 +92,66 @@ const facts = (
 	return [segment!.days, segment!.denominator, segment!.unpaid_days, segment!.prorated_amount];
 };
 
+const SIX_DAY_PATTERN = 'c0000000-0000-4000-8000-0000000000d6';
+
 test('Philippines — a joiner takes the working days employed over 21.75, and an unpaid day comes off the allowance', () => {
-	const built = buildStatutory({ code: 'PH', period: '2026-01', people }, (world) => {
-		standing(world, PH_TRANSPORT);
-		world.leave_catalogue.push({
-			id: PH_UNPAID_LEAVE,
-			settings_id: PH_VERSION,
-			code: 'UNPAID_LEAVE',
-			name: 'Unpaid leave',
-			eligibility: '',
-			evidence: 'NONE',
-			evidence_after_days: null,
-			entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
-			is_npl: true,
-			can_encash: false,
-			bands: [],
-			approval_id: null
-		});
-		unpaidDay(world, 'UNPAID', PH_UNPAID_LEAVE);
-	});
+	const built = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-01',
+			people: [...people, { key: 'SIXDAY', wage: 30_000, hire_date: '2026-01-19' }]
+		},
+		(world) => {
+			standing(world, PH_TRANSPORT);
+			// A six-day roster: the DOLE Handbook's 313 factor (÷ 12 = 26.0833) is the version's
+			// `proration_by` arm over the week the roster works, which the roster states, not the row.
+			const [pattern] = world.shift_patterns;
+			world.shift_patterns.push({
+				...structuredClone(pattern),
+				id: SIX_DAY_PATTERN,
+				code: 'MON-SAT',
+				pattern: {
+					days: [
+						...pattern.pattern.days.slice(0, 6).map(() => pattern.pattern.days[0]),
+						pattern.pattern.days[6]
+					]
+				}
+			});
+			world.employment_terms.find(
+				(row) =>
+					row.job_title === 'Fixture' &&
+					row.employment_id === world.employments.find((e) => e.employee_number === 'SIXDAY')?.id
+			)!.shift_pattern_id = SIX_DAY_PATTERN;
+			world.leave_catalogue.push({
+				id: PH_UNPAID_LEAVE,
+				settings_id: PH_VERSION,
+				code: 'UNPAID_LEAVE',
+				name: 'Unpaid leave',
+				eligibility: '',
+				evidence: 'NONE',
+				evidence_after_days: null,
+				entitlement: {
+					availability: 'UNLIMITED',
+					year_start_month: 1,
+					proration: 'NONE',
+					bands: []
+				},
+				is_npl: true,
+				can_encash: false,
+				bands: [],
+				approval_id: null
+			});
+			unpaidDay(world, 'UNPAID', PH_UNPAID_LEAVE);
+		}
+	);
 	// A whole month is the whole monthly amount, whatever January's working days come to.
 	assert.deepEqual(facts(built, 'WHOLE'), [21.75, 21.75, 0, 2175]);
 	// "No work, no pay" reaches the allowance: one working day off the DOLE factor.
 	assert.deepEqual(facts(built, 'UNPAID'), [20.75, 21.75, 1, 2075]);
 	// Ten working days of a part month, at the daily rate the factor states.
 	assert.deepEqual(facts(built, 'JOINER'), [10, 21.75, 0, 1000]);
+	// The same joiner on a six-day roster: twelve working days over the 313 factor.
+	assert.deepEqual(facts(built, 'SIXDAY'), [12, 26.0833, 0, 1000.64]);
 	// The segment opens on the joiner's first day.
 	assert.equal(built.allowances.get('JOINER')![0]!.from, '2026-01-19');
 });
