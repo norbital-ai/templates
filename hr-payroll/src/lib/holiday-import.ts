@@ -33,56 +33,16 @@ type SourceCompany = {
 };
 
 /**
- * Google's own public holiday calendars, one per country this template ships settings for.
- *
- * This is the one place a country legitimately survives the move to entity-owned holidays: an
- * entity with no source configured of its own falls back to the public calendar of the country its
- * settings lineage names, so an API key alone is enough to import. A configured source replaces the
- * default, and the scheduled job runs only the sources a person enabled.
- */
-const DEFAULT_SOURCES: Readonly<
-	Record<string, Omit<HolidaySource, 'company_id' | 'company_name'>>
-> = {
-	ID: {
-		calendar_id: 'en.indonesian#holiday@group.v.calendar.google.com',
-		time_zone: 'Asia/Jakarta'
-	},
-	MY: {
-		calendar_id: 'en.malaysia#holiday@group.v.calendar.google.com',
-		time_zone: 'Asia/Kuala_Lumpur'
-	},
-	PH: {
-		calendar_id: 'en.philippines#holiday@group.v.calendar.google.com',
-		time_zone: 'Asia/Manila'
-	},
-	SG: {
-		calendar_id: 'en.singapore#holiday@group.v.calendar.google.com',
-		time_zone: 'Asia/Singapore'
-	},
-	TW: { calendar_id: 'en.taiwan#holiday@group.v.calendar.google.com', time_zone: 'Asia/Taipei' },
-	VN: {
-		calendar_id: 'en.vietnamese#holiday@group.v.calendar.google.com',
-		time_zone: 'Asia/Ho_Chi_Minh'
-	}
-};
-
-/** The country half of a settings lineage code: `MY` from `MY`, and `SG` from `SG-norbital`. */
-const countryOfLineage = (settingsCode: string): string => settingsCode.split('-')[0] ?? '';
-
-/**
- * One Google source per entity.
- *
- * There is no sealed/voided/effective ranking any more: a source used to live on a settings
- * version, which is law and has a timeline, and the reader had to pick which version's source was
- * in force. It lives on the entity now, which has exactly one. A named entity is imported whether
- * or not its source is enabled; the yearly job takes only enabled ones.
+ * One Google source per entity, the entity's own. A named entity is imported whether or not its
+ * source is enabled; the yearly job takes only enabled ones. No country table stands behind it:
+ * an entity with no calendar of its own imports nothing and the automation says so.
  */
 export function holidaySources(
 	companies: readonly SourceCompany[],
 	companyId?: string
 ): HolidaySource[] {
 	const named = companyId == null ? companies : companies.filter((row) => row.id === companyId);
-	const configured = named
+	return named
 		.filter(
 			(row) => row.holiday_source != null && (companyId != null || row.holiday_source.enabled)
 		)
@@ -91,22 +51,8 @@ export function holidaySources(
 			company_name: row.name,
 			calendar_id: row.holiday_source!.calendar_id,
 			time_zone: row.holiday_source!.time_zone
-		}));
-	// A named entity with nothing configured falls back to the public calendar of its country.
-	const fallbackFor = named.filter(
-		(row) =>
-			companyId != null &&
-			row.holiday_source == null &&
-			DEFAULT_SOURCES[countryOfLineage(row.settings_code)] !== undefined
-	);
-	const fallback = fallbackFor.map((row) => ({
-		company_id: row.id,
-		company_name: row.name,
-		...DEFAULT_SOURCES[countryOfLineage(row.settings_code)]!
-	}));
-	return [...configured, ...fallback].toSorted((a, b) =>
-		a.company_name.localeCompare(b.company_name)
-	);
+		}))
+		.toSorted((a, b) => a.company_name.localeCompare(b.company_name));
 }
 
 export function validateHolidaySource(source: HolidaySource): void {
