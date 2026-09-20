@@ -88,6 +88,8 @@ const run = (
 			cwd: options.cwd ?? repositoryRoot,
 			encoding: 'utf8',
 			stdio: ['ignore', 'pipe', 'pipe'],
+			// A standalone template suite logs its payroll phases; 1 MiB truncates and kills it.
+			maxBuffer: 64 * 1024 * 1024,
 			env: options.env ?? process.env
 		}).trim();
 	} catch (error: unknown) {
