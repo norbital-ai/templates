@@ -149,19 +149,44 @@
 			},
 			"encashment": {
 				"reference": "EVENT_DATE",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": false,
 				"day_amount": "terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / 6.0 + terms.fixed_allowances / 26.0 : terms.monthly_wage / 26.0",
 				"include_allowances": ["SUA", "ONCALL"],
 				"exclude_allowances": [],
-				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate."
+				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate.; s.60I(1C) for daily/hourly rates (preceding wage period)"
+			},
+			"ordinary_rate_reference": {
+				"reference": "PREVIOUS_WAGE_PERIOD",
+				"pay_frequencies": ["DAILY", "HOURLY"],
+				"authority": "Employment Act 1955 s.60I(1C): total wages in the preceding wage period over the days actually worked"
 			}
 		},
 		"payroll": {
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason == \"RESIGNATION\"",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1955 s.21(2) (employee terminates without notice)"
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1955 s.20"
+				}
+			],
+			"tax_clearance": {
+				"when": "employee.citizenship != \"CITIZEN\"",
+				"category": "TAX_CLEARANCE",
+				"reference_label": "CP21/CP22A",
+				"authority": "Income Tax Act 1967 s.83(3)-(5); LHDN e-SPC permission before payment"
+			}
 		},
 		"sources": {
 			"urls": [
@@ -384,19 +409,44 @@
 			},
 			"encashment": {
 				"reference": "EVENT_DATE",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": false,
 				"day_amount": "terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / 6.0 + terms.fixed_allowances / 26.0 : terms.monthly_wage / 26.0",
 				"include_allowances": ["SUA", "ONCALL"],
 				"exclude_allowances": [],
-				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate."
+				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate.; s.60I(1C) for daily/hourly rates (preceding wage period)"
+			},
+			"ordinary_rate_reference": {
+				"reference": "PREVIOUS_WAGE_PERIOD",
+				"pay_frequencies": ["DAILY", "HOURLY"],
+				"authority": "Employment Act 1955 s.60I(1C): total wages in the preceding wage period over the days actually worked"
 			}
 		},
 		"payroll": {
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason == \"RESIGNATION\"",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1955 s.21(2) (employee terminates without notice)"
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1955 s.20"
+				}
+			],
+			"tax_clearance": {
+				"when": "employee.citizenship != \"CITIZEN\"",
+				"category": "TAX_CLEARANCE",
+				"reference_label": "CP21/CP22A",
+				"authority": "Income Tax Act 1967 s.83(3)-(5); LHDN e-SPC permission before payment"
+			}
 		},
 		"sources": {
 			"urls": [
@@ -622,19 +672,44 @@
 			},
 			"encashment": {
 				"reference": "EVENT_DATE",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": false,
 				"day_amount": "terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / 6.0 + terms.fixed_allowances / 26.0 : terms.monthly_wage / 26.0",
 				"include_allowances": ["SUA", "ONCALL"],
 				"exclude_allowances": [],
-				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate."
+				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate.; s.60I(1C) for daily/hourly rates (preceding wage period)"
+			},
+			"ordinary_rate_reference": {
+				"reference": "PREVIOUS_WAGE_PERIOD",
+				"pay_frequencies": ["DAILY", "HOURLY"],
+				"authority": "Employment Act 1955 s.60I(1C): total wages in the preceding wage period over the days actually worked"
 			}
 		},
 		"payroll": {
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason == \"RESIGNATION\"",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1955 s.21(2) (employee terminates without notice)"
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1955 s.20"
+				}
+			],
+			"tax_clearance": {
+				"when": "employee.citizenship != \"CITIZEN\"",
+				"category": "TAX_CLEARANCE",
+				"reference_label": "CP21/CP22A",
+				"authority": "Income Tax Act 1967 s.83(3)-(5); LHDN e-SPC permission before payment"
+			}
 		},
 		"sources": {
 			"urls": [

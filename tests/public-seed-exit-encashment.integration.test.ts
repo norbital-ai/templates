@@ -11,6 +11,7 @@ import {
 import {
 	EMPLOYMENT_ID,
 	COMPANY_ID,
+	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	publicSeedDirectory,
 	publicSeedRows,
@@ -26,6 +27,26 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-exit-encashment');
 		try {
+			// The version declares an exit clearance, and the leaver is a foreigner: the automation
+			// must raise an open hold, not only the held encashment.
+			await session.query(
+				'update jurisdiction_settings set payroll = payroll || $2::jsonb where id = $1',
+				[
+					JURISDICTION_ID,
+					JSON.stringify({
+						tax_clearance: {
+							when: 'employee.citizenship != "CITIZEN"',
+							category: 'TAX_CLEARANCE',
+							reference_label: 'IR21',
+							authority: 'Synthetic test clearance'
+						}
+					})
+				]
+			);
+			await session.query(
+				'update employment_terms set residency_status = $1 where employment_id = $2',
+				['FOREIGNER', EMPLOYMENT_ID]
+			);
 			const [contract] = await session.query(
 				'select row_version, effective_range from employments where id = $1',
 				[EMPLOYMENT_ID]
@@ -72,6 +93,14 @@ test(
 			assert.equal(Number(held[0].encash_days), 7);
 			assert.ok(held[0].approval_id, 'automation authority must require HR approval');
 			assert.equal(held[0].payslip_id, null);
+			const [hold] = await session.query(
+				'select category, directive_reference, released_on from payment_holds where employment_id = $1',
+				[EMPLOYMENT_ID]
+			);
+			assert.ok(hold, 'the declared clearance must raise an open hold');
+			assert.equal(hold.category, 'TAX_CLEARANCE');
+			assert.equal(hold.directive_reference, 'IR21 pending');
+			assert.equal(hold.released_on, null);
 
 			const retry = await postGuestCommand(
 				session.host.baseUrl,

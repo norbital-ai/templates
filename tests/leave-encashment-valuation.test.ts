@@ -403,10 +403,12 @@ test('VN uses May contract salary and May normal working days for a June exit', 
 	assert.equal(amount(world), 1571429);
 });
 
-test('an unsupported wage frequency is rejected instead of annualised by an unrelated divisor', () => {
+test('a daily rate without its preceding wage period is refused by name', () => {
 	const world = cashWorld('MY', 100);
 	world.employment_terms[0]!.pay_frequency = 'DAILY';
-	assert.throws(() => amount(world), /no verified DAILY valuation rule/);
+	// s.60I(1C) prices a daily rate from the preceding complete wage period; without that
+	// record the conversion stops rather than falling back to an unrelated divisor.
+	assert.throws(() => amount(world), /Ordinary rate requires the wage period ending 2026-05-31/);
 });
 
 test('ID blocks cash-out until a current contractual/statutory daily basis is established', () => {

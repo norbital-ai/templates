@@ -47,6 +47,28 @@ export const payrollSettingsValueSchema = Schema.Struct({
 		)
 	),
 	/**
+	 * The exit clearance this jurisdiction requires before final money may be released, where any.
+	 * The predicate names the person on the final service day; a match raises an open
+	 * disbursement hold that blocks settlement until HR records the releasing directive.
+	 */
+	tax_clearance: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				when: Schema.String.check(Schema.isMinLength(1)),
+				category: Schema.Literals([
+					'TAX_CLEARANCE',
+					'COURT_ORDER',
+					'AGENCY_DIRECTION',
+					'EMPLOYEE_DISPUTE',
+					'OTHER'
+				]),
+				/** The authority's form or process, recorded as the pending hold's reference. */
+				reference_label: Schema.String.check(Schema.isMinLength(1)),
+				authority: Schema.String.check(Schema.isMinLength(1))
+			})
+		)
+	),
+	/**
 	 * A public holiday enclosed by no-pay leave the employee asked for is itself unpaid (SG EA
 	 * s.88(2)): the leave entry charges the holiday too, and payroll deducts it as a day. Absent
 	 * or false is the holiday paid whatever surrounds it.

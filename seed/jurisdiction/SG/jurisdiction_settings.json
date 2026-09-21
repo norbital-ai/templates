@@ -161,7 +161,33 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
 			"holiday_in_no_pay_leave_unpaid": true,
-			"short_day_half_hours": 5
+			"short_day_half_hours": 5,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason == \"RESIGNATION\"",
+					"days": 7,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.23(2); same day under s.21(3)/s.23(1) where notice was served"
+				},
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.22"
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.21(3), s.23(1)"
+				}
+			],
+			"tax_clearance": {
+				"when": "employee.citizenship != \"CITIZEN\"",
+				"category": "TAX_CLEARANCE",
+				"reference_label": "IR21",
+				"authority": "Income Tax Act 1947 s.68(5)-(7); IRAS tax clearance withholds all monies until the Clearance Directive"
+			}
 		},
 		"sources": {
 			"urls": [
@@ -404,7 +430,33 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
 			"holiday_in_no_pay_leave_unpaid": true,
-			"short_day_half_hours": 5
+			"short_day_half_hours": 5,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason == \"RESIGNATION\"",
+					"days": 7,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.23(2); same day under s.21(3)/s.23(1) where notice was served"
+				},
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.22"
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.21(3), s.23(1)"
+				}
+			],
+			"tax_clearance": {
+				"when": "employee.citizenship != \"CITIZEN\"",
+				"category": "TAX_CLEARANCE",
+				"reference_label": "IR21",
+				"authority": "Income Tax Act 1947 s.68(5)-(7); IRAS tax clearance withholds all monies until the Clearance Directive"
+			}
 		},
 		"sources": {
 			"urls": [
@@ -647,7 +699,33 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
 			"holiday_in_no_pay_leave_unpaid": true,
-			"short_day_half_hours": 5
+			"short_day_half_hours": 5,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason == \"RESIGNATION\"",
+					"days": 7,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.23(2); same day under s.21(3)/s.23(1) where notice was served"
+				},
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.22"
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.21(3), s.23(1)"
+				}
+			],
+			"tax_clearance": {
+				"when": "employee.citizenship != \"CITIZEN\"",
+				"category": "TAX_CLEARANCE",
+				"reference_label": "IR21",
+				"authority": "Income Tax Act 1947 s.68(5)-(7); IRAS tax clearance withholds all monies until the Clearance Directive"
+			}
 		},
 		"sources": {
 			"urls": [
@@ -890,7 +968,33 @@
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
 			"holiday_in_no_pay_leave_unpaid": true,
-			"short_day_half_hours": 5
+			"short_day_half_hours": 5,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason == \"RESIGNATION\"",
+					"days": 7,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.23(2); same day under s.21(3)/s.23(1) where notice was served"
+				},
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.22"
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.21(3), s.23(1)"
+				}
+			],
+			"tax_clearance": {
+				"when": "employee.citizenship != \"CITIZEN\"",
+				"category": "TAX_CLEARANCE",
+				"reference_label": "IR21",
+				"authority": "Income Tax Act 1947 s.68(5)-(7); IRAS tax clearance withholds all monies until the Clearance Directive"
+			}
 		},
 		"sources": {
 			"urls": [

@@ -168,7 +168,15 @@
 			"timezone": "Asia/Manila",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 30
+			"final_pay_due_days": 30,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 30,
+					"basis": "EVENT_DATE",
+					"authority": "DOLE Labor Advisory No.06-20 §II"
+				}
+			]
 		},
 		"sources": {
 			"urls": [
@@ -410,7 +418,15 @@
 			"timezone": "Asia/Manila",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 30
+			"final_pay_due_days": 30,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 30,
+					"basis": "EVENT_DATE",
+					"authority": "DOLE Labor Advisory No.06-20 §II"
+				}
+			]
 		},
 		"sources": {
 			"urls": [
@@ -653,7 +669,15 @@
 			"timezone": "Asia/Manila",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 30
+			"final_pay_due_days": 30,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 30,
+					"basis": "EVENT_DATE",
+					"authority": "DOLE Labor Advisory No.06-20 §II"
+				}
+			]
 		},
 		"sources": {
 			"urls": [
@@ -896,7 +920,15 @@
 			"timezone": "Asia/Manila",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 30
+			"final_pay_due_days": 30,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 30,
+					"basis": "EVENT_DATE",
+					"authority": "DOLE Labor Advisory No.06-20 §II"
+				}
+			]
 		},
 		"sources": {
 			"urls": [

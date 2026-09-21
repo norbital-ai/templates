@@ -175,7 +175,15 @@
 			"timezone": "Asia/Ho_Chi_Minh",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
-			"final_pay_due_days": 14
+			"final_pay_due_days": 14,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 30,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Code 2019 art.48: 14 working days, extendable to 30 in the listed cases"
+				}
+			]
 		},
 		"sources": {
 			"urls": [
@@ -428,7 +436,15 @@
 			"timezone": "Asia/Ho_Chi_Minh",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
-			"final_pay_due_days": 14
+			"final_pay_due_days": 14,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 30,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Code 2019 art.48: 14 working days, extendable to 30 in the listed cases"
+				}
+			]
 		},
 		"sources": {
 			"urls": [
@@ -682,7 +698,15 @@
 			"timezone": "Asia/Ho_Chi_Minh",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": false,
-			"final_pay_due_days": 14
+			"final_pay_due_days": 14,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 30,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Code 2019 art.48: 14 working days, extendable to 30 in the listed cases"
+				}
+			]
 		},
 		"sources": {
 			"urls": [
