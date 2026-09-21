@@ -72,7 +72,10 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 		// request for that day (its band prices the amount from the person), unless a request of
 		// that class already stands.
 		const separation = yield* separationPayments(api, context, employmentId, exit_date);
-		if (submissions.length === 0 && separation.length === 0)
+		// The exit clearance the version declares (SG IR21, MY CP21/CP22A): an open hold blocks
+		// settlement until HR records the releasing directive, and a retry never duplicates it.
+		const hold = yield* clearanceHold(api, context, employmentId, exit_date);
+		if (submissions.length === 0 && separation.length === 0 && hold == null)
 			return { employment_id: employmentId, status: 'nothing_to_encash' as const, raised: [] };
 		yield* api.progress({
 			progress: 0.6,
@@ -81,6 +84,7 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 		const rows =
 			submissions.length === 0 ? [] : yield* api.collection.leave_entries.createMany(submissions);
 		if (separation.length > 0) yield* api.collection.adhoc_requests.createMany(separation);
+		if (hold != null) yield* api.collection.payment_holds.create(hold);
 		return {
 			employment_id: employmentId,
 			status: 'raised' as const,
@@ -90,8 +94,56 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 					days: row.encash_days ?? 0,
 					reference: row.reference
 				})),
-				...separation.map((row) => ({ code: row.reason, days: 0, reference: row.reason }))
+				...separation.map((row) => ({ code: row.reason, days: 0, reference: row.reason })),
+				...(hold == null
+					? []
+					: [{ code: hold.category, days: 0, reference: hold.directive_reference }])
 			]
+		};
+	});
+
+/**
+ * The exit clearance hold this leaver owes, if the version declares one and none is open.
+ *
+ * The hold's reference names the authority's pending process and the person, so the operator
+ * replaces it with the directive when filed; the collection refuses a release without one.
+ */
+const clearanceHold = (
+	api: AutomationApi,
+	context: LeaveContext,
+	employmentId: string,
+	exitDate: string
+) =>
+	Effect.gen(function* () {
+		const employment = context.employments.find((row) => row.id === employmentId);
+		const company = context.companies.find((row) => row.id === employment?.company_id);
+		if (employment == null || company == null) return null;
+		const version = settingsInForce(context.versions, company.settings_code, exitDate);
+		if (version == null) return null;
+		const clearance = version.payroll.tax_clearance ?? null;
+		if (clearance == null) return null;
+		const person = resolveExitFacts(
+			version.exit_facts ?? [],
+			employment.exit_facts ?? {},
+			personAt(context, employmentId, exitDate)
+		);
+		if (!isEligible(clearance.when, person)) return null;
+		const open = yield* api.db.payment_holds.findMany({
+			where: { employment_id: { eq: employmentId }, released_on: { isNull: true } },
+			columns: { id: true },
+			limit: 100
+		});
+		if (open.length > 0) return null;
+		return {
+			employment_id: employmentId,
+			category: clearance.category,
+			directive_reference: `${clearance.reference_label} pending`,
+			amount: null,
+			held_on: exitDate,
+			released_on: null,
+			released_amount: null,
+			reconciliation_reference: null,
+			evidence_file: null
 		};
 	});
 

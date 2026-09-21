@@ -1253,6 +1253,22 @@ test('Malaysia — the normal day is at most nine hours under the s.60A(1) provi
 			punch(world, 'MY-TEN', '2026-01-05', '09:00', '20:00');
 			punch(world, 'MY-DAILY', '2026-01-04', '09:00', '13:00'); // Sunday rest day, four hours
 			punch(world, 'MY-DAILY', '2026-01-11', '09:00', '16:00'); // Sunday rest day, seven hours
+			// s.60I(1C): a daily rate is priced from the preceding complete wage period — 2,600 over
+			// 26 qualifying days is the contract's 100 a day.
+			const daily = world.employments.find((row) => row.employee_number === 'MY-DAILY')!;
+			world.employment_wage_periods ??= [];
+			world.employment_wage_periods.push({
+				id: 'b9000000-0000-4000-8000-0000000000d1',
+				employment_id: daily.id,
+				period: { start: '2025-12-01T00:00:00.000Z', end: '2025-12-31T00:00:00.000Z' },
+				normal_wages: null,
+				ordinary_wages: { currency: 'MYR', value: 2600 },
+				ordinary_days: 26,
+				due_on: '2026-01-07',
+				paid_on: null,
+				reference: 'SYNTHETIC 2025-12',
+				approval_id: null
+			} as never);
 		}
 	);
 	// 2,600 ÷ 26 = 100.00 a day; the hourly rate is the day over the *normal hours of work*

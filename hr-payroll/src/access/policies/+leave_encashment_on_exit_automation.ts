@@ -23,6 +23,8 @@ export default {
 		grantsOn('employees', ['read']),
 		grantsOn('companies', ['read']),
 		grantsOn('company_facts', ['read']),
+		// A declared exit clearance raises an open hold; release is the operator's act.
+		grantsOn('payment_holds', ['read', 'mutate.new']),
 		grantsOn('employment_terms', ['read']),
 		grantsOn('jurisdiction_settings', ['read']),
 		grantsOn('leave_catalogue', ['read']),

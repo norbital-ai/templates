@@ -151,7 +151,15 @@
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Enforcement Rules of the Labour Standards Act art.9 (settle immediately); severance within 30 days"
+				}
+			]
 		},
 		"sources": {
 			"urls": [
@@ -404,7 +412,15 @@
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Enforcement Rules of the Labour Standards Act art.9 (settle immediately); severance within 30 days"
+				}
+			]
 		},
 		"sources": {
 			"urls": [
@@ -662,7 +678,15 @@
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": false,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Enforcement Rules of the Labour Standards Act art.9 (settle immediately); severance within 30 days"
+				}
+			]
 		},
 		"sources": {
 			"urls": [

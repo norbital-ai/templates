@@ -152,12 +152,17 @@
 			},
 			"encashment": {
 				"reference": "EVENT_DATE",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": false,
 				"day_amount": "terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / 6.0 + terms.fixed_allowances / 26.0 : terms.monthly_wage / 26.0",
 				"include_allowances": ["SUA", "ONCALL"],
 				"exclude_allowances": [],
-				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate."
+				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate.; s.60I(1C) for daily/hourly rates (preceding wage period)"
+			},
+			"ordinary_rate_reference": {
+				"reference": "PREVIOUS_WAGE_PERIOD",
+				"pay_frequencies": ["DAILY", "HOURLY"],
+				"authority": "Employment Act 1955 s.60I(1C): total wages in the preceding wage period over the days actually worked"
 			}
 		},
 		"payroll": {
@@ -390,12 +395,17 @@
 			},
 			"encashment": {
 				"reference": "EVENT_DATE",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": false,
 				"day_amount": "terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / 6.0 + terms.fixed_allowances / 26.0 : terms.monthly_wage / 26.0",
 				"include_allowances": ["SUA", "ONCALL"],
 				"exclude_allowances": [],
-				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate."
+				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate.; s.60I(1C) for daily/hourly rates (preceding wage period)"
+			},
+			"ordinary_rate_reference": {
+				"reference": "PREVIOUS_WAGE_PERIOD",
+				"pay_frequencies": ["DAILY", "HOURLY"],
+				"authority": "Employment Act 1955 s.60I(1C): total wages in the preceding wage period over the days actually worked"
 			}
 		},
 		"payroll": {
@@ -631,12 +641,17 @@
 			},
 			"encashment": {
 				"reference": "EVENT_DATE",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": false,
 				"day_amount": "terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / 6.0 + terms.fixed_allowances / 26.0 : terms.monthly_wage / 26.0",
 				"include_allowances": ["SUA", "ONCALL"],
 				"exclude_allowances": [],
-				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate."
+				"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate.; s.60I(1C) for daily/hourly rates (preceding wage period)"
+			},
+			"ordinary_rate_reference": {
+				"reference": "PREVIOUS_WAGE_PERIOD",
+				"pay_frequencies": ["DAILY", "HOURLY"],
+				"authority": "Employment Act 1955 s.60I(1C): total wages in the preceding wage period over the days actually worked"
 			}
 		},
 		"payroll": {

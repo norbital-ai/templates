@@ -189,6 +189,7 @@ import {
 	inclusiveDays,
 	monthDays,
 	monthBounds,
+	monthKey,
 	periodHalf,
 	type IsoDate
 } from '../../collections/payroll_runs/lib/dates.js';
@@ -496,20 +497,43 @@ export function finalPayIssues(options: {
 	readonly bundles: readonly EmploymentBundle[];
 	readonly payDate: string;
 }): RunIssue[] {
-	const due = options.configuration.jurisdiction.payroll.final_pay_due_days;
-	if (due == null) return [];
+	const fallback = options.configuration.jurisdiction.payroll.final_pay_due_days;
+	const rules = options.configuration.jurisdiction.payroll.final_pay_deadlines ?? [];
+	if (fallback == null && rules.length === 0) return [];
 	const issues: RunIssue[] = [];
 	for (const bundle of options.bundles) {
 		const exit = employmentDates(bundle.employment).exit;
 		if (exit == null) continue;
-		const deadline = addDays(exit, due);
+		// The person on the final service day, so a deadline predicate can read the departure
+		// reason, the recorded departure facts and the contract.
+		const person = personContext({
+			employee: bundle.employee,
+			employment: stint(bundle.employment),
+			terms: bundle.termsHistory.find((row) => coversDate(row.effective_range, exit)) ?? null,
+			fixedAllowances: 0,
+			children: bundle.children,
+			company: options.configuration.company,
+			week: { ordinary_hours_per_week: 0, working_days_per_week: 0 },
+			asOf: exit
+		});
+		const rule = rules.find(
+			(candidate) => candidate.when.trim() === '' || isEligible(candidate.when, person)
+		);
+		const due = rule?.days ?? fallback;
+		if (due == null) continue;
+		const deadline = addDays(
+			rule?.basis === 'MONTH_END' ? monthBounds(monthKey(exit)).end : exit,
+			due
+		);
 		if (options.payDate <= deadline) continue;
+		const authority = rule?.authority == null ? '' : ` (${rule.authority})`;
 		issues.push({
 			code: 'FINAL_PAY_LATE',
 			severity: 'WARNING',
 			message:
 				`${bundle.employment.employee_number} left on ${exit}; the final pay is due within ${due} ` +
-				`days, by ${deadline}, and this run pays on ${options.payDate}.`,
+				`days of ${rule?.basis === 'MONTH_END' ? 'the end of that month' : 'the last day'}, by ${deadline}, ` +
+				`and this run pays on ${options.payDate}${authority}.`,
 			collection: 'employments',
 			recordId: bundle.employment.id
 		});

@@ -301,6 +301,11 @@ values or deployed release. Current limitations are listed in the [compliance ma
 
 ### 21 September 2026
 
+- MY daily/hourly encashment and overtime read the preceding wage period (EA 1955 s.60I(1C));
+  per-circumstance final-pay deadlines are declared and warned on with authority; SG IR21 and MY
+  CP21/CP22A exit clearances raise blocking disbursement holds; date-versioned entity facts,
+  TW change-effect dates, transferable credit origins and the obligation register are captured.
+
 - Dated wage history and the `work_rules.ordinary_rate_reference` selector completed and
   verified (`tests/reference-wages.test.ts`): `PREVIOUS_WAGE_PERIOD` and `LATEST_DUE_MONTH`,
   the payslip wage-period pin, and the refusal branches. No sealed profile declares the rule
