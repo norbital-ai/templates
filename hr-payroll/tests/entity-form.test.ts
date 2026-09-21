@@ -73,6 +73,7 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'facts',
 		'jurisdiction_code',
 		'name',
+		'obligations',
 		'payroll',
 		'sealed_at',
 		'sources',

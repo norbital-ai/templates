@@ -13,6 +13,12 @@ export const leaveAllocationSchema = Schema.Struct({
 	/** Null is computed entitlement; otherwise the manual entry that supplied the credit. */
 	credit_entry_id: Schema.NullOr(Schema.String.check(Schema.isUUID())),
 	/**
+	 * The salary-year end the days originally belong to, carried through any number of transfers.
+	 * The conversion rate of a carried day is the rate of its original year, not of the year it
+	 * currently sits in; absent when the chain could not be resolved to one origin.
+	 */
+	original_date: Schema.optionalKey(Schema.NullOr(calendarDay)),
+	/**
 	 * The leave code of the pool this allocation draws from where it is not the entry's own row:
 	 * an outpatient day that also counts inside hospitalisation leave carries a second allocation
 	 * against `HOSPITALISATION`. Absent is the entry's own pool.

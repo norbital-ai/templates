@@ -308,6 +308,7 @@ export const referenceGrants = (
 ): Grants =>
 	mergeGrants(
 		grantsOn('companies', actions),
+		grantsOn('company_facts', actions),
 		grantsOn('shift_definitions', actions),
 		grantsOn('shift_patterns', actions)
 	);
@@ -339,7 +340,8 @@ export const peopleGrants = (
 				]
 			: []),
 		grantsOn('employment_statutory_facts', actions),
-		grantsOn('employment_wage_periods', actions)
+		grantsOn('employment_wage_periods', actions),
+		grantsOn('payment_holds', actions)
 	);
 
 /** The money families and loans: every write, and a delete of anything no payslip settled. */
@@ -402,6 +404,7 @@ export const payrollRunGrants = (): Grants =>
 export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
 		grantsOn('companies', actions),
+		grantsOn('company_facts', actions),
 		grantsOn('jurisdiction_holidays', actions),
 		grantsOn('shift_definitions', actions),
 		// The base an employee's own days are projected from; read in full, like the codes it names.

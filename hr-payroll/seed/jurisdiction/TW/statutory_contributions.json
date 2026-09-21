@@ -762,7 +762,8 @@
 				"description": "Count only dependants enrolled under this NHI registration. Enter zero if none; leave blank if unknown. Premiums cover at most three dependants.",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "base > 0.0"
+				"required_when": "base > 0.0",
+				"change_effect": "NEXT_YEAR_JANUARY"
 			},
 			{
 				"key": "insured_amount",
@@ -1560,7 +1561,8 @@
 				"description": "Include the declared spouse and dependants; exclude the employee. Without a declaration, withholding uses 5%. Record the applicable dates on the registration.",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "person.terms.tax_residency == \"RESIDENT\" && base > 0.0 && scheme.elections.five_percent_withholding != true && scheme.elections.table_declaration_reference != \"\""
+				"required_when": "person.terms.tax_residency == \"RESIDENT\" && base > 0.0 && scheme.elections.five_percent_withholding != true && scheme.elections.table_declaration_reference != \"\"",
+				"change_effect": "NEXT_YEAR_JANUARY"
 			}
 		],
 		"short_name": null,
@@ -2360,7 +2362,8 @@
 				"description": "Count only dependants enrolled under this NHI registration. Enter zero if none; leave blank if unknown. Premiums cover at most three dependants.",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "base > 0.0"
+				"required_when": "base > 0.0",
+				"change_effect": "NEXT_YEAR_JANUARY"
 			},
 			{
 				"key": "insured_amount",
@@ -3158,7 +3161,8 @@
 				"description": "Include the declared spouse and dependants; exclude the employee. Without a declaration, withholding uses 5%. Record the applicable dates on the registration.",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "person.terms.tax_residency == \"RESIDENT\" && base > 0.0 && scheme.elections.five_percent_withholding != true && scheme.elections.table_declaration_reference != \"\""
+				"required_when": "person.terms.tax_residency == \"RESIDENT\" && base > 0.0 && scheme.elections.five_percent_withholding != true && scheme.elections.table_declaration_reference != \"\"",
+				"change_effect": "NEXT_YEAR_JANUARY"
 			}
 		],
 		"short_name": null,
@@ -3958,7 +3962,8 @@
 				"description": "Count only dependants enrolled under this NHI registration. Enter zero if none; leave blank if unknown. Premiums cover at most three dependants.",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "base > 0.0"
+				"required_when": "base > 0.0",
+				"change_effect": "NEXT_YEAR_JANUARY"
 			},
 			{
 				"key": "insured_amount",
@@ -4756,7 +4761,8 @@
 				"description": "Include the declared spouse and dependants; exclude the employee. Without a declaration, withholding uses 5%. Record the applicable dates on the registration.",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "person.terms.tax_residency == \"RESIDENT\" && base > 0.0 && scheme.elections.five_percent_withholding != true && scheme.elections.table_declaration_reference != \"\""
+				"required_when": "person.terms.tax_residency == \"RESIDENT\" && base > 0.0 && scheme.elections.five_percent_withholding != true && scheme.elections.table_declaration_reference != \"\"",
+				"change_effect": "NEXT_YEAR_JANUARY"
 			}
 		],
 		"short_name": null,

@@ -212,6 +212,17 @@ async function prepareRepresentations(session: Awaited<ReturnType<typeof startPu
 		shift_definition_id: SHIFT_WORK_ID,
 		worked_intervals: [{ start: '2026-05-04T01:00:00Z', end: '2026-05-04T09:00:00Z' }]
 	});
+	await create('payment_holds', {
+		employment_id: EMPLOYMENT_ID,
+		category: 'TAX_CLEARANCE',
+		directive_reference: 'SURFACE-HOLD',
+		held_on: '2026-01-31T00:00:00.000Z'
+	});
+	await create('company_facts', {
+		company_id: COMPANY_ID,
+		effective_range: { start: '2026-01-01T00:00:00.000Z', end: null },
+		facts: {}
+	});
 	await create('employment_wage_periods', {
 		employment_id: EMPLOYMENT_ID,
 		period: { start: '2026-03-01T00:00:00Z', end: '2026-03-31T00:00:00Z' },

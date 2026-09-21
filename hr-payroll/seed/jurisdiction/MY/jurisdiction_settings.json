@@ -176,7 +176,63 @@
 				"https://www.johor.gov.my/rakyat/cuti-umum-2"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
-		}
+		},
+		"obligations": [
+			{
+				"code": "RETRENCHMENT_NOTIFICATION",
+				"description": "Retrenchment notification",
+				"trigger": "Reportable retrenchment, separation scheme, lay-off or pay reduction",
+				"timing": "Reportable retrenchment, separation scheme, lay-off or pay reduction",
+				"owner": "HR / Borang PK and receipt",
+				"authority": "External; JTKSM termination guidance (https://jtksm.mohr.gov.my/ms/soalan-lazim/pemberhentian-pekerja)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PATERNITY_NOTICE_AND_ELIGIBILITY",
+				"description": "Paternity notice and eligibility evidence",
+				"trigger": "Application under section 60FA",
+				"timing": "Application under section 60FA",
+				"owner": "HR / notice, marriage and confinement evidence",
+				"authority": "External; Employment Act 1955 (https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TERMINATION_BENEFITS_FINAL_WAGES",
+				"description": "Termination benefits, final wages and permitted deductions",
+				"trigger": "Contract termination and applicable coverage",
+				"timing": "Contract termination and applicable coverage",
+				"owner": "HR and Payroll / cause, service calculation and payment receipt",
+				"authority": "External timing controls; Employment Act 1955 (https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "EPF_REGISTRATION_AND_REMITTANCE",
+				"description": "EPF registration and remittance",
+				"trigger": "Covered employees, including applicable foreign employees",
+				"timing": "Covered employees, including applicable foreign employees",
+				"owner": "Finance / registration and contribution receipt",
+				"authority": "External; KWSP employer guidance (https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
+		]
 	},
 	{
 		"id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
@@ -358,7 +414,63 @@
 				"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
-		}
+		},
+		"obligations": [
+			{
+				"code": "RETRENCHMENT_NOTIFICATION",
+				"description": "Retrenchment notification",
+				"trigger": "Reportable retrenchment, separation scheme, lay-off or pay reduction",
+				"timing": "Reportable retrenchment, separation scheme, lay-off or pay reduction",
+				"owner": "HR / Borang PK and receipt",
+				"authority": "External; JTKSM termination guidance (https://jtksm.mohr.gov.my/ms/soalan-lazim/pemberhentian-pekerja)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PATERNITY_NOTICE_AND_ELIGIBILITY",
+				"description": "Paternity notice and eligibility evidence",
+				"trigger": "Application under section 60FA",
+				"timing": "Application under section 60FA",
+				"owner": "HR / notice, marriage and confinement evidence",
+				"authority": "External; Employment Act 1955 (https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TERMINATION_BENEFITS_FINAL_WAGES",
+				"description": "Termination benefits, final wages and permitted deductions",
+				"trigger": "Contract termination and applicable coverage",
+				"timing": "Contract termination and applicable coverage",
+				"owner": "HR and Payroll / cause, service calculation and payment receipt",
+				"authority": "External timing controls; Employment Act 1955 (https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "EPF_REGISTRATION_AND_REMITTANCE",
+				"description": "EPF registration and remittance",
+				"trigger": "Covered employees, including applicable foreign employees",
+				"timing": "Covered employees, including applicable foreign employees",
+				"owner": "Finance / registration and contribution receipt",
+				"authority": "External; KWSP employer guidance (https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
+		]
 	},
 	{
 		"id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
@@ -542,6 +654,62 @@
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3521924/PUB%20196%20(2026).pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\njtksm.mohr.gov.my — Employment Act 1955 reprint: /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf (1.4 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year."
-		}
+		},
+		"obligations": [
+			{
+				"code": "RETRENCHMENT_NOTIFICATION",
+				"description": "Retrenchment notification",
+				"trigger": "Reportable retrenchment, separation scheme, lay-off or pay reduction",
+				"timing": "Reportable retrenchment, separation scheme, lay-off or pay reduction",
+				"owner": "HR / Borang PK and receipt",
+				"authority": "External; JTKSM termination guidance (https://jtksm.mohr.gov.my/ms/soalan-lazim/pemberhentian-pekerja)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PATERNITY_NOTICE_AND_ELIGIBILITY",
+				"description": "Paternity notice and eligibility evidence",
+				"trigger": "Application under section 60FA",
+				"timing": "Application under section 60FA",
+				"owner": "HR / notice, marriage and confinement evidence",
+				"authority": "External; Employment Act 1955 (https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TERMINATION_BENEFITS_FINAL_WAGES",
+				"description": "Termination benefits, final wages and permitted deductions",
+				"trigger": "Contract termination and applicable coverage",
+				"timing": "Contract termination and applicable coverage",
+				"owner": "HR and Payroll / cause, service calculation and payment receipt",
+				"authority": "External timing controls; Employment Act 1955 (https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "EPF_REGISTRATION_AND_REMITTANCE",
+				"description": "EPF registration and remittance",
+				"trigger": "Covered employees, including applicable foreign employees",
+				"timing": "Covered employees, including applicable foreign employees",
+				"owner": "Finance / registration and contribution receipt",
+				"authority": "External; KWSP employer guidance (https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
+		]
 	}
 ]

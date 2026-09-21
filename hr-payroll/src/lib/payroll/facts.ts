@@ -12,11 +12,69 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import { resolveFactValues } from '../declared-facts.js';
 import { stableJson } from '../jurisdiction_settings.js';
 import { factScopeFault, type FactKey } from '../../datatypes/fact_keys/+definition.js';
+import { dateKey } from '../../collections/payroll_runs/lib/dates.js';
 
 type FactRow = Pick<
 	EmploymentBundle['statutoryFacts'][number],
 	'employment_id' | 'statutory_contribution_id' | 'status' | 'effective_range'
 >;
+
+/** A change that lowers the declaration: a dependant count, an enrolment going off. */
+function isReduction(previous: unknown, next: unknown): boolean {
+	if (typeof previous === 'number' && typeof next === 'number') return next < previous;
+	return previous === true && next === false;
+}
+
+/**
+ * The declared values as of a day, applying each field's .
+ *
+ * TW art. 5 defers dependant reductions to the January after the event while increases take the
+ * event month. A deferred field therefore reads its prior declaration's value until the January
+ * following the reduction; every other field of the declaration applies from its own date.
+ */
+function deferredElections(options: {
+	readonly rows: readonly FactRow[];
+	readonly schemeId: string;
+	readonly employmentId: string;
+	readonly asOf: IsoDate;
+	readonly fields: readonly FactKey[];
+	readonly status: StatutoryFactStatus;
+}): StatutoryFactStatus {
+	if (options.status.kind !== 'REGISTERED') return options.status;
+	const deferred = options.fields.filter((field) => field.change_effect === 'NEXT_YEAR_JANUARY');
+	if (deferred.length === 0) return options.status;
+	const elections = { ...(options.status.elections ?? {}) };
+	for (const field of deferred) {
+		const declarations = options.rows
+			.filter((row) => row.statutory_contribution_id === options.schemeId)
+			.filter((row) => row.employment_id == null || row.employment_id === options.employmentId)
+			.flatMap((row) => {
+				if (row.status == null || row.status.kind !== 'REGISTERED') return [];
+				const elections = row.status.elections ?? {};
+				if (!Object.hasOwn(elections, field.key)) return [];
+				return [
+					{
+						start: dateKey(row.effective_range == null ? null : row.effective_range.start),
+						value: elections[field.key]
+					}
+				];
+			})
+			.filter((row) => row.start != null && row.start <= options.asOf)
+			.toSorted((left, right) => left.start!.localeCompare(right.start!));
+		if (declarations.length === 0) continue;
+		let effective = declarations[0]!.value;
+		for (const declaration of declarations.slice(1)) {
+			if (!isReduction(effective, declaration.value)) {
+				effective = declaration.value;
+				continue;
+			}
+			const january = `${Number(declaration.start!.slice(0, 4)) + 1}-01-01`;
+			if (options.asOf >= january) effective = declaration.value;
+		}
+		elections[field.key] = effective;
+	}
+	return { ...options.status, elections };
+}
 
 type PersonFactScheme = {
 	readonly id: string;
@@ -57,7 +115,17 @@ function selectFactStatusesOn(
 			);
 			if (fault != null) refuse(fault);
 		}
-		facts.set(schemeId, fact.status);
+		facts.set(
+			schemeId,
+			deferredElections({
+				rows,
+				schemeId,
+				employmentId,
+				asOf,
+				fields: fields.get(schemeId) ?? [],
+				status: fact.status
+			})
+		);
 	}
 	return facts;
 }

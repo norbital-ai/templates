@@ -323,10 +323,17 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			const company = separation
 				? {
 						...options.configuration.company,
-						facts: resolveCompanyFacts(version.facts ?? [], {
-							...options.configuration.company,
-							facts: options.configuration.recordedCompanyFacts
-						})
+						facts: resolveCompanyFacts(
+							version.facts ?? [],
+							{
+								...options.configuration.company,
+								facts: options.configuration.recordedCompanyFacts
+							},
+							{
+								asOf,
+								revisions: options.configuration.companyFactRevisions
+							}
+						)
 					}
 				: options.configuration.company;
 			const subject = personContext({

@@ -43,6 +43,14 @@ export default defineModel(
 			.notNull()
 			.default(sql`'[]'::jsonb`),
 		/**
+		 * Employer duties outside the calculation — filings, notices, records — with the trigger,
+		 * timing, owner and authority. Read as a register beside the version's rules; the engine
+		 * never prices them.
+		 */
+		obligations: custom('obligations')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
+		/**
 		 * What this version changes against its predecessor, in the operator's words: the instrument
 		 * that moved and the value it moved. Prose for the snapshot beside its sources; the engine
 		 * never reads it.

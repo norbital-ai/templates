@@ -1,6 +1,7 @@
 import { isEligible, type PersonContext } from '../collections/payroll_runs/lib/eligibility.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { factValueFault, type FactKey } from '../datatypes/fact_keys/+definition.js';
+import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { EMPTY_OF } from './expressions/compile.js';
 import { evaluateBoolean, expressionEngine } from './expressions/evaluate.js';
 
@@ -42,7 +43,18 @@ export function requireFactValues(
 	if (fault != null) refuse(`${scope}: ${fault}`);
 }
 
-/** Keep raw presence separate from expression defaults when checking entity requirements. */
+/** One dated revision of an entity's declared facts. */
+export type CompanyFactRevision = {
+	readonly facts: Readonly<Record<string, string | number | boolean>>;
+	readonly effective_range: unknown;
+};
+
+/**
+ * Keep raw presence separate from expression defaults when checking entity requirements.
+ *
+ * A dated revision in force on `asOf` supplies the values for that day; without one the company
+ * row's current facts are the standing record, which is what an undated caller reads.
+ */
 export function resolveCompanyFacts(
 	fields: readonly FactKey[],
 	company: {
@@ -51,9 +63,17 @@ export function resolveCompanyFacts(
 		readonly region: string | null;
 		readonly pay_frequency: string;
 		readonly facts?: Readonly<Record<string, string | number | boolean>> | null;
+	},
+	options?: {
+		readonly asOf?: string;
+		readonly revisions?: readonly CompanyFactRevision[];
 	}
 ): Record<string, string | number | boolean> {
-	const raw = company.facts ?? {};
+	const revision =
+		options?.asOf == null
+			? undefined
+			: (options.revisions ?? []).find((row) => coversDate(row.effective_range, options.asOf!));
+	const raw = revision?.facts ?? company.facts ?? {};
 	const scope = company.name ?? company.settings_code;
 	const facts = resolveFactValues(fields, raw, scope);
 	const context = {

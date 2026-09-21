@@ -62,6 +62,40 @@ const carryCredit = (
 				window: { start: entry.destination_from, end: entry.destination_to }
 			}
 		: null;
+/**
+ * The salary-year end a credit's days originally belong to, through any number of transfers.
+ *
+ * A carry credit's own allocations hold the debits it moved; each of those names the credit it
+ * came from. Walking that chain to an allocation that draws on computed entitlement (or a plain
+ * manual credit) yields the original year end, which is the date the conversion rate is read on.
+ * Null means the chain has no single origin and the encashment must refuse.
+ */
+export function creditOriginalDate(
+	entries: readonly LeaveBalanceEntry[],
+	entry: LeaveBalanceEntry
+): string | null {
+	const sources = entry.allocations.filter((allocation) => allocation.days < 0);
+	if (sources.length === 0) return entry.to_date ?? null;
+	const origins = new Set<string>();
+	for (const source of sources) {
+		if (source.original_date != null) {
+			origins.add(source.original_date);
+			continue;
+		}
+		const parent =
+			source.credit_entry_id == null
+				? undefined
+				: entries.find((row) => row.id === source.credit_entry_id);
+		const origin =
+			parent != null && parent.destination_from != null
+				? creditOriginalDate(entries, parent)
+				: source.window.end;
+		if (origin == null) return null;
+		origins.add(origin);
+	}
+	return origins.size === 1 ? [...origins][0]! : null;
+}
+
 const creditsFor = (entries: readonly LeaveBalanceEntry[], window: LeaveWindow): Credit[] => [
 	...entries.flatMap((entry): Credit[] => {
 		const credit = entry.approval_id == null ? carryCredit(entry) : null;
@@ -197,14 +231,24 @@ export function allocateLeaveDays(options: {
 			options.basis
 		);
 		const take = Math.min(remaining, Math.max(0, capacity));
-		if (take > 0)
+		if (take > 0) {
+			const creditEntry =
+				credit.id == null ? undefined : entries.find((row) => row.id === credit.id);
+			const original_date =
+				creditEntry == null
+					? window.end
+					: creditEntry.destination_from != null
+						? creditOriginalDate(entries, creditEntry)
+						: (creditEntry.to_date ?? window.end);
 			result.push({
 				window,
 				date,
 				days: -take,
 				credit_entry_id: credit.id,
+				original_date,
 				...(options.pool == null ? {} : { pool: options.pool })
 			});
+		}
 		remaining -= take;
 		if (remaining <= 0) return result;
 	}

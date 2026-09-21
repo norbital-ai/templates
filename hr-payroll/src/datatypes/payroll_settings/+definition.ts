@@ -28,6 +28,25 @@ export const payrollSettingsValueSchema = Schema.Struct({
 	 */
 	final_pay_due_days: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**
+	 * The final-pay deadlines the law states per circumstance, each with its authority. The
+	 * calculation flags a run that pays an employment after the applicable deadline it can select;
+	 * a rule whose predicate names facts the version does not declare stops selection rather than
+	 * guessing.
+	 */
+	final_pay_deadlines: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Array(
+				Schema.Struct({
+					/** CEL over the person on the final service day. */
+					when: Schema.String.check(Schema.isPattern(/\S/)),
+					days: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+					basis: Schema.Literals(['EVENT_DATE', 'MONTH_END', 'NEXT_PAYDAY']),
+					authority: Schema.String.check(Schema.isMinLength(1))
+				})
+			)
+		)
+	),
+	/**
 	 * A public holiday enclosed by no-pay leave the employee asked for is itself unpaid (SG EA
 	 * s.88(2)): the leave entry charges the holiday too, and payroll deducts it as a day. Absent
 	 * or false is the holiday paid whatever surrounds it.

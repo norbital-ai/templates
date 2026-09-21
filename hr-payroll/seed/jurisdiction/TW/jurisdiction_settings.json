@@ -203,6 +203,53 @@
 				"type": "number",
 				"label": "Pension reserve rate"
 			}
+		],
+		"obligations": [
+			{
+				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
+				"description": "Unused annual leave settlement and employee records",
+				"trigger": "Year end, agreed carry-forward expiry or contract termination",
+				"timing": "Year end, agreed carry-forward expiry or contract termination",
+				"owner": "HR and Payroll / leave statement, wage basis and payment",
+				"authority": "Partial; LSA article 38 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930), Enforcement Rules article 24-1 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0202.aspx?flno=1-51&id=FL014931)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "COMPENSATORY_REST_FOR_STATUTORY",
+				"description": "Compensatory rest for statutory rest-day work",
+				"trigger": "Permitted work under article 40",
+				"timing": "Permitted work under article 40",
+				"owner": "HR / legal basis, actual hours and compensatory leave record",
+				"authority": "External; LSA articles 36 and 40 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OLD_SYSTEM_PENSION_RESERVE",
+				"description": "Old-system pension reserve and committee duties",
+				"trigger": "Employer retains workers covered by the old system",
+				"timing": "Employer retains workers covered by the old system",
+				"owner": "Finance / applicability assessment and reserve records",
+				"authority": "External; LSA article 56 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
 		]
 	},
 	{
@@ -414,6 +461,53 @@
 				"type": "number",
 				"label": "Pension reserve rate"
 			}
+		],
+		"obligations": [
+			{
+				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
+				"description": "Unused annual leave settlement and employee records",
+				"trigger": "Year end, agreed carry-forward expiry or contract termination",
+				"timing": "Year end, agreed carry-forward expiry or contract termination",
+				"owner": "HR and Payroll / leave statement, wage basis and payment",
+				"authority": "Partial; LSA article 38 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930), Enforcement Rules article 24-1 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0202.aspx?flno=1-51&id=FL014931)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "COMPENSATORY_REST_FOR_STATUTORY",
+				"description": "Compensatory rest for statutory rest-day work",
+				"trigger": "Permitted work under article 40",
+				"timing": "Permitted work under article 40",
+				"owner": "HR / legal basis, actual hours and compensatory leave record",
+				"authority": "External; LSA articles 36 and 40 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OLD_SYSTEM_PENSION_RESERVE",
+				"description": "Old-system pension reserve and committee duties",
+				"trigger": "Employer retains workers covered by the old system",
+				"timing": "Employer retains workers covered by the old system",
+				"owner": "Finance / applicability assessment and reserve records",
+				"authority": "External; LSA article 56 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
 		]
 	},
 	{
@@ -624,6 +718,53 @@
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate"
+			}
+		],
+		"obligations": [
+			{
+				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
+				"description": "Unused annual leave settlement and employee records",
+				"trigger": "Year end, agreed carry-forward expiry or contract termination",
+				"timing": "Year end, agreed carry-forward expiry or contract termination",
+				"owner": "HR and Payroll / leave statement, wage basis and payment",
+				"authority": "Partial; LSA article 38 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930), Enforcement Rules article 24-1 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0202.aspx?flno=1-51&id=FL014931)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "COMPENSATORY_REST_FOR_STATUTORY",
+				"description": "Compensatory rest for statutory rest-day work",
+				"trigger": "Permitted work under article 40",
+				"timing": "Permitted work under article 40",
+				"owner": "HR / legal basis, actual hours and compensatory leave record",
+				"authority": "External; LSA articles 36 and 40 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OLD_SYSTEM_PENSION_RESERVE",
+				"description": "Old-system pension reserve and committee duties",
+				"trigger": "Employer retains workers covered by the old system",
+				"timing": "Employer retains workers covered by the old system",
+				"owner": "Finance / applicability assessment and reserve records",
+				"authority": "External; LSA article 56 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
 			}
 		]
 	}

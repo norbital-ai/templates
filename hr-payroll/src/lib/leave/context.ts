@@ -9,6 +9,7 @@ import { normaliseLeaveDays } from './activity-fields.js';
 import { computedEntitlement } from './entitlement.js';
 import { dateKey, dayInstant } from '../iso-day.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
+import type { CompanyFactRevision } from '../declared-facts.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { addDays } from '../../collections/payroll_runs/lib/dates.js';
 import { rosterCodeKind } from '../scheduling/roster-code.js';
@@ -25,6 +26,7 @@ type ReadTables =
 	| 'employments'
 	| 'employees'
 	| 'companies'
+	| 'company_facts'
 	| 'jurisdiction_settings'
 	| 'statutory_contributions'
 	| 'leave_catalogue'
@@ -59,6 +61,8 @@ export type LeaveContext = {
 		'id' | 'settings_code' | 'region' | 'pay_frequency'
 	> & {
 		readonly facts?: WorkspaceRow<'companies'>['facts'] | null;
+		/** Dated entity fact revisions, so a leave rule reads the facts of its own date. */
+		readonly fact_revisions?: readonly CompanyFactRevision[];
 	})[];
 	employees: Pick<
 		WorkspaceRow<'employees'>,
@@ -237,6 +241,15 @@ export function readLeaveContext(
 								region: true,
 								pay_frequency: true,
 								facts: true
+							},
+							with: {
+								// The entity's dated facts in the same wave; a leave rule reads the revision
+								// in force on its own date.
+								company_fact_company: {
+									where: { approval_id: { isNull: true } },
+									columns: { facts: true, effective_range: true },
+									limit: LIMIT
+								}
 							}
 						}
 					},
@@ -365,6 +378,10 @@ export function readLeaveContext(
 			).values()
 		];
 		const companyIds = [...new Set(employments.map((row) => row.company_id))];
+		const companiesWithRevisions = companies.map((row) => ({
+			...row,
+			fact_revisions: row.company_fact_company ?? []
+		}));
 		const settingsCodes = new Set(companies.map((row) => row.settings_code));
 		const lineage = versions.filter((row) => settingsCodes.has(row.code));
 		const stored = allEntries.filter((row) => row.approval_id == null).map(normaliseLeaveDays);
@@ -584,7 +601,7 @@ export function readLeaveContext(
 		return {
 			employments,
 			priorEntries,
-			companies,
+			companies: companiesWithRevisions,
 			employees,
 			terms,
 			schemeCodes: [...new Set(codeOfScheme.values())],
@@ -724,7 +741,8 @@ export function personAt(
 			...company,
 			facts: resolveCompanyFacts(
 				settingsInForce(context.versions, company.settings_code, date)?.facts ?? [],
-				company
+				company,
+				{ asOf: date, revisions: company.fact_revisions ?? [] }
 			)
 		},
 		facts:

@@ -12,6 +12,12 @@ const factKeyShape = Schema.Struct({
 	required: Schema.optionalKey(Schema.Boolean),
 	/** Boolean expression evaluated against the entity or assessed statutory scheme. */
 	required_when: Schema.optionalKey(Schema.String.check(Schema.isPattern(/\S/))),
+	/**
+	 * When a changed declared value takes effect, where the law defers it (TW salary-withholding
+	 * regulations art. 5: dependant reductions apply the following January, increases the event
+	 * month). Absent is immediate.
+	 */
+	change_effect: Schema.optionalKey(Schema.Literals(['EVENT_MONTH', 'NEXT_YEAR_JANUARY'])),
 	/** When present, a supplied value must satisfy this Boolean expression. */
 	valid_when: Schema.optionalKey(Schema.String.check(Schema.isPattern(/\S/))),
 	/** Operator-facing refusal used when `valid_when` is false. */
