@@ -2,7 +2,12 @@ import type { Policy } from './$types.js';
 
 /** System-managed suspicion state is intentionally absent from both masks. */
 const assignmentNewMutationFields = [
-	'job_id',
+	'external_ref',
+	'site_id',
+	'title',
+	'nature',
+	'scheduled_for',
+	'description',
 	'assignee_user_id',
 	'dispatched_at',
 	'status',
@@ -10,10 +15,12 @@ const assignmentNewMutationFields = [
 	'amount_charged',
 	'location',
 	'summary',
-	'search_text',
 	'source_message_id'
 ] as const;
-const assignmentExistingMutationFields = assignmentNewMutationFields;
+/** Identity keys are not restated once a dispatch exists; everything else may be corrected. */
+const assignmentExistingMutationFields = assignmentNewMutationFields.filter(
+	(field) => field !== 'external_ref' && field !== 'source_message_id'
+);
 
 /**
  * The controller: full command of the dispatch surface.
@@ -49,15 +56,6 @@ export default {
 			mutate: { new: {}, existing: {} },
 			delete: {}
 		},
-		jobs: {
-			read: {},
-			mutate: { new: {}, existing: {} },
-			delete: {}
-		},
-		suspicious_activity_logs: {
-			read: {},
-			mutate: { new: {}, existing: {} }
-		},
 		job_assignments: {
 			read: {},
 			mutate: {
@@ -65,6 +63,10 @@ export default {
 				existing: { fields: assignmentExistingMutationFields }
 			},
 			delete: {}
+		},
+		suspicious_activity_logs: {
+			read: {},
+			mutate: { new: {}, existing: {} }
 		},
 		variation_requests: {
 			read: {},

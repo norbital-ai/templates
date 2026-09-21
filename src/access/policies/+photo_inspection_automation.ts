@@ -22,7 +22,6 @@ export default {
 		},
 		variation_requests: { read: {} },
 		job_assignments: { read: {} },
-		jobs: { read: {} },
 		sites: { read: {} }
 	},
 	limits: {

@@ -34,28 +34,22 @@
 	 */
 	const dispatchQueryInstant = $derived(`${dispatchDay}T00:00:00.000Z`);
 	let assignContractorOpen = $state(false);
-	const jobsQuery = $derived(
-		client.db.jobs.findMany({
-			where: { scheduled_for: { eq: dispatchQueryInstant } },
-			columns: { id: true, site_id: true, title: true, nature: true },
-			orderBy: { title: 'asc' },
-			limit: 1000
-		})
-	);
-	const jobs = $derived(jobsQuery.current ?? []);
-	const jobById = $derived(new Map(jobs.map((job) => [job.id, job])));
+	/**
+	 * The day's work, read once. The work order is the assignment row now — title, nature and site
+	 * are its own columns — so a card needs no second query, and the map groups the same rows by
+	 * site.
+	 */
 	const assignmentsQuery = $derived(
 		client.db.job_assignments.findMany({
-			where: {
-				job_assignment_job: { some: { scheduled_for: { eq: dispatchQueryInstant } } }
-			},
+			where: { scheduled_for: { eq: dispatchQueryInstant } },
 			columns: {
 				id: true,
-				job_id: true,
+				site_id: true,
+				title: true,
+				nature: true,
 				assignee_user_id: true,
 				status: true,
 				summary: true,
-				search_text: true,
 				// Live prefixes key by orderBy; omitting this is refused (learning 57).
 				dispatched_at: true
 			},
@@ -65,21 +59,13 @@
 	);
 	const assignments = $derived(assignmentsQuery.current ?? []);
 	const visibleAssignmentIds = $derived(assignments.map((assignment) => assignment.id));
-	/**
-	 * Date changes start the assignment list and board together.
-	 *
-	 * This used to wait for jobs, then assignments, then feed those assignment ids into the board —
-	 * three serial reactive reads before a card could appear. The relationship predicate is the same
-	 * date fact expressed at the assignment boundary, so both live queries can start as soon as the
-	 * picker changes while the jobs and sites needed by the map load alongside them.
-	 */
 	const boardQuery = $derived({
-		where: {
-			job_assignment_job: { some: { scheduled_for: { eq: dispatchQueryInstant } } }
-		},
+		where: { scheduled_for: { eq: dispatchQueryInstant } },
 		columns: {
 			id: true,
-			job_id: true,
+			site_id: true,
+			title: true,
+			nature: true,
 			assignee_user_id: true,
 			status: true,
 			dispatched_at: true
@@ -124,7 +110,7 @@
 		new Set((openSuspicionQuery?.current ?? []).map((log) => log.job_assignment_id))
 	);
 
-	// Assign-contractor sheet — pairs an unassigned job for the day with the person who will do it.
+	// Assign-contractor sheet — files a work order for the day and names the person who holds it.
 	const sitesQuery = $derived(
 		client.db.sites.findMany({
 			columns: { id: true, name: true, location: true },
@@ -135,14 +121,11 @@
 	const siteNameById = $derived(
 		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
 	);
-	/** Both picks required. The relation columns are non-nullable so the form already refuses an
-	 * empty submit; this names the rule at the sheet so a cleared picker reads as one refusal. */
+	/** The contractor is required; the work-order columns are non-nullable, so the form refuses an
+	 * empty site, title or day by itself and this names the one pick that could be cleared. */
 	const assignmentSemantic: CollectionFormSemantic = (values) =>
 		Effect.succeed(
-			typeof values.job_id === 'string' &&
-				values.job_id !== '' &&
-				typeof values.assignee_user_id === 'string' &&
-				values.assignee_user_id !== ''
+			typeof values.assignee_user_id === 'string' && values.assignee_user_id !== ''
 				? []
 				: [{ message: t('component.assignment_picks_required'), path: [] }]
 		);
@@ -198,16 +181,14 @@
 			Array<{ id: string; job: string; summary: string | null; status: string }>
 		>();
 		for (const assignment of assignments) {
-			const job = jobById.get(assignment.job_id);
-			if (!job) continue;
-			const siteAssignments = assignmentsBySite.get(job.site_id) ?? [];
+			const siteAssignments = assignmentsBySite.get(assignment.site_id) ?? [];
 			siteAssignments.push({
 				id: assignment.id,
-				job: job.title,
+				job: assignment.title ?? t('component.job'),
 				summary: assignment.summary?.trim() || null,
 				status: assignment.status ?? 'assigned'
 			});
-			assignmentsBySite.set(job.site_id, siteAssignments);
+			assignmentsBySite.set(assignment.site_id, siteAssignments);
 		}
 
 		return (sitesQuery.current ?? []).flatMap((site) => {
@@ -389,37 +370,23 @@
 									: []}
 						>
 							{#snippet fields({ Field })}
-								<Field name="job_id" card="title" />
+								<Field name="title" card="title" />
 								<Field name="assignee_user_id" card="subtitle" />
 							{/snippet}
-							<!--
-								The two declared fields above are reference columns, and the board query does
-								not expand either relation — so the automatic card had nothing to resolve them
-								against and printed the target collection names, "Jobs" and "User", on every
-								card. What a dispatcher needs to read is the job and where it is.
-
-								Both are already in this component for the map: `jobById` from the same
-								day-filtered jobs query the board is scoped to, and `siteNameById` from the
-								sites query. Rendering from them costs no extra round trip, and keeps the
-								visible words the related job's own title rather than the hidden search copy.
-							-->
 							{#snippet Card(assignment)}
-								{@const job = jobById.get(String(assignment.job_id))}
 								<Stack gap="xs">
 									<!--
-										`nature`, not `title`. A job's title is composed as
-										"<nature> — <site name>", so pairing it with the site underneath printed
-										the same address twice and pushed the card past its own height. The
-										nature is the half a dispatcher cannot infer from the address.
+										`nature`, not `title`. A title is composed as "<nature> — <site name>",
+										so pairing it with the site underneath printed the same address twice
+										and pushed the card past its own height. The nature is the half a
+										dispatcher cannot infer from the address.
 									-->
 									<p class="line-clamp-2 text-sm leading-snug font-medium">
-										{job?.nature ?? '—'}
+										{assignment.nature ?? '—'}
 									</p>
-									{#if job}
-										<p class="line-clamp-2 text-meta leading-snug">
-											{siteNameById.get(job.site_id) ?? '—'}
-										</p>
-									{/if}
+									<p class="line-clamp-2 text-meta leading-snug">
+										{siteNameById.get(String(assignment.site_id)) ?? '—'}
+									</p>
 								</Stack>
 							{/snippet}
 						</CollectionKanban>
@@ -524,19 +491,20 @@
 						<Field name="location" hidden />
 						<Field name="summary" hidden />
 						<Field name="source_message_id" hidden />
+						<Field name="external_ref" hidden />
 						<Stack gap="md">
 							<Field
-								name="job_id"
-								label={t('app.field_ops_controller.job_and_site')}
+								name="site_id"
+								label={t('component.site')}
 								relationOptions={{
-									label: (record) => {
-										const v = record.title;
-										return v != null && v !== '' ? String(v) : '—';
-									},
-									orderBy: { title: 'asc' },
+									label: (record) => String(record.name || '—'),
+									orderBy: { name: 'asc' },
 									limit: 500
 								}}
 							/>
+							<Field name="title" label={t('component.job_title')} />
+							<Field name="nature" label={t('component.job_nature')} />
+							<Field name="scheduled_for" label={t('component.scheduled_date')} />
 							<!--
 							The assignee is a person, so the picker reads the identity directory directly.
 							Authored workspace code declares which relation it is editing, but never
