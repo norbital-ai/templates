@@ -461,12 +461,20 @@ function walkAssessedOn(
 	}
 }
 
+const ASSESSED_ON_CACHE_CAP = 50_000;
+const assessedOnCache = new Map<string, AssessedOnMentions>();
+
 /**
  * The version-bound literals one `assessed_on` formula names. Parsed by the same environment the
  * run evaluates with, so a formula that compiles here is read exactly as the engine reads it; a
  * malformed one is the compiler's to refuse, and declares nothing here.
+ *
+ * Memoized: the payroll build reads the same formulas once per scheme per candidate, and the walk
+ * is the reader's cost, not the run's.
  */
 export function assessedOnMentions(expression: string): AssessedOnMentions {
+	const cached = assessedOnCache.get(expression);
+	if (cached !== undefined) return cached;
 	const mentions = {
 		codes: [] as string[],
 		words: [] as string[],
@@ -479,5 +487,6 @@ export function assessedOnMentions(expression: string): AssessedOnMentions {
 	} catch {
 		// A malformed expression is refused by `compileExpression`; here it simply names nothing.
 	}
+	if (assessedOnCache.size < ASSESSED_ON_CACHE_CAP) assessedOnCache.set(expression, mentions);
 	return mentions;
 }

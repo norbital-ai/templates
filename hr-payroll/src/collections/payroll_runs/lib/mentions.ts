@@ -64,10 +64,17 @@ function mentionsIn(expression: string, mentions: string[]): void {
 	if (isNode(ast)) walk(ast, mentions);
 }
 
-/** The scheme codes one standalone expression names, in first-mention order. */
+const producedOfCache = new Map<string, readonly string[]>();
+const PRODUCED_OF_CACHE_CAP = 50_000;
+
+/** The scheme codes one standalone expression names, in first-mention order. Memoized: the build
+ * reads the same formulas once per candidate, and the walk is the reader's cost, not the run's. */
 export function producedMentionsOf(expression: string): readonly string[] {
+	const cached = producedOfCache.get(expression);
+	if (cached !== undefined) return cached;
 	const mentions: string[] = [];
 	mentionsIn(expression, mentions);
+	if (producedOfCache.size < PRODUCED_OF_CACHE_CAP) producedOfCache.set(expression, mentions);
 	return mentions;
 }
 

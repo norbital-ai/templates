@@ -1154,8 +1154,31 @@ export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionCont
 	leave_day: LEAVE_DAY_CONTEXT
 };
 
-/** Every open key an expression names under one prefix, as the compiler and builders fill them. */
+const MENTION_CACHE_CAP = 50_000;
+const mentionPatterns = new Map<string, RegExp>();
+const mentionKeys = new Map<string, readonly string[]>();
+
+/**
+ * Every open key an expression names under one prefix, as the compiler and builders fill them.
+ *
+ * Callers scan whole formula ladders — a withholding table is thousands of band expressions — and
+ * the same handful of (prefix, expression) pairs recurs across every context build. The pattern
+ * and the key list are both pure functions of their inputs, so both are memoized.
+ */
 export function openKeyMentions(expression: string, prefix: string): readonly string[] {
-	const pattern = new RegExp(`${prefix.replace(/\./g, '\\.')}\\.([A-Za-z_][A-Za-z0-9_]*)`, 'g');
-	return [...new Set([...expression.matchAll(pattern)].map((match) => match[1]!))];
+	const cacheKey = `${prefix}\u0000${expression}`;
+	const cached = mentionKeys.get(cacheKey);
+	if (cached !== undefined) return cached;
+	let pattern = mentionPatterns.get(prefix);
+	if (pattern === undefined) {
+		pattern = new RegExp(`${prefix.replace(/\./g, '\\.')}\\.([A-Za-z_][A-Za-z0-9_]*)`, 'g');
+		mentionPatterns.set(prefix, pattern);
+	}
+	pattern.lastIndex = 0;
+	const keys = [...new Set([...expression.matchAll(pattern)].map((match) => match[1]!))];
+	// A ladder holds thousands of expressions and every prefix reads each of them; the cap is
+	// sized to keep a whole workspace's pairs resident rather than to evict, because clearing
+	// re-scans every pair on the next build.
+	if (mentionKeys.size < MENTION_CACHE_CAP) mentionKeys.set(cacheKey, keys);
+	return keys;
 }
