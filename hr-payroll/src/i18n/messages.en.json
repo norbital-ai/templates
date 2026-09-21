@@ -1279,8 +1279,6 @@
 	"component.payslip_unpaid_time": "Unpaid time",
 	"component.payslip_total_unpaid_time": "Total unpaid time",
 	"component.payslip_gross_pay": "Gross pay",
-	"component.payslip_statutory_withheld": "Statutory — withheld from pay",
-	"component.payslip_total_withheld": "Total withheld",
 	"component.payslip_other_deductions": "Other deductions",
 	"component.payslip_total_other_deductions": "Total other deductions",
 	"component.payslip_reimbursements": "Reimbursements",
@@ -1289,5 +1287,10 @@
 	"component.payslip_employer_cost_total": "Employer cost",
 	"component.payslip_total_cost": "Total cost to company",
 	"component.payslip_of_which_authorities": "of which to authorities",
-	"component.payslip_information": "Informational"
+	"component.payslip_information": "Informational",
+	"component.payslip_statutory_contributions": "Statutory contributions",
+	"component.payslip_employee_share": "Your share",
+	"component.payslip_employer_share": "Employer share",
+	"component.payslip_employee_withheld": "Your share, withheld from pay",
+	"component.payslip_employer_contribution": "Employer share, company cost"
 }
