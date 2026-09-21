@@ -10,7 +10,8 @@ CREATE TABLE "activities" (
 	"happened_on" timestamp with time zone,
 	"project_id" uuid,
 	"contact_id" uuid,
-	"detail" text
+	"detail" text,
+	"recording" jsonb
 );
 
 --> statement-breakpoint
@@ -68,6 +69,37 @@ CREATE TABLE "issues" (
 );
 
 --> statement-breakpoint
+CREATE TABLE "notes" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
+	"title" text NOT NULL,
+	"body" text
+);
+
+--> statement-breakpoint
+CREATE TABLE "project_documents" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
+	"title" text NOT NULL,
+	"kind" text,
+	"status" text,
+	"markdown_body" text,
+	"attachment" jsonb,
+	"project_id" uuid,
+	"signed_by" text,
+	"signed_on" timestamp with time zone,
+	"submitted_on" timestamp with time zone
+);
+
+--> statement-breakpoint
 CREATE TABLE "projects" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -95,6 +127,8 @@ ALTER TABLE "contacts" ADD CONSTRAINT "contacts_company_id_companies_fk" FOREIGN
 ALTER TABLE "issues" ADD CONSTRAINT "issues_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
 ALTER TABLE "issues" ADD CONSTRAINT "issues_owner_id_contacts_fk" FOREIGN KEY ("owner_id") REFERENCES "contacts"("id");
+--> statement-breakpoint
+ALTER TABLE "project_documents" ADD CONSTRAINT "project_documents_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
 ALTER TABLE "projects" ADD CONSTRAINT "projects_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("id");
 --> statement-breakpoint
