@@ -93,23 +93,12 @@ type JobSiteDecision = Schema.Schema.Type<typeof jobSiteDecisionSchema>;
 export type SuspicionReviewFacts = {
 	readonly assignment: {
 		readonly id: string;
-		readonly site_id: string;
-		readonly title: string;
-		readonly nature: string | null;
-		readonly scheduled_for: unknown;
-		readonly description: string;
+		readonly job_id: string;
 		readonly status: string | null;
 		readonly summary: string | null;
 		readonly location: unknown;
 		readonly suspicion_checked_at?: string | null;
 	};
-	/**
-	 * The work order's own facts, under the name the prompt uses for them.
-	 *
-	 * They are columns on the assignment row now — the two collections were merged — so this is a
-	 * projection of `assignment` rather than a second read; the key stays `job` because that is what
-	 * the inference dataset and its decisions call the work.
-	 */
 	readonly job: {
 		readonly id: string;
 		readonly title: string;
@@ -187,11 +176,7 @@ export function shouldReviewAssignment(
 export function loadUncheckedAssignments(api: Api, assignmentId?: string) {
 	const columns = {
 		id: true,
-		site_id: true,
-		title: true,
-		nature: true,
-		scheduled_for: true,
-		description: true,
+		job_id: true,
 		status: true,
 		summary: true,
 		location: true,
@@ -931,11 +916,24 @@ export function inferSuspicionReviewDecision(
 
 function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 	return Effect.gen(function* () {
+		const job = yield* api.db.jobs.findFirst({
+			where: { id: { eq: assignment.job_id } },
+			columns: {
+				id: true,
+				site_id: true,
+				title: true,
+				nature: true,
+				scheduled_for: true,
+				description: true
+			}
+		});
 		const site =
-			(yield* api.db.sites.findFirst({
-				where: { id: { eq: assignment.site_id } },
-				columns: { id: true, name: true, location: true, house_type: true }
-			})) ?? null;
+			job == null
+				? null
+				: ((yield* api.db.sites.findFirst({
+						where: { id: { eq: job.site_id } },
+						columns: { id: true, name: true, location: true, house_type: true }
+					})) ?? null);
 		const variations = yield* api.db.variation_requests.findMany({
 			where: { job_assignment_id: { eq: assignment.id } },
 			columns: { id: true },
@@ -985,13 +983,16 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 		});
 		return {
 			assignment,
-			job: {
-				id: assignment.id,
-				title: assignment.title,
-				nature: assignment.nature,
-				scheduled_for: assignment.scheduled_for,
-				description: assignment.description
-			},
+			job:
+				job == null
+					? null
+					: {
+							id: job.id,
+							title: job.title,
+							nature: job.nature,
+							scheduled_for: job.scheduled_for,
+							description: job.description
+						},
 			site,
 			photos,
 			// Candidates are retrieved against the selected representatives only, after this load.

@@ -3,7 +3,7 @@ import type { Policy } from './$types.js';
 export default {
 	description: 'Imports dispatched jobs and resolves their authored site references.',
 	grants: {
-		job_assignments: {
+		jobs: {
 			read: {},
 			mutate: {
 				new: {},

@@ -6,33 +6,20 @@
 	"description": "Generic construction field operations: site jobs, contractor dispatch, variations, and multimodal photo evidence review.",
 	"visibility": "public",
 	"counts": {
-		"collections": 7,
+		"collections": 8,
 		"apps": 2,
-		"automations": 2
+		"automations": 4
 	},
-	"tags": [
-		"Construction",
-		"Field ops",
-		"Compliance"
-	],
+	"tags": ["Construction", "Field ops", "Compliance"],
 	"seed": {
 		"bankTree": "field-operations",
 		"layout": "snapshots",
 		"stages": [
-			[
-				"team"
-			],
-			[
-				"user",
-				"sites"
-			],
-			[
-				"job_assignments"
-			],
-			[
-				"communication_logs",
-				"photo_evidence"
-			]
+			["team"],
+			["user", "sites"],
+			["jobs"],
+			["job_assignments"],
+			["communication_logs", "photo_evidence"]
 		],
 		"producers": [
 			{
@@ -41,6 +28,6 @@
 			}
 		]
 	},
-	"name_zh": "\u73b0\u573a\u8fd0\u8425",
-	"description_zh": "\u5c06\u5408\u683c\u627f\u5305\u5546\u6d3e\u5f80\u73b0\u573a\u4f5c\u4e1a\uff0c\u8ddf\u8e2a\u73b0\u573a\u8fdb\u5ea6\u3001\u7ba1\u7406\u53d8\u66f4\u5e76\u6838\u9a8c\u7167\u7247\u8bc1\u636e\u3002"
+	"name_zh": "现场运营",
+	"description_zh": "将合格承包商派往现场作业，跟踪现场进度、管理变更并核验照片证据。"
 }

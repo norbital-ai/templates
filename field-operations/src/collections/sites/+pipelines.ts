@@ -4,16 +4,24 @@ import type { Pipelines } from './$types.js';
 export default {
 	export: {
 		description:
-			'Bundles each site with its dispatched jobs, variation requests and photo evidence into one JSON file plus a CSV per table, for handover to another system.',
+			'Bundles each site with its jobs, assignments, variation requests and photo evidence into one JSON file plus a CSV per table, for handover to another system.',
 		handler: ({ records }, api) =>
 			Effect.gen(function* () {
 				const siteIds = records.map((site) => site.id);
 				if (siteIds.length === 0) return [];
 
-				const assignments = yield* api.db.job_assignments.findMany({
+				const jobs = yield* api.db.jobs.findMany({
 					where: { site_id: { in: siteIds } },
-					limit: 5_000
+					limit: 1_000
 				});
+				const jobIds = jobs.map((job) => job.id);
+				const assignments =
+					jobIds.length > 0
+						? yield* api.db.job_assignments.findMany({
+								where: { job_id: { in: jobIds } },
+								limit: 5_000
+							})
+						: [];
 				const assignmentIds = assignments.map((assignment) => assignment.id);
 				const variations =
 					assignmentIds.length > 0
@@ -41,8 +49,10 @@ export default {
 						: [];
 
 				return records.map((site) => {
-					const siteAssignments = assignments.filter(
-						(assignment) => assignment.site_id === site.id
+					const siteJobs = jobs.filter((job) => job.site_id === site.id);
+					const siteJobIds = new Set(siteJobs.map((job) => job.id));
+					const siteAssignments = assignments.filter((assignment) =>
+						siteJobIds.has(assignment.job_id)
 					);
 					const siteAssignmentIds = new Set(siteAssignments.map((assignment) => assignment.id));
 					const siteVariations = variations.filter((variation) =>
@@ -57,14 +67,18 @@ export default {
 					);
 					const code = (site.name || site.id).replace(/[^a-z0-9_-]/gi, '_');
 
+					const jobRows = siteJobs.map((job) => ({
+						record_id: job.id,
+						site_id: job.site_id,
+						title: job.title,
+						nature: job.nature,
+						scheduled_for: job.scheduled_for,
+						status: job.status,
+						description: job.description
+					}));
 					const assignmentRows = siteAssignments.map((assignment) => ({
 						record_id: assignment.id,
-						site_id: assignment.site_id,
-						external_ref: assignment.external_ref,
-						title: assignment.title,
-						nature: assignment.nature,
-						scheduled_for: assignment.scheduled_for,
-						description: assignment.description,
+						job_id: assignment.job_id,
 						assignee_user_id: assignment.assignee_user_id,
 						dispatched_at: assignment.dispatched_at,
 						status: assignment.status,
@@ -99,12 +113,18 @@ export default {
 								name: `field_ops_${code}.json`,
 								contentType: 'JSON' as const,
 								content: {
-									schema: 'norbital.field_operations.interoperability.v2',
+									schema: 'norbital.field_operations.interoperability.v1',
 									site,
+									jobs: jobRows,
 									job_assignments: assignmentRows,
 									variation_requests: variationRows,
 									photo_evidence: evidenceRows
 								}
+							},
+							{
+								name: `field_ops_${code}_jobs.csv`,
+								contentType: 'CSV' as const,
+								content: jobRows
 							},
 							{
 								name: `field_ops_${code}_job_assignments.csv`,
@@ -130,7 +150,7 @@ export default {
 							}
 						],
 						metadata: {
-							schema: 'norbital.field_operations.interoperability.v2',
+							schema: 'norbital.field_operations.interoperability.v1',
 							site_id: site.id
 						}
 					};
