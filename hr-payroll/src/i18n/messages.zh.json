@@ -274,8 +274,6 @@
 	"component.employee_share_annual_cap": "雇员年度上限",
 	"component.employer_cost": "雇主额外成本",
 	"component.employment": "雇佣合同",
-	"component.employment_contracts": "雇佣合同",
-	"component.general": "概览",
 	"component.employment_sealed": "此合同已有记录引用，现已封存。合同内容保留，离职须单独记录。",
 	"component.employment_type": "雇佣类型",
 	"component.employments": "雇佣合同",
@@ -993,7 +991,6 @@
 	"component.terms_revisions_hint": "本合同其他生效期间的条款。",
 	"component.revision_from": "自 {start}",
 	"component.revision_between": "{start} – {end}",
-	"component.contract_heading": "{company} · {number} · 合同 #{contract}",
 	"component.events": "事件",
 	"component.work_date": "日期",
 	"app.hr_employee.my_contract": "我的合同",
@@ -1292,5 +1289,6 @@
 	"component.payslip_employee_share": "雇员部分",
 	"component.payslip_employer_share": "雇主部分",
 	"component.payslip_employee_withheld": "雇员部分（从工资中代扣）",
-	"component.payslip_employer_contribution": "雇主部分（公司承担）"
+	"component.payslip_employer_contribution": "雇主部分（公司承担）",
+	"face.empty_description": "录入人脸后，该员工即可在自助终端打卡。"
 }

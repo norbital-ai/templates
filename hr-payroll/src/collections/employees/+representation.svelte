@@ -17,7 +17,6 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Tabs } from '@norbital-ai/ui/tabs';
-	import ContractDetail from '../../lib/ui/contract/contract-detail.svelte';
 	import { payRequestRecordMetadata } from '../../lib/scheduling/lock.js';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
 	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
@@ -74,14 +73,6 @@
 					orderBy: { employee_number: 'asc' },
 					limit: 100
 				})
-	);
-	/** The stored rows, newest stint first: each is handed whole to its `ContractDetail`. */
-	const contracts = $derived(
-		(employmentsQuery?.current ?? []).toSorted((left, right) =>
-			(readRange(right.effective_range)?.start ?? '').localeCompare(
-				readRange(left.effective_range)?.start ?? ''
-			)
-		)
 	);
 	const employments = $derived((employmentsQuery?.current ?? []).map(resolveEmployment));
 	/** Every event on this page is one of this person's contracts. */
@@ -479,25 +470,6 @@
 					</Stack>
 				</FormSection>
 			{/if}
-			{#each contracts as contract (contract.id)}
-				<FormSection
-					title={t('component.contract_heading', {
-						company:
-							timelineCompanyNames.get(String(contract.company_id)) ?? String(contract.company_id),
-						number: String(contract.employee_number ?? '—'),
-						contract: String(contract.contract_number ?? 1)
-					})}
-					hint={readRange(contract.effective_range)?.end == null
-						? t('component.timeline_active')
-						: t('component.timeline_last_ended', {
-								date: formatCalendarDate(
-									timelineDayKey(readRange(contract.effective_range)?.end) ?? ''
-								)
-							})}
-				>
-					<ContractDetail record={contract} />
-				</FormSection>
-			{/each}
 		</Stack>
 	{/if}
 {/snippet}
@@ -668,31 +640,56 @@
 
 {#snippet faceIdentity()}
 	{#if record}
-		<Stack gap="sm">
-			{#if photoHref !== null}
-				<img class="w-40 rounded-lg" src={photoHref} alt={t('face.enrolled_photo')} />
-			{:else}
-				<p class="text-sm text-muted-foreground">{t('face.no_photo')}</p>
-			{/if}
-			<p class="text-sm">
-				{t(FACE_STATUS_KEYS[displayFaceStatus])}
-				{#if record.face_match_count > 0}
-					· {t('face.matches', { count: record.face_match_count })}
-				{/if}
-			</p>
-			<div>
+		{#if photoHref === null && displayFaceStatus === 'NONE'}
+			<!-- No face yet is a first-run state, not a caption: what the tab is for, what to do,
+			     and the one action that does it. -->
+			<div
+				class="flex max-w-lg flex-col items-start gap-4 rounded-lg border border-dashed border-border p-6"
+			>
+				<span class="rounded-full bg-muted p-3 text-muted-foreground">
+					<Icon icon="lucide:scan-face" class="size-6" />
+				</span>
+				<Stack gap="xs">
+					<h3 class="text-heading">{t('face.status_none')}</h3>
+					<p class="max-w-md text-sm text-muted-foreground">{t('face.empty_description')}</p>
+				</Stack>
 				<Button
-					variant="secondary"
 					data-face-enroll-action
 					onclick={() => {
 						enrollOpen = true;
 					}}
 				>
 					<Icon icon="lucide:scan-face" class="size-4" />
-					{displayFaceStatus === 'NONE' ? t('face.enroll') : t('face.re_enroll')}
+					{t('face.enroll')}
 				</Button>
 			</div>
-		</Stack>
+		{:else}
+			<Stack gap="sm">
+				{#if photoHref !== null}
+					<img class="w-40 rounded-lg" src={photoHref} alt={t('face.enrolled_photo')} />
+				{:else}
+					<p class="text-sm text-muted-foreground">{t('face.no_photo')}</p>
+				{/if}
+				<p class="text-sm">
+					{t(FACE_STATUS_KEYS[displayFaceStatus])}
+					{#if record.face_match_count > 0}
+						· {t('face.matches', { count: record.face_match_count })}
+					{/if}
+				</p>
+				<div>
+					<Button
+						variant="secondary"
+						data-face-enroll-action
+						onclick={() => {
+							enrollOpen = true;
+						}}
+					>
+						<Icon icon="lucide:scan-face" class="size-4" />
+						{displayFaceStatus === 'NONE' ? t('face.enroll') : t('face.re_enroll')}
+					</Button>
+				</div>
+			</Stack>
+		{/if}
 		<Dialog.Root bind:open={enrollOpen}>
 			<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
 				<Dialog.Header>
