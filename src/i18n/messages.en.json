@@ -274,8 +274,6 @@
 	"component.employee_share_annual_cap": "Annual employee cap",
 	"component.employer_cost": "Additional employer costs",
 	"component.employment": "Employment contract",
-	"component.employment_contracts": "Employment contracts",
-	"component.general": "General",
 	"component.employment_sealed": "This contract is sealed by a linked record. Its terms remain on record; record departure separately.",
 	"component.employment_type": "Employment type",
 	"component.employments": "Employment contracts",
@@ -993,7 +991,6 @@
 	"component.terms_revisions_hint": "Earlier and later terms of this contract, by the dates they hold across.",
 	"component.revision_from": "from {start}",
 	"component.revision_between": "{start} – {end}",
-	"component.contract_heading": "{company} · {number} · contract #{contract}",
 	"component.events": "Events",
 	"component.work_date": "Date",
 	"app.hr_employee.my_contract": "My contract",
@@ -1292,5 +1289,6 @@
 	"component.payslip_employee_share": "Your share",
 	"component.payslip_employer_share": "Employer share",
 	"component.payslip_employee_withheld": "Your share, withheld from pay",
-	"component.payslip_employer_contribution": "Employer share, company cost"
+	"component.payslip_employer_contribution": "Employer share, company cost",
+	"face.empty_description": "Enrol a face so this person can clock in at the kiosk."
 }
