@@ -448,6 +448,59 @@
 	</Tooltip>
 {/snippet}
 
+{#snippet earningsInfo()}
+	<Tooltip
+		side="bottom"
+		align="start"
+		contentClass="max-w-96 border bg-popover text-popover-foreground"
+		arrowClasses="text-popover"
+	>
+		{#snippet trigger({ props })}
+			<Button {...props} variant="ghost" size="icon" aria-label={t('component.payslip_base_info')}>
+				<IconWrapper name="lucide:info" class="size-4" />
+			</Button>
+		{/snippet}
+		{#snippet content()}
+			<Stack gap="xs" class="max-h-96 overflow-auto">
+				<p class="text-xs leading-5">{t('component.payslip_base_description')}</p>
+				{#if proration.length > 0}
+					<p class="text-xs leading-5 text-muted-foreground">
+						{t('component.payslip_proration_description')}
+					</p>
+					<table class="w-full text-xs tabular-nums">
+						<thead>
+							<tr class="text-meta text-left">
+								<th class="py-0.5 pr-2 font-normal">{t('renderer.payslip_proration.segment')}</th>
+								<th class="py-0.5 pr-2 text-right font-normal"
+									>{t('renderer.payslip_proration.fraction')}</th
+								>
+								<th class="py-0.5 text-right font-normal"
+									>{t('renderer.payslip_proration.prorated_amount')}</th
+								>
+							</tr>
+						</thead>
+						<tbody>
+							{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
+								<tr class="border-t border-border">
+									<td class="py-0.5 pr-2 whitespace-nowrap"
+										>{segment.component_code} · {formatCalendarDate(segment.from)} → {formatCalendarDate(
+											segment.to
+										)}</td
+									>
+									<td class="py-0.5 pr-2 text-right">{segment.days} / {segment.denominator}</td>
+									<td class="py-0.5 text-right font-medium"
+										>{formatNumeric(segment.prorated_amount)}</td
+									>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
+			</Stack>
+		{/snippet}
+	</Tooltip>
+{/snippet}
+
 {#snippet statementRow(
 	label: string,
 	amount: string,
@@ -515,10 +568,7 @@
 				<!-- What the contract and this period's inputs paid. -->
 				<Inline gap="xs" align="center" class="pt-3 pb-1">
 					<span class="text-overline text-muted-foreground">{t('component.payslip_earnings')}</span>
-					{@render sectionInfo(
-						t('component.payslip_base_info'),
-						t('component.payslip_base_description')
-					)}
+					{@render earningsInfo()}
 				</Inline>
 				{#each base as entry, index (`base:${entry.component_code}:${index}`)}
 					{@render statementRow(entry.component_code, formatNumeric(entry.amount), {
