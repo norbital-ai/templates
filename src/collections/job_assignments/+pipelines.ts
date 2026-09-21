@@ -94,13 +94,13 @@ export default {
 				}
 
 				const scheduledDates = [...new Set(rows.map((row) => row.scheduled_for))];
-				const [sites, jobs, existingAssignments] = yield* Effect.all(
+				const [sites, existing] = yield* Effect.all(
 					[
 						api.db.sites.findMany({
 							columns: { id: true, name: true },
 							limit: QUERY_LIMIT
 						}),
-						api.db.jobs.findMany({
+						api.db.job_assignments.findMany({
 							where: { scheduled_for: { in: scheduledDates } },
 							columns: {
 								id: true,
@@ -110,34 +110,25 @@ export default {
 								status: true
 							},
 							limit: QUERY_LIMIT
-						}),
-						api.db.job_assignments.findMany({
-							columns: { id: true, job_id: true },
-							limit: QUERY_LIMIT
 						})
 					],
 					{ concurrency: 'unbounded' }
 				);
 
 				const siteByName = new Map(sites.map((site) => [normalizeKey(site.name), site]));
-				const assignmentByJobId = new Map(
-					existingAssignments.map((assignment) => [assignment.job_id, assignment])
+				const assignmentByMatchKey = new Map(
+					existing.map((assignment) => [
+						`${assignment.site_id}\t${assignment.scheduled_for}\t${normalizeKey(assignment.title)}`,
+						assignment
+					])
 				);
-				const jobsByMatchKey = new Map<string, (typeof jobs)[number][]>();
-				for (const job of jobs) {
-					const key = `${job.site_id}\t${job.scheduled_for}\t${normalizeKey(job.title)}`;
-					const matches = jobsByMatchKey.get(key) ?? [];
-					matches.push(job);
-					jobsByMatchKey.set(key, matches);
-				}
 
 				const problems: string[] = [];
 				const resolvedRows: Array<{
 					row: RosterRow;
-					jobId: string;
-					assigneeUserId: string;
+					siteId: string;
 				}> = [];
-				const seenJobIds = new Set<string>();
+				const seenMatchKeys = new Set<string>();
 
 				for (const [index, row] of rows.entries()) {
 					const label = rowLabel(row, index);
@@ -148,33 +139,20 @@ export default {
 					}
 
 					const matchKey = `${site.id}\t${row.scheduled_for}\t${normalizeKey(row.job_title)}`;
-					const matchingJobs = (jobsByMatchKey.get(matchKey) ?? []).filter(
-						(job) => job.status === 'unassigned' && !assignmentByJobId.has(job.id)
-					);
-					if (matchingJobs.length === 0) {
+					if (seenMatchKeys.has(matchKey)) {
+						problems.push(`${label}: this work appears more than once in the import.`);
+						continue;
+					}
+					if (assignmentByMatchKey.has(matchKey)) {
+						// A work order is the assignment row now, and an import only creates. A row that
+						// already exists is dispatched on the board, where the assignee is editable.
 						problems.push(
-							`${label}: no unassigned job found. Create the job first, then import again.`
+							`${label}: this work is already filed for that site and day. Assign it on the dispatch board instead.`
 						);
 						continue;
 					}
-					if (matchingJobs.length > 1) {
-						problems.push(
-							`${label}: more than one unassigned job matches this site, date, and title.`
-						);
-						continue;
-					}
-
-					const job = matchingJobs[0];
-					if (seenJobIds.has(job.id)) {
-						problems.push(`${label}: this job appears more than once in the import.`);
-						continue;
-					}
-					seenJobIds.add(job.id);
-					resolvedRows.push({
-						row,
-						jobId: job.id,
-						assigneeUserId: row.assignee_user_id
-					});
+					seenMatchKeys.add(matchKey);
+					resolvedRows.push({ row, siteId: site.id });
 				}
 
 				if (problems.length > 0) {
@@ -182,8 +160,12 @@ export default {
 				}
 
 				return resolvedRows.map((entry) => ({
-					job_id: entry.jobId,
-					assignee_user_id: entry.assigneeUserId,
+					site_id: entry.siteId,
+					title: entry.row.job_title,
+					nature: entry.row.job_title,
+					scheduled_for: `${entry.row.scheduled_for}T00:00:00.000Z`,
+					description: '',
+					assignee_user_id: entry.row.assignee_user_id,
 					status: 'assigned' as const,
 					summary: entry.row.summary
 				}));

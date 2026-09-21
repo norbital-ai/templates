@@ -17,7 +17,6 @@
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
 	import Icon from '@iconify/svelte';
 	import { Option, Schema } from 'effect';
-	import JobsRepresentation from '../jobs/+representation.svelte';
 	import { formatSingaporeInstant } from '../../lib/format-singapore-instant.js';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
 	import { watch } from 'runed';
@@ -61,14 +60,16 @@
 	/** An evidence row whose `photo` names no downloadable file is skipped rather than rendered. */
 	const decodePhotoFile = Schema.decodeUnknownOption(photoFileSchema);
 
-	const jobQuery = $derived(
+	const siteQuery = $derived(
 		record != null
-			? client.db.jobs.findMany({
-					where: { id: { eq: record.job_id } },
+			? client.db.sites.findMany({
+					where: { id: { eq: record.site_id } },
+					columns: { id: true, name: true, location: true },
 					limit: 1
 				})
 			: null
 	);
+	const site = $derived(siteQuery?.current?.[0]);
 	const variationsQuery = $derived(
 		record != null
 			? client.db.variation_requests.findMany({
@@ -332,8 +333,7 @@
 								distance: candidate.distance,
 								submitted,
 								candidate: { name: candidateName, url: candidateUrl },
-								assignment:
-									assignment?.search_text ?? t('component.similar_photo_assignment_unavailable')
+								assignment: assignment?.title ?? t('component.similar_photo_assignment_unavailable')
 							}
 						];
 			});
@@ -482,16 +482,30 @@
 	<Scroll name={t('component.job_scope_status')}>
 		<Stack gap="md">
 			<Cover gap="md" top={jobScopeHeader}>
-				{#if jobQuery?.current?.[0]}
-					<JobsRepresentation record={jobQuery.current[0]} close={() => undefined} />
-				{:else if jobQuery?.loading}
-					<div
-						class="h-32 rounded-md bg-muted/50 motion-safe:animate-pulse"
-						aria-label={t('component.loading_job')}
-					></div>
-				{:else}
-					<p class="text-sm text-destructive">{t('component.job_load_failed')}</p>
-				{/if}
+				<Grid minimum="panel">
+					<div>
+						<p class="text-xs text-muted-foreground">{t('component.site')}</p>
+						<p class="text-sm">{site?.name ?? t('component.not_recorded')}</p>
+					</div>
+					<div>
+						<p class="text-xs text-muted-foreground">{t('component.job_title')}</p>
+						<p class="text-sm">{record?.title ?? '—'}</p>
+					</div>
+					<div>
+						<p class="text-xs text-muted-foreground">{t('component.job_nature')}</p>
+						<p class="text-sm">{record?.nature ?? '—'}</p>
+					</div>
+					<div>
+						<p class="text-xs text-muted-foreground">{t('component.scheduled_date')}</p>
+						<p class="text-sm">
+							{formatSingaporeInstant(record?.scheduled_for ?? null, t('component.not_recorded'))}
+						</p>
+					</div>
+					<Column span="all">
+						<p class="text-xs text-muted-foreground">{t('component.job_description_scope')}</p>
+						<p class="text-sm whitespace-pre-wrap">{record?.description ?? '—'}</p>
+					</Column>
+				</Grid>
 			</Cover>
 		</Stack>
 	</Scroll>
@@ -510,6 +524,16 @@
 					stamp is, because the review automation writes it through the same selection.
 				-->
 			<Field name="suspicion_checked_at" hidden />
+			<!--
+				The work order is filed once, by the form this record was created with; these are
+				declared here only because the update selection carries them (the dispatch feed corrects
+				its own rows), and a declared field must be named exactly once.
+			-->
+			<Field name="site_id" hidden />
+			<Field name="title" hidden />
+			<Field name="nature" hidden />
+			<Field name="scheduled_for" hidden />
+			<Field name="description" hidden />
 			<Stack gap="md">
 				<div>
 					<h3 id="assignment-activity-heading" class="text-sm font-semibold">
@@ -521,6 +545,22 @@
 				</div>
 				<Grid minimum="panel">
 					<Field name="status" />
+					<!--
+						Naming the contractor *is* the dispatch: a work order the dispatch feed filed
+						unassigned is assigned here, and the collection stamps the dispatch time.
+					-->
+					<Field
+						name="assignee_user_id"
+						label={t('component.contractor')}
+						relationOptions={{
+							label: (record) => {
+								const name = record.name;
+								return name != null && name !== '' ? String(name) : '—';
+							},
+							orderBy: { name: 'asc' },
+							limit: 500
+						}}
+					/>
 					<Field name="dispatched_at" label={t('component.dispatched_at')} />
 					<Field name="completed_at" label={t('component.completed_at')} />
 					<Field name="amount_charged" label={t('component.value_charged')} />
@@ -915,7 +955,7 @@
 				<Scroll
 					bind:ref={conversationPort}
 					name={t('component.conversation')}
-					class="min-h-80 max-h-[28rem] rounded-lg border border-border bg-muted/25 p-3"
+					class="min-h-80 max-h-[min(70vh,40rem)] rounded-lg border border-border bg-muted/25 p-3"
 					onscroll={syncConversationScroll}
 				>
 					{#if communicationTimeline.length === 0 && (communicationQuery?.loading || evidenceLoading)}
@@ -957,8 +997,8 @@
 										class={cn(
 											'min-w-0 px-2.5 py-2',
 											item.system
-												? 'w-full max-w-sm rounded-lg bg-muted'
-												: 'w-fit max-w-[min(100%,32rem)] rounded-e-xl rounded-bl-xl rounded-tl-sm border border-border bg-card'
+												? 'w-full max-w-lg rounded-lg bg-muted'
+												: 'w-fit max-w-[min(100%,44rem)] rounded-e-xl rounded-bl-xl rounded-tl-sm border border-border bg-card'
 										)}
 									>
 										<Stack gap="xs">
@@ -984,8 +1024,8 @@
 												<div
 													class={cn(
 														'grid min-w-0 gap-1.5 overflow-hidden rounded-md',
-														item.photos.length > 1 && 'grid-cols-2',
-														item.photos.length > 4 && 'grid-cols-3'
+														item.photos.length > 1 && 'grid-cols-2 sm:grid-cols-3',
+														item.photos.length > 6 && 'sm:grid-cols-4'
 													)}
 												>
 													{#each item.photos as photo (photo.id)}
@@ -1002,10 +1042,10 @@
 																class={cn(
 																	'w-full object-cover transition-opacity duration-150 group-hover:opacity-90',
 																	item.photos.length === 1
-																		? 'h-28'
+																		? 'h-40 sm:h-52'
 																		: item.photos.length > 6
-																			? 'h-16'
-																			: 'h-20'
+																			? 'h-20 sm:h-24'
+																			: 'h-24 sm:h-32'
 																)}
 																loading="lazy"
 																decoding="async"
@@ -1068,7 +1108,7 @@
 	{@render suspicionHeader()}
 {/if}
 <RecordShell
-	title={record?.search_text ?? 'New assignment'}
+	title={record?.title ?? 'New assignment'}
 	{subtitle}
 	tabs={record
 		? ([
@@ -1126,19 +1166,20 @@
 				<Field name="location" hidden />
 				<Field name="summary" hidden />
 				<Field name="source_message_id" hidden />
+				<Field name="external_ref" hidden />
 				<Grid minimum="panel">
 					<Field
-						name="job_id"
-						label={t('component.job')}
+						name="site_id"
+						label={t('component.site')}
 						relationOptions={{
-							label: (record) => {
-								const v = record.title;
-								return v != null && v !== '' ? String(v) : '—';
-							},
-							orderBy: { title: 'asc' },
+							label: (record) => String(record.name || '—'),
+							orderBy: { name: 'asc' },
 							limit: 500
 						}}
 					/>
+					<Field name="title" label={t('component.job_title')} />
+					<Field name="nature" label={t('component.job_nature')} />
+					<Field name="scheduled_for" label={t('component.scheduled_date')} />
 					<!--
 					The assignee is a person, so the picker reads the identity directory directly.
 
@@ -1158,6 +1199,9 @@
 							limit: 500
 						}}
 					/>
+					<Column span="all">
+						<Field name="description" label={t('component.job_description_scope')} />
+					</Column>
 				</Grid>
 			{/snippet}
 		</CollectionForm>

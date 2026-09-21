@@ -17,9 +17,9 @@ const PARENT_BATCH_LIMIT = 5_000;
  * every caller state it, and no channel ingests photos through the API today — the seed loader
  * writes channel-sourced rows directly. The integrity facts — hash, perceptual embedding, flags, duplicates — need the bytes, which a
  * transform cannot read, so the row is born uninspected (empty hash, zero vector) and the
- * `inspect_photo_evidence` automation fills them in on the `created` event. Provenance is immutable
- * once filed; the facts may change, which is what the update selection carries alongside the
- * columns the read-only record panel shows.
+ * suspicion review fills them in before it judges anything. Provenance is immutable once filed;
+ * the facts may change, which is what the update selection carries alongside the columns the
+ * read-only record panel shows.
  */
 export default defineCollection({
 	model,

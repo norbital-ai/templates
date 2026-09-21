@@ -1,8 +1,16 @@
 import { toError } from '@norbital-ai/std';
 import { sha256Text } from '@norbital-ai/std/reckon/hash';
+import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import type { Api } from './$types.js';
+import type { Row as PhotoEvidenceRow } from '../collections/photo_evidence/$types.js';
 import { currentDate } from '../lib/clock.js';
+import { coordinatesOf } from '../lib/geo.js';
+import {
+	evaluateCaptureGeolocation,
+	inspectPhoto,
+	VISUAL_DUPLICATE_MAX_L2
+} from '../collections/photo_evidence/photo-integrity.js';
 
 // These judgements consume photographs and a strict JSON Schema in the same turn. Keep them on a
 // provider model with native vision + structured-output support (2026-09-12: DeepSeek V4.1 Flash,
@@ -20,6 +28,10 @@ const MAX_INFERENCE_COMMUNICATIONS = 24;
 const MAX_INFERENCE_MESSAGE_CHARS = 800;
 const MAX_SIGNAL_IMAGES = 2;
 const MAX_CROSS_ASSIGNMENT_PROBES = 64;
+/** Photos inspected per page; the pass pages until nothing is pending. */
+const INSPECTION_PAGE_SIZE = 250;
+/** Two at a time: inspection is provider-free but PDQ decoding is CPU-bound in this process. */
+const INSPECTION_CONCURRENCY = 2;
 
 /**
  * Cross-assignment reuse candidates are retrieved with a deliberately generous perceptual band.
@@ -93,12 +105,23 @@ type JobSiteDecision = Schema.Schema.Type<typeof jobSiteDecisionSchema>;
 export type SuspicionReviewFacts = {
 	readonly assignment: {
 		readonly id: string;
-		readonly job_id: string;
+		readonly site_id: string;
+		readonly title: string;
+		readonly nature: string | null;
+		readonly scheduled_for: unknown;
+		readonly description: string;
 		readonly status: string | null;
 		readonly summary: string | null;
 		readonly location: unknown;
 		readonly suspicion_checked_at?: string | null;
 	};
+	/**
+	 * The work order's own facts, under the name the prompt uses for them.
+	 *
+	 * They are columns on the assignment row now — the two collections were merged — so this is a
+	 * projection of `assignment` rather than a second read; the key stays `job` because that is what
+	 * the inference dataset and its decisions call the work.
+	 */
 	readonly job: {
 		readonly id: string;
 		readonly title: string;
@@ -169,6 +192,163 @@ export function shouldReviewAssignment(
 	return checkedAt === null;
 }
 
+/** What resolving a photo's work needs: which assignment, or which variation to ask. */
+type PhotoParentRef = Pick<PhotoEvidenceRow, 'id' | 'job_assignment_id' | 'variation_request_id'>;
+
+/** One photo row as the inspection pass reads it. */
+type FiledPhoto = PhotoParentRef & Pick<PhotoEvidenceRow, 'photo'>;
+
+/** The assignment a photo hangs off, directly or through its variation request. */
+const assignmentIdsOf = (api: Api, photos: ReadonlyArray<PhotoParentRef>) =>
+	Effect.gen(function* () {
+		const variationIds = [
+			...new Set(
+				photos.flatMap((photo) =>
+					photo.job_assignment_id == null && photo.variation_request_id != null
+						? [photo.variation_request_id]
+						: []
+				)
+			)
+		];
+		const variations =
+			variationIds.length === 0
+				? []
+				: yield* api.db.variation_requests.findMany({
+						where: { id: { in: variationIds } },
+						columns: { id: true, job_assignment_id: true },
+						limit: variationIds.length
+					});
+		const byVariation = new Map(
+			variations.map((variation) => [variation.id, variation.job_assignment_id])
+		);
+		return new Map(
+			photos.map((photo) => [
+				photo.id,
+				photo.job_assignment_id ??
+					(photo.variation_request_id == null
+						? null
+						: (byVariation.get(photo.variation_request_id) ?? null))
+			])
+		);
+	});
+
+/**
+ * The deterministic pass over one filed photo: its hash, perceptual embedding and EXIF/quality
+ * signals, its capture point judged against the site its work belongs to, and the near-duplicates
+ * it matches under other assignments.
+ *
+ * This was its own automation on the photo's `created` event, and it cannot be a collection
+ * transform: it needs the bytes, which the write path cannot read. It runs at the top of every
+ * review instead — once per photo, when its hash is still empty — which is what makes this template
+ * one automation rather than two. The worklist is the photo's own empty hash rather than the
+ * assignment's stamp, so a photo filed after its assignment was already reviewed is still
+ * inspected.
+ */
+const inspectFiledPhoto = (api: Api, photo: FiledPhoto) =>
+	Effect.gen(function* () {
+		const asset = yield* api.readFileAsset(photo.photo);
+		const mimeType = asset.mimeType;
+		if (mimeType == null || !mimeType.toLowerCase().startsWith('image/')) {
+			return yield* Effect.fail(new Error('Photo evidence requires an image file.'));
+		}
+		const assignmentId = (yield* assignmentIdsOf(api, [photo])).get(photo.id) ?? null;
+		const assignment =
+			assignmentId == null
+				? undefined
+				: yield* api.db.job_assignments.findFirst({
+						where: { id: { eq: assignmentId } },
+						columns: { site_id: true }
+					});
+		const site =
+			assignment === undefined
+				? undefined
+				: yield* api.db.sites.findFirst({
+						where: { id: { eq: assignment.site_id } },
+						columns: { location: true }
+					});
+		const inspected = yield* inspectPhoto({ bytes: asset.bytes, mimeType });
+		const embedding = hexToBinaryEmbedding(inspected.perceptualHash);
+		const flags = new Set([
+			...inspected.flags,
+			...evaluateCaptureGeolocation(
+				inspected.captureLocation,
+				coordinatesOf(site?.location ?? null)
+			)
+		]);
+		const nearest = yield* api.db.photo_evidence.findNearest({
+			column: 'perceptual_embedding',
+			probe: embedding,
+			metric: 'l2',
+			maxDistance: VISUAL_DUPLICATE_MAX_L2,
+			limit: 50,
+			columns: { id: true, sha256: true, job_assignment_id: true, variation_request_id: true }
+		});
+		const candidates = nearest.filter(
+			(candidate) =>
+				candidate.id !== photo.id &&
+				candidate.sha256 !== '' &&
+				candidate.sha256 !== inspected.sha256
+		);
+		const candidateAssignments = yield* assignmentIdsOf(api, candidates);
+		const matched = candidates.flatMap((candidate) =>
+			candidateAssignments.get(candidate.id) === assignmentId ? [] : [candidate.id]
+		);
+		if (matched.length > 0) flags.add('visual_duplicate');
+		const facts: Pick<
+			PhotoEvidenceRow,
+			'sha256' | 'perceptual_embedding' | 'flags' | 'matched_evidence_ids'
+		> = {
+			sha256: inspected.sha256,
+			perceptual_embedding: embedding,
+			flags: [...flags],
+			matched_evidence_ids: matched
+		};
+		yield* api.collection.photo_evidence.update(photo.id, facts);
+	});
+
+/**
+ * Inspect every photo still awaiting facts, oldest id first so a backlog drains in order.
+ *
+ * A failure is recorded per photo and the pass moves on; the review then fails closed on that
+ * assignment, exactly as it did when the facts arrived late from a separate automation. Nothing
+ * here throws, so one unreadable file never costs a whole run.
+ */
+export const inspectFiledPhotos = Effect.fn('SuspicionReview.inspectFiledPhotos')(function* (
+	api: Api
+) {
+	let inspected = 0;
+	const failures: Array<{ photo_id: string; reason: string }> = [];
+	let after: string | undefined;
+	for (;;) {
+		const page = yield* api.db.photo_evidence.findMany({
+			where: {
+				sha256: { eq: '' },
+				...(after === undefined ? {} : { id: { gt: after } })
+			},
+			columns: { id: true, photo: true, job_assignment_id: true, variation_request_id: true },
+			orderBy: { id: 'asc' },
+			limit: INSPECTION_PAGE_SIZE
+		});
+		if (page.length === 0) break;
+		yield* Effect.forEach(
+			page,
+			(photo) =>
+				inspectFiledPhoto(api, photo).pipe(
+					Effect.tap(() => Effect.sync(() => (inspected += 1))),
+					Effect.catch((error) =>
+						Effect.sync(() => {
+							failures.push({ photo_id: photo.id, reason: toError(error).message });
+						})
+					)
+				),
+			{ concurrency: INSPECTION_CONCURRENCY, discard: true }
+		);
+		if (page.length < INSPECTION_PAGE_SIZE) break;
+		after = page[page.length - 1]!.id;
+	}
+	return { inspected, failures };
+});
+
 /**
  * Materialise the unchecked worklist before reviewing it. Reviews stamp rows as they succeed, so
  * paging while processing would make the worklist shrink and skip assignments.
@@ -176,7 +356,11 @@ export function shouldReviewAssignment(
 export function loadUncheckedAssignments(api: Api, assignmentId?: string) {
 	const columns = {
 		id: true,
-		job_id: true,
+		site_id: true,
+		title: true,
+		nature: true,
+		scheduled_for: true,
+		description: true,
 		status: true,
 		summary: true,
 		location: true,
@@ -916,24 +1100,11 @@ export function inferSuspicionReviewDecision(
 
 function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 	return Effect.gen(function* () {
-		const job = yield* api.db.jobs.findFirst({
-			where: { id: { eq: assignment.job_id } },
-			columns: {
-				id: true,
-				site_id: true,
-				title: true,
-				nature: true,
-				scheduled_for: true,
-				description: true
-			}
-		});
 		const site =
-			job == null
-				? null
-				: ((yield* api.db.sites.findFirst({
-						where: { id: { eq: job.site_id } },
-						columns: { id: true, name: true, location: true, house_type: true }
-					})) ?? null);
+			(yield* api.db.sites.findFirst({
+				where: { id: { eq: assignment.site_id } },
+				columns: { id: true, name: true, location: true, house_type: true }
+			})) ?? null;
 		const variations = yield* api.db.variation_requests.findMany({
 			where: { job_assignment_id: { eq: assignment.id } },
 			columns: { id: true },
@@ -962,9 +1133,10 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 			},
 			limit: MAX_RELATED_ROWS
 		});
-		// A photo is filed before its bytes are inspected; its facts land through the
-		// `inspect_photo_evidence` automation. Judging an assignment on an unhashed photo would read
-		// an empty fingerprint as evidence, so the assignment stays unchecked until the next run.
+		// The run inspects filed photos before it judges anything, so a photo still without a hash
+		// here is one whose inspection failed (unreadable bytes, a provider-free pass that could not
+		// decode it). Judging it would read an empty fingerprint as evidence, so the assignment
+		// stays unchecked until the next run retries.
 		const uninspected = photos.find((photo) => photo.sha256 === '');
 		if (uninspected !== undefined) {
 			return yield* Effect.fail(
@@ -983,16 +1155,13 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 		});
 		return {
 			assignment,
-			job:
-				job == null
-					? null
-					: {
-							id: job.id,
-							title: job.title,
-							nature: job.nature,
-							scheduled_for: job.scheduled_for,
-							description: job.description
-						},
+			job: {
+				id: assignment.id,
+				title: assignment.title,
+				nature: assignment.nature,
+				scheduled_for: assignment.scheduled_for,
+				description: assignment.description
+			},
 			site,
 			photos,
 			// Candidates are retrieved against the selected representatives only, after this load.
