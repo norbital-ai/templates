@@ -31,7 +31,7 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { assessedOnMentions } from '../../../lib/expressions/compile.js';
 import { requireFactValues, resolveFactValues } from '../../../lib/declared-facts.js';
-import { deductionTotals } from '../../../lib/statutory-deductions.js';
+import { DEDUCTION_TOTAL_KEYS, deductionTotals } from '../../../lib/statutory-deductions.js';
 import {
 	CATALOGUE_WORDS,
 	openKeyMentions,
@@ -484,22 +484,80 @@ export function earnedAverage(
 	return present === 0 ? 0 : total / months;
 }
 
-/** Every expression of one scheme, for the context keys it names. */
-export const schemeExpressions = (contribution: ContributionConfig): string[] => [
-	contribution.row.assessed_on ?? '',
-	contribution.row.ordinary_on ?? '',
-	...contribution.row.elections.flatMap((field) => [
-		field.valid_when ?? '',
-		field.required_when ?? ''
-	]),
-	...contribution.row.rules.flatMap((rule) => [
-		rule.when,
-		rule.employee,
-		rule.employer,
-		rule.rebate ?? '0.0',
-		rule.deduction ?? '0.0'
-	])
-];
+/** Every expression of one scheme, for the context keys it names. Memoized on the row: a
+ * withholding ladder is thousands of expressions and the context is built per candidate. */
+const expressionsOfRow = new WeakMap<ContributionConfig['row'], readonly string[]>();
+export const schemeExpressions = (contribution: ContributionConfig): readonly string[] => {
+	const cached = expressionsOfRow.get(contribution.row);
+	if (cached !== undefined) return cached;
+	const expressions = [
+		contribution.row.assessed_on ?? '',
+		contribution.row.ordinary_on ?? '',
+		...contribution.row.elections.flatMap((field) => [
+			field.valid_when ?? '',
+			field.required_when ?? ''
+		]),
+		...contribution.row.rules.flatMap((rule) => [
+			rule.when,
+			rule.employee,
+			rule.employer,
+			rule.rebate ?? '0.0',
+			rule.deduction ?? '0.0'
+		])
+	];
+	expressionsOfRow.set(contribution.row, expressions);
+	return expressions;
+};
+
+/**
+ * The context keys one scheme's whole expression set names, scanned once.
+ *
+ * Every key `schemeContext` and `schemeObject` seed is a pure function of the expression list, so
+ * scanning per context build read the same ladder tens of thousands of times. The set is computed
+ * once per expression list — the memoized `schemeExpressions` array is the identity — and the
+ * builders then only look keys up.
+ */
+type SchemeMentions = Readonly<{
+	readonly childClaimKeys: readonly string[];
+	readonly deductionKeys: ReadonlyMap<string, readonly string[]>;
+	readonly historyCodes: readonly string[];
+	readonly producedCodes: readonly string[];
+	readonly companyFactKeys: readonly string[];
+}>;
+const mentionsOfExpressions = new WeakMap<readonly string[], SchemeMentions>();
+/** `assessed_on` alone is passed as a fresh one-element array per accumulation; cache it by value. */
+const mentionsOfOneExpression = new Map<string, SchemeMentions>();
+function schemeMentions(expressions: readonly string[]): SchemeMentions {
+	const cached = mentionsOfExpressions.get(expressions);
+	if (cached !== undefined) return cached;
+	if (expressions.length === 1) {
+		const byExpression = mentionsOfOneExpression.get(expressions[0]!);
+		if (byExpression !== undefined) return byExpression;
+	}
+	const distinct = (values: readonly string[]) => [...new Set(values)];
+	const mentions: SchemeMentions = {
+		childClaimKeys: distinct(
+			expressions.flatMap((expression) => openKeyMentions(expression, 'scheme.child_claims'))
+		),
+		deductionKeys: new Map(
+			DEDUCTION_TOTAL_KEYS.map((key) => [
+				key,
+				distinct(expressions.flatMap((expression) => openKeyMentions(expression, `scheme.${key}`)))
+			])
+		),
+		historyCodes: distinct(
+			expressions.flatMap((expression) => openKeyMentions(expression, 'history'))
+		),
+		producedCodes: distinct(expressions.flatMap((expression) => producedMentionsOf(expression))),
+		companyFactKeys: distinct([
+			...expressions.flatMap((expression) => openKeyMentions(expression, 'person.company.facts')),
+			...expressions.flatMap((expression) => openKeyMentions(expression, 'company.facts'))
+		])
+	};
+	mentionsOfExpressions.set(expressions, mentions);
+	if (expressions.length === 1) mentionsOfOneExpression.set(expressions[0]!, mentions);
+	return mentions;
+}
 
 function requireSchemeFacts(
 	contribution: ContributionConfig,
@@ -530,10 +588,9 @@ function schemeObject(options: {
 		contribution.row.code,
 		status?.kind !== 'NOT_REGISTERED'
 	);
+	const mentions = schemeMentions(schemeExpressions(contribution));
 	const childClaims: Record<string, number> = Object.fromEntries(
-		schemeExpressions(contribution).flatMap((expression) =>
-			openKeyMentions(expression, 'scheme.child_claims').map((key) => [key, 0])
-		)
+		mentions.childClaimKeys.map((key) => [key, 0])
 	);
 	for (const claim of registered?.child_claims ?? []) {
 		if (claim.year !== input.year.start.slice(0, 4)) continue;
@@ -545,8 +602,7 @@ function schemeObject(options: {
 		input.period.key
 	);
 	for (const [prefix, amounts] of Object.entries(deductions))
-		for (const expression of schemeExpressions(contribution))
-			for (const key of openKeyMentions(expression, `scheme.${prefix}`)) amounts[key] ??= 0;
+		for (const key of mentions.deductionKeys.get(prefix) ?? []) amounts[key] ??= 0;
 	const since = registered?.since ?? '';
 	return {
 		code: contribution.row.code,
@@ -615,25 +671,22 @@ function schemeContext(options: {
 }): Record<string, unknown> {
 	const { input, contribution } = options;
 	const expressions = options.expressions;
-	const producedCodes = [
-		...new Set(expressions.flatMap((expression) => producedMentionsOf(expression)))
-	];
+	const mentions = schemeMentions(expressions);
+	const producedCodes = mentions.producedCodes;
 	const yearEarned: Record<string, number> = { BASIC: 0 };
 	for (const [code, amount] of input.yearEarned) yearEarned[code] = amount;
 	const history = Object.fromEntries(
-		[...new Set(expressions.flatMap((expression) => openKeyMentions(expression, 'history')))].map(
-			(code) => [
-				code,
-				(() => {
-					const value = input.history(code);
-					return {
-						...value,
-						has_opening: value.hasOpening,
-						periods_recorded: value.periodsRecorded
-					};
-				})()
-			]
-		)
+		mentions.historyCodes.map((code) => [
+			code,
+			(() => {
+				const value = input.history(code);
+				return {
+					...value,
+					has_opening: value.hasOpening,
+					periods_recorded: value.periodsRecorded
+				};
+			})()
+		])
 	);
 	const person = structuredClone(input.person) as PersonContext & {
 		company: { facts: Record<string, unknown> };
@@ -644,21 +697,15 @@ function schemeContext(options: {
 		person.terms.fixed_allowances = fixed;
 		person.terms.monthly_wage = person.terms.basic_salary + fixed;
 	}
-	for (const expression of expressions) {
+	for (const expression of expressions)
 		for (const code of assessedOnMentions(expression).yearEarned)
 			if (!(code in yearEarned)) yearEarned[code] = 0;
-		// Resolved facts contain every declared key. A missing key is a catalogue defect.
-		for (const key of openKeyMentions(expression, 'person.company.facts'))
-			if (!Object.hasOwn(person.company.facts, key))
-				refuse(
-					`${contribution.row.code}: entity input ${key} is not declared in this settings version.`
-				);
-		for (const key of openKeyMentions(expression, 'company.facts'))
-			if (!Object.hasOwn(person.company.facts, key))
-				refuse(
-					`${contribution.row.code}: entity input ${key} is not declared in this settings version.`
-				);
-	}
+	// Resolved facts contain every declared key. A missing key is a catalogue defect.
+	for (const key of mentions.companyFactKeys)
+		if (!Object.hasOwn(person.company.facts, key))
+			refuse(
+				`${contribution.row.code}: entity input ${key} is not declared in this settings version.`
+			);
 	return {
 		person,
 		period: {
@@ -702,8 +749,10 @@ function assessedBase(options: {
 	readonly produced: ReadonlyMap<string, Produced>;
 	readonly reads: ReadonlyMap<string, number>;
 	readonly ordinaryReads?: ReadonlyMap<string, number>;
+	/** The formula to evaluate instead of the row's own `assessed_on`, e.g. its ordinary part. */
+	readonly expression?: string;
 }): { readonly base: number; readonly selected: readonly AccumulationLine[] } {
-	const expression = (options.contribution.row.assessed_on ?? '').trim();
+	const expression = (options.expression ?? options.contribution.row.assessed_on ?? '').trim();
 	if (expression === '') return { base: 0, selected: [] };
 	const status = options.input.facts.get(options.contribution.row.id);
 	const context = {
@@ -971,14 +1020,12 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				? null
 				: assessedBase({
 						input: schemeInput,
-						contribution: {
-							...contribution,
-							row: { ...contribution.row, assessed_on: ordinaryOn }
-						},
+						contribution,
 						accumulation,
 						produced: schemeProduced,
 						reads: reliefs,
-						ordinaryReads: ordinaryReliefs
+						ordinaryReads: ordinaryReliefs,
+						expression: ordinaryOn
 					}).base;
 		let ordinaryEmployee: number | undefined;
 		const charge = (
@@ -1041,13 +1088,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 									...(ordinaryOn === ''
 										? {}
 										: {
-												ordinary: assessedBase({
-													...options,
-													contribution: {
-														...contribution,
-														row: { ...contribution.row, assessed_on: ordinaryOn }
-													}
-												}).base
+												ordinary: assessedBase({ ...options, expression: ordinaryOn }).base
 											}),
 									inputs: own.selected
 								};
@@ -1271,10 +1312,7 @@ export function contributeCompany(input: {
 		const ordinary =
 			ordinaryOn === ''
 				? evaluated.base
-				: assessedBase({
-						...assessmentOptions,
-						contribution: { ...contribution, row: { ...contribution.row, assessed_on: ordinaryOn } }
-					}).base;
+				: assessedBase({ ...assessmentOptions, expression: ordinaryOn }).base;
 		let context: Record<string, unknown> = {
 			...schemeContext({
 				input: schemeInput,
