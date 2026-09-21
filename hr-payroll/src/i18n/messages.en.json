@@ -988,7 +988,6 @@
 	"component.revision_from": "from {start}",
 	"component.revision_between": "{start} – {end}",
 	"component.events": "Events",
-	"component.work_date": "Date",
 	"app.hr_employee.my_contract": "My contract",
 	"component.allowance_npl_prorates": "Unpaid leave prorates allowances",
 	"common.yes": "Yes",

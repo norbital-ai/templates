@@ -988,7 +988,6 @@
 	"component.revision_from": "自 {start}",
 	"component.revision_between": "{start} – {end}",
 	"component.events": "事件",
-	"component.work_date": "日期",
 	"app.hr_employee.my_contract": "我的合同",
 	"component.allowance_npl_prorates": "无薪假按比例扣减津贴",
 	"common.yes": "是",
