@@ -1276,5 +1276,22 @@
 	"component.hold_placed_on": "Placed on",
 	"component.hold_released_on": "Released on",
 	"component.released_amount": "Released amount",
-	"component.reconciliation_reference": "Release directive"
+	"component.reconciliation_reference": "Release directive",
+	"component.payslip_statement": "Statement",
+	"component.payslip_earnings": "Earnings",
+	"component.payslip_total_earnings": "Total earnings",
+	"component.payslip_unpaid_time": "Unpaid time",
+	"component.payslip_total_unpaid_time": "Total unpaid time",
+	"component.payslip_gross_pay": "Gross pay",
+	"component.payslip_statutory_withheld": "Statutory — withheld from pay",
+	"component.payslip_total_withheld": "Total withheld",
+	"component.payslip_other_deductions": "Other deductions",
+	"component.payslip_total_other_deductions": "Total other deductions",
+	"component.payslip_reimbursements": "Reimbursements",
+	"component.payslip_net_pay": "Net pay (take home)",
+	"component.payslip_company_contributions": "Company contributions",
+	"component.payslip_employer_cost_total": "Employer cost",
+	"component.payslip_total_cost": "Total cost to company",
+	"component.payslip_of_which_authorities": "of which to authorities",
+	"component.payslip_information": "Informational"
 }

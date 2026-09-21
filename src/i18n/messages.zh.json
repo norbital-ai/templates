@@ -1276,5 +1276,22 @@
 	"component.hold_placed_on": "冻结日期",
 	"component.hold_released_on": "解除日期",
 	"component.released_amount": "解除金额",
-	"component.reconciliation_reference": "解除指令"
+	"component.reconciliation_reference": "解除指令",
+	"component.payslip_statement": "结算单",
+	"component.payslip_earnings": "收入",
+	"component.payslip_total_earnings": "收入合计",
+	"component.payslip_unpaid_time": "无薪时间",
+	"component.payslip_total_unpaid_time": "无薪时间合计",
+	"component.payslip_gross_pay": "应发工资",
+	"component.payslip_statutory_withheld": "法定扣款 — 从工资中代扣",
+	"component.payslip_total_withheld": "代扣合计",
+	"component.payslip_other_deductions": "其他扣款",
+	"component.payslip_total_other_deductions": "其他扣款合计",
+	"component.payslip_reimbursements": "报销与返还",
+	"component.payslip_net_pay": "实发工资（到手）",
+	"component.payslip_company_contributions": "公司承担",
+	"component.payslip_employer_cost_total": "雇主成本",
+	"component.payslip_total_cost": "公司总成本",
+	"component.payslip_of_which_authorities": "其中上缴政府机构",
+	"component.payslip_information": "说明性项目"
 }

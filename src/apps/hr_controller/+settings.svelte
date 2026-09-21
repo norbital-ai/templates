@@ -100,11 +100,6 @@
 {#snippet general()}
 	{#if selectedVersion}
 		<Scroll name={t('app.settings.general')} layout="stack" gap="lg">
-			<VersionLifecycle
-				version={selectedVersion}
-				lineage={versions}
-				onChosen={(versionId) => (chosenVersionId = versionId)}
-			/>
 			<!-- Keyed: a form keeps its first values, and a draft chosen after a sealed version
 			     would otherwise show — and save — the sealed version's figures as its own. -->
 			{#key selectedVersion.id}
@@ -311,6 +306,13 @@
 				chosenVersionId = next;
 			}}
 		/>
+		{#if selectedVersion}
+			<VersionLifecycle
+				version={selectedVersion}
+				lineage={versions}
+				onChosen={(versionId) => (chosenVersionId = versionId)}
+			/>
+		{/if}
 	</AppHeaderActions>
 
 	{#if jurisdictionsError != null}

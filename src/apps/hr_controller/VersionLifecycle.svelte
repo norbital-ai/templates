@@ -91,25 +91,28 @@
 	};
 </script>
 
-<Inline gap="sm" justify="end">
-	{#if !voided}
-		<Button variant="outline" size="sm" disabled={busy} onclick={() => (newOpen = true)}>
-			<Icon icon="lucide:git-branch-plus" class="size-4" />
-			{t('settings_version.new')}
-		</Button>
-	{/if}
-	{#if !sealed}
-		<Button size="sm" disabled={busy} onclick={() => (sealOpen = true)}>
-			<Icon icon="lucide:lock" class="size-4" />
-			{t('settings_version.seal')}
-		</Button>
-	{:else if !voided}
-		<Button variant="destructive" size="sm" disabled={busy} onclick={() => (voidOpen = true)}>
-			<Icon icon="lucide:ban" class="size-4" />
-			{t('settings_version.void')}
-		</Button>
-	{/if}
-</Inline>
+<!--
+	The controls themselves live in the app header (AppHeaderActions), not in the tab body:
+	a version's life is the page's, not one tab's, and the General tab already reads as the
+	record. The dialogs stay here and portal from wherever this component is mounted.
+-->
+{#if !voided}
+	<Button variant="outline" size="sm" disabled={busy} onclick={() => (newOpen = true)}>
+		<Icon icon="lucide:git-branch-plus" class="size-4" />
+		{t('settings_version.new')}
+	</Button>
+{/if}
+{#if !sealed}
+	<Button size="sm" disabled={busy} onclick={() => (sealOpen = true)}>
+		<Icon icon="lucide:lock" class="size-4" />
+		{t('settings_version.seal')}
+	</Button>
+{:else if !voided}
+	<Button variant="destructive" size="sm" disabled={busy} onclick={() => (voidOpen = true)}>
+		<Icon icon="lucide:ban" class="size-4" />
+		{t('settings_version.void')}
+	</Button>
+{/if}
 
 <Dialog.Root bind:open={newOpen}>
 	<Dialog.Content class="max-w-lg">

@@ -184,13 +184,13 @@
 	};
 
 	/**
-	 * One accordion row per component: the same label, input kind, bucket and rate collapse into a
-	 * summed line, and the individual entries — one per captured input — sit behind it. A component
-	 * that occurred once is a plain row; there is nothing to unfold.
+	 * One row per component: the same label, input kind, bucket and rate collapse into a summed
+	 * line, and the individual entries — one per captured input — sit behind it. A component that
+	 * occurred once is a plain row; there is nothing to unfold.
 	 */
-	const adjustmentGroups = $derived.by((): AdjustmentGroup[] => {
+	const groupsFor = (rows: readonly Adjustment[]): AdjustmentGroup[] => {
 		const groups = new Map<string, AdjustmentGroup>();
-		for (const adjustment of adjustments) {
+		for (const adjustment of rows) {
 			const kind = inputKind(adjustment.family);
 			const rate = adjustment.rate == null ? '' : String(adjustment.rate);
 			const key = [adjustment.label, kind, adjustment.bucket ?? '', rate].join('\u0000');
@@ -218,7 +218,57 @@
 			});
 		}
 		return [...groups.values()];
-	});
+	};
+
+	/**
+	 * The statement, in settlement order: earnings the contract and the inputs created, the unpaid
+	 * time that reduced them, what was withheld, what was repaid, and what the employer owes on top.
+	 * Every figure is read from the record, never recomputed: the ledger explains the settlement
+	 * rather than re-deriving it, so a stored payslip always prints what it stored.
+	 */
+	const bucketRows = (bucket: Adjustment['bucket']) =>
+		adjustments.filter((adjustment) => adjustment.bucket === bucket);
+	const sumOf = (rows: readonly { readonly amount: unknown }[]) =>
+		rows.reduce((total, row) => total + (decodeNumber(row.amount) || 0), 0);
+
+	const earningsGroups = $derived(groupsFor(bucketRows('EARNING')));
+	const absenceGroups = $derived(groupsFor(bucketRows('ABSENCE')));
+	const deductionGroups = $derived(groupsFor(bucketRows('DEDUCTION')));
+	const paymentGroups = $derived(groupsFor(bucketRows('NON_WAGE_PAYMENT')));
+	const employerGroups = $derived(groupsFor(bucketRows('EMPLOYER_COST')));
+	const informationGroups = $derived(groupsFor(bucketRows('INFORMATION')));
+
+	const baseTotal = $derived(sumOf(base));
+	const earningsTotal = $derived(baseTotal + sumOf(bucketRows('EARNING')));
+	const unpaidTotal = $derived(sumOf(bucketRows('ABSENCE')));
+	const withheldTotal = $derived(
+		statutory.reduce((total, charge) => total + (decodeNumber(charge.employee_amount) || 0), 0)
+	);
+	const employerStatutoryTotal = $derived(
+		statutory.reduce((total, charge) => total + (decodeNumber(charge.employer_amount) || 0), 0)
+	);
+	const deductionsTotal = $derived(sumOf(bucketRows('DEDUCTION')));
+	const paymentsTotal = $derived(sumOf(bucketRows('NON_WAGE_PAYMENT')));
+	const employerOtherTotal = $derived(sumOf(bucketRows('EMPLOYER_COST')));
+	const employerCostTotal = $derived(
+		employerStatutoryTotal + employerOtherTotal || decodeNumber(record?.employer_cost)
+	);
+	const gross = $derived(decodeNumber(record?.gross));
+	const net = $derived(decodeNumber(record?.net));
+	/** What the company actually pays out: the settlement plus every employer charge on top of it. */
+	const companyCost = $derived(gross + employerCostTotal);
+	/** Employee withholding and employer contributions are the money that reaches an authority. */
+	const authoritiesTotal = $derived(withheldTotal + employerStatutoryTotal);
+	/**
+	 * A line as a reader adds it up: the ledger prints the signed effect on the employee, so an
+	 * absence under earnings or a withholding under gross carries a minus and a refund carries a
+	 * plus. The stored amounts are magnitudes; the direction is the bucket's, applied here once.
+	 */
+	const signedAmount = (amount: number, direction: 'add' | 'subtract'): string => {
+		const value = direction === 'subtract' ? -amount : amount;
+		const sign = value < 0 ? '−' : value > 0 ? '+' : '';
+		return `${sign}${formatNumeric(Math.abs(value))}`;
+	};
 
 	function inputKind(family: Adjustment['family']): string {
 		switch (family) {
@@ -260,6 +310,179 @@
 	</Tooltip>
 {/snippet}
 
+{#snippet adjustmentRows(groups: readonly AdjustmentGroup[], direction: 'add' | 'subtract')}
+	{#each groups as group (group.key)}
+		{#if group.entries.length === 1}
+			<div
+				class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-1 pl-4"
+				data-adjustment-group={group.key}
+			>
+				<span class="min-w-0 truncate">
+					{group.label}
+					<span class="text-meta">· {group.inputKind}</span>
+				</span>
+				<span>{signedAmount(group.amount, direction)}</span>
+			</div>
+		{:else}
+			<AccordionItem value={group.key} class="border-0" data-adjustment-group={group.key}>
+				<AccordionTrigger
+					class="group gap-2 py-1 pl-4 hover:no-underline [&>[data-slot=accordion-chevron]]:hidden"
+				>
+					<span class="flex min-w-0 flex-1 items-center gap-2 text-left font-normal">
+						<!--
+							The disclosure marker rides inside the label cell. A trailing chevron costs every
+							accordion row grid width, so the numeric column ends left of the plain rows'.
+						-->
+						<IconWrapper
+							name="lucide:chevron-down"
+							class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
+						/>
+						<span class="min-w-0 truncate">
+							{group.label}
+							<span class="text-meta">· {group.inputKind}</span>
+						</span>
+						<span class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+							{t('component.payslip_adjustment_entries', { count: group.entries.length })}
+						</span>
+					</span>
+					<span>{signedAmount(group.amount, direction)}</span>
+				</AccordionTrigger>
+				<AccordionContent class="pb-2 pl-10">
+					<ul class="text-meta tabular-nums">
+						{#each group.entries as entry (entry.id)}
+							<li class="flex justify-between gap-4 py-0.5">
+								<span>
+									#{Number(entry.id) + 1} · {formatNumeric(entry.quantity)} × {formatNumeric(
+										entry.rate
+									)}
+								</span>
+								<span>{signedAmount(decodeNumber(entry.amount), direction)}</span>
+							</li>
+						{/each}
+					</ul>
+				</AccordionContent>
+			</AccordionItem>
+		{/if}
+	{/each}
+{/snippet}
+
+{#snippet schemeInfo(charge: (typeof statutory)[number])}
+	{@const detail = schemeTrace.get(charge.scheme_code)}
+	<Tooltip
+		side="bottom"
+		align="start"
+		contentClass="max-w-96 border bg-popover text-popover-foreground"
+		arrowClasses="text-popover"
+	>
+		{#snippet trigger({ props })}
+			<Button {...props} variant="ghost" size="icon" aria-label={t('component.flow_derivation')}>
+				<IconWrapper name="lucide:info" class="size-4" />
+			</Button>
+		{/snippet}
+		{#snippet content()}
+			<Stack gap="xs" class="max-h-96 overflow-auto">
+				{#if charge.authority}
+					<p class="text-xs text-muted-foreground">{charge.authority}</p>
+				{/if}
+				<table class="w-full text-xs tabular-nums">
+					<thead>
+						<tr class="text-meta text-left">
+							<th class="py-0.5 pr-2 font-normal">{t('component.flow_rule')}</th>
+							<th class="py-0.5 pr-2 text-right font-normal"
+								>{t('renderer.payslip_statutory.employee_amount')}</th
+							>
+							<th class="py-0.5 text-right font-normal"
+								>{t('renderer.payslip_statutory.employer_amount')}</th
+							>
+						</tr>
+					</thead>
+					<tbody>
+						<tr class="border-t border-border align-top">
+							<td class="py-0.5 pr-2 whitespace-pre-wrap break-all"
+								>{prettyRule(charge.rule_when)}</td
+							>
+							<td class="py-0.5 pr-2 text-right">{formatNumeric(charge.employee_amount)}</td>
+							<td class="py-0.5 text-right">{formatNumeric(charge.employer_amount)}</td>
+						</tr>
+					</tbody>
+				</table>
+				<p class="text-xs tabular-nums">
+					{t('renderer.payslip_statutory.base_amount')}:
+					{formatNumeric(charge.base_amount)}
+				</p>
+				{#if charge.directed_amount}
+					<p class="text-xs tabular-nums" data-directed-amount>
+						{t('renderer.payslip_statutory.directed_amount')}:
+						{formatNumeric(charge.directed_amount)}
+					</p>
+				{/if}
+				{#if detail != null && detail.inputs.length > 0}
+					<p class="text-meta">{t('component.flow_inputs')}</p>
+					<ul class="text-xs">
+						{#each groupedInputs(detail.inputs) as input (input.key)}
+							<li class="flex justify-between gap-2 tabular-nums">
+								<span class="truncate"
+									>{input.label === input.code ? input.code : `${input.code} · ${input.label}`} · {input.effect ===
+									'REDUCE'
+										? '−'
+										: '+'}</span
+								>
+								<span>{formatNumeric(input.amount)}</span>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+				{#if detail != null && detail.reads.length > 0}
+					<p class="text-meta">{t('component.flow_reads')}</p>
+					<ul class="text-xs">
+						{#each detail.reads as read (read.code)}
+							<li class="flex justify-between gap-2 tabular-nums">
+								<span class="truncate">produced.{read.code}.employee</span>
+								<span>{formatNumeric(read.employee_amount)}</span>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</Stack>
+		{/snippet}
+	</Tooltip>
+{/snippet}
+
+{#snippet statementRow(
+	label: string,
+	amount: string,
+	options?: { emphasis?: boolean; indent?: boolean }
+)}
+	<div
+		class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-1 {options?.indent
+			? 'pl-4'
+			: ''}"
+	>
+		<span class={options?.emphasis ? 'font-medium' : ''}>{label}</span>
+		<span class={options?.emphasis ? 'font-medium' : ''}>{amount}</span>
+	</div>
+{/snippet}
+
+{#snippet schemeRow(charge: (typeof statutory)[number], direction: 'add' | 'subtract')}
+	<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 py-1 pl-4">
+		<span class="flex min-w-0 items-center gap-1">
+			<span class="truncate">{schemeLabel(charge)}</span>
+			{@render schemeInfo(charge)}
+			{#if direction === 'subtract' && charge.employee_amount < 0}
+				<span class="text-xs text-muted-foreground" data-refund
+					>{t('renderer.payslip_statutory.refund')}</span
+				>
+			{/if}
+		</span>
+		<span>
+			{signedAmount(
+				direction === 'subtract' ? charge.employee_amount : charge.employer_amount,
+				direction
+			)}
+		</span>
+	</div>
+{/snippet}
+
 <RecordShell
 	subtitle={record
 		? `${employment?.employment_employee?.name ?? t('component.employee')} · ${employment?.employee_number ?? t('component.employment')}`
@@ -267,35 +490,189 @@
 >
 	{#if record}
 		<Stack gap="lg">
-			<Stack as="section" gap="sm" aria-labelledby="payslip-summary-heading">
+			<Stack as="section" gap="xs" aria-labelledby="payslip-summary-heading">
 				<h2 id="payslip-summary-heading" class="text-subhead">
 					{employment?.employment_employee?.name ?? t('component.employee')}
 				</h2>
-				<p class="text-sm text-muted-foreground">
+				<p class="text-meta">
 					{employment?.employee_number ?? t('component.employment')} · {record.currency}
 				</p>
-				<Grid as="dl" gap="sm" minimum="compact">
-					<Stack gap="xs">
-						<dt class="text-meta">{t('component.gross')}</dt>
-						<dd class="font-semibold tabular-nums">{formatNumeric(record.gross)}</dd>
-					</Stack>
-					<Stack gap="xs">
-						<dt class="text-meta">{t('component.deductions')}</dt>
-						<dd class="font-semibold tabular-nums">{formatNumeric(record.total_deductions)}</dd>
-					</Stack>
-					<Stack gap="xs">
-						<dt class="text-meta">{t('component.net')}</dt>
-						<dd class="text-lg font-bold tabular-nums">{formatNumeric(record.net)}</dd>
-					</Stack>
-					<Stack gap="xs">
-						<dt class="text-meta">{t('component.employer_cost')}</dt>
-						<dd class="font-semibold tabular-nums">{formatNumeric(record.employer_cost)}</dd>
-					</Stack>
-				</Grid>
+			</Stack>
+
+			<Stack
+				as="section"
+				gap="none"
+				class="text-sm tabular-nums"
+				aria-labelledby="payslip-statement-heading"
+			>
+				<Inline justify="between" align="baseline" class="border-b border-border pb-1">
+					<h3 id="payslip-statement-heading" class="text-overline">
+						{t('component.payslip_statement')}
+					</h3>
+					<span class="text-meta">{record.currency}</span>
+				</Inline>
+
+				<!-- What the contract and this period's inputs paid. -->
+				<Inline gap="xs" align="center" class="pt-3 pb-1">
+					<span class="text-overline text-muted-foreground">{t('component.payslip_earnings')}</span>
+					{@render sectionInfo(
+						t('component.payslip_base_info'),
+						t('component.payslip_base_description')
+					)}
+				</Inline>
+				{#each base as entry, index (`base:${entry.component_code}:${index}`)}
+					{@render statementRow(entry.component_code, formatNumeric(entry.amount), {
+						indent: true
+					})}
+				{/each}
+				<Accordion type="multiple" class="border-0">
+					{@render adjustmentRows(earningsGroups, 'add')}
+				</Accordion>
+				{#if base.length === 0 && earningsGroups.length === 0}
+					<p class="pl-4 text-meta">{t('component.payslip_base_none')}</p>
+				{/if}
+				{@render statementRow(t('component.payslip_total_earnings'), formatNumeric(earningsTotal), {
+					emphasis: true
+				})}
+
+				<!-- The unpaid time that reduced them. -->
+				{#if absenceGroups.length > 0}
+					<Inline gap="xs" align="center" class="pt-3 pb-1">
+						<span class="text-overline text-muted-foreground"
+							>{t('component.payslip_unpaid_time')}</span
+						>
+						{@render sectionInfo(
+							t('component.payslip_adjustments_info'),
+							t('component.payslip_adjustments_description')
+						)}
+					</Inline>
+					<Accordion type="multiple" class="border-0">
+						{@render adjustmentRows(absenceGroups, 'subtract')}
+					</Accordion>
+					{@render statementRow(
+						t('component.payslip_total_unpaid_time'),
+						signedAmount(unpaidTotal, 'subtract'),
+						{ emphasis: true }
+					)}
+				{/if}
+
+				{@render statementRow(t('component.payslip_gross_pay'), formatNumeric(gross), {
+					emphasis: true
+				})}
+
+				<!-- Withheld from the employee for an authority. -->
+				{#if statutory.length > 0}
+					<Inline gap="xs" align="center" class="pt-3 pb-1">
+						<span class="text-overline text-muted-foreground"
+							>{t('component.payslip_statutory_withheld')}</span
+						>
+						{@render sectionInfo(
+							t('component.payslip_statutory_info'),
+							t('component.payslip_statutory_description')
+						)}
+					</Inline>
+					{#each statutory as charge, index (`${charge.scheme_code}:employee:${index}`)}
+						{@render schemeRow(charge, 'subtract')}
+					{/each}
+					{@render statementRow(
+						t('component.payslip_total_withheld'),
+						signedAmount(withheldTotal, 'subtract'),
+						{ emphasis: true }
+					)}
+				{/if}
+
+				<!-- Recovered from the employee for the employer (loan repayments). -->
+				{#if deductionGroups.length > 0}
+					<Inline gap="xs" align="center" class="pt-3 pb-1">
+						<span class="text-overline text-muted-foreground"
+							>{t('component.payslip_other_deductions')}</span
+						>
+					</Inline>
+					<Accordion type="multiple" class="border-0">
+						{@render adjustmentRows(deductionGroups, 'subtract')}
+					</Accordion>
+					{@render statementRow(
+						t('component.payslip_total_other_deductions'),
+						signedAmount(deductionsTotal, 'subtract'),
+						{ emphasis: true }
+					)}
+				{/if}
+
+				<!-- Repaid to the employee; never part of gross. -->
+				{#if paymentGroups.length > 0}
+					<Inline gap="xs" align="center" class="pt-3 pb-1">
+						<span class="text-overline text-muted-foreground"
+							>{t('component.payslip_reimbursements')}</span
+						>
+					</Inline>
+					<Accordion type="multiple" class="border-0">
+						{@render adjustmentRows(paymentGroups, 'add')}
+					</Accordion>
+				{/if}
+
+				<!-- Take home. -->
+				<Inline justify="between" align="baseline" class="mt-3 border-t border-border pt-2 pb-1">
+					<span class="text-heading">{t('component.payslip_net_pay')}</span>
+					<span class="text-heading">{formatNumeric(net)}</span>
+				</Inline>
+
+				<!-- What the employer owes on top of the settlement. -->
+				{#if statutory.length > 0 || employerGroups.length > 0}
+					<Inline justify="between" align="baseline" class="pt-4 pb-1">
+						<span class="text-overline text-muted-foreground"
+							>{t('component.payslip_company_contributions')}</span
+						>
+					</Inline>
+					{#each statutory as charge, index (`${charge.scheme_code}:employer:${index}`)}
+						{#if decodeNumber(charge.employer_amount) !== 0}
+							{@render schemeRow(charge, 'add')}
+						{/if}
+					{/each}
+					<Accordion type="multiple" class="border-0">
+						{@render adjustmentRows(employerGroups, 'add')}
+					</Accordion>
+					{@render statementRow(
+						t('component.payslip_employer_cost_total'),
+						formatNumeric(employerCostTotal),
+						{ emphasis: true }
+					)}
+				{/if}
+
+				{#if informationGroups.length > 0}
+					<Inline gap="xs" align="center" class="pt-3 pb-1">
+						<span class="text-overline text-muted-foreground"
+							>{t('component.payslip_information')}</span
+						>
+					</Inline>
+					{#each informationGroups as group (group.key)}
+						{@render statementRow(
+							`${group.label} · ${group.inputKind}`,
+							formatNumeric(group.amount),
+							{ indent: true }
+						)}
+					{/each}
+				{/if}
+
+				<Inline
+					justify="between"
+					align="baseline"
+					class="mt-3 border-t-2 border-foreground/20 pt-2"
+				>
+					<span class="font-medium">{t('component.payslip_total_cost')}</span>
+					<span class="font-medium">{formatNumeric(companyCost)}</span>
+				</Inline>
+				<p class="text-meta">
+					{t('component.payslip_of_which_authorities')}: {formatNumeric(authoritiesTotal)}
+				</p>
 			</Stack>
 
 			{#if decodeNumber(record.unfunded_contributions) > 0}
-				<Stack as="section" gap="sm" aria-labelledby="payslip-funding-heading">
+				<Stack
+					as="section"
+					gap="sm"
+					class="border-t border-border pt-4"
+					aria-labelledby="payslip-funding-heading"
+				>
 					<h3 id="payslip-funding-heading" class="text-subhead">
 						{t('component.contribution_funding')}
 					</h3>
@@ -337,344 +714,6 @@
 					</CollectionForm>
 				</Stack>
 			{/if}
-
-			<Stack
-				as="section"
-				gap="sm"
-				class="border-t border-border pt-4"
-				aria-labelledby="payslip-base-heading"
-			>
-				<Inline gap="xs" align="center">
-					<h3 id="payslip-base-heading" class="text-sm font-semibold">
-						{t('component.payslip_base')}
-					</h3>
-					<Tooltip
-						side="bottom"
-						align="start"
-						contentClass="max-w-96 border bg-popover text-popover-foreground"
-						arrowClasses="text-popover"
-					>
-						{#snippet trigger({ props })}
-							<Button
-								{...props}
-								variant="ghost"
-								size="icon"
-								aria-label={t('component.payslip_base_info')}
-							>
-								<IconWrapper name="lucide:info" class="size-4" />
-							</Button>
-						{/snippet}
-						{#snippet content()}
-							<Stack gap="xs" class="max-h-96 overflow-auto">
-								<p class="text-xs leading-5">{t('component.payslip_base_description')}</p>
-								{#if proration.length > 0}
-									<p class="text-xs leading-5 text-muted-foreground">
-										{t('component.payslip_proration_description')}
-									</p>
-									<table class="w-full text-xs tabular-nums">
-										<thead>
-											<tr class="text-meta text-left">
-												<th class="py-0.5 pr-2 font-normal"
-													>{t('renderer.payslip_proration.segment')}</th
-												>
-												<th class="py-0.5 pr-2 text-right font-normal"
-													>{t('renderer.payslip_proration.fraction')}</th
-												>
-												<th class="py-0.5 text-right font-normal"
-													>{t('renderer.payslip_proration.prorated_amount')}</th
-												>
-											</tr>
-										</thead>
-										<tbody>
-											{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
-												<tr class="border-t border-border">
-													<td class="py-0.5 pr-2 whitespace-nowrap"
-														>{segment.component_code} · {formatCalendarDate(segment.from)} → {formatCalendarDate(
-															segment.to
-														)}</td
-													>
-													<td class="py-0.5 pr-2 text-right"
-														>{segment.days} / {segment.denominator}</td
-													>
-													<td class="py-0.5 text-right font-medium"
-														>{formatNumeric(segment.prorated_amount)}</td
-													>
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								{/if}
-							</Stack>
-						{/snippet}
-					</Tooltip>
-				</Inline>
-				{#if base.length === 0}
-					<p class="text-sm text-muted-foreground">{t('component.payslip_base_none')}</p>
-				{:else}
-					<Stack as="ul" gap="none" class="text-sm tabular-nums">
-						{#each base as entry, index (`${entry.component_code}:${index}`)}
-							<Inline as="li" justify="between" gap="sm" class="border-t border-border py-1">
-								<span class="truncate">{entry.component_code}</span>
-								<span class="font-medium">{formatNumeric(entry.amount)}</span>
-							</Inline>
-						{/each}
-					</Stack>
-				{/if}
-			</Stack>
-
-			{#if statutory.length > 0}
-				<Stack
-					as="section"
-					gap="sm"
-					class="border-t border-border pt-4"
-					aria-labelledby="payslip-statutory-heading"
-				>
-					<Inline gap="xs" align="center">
-						<h3 id="payslip-statutory-heading" class="text-sm font-semibold">
-							{t('component.payslip_statutory')}
-						</h3>
-						{@render sectionInfo(
-							t('component.payslip_statutory_info'),
-							t('component.payslip_statutory_description')
-						)}
-					</Inline>
-					<Scroll axis="x" name={t('component.payslip_statutory')}>
-						<table class="w-full text-sm tabular-nums">
-							<thead>
-								<tr class="text-meta text-left">
-									<th class="py-1 pr-3 font-normal">{t('component.code')}</th>
-									<th class="py-1 pr-3 text-right font-normal"
-										>{t('renderer.payslip_statutory.employee_amount')}</th
-									>
-									<th class="py-1 text-right font-normal"
-										>{t('renderer.payslip_statutory.employer_amount')}</th
-									>
-								</tr>
-							</thead>
-							<tbody>
-								{#each statutory as charge, index (`${charge.scheme_code}:${index}`)}
-									{@const detail = schemeTrace.get(charge.scheme_code)}
-									<tr class="border-t border-border">
-										<td class="py-1 pr-3 whitespace-nowrap">
-											<Inline gap="xs" align="center">
-												<span>{schemeLabel(charge)}</span>
-												<Tooltip
-													side="bottom"
-													align="start"
-													contentClass="max-w-96 border bg-popover text-popover-foreground"
-													arrowClasses="text-popover"
-												>
-													{#snippet trigger({ props })}
-														<Button
-															{...props}
-															variant="ghost"
-															size="icon"
-															aria-label={t('component.flow_derivation')}
-														>
-															<IconWrapper name="lucide:info" class="size-4" />
-														</Button>
-													{/snippet}
-													{#snippet content()}
-														<Stack gap="xs" class="max-h-96 overflow-auto">
-															{#if charge.authority}
-																<p class="text-xs text-muted-foreground">{charge.authority}</p>
-															{/if}
-															<table class="w-full text-xs tabular-nums">
-																<thead>
-																	<tr class="text-meta text-left">
-																		<th class="py-0.5 pr-2 font-normal"
-																			>{t('component.flow_rule')}</th
-																		>
-																		<th class="py-0.5 pr-2 text-right font-normal"
-																			>{t('renderer.payslip_statutory.employee_amount')}</th
-																		>
-																		<th class="py-0.5 text-right font-normal"
-																			>{t('renderer.payslip_statutory.employer_amount')}</th
-																		>
-																	</tr>
-																</thead>
-																<tbody>
-																	<tr class="border-t border-border align-top">
-																		<td class="py-0.5 pr-2 whitespace-pre-wrap break-all"
-																			>{prettyRule(charge.rule_when)}</td
-																		>
-																		<td class="py-0.5 pr-2 text-right"
-																			>{formatNumeric(charge.employee_amount)}</td
-																		>
-																		<td class="py-0.5 text-right"
-																			>{formatNumeric(charge.employer_amount)}</td
-																		>
-																	</tr>
-																</tbody>
-															</table>
-															<p class="text-xs tabular-nums">
-																{t('renderer.payslip_statutory.base_amount')}:
-																{formatNumeric(charge.base_amount)}
-															</p>
-															{#if charge.directed_amount}
-																<p class="text-xs tabular-nums" data-directed-amount>
-																	{t('renderer.payslip_statutory.directed_amount')}:
-																	{formatNumeric(charge.directed_amount)}
-																</p>
-															{/if}
-															{#if detail != null && detail.inputs.length > 0}
-																<p class="text-meta">{t('component.flow_inputs')}</p>
-																<ul class="text-xs">
-																	{#each groupedInputs(detail.inputs) as input (input.key)}
-																		<li class="flex justify-between gap-2 tabular-nums">
-																			<span class="truncate"
-																				>{input.label === input.code
-																					? input.code
-																					: `${input.code} · ${input.label}`} · {input.effect ===
-																				'REDUCE'
-																					? '−'
-																					: '+'}</span
-																			>
-																			<span>{formatNumeric(input.amount)}</span>
-																		</li>
-																	{/each}
-																</ul>
-															{/if}
-															{#if detail != null && detail.reads.length > 0}
-																<p class="text-meta">{t('component.flow_reads')}</p>
-																<ul class="text-xs">
-																	{#each detail.reads as read (read.code)}
-																		<li class="flex justify-between gap-2 tabular-nums">
-																			<span class="truncate">produced.{read.code}.employee</span>
-																			<span>{formatNumeric(read.employee_amount)}</span>
-																		</li>
-																	{/each}
-																</ul>
-															{/if}
-														</Stack>
-													{/snippet}
-												</Tooltip>
-											</Inline>
-										</td>
-										<td class="py-1 pr-3 text-right font-medium">
-											{formatNumeric(charge.employee_amount)}
-											{#if charge.employee_amount < 0}
-												<span class="text-xs font-normal text-muted-foreground" data-refund
-													>{t('renderer.payslip_statutory.refund')}</span
-												>
-											{/if}
-										</td>
-										<td class="py-1 text-right">{formatNumeric(charge.employer_amount)}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</Scroll>
-				</Stack>
-			{/if}
-
-			<Stack
-				as="section"
-				gap="sm"
-				class="border-t border-border pt-4"
-				aria-labelledby="payslip-adjustments-heading"
-			>
-				<Inline gap="xs" align="center">
-					<h3 id="payslip-adjustments-heading" class="text-sm font-semibold">
-						{t('component.payslip_adjustments')}
-					</h3>
-					{@render sectionInfo(
-						t('component.payslip_adjustments_info'),
-						t('component.payslip_adjustments_description')
-					)}
-				</Inline>
-				{#if adjustments.length === 0}
-					<p class="text-sm text-muted-foreground">{t('component.payslip_adjustments_none')}</p>
-				{:else}
-					<Scroll axis="x" name={t('component.payslip_adjustments')}>
-						<div class="min-w-[40rem] text-sm tabular-nums" data-payslip-adjustments>
-							<div
-								class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] gap-x-3 py-1 text-meta"
-							>
-								<span>{t('component.component')}</span>
-								<span>{t('component.input_type')}</span>
-								<span>{t('component.bucket')}</span>
-								<span class="text-right">{t('component.quantity')}</span>
-								<span class="text-right">{t('component.rate')}</span>
-								<span class="text-right">{t('component.amount')}</span>
-							</div>
-							<Accordion type="multiple" class="border-t border-border">
-								{#each adjustmentGroups as group (group.key)}
-									{#if group.entries.length === 1}
-										<div
-											class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 border-b border-border py-2"
-											data-adjustment-group={group.key}
-										>
-											<span class="truncate">{group.label}</span>
-											<span>{group.inputKind}</span>
-											<span>{group.bucket ?? '—'}</span>
-											<span class="text-right">{formatNumeric(group.quantity)}</span>
-											<span class="text-right">{formatNumeric(group.rate)}</span>
-											<span class="text-right font-medium">{formatNumeric(group.amount)}</span>
-										</div>
-									{:else}
-										<AccordionItem
-											value={group.key}
-											class="border-b border-border"
-											data-adjustment-group={group.key}
-										>
-											<AccordionTrigger
-												class="group py-2 hover:no-underline [&>[data-slot=accordion-chevron]]:hidden"
-											>
-												<div
-													class="grid flex-1 grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 font-normal"
-												>
-													<span class="flex min-w-0 items-center gap-2">
-														<!--
-															The disclosure marker rides inside the Component column. A trailing
-															chevron costs every accordion row 28px of grid width, so its numeric
-															columns end left of the header's and the plain rows' — the marker
-															moves in here and every row keeps one right edge.
-														-->
-														<IconWrapper
-															name="lucide:chevron-down"
-															class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
-														/>
-														<span class="truncate">{group.label}</span>
-														<span
-															class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-														>
-															{t('component.payslip_adjustment_entries', {
-																count: group.entries.length
-															})}
-														</span>
-													</span>
-													<span>{group.inputKind}</span>
-													<span>{group.bucket ?? '—'}</span>
-													<span class="text-right">{formatNumeric(group.quantity)}</span>
-													<span class="text-right">{formatNumeric(group.rate)}</span>
-													<span class="text-right font-medium">{formatNumeric(group.amount)}</span>
-												</div>
-											</AccordionTrigger>
-											<AccordionContent class="pb-2">
-												<div class="rounded-md bg-muted/40">
-													{#each group.entries as entry (entry.id)}
-														<div
-															class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 py-1 text-muted-foreground"
-														>
-															<span class="pl-4">#{Number(entry.id) + 1}</span>
-															<span></span>
-															<span></span>
-															<span class="text-right">{formatNumeric(entry.quantity)}</span>
-															<span class="text-right">{formatNumeric(entry.rate)}</span>
-															<span class="text-right">{formatNumeric(entry.amount)}</span>
-														</div>
-													{/each}
-												</div>
-											</AccordionContent>
-										</AccordionItem>
-									{/if}
-								{/each}
-							</Accordion>
-						</div>
-					</Scroll>
-				{/if}
-			</Stack>
 		</Stack>
 	{:else}
 		<p class="text-sm text-muted-foreground">
