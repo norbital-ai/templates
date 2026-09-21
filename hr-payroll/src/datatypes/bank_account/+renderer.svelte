@@ -9,7 +9,7 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	let props: RendererProps = $props();
+	let props: RendererProps & { class?: string } = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 
 	const parsedIncoming = $derived(Schema.decodeUnknownResult(bankAccountDraftSchema)(props.value));
@@ -40,7 +40,11 @@
 	}
 </script>
 
-<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
+<Grid
+	class="rounded-md border border-border bg-muted/20 p-3 {props.class ?? ''}"
+	gap="sm"
+	minimum="compact"
+>
 	<label class="text-sm font-medium">
 		<Stack gap="xs">
 			{t('component.bank_name')}

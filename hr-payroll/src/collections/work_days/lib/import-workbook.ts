@@ -38,6 +38,8 @@ import { readWorkbookSettings, SETTINGS_SHEET_NAME } from '../../../lib/workbook
 const ROSTER_SHEET_NAME = 'Roster';
 const ATTENDANCE_SHEET_NAME = 'Time entries';
 
+export { ROSTER_SHEET_NAME, ATTENDANCE_SHEET_NAME };
+
 /** `shift_code` is one of the entity's roster codes: a shift, REST or OFF. */
 const rosterImportRowSchema = Schema.Struct({
 	employee_number: Schema.String,

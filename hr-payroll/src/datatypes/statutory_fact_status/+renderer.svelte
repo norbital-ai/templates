@@ -32,7 +32,7 @@
 		}
 	];
 
-	let props: RendererProps & { schemeId?: string } = $props();
+	let props: RendererProps & { schemeId?: string; class?: string } = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const schemeQuery = $derived(
 		props.mode === 'edit' && props.schemeId
@@ -121,9 +121,13 @@
 </script>
 
 {#if props.mode === 'display'}
-	<span class="block truncate" title={summary}>{summary}</span>
+	<span class="block truncate {props.class ?? ''}" title={summary}>{summary}</span>
 {:else}
-	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
+	<Grid
+		class="rounded-md border border-border bg-muted/20 p-3 {props.class ?? ''}"
+		gap="sm"
+		minimum="compact"
+	>
 		<label class="text-sm font-medium">
 			<Stack gap="xs">
 				Status

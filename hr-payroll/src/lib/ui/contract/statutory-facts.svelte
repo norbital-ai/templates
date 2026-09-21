@@ -20,7 +20,7 @@
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { getCollectionRecordScope } from '@norbital-ai/ui/collection-runtime';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { hrCreateScope, employmentRelationOptions } from '../create-scope.js';
 	import { inForceSettings } from '../settings-scope.js';
 	import { todayKey } from '../calendar.js';
@@ -120,7 +120,7 @@
 						: t('component.save_registration')}
 				>
 					{#snippet children({ Field, form })}
-						<Grid gap="sm" minimum="compact">
+						<Grid gap="md" minimum="panel">
 							<Field name="employee_id" hidden />
 							<Field
 								name="employment_id"
@@ -133,22 +133,28 @@
 									}
 								}}
 							/>
-							<Field name="statutory_contribution_id" hidden />
-							<Field
-								name="status"
-								label={t('component.status')}
-								renderer={StatutoryFactStatusRenderer}
-								rendererProps={{ schemeId: scheme.id }}
-							/>
 							<Field
 								name="effective_range"
 								renderer={EffectiveRangeRenderer}
 								label={t('component.effective_period')}
 							/>
+							<Field name="statutory_contribution_id" hidden />
+							<!-- The scheme's own declarations are the tall half; it gets the full width so
+							     its fields lay out in a row instead of a squeezed column. -->
+							<Column span="all">
+								<Field
+									name="status"
+									label={t('component.status')}
+									renderer={StatutoryFactStatusRenderer}
+									rendererProps={{ schemeId: scheme.id }}
+								/>
+							</Column>
 							{#if form.values().employment_id == null || form.values().employment_id === ''}
-								<p class="text-xs text-muted-foreground">
-									{t('component.fact_employment_hint')}
-								</p>
+								<Column span="all">
+									<p class="text-xs text-muted-foreground">
+										{t('component.fact_employment_hint')}
+									</p>
+								</Column>
 							{/if}
 						</Grid>
 					{/snippet}
@@ -166,16 +172,18 @@
 					submitLabel={t('component.save_registration')}
 				>
 					{#snippet children({ Field })}
-						<Grid gap="sm" minimum="compact">
+						<Grid gap="md" minimum="panel">
 							<Field name="employee_id" hidden />
 							<Field name="employment_id" hidden />
 							<Field name="statutory_contribution_id" hidden />
-							<Field
-								name="status"
-								label={t('component.status')}
-								renderer={StatutoryFactStatusRenderer}
-								rendererProps={{ schemeId: fact.statutory_contribution_id }}
-							/>
+							<Column span="all">
+								<Field
+									name="status"
+									label={t('component.status')}
+									renderer={StatutoryFactStatusRenderer}
+									rendererProps={{ schemeId: fact.statutory_contribution_id }}
+								/>
+							</Column>
 							<Field
 								name="effective_range"
 								renderer={EffectiveRangeRenderer}

@@ -321,7 +321,7 @@
 								<h2 id="my-contract-heading" class="text-heading">
 									{t('app.hr_employee.my_contract')}
 								</h2>
-								<ContractDetail record={activeContract} editable={false} />
+								<ContractDetail record={activeContract} />
 							</Stack>
 						</section>
 					{/if}
