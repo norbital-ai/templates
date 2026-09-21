@@ -1290,5 +1290,6 @@
 	"component.payslip_employer_share": "Employer share",
 	"component.payslip_employee_withheld": "Your share, withheld from pay",
 	"component.payslip_employer_contribution": "Employer share, company cost",
-	"face.empty_description": "Enrol a face so this person can clock in at the kiosk."
+	"face.empty_description": "Enrol a face so this person can clock in at the kiosk.",
+	"component.statutory_registrations_none": "No statutory schemes are declared by the version in force."
 }
