@@ -1279,8 +1279,6 @@
 	"component.payslip_unpaid_time": "无薪时间",
 	"component.payslip_total_unpaid_time": "无薪时间合计",
 	"component.payslip_gross_pay": "应发工资",
-	"component.payslip_statutory_withheld": "法定扣款 — 从工资中代扣",
-	"component.payslip_total_withheld": "代扣合计",
 	"component.payslip_other_deductions": "其他扣款",
 	"component.payslip_total_other_deductions": "其他扣款合计",
 	"component.payslip_reimbursements": "报销与返还",
@@ -1289,5 +1287,10 @@
 	"component.payslip_employer_cost_total": "雇主成本",
 	"component.payslip_total_cost": "公司总成本",
 	"component.payslip_of_which_authorities": "其中上缴政府机构",
-	"component.payslip_information": "说明性项目"
+	"component.payslip_information": "说明性项目",
+	"component.payslip_statutory_contributions": "法定供款",
+	"component.payslip_employee_share": "雇员部分",
+	"component.payslip_employer_share": "雇主部分",
+	"component.payslip_employee_withheld": "雇员部分（从工资中代扣）",
+	"component.payslip_employer_contribution": "雇主部分（公司承担）"
 }

@@ -516,24 +516,24 @@
 	</div>
 {/snippet}
 
-{#snippet schemeRow(charge: (typeof statutory)[number], direction: 'add' | 'subtract')}
-	<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 py-1 pl-4">
-		<span class="flex min-w-0 items-center gap-1">
-			<span class="truncate">{schemeLabel(charge)}</span>
-			{@render schemeInfo(charge)}
-			{#if direction === 'subtract' && charge.employee_amount < 0}
-				<span class="text-xs text-muted-foreground" data-refund
-					>{t('renderer.payslip_statutory.refund')}</span
-				>
-			{/if}
-		</span>
-		<span>
-			{signedAmount(
-				direction === 'subtract' ? charge.employee_amount : charge.employer_amount,
-				direction
-			)}
-		</span>
-	</div>
+{#snippet schemeStatRow(charge: (typeof statutory)[number], index: number)}
+	<tr class="border-t border-border">
+		<td class="py-1 pr-3">
+			<span class="flex min-w-0 items-center gap-1">
+				<span class="truncate">{schemeLabel(charge)}</span>
+				{@render schemeInfo(charge)}
+				{#if decodeNumber(charge.employee_amount) < 0}
+					<span class="text-xs text-muted-foreground" data-refund
+						>{t('renderer.payslip_statutory.refund')}</span
+					>
+				{/if}
+			</span>
+		</td>
+		<td class="py-1 pr-3 text-right"
+			>{signedAmount(decodeNumber(charge.employee_amount), 'subtract')}</td
+		>
+		<td class="py-1 text-right">{signedAmount(decodeNumber(charge.employer_amount), 'add')}</td>
+	</tr>
 {/snippet}
 
 <RecordShell
@@ -610,22 +610,36 @@
 					emphasis: true
 				})}
 
-				<!-- Withheld from the employee for an authority. -->
+				<!-- Employee and employer shares side by side: what the scheme took from pay and what it
+				     costs the company, so neither is read as the other. -->
 				{#if statutory.length > 0}
 					<Inline gap="xs" align="center" class="pt-3 pb-1">
 						<span class="text-overline text-muted-foreground"
-							>{t('component.payslip_statutory_withheld')}</span
+							>{t('component.payslip_statutory_contributions')}</span
 						>
 						{@render sectionInfo(
 							t('component.payslip_statutory_info'),
 							t('component.payslip_statutory_description')
 						)}
 					</Inline>
-					{#each statutory as charge, index (`${charge.scheme_code}:employee:${index}`)}
-						{@render schemeRow(charge, 'subtract')}
-					{/each}
+					<table class="w-full pl-4 text-sm tabular-nums">
+						<thead>
+							<tr class="text-meta text-left">
+								<th class="py-1 pr-3 font-normal">{t('component.code')}</th>
+								<th class="py-1 pr-3 text-right font-normal"
+									>{t('component.payslip_employee_share')}</th
+								>
+								<th class="py-1 text-right font-normal">{t('component.payslip_employer_share')}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each statutory as charge, index (`${charge.scheme_code}:shares:${index}`)}
+								{@render schemeStatRow(charge, index)}
+							{/each}
+						</tbody>
+					</table>
 					{@render statementRow(
-						t('component.payslip_total_withheld'),
+						t('component.payslip_employee_withheld'),
 						signedAmount(withheldTotal, 'subtract'),
 						{ emphasis: true }
 					)}
@@ -666,18 +680,21 @@
 					<span class="text-heading">{formatNumeric(net)}</span>
 				</Inline>
 
-				<!-- What the employer owes on top of the settlement. -->
+				<!-- What the employer owes on top of the settlement. The scheme shares were printed
+				     beside their employee counterparts; this is the same employer column, totalled. -->
 				{#if statutory.length > 0 || employerGroups.length > 0}
 					<Inline justify="between" align="baseline" class="pt-4 pb-1">
 						<span class="text-overline text-muted-foreground"
 							>{t('component.payslip_company_contributions')}</span
 						>
 					</Inline>
-					{#each statutory as charge, index (`${charge.scheme_code}:employer:${index}`)}
-						{#if decodeNumber(charge.employer_amount) !== 0}
-							{@render schemeRow(charge, 'add')}
-						{/if}
-					{/each}
+					{#if statutory.length > 0}
+						{@render statementRow(
+							t('component.payslip_employer_contribution'),
+							signedAmount(employerStatutoryTotal, 'add'),
+							{ indent: true }
+						)}
+					{/if}
 					<Accordion type="multiple" class="border-0">
 						{@render adjustmentRows(employerGroups, 'add')}
 					</Accordion>
