@@ -4,19 +4,6 @@ import { Effect } from 'effect';
 import type { Policy } from './$types.js';
 
 const uncheckedAssignment = { suspicion_checked_at: { isNull: true } } as const;
-const uncheckedJob = { job_assignment_job: { some: uncheckedAssignment } } as const;
-const uncheckedSite = {
-	site_jobs: { some: { job_assignment_job: { some: uncheckedAssignment } } }
-} as const;
-const uncheckedVariation = {
-	job_assignment_variations: { some: uncheckedAssignment }
-} as const;
-const uncheckedEvidence = {
-	OR: [
-		{ job_assignment_photo_evidence: { some: uncheckedAssignment } },
-		{ variation_request_photo_evidence: { some: uncheckedVariation } }
-	]
-} as const;
 const uncheckedCommunication = {
 	job_assignment_communications: { some: uncheckedAssignment }
 } as const;
@@ -35,13 +22,22 @@ const referencesUncheckedAssignment = (
 		.findFirst({ where: { id: { eq: record.job_assignment_id } } })
 		.pipe(Effect.map((assignment) => assignment !== undefined));
 
-/** Minimal authority for the hourly static automation identity. */
+/**
+ * Minimal authority for the hourly static automation identity.
+ *
+ * The run's first pass inspects every photo still awaiting facts, and that is what the wider reads
+ * are for: the photo's own assignment and site (which may belong to an assignment already
+ * reviewed), the variation a photo can hang off, and the whole photo corpus the duplicate match
+ * probes. The worklist stays narrow in code — only unchecked assignments are judged, and only an
+ * uninspected photo is written — while the mutation grants remain scoped to a single transition
+ * each.
+ */
 export default {
 	description:
-		'Reviews only unchecked assignments, appends immutable suspicion evidence, and marks a completed review checked.',
+		'Inspects filed photos awaiting facts, reviews unchecked assignments, appends immutable suspicion evidence, and marks a completed review checked.',
 	grants: {
 		job_assignments: {
-			read: { where: uncheckedAssignment },
+			read: {},
 			mutate: {
 				existing: {
 					fields: ['suspicion_checked_at'],
@@ -52,15 +48,16 @@ export default {
 				}
 			}
 		},
-		jobs: {
-			read: { where: uncheckedJob }
-		},
-		sites: { read: { where: uncheckedSite } },
-		variation_requests: {
-			read: { where: uncheckedVariation }
-		},
+		sites: { read: {} },
+		variation_requests: { read: {} },
 		photo_evidence: {
-			read: { where: uncheckedEvidence }
+			read: {},
+			mutate: {
+				existing: {
+					fields: ['sha256', 'perceptual_embedding', 'flags', 'matched_evidence_ids'],
+					authorize: ({ previous }) => previous.sha256 === ''
+				}
+			}
 		},
 		communication_logs: {
 			read: { where: uncheckedCommunication }

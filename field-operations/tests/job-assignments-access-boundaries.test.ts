@@ -49,7 +49,7 @@ test('read scopes are structured relation trees with no opaque SQL or manual dep
 	const subject = { $subject: 'id' };
 	const ownAssignment = { assignee_user_id: { eq: subject } };
 	assert.deepEqual(grant(contractor, 'sites', 'read')?.where, {
-		site_jobs: { some: { job_assignment_job: { some: ownAssignment } } }
+		site_assignments: { some: ownAssignment }
 	});
 	assert.deepEqual(grant(contractor, 'photo_evidence', 'read')?.where, {
 		OR: [
@@ -69,14 +69,17 @@ test('read scopes are structured relation trees with no opaque SQL or manual dep
 test('contractor projections expose operational assignment and photo fields only', () => {
 	assert.deepEqual(grant(contractor, 'job_assignments', 'read')?.fields, [
 		'id',
-		'job_id',
+		'site_id',
+		'title',
+		'nature',
+		'scheduled_for',
+		'description',
 		'dispatched_at',
 		'status',
 		'completed_at',
 		'amount_charged',
 		'location',
-		'summary',
-		'search_text'
+		'summary'
 	]);
 	assert.deepEqual(grant(contractor, 'job_assignments', 'mutate.existing')?.fields, [
 		'status',

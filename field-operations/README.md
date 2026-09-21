@@ -15,16 +15,16 @@ evidence that the work happened needs to be trustworthy. A photo of a job site i
 itself — the same photo can be reused, a photo can be taken somewhere else, and a photo says nothing
 about which site it shows unless the site's identity is readable in it.
 
-Field Operations answers with a dispatch pipeline (site → job → contractor assignment)
-followed by an evidence pipeline (per-photo integrity checks, geolocation, and a bounded
-AI suspicion review whose findings a controller resolves).
+Field Operations answers with a dispatch pipeline (site → job → contractor) followed by an
+evidence pipeline (per-photo integrity checks, geolocation, and a bounded AI suspicion review whose
+findings a controller resolves).
 
 ## 2. The mental model
 
 ### Domain shape
 
 ```text
-site → jobs → job assignment → user (the assignee)
+site → job assignment → user (the assignee)
              ↓
        photo evidence ← variation request
        communication logs   (immutable inbound messages, one per assignment)
@@ -32,15 +32,16 @@ site → jobs → job assignment → user (the assignee)
 
 - **site** — a physical site with client context and an optional map location. Past jobs remain
   attached to it.
-- **jobs** — work scheduled for one site and one calendar day, from `unassigned` through
-  `assigned` and `in_progress` as dispatch advances to `completed`.
-- **job_assignments** — one person per job. `assignee_user_id` is `user.id`
-  directly: a contractor is a **role**, not a record — a user whose team holds `field_ops_contractor`
-  — so there is no collection describing one. Identity (job + assignee) is immutable after dispatch;
-  status runs `unassigned` → `assigned` → `completed`. A completed assignment's completion time
-  advances the job; whether the work was legitimately done is a suspicion question and is never
-  stored on this row (`suspicion_checked_at` is the only suspicion-adjacent column, written by the
-  review automation after a run).
+- **job_assignments** — one dispatched day job: the work order (site, day, title, nature,
+  description, the dispatch system's reference) and the contractor who holds it, in one row. The two
+  were separate collections until the job and its single assignment were folded together.
+  `assignee_user_id` is `user.id` directly — a contractor is a **role**, not a record, a user whose
+  team holds `field_ops_contractor` — and is null while the work order is filed but unassigned.
+  `external_ref` is the dispatch system's identity key (unique, so redelivery is idempotent) and
+  `source_message_id` is the channel message the dispatch came from. Status runs `unassigned` →
+  `assigned` → `completed`; whether the work was legitimately done is a suspicion question and is
+  never stored on this row (`suspicion_checked_at` is the only suspicion-adjacent column, written by
+  the review automation after a run).
 - **variation_requests** — a scope change against one assignment. The new-record mutation is governed
   by the contractor policy's approval flow: writing one raises a platform approval request for a
   controller review step, not a row that is directly applied.
@@ -60,19 +61,21 @@ site → jobs → job assignment → user (the assignee)
 ### The evidence integrity pipeline
 
 Every photo, from every entry path, passes through the same pipeline: the `photo_evidence`
-collection files it (exactly one parent, immutable provenance) and the `inspect_photo_evidence`
-automation, started on the row's `created` event, reads the bytes and writes the facts:
+collection files it (exactly one parent, immutable provenance) and the suspicion review's first
+pass reads the bytes and writes the facts. The facts need the bytes, which a collection transform
+cannot read, and the review is the first thing that must not proceed without them — so inspection
+is the opening pass of the one hourly run rather than an automation of its own:
 
 1. **Ingest** — JPEG/PNG only, exactly one parent (assignment or variation), SHA-256 fingerprint,
    Meta PDQ perceptual hash (256-bit), EXIF parse (`exifr`), and quality/metadata signals. The
    selected asset, parent, and source provenance become immutable: correcting a filing requires new
-   evidence so every check runs again. A row is born uninspected (empty hash) and the automation
-   fills it in; the suspicion review leaves an assignment unchecked until every photo on it carries
-   a hash.
-2. **Duplicate check** — the automation compares the new photo against everything already stored:
-   perceptual near-duplicates via `findNearest` on a 256-dim 0/1 vector indexed with HNSW (L2
-   metric, threshold √31 ≈ PDQ Hamming 31), recorded as a `visual_duplicate` flag with the matched
-   evidence ids; exact SHA-256 matches are reported by the review as `exact_duplicate`.
+   evidence so every check runs again. A row is born uninspected (empty hash, zero vector); the
+   review inspects it — including a photo filed after its assignment was already reviewed — and
+   leaves an assignment unchecked until every photo on it carries a hash.
+2. **Duplicate check** — the pass compares the photo against everything already stored: perceptual
+   near-duplicates via `findNearest` on a 256-dim 0/1 vector indexed with HNSW (L2 metric,
+   threshold √31 ≈ PDQ Hamming 31), recorded as a `visual_duplicate` flag with the matched evidence
+   ids; exact SHA-256 matches are reported by the review as `exact_duplicate`.
 3. **Geolocation** — EXIF GPS is compared against the job site's map location (500 m tolerance).
    No GPS → `missing_geolocation`; capture beyond tolerance → `location_mismatch`.
 4. **Flags are evidence, not a verdict.** `metadata_anomaly`, `edited_metadata` and `low_quality`
@@ -83,9 +86,9 @@ automation, started on the row's `created` event, reads the bytes and writes the
 
 ### The suspicion review
 
-One automation owns contextual judgement: `review_job_assignment_suspicion` (hourly, manual runs
-may name one `assignment_id`). It pages through every unchecked assignment, including completed
-work, and assembles the assignment, its job and site, the deterministic photo facts, and bounded
+One automation owns both passes: `review_job_assignment_suspicion` (hourly, manual runs may
+name one `assignment_id`). It inspects every photo still awaiting its facts, then pages through
+every unchecked assignment, including completed work, and assembles the assignment, its job and site, the deterministic photo facts, and bounded
 recent `communication_logs`. It passes a bounded visual sample (up to three photos, deterministic
 selection weighted by signal, capped at 4 MiB) plus a text context to a provider model
 (`openrouter/deepseek/deepseek-v4.1-flash`). A separate scripted record of every review — the canonical basis hash, the
@@ -150,17 +153,17 @@ assignment row.
 
 ### Automations, policies, seed
 
-| Kind       | Name                              | What it does                                                                                                                                                                                                                                              |
-| ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): pages through all unchecked assignments, reviews each against a bounded visual + communication context, and writes one idempotent suspicion log only when the model judges the evidence suspicious. |
-| Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                       |
-| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites/jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).              |
-| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: `mutate.existing` for approved progress fields on an exact assignment owned by the linked contractor. No reads, searches, new-record mutations, deletes, evidence, logs, reviews, suspicion data or apps. |
-| Policy     | `suspicion_review_automation`     | The review automation's authority: unchecked assignments only, append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                         |
-| Policy     | `dispatch_integration`            | The jobs dispatch import's authority: read, create and update `jobs`, plus the site-code read it resolves authored site references against.                                                                                                               |
-| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README.                  |
+| Kind       | Name                              | What it does                                                                                                                                                                                                                                                                                                            |
+| ---------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): inspects every photo still awaiting its integrity facts, then pages through all unchecked assignments, reviews each against a bounded visual + communication context, and writes one idempotent suspicion log only when the model judges the evidence suspicious. |
+| Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                                                                     |
+| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).                                                       |
+| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: `mutate.existing` for approved progress fields on an exact assignment owned by the linked contractor. No reads, searches, new-record mutations, deletes, evidence, logs, reviews, suspicion data or apps.                                                               |
+| Policy     | `suspicion_review_automation`     | The review automation's authority: the photo corpus it inspects (facts written once, while the hash is empty), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                                       |
+| Policy     | `dispatch_integration`            | The dispatch import's authority: read, create and update `job_assignments`, plus the site-code read it resolves authored site references against.                                                                                                                                                                       |
+| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README.                                                                                |
 
-The controller reads jobs, assignments, people, sites, and open suspicion logs directly from the
+The controller reads assignments, people, sites, and open suspicion logs directly from the
 sync-backed collections. Its board cards and map points are local projections of those rows, so they
 stay live without a remote query handler or refresh control.
 
@@ -172,7 +175,7 @@ stay live without a remote query handler or refresh control.
 src/
 ├── apps/                           +field_ops_controller.svelte, +field_ops_contractor.svelte
 ├── envoys/                         +field_ops_whatsapp.ts
-├── access/policies/                the seven policies and the variation approval flow
+├── access/policies/                the six policies and the variation approval flow
 ├── collections/                    models, relationships, write contracts (+collection.ts), pipelines, representations
 │   ├── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
 │   ├── suspicion_reviews/          the review ledger (controller-only)
@@ -181,21 +184,21 @@ src/
 │   └── photo_source/               where a photo came from: workspace upload or an envoy message
 ├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
 ├── lib/                            typed workspace client shared by server roles
-├── automations/                    the suspicion review, photo inspection, and the job-progress rollups
+├── automations/                    the suspicion review — the one automation: it inspects filed photos and judges unchecked work
 ```
 
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
 its job scope, activity, variations, and photo evidence together; opening a site separates upcoming
-jobs from activity history. Each collection's `+collection.ts` declares what a caller may submit
+work from activity history. Each collection's `+collection.ts` declares what a caller may submit
 and its transform carries the domain rules, so they apply to every client, function, and agent —
 not only the UI:
 
-- A job must reference an existing site; an assignment must reference an existing job and a real
-  workspace user, and be unique per job.
-- `source_message_id` is an idempotency key for inbound assignments and variations.
-- Assignment identity is not an update input, so a dispatched assignment cannot be moved; a
-  reported location beyond the site tolerance is recorded as an evidence fact and never sets
-  `suspect`; completion is carried onto the job by the `job_assignments` change automations.
+- A dispatched job must reference an existing site; naming a contractor is what moves it from
+  `unassigned` to `assigned`.
+- `external_ref` is the dispatch system's identity key and `source_message_id` the channel
+  message's; both are unique idempotency keys.
+- A reported location beyond the site tolerance is recorded as an evidence fact and never sets
+  `suspect`; completion is stamped by the collection's own transform.
 - Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded by
   the inspection automation; its asset, parent, and provenance cannot be swapped after filing.
 - Communication logs and suspicion reviews declare no `update` and no `delete`: immutable by

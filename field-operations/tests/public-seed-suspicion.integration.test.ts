@@ -261,10 +261,9 @@ const amberQuayLocation = {
 };
 
 /**
- * P2: near-duplicate photo with wrong capture date and off-site GPS yields three integrity flags
- * — written by the `inspect_photo_evidence` automation on the `created` event, which the write's
- * SETTLE runs before answering — then `review_job_assignment_suspicion` stamps
- * `suspicion_checked_at`.
+ * P2: a near-duplicate photo with the wrong capture date and off-site GPS is filed uninspected;
+ * the suspicion review's opening pass writes its three integrity flags, then the review judges the
+ * assignment and stamps `suspicion_checked_at`.
  */
 test(
 	'public seed suspicion flags metadata, location, and visual duplicate then runs review',
@@ -392,14 +391,11 @@ test(
 				'suspect photo_evidence'
 			);
 			assert.equal(evidenceRows.length, 1, JSON.stringify(evidenceRows));
-			const suspectEvidence = evidenceRows[0];
-			assert.ok(suspectEvidence !== undefined);
-			const flags = suspectEvidence.flags;
-			assert.ok(Array.isArray(flags), JSON.stringify(flags));
-			const flagSet = new Set(flags.filter((flag): flag is string => typeof flag === 'string'));
-			assert.ok(flagSet.has('metadata_anomaly'), `flags: ${JSON.stringify([...flagSet])}`);
-			assert.ok(flagSet.has('location_mismatch'), `flags: ${JSON.stringify([...flagSet])}`);
-			assert.ok(flagSet.has('visual_duplicate'), `flags: ${JSON.stringify([...flagSet])}`);
+			const filed = evidenceRows[0];
+			assert.ok(filed !== undefined);
+			// A filed photo is born uninspected: the facts need the bytes, which no write can read.
+			assert.equal(filed.sha256, '', 'a filed photo is born uninspected');
+			assert.deepEqual(filed.flags, [], 'no facts before the run');
 
 			const started = await postGuestCommand(
 				guest.baseUrl,
@@ -417,6 +413,33 @@ test(
 			const startedRecord = asRecord(started.value, START_COMMAND);
 			assert.equal(typeof startedRecord.taskId, 'string');
 			assert.ok(String(startedRecord.taskId).length > 0);
+
+			// The run's opening pass inspected the photo: hash, flags and the duplicate match it made.
+			const inspectedRows = rowsOf(
+				await sessionFindMany(guest.baseUrl, guest.credential, {
+					collection: 'photo_evidence',
+					where: { job_assignment_id: { eq: PUBLIC_ASSIGNMENT_ID } },
+					limit: 10,
+					columns: {
+						id: true,
+						flags: true,
+						sha256: true,
+						matched_evidence_ids: true
+					}
+				}),
+				'suspect photo_evidence after review'
+			);
+			assert.equal(inspectedRows.length, 1, JSON.stringify(inspectedRows));
+			const suspectEvidence = inspectedRows[0];
+			assert.ok(suspectEvidence !== undefined);
+			assert.equal(typeof suspectEvidence.sha256, 'string');
+			assert.ok(String(suspectEvidence.sha256).length > 0, 'the review wrote the hash');
+			const flags = suspectEvidence.flags;
+			assert.ok(Array.isArray(flags), JSON.stringify(flags));
+			const flagSet = new Set(flags.filter((flag): flag is string => typeof flag === 'string'));
+			assert.ok(flagSet.has('metadata_anomaly'), `flags: ${JSON.stringify([...flagSet])}`);
+			assert.ok(flagSet.has('location_mismatch'), `flags: ${JSON.stringify([...flagSet])}`);
+			assert.ok(flagSet.has('visual_duplicate'), `flags: ${JSON.stringify([...flagSet])}`);
 
 			const reloaded = rowsOf(
 				await sessionFindMany(guest.baseUrl, guest.credential, {

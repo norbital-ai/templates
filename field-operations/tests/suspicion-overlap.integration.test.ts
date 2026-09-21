@@ -95,7 +95,13 @@ test(
 			assert.equal(loser.status, 200, JSON.stringify(loser.value));
 			const result = asRecord(asRecord(loser.value, 'loser').result, 'loser result');
 			assert.equal(result.failure_count, 0);
-			assert.deepEqual(result.counts, { checked: 0, failed: 0, skipped_no_longer_pending: 1 });
+			assert.deepEqual(result.counts, {
+				checked: 0,
+				failed: 0,
+				inspected_photos: 0,
+				inspection_failed: 0,
+				skipped_no_longer_pending: 1
+			});
 			const after = rowsOf(
 				(
 					await command('collections.findMany', {

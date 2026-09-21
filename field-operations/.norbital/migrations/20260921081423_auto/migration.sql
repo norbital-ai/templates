@@ -21,9 +21,14 @@ CREATE TABLE "job_assignments" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
-	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("search_text", '') || ' ' || coalesce("summary", ''))) STORED,
-	"job_id" uuid NOT NULL,
-	"assignee_user_id" uuid NOT NULL,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("search_text", '') || ' ' || coalesce("summary", '') || ' ' || coalesce("title", ''))) STORED,
+	"external_ref" text,
+	"site_id" uuid NOT NULL,
+	"title" text NOT NULL,
+	"nature" text,
+	"scheduled_for" timestamp with time zone NOT NULL,
+	"description" text NOT NULL,
+	"assignee_user_id" uuid,
 	"dispatched_at" timestamp with time zone,
 	"status" text,
 	"completed_at" timestamp with time zone,
@@ -33,24 +38,6 @@ CREATE TABLE "job_assignments" (
 	"search_text" text,
 	"source_message_id" text,
 	"suspicion_checked_at" timestamp with time zone
-);
-
---> statement-breakpoint
-CREATE TABLE "jobs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("title", ''))) STORED,
-	"external_ref" text,
-	"site_id" uuid NOT NULL,
-	"title" text NOT NULL,
-	"nature" text,
-	"scheduled_for" timestamp with time zone NOT NULL,
-	"status" text,
-	"description" text NOT NULL
 );
 
 --> statement-breakpoint
@@ -171,21 +158,19 @@ CREATE INDEX "communication_logs_search_document_gin_idx" ON "communication_logs
 --> statement-breakpoint
 CREATE INDEX "communication_logs_search_text_trgm_idx" ON "communication_logs" USING gin ((coalesce("message", '') || ' ' || coalesce("sender", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE UNIQUE INDEX "job_assignments_source_message_id_index" ON "job_assignments" ("source_message_id");
+CREATE UNIQUE INDEX "job_assignments_external_ref_index" ON "job_assignments" ("external_ref");
 --> statement-breakpoint
-CREATE UNIQUE INDEX "job_assignments_job_id_index" ON "job_assignments" ("job_id");
+CREATE UNIQUE INDEX "job_assignments_source_message_id_index" ON "job_assignments" ("source_message_id");
 --> statement-breakpoint
 CREATE INDEX "job_assignments_assignee_user_id_idx" ON "job_assignments" ("assignee_user_id");
 --> statement-breakpoint
+CREATE INDEX "job_assignments_scheduled_for_idx" ON "job_assignments" ("scheduled_for");
+--> statement-breakpoint
+CREATE INDEX "job_assignments_site_id_idx" ON "job_assignments" ("site_id");
+--> statement-breakpoint
 CREATE INDEX "job_assignments_search_document_gin_idx" ON "job_assignments" USING gin ("search_document");
 --> statement-breakpoint
-CREATE INDEX "job_assignments_search_text_trgm_idx" ON "job_assignments" USING gin ((coalesce("search_text", '') || ' ' || coalesce("summary", '')) gin_trgm_ops);
---> statement-breakpoint
-CREATE UNIQUE INDEX "jobs_external_ref_index" ON "jobs" ("external_ref");
---> statement-breakpoint
-CREATE INDEX "jobs_search_document_gin_idx" ON "jobs" USING gin ("search_document");
---> statement-breakpoint
-CREATE INDEX "jobs_search_text_trgm_idx" ON "jobs" USING gin ((coalesce("title", '')) gin_trgm_ops);
+CREATE INDEX "job_assignments_search_text_trgm_idx" ON "job_assignments" USING gin ((coalesce("search_text", '') || ' ' || coalesce("summary", '') || ' ' || coalesce("title", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "photo_evidence_source_key_index" ON "photo_evidence" ("source_key");
 --> statement-breakpoint
@@ -233,11 +218,9 @@ CREATE INDEX "variation_requests_search_text_trgm_idx" ON "variation_requests" U
 --> statement-breakpoint
 ALTER TABLE "communication_logs" ADD CONSTRAINT "communication_logs_job_assignment_id_job_assignments_fk" FOREIGN KEY ("job_assignment_id") REFERENCES "job_assignments"("id");
 --> statement-breakpoint
-ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_job_id_jobs_fk" FOREIGN KEY ("job_id") REFERENCES "jobs"("id");
+ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_site_id_sites_fk" FOREIGN KEY ("site_id") REFERENCES "sites"("id");
 --> statement-breakpoint
 ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_assignee_user_id_user_fk" FOREIGN KEY ("assignee_user_id") REFERENCES "user"("id");
---> statement-breakpoint
-ALTER TABLE "jobs" ADD CONSTRAINT "jobs_site_id_sites_fk" FOREIGN KEY ("site_id") REFERENCES "sites"("id");
 --> statement-breakpoint
 ALTER TABLE "photo_evidence" ADD CONSTRAINT "photo_evidence_job_assignment_id_job_assignments_fk" FOREIGN KEY ("job_assignment_id") REFERENCES "job_assignments"("id");
 --> statement-breakpoint

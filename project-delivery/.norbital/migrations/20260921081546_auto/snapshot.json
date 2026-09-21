@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "17e9680c-3863-4150-ac52-a68b0d615669",
+  "id": "d8f2456b-66c5-4125-a050-874f918ed3db",
   "prevIds": [
-    "4f1c0766-4423-4a42-a5f6-908550a8dd11"
+    "79c57ca9-2e9c-4cd1-8de7-0109f1842f14"
   ],
   "version": "8",
   "ddl": [
@@ -33,6 +33,12 @@
     {
       "isRlsEnabled": false,
       "name": "notes",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "project_documents",
       "entityType": "tables",
       "schema": "public"
     },
@@ -194,6 +200,19 @@
       "generated": null,
       "identity": null,
       "name": "detail",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "activities"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "recording",
       "entityType": "columns",
       "schema": "public",
       "table": "activities"
@@ -859,6 +878,201 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "title",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "markdown_body",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "attachment",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "project_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "signed_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "signed_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "submitted_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "projects"
     },
     {
@@ -1118,6 +1332,23 @@
     {
       "nameExplicit": true,
       "columns": [
+        "project_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "projects",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "project_documents_project_id_projects_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "project_documents"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "company_id"
       ],
       "schemaTo": "public",
@@ -1197,6 +1428,16 @@
       "name": "notes_pkey",
       "schema": "public",
       "table": "notes",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "project_documents_pkey",
+      "schema": "public",
+      "table": "project_documents",
       "entityType": "pks"
     },
     {

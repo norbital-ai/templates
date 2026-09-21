@@ -2,9 +2,10 @@ import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { currentDate } from '../../lib/clock.js';
 import model from './+model.js';
-import type { CreateInput, UpdateInput } from './$types.js';
+import type { CreateInput, Row, UpdateInput } from './$types.js';
 
-const ASSIGNMENT_BATCH_LIMIT = 5_000;
+const SITE_BATCH_LIMIT = 5_000;
+const SOURCE_BATCH_LIMIT = 5_000;
 
 /** Which values a batch claims more than once — the one thing a stored-row read cannot see. */
 function repeatedWithin(values: ReadonlyArray<string>): ReadonlySet<string> {
@@ -17,33 +18,42 @@ function repeatedWithin(values: ReadonlyArray<string>): ReadonlySet<string> {
 	return repeated;
 }
 
+const createColumns = {
+	external_ref: true,
+	site_id: true,
+	title: true,
+	nature: true,
+	scheduled_for: true,
+	description: true,
+	assignee_user_id: true,
+	dispatched_at: true,
+	status: true,
+	completed_at: true,
+	amount_charged: true,
+	location: true,
+	summary: true,
+	source_message_id: true
+} as const;
+
 /**
- * A dispatch names its job and its person and may carry the dispatch time, the initial stage and
- * the channel message it came from. `search_text` is derived from the job and `suspicion_checked_at`
- * is stamped by the review automation, so neither is a create input; once dispatched, an assignment
- * stays on its job, its assignee and its source message — the update selection carries only
- * progress.
+ * A work order names its site and its day and may carry the dispatch system's reference and the
+ * channel message it came from. The update selection carries the dispatch itself plus progress:
+ * this is the collection where naming a contractor *is* the dispatch, so `assignee_user_id` and
+ * `dispatched_at` are writable, while the identity keys (`external_ref`, `source_message_id`) are
+ * not — a redelivery or a re-import may not restate who a job is.
  */
 export default defineCollection({
 	model,
-	create: {
-		input: {
-			columns: {
-				job_id: true,
-				assignee_user_id: true,
-				dispatched_at: true,
-				status: true,
-				completed_at: true,
-				amount_charged: true,
-				location: true,
-				summary: true,
-				source_message_id: true
-			}
-		}
-	},
+	create: { input: { columns: createColumns } },
 	update: {
 		input: {
 			columns: {
+				site_id: true,
+				title: true,
+				nature: true,
+				scheduled_for: true,
+				description: true,
+				assignee_user_id: true,
 				dispatched_at: true,
 				status: true,
 				completed_at: true,
@@ -56,81 +66,111 @@ export default defineCollection({
 	},
 	delete: {},
 	/**
-	 * Dispatches a person to a job nobody holds, stamps the dispatch time and copies the job title
-	 * onto the board's search label; thereafter stamps completion when the work is moved to
-	 * `completed`. The world one dispatch asks about — does the job exist, is it taken, is the
-	 * source message used — is read once for the whole batch. Assignee existence is the database
-	 * foreign key's to check: authored code holds no query over the private user table.
+	 * Refuses a job that names a site that does not exist, files it unassigned until a contractor
+	 * holds it, stamps the dispatch when one is named and stamps completion when the work is moved
+	 * to `completed`. The world one batch asks about — does the site exist, is the source message
+	 * already used — is read once for the whole batch. Assignee existence is the database foreign
+	 * key's to check: authored code holds no query over the private user table.
 	 */
 	transform: (inputs, { existing, db }) =>
 		Effect.gen(function* () {
-			const creates = inputs.flatMap((input, index) =>
-				existing[index] === undefined && 'job_id' in input ? [input] : []
-			);
-			const jobIds = [...new Set(creates.map((input) => input.job_id))];
-			const claimedSources = creates.flatMap((input) =>
-				input.source_message_id ? [input.source_message_id] : []
+			const siteIds = [
+				...new Set(
+					inputs.flatMap((input) => (typeof input.site_id === 'string' ? [input.site_id] : []))
+				)
+			];
+			// A create may carry the channel message it came from; an update cannot name one.
+			const claimedSources = inputs.flatMap((input) =>
+				'source_message_id' in input && input.source_message_id ? [input.source_message_id] : []
 			);
 			const sourceMessageIds = [...new Set(claimedSources)];
-			const [jobs, occupied, sources] = yield* Effect.all(
+			const [sites, sources] = yield* Effect.all(
 				[
-					jobIds.length === 0
+					siteIds.length === 0
 						? Effect.succeed([])
-						: db.jobs.findMany({
-								where: { id: { in: jobIds } },
-								columns: { id: true, title: true },
-								limit: ASSIGNMENT_BATCH_LIMIT
-							}),
-					jobIds.length === 0
-						? Effect.succeed([])
-						: db.job_assignments.findMany({
-								where: { job_id: { in: jobIds } },
-								columns: { job_id: true },
-								limit: ASSIGNMENT_BATCH_LIMIT
+						: db.sites.findMany({
+								where: { id: { in: siteIds } },
+								columns: { id: true, name: true, site_code: true },
+								limit: SITE_BATCH_LIMIT
 							}),
 					sourceMessageIds.length === 0
 						? Effect.succeed([])
 						: db.job_assignments.findMany({
 								where: { source_message_id: { in: sourceMessageIds } },
 								columns: { source_message_id: true },
-								limit: ASSIGNMENT_BATCH_LIMIT
+								limit: SOURCE_BATCH_LIMIT
 							})
 				],
 				{ concurrency: 'unbounded' }
 			);
-			const titleByJobId = new Map(jobs.map((job) => [job.id, job.title]));
-			const occupiedJobIds = new Set([
-				...occupied.map((assignment) => assignment.job_id),
-				...repeatedWithin(creates.map((input) => input.job_id))
-			]);
+			const siteById = new Map(sites.map((site) => [site.id, site]));
+			const knownSites = new Set(siteById.keys());
 			const takenSourceMessageIds = new Set([
 				...sources.flatMap((row) => (row.source_message_id ? [row.source_message_id] : [])),
 				...repeatedWithin(claimedSources)
 			]);
 			const now = (yield* currentDate).toISOString();
+
+			/** The searchable copy: the work's own words plus the site's name and code. */
+			const searchTextFor = (title: string, siteId: string): string => {
+				const site = siteById.get(siteId);
+				return [title, site?.name, site?.site_code].filter((part) => part != null).join(', ');
+			};
+
+			/** A filed work order: unassigned until a contractor is named, dispatched the moment one is. */
+			const fileDispatch = (create: CreateInput) => {
+				if (create.site_id === undefined || !knownSites.has(create.site_id)) {
+					refuse('Referenced site does not exist.');
+				}
+				if (create.source_message_id && takenSourceMessageIds.has(create.source_message_id)) {
+					refuse('A job assignment with this source_message_id already exists.');
+				}
+				const assignee = create.assignee_user_id ?? null;
+				return {
+					...create,
+					status: create.status ?? (assignee === null ? 'unassigned' : 'assigned'),
+					dispatched_at: create.dispatched_at ?? (assignee === null ? null : now),
+					// Derived last so a caller cannot forge or stale the board's search copy.
+					search_text: searchTextFor(create.title, create.site_id)
+				};
+			};
+
+			/** Progress: assigning stamps the dispatch and completing stamps the completion, once each. */
+			const recordProgress = (input: UpdateInput, stored: Row) => {
+				const dispatchedAt =
+					input.assignee_user_id != null &&
+					stored.dispatched_at == null &&
+					input.dispatched_at === undefined
+						? now
+						: undefined;
+				const completedAt =
+					input.status === 'completed' && (input.completed_at ?? stored.completed_at) == null
+						? now
+						: undefined;
+				// The search copy follows the words it copies: a corrected title or a moved site.
+				const searchText =
+					input.title !== undefined || input.site_id !== undefined
+						? searchTextFor(input.title ?? stored.title, input.site_id ?? stored.site_id)
+						: undefined;
+				return {
+					...input,
+					...(dispatchedAt === undefined ? {} : { dispatched_at: dispatchedAt }),
+					...(completedAt === undefined ? {} : { completed_at: completedAt }),
+					...(searchText === undefined ? {} : { search_text: searchText })
+				};
+			};
+
+			/**
+			 * One input per row the batch writes, paired positionally by the engine: an input with no
+			 * stored row is the create arm. The declaration is a positional union rather than a
+			 * discriminated one, so the pairing is stated here once and each arm then works in its own
+			 * declared type — a create names its site and title, an update patches progress.
+			 */
 			return inputs.map((input, index) => {
 				const stored = existing[index];
-				if (stored === undefined) {
-					if (!('job_id' in input)) refuse('Job assignment must reference a job.');
-					const title = titleByJobId.get(input.job_id);
-					if (title === undefined) refuse('Referenced job does not exist.');
-					if (occupiedJobIds.has(input.job_id)) refuse('This job already has an assignment.');
-					if (input.source_message_id && takenSourceMessageIds.has(input.source_message_id)) {
-						refuse('A job assignment with this source_message_id already exists.');
-					}
-					return {
-						...input,
-						dispatched_at: input.dispatched_at ?? now,
-						status: input.status ?? 'assigned',
-						// Derived last so a caller cannot forge or stale the board's search label.
-						search_text: title
-					};
-				}
-				const progress = input as UpdateInput;
-				return progress.status === 'completed' &&
-					(progress.completed_at ?? stored.completed_at) == null
-					? { ...progress, completed_at: now }
-					: progress;
+				return stored === undefined
+					? fileDispatch(input as CreateInput)
+					: recordProgress(input as UpdateInput, stored);
 			});
 		})
 });

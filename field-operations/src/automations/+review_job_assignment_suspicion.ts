@@ -1,7 +1,11 @@
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema, Semaphore } from 'effect';
 import { currentDate } from '../lib/clock.js';
-import { loadUncheckedAssignments, reviewAssignmentSuspicion } from './suspicion-review.js';
+import {
+	inspectFiledPhotos,
+	loadUncheckedAssignments,
+	reviewAssignmentSuspicion
+} from './suspicion-review.js';
 
 const InputSchema = Schema.Struct({
 	/** Manual runs may target one unchecked assignment; scheduled runs omit it. */
@@ -67,10 +71,17 @@ export default defineAutomation(
 			'Hourly and on manual request, reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious.',
 		handler: (api, { args }) =>
 			Effect.gen(function* () {
-				yield* api.progress({ progress: 0.02, text: 'Loading unchecked assignments' });
+				yield* api.progress({ progress: 0.02, text: 'Inspecting filed photos' });
+				const inspection = yield* inspectFiledPhotos(api);
+				yield* api.progress({ progress: 0.05, text: 'Loading unchecked assignments' });
 				const assignments = yield* loadUncheckedAssignments(api, args.assignment_id);
 				const progressLock = yield* Semaphore.make(1);
-				const counts: Record<string, number> = { checked: 0, failed: 0 };
+				const counts: Record<string, number> = {
+					checked: 0,
+					failed: 0,
+					inspected_photos: inspection.inspected,
+					inspection_failed: inspection.failures.length
+				};
 				let inferenceCount = 0;
 				let failureCount = 0;
 				let completedCount = 0;

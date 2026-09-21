@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { encode as encodeJpeg } from 'jpeg-js';
 import { Effect, Schema } from 'effect';
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
 import suspicionReviewAutomation, {
@@ -60,13 +61,36 @@ type ExistingReview = {
 function assignment(id: string, status = 'assigned'): Assignment {
 	return {
 		id,
-		job_id: `job-${id}`,
+		site_id: `site-${id}`,
+		title: 'Field work',
+		nature: null,
+		scheduled_for: null,
+		description: 'Complete the assigned field work.',
 		status,
 		summary: null,
 		location: null,
 		suspicion_checked_at: null
 	};
 }
+
+/** The one photo every assignment carries unless a test says otherwise: already inspected. */
+const inspectedPhoto = () => ({
+	id: 'photo-evidence',
+	photo: {
+		storage_key: 'photos/evidence.jpg',
+		file_name: 'evidence.jpg',
+		file_size: 1,
+		mime_type: 'image/jpeg'
+	},
+	sha256: 'evidence-sha',
+	flags: [],
+	matched_evidence_ids: [],
+	created_at: null,
+	perceptual_embedding: [],
+	record_embedding: null,
+	job_assignment_id: null,
+	variation_request_id: null
+});
 
 function assignmentIdFromPrompt(prompt: string): string {
 	const marker = '"assignment":{"id":"';
@@ -90,6 +114,12 @@ function automationHarness(options: {
 	readonly existingReviews?: Readonly<Record<string, ExistingReview>>;
 	readonly stallAssignmentPagination?: boolean;
 	readonly inferenceDelayMillis?: number;
+	/** Photos the assignment's own facts read returns; the default is one already-inspected photo. */
+	readonly assignmentPhotos?: ReadonlyArray<Record<string, unknown>>;
+	/** Photos still awaiting facts, which the review's inspection pass finds by the empty hash. */
+	readonly pendingPhotos?: ReadonlyArray<Record<string, unknown>>;
+	/** Bytes `readFileAsset` answers with; absent makes it fail like a photo whose object is gone. */
+	readonly photoBytes?: Uint8Array;
 }) {
 	const inferenceCounts = new Map<string, number>();
 	let activeInferences = 0;
@@ -101,6 +131,9 @@ function automationHarness(options: {
 	const existingReviews = { ...options.existingReviews };
 	const logsByReview: Record<string, { readonly id: string } | undefined> = {};
 	const progressUpdates: Array<{ readonly progress: number; readonly text?: string }> = [];
+	const photoUpdates: Array<Record<string, unknown>> = [];
+	const assignmentPhotos = [...(options.assignmentPhotos ?? [inspectedPhoto()])];
+	const pendingPhotos = [...(options.pendingPhotos ?? [])];
 	const api = {
 		progress: (update: { readonly progress: number; readonly text?: string }) =>
 			Effect.sync(() => {
@@ -135,6 +168,12 @@ function automationHarness(options: {
 		 */
 		db: {
 			job_assignments: {
+				findFirst: (input: { readonly where: { readonly id: { readonly eq: string } } }) =>
+					Effect.succeed(
+						options.assignments.some(({ id }) => id === input.where.id.eq)
+							? { site_id: `site-${input.where.id.eq}` }
+							: undefined
+					),
 				findMany: (input: {
 					readonly where?: {
 						readonly id?: { readonly eq?: string; readonly gt?: string };
@@ -157,51 +196,28 @@ function automationHarness(options: {
 					return Effect.succeed(eligible.slice(0, input.limit ?? ASSIGNMENT_PAGE_SIZE));
 				}
 			},
-			jobs: {
+			sites: {
 				findFirst: (input: { readonly where: { readonly id: { readonly eq: string } } }) => {
-					const assignmentId = input.where.id.eq.slice('job-'.length);
+					const assignmentId = input.where.id.eq.slice('site-'.length);
 					if (options.factLoadFailures?.has(assignmentId) === true) {
 						return Effect.fail(new Error(`Facts failed for ${assignmentId}`));
 					}
 					return Effect.succeed({
 						id: input.where.id.eq,
-						site_id: `site-${input.where.id.eq}`,
-						title: 'Field work',
-						nature: null,
-						scheduled_for: null,
-						description: 'Complete the assigned field work.'
-					});
-				}
-			},
-			sites: {
-				findFirst: () =>
-					Effect.succeed({
-						id: 'site-a',
 						name: 'Site A',
 						location: null,
 						house_type: null
-					})
+					});
+				}
 			},
 			variation_requests: { findMany: () => Effect.succeed([]) },
 			photo_evidence: {
-				findMany: () =>
-					Effect.succeed([
-						{
-							id: 'photo-evidence',
-							photo: {
-								storage_key: 'photos/evidence.jpg',
-								file_name: 'evidence.jpg',
-								file_size: 1,
-								mime_type: 'image/jpeg'
-							},
-							sha256: 'evidence-sha',
-							flags: [],
-							matched_evidence_ids: [],
-							created_at: null,
-							perceptual_embedding: [],
-							record_embedding: null
-						}
-					]),
+				findMany: (input: { readonly where?: { readonly sha256?: { readonly eq?: string } } }) =>
+					Effect.succeed(
+						input.where?.sha256?.eq === ''
+							? pendingPhotos.filter((photo) => photo.sha256 === '')
+							: assignmentPhotos
+					),
 				findNearest: () => Effect.succeed([])
 			},
 			communication_logs: { findMany: () => Effect.succeed([]) },
@@ -266,8 +282,27 @@ function automationHarness(options: {
 					logsByReview[values.review_id] = row;
 					return Effect.succeed(row);
 				}
+			},
+			photo_evidence: {
+				update: (id: string, values: Record<string, unknown>) => {
+					photoUpdates.push({ id, ...values });
+					// The row becomes inspected for the reads that follow, as the commit would make it.
+					const index = assignmentPhotos.findIndex((photo) => photo.id === id);
+					if (index >= 0) assignmentPhotos[index] = { ...assignmentPhotos[index], ...values };
+					return Effect.succeed({ id, ...values });
+				}
 			}
-		}
+		},
+		readFileAsset: () =>
+			options.photoBytes === undefined
+				? Effect.fail(new Error('photo bytes unavailable'))
+				: Effect.succeed({
+						id: 'file',
+						name: 'photo.jpg',
+						mimeType: 'image/jpeg',
+						size: options.photoBytes.byteLength,
+						bytes: options.photoBytes
+					})
 	};
 	return {
 		api,
@@ -276,6 +311,7 @@ function automationHarness(options: {
 		reviewCreateAttempts,
 		logCreates,
 		updates,
+		photoUpdates,
 		progressUpdates,
 		maxInferenceConcurrency: () => maxInferenceConcurrency
 	};
@@ -1932,4 +1968,79 @@ test('a second run over the same suspicious assignment writes no second log', as
 
 	assert.equal(result.counts.suspicious_open_exists, 1);
 	assert.deepEqual(second.logCreates, [], 'the standing log is not duplicated');
+});
+
+/** A real JPEG, because the inspection pass decodes bytes rather than trusting a stub. */
+const solidJpeg = (width = 640, height = 480): Uint8Array => {
+	const data = new Uint8Array(width * height * 3).fill(150);
+	return encodeJpeg({ data, width, height }, 80).data;
+};
+
+const pendingPhoto = (assignmentId: string) => ({
+	id: 'photo-pending',
+	photo: {
+		storage_key: 'photos/pending.jpg',
+		file_name: 'pending.jpg',
+		file_size: 1,
+		mime_type: 'image/jpeg'
+	},
+	sha256: '',
+	flags: [],
+	matched_evidence_ids: [],
+	created_at: null,
+	perceptual_embedding: [],
+	record_embedding: null,
+	job_assignment_id: assignmentId,
+	variation_request_id: null
+});
+
+/**
+ * The inspection pass runs before any judgement, writes the photo's facts, and the assignment is
+ * then reviewed on them — one automation doing what a created-event automation used to.
+ */
+test('inspects a filed photo before judging its assignment', async () => {
+	const selected = assignment('assignment-uninspected');
+	const photo = pendingPhoto(selected.id);
+	const harness = automationHarness({
+		assignments: [selected],
+		assignmentPhotos: [photo],
+		pendingPhotos: [photo],
+		photoBytes: solidJpeg()
+	});
+	const outcome = await runAutomation(harness.api);
+
+	assert.equal(outcome.counts.inspected_photos, 1);
+	assert.equal(outcome.counts.inspection_failed, 0);
+	assert.equal(harness.photoUpdates.length, 1);
+	const update = harness.photoUpdates[0];
+	assert.equal(update?.id, photo.id);
+	assert.equal(typeof update?.sha256, 'string');
+	assert.ok(String(update?.sha256).length > 0, 'the hash was written');
+	assert.ok(Array.isArray(update?.flags), 'the flags were written');
+	assert.equal(outcome.inference_count, 1, 'the assignment was judged on inspected facts');
+	assert.equal(outcome.counts.checked, 1);
+});
+
+/**
+ * An unreadable photo keeps its empty hash, so the assignment fails closed at fact loading — the
+ * same sentence it gave when the facts arrived from a separate automation. No inference is claimed.
+ */
+test('records an unreadable photo and leaves its assignment unchecked without an inference', async () => {
+	const selected = assignment('assignment-unreadable');
+	const photo = pendingPhoto(selected.id);
+	const harness = automationHarness({
+		assignments: [selected],
+		assignmentPhotos: [photo],
+		pendingPhotos: [photo]
+	});
+	const outcome = await runAutomation(harness.api);
+
+	assert.equal(outcome.counts.inspected_photos, 0);
+	assert.equal(outcome.counts.inspection_failed, 1);
+	assert.equal(outcome.inference_count, 0);
+	assert.equal(outcome.counts.failed, 1);
+	assert.deepEqual(outcome.failure_details, [
+		{ assignment_id: selected.id, stage: 'fact_loading' }
+	]);
+	assert.deepEqual(harness.updates, [], 'nothing is stamped checked');
 });

@@ -3,12 +3,12 @@
  *
  * Everything else in this workspace creates rows over `collections.write`, which skips the whole
  * of `CollectionForm` — its relation pickers, its validators, its submit path, and the collection
- * transform that derives `search_text` and stamps `dispatched_at` from the chosen job. "Assign contractor"
- * appears in the headed suite only as a sentinel string proving the app painted; nothing had ever
- * clicked it. So the sheet in `+field_ops_controller.svelte` was unreachable from any test, in a
- * workspace whose whole purpose is dispatching work.
+ * transform that derives `search_text` and stamps `dispatched_at` when a contractor is named.
+ * "Assign contractor" appears in the headed suite only as a sentinel string proving the app
+ * painted; nothing had ever clicked it. So the sheet in `+field_ops_controller.svelte` was
+ * unreachable from any test, in a workspace whose whole purpose is dispatching work.
  *
- * Three submits, because the form has three outcomes and only one of them writes a row.
+ * Two submits, because the form has two outcomes and only the second writes a row.
  */
 
 import { it } from 'vitest';
@@ -17,21 +17,17 @@ import { startSessionGateway, workspaceDocumentHtml } from '@norbital-ai/bolt-se
 import {
 	guestUrlForChromium,
 	launchChromiumOrSkip,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted,
 	type HeadedBrowser,
 	type HeadedPage
 } from '@norbital-ai/test-utilities';
-import { bootPublicSeedGuest } from '../helpers/public-seed-guest.ts';
+import { DISTINCTIVE_SITE_NAME, bootPublicSeedGuest } from '../helpers/public-seed-guest.ts';
 import { unlockDeferredQueries, waitForShell } from '../helpers/surface-walk.ts';
 
 const LABEL = 'field-ops-assign-form';
 const SEEDED_ASSIGNMENTS = 26;
 const SETTLE_TIMEOUT_MS = 45_000;
-/** Every seeded job is already dispatched, so the happy path needs one that is not. */
-const FREE_JOB_ID = '01990000-0000-7000-8004-000000000900';
-const FREE_JOB_TITLE = 'Zulu unassigned probe job';
+/** The sheet files the work order it dispatches, so the happy path types one of its own. */
+const FREE_JOB_TITLE = 'Zulu probe job';
 const AMBER_QUAY_SITE_ID = '01990000-0000-7000-8003-000000000001';
 
 const isBoltDocument = (pathname: string): boolean =>
@@ -74,6 +70,24 @@ const dialogText = (page: HeadedPage): Promise<string> =>
 			})()`
 		)
 		.then(String);
+
+/**
+ * Type into one field as the browser does: the value setter plus a bubbling input event, which is
+ * what the form's `oninput` binding listens for.
+ */
+const fillField = (page: HeadedPage, field: string, value: string): Promise<void> =>
+	page
+		.evaluate(
+			`(() => {
+				const input = document.querySelector(${JSON.stringify(`[data-collection-field="${field}"] input, [data-collection-field="${field}"] textarea`)});
+				if (input == null) throw new Error('no ${field} input');
+				const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), 'value').set;
+				setter.call(input, ${JSON.stringify(value)});
+				input.dispatchEvent(new Event('input', { bubbles: true }));
+				input.dispatchEvent(new Event('change', { bubbles: true }));
+			})()`
+		)
+		.then(() => undefined);
 
 const fieldText = (page: HeadedPage, field: string): string =>
 	`(() => {
@@ -124,30 +138,6 @@ it('the assign-contractor form refuses an empty submit and a taken job, then cre
 		};
 		assert.equal(await countAssignments(), SEEDED_ASSIGNMENTS, 'the seed did not load as expected');
 
-		const mutated = await postGuestCommand(
-			session.baseUrl,
-			'collections.write',
-			mutationPush(session.schemaFingerprint, {
-				collection: 'jobs',
-				action: 'create',
-				inputs: [
-					{
-						id: FREE_JOB_ID,
-						external_ref: 'PUB-JOB-0900',
-						site_id: AMBER_QUAY_SITE_ID,
-						title: FREE_JOB_TITLE,
-						nature: 'public-fixture-inspect',
-						scheduled_for: '2026-09-08T00:00:00.000Z',
-						status: 'unassigned',
-						description: 'Invented job for the assign-contractor form walk.'
-					}
-				]
-			}),
-			{ authorization: `Bearer ${session.credential}` }
-		);
-		assert.ok(mutated.status >= 200 && mutated.status < 300, JSON.stringify(mutated.value));
-		requireAccepted(mutated.value, 'create the unassigned probe job');
-
 		gateway = await startSessionGateway({
 			upstream: session.address,
 			credential: session.credential,
@@ -162,6 +152,7 @@ it('the assign-contractor form refuses an empty submit and a taken job, then cre
 					environment: 'test',
 					releaseId: LABEL,
 					principal: `${LABEL}-founder`,
+					email: `${LABEL}-founder@example.test`,
 					syncPrincipal: `${LABEL}-founder`,
 					organizationName: 'Field operations public seed',
 					commandPrefix: '/__bolt/command/',
@@ -184,7 +175,7 @@ it('the assign-contractor form refuses an empty submit and a taken job, then cre
 		await page.click('button:text-is("Assign contractor")');
 		await poll(
 			page,
-			`(() => (document.querySelector('form [data-collection-field="job_id"]') == null ? 'no' : 'yes'))()`,
+			`(() => (document.querySelector('form [data-collection-field="site_id"]') == null ? 'no' : 'yes'))()`,
 			(value) => value === 'yes',
 			'assign sheet'
 		);
@@ -192,10 +183,9 @@ it('the assign-contractor form refuses an empty submit and a taken job, then cre
 		/**
 		 * An empty submit is refused before the row.
 		 *
-		 * Both relation columns are non-nullable, so the field validators answer first and the
-		 * sheet's own `assignmentSemantic` never runs — its "Choose a job and a contractor" sentence
-		 * is not what a person sees here. What matters is that the submit stops, the sheet stays open
-		 * naming what is wrong, and nothing reaches the database.
+		 * The work-order columns are non-nullable and the contractor is required by the sheet's own
+		 * semantic, so the validators answer first; what matters is that the submit stops, the sheet
+		 * stays open naming what is wrong, and nothing reaches the database.
 		 */
 		await page.click('[role="dialog"] button[type="submit"]');
 		const empty = await poll(
@@ -210,34 +200,16 @@ it('the assign-contractor form refuses an empty submit and a taken job, then cre
 		assert.match(empty, /Fix the highlighted fields/);
 		assert.equal(await countAssignments(), SEEDED_ASSIGNMENTS, 'an empty submit wrote a row');
 
-		/**
-		 * The picker offers every job, and the create hook refuses one already dispatched.
-		 *
-		 * The sheet's copy says "choose an unassigned job", but `job_id`'s `relationOptions` carry no
-		 * `where`, so the first option is a seeded, already-assigned job. Taking it is the refusal
-		 * path, and it must leave the database alone.
-		 */
-		await pickOption(page, 'job_id');
-		await pickOption(page, 'assignee_user_id');
-		await page.click('[role="dialog"] button[type="submit"]');
-		const taken = await poll(
+		// The work order the sheet files, and the contractor it names. This one lands.
+		await pickOption(page, 'site_id', DISTINCTIVE_SITE_NAME);
+		await fillField(page, 'title', FREE_JOB_TITLE);
+		await fillField(page, 'nature', 'public-fixture-inspect');
+		await fillField(
 			page,
-			`(() => {
-				const dialog = [...document.querySelectorAll('[role="dialog"]')].at(-1);
-				return dialog == null ? 'closed' : dialog.innerText;
-			})()`,
-			(value) => /already has an assignment/.test(value),
-			'double-dispatch refusal'
+			'description',
+			'Invented work order for the assign-contractor form walk.'
 		);
-		assert.match(taken, /This job already has an assignment/);
-		assert.equal(
-			await countAssignments(),
-			SEEDED_ASSIGNMENTS,
-			'a hook-refused submit still wrote a row'
-		);
-
-		// The same form, the same two picks, on a job nothing is dispatched to. This one lands.
-		await pickOption(page, 'job_id', FREE_JOB_TITLE);
+		await pickOption(page, 'assignee_user_id');
 		await page.click('[role="dialog"] button[type="submit"]');
 		const created = await (async (): Promise<number> => {
 			const deadline = Date.now() + 20_000;
@@ -255,8 +227,8 @@ it('the assign-contractor form refuses an empty submit and a taken job, then cre
 		);
 
 		const rows = (await session.query(
-			'select status, dispatched_at, search_text, assignee_user_id from "job_assignments" where job_id = $1',
-			[FREE_JOB_ID]
+			'select status, dispatched_at, search_text, assignee_user_id, site_id from "job_assignments" where title = $1',
+			[FREE_JOB_TITLE]
 		)) as readonly Record<string, unknown>[];
 		assert.equal(rows.length, 1, 'exactly one assignment for the probe job');
 		const row = rows[0];
@@ -268,9 +240,10 @@ it('the assign-contractor form refuses an empty submit and a taken job, then cre
 			'the contractor pick did not reach the row'
 		);
 		assert.equal(typeof row.dispatched_at, 'string', 'the create hook did not stamp dispatch');
+		assert.equal(row.site_id, AMBER_QUAY_SITE_ID, 'the site pick did not reach the row');
 		assert.ok(
 			typeof row.search_text === 'string' && row.search_text.includes(FREE_JOB_TITLE),
-			`the create hook did not derive search text from the chosen job: ${JSON.stringify(row)}`
+			`the transform did not derive search text from the work order: ${JSON.stringify(row)}`
 		);
 	} finally {
 		if (browser !== undefined) await browser.close();

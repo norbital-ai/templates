@@ -194,6 +194,7 @@ const openFieldOpsGateway = async (
 				environment: 'test',
 				releaseId: label,
 				principal: `${label}-founder`,
+				email: `${label}-founder@example.test`,
 				syncPrincipal: `${label}-founder`,
 				organizationName: 'Field operations public seed',
 				commandPrefix: '/__bolt/command/',

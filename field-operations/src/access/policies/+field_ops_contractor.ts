@@ -32,11 +32,8 @@ const ownAssignment = { assignee_user_id: { eq: SUBJECT_ID } } as const;
 
 /** Sites reachable through an assignment. */
 const assignedSite = {
-	site_jobs: { some: { job_assignment_job: { some: ownAssignment } } }
+	site_assignments: { some: ownAssignment }
 } as const;
-
-/** Jobs they were assigned. */
-const assignedJob = { job_assignment_job: { some: ownAssignment } } as const;
 
 /** Variations raised against one of their own assignments. */
 const ownVariation = { job_assignment_variations: { some: ownAssignment } } as const;
@@ -71,25 +68,19 @@ const siteReadFields = [
 	'house_type',
 	'floor_area_sqm'
 ] as const;
-const jobReadFields = [
+const assignmentReadFields = [
 	'id',
 	'site_id',
 	'title',
 	'nature',
 	'scheduled_for',
-	'status',
-	'description'
-] as const;
-const assignmentReadFields = [
-	'id',
-	'job_id',
+	'description',
 	'dispatched_at',
 	'status',
 	'completed_at',
 	'amount_charged',
 	'location',
-	'summary',
-	'search_text'
+	'summary'
 ] as const;
 const assignmentExistingMutationFields = [
 	'status',
@@ -157,12 +148,6 @@ export default {
 			read: {
 				where: assignedSite,
 				fields: siteReadFields
-			}
-		},
-		jobs: {
-			read: {
-				where: assignedJob,
-				fields: jobReadFields
 			}
 		},
 		job_assignments: {

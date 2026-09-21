@@ -5,24 +5,21 @@ import type { Integrations } from './$types.js';
 /**
  * Inbound job updates from the dispatch system.
  *
- * This is the binding that could not previously be written. Two things were missing and both are
- * here now. `jobs` had no external-key column, so there was nothing for `identity.column` to point
- * at and a redelivery — which every provider does, because webhook delivery is at-least-once —
- * would have filed a second job; `external_ref` is that column and carries a unique index. And the
- * dispatch system names a site by **its** code, never by our `id`, while `map` was a pure
- * `(record) => Row` with no way to look one up. `site_id` is a required `uuid`, so the whole
- * integration was inexpressible rather than merely awkward.
+ * The binding files and updates the work order — the assignment row itself, since the two used to
+ * be separate collections and are now one. `external_ref` is the dispatch system's own reference
+ * and carries a unique index, which is what makes an at-least-once redelivery an update rather than
+ * a second job. `scheduled_for` arrives as a calendar day and is stored in its canonical form: the
+ * UTC midnight every `precision: 'day'` reader resolves.
  *
- * `resolve` is what closes that. It runs **once per delivery** with an `api`, turns every site code
- * in the batch into one `in (…)`, and hands `map` the index it built. That shape is deliberate: a
- * lookup inside `map` would be a round trip per job, which is invisible on the two-job deliveries a
- * developer tests with and ruinous on a morning's dispatch of five hundred.
+ * The feed's own `status` is deliberately not mapped. `unassigned | assigned | in_progress |
+ * completed` is *this* workspace's dispatch state — written when a contractor is named and when the
+ * work is finished — and the dispatch system cannot know either; a redelivery carrying its stale
+ * `status` would otherwise walk a completed job back to assigned.
  *
- * A code that resolves to nothing fails **that job** and no other. `map` throws, the platform
- * records the rejection against that record's position and writes its siblings — so one job for a
- * site this workspace has never heard of does not cost the rest of the delivery. A `resolve` that
- * cannot run at all is the other case and behaves differently on purpose: it fails the delivery, the
- * host answers non-2xx, and the dispatch system redelivers.
+ * A site code that resolves to nothing fails **that job** and no other: `map` throws, the platform
+ * records the rejection against that record's position and writes its siblings. A `resolve` that
+ * cannot run at all is the other case and behaves differently on purpose: it fails the delivery,
+ * the host answers non-2xx, and the dispatch system redelivers.
  *
  * The signature is the credential. There is no `connection` here because there is nothing to
  * request — the source pushes, and what makes a delivery trustworthy is an HMAC over the raw body
@@ -54,10 +51,7 @@ export default {
 					title: Schema.Trimmed.check(Schema.isMinLength(1)),
 					scheduled_for: Schema.Trimmed.check(Schema.isMinLength(1)),
 					nature: Schema.optionalKey(Schema.String),
-					description: Schema.optionalKey(Schema.String),
-					status: Schema.optionalKey(
-						Schema.Literals(['unassigned', 'assigned', 'in_progress', 'completed'])
-					)
+					description: Schema.optionalKey(Schema.String)
 				}),
 				identity: { column: 'external_ref', value: (job) => job.reference },
 				resolve: ({ records, api }) =>
@@ -89,7 +83,7 @@ export default {
 						site_id: siteId,
 						nature: row.nature ?? null,
 						description: row.description ?? '',
-						status: row.status ?? 'unassigned'
+						scheduled_for: `${row.scheduled_for}T00:00:00.000Z`
 					};
 				}
 			})
