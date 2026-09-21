@@ -27,15 +27,16 @@
 	} from '@norbital-ai/ui/collection-navigation';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import FormSection from '../../lib/ui/form-section.svelte';
-	import { readRange } from '../payroll_runs/lib/effective.js';
+	import { readRange, coversDate } from '../payroll_runs/lib/effective.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
-	import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../../lib/ui/calendar.js';
+	import { calendarDateInTimeZone, PAYROLL_TIME_ZONE, todayKey } from '../../lib/ui/calendar.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import Icon from '@iconify/svelte';
 	import FaceEnrollFlow from './face-enroll-flow.svelte';
 	import StatutoryFacts from '../../lib/ui/contract/statutory-facts.svelte';
 	import HireForm from '../../lib/ui/contract/hire-form.svelte';
+	import EmploymentMonth from '../../lib/ui/roster/employment-month.svelte';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
@@ -53,6 +54,7 @@
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const today = todayKey();
 	const fileRuntime = getDataRendererRuntimeContext();
 	/**
 	 * Face enrollment opens from here and nowhere else: the kiosk on the wall only clocks. The
@@ -73,6 +75,14 @@
 				})
 	);
 	const employments = $derived((employmentsQuery?.current ?? []).map(resolveEmployment));
+	/**
+	 * The contract in force today, which is the one a month calendar can be drawn for. The person
+	 * may hold several across entities; the calendar draws the one that covers today, exactly as the
+	 * employee's own app does.
+	 */
+	const activeEmploymentId = $derived(
+		employments.find((employment) => coversDate(employment.effective_range, today))?.id ?? null
+	);
 	/** Every event on this page is one of this person's contracts. */
 	const employmentIds = $derived(employments.map((employment) => employment.id));
 	const byContract = $derived({ employment_id: { in: employmentIds } } as const);
@@ -475,22 +485,13 @@
 <!--
 	The person's events, family by family, in the same sidebar the Events pages and the employee's
 	own app use: Work, Leave, Claim, Allowance and Loan, every row scoped to this person's contracts.
+
+	Work is the same month board the employee's own app draws — one implementation, so HR and the
+	person cannot be shown two different answers about the same day. It is read-only here: the
+	calendar draws the record in force today and offers no day actions.
 -->
 {#snippet workEvents()}
-	<CollectionTable
-		{client}
-		collection="work_days"
-		view="employees:events:work"
-		title={t('family.work')}
-		query={{ where: byContract, orderBy: { work_date: 'desc' } }}
-	>
-		{#snippet columns({ Column: TableColumn })}
-			<TableColumn name="work_date" label={t('component.work_date')} card="title" />
-			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
-			<TableColumn name="shift_definition_id" label={t('component.shift')} />
-			<TableColumn name="worked_intervals" label={t('component.attendance')} />
-		{/snippet}
-	</CollectionTable>
+	<EmploymentMonth employmentId={activeEmploymentId} />
 {/snippet}
 
 {#snippet leaveEvents()}
