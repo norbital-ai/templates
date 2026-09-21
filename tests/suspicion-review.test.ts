@@ -60,11 +60,7 @@ type ExistingReview = {
 function assignment(id: string, status = 'assigned'): Assignment {
 	return {
 		id,
-		site_id: `site-${id}`,
-		title: 'Field work',
-		nature: null,
-		scheduled_for: null,
-		description: 'Complete the assigned field work.',
+		job_id: `job-${id}`,
 		status,
 		summary: null,
 		location: null,
@@ -161,19 +157,30 @@ function automationHarness(options: {
 					return Effect.succeed(eligible.slice(0, input.limit ?? ASSIGNMENT_PAGE_SIZE));
 				}
 			},
-			sites: {
+			jobs: {
 				findFirst: (input: { readonly where: { readonly id: { readonly eq: string } } }) => {
-					const assignmentId = input.where.id.eq.slice('site-'.length);
+					const assignmentId = input.where.id.eq.slice('job-'.length);
 					if (options.factLoadFailures?.has(assignmentId) === true) {
 						return Effect.fail(new Error(`Facts failed for ${assignmentId}`));
 					}
 					return Effect.succeed({
 						id: input.where.id.eq,
+						site_id: `site-${input.where.id.eq}`,
+						title: 'Field work',
+						nature: null,
+						scheduled_for: null,
+						description: 'Complete the assigned field work.'
+					});
+				}
+			},
+			sites: {
+				findFirst: () =>
+					Effect.succeed({
+						id: 'site-a',
 						name: 'Site A',
 						location: null,
 						house_type: null
-					});
-				}
+					})
 			},
 			variation_requests: { findMany: () => Effect.succeed([]) },
 			photo_evidence: {

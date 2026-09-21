@@ -21,14 +21,14 @@
 			: `${record.client_name ?? '—'} · ${record.house_type ?? t('component.not_recorded')}`
 	);
 
-	// The site's key as a *query value* — what `job_assignments.site_id` points at. Framework
-	// surfaces are never handed this: `CollectionForm` reads the record it is given, and
-	// `CollectionTable` scopes its saved view to the open record on its own.
+	// The site's key as a *query value* — what `jobs.site_id` points at. Framework surfaces are never
+	// handed this: `CollectionForm` reads the record it is given, and `CollectionTable` scopes its
+	// saved view to the open record on its own.
 	const siteId = $derived(record?.id);
 	const today = calendarDateInTimeZone(new Date());
 	const siteJobsQuery = $derived(
 		siteId
-			? client.db.job_assignments.findMany({
+			? client.db.jobs.findMany({
 					where: { site_id: { eq: siteId } },
 					limit: 500
 				})
@@ -46,6 +46,7 @@
 			})
 			.map((job) => job.id)
 	);
+	const jobById = $derived(new Map(siteJobs.map((job) => [job.id, job] as const)));
 </script>
 
 <svelte:head>
@@ -83,7 +84,7 @@
 {#snippet upcomingJobs()}
 	<CollectionTable
 		client={collectionClient}
-		collection="job_assignments"
+		collection="jobs"
 		view="field_ops_site:upcoming"
 		title={t('component.upcoming_scheduled_jobs')}
 		description={t('component.upcoming_scheduled_jobs_description')}
@@ -111,22 +112,30 @@
 		description={t('component.activity_history_description')}
 		query={{
 			where: {
-				site_id: { eq: siteId },
-				status: { in: ['assigned', 'completed'] }
+				job_assignment_job: {
+					some: {
+						site_id: { eq: siteId },
+						status: { in: ['assigned', 'completed'] }
+					}
+				}
 			},
 			orderBy: { dispatched_at: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column })}
 			<Column
-				name="title"
+				name="job_id"
 				label={t('component.job_site_date')}
 				minWidth={360}
 				card="title"
 				renderer={FormattedValueRenderer}
 				rendererProps={{
-					format: ({ row }) =>
-						`${String(row.title ?? t('component.job'))} · ${record?.name ?? '—'} · ${String(row.scheduled_for ?? '—')}`
+					format: ({ row }) => {
+						const job = jobById.get(row.job_id);
+						return job
+							? `${job.title} · ${record?.name ?? '—'} · ${job.scheduled_for}`
+							: t('component.job');
+					}
 				}}
 			/>
 			<Column name="dispatched_at" label={t('component.dispatched')} />

@@ -10,7 +10,14 @@ import type { Relationships } from './$types.js';
  */
 export default ((r) => ({
 	sites: {
-		site_assignments: r.many.job_assignments()
+		site_jobs: r.many.jobs()
+	},
+	jobs: {
+		site_jobs: r.one.sites({
+			from: r.jobs.site_id,
+			to: r.sites.id
+		}),
+		job_assignment_job: r.many.job_assignments()
 	},
 	suspicious_activity_logs: {
 		job_assignment_suspicions: r.one.job_assignments({
@@ -45,9 +52,9 @@ export default ((r) => ({
 	},
 	job_assignments: {
 		job_assignment_communications: r.many.communication_logs(),
-		job_assignment_site: r.one.sites({
-			from: r.job_assignments.site_id,
-			to: r.sites.id
+		job_assignment_job: r.one.jobs({
+			from: r.job_assignments.job_id,
+			to: r.jobs.id
 		}),
 		job_assignment_assignee: r.one.user({
 			from: r.job_assignments.assignee_user_id,

@@ -4,8 +4,9 @@ import { Effect } from 'effect';
 import type { Policy } from './$types.js';
 
 const uncheckedAssignment = { suspicion_checked_at: { isNull: true } } as const;
+const uncheckedJob = { job_assignment_job: { some: uncheckedAssignment } } as const;
 const uncheckedSite = {
-	site_assignments: { some: uncheckedAssignment }
+	site_jobs: { some: { job_assignment_job: { some: uncheckedAssignment } } }
 } as const;
 const uncheckedVariation = {
 	job_assignment_variations: { some: uncheckedAssignment }
@@ -50,6 +51,9 @@ export default {
 						record.suspicion_checked_at != null
 				}
 			}
+		},
+		jobs: {
+			read: { where: uncheckedJob }
 		},
 		sites: { read: { where: uncheckedSite } },
 		variation_requests: {
