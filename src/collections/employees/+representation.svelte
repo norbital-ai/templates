@@ -28,15 +28,13 @@
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import FormSection from '../../lib/ui/form-section.svelte';
 	import { readRange } from '../payroll_runs/lib/effective.js';
-	import {
-		formatCalendarDate,
-		formatStatutoryFactStatus
-	} from '../../lib/ui/display-formatters.js';
+	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../../lib/ui/calendar.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import Icon from '@iconify/svelte';
 	import FaceEnrollFlow from './face-enroll-flow.svelte';
+	import StatutoryFacts from '../../lib/ui/contract/statutory-facts.svelte';
 	import HireForm from '../../lib/ui/contract/hire-form.svelte';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
@@ -602,40 +600,9 @@
 {/snippet}
 
 {#snippet statutoryFacts()}
-	<CollectionTable
-		{client}
-		collection="employment_statutory_facts"
-		view="employees:statutory-facts"
-		title={t('component.statutory_registrations')}
-		description={t('component.statutory_registrations_description')}
-		query={{
-			where:
-				record == null
-					? { id: { in: [] } }
-					: // Facts name the person directly; every row on this tab is this person.
-						{ employee_id: { eq: record.id } },
-			orderBy: { created_at: 'desc' }
-		}}
-	>
-		{#snippet columns({ Column: TableColumn })}
-			<TableColumn
-				name="statutory_contribution_id"
-				label={t('component.contribution')}
-				card="title"
-			/>
-			<TableColumn
-				name="status"
-				label={t('component.registration')}
-				renderer={FormattedValueRenderer}
-				rendererProps={{ format: ({ value }) => formatStatutoryFactStatus(value, t) }}
-			/>
-			<TableColumn
-				name="effective_range"
-				renderer={EffectiveRangeRenderer}
-				label={t('component.effective')}
-			/>
-		{/snippet}
-	</CollectionTable>
+	{#if record}
+		<StatutoryFacts />
+	{/if}
 {/snippet}
 
 {#snippet faceIdentity()}

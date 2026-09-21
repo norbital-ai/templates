@@ -1290,5 +1290,6 @@
 	"component.payslip_employer_share": "雇主部分",
 	"component.payslip_employee_withheld": "雇员部分（从工资中代扣）",
 	"component.payslip_employer_contribution": "雇主部分（公司承担）",
-	"face.empty_description": "录入人脸后，该员工即可在自助终端打卡。"
+	"face.empty_description": "录入人脸后，该员工即可在自助终端打卡。",
+	"component.statutory_registrations_none": "当前生效版本未声明任何法定项目。"
 }

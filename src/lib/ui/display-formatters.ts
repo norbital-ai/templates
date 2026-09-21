@@ -5,14 +5,12 @@
  * Every formatter parses defensively: a table cell must never throw on a row whose variant was
  * written by an older definition. There is no writing here — presentation only.
  */
-import { Result, Schema } from 'effect';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
 import { addDays } from '../../collections/payroll_runs/lib/dates.js';
 import { readRange } from '../../collections/payroll_runs/lib/effective.js';
 import { dateKey } from '../iso-day.js';
-import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 const DECIMAL = new Intl.NumberFormat(undefined, {
@@ -150,19 +148,6 @@ export function formatSettingsRange(value: unknown): string {
 	const endDay = calendarDateInTimeZone(new Date(end), PAYROLL_TIME_ZONE);
 	if (endDay.startsWith('9999')) return `${start} – open`;
 	return `${start} – ${formatCalendarDate(addDays(endDay, -1))}`;
-}
-
-export function formatStatutoryFactStatus(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(statutoryFactStatusSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.status_invalid');
-	const status = parsed.success;
-	return status.kind === 'REGISTERED'
-		? `${t('component.status_registered', { reference: status.reference_number })}${
-				status.rate_override == null
-					? ''
-					: t('component.status_override', { rate: status.rate_override })
-			}`
-		: t('component.status_not_registered', { reason: status.reason });
 }
 
 /**
