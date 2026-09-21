@@ -30,6 +30,11 @@
 	import { runWorkbookImport } from '../../../lib/ui/workbook-import.js';
 	import { schedulingImportPayload } from '../../../collections/work_days/lib/import-workbook.js';
 	import {
+		schedulingTemplateWorkbook,
+		XLSX_MEDIA_TYPE
+	} from '../../../collections/work_days/lib/import-template.js';
+	import { saveBlob } from '../../../lib/ui/export-download.js';
+	import {
 		PAYROLL_TIME_ZONE,
 		monthWorkDateInstantBounds,
 		periodInCompanyGrammar,
@@ -38,7 +43,7 @@
 		shiftMonthKey,
 		todayKey
 	} from '../../../lib/ui/calendar.js';
-	import { getErrorMessage } from '@norbital-ai/std';
+	import { getErrorMessage, toError } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
@@ -642,6 +647,27 @@
 		);
 	}
 
+	/**
+	 * The sheet the import expects, built here and saved as a file: the entity and the month the
+	 * board is on, prefilled, with a Roster grid and a Time entries table the reader accepts.
+	 */
+	function downloadImportTemplate() {
+		return Effect.gen(function* () {
+			const company = selectedCompany;
+			if (company == null) return;
+			const workbook = schedulingTemplateWorkbook({
+				legalEntity: String(company.name ?? ''),
+				month: calendarMonth,
+				timezone: PAYROLL_TIME_ZONE
+			});
+			const buffer = yield* Effect.tryPromise({
+				try: () => workbook.xlsx.writeBuffer(),
+				catch: toError
+			});
+			saveBlob(new Blob([buffer], { type: XLSX_MEDIA_TYPE }), `scheduling-${calendarMonth}.xlsx`);
+		});
+	}
+
 	function selectMonth(nextMonth: string): void {
 		if (!/^\d{4}-(0[1-9]|1[0-2])(-[12])?$/.test(nextMonth)) return;
 		month = nextMonth;
@@ -933,6 +959,15 @@
 					description: t('app.scheduling.import_title', { month: calendarMonth }),
 					icon: 'lucide:upload',
 					run: importWorkbook
+				}
+			],
+			exportPipelines: [
+				{
+					id: 'scheduling-template',
+					label: t('app.scheduling.import_template'),
+					description: t('app.scheduling.import_template_description', { month: calendarMonth }),
+					icon: 'lucide:file-down',
+					run: downloadImportTemplate
 				}
 			]
 		}}

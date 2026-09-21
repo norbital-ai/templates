@@ -16,6 +16,7 @@
 		hint,
 		first = false,
 		trailing,
+		actions,
 		children
 	}: {
 		title: string;
@@ -23,6 +24,8 @@
 		first?: boolean;
 		/** A mark that belongs on the title row — a state badge, never a control. */
 		trailing?: Snippet;
+		/** Controls that act on the section, pushed to the end of the title row. */
+		actions?: Snippet;
 		children: Snippet;
 	} = $props();
 </script>
@@ -55,6 +58,9 @@
 		{/if}
 		{#if trailing}
 			{@render trailing()}
+		{/if}
+		{#if actions}
+			<span class="ml-auto flex items-center gap-2">{@render actions()}</span>
 		{/if}
 	</Inline>
 	{@render children()}

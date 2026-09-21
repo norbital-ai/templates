@@ -37,6 +37,8 @@
 	import StatutoryFacts from '../../lib/ui/contract/statutory-facts.svelte';
 	import HireForm from '../../lib/ui/contract/hire-form.svelte';
 	import EmploymentMonth from '../../lib/ui/roster/employment-month.svelte';
+	import MonthPeriodPicker from '../../lib/ui/month-period-picker.svelte';
+	import { createPayPeriodScope } from '../../lib/ui/pay-period-scope.svelte.js';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
@@ -105,16 +107,25 @@
 	 * the person directly, so the profile always hands its own id for those forms.
 	 */
 	const scopedEmployment = $derived(employments.length === 1 ? employments[0] : undefined);
+	// The entity whose pay grammar steps the events: the contract in force today, else the first
+	// one the person holds. A person with several entities still reads one cycle at a time.
+	const scopeCompanyId = $derived(
+		employments.find((employment) => employment.id === activeEmploymentId)?.company_id ??
+			employments[0]?.company_id ??
+			null
+	);
 	// The entity's lineage rides a second read: `with` joins are untyped on the browser client,
 	// so the scope resolves the company row itself rather than joining it into the employments.
 	const scopedCompanyQuery = $derived(
-		scopedEmployment == null
+		scopeCompanyId == null
 			? null
 			: client.db.companies.findFirst({
-					where: { id: { eq: scopedEmployment.company_id } },
-					columns: { settings_code: true }
+					where: { id: { eq: scopeCompanyId } },
+					columns: { settings_code: true, pay_frequency: true, pay_cutoff_day: true }
 				})
 	);
+	/** The payroll cycle the events are filtered by, in the entity's own grammar. */
+	const pay = createPayPeriodScope(() => scopedCompanyQuery?.current);
 	let hireOpen = $state(false);
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		employmentId: () => scopedEmployment?.id,
@@ -388,16 +399,17 @@
 	</CollectionForm>
 {/snippet}
 
+{#snippet newContractButton()}
+	<Button variant="outline" size="sm" onclick={() => (hireOpen = true)}>
+		<Icon icon="lucide:briefcase" class="size-4" />
+		{t('component.hire')}
+	</Button>
+{/snippet}
+
 {#snippet engagements()}
 	{#if record}
 		<Stack gap="lg">
 			<!-- The hire lives here, on the person: a contract is theirs before it is an entity's. -->
-			<Inline justify="end">
-				<Button variant="outline" size="sm" onclick={() => (hireOpen = true)}>
-					<Icon icon="lucide:briefcase" class="size-4" />
-					{t('component.hire')}
-				</Button>
-			</Inline>
 			<Dialog.Root bind:open={hireOpen}>
 				<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
 					<Dialog.Header>
@@ -417,6 +429,9 @@
 					title={t('component.timeline_title')}
 					hint={t('component.timeline_hint')}
 				>
+					{#snippet actions()}
+						{@render newContractButton()}
+					{/snippet}
 					<Stack gap="lg">
 						{#each timeline.columns as column (column.companyId)}
 							<Stack gap="sm">
@@ -477,6 +492,9 @@
 						{/each}
 					</Stack>
 				</FormSection>
+			{:else}
+				<!-- No timeline yet: the hire is still the section's only action. -->
+				<Inline justify="end">{@render newContractButton()}</Inline>
 			{/if}
 		</Stack>
 	{/if}
@@ -495,63 +513,111 @@
 {/snippet}
 
 {#snippet leaveEvents()}
-	<CollectionTable
-		{client}
-		collection="leave_entries"
-		view="employees:events:leave"
-		title={t('family.leave')}
-		recordMetadata={() => [
-			{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
-		]}
-		query={{ where: byContract, orderBy: { effective_on: 'desc' } }}
-	>
-		{#snippet columns({ Column: TableColumn })}
-			<TableColumn name="catalogue_id" label={t('component.catalogue_leave')} />
-			<TableColumn name="summary" label={t('leave.activity')} card="title" />
-			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
-			<TableColumn name="reference" label={t('component.reference')} />
-			<TableColumn name="days" label={t('component.days')} />
-			<TableColumn name="encash_days" label={t('component.encash_days')} />
-		{/snippet}
-	</CollectionTable>
+	{#if pay.bounds != null}
+		{#key pay.period}
+			<CollectionTable
+				{client}
+				collection="leave_entries"
+				view="employees:events:leave"
+				title={t('family.leave')}
+				navigation={periodNavigation}
+				recordMetadata={() => [
+					{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
+				]}
+				query={{
+					where: {
+						...byContract,
+						// The period's leave: any event whose days overlap the window.
+						from_date: { lt: pay.bounds.end },
+						to_date: { gte: pay.bounds.start }
+					},
+					orderBy: { effective_on: 'desc' }
+				}}
+			>
+				{#snippet columns({ Column: TableColumn })}
+					<TableColumn name="catalogue_id" label={t('component.catalogue_leave')} />
+					<TableColumn name="summary" label={t('leave.activity')} card="title" />
+					<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
+					<TableColumn name="reference" label={t('component.reference')} />
+					<TableColumn name="days" label={t('component.days')} />
+					<TableColumn name="encash_days" label={t('component.encash_days')} />
+				{/snippet}
+			</CollectionTable>
+		{/key}
+	{/if}
 {/snippet}
 
 {#snippet claimEvents()}
-	<CollectionTable
-		{client}
-		collection="claim_requests"
-		view="employees:events:claims"
-		title={t('family.claim')}
-		recordMetadata={captureMetadata}
-		query={{ where: byContract, orderBy: { incurred_on: 'desc' } }}
-	>
-		{#snippet columns({ Column: TableColumn })}
-			<TableColumn name="catalogue_id" label={t('component.component')} card="title" />
-			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
-			<TableColumn name="amount" label={t('component.amount')} />
-			<TableColumn name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-			<TableColumn name="incurred_on" label={t('component.incurred_on')} />
-			<TableColumn name="evidence_file" label={t('component.evidence_file')} />
-		{/snippet}
-	</CollectionTable>
+	{#if pay.bounds != null}
+		{#key pay.period}
+			<CollectionTable
+				{client}
+				collection="claim_requests"
+				view="employees:events:claims"
+				title={t('family.claim')}
+				navigation={periodNavigation}
+				recordMetadata={captureMetadata}
+				query={{
+					where: {
+						...byContract,
+						// The period's entries: pinned to it outright, or dated by the cutoff rule.
+						OR: [
+							{ pay_period: { eq: pay.period } },
+							{
+								pay_period: { isNull: true },
+								incurred_on: { gte: pay.bounds.start, lt: pay.bounds.end }
+							}
+						]
+					},
+					orderBy: { incurred_on: 'desc' }
+				}}
+			>
+				{#snippet columns({ Column: TableColumn })}
+					<TableColumn name="catalogue_id" label={t('component.component')} card="title" />
+					<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
+					<TableColumn name="amount" label={t('component.amount')} />
+					<TableColumn name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+					<TableColumn name="incurred_on" label={t('component.incurred_on')} />
+					<TableColumn name="evidence_file" label={t('component.evidence_file')} />
+				{/snippet}
+			</CollectionTable>
+		{/key}
+	{/if}
 {/snippet}
 
 {#snippet adhocEvents()}
-	<CollectionTable
-		{client}
-		collection="adhoc_requests"
-		view="employees:events:adhoc"
-		title={t('family.adhoc')}
-		query={{ where: byContract, orderBy: { event_date: 'desc' } }}
-	>
-		{#snippet columns({ Column: TableColumn })}
-			<TableColumn name="catalogue_id" label={t('component.component')} card="title" />
-			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
-			<TableColumn name="amount" label={t('component.amount')} />
-			<TableColumn name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-			<TableColumn name="event_date" label={t('component.adhoc_event_date')} />
-		{/snippet}
-	</CollectionTable>
+	{#if pay.bounds != null}
+		{#key pay.period}
+			<CollectionTable
+				{client}
+				collection="adhoc_requests"
+				view="employees:events:adhoc"
+				title={t('family.adhoc')}
+				navigation={periodNavigation}
+				query={{
+					where: {
+						...byContract,
+						OR: [
+							{ pay_period: { eq: pay.period } },
+							{
+								pay_period: { isNull: true },
+								event_date: { gte: pay.bounds.start, lt: pay.bounds.end }
+							}
+						]
+					},
+					orderBy: { event_date: 'desc' }
+				}}
+			>
+				{#snippet columns({ Column: TableColumn })}
+					<TableColumn name="catalogue_id" label={t('component.component')} card="title" />
+					<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
+					<TableColumn name="amount" label={t('component.amount')} />
+					<TableColumn name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+					<TableColumn name="event_date" label={t('component.adhoc_event_date')} />
+				{/snippet}
+			</CollectionTable>
+		{/key}
+	{/if}
 {/snippet}
 
 {#snippet loanEvents()}
@@ -597,6 +663,16 @@
 			},
 			{ name: 'loan', label: t('family.loan'), icon: 'lucide:landmark', content: loanEvents }
 		] satisfies TabConfig[]}
+	/>
+{/snippet}
+
+{#snippet periodNavigation()}
+	<MonthPeriodPicker
+		month={pay.period}
+		halves={pay.halves}
+		weeks={pay.weeks}
+		ariaLabel={t('app.events.pay_period')}
+		onMonthChange={(next) => pay.select(next)}
 	/>
 {/snippet}
 

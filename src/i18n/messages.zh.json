@@ -139,6 +139,8 @@
 	"app.scheduling.help_published": "每个格子绘制三层：班次模式投射的基准（灰色虚线）、排班覆盖（实线、角标）和打卡记录（横条、时钟，或工作日空记录时的红色旷工）。点击未锁定日期的格子可分配班次、记录出勤或交换两天。锁定列是已付薪资批次结算的日期。",
 	"app.scheduling.import": "导入",
 	"app.scheduling.import_title": "将排班工作簿导入 {month}——一个排班表和一个考勤表，单一法人、单月，每人一行、每天一列。",
+	"app.scheduling.import_template": "下载导入模板",
+	"app.scheduling.import_template_description": "该导入所需的 {month} 表格：排班网格与考勤表，Settings 表中已填好法人、月份和时区。",
 	"app.scheduling.loading_month": "正在加载 {month}…",
 	"app.scheduling.half_picker": "半月",
 	"app.scheduling.first_half": "1 日 – 15 日",

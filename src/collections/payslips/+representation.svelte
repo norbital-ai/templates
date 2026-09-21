@@ -184,6 +184,21 @@
 	};
 
 	/**
+	 * A rate's identity for grouping.
+	 *
+	 * A derived line stores `amount / hours`, so the same nominal rate arrives with IEEE-754 noise:
+	 * `(h × ordinary × 1.5) / h` is mathematically constant but not bit-constant, and
+	 * `String(rate)` made every ULP difference its own group. One overtime component then read as
+	 * five rows of "WORKDAY-OT-1.5X · Attendance", each printing the same rate at two decimals.
+	 * Twelve significant digits collapse the noise and keep a real rate change (a mid-month raise,
+	 * a terms revision) apart — those differ in the third decimal at worst.
+	 */
+	const rateKey = (rate: unknown): string => {
+		const value = decodeNumber(rate);
+		return Number.isFinite(value) ? value.toPrecision(12) : String(rate);
+	};
+
+	/**
 	 * One row per component: the same label, input kind, bucket and rate collapse into a summed
 	 * line, and the individual entries — one per captured input — sit behind it. A component that
 	 * occurred once is a plain row; there is nothing to unfold.
@@ -192,7 +207,7 @@
 		const groups = new Map<string, AdjustmentGroup>();
 		for (const adjustment of rows) {
 			const kind = inputKind(adjustment.family);
-			const rate = adjustment.rate == null ? '' : String(adjustment.rate);
+			const rate = adjustment.rate == null ? '' : rateKey(adjustment.rate);
 			const key = [adjustment.label, kind, adjustment.bucket ?? '', rate].join('\u0000');
 			const current = groups.get(key);
 			const quantity = decodeNumber(adjustment.quantity);
@@ -518,7 +533,7 @@
 
 {#snippet schemeStatRow(charge: (typeof statutory)[number], index: number)}
 	<tr class="border-t border-border">
-		<td class="py-1 pr-3">
+		<td class="py-1 pr-3 pl-4">
 			<span class="flex min-w-0 items-center gap-1">
 				<span class="truncate">{schemeLabel(charge)}</span>
 				{@render schemeInfo(charge)}
@@ -622,10 +637,10 @@
 							t('component.payslip_statutory_description')
 						)}
 					</Inline>
-					<table class="w-full pl-4 text-sm tabular-nums">
+					<table class="w-full text-sm tabular-nums">
 						<thead>
 							<tr class="text-meta text-left">
-								<th class="py-1 pr-3 font-normal">{t('component.code')}</th>
+								<th class="py-1 pr-3 pl-4 font-normal">{t('component.code')}</th>
 								<th class="py-1 pr-3 text-right font-normal"
 									>{t('component.payslip_employee_share')}</th
 								>

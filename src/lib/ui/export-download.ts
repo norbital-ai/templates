@@ -129,9 +129,10 @@ function attachmentBlob(attachment: ExportAttachment): Blob {
  *
  * The anchor is never attached to the page, for the same reason the import's file input is not: a
  * control left in the layout is one more thing an unmounted view can leave behind, and this one
- * lives exactly as long as the click.
+ * lives exactly as long as the click. Exported for the issued import templates, which are built in
+ * the browser rather than fetched.
  */
-function saveBlob(blob: Blob, name: string): void {
+export function saveBlob(blob: Blob, name: string): void {
 	const url = URL.createObjectURL(blob);
 	const anchor = document.createElement('a');
 	anchor.href = url;

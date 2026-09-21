@@ -139,6 +139,8 @@
 	"app.scheduling.help_published": "Every cell paints three layers: the base the shift pattern projects (muted, dashed), a roster override (solid, corner mark) and the clocked attendance (bar, clock, or AWOL in red for an empty row on a work day). Click a cell to assign a shift, record attendance or swap two days on any unlocked day. Locked columns are days a paid payroll run settled.",
 	"app.scheduling.import": "Import",
 	"app.scheduling.import_title": "Import the scheduling workbook into {month} — a Roster sheet and a Time entries sheet for one legal entity and one month, a person per row and a day per column.",
+	"app.scheduling.import_template": "Download import template",
+	"app.scheduling.import_template_description": "The sheet this import expects for {month}: the Roster grid and the Time entries table, with the entity, month and timezone already stated on its Settings sheet.",
 	"app.scheduling.loading_month": "Loading {month}…",
 	"app.scheduling.half_picker": "Half of the month",
 	"app.scheduling.first_half": "1st – 15th",

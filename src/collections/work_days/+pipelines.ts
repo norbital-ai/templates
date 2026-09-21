@@ -26,6 +26,7 @@ import { Effect, Schema } from 'effect';
 import { dateKey } from '../../lib/iso-day.js';
 import { addDays, formatNamedList, isYearMonth, monthBounds } from '../../lib/period.js';
 import { leaveCoverage } from '../../lib/scheduling/leave-coverage.js';
+import { leaveActivityOf } from '../../lib/leave/activity-fields.js';
 import { rosterCodeVariantSchema } from '../../datatypes/roster_code_variant/+definition.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import type { Api, Pipelines, WorkspaceRow } from './$types.js';
@@ -400,7 +401,6 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			const leaveRows = yield* api.db.leave_entries.findMany({
 				where: {
 					employment_id: { in: employmentIds },
-					kind: { eq: 'TIME_OFF' },
 					approval_id: { isNull: true },
 					from_date: { lte: bounds.end },
 					to_date: { gte: bounds.start }
@@ -410,13 +410,23 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 					from_date: true,
 					to_date: true,
 					half_day_start: true,
-					half_day_end: true
+					half_day_end: true,
+					// The activity is derived from the row — its charges, its days, the reversal tick —
+					// rather than stored as a column, so time off is selected here and not in the
+					// predicate. The predicate this replaces named `kind`, a column that does not exist.
+					charges: true,
+					days: true,
+					encash_days: true,
+					destination_from: true,
+					destination_to: true,
+					as_adjustment_entry: true
 				},
 				limit: QUERY_LIMIT
 			});
+			const timeOff = leaveRows.filter((row) => leaveActivityOf(row) === 'TIME_OFF');
 			for (const row of attendance) {
 				const employmentId = contractFor(row).id;
-				const covering = leaveRows
+				const covering = timeOff
 					.filter((request) => request.employment_id === employmentId)
 					.find((request) => leaveCoverage(request, row.work_date).fullDay);
 				if (covering != null)

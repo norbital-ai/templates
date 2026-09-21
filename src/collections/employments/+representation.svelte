@@ -45,6 +45,16 @@
 	});
 	let offboardOpen = $state(false);
 	let changeTermsOpen = $state(false);
+	/**
+	 * Edit mode lives here because the record shell's header renders its toggle. Cancel remounts
+	 * the detail from the stored rows, which is the same reset the form's own Cancel used to do.
+	 */
+	let editing = $state(false);
+	let contractEpoch = $state(0);
+	function cancelEdit(): void {
+		editing = false;
+		contractEpoch += 1;
+	}
 	/** A closed range is a departed contract: only comments stay writable, and the flows hide. */
 	const departed = $derived(readRange(record?.effective_range)?.end != null);
 	const rangeStart = $derived(readRange(record?.effective_range)?.start ?? '');
@@ -58,8 +68,8 @@
 </svelte:head>
 
 {#snippet contractActions()}
-	{#if !departed}
-		<div class="flex gap-2">
+	<div class="flex gap-2">
+		{#if !departed}
 			<Button variant="outline" size="sm" onclick={() => (changeTermsOpen = true)}>
 				<Icon icon="lucide:file-signature" class="size-4" />
 				{t('offboarding.change_terms')}
@@ -68,8 +78,16 @@
 				<Icon icon="lucide:log-out" class="size-4" />
 				{t('offboarding.open')}
 			</Button>
-		</div>
-	{/if}
+		{/if}
+		{#if editing}
+			<Button variant="outline" size="sm" onclick={cancelEdit}>{t('common.cancel')}</Button>
+		{:else}
+			<Button variant="outline" size="sm" onclick={() => (editing = true)}>
+				<Icon icon="lucide:pencil" class="size-4" />
+				{t('common.edit')}
+			</Button>
+		{/if}
+	</div>
 {/snippet}
 
 {#snippet general()}
@@ -114,7 +132,9 @@
 			</Dialog.Root>
 		{/if}
 		{#if record != null}
-			<ContractDetail {record} {scopedCompanyId} contracts={false} />
+			{#key contractEpoch}
+				<ContractDetail {record} {scopedCompanyId} contracts={false} bind:editing />
+			{/key}
 		{:else}
 			<HireForm onDone={close} />
 		{/if}
