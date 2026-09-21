@@ -341,9 +341,14 @@ const UNOPENABLE_FORMS = new Set<string>([]);
  */
 const NO_CREATE_SURFACES = new Set(['/app/hr_controller/events/work']);
 
-/** The New buttons a surface offers: inside its open record sheet when it has one, else the page's. */
+/**
+ * The New buttons a surface offers: inside its open record sheet when it has one, else the page's.
+ * Page-header actions (a `role="toolbar"` above the tabs) are not surface create forms: the settings
+ * page keeps New version / Void version up there, and they belong to the page, not to a tab.
+ */
 const NEW_BUTTONS = `(() => JSON.stringify(
 	[...([...document.querySelectorAll('[role="dialog"]')].at(-1) ?? document).querySelectorAll('button')]
+		.filter((node) => !node.closest('[role="toolbar"]'))
 		.filter((node) => /^New\\b/.test((node.textContent ?? '').trim()))
 		.map((node) => ({
 			label: (node.textContent ?? '').trim(),

@@ -48,12 +48,6 @@
 	const authoritySettled = $derived(visibleApps.includes('field_ops_contractor'));
 	const dispatchAuthority = $derived(visibleApps.includes('field_ops_controller'));
 
-	const jobsQuery = $derived(
-		client.db.jobs.findMany({
-			orderBy: { scheduled_for: 'desc' },
-			limit: 250
-		})
-	);
 	const sitesQuery = $derived(
 		client.db.sites.findMany({
 			columns: { id: true, name: true },
@@ -64,7 +58,6 @@
 	const siteById = $derived(
 		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
 	);
-	const jobById = $derived(new Map((jobsQuery.current ?? []).map((job) => [job.id, job])));
 
 	/**
 	 * Status filter apply/clear, owned here rather than left to the nested field-picker popover.
@@ -160,18 +153,14 @@
 			>
 				{#snippet columns({ Column })}
 					<Column
-						name="job_id"
+						name="title"
 						label={t('component.job_site_date')}
 						minWidth={360}
 						card="title"
 						renderer={FormattedValueRenderer}
 						rendererProps={{
-							format: ({ row }) => {
-								const job = jobById.get(row.job_id);
-								return job
-									? `${job.title} · ${siteById.get(job.site_id) ?? '—'} · ${job.scheduled_for}`
-									: t('component.job');
-							}
+							format: ({ row }) =>
+								`${String(row.title ?? t('component.job'))} · ${siteById.get(String(row.site_id)) ?? '—'} · ${String(row.scheduled_for ?? '—')}`
 						}}
 					/>
 					{#if dispatchAuthority}

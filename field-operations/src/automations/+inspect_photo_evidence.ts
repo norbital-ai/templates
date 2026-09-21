@@ -84,20 +84,13 @@ export default defineAutomation(
 						? undefined
 						: yield* api.db.job_assignments.findFirst({
 								where: { id: { eq: assignmentId } },
-								columns: { job_id: true }
-							});
-				const job =
-					assignment === undefined
-						? undefined
-						: yield* api.db.jobs.findFirst({
-								where: { id: { eq: assignment.job_id } },
 								columns: { site_id: true }
 							});
 				const site =
-					job === undefined
+					assignment === undefined
 						? undefined
 						: yield* api.db.sites.findFirst({
-								where: { id: { eq: job.site_id } },
+								where: { id: { eq: assignment.site_id } },
 								columns: { location: true }
 							});
 				const inspected = yield* inspectPhoto({ bytes: asset.bytes, mimeType });
