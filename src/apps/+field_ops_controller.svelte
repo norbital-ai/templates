@@ -16,27 +16,22 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import Icon from '@iconify/svelte';
 	import { Effect } from 'effect';
-	import {
-		calendarDateInTimeZone,
-		calendarDayAsPickerInstant,
-		calendarDayFromPickerInstant
-	} from '../lib/calendar-date.js';
+	import { calendarDateInTimeZone, calendarDayOfInstant } from '../lib/calendar-date.js';
 
 	const today = calendarDateInTimeZone(new Date());
-	const pickerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 	const { t } = useI18n<TenantI18nKeys>();
 	const collectionClient = getCollectionClientForSurface(client, 'field_ops_controller');
 
 	let dispatchDay = $state(today);
 	/**
-	 * The platform picker edits instants, while `jobs.scheduled_for` is deliberately a calendar-day
-	 * key. Represent that day at the viewer's local midnight so the picker always shows the same day
-	 * the query uses, including outside Singapore; converting a UTC midnight for display could move
-	 * it into the previous day in western time zones.
+	 * The stored form of the day, and the picker's value.
+	 *
+	 * A `precision: 'day'` field is one canonical UTC day — the date prefix every reader
+	 * (`bolt_instant`, the list renderers) resolves — and the platform picker converts it to and
+	 * from the viewer's zone itself. Handing it a viewer-local midnight instead applied that
+	 * conversion twice, which showed the previous day to every viewer east of Greenwich.
 	 */
-	const dispatchPickerInstant = $derived(calendarDayAsPickerInstant(dispatchDay, pickerTimeZone));
-	/** Day-precision instants are stored and compared at UTC midnight by the collection runtime. */
 	const dispatchQueryInstant = $derived(`${dispatchDay}T00:00:00.000Z`);
 	let assignContractorOpen = $state(false);
 	const jobsQuery = $derived(
@@ -156,7 +151,7 @@
 	}
 
 	function updateDispatchDate(value: unknown): void {
-		const selectedDay = calendarDayFromPickerInstant(value, pickerTimeZone);
+		const selectedDay = calendarDayOfInstant(value);
 		if (selectedDay !== null) setDispatchDay(selectedDay);
 	}
 
@@ -304,7 +299,7 @@
 						nullable: false,
 						precision: 'day'
 					}}
-					value={dispatchPickerInstant}
+					value={dispatchQueryInstant}
 					mode="edit"
 					placeholder={t('app.field_ops_controller.select_dispatch_date')}
 					onValueChange={updateDispatchDate}
@@ -374,7 +369,7 @@
 		>
 			{#snippet start()}
 				<Cover gap="sm" top={dispatchControls}>
-					<Bound size="full" pad="sm" class="rounded-lg border bg-card">
+					<Bound size="full" pad="md" class="rounded-lg border bg-card">
 						<CollectionKanban
 							client={collectionClient}
 							collection="job_assignments"
