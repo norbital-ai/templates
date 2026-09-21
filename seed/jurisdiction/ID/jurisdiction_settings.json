@@ -307,6 +307,53 @@
 				"required_when": "employment.exit_facts.pension_offset_applies",
 				"min_length": 1
 			}
+		],
+		"obligations": [
+			{
+				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
+				"description": "Termination procedure and compensation entitlement",
+				"trigger": "Each legally defined termination cause",
+				"timing": "Each legally defined termination cause",
+				"owner": "HR / notices, consultation, cause and settlement evidence",
+				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OVERTIME_CONSENT_RECORDS_AND",
+				"description": "Overtime consent, records and limits",
+				"trigger": "Overtime is requested or worked",
+				"timing": "Overtime is requested or worked",
+				"owner": "HR / consent and actual-hours records",
+				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
+				"description": "BPJS registration, wage reporting and remittance",
+				"trigger": "Covered employment and reportable wage changes",
+				"timing": "Covered employment and reportable wage changes",
+				"owner": "Finance / registration and accepted contribution records",
+				"authority": "External; BPJS participant guidance (https://www.bpjsketenagakerjaan.go.id/artikel/18893/artikel-siapa-sajakah-peserta-dari-bpjs-ketenagakerjaan)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
 		]
 	},
 	{
@@ -618,6 +665,53 @@
 				"required_when": "employment.exit_facts.pension_offset_applies",
 				"min_length": 1
 			}
+		],
+		"obligations": [
+			{
+				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
+				"description": "Termination procedure and compensation entitlement",
+				"trigger": "Each legally defined termination cause",
+				"timing": "Each legally defined termination cause",
+				"owner": "HR / notices, consultation, cause and settlement evidence",
+				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OVERTIME_CONSENT_RECORDS_AND",
+				"description": "Overtime consent, records and limits",
+				"trigger": "Overtime is requested or worked",
+				"timing": "Overtime is requested or worked",
+				"owner": "HR / consent and actual-hours records",
+				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
+				"description": "BPJS registration, wage reporting and remittance",
+				"trigger": "Covered employment and reportable wage changes",
+				"timing": "Covered employment and reportable wage changes",
+				"owner": "Finance / registration and accepted contribution records",
+				"authority": "External; BPJS participant guidance (https://www.bpjsketenagakerjaan.go.id/artikel/18893/artikel-siapa-sajakah-peserta-dari-bpjs-ketenagakerjaan)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
 		]
 	},
 	{
@@ -928,6 +1022,53 @@
 				"description": "Article 58(3) requires the offset arrangement in the employment agreement, company regulation or collective agreement.",
 				"required_when": "employment.exit_facts.pension_offset_applies",
 				"min_length": 1
+			}
+		],
+		"obligations": [
+			{
+				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
+				"description": "Termination procedure and compensation entitlement",
+				"trigger": "Each legally defined termination cause",
+				"timing": "Each legally defined termination cause",
+				"owner": "HR / notices, consultation, cause and settlement evidence",
+				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OVERTIME_CONSENT_RECORDS_AND",
+				"description": "Overtime consent, records and limits",
+				"trigger": "Overtime is requested or worked",
+				"timing": "Overtime is requested or worked",
+				"owner": "HR / consent and actual-hours records",
+				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
+				"description": "BPJS registration, wage reporting and remittance",
+				"trigger": "Covered employment and reportable wage changes",
+				"timing": "Covered employment and reportable wage changes",
+				"owner": "Finance / registration and accepted contribution records",
+				"authority": "External; BPJS participant guidance (https://www.bpjsketenagakerjaan.go.id/artikel/18893/artikel-siapa-sajakah-peserta-dari-bpjs-ketenagakerjaan)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
 			}
 		]
 	}

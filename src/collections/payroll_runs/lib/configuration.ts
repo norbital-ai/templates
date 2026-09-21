@@ -1,4 +1,4 @@
-import { resolveCompanyFacts } from '../../../lib/declared-facts.js';
+import { resolveCompanyFacts, type CompanyFactRevision } from '../../../lib/declared-facts.js';
 import type { HolidaySnapshot } from '../../../datatypes/holiday_snapshots/+definition.js';
 /**
  * Resolve the governing settings and family definitions once for the run. Holidays publish
@@ -71,6 +71,8 @@ export type Configuration = {
 	readonly company: Company;
 	/** Raw declarations, before this run's defaults; historical cash-out uses its own version. */
 	readonly recordedCompanyFacts: Company['facts'];
+	/** Dated revisions of the entity facts, newest scope last; the run reads the one in force per day. */
+	readonly companyFactRevisions: readonly CompanyFactRevision[];
 	readonly jurisdiction: Jurisdiction;
 	readonly work: Work;
 	/** In dependency order — a relief is produced before the scheme that reads it. */
@@ -144,10 +146,21 @@ export function pickConfiguration(
 		const windowEnd = monthBounds(monthKey(rawWindowEnd)).end;
 		const approved = { approval_id: { isNull: true } } as const;
 
-		const companies = yield* db.companies.findMany({
-			where: { id: { eq: options.companyId }, ...approved },
-			limit: 100
-		});
+		const [companies, companyFactRevisions] = yield* Effect.all(
+			[
+				db.companies.findMany({
+					where: { id: { eq: options.companyId }, ...approved },
+					limit: 100
+				}),
+				db.company_facts.findMany({
+					where: { company_id: { eq: options.companyId }, ...approved },
+					columns: { facts: true, effective_range: true },
+					limit: PAGE_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		options.api.reads.assertComplete(companyFactRevisions, 'company fact revisions');
 		const company = effectiveOn(companies, asOf);
 		if (!company) refuse(`No company ${options.companyId} is effective on ${asOf}.`);
 
@@ -222,9 +235,21 @@ export function pickConfiguration(
 
 		const configuration = {
 			recordedCompanyFacts: company.facts ?? {},
+			companyFactRevisions: companyFactRevisions.map((row) => ({
+				facts: row.facts ?? {},
+				effective_range: row.effective_range
+			})),
 			company: {
 				...company,
-				facts: resolveCompanyFacts(jurisdiction.facts ?? [], company)
+				// The revision in force on the run's governing date prices the whole run; the current
+				// company row remains the standing record when no revision covers it.
+				facts: resolveCompanyFacts(jurisdiction.facts ?? [], company, {
+					asOf,
+					revisions: companyFactRevisions.map((row) => ({
+						facts: row.facts ?? {},
+						effective_range: row.effective_range
+					}))
+				})
 			},
 			jurisdiction,
 			lineageVersions: live(versionRows),

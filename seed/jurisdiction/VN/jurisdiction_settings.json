@@ -203,6 +203,53 @@
 				"type": "boolean",
 				"label": "Approved reduced occupational accident rate"
 			}
+		],
+		"obligations": [
+			{
+				"code": "CONTRACT_TERMINATION_PROCEDURE_AND",
+				"description": "Contract termination procedure and final settlement",
+				"trigger": "Applicable Labour Code termination ground",
+				"timing": "Applicable Labour Code termination ground",
+				"owner": "HR / notice, legal ground and payment record",
+				"authority": "Unverified end-to-end coverage; Labour Code record (https://vbpl.moj.gov.vn/bocongthuong/Pages/vbpq-vanbanlienquan.aspx?ItemID=139264)",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "SOCIAL_INSURANCE_LEAVE_BENEFIT",
+				"description": "Social-insurance leave benefit claims",
+				"trigger": "Eligible fund-paid absence",
+				"timing": "Eligible fund-paid absence",
+				"owner": "HR / claim, medical evidence and agency decision",
+				"authority": "Unverified claim workflow; fund-paid leave is not an employer reimbursement receipt",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "OVERTIME_CONSENT_LIMITS_AND",
+				"description": "Overtime consent, limits and required reporting",
+				"trigger": "Overtime arrangement and applicable statutory thresholds",
+				"timing": "Overtime arrangement and applicable statutory thresholds",
+				"owner": "HR / consent and labour-authority filings",
+				"authority": "Unverified procedural coverage; Labour Code record (https://vbpl.moj.gov.vn/bocongthuong/Pages/vbpq-vanbanlienquan.aspx?ItemID=139264)",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
 		]
 	},
 	{
@@ -409,6 +456,53 @@
 				"key": "occupational_accident_reduced",
 				"type": "boolean",
 				"label": "Approved reduced occupational accident rate"
+			}
+		],
+		"obligations": [
+			{
+				"code": "CONTRACT_TERMINATION_PROCEDURE_AND",
+				"description": "Contract termination procedure and final settlement",
+				"trigger": "Applicable Labour Code termination ground",
+				"timing": "Applicable Labour Code termination ground",
+				"owner": "HR / notice, legal ground and payment record",
+				"authority": "Unverified end-to-end coverage; Labour Code record (https://vbpl.moj.gov.vn/bocongthuong/Pages/vbpq-vanbanlienquan.aspx?ItemID=139264)",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "SOCIAL_INSURANCE_LEAVE_BENEFIT",
+				"description": "Social-insurance leave benefit claims",
+				"trigger": "Eligible fund-paid absence",
+				"timing": "Eligible fund-paid absence",
+				"owner": "HR / claim, medical evidence and agency decision",
+				"authority": "Unverified claim workflow; fund-paid leave is not an employer reimbursement receipt",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "OVERTIME_CONSENT_LIMITS_AND",
+				"description": "Overtime consent, limits and required reporting",
+				"trigger": "Overtime arrangement and applicable statutory thresholds",
+				"timing": "Overtime arrangement and applicable statutory thresholds",
+				"owner": "HR / consent and labour-authority filings",
+				"authority": "Unverified procedural coverage; Labour Code record (https://vbpl.moj.gov.vn/bocongthuong/Pages/vbpq-vanbanlienquan.aspx?ItemID=139264)",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
 			}
 		]
 	},
@@ -622,6 +716,53 @@
 				"key": "occupational_accident_reduced",
 				"type": "boolean",
 				"label": "Approved reduced occupational accident rate"
+			}
+		],
+		"obligations": [
+			{
+				"code": "CONTRACT_TERMINATION_PROCEDURE_AND",
+				"description": "Contract termination procedure and final settlement",
+				"trigger": "Applicable Labour Code termination ground",
+				"timing": "Applicable Labour Code termination ground",
+				"owner": "HR / notice, legal ground and payment record",
+				"authority": "Unverified end-to-end coverage; Labour Code record (https://vbpl.moj.gov.vn/bocongthuong/Pages/vbpq-vanbanlienquan.aspx?ItemID=139264)",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "SOCIAL_INSURANCE_LEAVE_BENEFIT",
+				"description": "Social-insurance leave benefit claims",
+				"trigger": "Eligible fund-paid absence",
+				"timing": "Eligible fund-paid absence",
+				"owner": "HR / claim, medical evidence and agency decision",
+				"authority": "Unverified claim workflow; fund-paid leave is not an employer reimbursement receipt",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "OVERTIME_CONSENT_LIMITS_AND",
+				"description": "Overtime consent, limits and required reporting",
+				"trigger": "Overtime arrangement and applicable statutory thresholds",
+				"timing": "Overtime arrangement and applicable statutory thresholds",
+				"owner": "HR / consent and labour-authority filings",
+				"authority": "Unverified procedural coverage; Labour Code record (https://vbpl.moj.gov.vn/bocongthuong/Pages/vbpq-vanbanlienquan.aspx?ItemID=139264)",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
 			}
 		]
 	}

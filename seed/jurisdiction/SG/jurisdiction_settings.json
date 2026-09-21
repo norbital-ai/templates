@@ -184,7 +184,63 @@
 				"https://www.profamilyleave.msf.gov.sg/schemes/adoption-leave"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nsso.agc.gov.sg — Singapore Statutes Online: every Act and subsidiary legislation, HTML. /Act/EmA1968 is the Employment Act; add ?ProvIds=P14- for Part 4 (ss.35–53: rest days, hours, overtime), ?ProvIds=P19- for Part 9 (sick leave), ?ProvIds=P110- for Part 10 (public holidays); a #pr37- fragment lands on one section. /Act/CPFA1953 is the CPF Act, /Act/CDCSA2001 the Child Development Co-Savings Act.\ncpf.gov.sg — CPF Board. /employer/employer-obligations/how-much-cpf-contributions-to-pay links the rate tables; the tables are PDFs under /content/dam/web/employer/employer-obligations/documents/ (CPFcontributionratesfrom1Jan2026.pdf, jan2027cpfcontributionrates.pdf; 0.2 MB, text) with Tables 1–5 by citizenship year and age. /employer/infohub/news/cpf-related-announcements/new-contribution-rates announces a step. /employer/employer-obligations/skills-development-levy is SDL; /employer/employer-obligations/contributions-to-self-help-groups the CDAC/ECF/MBMF/SINDA tables.\nmom.gov.sg — /employment-practices/hours-of-work-overtime-and-rest-days (44 h, 1.5×, 72 h, $4,500/$2,600), /employment-practices/public-holidays (the gazetted list per year), /employment-practices/leave/<scheme>, /employment-practices/salary/monthly-and-daily-salary.\nprofamilyleave.msf.gov.sg — /schemes/<maternity-leave|paternity-leave|shared-parental-leave|childcare-leave|unpaid-infant-care-leave|adoption-leave>: the entitlement, its commencement date and eligibility.\nmuis.gov.sg — the MBMF contribution table by wage tier."
-		}
+		},
+		"obligations": [
+			{
+				"code": "FINAL_SALARY_PAYMENT",
+				"description": "Final salary payment",
+				"trigger": "Employment ends; timing depends on notice and termination circumstances",
+				"timing": "Employment ends; timing depends on notice and termination circumstances",
+				"owner": "Payroll / payment receipt and termination record",
+				"authority": "External; MOM payment deadlines (https://www.mom.gov.sg/employment-practices/salary/paying-salary)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_CLEARANCE_AND_WITHHOLDING",
+				"description": "Tax clearance and withholding",
+				"trigger": "Applicable non-citizen cessation, overseas posting or departure; assess exceptions",
+				"timing": "Applicable non-citizen cessation, overseas posting or departure; assess exceptions",
+				"owner": "Finance / IR21 submission, withheld balance and clearance directive",
+				"authority": "External; IRAS IR21 (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-%28ir21%29/getting-tax-clearance-a-step-by-step-guide)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MISCONDUCT_INQUIRY_AND_LEAVE",
+				"description": "Misconduct inquiry and leave forfeiture assessment",
+				"trigger": "Dismissal alleged to justify forfeiture",
+				"timing": "Dismissal alleged to justify forfeiture",
+				"owner": "HR / inquiry finding and applicable statutory basis",
+				"authority": "External; MOM termination (https://www.mom.gov.sg/employment-practices/termination-of-employment/what-is-termination), annual leave (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "GOVERNMENT_PAID_LEAVE_AND",
+				"description": "Government-paid leave and NS reimbursement",
+				"trigger": "Eligible absence and claim window",
+				"timing": "Eligible absence and claim window",
+				"owner": "HR / approval, attendance and reimbursement receipt",
+				"authority": "Unverified filing coverage; review scheme-specific agency requirements",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
+		]
 	},
 	{
 		"id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
@@ -371,7 +427,63 @@
 				"https://www.profamilyleave.msf.gov.sg/schemes/adoption-leave"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nsso.agc.gov.sg — Singapore Statutes Online: every Act and subsidiary legislation, HTML. /Act/EmA1968 is the Employment Act; add ?ProvIds=P14- for Part 4 (ss.35–53: rest days, hours, overtime), ?ProvIds=P19- for Part 9 (sick leave), ?ProvIds=P110- for Part 10 (public holidays); a #pr37- fragment lands on one section. /Act/CPFA1953 is the CPF Act, /Act/CDCSA2001 the Child Development Co-Savings Act.\ncpf.gov.sg — CPF Board. /employer/employer-obligations/how-much-cpf-contributions-to-pay links the rate tables; the tables are PDFs under /content/dam/web/employer/employer-obligations/documents/ (CPFcontributionratesfrom1Jan2026.pdf, jan2027cpfcontributionrates.pdf; 0.2 MB, text) with Tables 1–5 by citizenship year and age. /employer/infohub/news/cpf-related-announcements/new-contribution-rates announces a step. /employer/employer-obligations/skills-development-levy is SDL; /employer/employer-obligations/contributions-to-self-help-groups the CDAC/ECF/MBMF/SINDA tables.\nmom.gov.sg — /employment-practices/hours-of-work-overtime-and-rest-days (44 h, 1.5×, 72 h, $4,500/$2,600), /employment-practices/public-holidays (the gazetted list per year), /employment-practices/leave/<scheme>, /employment-practices/salary/monthly-and-daily-salary.\nprofamilyleave.msf.gov.sg — /schemes/<maternity-leave|paternity-leave|shared-parental-leave|childcare-leave|unpaid-infant-care-leave|adoption-leave>: the entitlement, its commencement date and eligibility.\nmuis.gov.sg — the MBMF contribution table by wage tier."
-		}
+		},
+		"obligations": [
+			{
+				"code": "FINAL_SALARY_PAYMENT",
+				"description": "Final salary payment",
+				"trigger": "Employment ends; timing depends on notice and termination circumstances",
+				"timing": "Employment ends; timing depends on notice and termination circumstances",
+				"owner": "Payroll / payment receipt and termination record",
+				"authority": "External; MOM payment deadlines (https://www.mom.gov.sg/employment-practices/salary/paying-salary)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_CLEARANCE_AND_WITHHOLDING",
+				"description": "Tax clearance and withholding",
+				"trigger": "Applicable non-citizen cessation, overseas posting or departure; assess exceptions",
+				"timing": "Applicable non-citizen cessation, overseas posting or departure; assess exceptions",
+				"owner": "Finance / IR21 submission, withheld balance and clearance directive",
+				"authority": "External; IRAS IR21 (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-%28ir21%29/getting-tax-clearance-a-step-by-step-guide)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MISCONDUCT_INQUIRY_AND_LEAVE",
+				"description": "Misconduct inquiry and leave forfeiture assessment",
+				"trigger": "Dismissal alleged to justify forfeiture",
+				"timing": "Dismissal alleged to justify forfeiture",
+				"owner": "HR / inquiry finding and applicable statutory basis",
+				"authority": "External; MOM termination (https://www.mom.gov.sg/employment-practices/termination-of-employment/what-is-termination), annual leave (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "GOVERNMENT_PAID_LEAVE_AND",
+				"description": "Government-paid leave and NS reimbursement",
+				"trigger": "Eligible absence and claim window",
+				"timing": "Eligible absence and claim window",
+				"owner": "HR / approval, attendance and reimbursement receipt",
+				"authority": "Unverified filing coverage; review scheme-specific agency requirements",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000040",
@@ -558,7 +670,63 @@
 				"https://www.profamilyleave.msf.gov.sg/schemes/adoption-leave"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nsso.agc.gov.sg — Singapore Statutes Online: every Act and subsidiary legislation, HTML. /Act/EmA1968 is the Employment Act; add ?ProvIds=P14- for Part 4 (ss.35–53: rest days, hours, overtime), ?ProvIds=P19- for Part 9 (sick leave), ?ProvIds=P110- for Part 10 (public holidays); a #pr37- fragment lands on one section. /Act/CPFA1953 is the CPF Act, /Act/CDCSA2001 the Child Development Co-Savings Act.\ncpf.gov.sg — CPF Board. /employer/employer-obligations/how-much-cpf-contributions-to-pay links the rate tables; the tables are PDFs under /content/dam/web/employer/employer-obligations/documents/ (CPFcontributionratesfrom1Jan2026.pdf, jan2027cpfcontributionrates.pdf; 0.2 MB, text) with Tables 1–5 by citizenship year and age. /employer/infohub/news/cpf-related-announcements/new-contribution-rates announces a step. /employer/employer-obligations/skills-development-levy is SDL; /employer/employer-obligations/contributions-to-self-help-groups the CDAC/ECF/MBMF/SINDA tables.\nmom.gov.sg — /employment-practices/hours-of-work-overtime-and-rest-days (44 h, 1.5×, 72 h, $4,500/$2,600), /employment-practices/public-holidays (the gazetted list per year), /employment-practices/leave/<scheme>, /employment-practices/salary/monthly-and-daily-salary.\nprofamilyleave.msf.gov.sg — /schemes/<maternity-leave|paternity-leave|shared-parental-leave|childcare-leave|unpaid-infant-care-leave|adoption-leave>: the entitlement, its commencement date and eligibility.\nmuis.gov.sg — the MBMF contribution table by wage tier."
-		}
+		},
+		"obligations": [
+			{
+				"code": "FINAL_SALARY_PAYMENT",
+				"description": "Final salary payment",
+				"trigger": "Employment ends; timing depends on notice and termination circumstances",
+				"timing": "Employment ends; timing depends on notice and termination circumstances",
+				"owner": "Payroll / payment receipt and termination record",
+				"authority": "External; MOM payment deadlines (https://www.mom.gov.sg/employment-practices/salary/paying-salary)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_CLEARANCE_AND_WITHHOLDING",
+				"description": "Tax clearance and withholding",
+				"trigger": "Applicable non-citizen cessation, overseas posting or departure; assess exceptions",
+				"timing": "Applicable non-citizen cessation, overseas posting or departure; assess exceptions",
+				"owner": "Finance / IR21 submission, withheld balance and clearance directive",
+				"authority": "External; IRAS IR21 (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-%28ir21%29/getting-tax-clearance-a-step-by-step-guide)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MISCONDUCT_INQUIRY_AND_LEAVE",
+				"description": "Misconduct inquiry and leave forfeiture assessment",
+				"trigger": "Dismissal alleged to justify forfeiture",
+				"timing": "Dismissal alleged to justify forfeiture",
+				"owner": "HR / inquiry finding and applicable statutory basis",
+				"authority": "External; MOM termination (https://www.mom.gov.sg/employment-practices/termination-of-employment/what-is-termination), annual leave (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "GOVERNMENT_PAID_LEAVE_AND",
+				"description": "Government-paid leave and NS reimbursement",
+				"trigger": "Eligible absence and claim window",
+				"timing": "Eligible absence and claim window",
+				"owner": "HR / approval, attendance and reimbursement receipt",
+				"authority": "Unverified filing coverage; review scheme-specific agency requirements",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
+		]
 	},
 	{
 		"id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
@@ -745,6 +913,62 @@
 				"https://www.profamilyleave.msf.gov.sg/schemes/adoption-leave"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nsso.agc.gov.sg — Singapore Statutes Online: every Act and subsidiary legislation, HTML. /Act/EmA1968 is the Employment Act; add ?ProvIds=P14- for Part 4 (ss.35–53: rest days, hours, overtime), ?ProvIds=P19- for Part 9 (sick leave), ?ProvIds=P110- for Part 10 (public holidays); a #pr37- fragment lands on one section. /Act/CPFA1953 is the CPF Act, /Act/CDCSA2001 the Child Development Co-Savings Act.\ncpf.gov.sg — CPF Board. /employer/employer-obligations/how-much-cpf-contributions-to-pay links the rate tables; the tables are PDFs under /content/dam/web/employer/employer-obligations/documents/ (CPFcontributionratesfrom1Jan2026.pdf, jan2027cpfcontributionrates.pdf; 0.2 MB, text) with Tables 1–5 by citizenship year and age. /employer/infohub/news/cpf-related-announcements/new-contribution-rates announces a step. /employer/employer-obligations/skills-development-levy is SDL; /employer/employer-obligations/contributions-to-self-help-groups the CDAC/ECF/MBMF/SINDA tables.\nmom.gov.sg — /employment-practices/hours-of-work-overtime-and-rest-days (44 h, 1.5×, 72 h, $4,500/$2,600), /employment-practices/public-holidays (the gazetted list per year), /employment-practices/leave/<scheme>, /employment-practices/salary/monthly-and-daily-salary.\nprofamilyleave.msf.gov.sg — /schemes/<maternity-leave|paternity-leave|shared-parental-leave|childcare-leave|unpaid-infant-care-leave|adoption-leave>: the entitlement, its commencement date and eligibility.\nmuis.gov.sg — the MBMF contribution table by wage tier."
-		}
+		},
+		"obligations": [
+			{
+				"code": "FINAL_SALARY_PAYMENT",
+				"description": "Final salary payment",
+				"trigger": "Employment ends; timing depends on notice and termination circumstances",
+				"timing": "Employment ends; timing depends on notice and termination circumstances",
+				"owner": "Payroll / payment receipt and termination record",
+				"authority": "External; MOM payment deadlines (https://www.mom.gov.sg/employment-practices/salary/paying-salary)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_CLEARANCE_AND_WITHHOLDING",
+				"description": "Tax clearance and withholding",
+				"trigger": "Applicable non-citizen cessation, overseas posting or departure; assess exceptions",
+				"timing": "Applicable non-citizen cessation, overseas posting or departure; assess exceptions",
+				"owner": "Finance / IR21 submission, withheld balance and clearance directive",
+				"authority": "External; IRAS IR21 (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-%28ir21%29/getting-tax-clearance-a-step-by-step-guide)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MISCONDUCT_INQUIRY_AND_LEAVE",
+				"description": "Misconduct inquiry and leave forfeiture assessment",
+				"trigger": "Dismissal alleged to justify forfeiture",
+				"timing": "Dismissal alleged to justify forfeiture",
+				"owner": "HR / inquiry finding and applicable statutory basis",
+				"authority": "External; MOM termination (https://www.mom.gov.sg/employment-practices/termination-of-employment/what-is-termination), annual leave (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "GOVERNMENT_PAID_LEAVE_AND",
+				"description": "Government-paid leave and NS reimbursement",
+				"trigger": "Eligible absence and claim window",
+				"timing": "Eligible absence and claim window",
+				"owner": "HR / approval, attendance and reimbursement receipt",
+				"authority": "Unverified filing coverage; review scheme-specific agency requirements",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
+			}
+		]
 	}
 ]

@@ -145,6 +145,9 @@
 					</FormSection>
 
 					{#if record}
+						<FormSection title={t('component.obligations')} hint={t('component.obligations_hint')}>
+							<Field name="obligations" />
+						</FormSection>
 						<FormSection
 							title={t('component.calculation_flow')}
 							hint={t('component.calculation_flow_hint')}
@@ -178,6 +181,7 @@
 				<Field name="sources" hidden />
 				<Field name="facts" hidden />
 				<Field name="exit_facts" hidden />
+				<Field name="obligations" hidden />
 			{/if}
 
 			{#if showWorkRules}

@@ -22,6 +22,7 @@ export default {
 		grantsOn('employments', ['read']),
 		grantsOn('employees', ['read']),
 		grantsOn('companies', ['read']),
+		grantsOn('company_facts', ['read']),
 		grantsOn('employment_terms', ['read']),
 		grantsOn('jurisdiction_settings', ['read']),
 		grantsOn('leave_catalogue', ['read']),

@@ -12,6 +12,10 @@ export type PayrollRow = Record<string, unknown>;
 
 export type PayrollWorld = {
 	readonly companies: PayrollRow[];
+	/** Dated entity fact revisions; a world that states none has only the current record. */
+	readonly company_facts?: PayrollRow[];
+	/** Disbursement holds; a world that states none holds nothing. */
+	readonly payment_holds?: PayrollRow[];
 	readonly jurisdiction_settings: PayrollRow[];
 	readonly statutory_contributions: PayrollRow[];
 	readonly loan_catalogue: PayrollRow[];
@@ -81,6 +85,14 @@ const RELATIONS: Record<
 		payslip_payroll_run: {
 			target: 'payslips',
 			column: 'payroll_run_id',
+			parentColumn: 'id',
+			cardinality: 'many'
+		}
+	},
+	companies: {
+		company_fact_company: {
+			target: 'company_facts',
+			column: 'company_id',
 			parentColumn: 'id',
 			cardinality: 'many'
 		}
@@ -190,6 +202,8 @@ export function memoryPayrollApi(world: PayrollWorld) {
 	return {
 		db: {
 			companies: collection('companies'),
+			company_facts: collection('company_facts'),
+			payment_holds: collection('payment_holds'),
 			jurisdiction_settings: collection('jurisdiction_settings'),
 			statutory_contributions: collection('statutory_contributions'),
 			loan_catalogue: collection('loan_catalogue'),

@@ -49,7 +49,7 @@ export default defineCollection({
 			});
 			// One wave: the runs being paid under, and every unpaid slip of the people being paid,
 			// with its run — "paid in order" is a rule about a person's own pay.
-			const [runs, unpaid] = yield* Effect.all(
+			const [runs, unpaid, holds] = yield* Effect.all(
 				[
 					paying.length === 0
 						? Effect.succeed([])
@@ -67,6 +67,16 @@ export default defineCollection({
 								},
 								columns: { id: true, employment_id: true, payroll_run_id: true },
 								with: { payslip_payroll_run: { columns: { company_id: true, period: true } } },
+								limit: 20_000
+							}),
+					paying.length === 0 || db.payment_holds?.findMany == null
+						? Effect.succeed([])
+						: db.payment_holds.findMany({
+								where: {
+									employment_id: { in: [...new Set(paying.map((slip) => slip.employment_id))] },
+									released_on: { isNull: true }
+								},
+								columns: { employment_id: true, directive_reference: true },
 								limit: 20_000
 							})
 				],
@@ -116,6 +126,11 @@ export default defineCollection({
 					);
 				if (funding > 0 && dateKey(fundingDate!) > dateKey(paidAt!))
 					refuse('The settlement date cannot precede the contribution funding receipt.');
+				const openHold = holds.find((hold) => hold.employment_id === stored.employment_id);
+				if (openHold != null)
+					refuse(
+						`Disbursement hold ${openHold.directive_reference} is open on this employment. Record the releasing directive before marking the payslip paid.`
+					);
 				const run = runById.get(stored.payroll_run_id);
 				if (run == null) refuse('A payslip cannot be paid without its payroll run.');
 				// Paid in order, per person: January's slip before February's for the same

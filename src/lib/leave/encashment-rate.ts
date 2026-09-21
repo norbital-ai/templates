@@ -14,6 +14,7 @@ import { settingsInForce } from '../jurisdiction_settings.js';
 import { stint } from '../employment-contract.js';
 import { evaluateNumber, expressionEngine } from '../expressions/evaluate.js';
 import { listedAllowances } from '../payroll/contract-allowances.js';
+import { creditOriginalDate } from './balance.js';
 import {
 	latestDueMonthNormalRate,
 	previousWagePeriodOrdinaryRate
@@ -80,13 +81,15 @@ export function leaveEncashmentRate(options: {
 			if (allocation.credit_entry_id != null && credit == null)
 				throw new Error('Carried leave cash-out requires its original credit.');
 			const carried = credit?.destination_from != null;
-			if (carried && credit.allocations.some((source) => source.credit_entry_id != null))
+			// A transferred credit's days still belong to their original salary year: the allocation
+			// carries that date, and a chain the field did not record is walked back to its origin.
+			const sourceEnd =
+				allocation.original_date ??
+				(carried ? creditOriginalDate(bundle.leave.entries, credit) : allocation.window.end);
+			if (sourceEnd == null)
 				throw new Error(
 					'Carried leave with transferred credits requires reconciliation of original salary years.'
 				);
-			const sourceEnd = carried ? credit.to_date : allocation.window.end;
-			if (sourceEnd == null)
-				throw new Error('Carried leave cash-out requires its original year end.');
 			total +=
 				-allocation.days *
 				leaveEncashmentRate({
@@ -216,10 +219,11 @@ export function leaveEncashmentRate(options: {
 		children: bundle.children,
 		company: {
 			...configuration.company,
-			facts: resolveCompanyFacts(version?.facts ?? [], {
-				...configuration.company,
-				facts: configuration.recordedCompanyFacts
-			})
+			facts: resolveCompanyFacts(
+				version?.facts ?? [],
+				{ ...configuration.company, facts: configuration.recordedCompanyFacts },
+				{ asOf: eventDate, revisions: configuration.companyFactRevisions }
+			)
 		},
 		period: { working_days: workingDays },
 		asOf: referenceDate

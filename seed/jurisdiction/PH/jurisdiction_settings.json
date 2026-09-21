@@ -143,7 +143,7 @@
 			],
 			"wages": {
 				"by_region": {
-					"IV-A": 15650.0,
+					"IV-A": 15650,
 					"NCR": 18127.92,
 					"IV-A-1ST": 14345.83,
 					"IV-A-RECLASSIFIED-1ST": 13302.5,
@@ -191,6 +191,53 @@
 				"key": "small_establishment",
 				"type": "boolean",
 				"label": "Small establishment"
+			}
+		],
+		"obligations": [
+			{
+				"code": "FINAL_PAY_AND_CERTIFICATE",
+				"description": "Final pay and certificate of employment",
+				"trigger": "Separation or certificate request",
+				"timing": "Separation or certificate request",
+				"owner": "HR / itemised settlement, payment and certificate delivery",
+				"authority": "External; verify Labor Advisory 06-20 itself before configuring deadlines; DOLE advisory catalogue (https://bwc.dole.gov.ph/issuances/labor-advisories/)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "CONTRIBUTION_REMITTANCE_AND_EMPLOYER",
+				"description": "Contribution remittance and employer reporting",
+				"trigger": "SSS, PhilHealth and Pag-IBIG schedules",
+				"timing": "SSS, PhilHealth and Pag-IBIG schedules",
+				"owner": "Finance / accepted returns and remittance receipts",
+				"authority": "External; SSS contribution guidance (https://www.sss.gov.ph/pay-contribution/); other agency filing coverage unverified",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "STATUTORY_LEAVE_ELIGIBILITY_AND",
+				"description": "Statutory leave eligibility and proof",
+				"trigger": "SIL, maternity, paternity, solo parent, VAWC and special leave applications",
+				"timing": "SIL, maternity, paternity, solo parent, VAWC and special leave applications",
+				"owner": "HR / eligibility and supporting records",
+				"authority": "External; DOLE leave guidance (https://bwc.dole.gov.ph/dole-bwc-conducts-informative-discussion-on-statutory-leave-benefits/)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
 			}
 		]
 	},
@@ -338,7 +385,7 @@
 			],
 			"wages": {
 				"by_region": {
-					"IV-A": 15650.0,
+					"IV-A": 15650,
 					"NCR": 18127.92,
 					"IV-A-1ST": 14345.83,
 					"IV-A-RECLASSIFIED-1ST": 13302.5,
@@ -387,6 +434,53 @@
 				"key": "small_establishment",
 				"type": "boolean",
 				"label": "Small establishment"
+			}
+		],
+		"obligations": [
+			{
+				"code": "FINAL_PAY_AND_CERTIFICATE",
+				"description": "Final pay and certificate of employment",
+				"trigger": "Separation or certificate request",
+				"timing": "Separation or certificate request",
+				"owner": "HR / itemised settlement, payment and certificate delivery",
+				"authority": "External; verify Labor Advisory 06-20 itself before configuring deadlines; DOLE advisory catalogue (https://bwc.dole.gov.ph/issuances/labor-advisories/)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "CONTRIBUTION_REMITTANCE_AND_EMPLOYER",
+				"description": "Contribution remittance and employer reporting",
+				"trigger": "SSS, PhilHealth and Pag-IBIG schedules",
+				"timing": "SSS, PhilHealth and Pag-IBIG schedules",
+				"owner": "Finance / accepted returns and remittance receipts",
+				"authority": "External; SSS contribution guidance (https://www.sss.gov.ph/pay-contribution/); other agency filing coverage unverified",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "STATUTORY_LEAVE_ELIGIBILITY_AND",
+				"description": "Statutory leave eligibility and proof",
+				"trigger": "SIL, maternity, paternity, solo parent, VAWC and special leave applications",
+				"timing": "SIL, maternity, paternity, solo parent, VAWC and special leave applications",
+				"owner": "HR / eligibility and supporting records",
+				"authority": "External; DOLE leave guidance (https://bwc.dole.gov.ph/dole-bwc-conducts-informative-discussion-on-statutory-leave-benefits/)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
 			}
 		]
 	},
@@ -534,7 +628,7 @@
 			],
 			"wages": {
 				"by_region": {
-					"IV-A": 15650.0,
+					"IV-A": 15650,
 					"NCR": 18127.92,
 					"IV-A-1ST": 14345.83,
 					"IV-A-RECLASSIFIED-1ST": 14345.83,
@@ -583,6 +677,53 @@
 				"key": "small_establishment",
 				"type": "boolean",
 				"label": "Small establishment"
+			}
+		],
+		"obligations": [
+			{
+				"code": "FINAL_PAY_AND_CERTIFICATE",
+				"description": "Final pay and certificate of employment",
+				"trigger": "Separation or certificate request",
+				"timing": "Separation or certificate request",
+				"owner": "HR / itemised settlement, payment and certificate delivery",
+				"authority": "External; verify Labor Advisory 06-20 itself before configuring deadlines; DOLE advisory catalogue (https://bwc.dole.gov.ph/issuances/labor-advisories/)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "CONTRIBUTION_REMITTANCE_AND_EMPLOYER",
+				"description": "Contribution remittance and employer reporting",
+				"trigger": "SSS, PhilHealth and Pag-IBIG schedules",
+				"timing": "SSS, PhilHealth and Pag-IBIG schedules",
+				"owner": "Finance / accepted returns and remittance receipts",
+				"authority": "External; SSS contribution guidance (https://www.sss.gov.ph/pay-contribution/); other agency filing coverage unverified",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "STATUTORY_LEAVE_ELIGIBILITY_AND",
+				"description": "Statutory leave eligibility and proof",
+				"trigger": "SIL, maternity, paternity, solo parent, VAWC and special leave applications",
+				"timing": "SIL, maternity, paternity, solo parent, VAWC and special leave applications",
+				"owner": "HR / eligibility and supporting records",
+				"authority": "External; DOLE leave guidance (https://bwc.dole.gov.ph/dole-bwc-conducts-informative-discussion-on-statutory-leave-benefits/)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
 			}
 		]
 	},
@@ -730,7 +871,7 @@
 			],
 			"wages": {
 				"by_region": {
-					"IV-A": 15650.0,
+					"IV-A": 15650,
 					"NCR": 19692.92,
 					"IV-A-1ST": 14345.83,
 					"IV-A-RECLASSIFIED-1ST": 14345.83,
@@ -781,6 +922,53 @@
 				"key": "small_establishment",
 				"type": "boolean",
 				"label": "Small establishment"
+			}
+		],
+		"obligations": [
+			{
+				"code": "FINAL_PAY_AND_CERTIFICATE",
+				"description": "Final pay and certificate of employment",
+				"trigger": "Separation or certificate request",
+				"timing": "Separation or certificate request",
+				"owner": "HR / itemised settlement, payment and certificate delivery",
+				"authority": "External; verify Labor Advisory 06-20 itself before configuring deadlines; DOLE advisory catalogue (https://bwc.dole.gov.ph/issuances/labor-advisories/)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "CONTRIBUTION_REMITTANCE_AND_EMPLOYER",
+				"description": "Contribution remittance and employer reporting",
+				"trigger": "SSS, PhilHealth and Pag-IBIG schedules",
+				"timing": "SSS, PhilHealth and Pag-IBIG schedules",
+				"owner": "Finance / accepted returns and remittance receipts",
+				"authority": "External; SSS contribution guidance (https://www.sss.gov.ph/pay-contribution/); other agency filing coverage unverified",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "STATUTORY_LEAVE_ELIGIBILITY_AND",
+				"description": "Statutory leave eligibility and proof",
+				"trigger": "SIL, maternity, paternity, solo parent, VAWC and special leave applications",
+				"timing": "SIL, maternity, paternity, solo parent, VAWC and special leave applications",
+				"owner": "HR / eligibility and supporting records",
+				"authority": "External; DOLE leave guidance (https://bwc.dole.gov.ph/dole-bwc-conducts-informative-discussion-on-statutory-leave-benefits/)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
+				"description": "Tax returns, annual employee statements and agency remittance",
+				"trigger": "Applicable authority's filing calendar",
+				"timing": "Applicable authority's filing calendar",
+				"owner": "Finance / accepted filing and payment receipts",
+				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
+				"status": "UNVERIFIED"
+			},
+			{
+				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
+				"description": "Work authorisation, employment records, privacy and workplace safety",
+				"trigger": "Hiring, employment, record retention and termination",
+				"timing": "Hiring, employment, record retention and termination",
+				"owner": "HR / applicable-law register, permits and retained evidence",
+				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"status": "EXTERNAL"
 			}
 		]
 	}

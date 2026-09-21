@@ -28,6 +28,7 @@ const columns = {
 	work_rules: true,
 	facts: true,
 	exit_facts: true,
+	obligations: true,
 	change_summary: true,
 	effective_range: true
 } as const;

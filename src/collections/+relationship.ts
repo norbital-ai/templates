@@ -67,6 +67,7 @@ export default ((r) => ({
 	companies: {
 		/** Restrict, like every entity-scoped catalogue: an entity with a calendar is not deleted. */
 		holiday_company: r.many.jurisdiction_holidays(),
+		company_fact_company: r.many.company_facts(),
 		company_shift_definition: r.many.shift_definitions(),
 		company_shift_pattern: r.many.shift_patterns(),
 		employment_company: r.many.employments(),
@@ -168,7 +169,26 @@ export default ((r) => ({
 		work_day_employment: r.many.work_days(),
 		roster_employment: r.many.rosters(),
 		payslip_employment: r.many.payslips(),
-		wage_period_employment: r.many.employment_wage_periods()
+		wage_period_employment: r.many.employment_wage_periods(),
+		payment_hold_employment: r.many.payment_holds()
+	},
+
+	payment_holds: {
+		payment_hold_employment: cascade(
+			r.one.employments({
+				from: r.payment_holds.employment_id,
+				to: r.employments.id
+			})
+		)
+	},
+
+	company_facts: {
+		company_fact_company: cascade(
+			r.one.companies({
+				from: r.company_facts.company_id,
+				to: r.companies.id
+			})
+		)
 	},
 
 	employment_wage_periods: {
