@@ -86,3 +86,60 @@ test('a valid roster sheet still returns the payload so the toast catch stays qu
 	assert.equal('attendance' in payload, false);
 	assert.equal('timezone' in payload, false);
 });
+
+test('an overtime month grid returns the approved hours, and no other sheet is required', async () => {
+	const grids = await gridsFromSheets([
+		['Read me first', README],
+		['Settings', SETTINGS],
+		[
+			'Overtime',
+			[
+				['employee_number', '4', '5'],
+				['PUBEM0023', 2.5, '']
+			]
+		]
+	]);
+	assert.equal(catchImportFailure(grids), null);
+	const payload = schedulingImportPayload(grids);
+	assert.deepEqual(payload.overtime, [
+		{ employee_number: 'PUBEM0023', work_date: '2026-05-04', overtime_hours: 2.5 }
+	]);
+	assert.equal('roster' in payload, false);
+	assert.equal('attendance' in payload, false);
+});
+
+test('a long-form overtime sheet reads its own column', async () => {
+	const grids = await gridsFromSheets([
+		['Read me first', README],
+		['Settings', SETTINGS],
+		[
+			'Overtime',
+			[
+				['employee_number', 'work_date', 'overtime_hours'],
+				['PUBEM0023', '2026-05-04', 1.5]
+			]
+		]
+	]);
+	const payload = schedulingImportPayload(grids);
+	assert.deepEqual(payload.overtime, [
+		{ employee_number: 'PUBEM0023', work_date: '2026-05-04', overtime_hours: 1.5 }
+	]);
+});
+
+test('a file still carrying the retired overtime-window columns is refused by name', async () => {
+	const grids = await gridsFromSheets([
+		['Read me first', README],
+		['Settings', SETTINGS],
+		[
+			'Time entries',
+			[
+				['employee_number', 'work_date', 'clock_in', 'clock_out', 'overtime_in', 'overtime_out'],
+				['PUBEM0023', '2026-05-04', '08:30', '20:30', '18:00', '20:30']
+			]
+		]
+	]);
+	const caught = catchImportFailure(grids);
+	assert.ok(caught instanceof WorkbookImportError);
+	assert.match(caught.message, /overtime_in, overtime_out/);
+	assert.match(caught.message, /Overtime/);
+});

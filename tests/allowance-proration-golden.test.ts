@@ -2,11 +2,12 @@
  * Allowance proration, against the law of two jurisdictions.
  *
  * A standing allowance prorates on the same basis as basic salary: a joiner or a leaver inside
- * the period takes the days they were employed, everywhere. Unpaid leave is where the
- * jurisdictions part — the Philippine "no work, no pay" reaches a fixed allowance (a day of
- * unpaid leave comes off it), Singapore's Employment Act leaves a fixed allowance whole. The
- * jurisdiction says which on `payroll.allowance_npl_prorates`, and every entry a payslip prices
- * carries the days, the divisor, the basis and the unpaid days it was priced on.
+ * the period takes the days they were employed, everywhere. Unpaid leave follows the statute that
+ * computes the deduction — the deduction's wage includes the fixed allowances, except the classes
+ * the law keeps out of it: SG's travel, food and housing allowances (EA s.2) and MY's travelling
+ * allowance stay whole, and everything else loses the day. The version states the default on
+ * `payroll.allowance_npl_prorates` and a class overrules it with `npl_prorates`; every entry a
+ * payslip prices carries the days, the divisor, the basis and the unpaid days it was priced on.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -156,7 +157,7 @@ test('Philippines — a joiner takes the working days employed over 21.75, and a
 	assert.equal(built.allowances.get('JOINER')![0]!.from, '2026-01-19');
 });
 
-test('Singapore — a joiner takes the working days employed over the month’s, and an unpaid day leaves the allowance whole', () => {
+test('Singapore — a joiner takes the working days employed over the month’s, and a travelling allowance stays whole', () => {
 	const built = buildStatutory(
 		{
 			code: 'SG',
@@ -174,6 +175,9 @@ test('Singapore — a joiner takes the working days employed over the month’s,
 				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
 				counts_toward: ['CPF.ORDINARY', 'SDL', 'CDAC', 'ECF', 'MBMF', 'SINDA'],
+				// EA s.2(e): a travelling allowance is outside the gross rate of pay the absence is
+				// deducted from, so a day of unpaid leave leaves it whole.
+				npl_prorates: false,
 				approval_id: null
 			});
 			standing(world, SG_TRANSPORT);
@@ -208,4 +212,69 @@ test('Singapore — a joiner takes the working days employed over the month’s,
 		'the unpaid day is still deducted from the wage'
 	);
 	assert.deepEqual(facts(built, 'JOINER'), [10, 22, 0, 988.64]);
+});
+
+test('Singapore — a class the law does not exclude loses the unpaid day with the wage', () => {
+	const SG_SHIFT = 'c1c1c1c1-0000-4000-8000-000000000003';
+	const built = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [{ key: 'SG-SHIFT', wage: 30_000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			world.allowance_catalogue.push({
+				id: SG_SHIFT,
+				settings_id: SG_VERSION,
+				code: 'SHIFT',
+				name: 'Shift',
+				eligibility: '',
+				destination: 'PAY',
+				direction: 'ADD',
+				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				counts_toward: ['CPF.ORDINARY', 'SDL'],
+				// No override: the version's default (prorate) governs, because a shift allowance is
+				// inside the gross rate of pay the absence is deducted from (EA s.2, s.20A).
+				approval_id: null
+			});
+			assignAllowance(world, {
+				id: 'd0000000-0000-4000-8000-000000000009',
+				employment_id: world.employments[0].id,
+				catalogue_id: SG_SHIFT,
+				amount: 2_175,
+				effective_from: '2026-01-01',
+				effective_to: null,
+				reason: '',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+			world.leave_catalogue.push({
+				id: SG_UNPAID_LEAVE,
+				settings_id: SG_VERSION,
+				code: 'UNPAID_LEAVE',
+				name: 'Unpaid leave',
+				eligibility: '',
+				evidence: 'NONE',
+				evidence_after_days: null,
+				entitlement: {
+					availability: 'UNLIMITED',
+					year_start_month: 1,
+					proration: 'NONE',
+					bands: []
+				},
+				is_npl: true,
+				can_encash: false,
+				bands: [],
+				approval_id: null
+			});
+			unpaidDay(world, 'SG-SHIFT', SG_UNPAID_LEAVE);
+		}
+	);
+	// 2,175 × 21/22 = 2,076.14, so the month's deduction is 30,000/22 + 2,175/22 = 1,462.50 —
+	// the gross rate over the month's 22 working days (EA s.20A).
+	assert.deepEqual(facts(built, 'SG-SHIFT'), [21, 22, 1, 2076.14]);
+	const absence = built.slips.get('SG-SHIFT')!.adjustments.find((row) => row.bucket === 'ABSENCE')!;
+	assert.equal(absence.amount, 1363.64);
+	assert.equal(built.slips.get('SG-SHIFT')!.gross, 32_175 - 1462.5);
 });

@@ -334,6 +334,24 @@ export function compileExpression(options: {
 		}
 		return null;
 	}
+	// An open fact's type is its version's declaration, and the person, scheme and entry sites do
+	// not hold one. A number is the permissive placeholder for arithmetic, but `has(f) && f` — the
+	// ordinary read of an optional boolean fact — is refused by it, so an expression that reads a
+	// fact this caller cannot type is parsed and member-checked here, and compiled where the row's
+	// version is known.
+	const factReads = [
+		...openKeyMentions(expression, 'person.company.facts'),
+		...openKeyMentions(expression, 'company.facts')
+	];
+	const typedFacts = new Set((options.facts ?? []).map((field) => field.key));
+	if (factReads.some((key) => !typedFacts.has(key))) {
+		try {
+			programFor(expression);
+		} catch (error) {
+			return `The ${options.site} expression does not compile: ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`;
+		}
+		return null;
+	}
 	const blank = openKeyBlank(
 		context,
 		expression,

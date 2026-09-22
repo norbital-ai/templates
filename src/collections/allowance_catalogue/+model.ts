@@ -1,4 +1,4 @@
-import { custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import { boolean, custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -30,7 +30,14 @@ export default defineModel(
 		 */
 		counts_toward: custom('code_list')
 			.notNull()
-			.default(sql`'[]'::jsonb`)
+			.default(sql`'[]'::jsonb`),
+		/**
+		 * Whether an unpaid day comes off this class. Null follows the version
+		 * (`payroll.allowance_npl_prorates`); the classes a statute excludes from the deduction's
+		 * wage — SG's travel, food and housing allowances (EA s.2), MY's travelling allowance —
+		 * state false, and every other class prorates like basic salary.
+		 */
+		npl_prorates: boolean()
 	},
 	{
 		description:

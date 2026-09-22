@@ -23,7 +23,7 @@
 import { DEDUCTION_TOTAL_KEYS } from '../statutory-deductions.js';
 
 export type ExpressionSite =
-	'entity' | 'person' | 'entry' | 'work_day' | 'assessment' | 'scheme' | 'leave_day';
+	'entity' | 'person' | 'entry' | 'work_day' | 'assessment' | 'scheme' | 'leave_day' | 'rest_break';
 /** What an expression returns: a boolean, or a number in the unit its field is named for. */
 export type ExpressionType = 'boolean' | 'money' | 'hours' | 'minutes' | 'days' | 'number';
 
@@ -816,6 +816,51 @@ const PERSON_CONTEXT: ExpressionContext = {
 	blank: personBlank()
 };
 
+/**
+ * The rest-break rule's site: the person, plus what the day's punches measured.
+ *
+ * `selectBreakRule` evaluates a version's `breaks` over exactly this merge — the person context
+ * (so a rule may turn on an entity fact) with the run, the overtime and the night hours beside
+ * it — which no other site expresses, so the write-time check gets its own.
+ */
+const REST_BREAK_CONTEXT: ExpressionContext = {
+	site: 'rest_break',
+	description: 'One day’s rest-break obligation: the person, and what the day’s punches measured.',
+	fields: [
+		...PERSON_ROOT_FIELDS,
+		{ path: 'consecutive_hours', description: 'The longest unbroken work run in the day' },
+		{
+			path: 'overtime_hours',
+			description:
+				'Payable overtime hours: the approved hours plus the day type’s clock-derived premium'
+		},
+		{ path: 'continuous_attendance', description: 'Work that must be carried on continuously' },
+		{ path: 'night_hours', description: 'Hours inside the night window, 0 where none is declared' }
+	],
+	bare: [
+		'wage_floor',
+		'consecutive_hours',
+		'overtime_hours',
+		'continuous_attendance',
+		'night_hours'
+	],
+	open: [
+		'company.facts',
+		'facts',
+		'period.leave_full_days',
+		'period.leave_days',
+		'employment.exit_facts'
+	],
+	functions: functionsFor('person'),
+	blank: {
+		...personBlank(),
+		consecutive_hours: 0,
+		overtime_hours: 0,
+		continuous_attendance: false,
+		night_hours: 0
+	}
+};
+
 const LEAVE_DAY_CONTEXT: ExpressionContext = {
 	site: 'leave_day',
 	description: 'One charged day of leave: the person that day, and where in the leave it falls.',
@@ -908,7 +953,11 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		{ path: 'normal_hours', description: 'The scheduled normal hours' },
 		{ path: 'hours_beyond_normal', description: 'Worked hours past the normal day' },
 		{ path: 'hours_from_start_fraction', description: 'Worked share of a normal day, 0..1' },
-		{ path: 'overtime_hours', description: 'Derived overtime hours' },
+		{
+			path: 'overtime_hours',
+			description:
+				'Payable overtime hours: the approved hours plus the day type’s clock-derived premium'
+		},
 		{ path: 'consecutive_hours', description: 'Longest unbroken work run in the day' },
 		{ path: 'continuous_attendance', description: 'Work that must be carried on continuously' },
 		{ path: 'rest_day', description: 'The roster’s weekly rest day, whatever the holiday made it' },
@@ -1151,7 +1200,8 @@ export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionCont
 	work_day: WORK_DAY_CONTEXT,
 	assessment: ASSESSMENT_CONTEXT,
 	scheme: SCHEME_CONTEXT,
-	leave_day: LEAVE_DAY_CONTEXT
+	leave_day: LEAVE_DAY_CONTEXT,
+	rest_break: REST_BREAK_CONTEXT
 };
 
 const MENTION_CACHE_CAP = 50_000;

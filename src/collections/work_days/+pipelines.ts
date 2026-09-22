@@ -1,12 +1,13 @@
 /**
  * The `work_days` import: one workbook, one legal entity, one calendar month — the roster of
- * record and the attendance of that month, as a set.
+ * record, the attendance of that month and the approved overtime, as a set.
  *
  * The file replaces the month. For every employee of the entity, every stored work day of the
  * month is removed and the file's days are written; a person the file names gets a roster of
  * record for the month, a person it does not name loses the month's days and roster and falls
  * back to the shift pattern. A Roster sheet on its own replaces only the plan half of every day;
- * a Time entries sheet on its own replaces only the attendance half.
+ * a Time entries sheet on its own replaces only the attendance half; an Overtime sheet on its own
+ * replaces only the approved hours, and a person it does not name loses the month's approvals.
  *
  * Two things are refused before anything is written. A named person must have a shift on every
  * day of the month they are employed — a roster is whole or it is not one. And a day a payslip
@@ -80,13 +81,21 @@ const attendanceRowSchema = Schema.Struct({
 });
 type AttendanceRow = Schema.Schema.Type<typeof attendanceRowSchema>;
 
+const overtimeRowSchema = Schema.Struct({
+	employee_number: trimmedNonEmpty,
+	work_date: trimmedNonEmpty,
+	overtime_hours: Schema.Number
+});
+type OvertimeRow = Schema.Schema.Type<typeof overtimeRowSchema>;
+
 /** The whole workbook. A sheet the file does not carry is `undefined`; an empty sheet is `[]`. */
 const importSchema = Schema.Struct({
 	legal_entity: trimmedNonEmpty,
 	month: trimmedNonEmpty,
 	timezone: Schema.optional(trimmedNonEmpty),
 	roster: Schema.optional(Schema.Array(rosterRowSchema)),
-	attendance: Schema.optional(Schema.Array(attendanceRowSchema))
+	attendance: Schema.optional(Schema.Array(attendanceRowSchema)),
+	overtime: Schema.optional(Schema.Array(overtimeRowSchema))
 });
 type WorkbookImport = Schema.Schema.Type<typeof importSchema>;
 
@@ -284,16 +293,17 @@ type PlanHalf = { readonly shift_definition_id: string | null };
 type ClockHalf = {
 	readonly worked_intervals: readonly { start: string; end: string | null }[] | null;
 };
+type OvertimeHalf = { readonly approved_overtime_hours: number };
 
 function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 	return Effect.gen(function* () {
-		const { legal_entity: legalEntity, month, timezone, roster, attendance } = payload;
+		const { legal_entity: legalEntity, month, timezone, roster, attendance, overtime } = payload;
 		if (!isYearMonth(month))
 			refuse(
 				`Set month on the Settings sheet to the YYYY-MM month this file is for, not "${month}".`
 			);
-		if (roster === undefined && attendance === undefined)
-			refuse('The file has neither a Roster nor a Time entries sheet.');
+		if (roster === undefined && attendance === undefined && overtime === undefined)
+			refuse('The file has none of the Roster, Time entries or Overtime sheets.');
 		if (attendance !== undefined && (timezone == null || timezone === ''))
 			refuse(
 				'This file does not say which timezone its clock times are in, so they cannot be imported. Add a "timezone" row to the Settings sheet — an IANA name such as Asia/Kuala_Lumpur.'
@@ -310,6 +320,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 		// ── the sheets, validated ──────────────────────────────────────────────────────────────────
 		if (roster !== undefined) assertRowsOfMonth(roster, month, 'Roster');
 		if (attendance !== undefined) assertRowsOfMonth(attendance, month, 'Time entries');
+		if (overtime !== undefined) assertRowsOfMonth(overtime, month, 'Overtime');
 		const phRows = (roster ?? []).filter((row) => PH_TOKENS.has(row.shift_code.toUpperCase()));
 		if (phRows.length > 0)
 			refuse(
@@ -354,7 +365,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 		for (const code of shiftRows) Schema.decodeUnknownSync(rosterCodeVariantSchema)(code.variant);
 
 		// ── who the file names, on which contracts ─────────────────────────────────────────────────
-		const namedRows = [...(roster ?? []), ...(attendance ?? [])];
+		const namedRows = [...(roster ?? []), ...(attendance ?? []), ...(overtime ?? [])];
 		const contractFor = yield* readImportContracts(api, namedRows, company.id);
 
 		// ── a roster is whole: every employed day of the month, for every person the sheet names ──
@@ -395,9 +406,10 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				);
 		}
 
-		// ── attendance cannot land on a day approved leave owns ────────────────────────────────────
-		if (attendance !== undefined && attendance.length > 0) {
-			const employmentIds = [...new Set(attendance.map((row) => contractFor(row).id))];
+		// ── attendance and approved overtime cannot land on a day approved leave owns ─────────────
+		const recordedRows = [...(attendance ?? []), ...(overtime ?? [])];
+		if (recordedRows.length > 0) {
+			const employmentIds = [...new Set(recordedRows.map((row) => contractFor(row).id))];
 			const leaveRows = yield* api.db.leave_entries.findMany({
 				where: {
 					employment_id: { in: employmentIds },
@@ -424,7 +436,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				limit: QUERY_LIMIT
 			});
 			const timeOff = leaveRows.filter((row) => leaveActivityOf(row) === 'TIME_OFF');
-			for (const row of attendance) {
+			for (const row of recordedRows) {
 				const employmentId = contractFor(row).id;
 				const covering = timeOff
 					.filter((request) => request.employment_id === employmentId)
@@ -432,7 +444,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				if (covering != null)
 					refuse(
 						`${who(row)} is covered by approved leave ${dateKey(covering.from_date)} → ` +
-							`${dateKey(covering.to_date)}. Attendance on a leave day is not recorded; amend or cancel that leave first.`
+							`${dateKey(covering.to_date)}. Attendance or approved overtime on a leave day is not recorded; amend or cancel that leave first.`
 					);
 			}
 		}
@@ -440,7 +452,14 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 		// ── the file's days, one row per person-day, on the halves the file carries ────────────────
 		const fileDays = new Map<
 			string,
-			{ employmentId: string; workDate: string; label: string; plan?: PlanHalf; clock?: ClockHalf }
+			{
+				employmentId: string;
+				workDate: string;
+				label: string;
+				plan?: PlanHalf;
+				clock?: ClockHalf;
+				approved?: OvertimeHalf;
+			}
 		>();
 		const dayOf = (row: { employee_number: string; work_date: string }) => {
 			const employmentId = contractFor(row).id;
@@ -452,10 +471,14 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 		for (const row of roster ?? [])
 			dayOf(row).plan = { shift_definition_id: shiftByCode.get(row.shift_code)!.id };
 		for (const row of attendance ?? []) dayOf(row).clock = attendanceValues(row, timezone!);
+		for (const row of overtime ?? [])
+			dayOf(row).approved = { approved_overtime_hours: row.overtime_hours };
 		const blankPlan: PlanHalf = { shift_definition_id: null };
 		const blankClock: ClockHalf = { worked_intervals: null };
+		const blankOvertime: OvertimeHalf = { approved_overtime_hours: 0 };
 		const carriesPlan = roster !== undefined;
 		const carriesClock = attendance !== undefined;
+		const carriesOvertime = overtime !== undefined;
 
 		// ── the month as stored, for every employee of the entity ──────────────────────────────────
 		const employees = yield* api.db.employments.findMany({
@@ -477,6 +500,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				work_date: true,
 				shift_definition_id: true,
 				worked_intervals: true,
+				approved_overtime_hours: true,
 				payslip_id: true
 			},
 			limit: QUERY_LIMIT
@@ -503,7 +527,11 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			const clockSame =
 				!carriesClock ||
 				sameIntervals((file.clock ?? blankClock).worked_intervals, day.worked_intervals);
-			if (planSame && clockSame) untouched.add(key);
+			const overtimeSame =
+				!carriesOvertime ||
+				(file.approved ?? blankOvertime).approved_overtime_hours ===
+					(day.approved_overtime_hours ?? 0);
+			if (planSame && clockSame && overtimeSame) untouched.add(key);
 			else conflicts.push(`${label} (the file changes it)`);
 		}
 		if (conflicts.length > 0)
@@ -513,20 +541,25 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 
 		// ── the set: remove what the file does not name, write what it does ────────────────────────
 		const deletes: string[] = [];
-		const clears: Array<{ id: string } & Partial<PlanHalf & ClockHalf>> = [];
+		const clears: Array<{ id: string } & Partial<PlanHalf & ClockHalf & OvertimeHalf>> = [];
 		for (const [key, day] of existingByKey) {
 			if (fileDays.has(key)) continue;
-			const keepsOtherHalf =
-				carriesPlan && carriesClock
-					? false
-					: carriesPlan
-						? day.worked_intervals != null
-						: day.shift_definition_id != null;
-			if (!keepsOtherHalf) {
+			// A half the file does not carry is left alone; a half it carries is cleared, because the
+			// file's set does not name this day. A day with nothing left after the clears is deleted.
+			const keepsAnyHalf =
+				(carriesPlan ? false : day.shift_definition_id != null) ||
+				(carriesClock ? false : day.worked_intervals != null) ||
+				(carriesOvertime ? false : (day.approved_overtime_hours ?? 0) > 0);
+			if (!keepsAnyHalf) {
 				deletes.push(day.id);
 				continue;
 			}
-			clears.push({ id: day.id, ...(carriesPlan ? blankPlan : blankClock) });
+			clears.push({
+				id: day.id,
+				...(carriesPlan ? blankPlan : {}),
+				...(carriesClock ? blankClock : {}),
+				...(carriesOvertime ? blankOvertime : {})
+			});
 		}
 		if (deletes.length > 0) yield* api.collection.work_days.deleteMany(deletes);
 
@@ -555,7 +588,8 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			.map(([key, day]) => ({
 				id: existingByKey.get(key)!.id,
 				...(carriesPlan ? (day.plan ?? blankPlan) : {}),
-				...(carriesClock ? (day.clock ?? blankClock) : {})
+				...(carriesClock ? (day.clock ?? blankClock) : {}),
+				...(carriesOvertime ? (day.approved ?? blankOvertime) : {})
 			}));
 		const updates = [...restated, ...clears];
 		if (updates.length > 0) yield* api.collection.work_days.updateMany(updates);
@@ -565,6 +599,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			.map(([, day]) => ({
 				...(carriesPlan ? (day.plan ?? blankPlan) : {}),
 				...(carriesClock ? (day.clock ?? blankClock) : {}),
+				...(carriesOvertime ? (day.approved ?? blankOvertime) : {}),
 				employment_id: day.employmentId,
 				work_date: day.workDate
 			}));
@@ -574,7 +609,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 export default {
 	import: {
 		description:
-			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals). Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, hour, break and overlap rules refuse the write with person, day and rule. Holidays are overlaid from the calendar and never imported; overtime is derived, never labelled.',
+			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is the approved overtime (hours after the shift, in half-hour steps, inclusive of breaks). Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, hour, break and overlap rules refuse the write with person, day and rule. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {

@@ -132,7 +132,8 @@ const children = {
 				direction: true,
 				bands: true,
 				eligibility: true,
-				counts_toward: true
+				counts_toward: true,
+				npl_prorates: true
 			}
 		}
 	}

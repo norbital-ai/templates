@@ -8,8 +8,9 @@
  * takes, minus the file dialog and the transport.
  *
  * One workbook, one legal entity, one calendar month, as a set: the Roster sheet is the roster of
- * record (whole, or refused naming the gaps), the Time entries sheet is the attendance. A sealed
- * day may be restated unchanged; changed or omitted it refuses the file by name.
+ * record (whole, or refused naming the gaps), the Time entries sheet is the attendance and the
+ * Overtime sheet is the approved hours. A sealed day may be restated unchanged; changed or omitted
+ * it refuses the file by name.
  *
  * The refusal cases matter as much as the happy one: the platform writes an import in a single
  * transaction and has no per-row rejection, so a bad row must refuse the WHOLE file and say which
@@ -80,7 +81,7 @@ function workbookFromFile(filePath) {
 }
 
 /** The `Read me first` sheet every shipped template opens with, which the import must ignore. */
-const README = [['Scheduling import — one legal entity, one month'], [], ['Two sheets.']];
+const README = [['Scheduling import — one legal entity, one month'], [], ['Three sheets.']];
 const MONTH = '2026-05';
 const MAY_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1));
 const SETTINGS = [
@@ -94,6 +95,7 @@ const SETTINGS = [
 const SETTINGS_NO_TIMEZONE = SETTINGS.slice(0, 3);
 const ROSTER_HEADERS = ['employee_number', 'work_date', 'shift_code'];
 const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
+const OVERTIME_HEADERS = ['employee_number', 'work_date', 'overtime_hours'];
 const COMPANY_ID = 'company:1';
 
 /** A whole month for one person: weekdays on `code`, Saturday REST, Sunday OFF. */
@@ -112,6 +114,10 @@ const TIME_ENTRY_ROWS = [
 	['PUBEM0023', '2026-05-04', '20:30', '05:15'],
 	['PUBEM0023', '2026-05-05', '20:28', '05:02'],
 	['PUBEM0023', '2026-05-06', '20:31', '']
+];
+const OVERTIME_ROWS = [
+	['PUBEM0002', '2026-05-04', 2.5],
+	['PUBEM0023', '2026-05-04', 1]
 ];
 
 function matches(row, where = {}) {
@@ -255,11 +261,12 @@ const program = Effect.gen(function* () {
 		/** The workbook as bytes, then as the browser's payload. */
 		const payloadOf = (sheets) =>
 			gridsOf(sheets).pipe(Effect.map((wb) => schedulingImportPayload(workbookGrids(wb))));
-		const workbook = (roster, attendance, settings = SETTINGS) => [
+		const workbook = (roster, attendance, settings = SETTINGS, overtime = undefined) => [
 			['Read me first', README],
 			['Settings', settings],
 			...(roster === undefined ? [] : [['Roster', [ROSTER_HEADERS, ...roster]]]),
-			...(attendance === undefined ? [] : [['Time entries', [TIME_ENTRY_HEADERS, ...attendance]]])
+			...(attendance === undefined ? [] : [['Time entries', [TIME_ENTRY_HEADERS, ...attendance]]]),
+			...(overtime === undefined ? [] : [['Overtime', [OVERTIME_HEADERS, ...overtime]]])
 		];
 		// The handler returns the days it creates and updates the restated ones through the
 		// collection; the checks below read both as the rows the import wrote.
@@ -562,6 +569,68 @@ const program = Effect.gen(function* () {
 			'attendance creates no roster of record'
 		);
 
+		// ── Approved overtime: keyed on the day, and only where the sheet names it ────────────────
+		const withOvertime = yield* importOf(
+			workbook(ROSTER_ROWS, TIME_ENTRY_ROWS, SETTINGS, OVERTIME_ROWS)
+		);
+		const approved = withOvertime.rows.find(
+			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-04'
+		);
+		assert.equal(approved.approved_overtime_hours, 2.5, 'the keyed half-hour figure');
+		const unapproved = withOvertime.rows.find(
+			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-05'
+		);
+		assert.equal(
+			unapproved.approved_overtime_hours,
+			0,
+			'a person the Overtime sheet names gets zero on the days it does not'
+		);
+		const otherPerson = withOvertime.rows.find(
+			(row) => row.employment_id === 'employment:23' && row.work_date === '2026-05-04'
+		);
+		assert.equal(otherPerson.approved_overtime_hours, 1);
+
+		// The Overtime sheet alone creates the days it names and touches no plan or punch.
+		const overtimeOnly = yield* importOf(workbook(undefined, undefined, SETTINGS, OVERTIME_ROWS));
+		assert.deepEqual(overtimeOnly.rows, [
+			{
+				approved_overtime_hours: 2.5,
+				employment_id: 'employment:2',
+				work_date: '2026-05-04'
+			},
+			{
+				approved_overtime_hours: 1,
+				employment_id: 'employment:23',
+				work_date: '2026-05-04'
+			}
+		]);
+		const badOvertime = yield* refusal(() =>
+			payloadOf(workbook(undefined, undefined, SETTINGS, [['PUBEM0002', '2026-05-04', 2.3]]))
+		);
+		assert.match(badOvertime, /half-hour steps/);
+		assert.match(badOvertime, /PUBEM0002 on 2026-05-04/);
+		const retiredColumns = yield* refusal(() =>
+			payloadOf([
+				['Read me first', README],
+				['Settings', SETTINGS],
+				[
+					'Time entries',
+					[
+						[
+							'employee_number',
+							'work_date',
+							'clock_in',
+							'clock_out',
+							'overtime_in',
+							'overtime_out'
+						],
+						['PUBEM0002', '2026-05-04', '08:16', '17:10', '17:10', '20:10']
+					]
+				]
+			])
+		);
+		assert.match(retiredColumns, /still carries overtime_in, overtime_out/);
+
 		// ── Sealed days: restated unchanged passes, changed or omitted refuses by name ─────────────
 		const sealed = [
 			{
@@ -613,6 +682,25 @@ const program = Effect.gen(function* () {
 			)
 		);
 		assert.match(clockChangedSealed, /PUBEM0002 on 2026-05-04 \(the file changes it\)/);
+		const sealedOvertime = [{ ...sealed[0], approved_overtime_hours: 2.5 }];
+		const restatedOvertime = yield* importOf(
+			workbook(ROSTER_ROWS, TIME_ENTRY_ROWS, SETTINGS, OVERTIME_ROWS),
+			api({ existingDays: sealedOvertime })
+		);
+		assert.ok(
+			!restatedOvertime.rows.some((row) => row.id === 'day:sealed'),
+			'a sealed day whose approved hours are restated unchanged is left untouched'
+		);
+		const changedOvertimeSealed = yield* refusal(() =>
+			importOf(
+				workbook(ROSTER_ROWS, TIME_ENTRY_ROWS, SETTINGS, [
+					['PUBEM0002', '2026-05-04', 3],
+					['PUBEM0023', '2026-05-04', 1]
+				]),
+				api({ existingDays: sealedOvertime })
+			)
+		);
+		assert.match(changedOvertimeSealed, /PUBEM0002 on 2026-05-04 \(the file changes it\)/);
 
 		// ── Cells the browser refuses before anything is sent ──────────────────────────────────────
 		const badCells = yield* refusal(() =>
@@ -652,7 +740,7 @@ const program = Effect.gen(function* () {
 				['Sheet1', [ROSTER_HEADERS, ...ROSTER_ROWS]]
 			])
 		);
-		assert.match(wrongSheet, /has neither a "Roster" nor a "Time entries" sheet/);
+		assert.match(wrongSheet, /none of the "Roster", "Time entries" or "Overtime" sheets/);
 		const noEntity = yield* refusal(() =>
 			payloadOf(
 				workbook(ROSTER_ROWS, undefined, [
@@ -689,6 +777,14 @@ const program = Effect.gen(function* () {
 					gridRow('PUBEM0002', { 4: '08:16-17:10', 5: '08:02-17:05' }),
 					gridRow('PUBEM0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' })
 				]
+			],
+			[
+				'Overtime',
+				[
+					['employee_number', ...MAY_DAYS],
+					gridRow('PUBEM0002', { 4: 2.5 }),
+					gridRow('PUBEM0023', { 4: 1 })
+				]
 			]
 		]);
 		const plain = (value) => JSON.parse(JSON.stringify(value));
@@ -698,6 +794,15 @@ const program = Effect.gen(function* () {
 			'the grid reads as the long form does'
 		);
 		assert.deepEqual(plain(gridPayload.attendance), plain(payload.attendance));
+		assert.deepEqual(
+			plain(gridPayload.overtime),
+			OVERTIME_ROWS.map(([employee_number, work_date, overtime_hours]) => ({
+				employee_number,
+				work_date,
+				overtime_hours
+			})),
+			'the overtime grid reads as the long form does'
+		);
 		const gridWritten = yield* imported(gridPayload);
 		assert.equal(gridWritten.rows.length, 62);
 

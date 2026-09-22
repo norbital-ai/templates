@@ -729,9 +729,10 @@ test('Vietnam — a part month prorates on working days, an allowance with it, a
 	assert.deepEqual(prorated('VN-LEAVER'), [[11, 22, 11_000_000]]);
 	assert.deepEqual(facts('VN-LEAVER'), [11, 22, 0, 1_100_000]);
 	assert.deepEqual(facts('VN-WHOLE'), [22, 22, 0, 2_200_000]);
-	// Art.115(2): the day is unpaid — one working day, 22,000,000 ÷ 22 = 1,000,000, off the salary.
-	// `payroll.allowance_npl_prorates` is false, so the allowance stays whole.
-	assert.deepEqual(facts('VN-NPL'), [22, 22, 0, 2_200_000]);
+	// Art.115(2): the day is unpaid — one working day, 22,000,000 ÷ 22 = 1,000,000, off the salary,
+	// and the allowance loses its day with it (2,200,000 ÷ 22 = 100,000): the deduction follows the
+	// wage including the allowances (Decree 145/2020 art.55).
+	assert.deepEqual(facts('VN-NPL'), [21, 22, 1, 2_100_000]);
 	const absence = slips.get('VN-NPL')!.adjustments.find((row) => row.bucket === 'ABSENCE')!;
 	assert.deepEqual([absence.quantity, absence.amount], [1, 1_000_000]);
 	// The mid-shift meal is `fixed: false`, so it is outside the insurance salary (Circular 06/2021
@@ -1142,6 +1143,28 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 	expectStatutory(book, 'VN-2M-SMALL', 'PIT', 0, 0);
 	expectStatutory(book, 'VN-2M-COMMITTED', 'PIT', 0, 0);
 	expectStatutory(book, 'VN-3M-CONTRACT', 'PIT', 0, 0);
+});
+
+test('Vietnam — the 2,000,000 short-contract threshold holds through December 2025', () => {
+	// Circular 111/2013 art.25(1)(i): a payment of 2,000,000 or more to a resident on a contract
+	// under three months is withheld 10%. Decree 253/2026 art.50(2) raised the threshold to
+	// 5,000,000 from the 2026 tax year (art.69(1)(a)), so a December 2025 payment of 4,000,000 is
+	// withheld 400,000 where the same payment in January 2026 is not withheld at all.
+	const december = assessStatutory({
+		code: 'VN',
+		period: '2025-12',
+		region: 'I',
+		people: [
+			{
+				key: 'VN-DEC-4M',
+				wage: 4_000_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2025-11-01',
+				exit_date: '2025-12-31'
+			}
+		]
+	});
+	expectStatutory(december, 'VN-DEC-4M', 'PIT', 400_000, 0);
 });
 
 test('Vietnam — a foreigner is insured on a contract of twelve months or more (Law 41/2024 art.2(2)); those outside are owed the employer’s rate as wages (Labour Code art.168(3))', () => {

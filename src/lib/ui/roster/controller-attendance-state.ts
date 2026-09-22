@@ -1,3 +1,11 @@
+/**
+ * The person-day's save vocabulary, shared by every surface that edits one.
+ *
+ * `AttendanceValue` is what the editor holds, `attendanceChanged` is how it knows the clock was
+ * touched, and `daySaveIntent` / `daySaveLabelKey` name the write the form is about to make. The
+ * controller's board and Employee Self-Service render the same record surface, so the labels are
+ * decided once, from the intent, rather than by each caller.
+ */
 type AttendanceIntervalValue = Readonly<{
 	start: string;
 	end: string | null;
@@ -8,7 +16,7 @@ export type AttendanceValue = Readonly<{
 	intervals: readonly AttendanceIntervalValue[] | null;
 }>;
 
-export type DaySheetSaveIntent = 'none' | 'assignment' | 'attendance' | 'changes';
+type DaySaveIntent = 'none' | 'assignment' | 'attendance' | 'overtime' | 'changes';
 
 const sameIntervals = (
 	left: readonly AttendanceIntervalValue[] | null,
@@ -29,36 +37,45 @@ export function attendanceChanged(baseline: AttendanceValue, draft: AttendanceVa
 	return !sameIntervals(baseline.intervals, draft.intervals);
 }
 
-export function daySheetSaveIntent(
+export function daySaveIntent(
 	planChanged: boolean,
-	actualChanged: boolean
-): DaySheetSaveIntent {
-	if (planChanged && actualChanged) return 'changes';
+	actualChanged: boolean,
+	overtimeChanged = false
+): DaySaveIntent {
+	if (planChanged && (actualChanged || overtimeChanged)) return 'changes';
+	if (actualChanged && overtimeChanged) return 'changes';
 	if (planChanged) return 'assignment';
 	if (actualChanged) return 'attendance';
+	if (overtimeChanged) return 'overtime';
 	return 'none';
 }
 
-type DaySheetSaveLabelKey =
-	'roster.save_punch' | 'roster.save_changes' | 'roster.save_attendance' | 'roster.save_assignment';
+type DaySaveLabelKey =
+	| 'roster.save_punch'
+	| 'roster.save_changes'
+	| 'roster.save_attendance'
+	| 'roster.save_overtime'
+	| 'roster.save_assignment';
 
 /** Footer copy for the pending write. An employee never sees the assignment picker. */
-export function daySheetSaveLabelKey(
+export function daySaveLabelKey(
 	mode: 'controller' | 'employee',
-	intent: DaySheetSaveIntent
-): DaySheetSaveLabelKey {
+	intent: DaySaveIntent
+): DaySaveLabelKey {
 	if (mode !== 'controller') return 'roster.save_punch';
 	switch (intent) {
 		case 'changes':
 			return 'roster.save_changes';
 		case 'attendance':
 			return 'roster.save_attendance';
+		case 'overtime':
+			return 'roster.save_overtime';
 		case 'assignment':
 		case 'none':
 			return 'roster.save_assignment';
 		default: {
 			const unhandled: never = intent;
-			throw new Error(`Unhandled day-sheet save intent: ${String(unhandled)}`);
+			throw new Error(`Unhandled day save intent: ${String(unhandled)}`);
 		}
 	}
 }

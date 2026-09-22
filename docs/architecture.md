@@ -466,11 +466,13 @@ holiday on the next working day of the window.
 
 ### Duration and pricing
 
-Overtime is derived from clock intervals against the effective schedule. Open, reversed or
-overlapping intervals cannot be priced. Source columns labelled OT hours or incentive OT are not
-payroll inputs. Early-arrival handling, shift boundaries and unpaid breaks are applied by the dated
-calculation. Payable overtime is exact to the minute the punches were made in: no statute states a
-coarser unit, so 1.99 h pays 1.99 h. There is no automatic one-hour minimum; a jurisdiction that
+Overtime is keyed, not derived: `work_days.approved_overtime_hours` is the employer's approval —
+half-hour steps, breaks included — and payroll pays it and nothing else beyond the shift. The clock
+still decides the day's premium work: open, reversed or overlapping intervals cannot be priced, and
+early-arrival handling, shift boundaries and unpaid breaks are applied by the dated calculation to
+the observed part of the day. Payable overtime is exact to the half hour the scheduler keys and the
+clock-derived premium stays exact to the minute the punches were made in: no statute states a
+coarser unit, so 1.99 h of premium pays 1.99 h. There is no automatic one-hour minimum; a jurisdiction that
 pays "each hour or part thereof" (Singapore's rest day, s.37(3)(c)(ii)) rounds in its own band with
 `up_to_unit(hours)`. A version's `WEEK NORMAL_HOURS` limit (Singapore's 44, s.38(1)) is read by
 payroll: normal-day hours past it in a Monday-to-Sunday week are overtime of the day they fall on —
@@ -756,8 +758,9 @@ it `counts_as_worked_time`; the shift's `break_minutes` is what the shift grants
 rules produce no assessment.
 
 `restBreakAssessment` reads worked intervals, qualifying gaps and recorded break minutes.
-`deriveDailyOvertime` reduces raw payable overtime by a quantified break shortfall only when the
-configured rule explicitly has `counts_as_worked_time: false`.
+`deriveDailyOvertime` reduces the clock-derived premium hours by a quantified break shortfall only
+when the configured rule explicitly has `counts_as_worked_time: false`; the keyed approval is never
+reduced, because it is inclusive of breaks by the scheduler's own definition.
 A true or null `counts_as_worked_time` causes no additional reduction, and a recorded break is not
 deducted twice. A null minimum duration or an open interval leaves the shortfall unquantified. The
 implementation's strict consecutive-hours comparison and lack of a recorded continuous-attendance

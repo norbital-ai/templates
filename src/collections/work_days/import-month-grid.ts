@@ -3,11 +3,9 @@
  * calendar day across the top. The import pipeline still consumes one row per person-day, so this
  * expands the grid before anything is posted.
  *
- * Both sheets of the workbook are expanded here, and always were: the roster sheet's cells are
- * roster-code tokens and the attendance sheet's are clock ranges, but the header row, the day
- * columns and the refuse-the-whole-file rule are one piece of grammar. That is why the roster
- * importer reached across a collection boundary for `expandRosterMonthGrid` while the two halves
- * lived in separate collections; a person-day is one row now, so the reach is gone.
+ * Every sheet of the workbook is expanded here: the roster sheet's cells are roster-code tokens,
+ * the attendance sheet's are clock ranges and the overtime sheet's are approved hours, but the
+ * header row, the day columns and the refuse-the-whole-file rule are one piece of grammar.
  *
  * Long-form sheets (`employee_number`, `work_date`, …) keep importing unchanged.
  */
@@ -28,11 +26,12 @@ const LONG_FORM_COLUMNS = new Set([
 	'clock_in',
 	'clock_out',
 	'reason',
-	'overtime_in',
-	'overtime_out',
-	'overtime_authorized',
+	'overtime_hours',
 	'state'
 ]);
+
+/** The long-form columns the importer used to read an overtime window from, now refused by name. */
+export const RETIRED_OVERTIME_COLUMNS = ['overtime_in', 'overtime_out', 'overtime_authorized'];
 
 const DAY_NUMBER = /^(0?[1-9]|[12]\d|3[01])$/;
 
@@ -121,6 +120,13 @@ const expandedTimeCellSchema = Schema.Struct({
 });
 type ExpandedTimeCell = Schema.Schema.Type<typeof expandedTimeCellSchema>;
 
+const expandedOvertimeCellSchema = Schema.Struct({
+	employee_number: Schema.String,
+	work_date: Schema.String,
+	overtime_hours: Schema.Number
+});
+type ExpandedOvertimeCell = Schema.Schema.Type<typeof expandedOvertimeCellSchema>;
+
 const RANGE_SPLIT = /\s*[-–—/]\s*/;
 
 function cellAsClockText(raw: SheetCell): string {
@@ -176,6 +182,75 @@ export function expandRosterMonthGrid(
 				employee_number: employee,
 				work_date: column.work_date,
 				shift_code: shift
+			});
+		}
+	}
+	if (problems.length > 0) {
+		throw new WorkbookImportError(
+			`The "${table.sheetName}" sheet cannot be imported as it stands. Nothing was written — ` +
+				'the whole file is refused so it can be corrected and re-imported as one:',
+			problems
+		);
+	}
+	return rows;
+}
+
+/**
+ * `3` or `2.5` is approved hours; blank is no approval. The half hour is the keying unit and a day
+ * cannot hold more hours than it has, so the same bounds the write path enforces are enforced here,
+ * where the message can name the row and the day the operator must fix.
+ */
+export function parseOvertimeHours(raw: SheetCell, identity: string): number | undefined {
+	if (raw == null) return undefined;
+	const text = typeof raw === 'number' ? String(raw) : String(raw).trim();
+	if (text === '') return undefined;
+	const value = Number(text);
+	if (!Number.isFinite(value))
+		throw new WorkbookImportError(
+			`${identity}: "${text}" is not a number of hours. Use 0.5, 1, 1.5, and so on.`
+		);
+	if (value < 0)
+		throw new WorkbookImportError(`${identity}: approved overtime cannot be negative.`);
+	if (Math.round(value * 2) !== value * 2)
+		throw new WorkbookImportError(
+			`${identity}: approved overtime is keyed in half-hour steps — 0.5, 1, 1.5, and so on.`
+		);
+	if (value > 24)
+		throw new WorkbookImportError(
+			`${identity}: approved overtime cannot exceed the 24 hours a day has.`
+		);
+	return value;
+}
+
+export function expandOvertimeMonthGrid(
+	table: SheetTable,
+	month: string | undefined
+): readonly ExpandedOvertimeCell[] {
+	const resolvedMonth = requireMonth(month);
+	const columns = monthGridDateColumns(table.headers, resolvedMonth);
+	const problems: string[] = [];
+	const rows: ExpandedOvertimeCell[] = [];
+	for (const row of table.rows) {
+		const employee = String(row.cells.get('employee_number') ?? '').trim();
+		if (employee === '') {
+			problems.push(`Row ${row.rowNumber}: employee_number is empty.`);
+			continue;
+		}
+		for (const column of columns) {
+			const identity = `Row ${row.rowNumber} (${employee} on ${column.work_date})`;
+			const parsed = Result.try({
+				try: () => parseOvertimeHours(row.cells.get(column.header) ?? null, identity),
+				catch: (error) => error
+			});
+			if (Result.isFailure(parsed)) {
+				problems.push(getErrorMessage(parsed.failure));
+				continue;
+			}
+			if (parsed.success === undefined) continue;
+			rows.push({
+				employee_number: employee,
+				work_date: column.work_date,
+				overtime_hours: parsed.success
 			});
 		}
 	}

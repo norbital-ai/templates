@@ -92,9 +92,10 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		PKWT_COMPENSATION: ['PPH21.ADDITIONAL', 'PPH26'],
 		RETROACTIVE_PAY: ['PPH21.ADDITIONAL', 'PPH26'],
 		SPECIAL_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH26'],
-		TAX_INCENTIVE: [],
 		THR: ['PPH21.ADDITIONAL', 'PPH26'],
-		UANG_PISAH: [],
+		// PP 68/2009 art.2: the final rates cover only pesangon, UPMK and uang penggantian hak;
+		// uang pisah is ordinary remuneration (PMK 168/2023 art.15).
+		UANG_PISAH: ['PPH21.ADDITIONAL', 'PPH26'],
 		UPMK: []
 	}
 };

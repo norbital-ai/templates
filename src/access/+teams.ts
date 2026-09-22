@@ -68,6 +68,13 @@ export default {
 	'Senior Management': ['senior_management'],
 
 	/**
+	 * The line that owns the shift: reads the team and their attendance, and receives the
+	 * late-arrival reminders. It holds the supervisor policy because that is the authority the job
+	 * needs — the roster and the clock — and nothing on the payroll side.
+	 */
+	'Production Manager': ['supervisor'],
+
+	/**
 	 * Payroll authority 1 of 2: may view payroll and may not commit it.
 	 *
 	 * A controller's `payroll_runs.mutate.new` grant carries an approval, so the run is written and

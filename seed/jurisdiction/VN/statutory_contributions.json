@@ -237,7 +237,7 @@
 			},
 			{
 				"when": "!person.employment.open_ended && person.employment.contract_months < 3 && !scheme.elections.commitment_form",
-				"employee": "base >= 5000000.0 ? round_unit(base * 10.0 / 100.0) : 0.0",
+				"employee": "base >= 2000000.0 ? round_unit(base * 10.0 / 100.0) : 0.0",
 				"employer": "0.0"
 			},
 			{

@@ -16,10 +16,12 @@ export const payrollSettingsValueSchema = Schema.Struct({
 	timezone: Schema.String.check(Schema.isMinLength(1)),
 	tax_year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
 	/**
-	 * Whether a standing allowance loses its unpaid-leave days. Joining or leaving inside the
-	 * period prorates an allowance everywhere, like basic salary; a day of unpaid leave comes off
-	 * it only where the jurisdiction says so — the Philippines does, Singapore, Malaysia, Taiwan,
-	 * Indonesia and Vietnam do not.
+	 * The version's default for whether a standing allowance loses its unpaid-leave days; an
+	 * allowance class overrules it with `allowance_catalogue.npl_prorates`. Joining or leaving
+	 * inside the period prorates an allowance everywhere, like basic salary, and the deduction for
+	 * an unpaid day is computed on the wage including the fixed allowances — except the classes a
+	 * statute keeps out of that wage (SG's travel, food and housing allowances, EA s.2; MY's
+	 * travelling allowance), which state false on the class.
 	 */
 	allowance_npl_prorates: Schema.Boolean,
 	/**
@@ -37,8 +39,8 @@ export const payrollSettingsValueSchema = Schema.Struct({
 		Schema.NullOr(
 			Schema.Array(
 				Schema.Struct({
-					/** CEL over the person on the final service day. */
-					when: Schema.String.check(Schema.isPattern(/\S/)),
+					/** CEL over the person on the final service day; empty is every leaver (the default deadline). */
+					when: Schema.String,
 					days: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 					basis: Schema.Literals(['EVENT_DATE', 'MONTH_END', 'NEXT_PAYDAY']),
 					authority: Schema.String.check(Schema.isMinLength(1))

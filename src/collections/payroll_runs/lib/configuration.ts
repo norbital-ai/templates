@@ -314,7 +314,8 @@ function configurationSnapshot(
 				row.direction,
 				row.definition,
 				row.eligibility,
-				row.bands
+				row.bands,
+				row.npl_prorates ?? null
 			])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// The effective range and the complete nested value are retained together. A PAID run can

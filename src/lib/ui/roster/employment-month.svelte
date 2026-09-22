@@ -9,8 +9,10 @@
 
 	── THE TWO CONSUMERS ───────────────────────────────────────────────────────────────────────────
 	`+hr_employee.svelte` hands `employmentId` (the reader's active contract) and `selfService`, and
-	keeps its intro chrome, day sheet and report-missing-punch dialog here: an employee's own month
-	is the one surface where a punch can be reported, so the actions live with the facts.
+	keeps its intro chrome and report-missing-punch dialog here: an employee's own month is the one
+	surface where a punch can be reported, so the actions live with the facts. A day with a stored
+	row opens the collection's own record sheet, which is the same surface the controller's board
+	opens; only the create case is local to this template.
 
 	The employee record's Work tab hands `employmentId` (the contract in force today) and nothing
 	else. Without `selfService` the calendar is read-only: no stretched day button, no report chip.
@@ -45,8 +47,11 @@
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import {
+		createCollectionRouteKey,
+		getCollectionNavigationContext
+	} from '@norbital-ai/ui/collection-navigation';
 	import RosterMonthCalendar from './roster-month-calendar.svelte';
-	import DaySheet, { type DaySheetPerson } from './day-sheet.svelte';
 	import { employeeMissingPunchReportable } from './employee-reportability.js';
 	import { formatCalendarDate, formatDurationHours } from '../display-formatters.js';
 	import {
@@ -67,20 +72,13 @@
 		dayMinutesToClock,
 		holidaysByDate,
 		instantFromDayStart,
-		intervalDrafts,
 		minutesFromDayStart,
 		monthDays,
 		type DayFacts,
-		type IntervalDraft,
-		type LockRung
+		type IntervalDraft
 	} from './roster-month.js';
 	import { attendanceBoundary } from '../../attendance.js';
-	import {
-		sourceLock,
-		sourceLockReason,
-		type DayLock,
-		type SourceLock
-	} from '../../scheduling/lock.js';
+	import { sourceLock, type DayLock, type SourceLock } from '../../scheduling/lock.js';
 
 	/** Every catalogue read on these surfaces skips rows still held under an approval request. */
 	const approved = { approval_id: { isNull: true } } as const;
@@ -120,14 +118,11 @@
 
 	let {
 		employmentId,
-		employeeName = '',
 		selfService = false
 	}: {
 		/** The contract the month is drawn for. Null or undefined draws nothing: there is no month to scope. */
 		employmentId: string | null | undefined;
-		/** The person's display name, for the day sheet heading. */
-		employeeName?: string;
-		/** Offer the day sheet and the report-missing-punch flow (Employee Self-Service only). */
+		/** Offer the day record sheet and the report-missing-punch flow (Employee Self-Service only). */
 		selfService?: boolean;
 	} = $props();
 
@@ -580,64 +575,36 @@
 
 	/* ── The day detail, and the one write this surface offers ─────────────────────────────────── */
 
-	let daySheetOpen = $state(false);
-	let daySheetDate = $state<string | null>(null);
-	const daySheetDay = $derived(
-		daySheetDate == null ? undefined : (scheduleDay(daySheetDate) ?? undefined)
-	);
+	/** The frame this surface opens records in, so its sheet reads through this surface's client. */
+	const scheduleRouteKey = createCollectionRouteKey({ view: 'schedule' });
+	/**
+	 * Captured at initialisation, like every context read. A click handler runs long after the
+	 * component mounted, and `getContext` outside initialisation throws rather than answering.
+	 */
+	const detailNavigation = getCollectionNavigationContext();
 
 	/**
-	 * The day the drawer opened, in the drawer's own vocabulary.
-	 *
-	 * Employee mode renders the same component the board does, so the same props are owed: the
-	 * person-day (from this component's own month facts, so the sheet and the tile behind it can never
-	 * be a write apart), the stored punches (read off the same attendance query the calendar drew
-	 * with), and the lock rung. The rung is the record axis only — the employee has no `payroll_runs`
-	 * read grant, so `IN_DRAFT_RUN` and `PAID` cannot be computed here and are never passed; a
-	 * claimed entry reads `CONSUMED` and everything else reads `OPEN`, with the refusal sentence
-	 * supplied through `lockReason` exactly as the tile's hover composes it.
+	 * A day with a stored row opens the workspace's own record sidesheet for it — the same surface
+	 * every collection table opens, rendering `work_days/+representation.svelte` and carrying the
+	 * lock seal in its header. A day with no row has nothing to open: the report chip beside it is
+	 * the one write an employee has there, and it creates the row through its own dialog.
 	 */
-	const daySheetPerson = $derived<DaySheetPerson | null>(
-		activeEmployment == null
-			? null
-			: {
-					id: activeEmployment.id,
-					number: activeEmployment.employee_number,
-					name: employeeName
-				}
-	);
-	const daySheetEntry = $derived(
-		daySheetDate == null
-			? null
-			: (scheduleFactWorkDays.find((row) => workDateCalendarKey(row.work_date) === daySheetDate) ??
-					null)
-	);
-	const daySheetIntervals = $derived<readonly IntervalDraft[]>(
-		intervalDrafts(daySheetEntry?.worked_intervals)
-	);
-	const daySheetEntryLock = $derived(
-		daySheetEntry == null ? null : attendanceRowLock(daySheetEntry)
-	);
-	const daySheetRung = $derived<LockRung>(
-		daySheetEntryLock?.kind === 'SETTLED' ? 'CONSUMED' : 'OPEN'
-	);
-	const daySheetLockReason = $derived(
-		daySheetEntryLock == null ? null : sourceLockReason(daySheetEntryLock, t)
-	);
-
 	function openDaySheet(_employmentId: string, date: string): void {
-		daySheetDate = date;
-		daySheetOpen = true;
+		const stored = scheduleFactWorkDays.find((row) => workDateCalendarKey(row.work_date) === date);
+		const recordId = stored?.id;
+		if (recordId == null || !isSettledId(recordId)) return;
+		detailNavigation?.open({
+			collectionName: 'work_days',
+			recordId,
+			routeKey: scheduleRouteKey
+		});
 	}
 
 	/**
-	 * Employee mode's one write, handed back from the drawer's Save.
-	 *
-	 * The sheet assessed the draft already, so this only carries
-	 * the create or update across the same transform every other attendance write crosses. A roster-only
-	 * day carries its existing id and is updated; a day with no row carries employment and date and
-	 * is created. Either write is immediately held under `approval_id`, which the platform's mutation
-	 * boundary presents rather than letting this component invent a second result state.
+	 * The report dialog's write: a day with no row is created through the same transform every
+	 * other attendance write crosses. It is immediately held under `approval_id`, which the
+	 * platform's mutation boundary presents rather than letting this component invent a second
+	 * result state.
 	 */
 	const report = $state<{
 		open: boolean;
@@ -663,10 +630,10 @@
 	}
 
 	/**
-	 * What a report would actually write, assessed by the same function the day sheet uses and
-	 * against the same rules `work_days/+collection.ts` enforces. The break is derived from the punches
-	 * against the shift's granted break, and the preview states it so a short call-in is not a
-	 * surprise on the payslip.
+	 * What a report would actually write, assessed by the same function the day record's interval
+	 * editor uses and against the same rules `work_days/+collection.ts` enforces. The break is
+	 * derived from the punches against the shift's granted break, and the preview states it so a
+	 * short call-in is not a surprise on the payslip.
 	 */
 	const reportDraft = $derived.by(() => {
 		const date = report.date;
@@ -770,27 +737,12 @@
 
 {#if selfService}
 	<!--
-		The day detail, shared with the controller's board and told which audience it has.
-
-		`mode="employee"` is the whole difference: the roster-code picker and the interval editor are the
-		controller's affordances and an employee has neither grant behind them — `mutate.new` and
-		`mutate.existing` on `work_days` are scoped to their own employment and masked to the clock fields,
-		with no delete.
-		The sheet carries its own person-day write; the tile's report chip opens the preview
-		dialog below, which writes the same row shape.
+		The report chip's dialog. The day detail itself is the workspace's record sidesheet — the same
+		surface the controller's board opens, rendering the collection's own representation — so there
+		is nothing to mount here for it. This dialog is the one write a day with no row has: it creates
+		the person-day and holds it for review through the same transform every other attendance write
+		crosses.
 	-->
-	<DaySheet
-		bind:open={daySheetOpen}
-		mode="employee"
-		timeZone={scheduleTimeZone}
-		person={daySheetPerson}
-		date={daySheetDate}
-		day={daySheetDay}
-		intervals={daySheetIntervals}
-		lockRung={daySheetRung}
-		lockReason={daySheetLockReason}
-	/>
-
 	<Dialog.Root bind:open={report.open}>
 		<Dialog.Content class="max-w-md">
 			<Dialog.Header>
@@ -810,7 +762,6 @@
 					semantic={reportSemantic}
 					onAfterSubmit={() => {
 						report.open = false;
-						daySheetOpen = false;
 					}}
 				>
 					{#snippet children({ Field, form })}

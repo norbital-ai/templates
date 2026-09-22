@@ -18,9 +18,15 @@ import assert from 'node:assert/strict';
 import { Effect } from 'effect';
 import {
 	buildPayrollRun,
-	gatherPayrollRun
+	gatherPayrollRun,
+	type PreparedRun
 } from '../../src/collections/payroll_runs/lib/engine.ts';
 import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
+import { prepareWorkContext } from '../../src/lib/payroll/work.ts';
+import { dailyWorkedHours } from '../../src/collections/payroll_runs/lib/overtime.ts';
+import { derivedBreakMinutes } from '../../src/lib/scheduling/rest-break.ts';
+import { roundMinute } from '../../src/collections/payroll_runs/lib/rounding.ts';
+import { offsetMinutesFor } from '../../src/lib/timezone.ts';
 import type { PayslipProration } from '../../src/datatypes/payslip_proration/+definition.ts';
 import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
 
@@ -633,6 +639,48 @@ export const COMPANY = '__company__';
 export type BuiltPayslip = ReturnType<typeof buildPayrollRun>['payslip_payroll_run'][number];
 
 /**
+ * Keys each punched day's clock overrun as approved overtime.
+ *
+ * These suites price statutes — bands, rates, rest-day and holiday multiples — not the approval
+ * gate. Before overtime was keyed, `deriveDailyOvertime` measured each punched day's overrun itself;
+ * the fixtures now state that same figure as the employer's approval, in one place, so every golden
+ * keeps verifying the pricing it was written for. The gate itself is pinned in
+ * `overtime-derivation.test.ts` and the workbook import tests, and a fixture that keys an approval
+ * larger or smaller than its clock can do so before this runs.
+ *
+ * The resolved schedule is the engine's own (`prepareWorkContext`), so the boundary is the day the
+ * run will price — shift, holiday and pattern included — and never a fixture's idea of a normal day.
+ */
+function keyClockOverruns(prepared: PreparedRun): void {
+	for (const bundle of prepared.gathered.bundles) {
+		const punched = bundle.workDays.filter((entry) => entry.worked_intervals != null);
+		if (punched.length === 0) continue;
+		const work = prepareWorkContext({
+			bundle,
+			configuration: prepared.configuration,
+			salary: prepared.window.salary,
+			employed: bundle.employedDays ?? bundle.attendance
+		});
+		for (const entry of punched) {
+			if (entry.approved_overtime_hours != null) continue;
+			const workDate = String(entry.work_date).slice(0, 10);
+			const day = work.schedule.get(workDate);
+			if (day == null) continue;
+			const clocked = {
+				...entry,
+				break_minutes: derivedBreakMinutes(entry.worked_intervals, day.shift?.break_minutes ?? 0)
+			};
+			const offset = offsetMinutesFor(
+				prepared.configuration.jurisdiction.payroll.timezone,
+				workDate
+			);
+			const observed = dailyWorkedHours(clocked, day, offset);
+			entry.approved_overtime_hours = roundMinute(Math.max(0, observed - day.normalHours));
+		}
+	}
+}
+
+/**
  * The whole run — every payslip with its base, proration, adjustments and charges, and the run's
  * warnings — for a golden that prices the pay side of a statute (overtime bands, the ordinary
  * rate, proration, absence) rather than a contribution scheme. `prepareWorld` is where a test
@@ -659,6 +707,7 @@ export function buildStatutory(
 			period: options.period
 		})
 	);
+	keyClockOverruns(prepared);
 	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
 	const built = buildPayrollRun(prepared);
 	const numbers = new Map(
@@ -704,6 +753,7 @@ export function assessStatutoryUnvalidated(
 			period: options.period
 		})
 	);
+	keyClockOverruns(prepared);
 	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
 	const { measuredContracts, chargesByEmployment } = calculateFamilyAssessments({
 		configuration: prepared.configuration,

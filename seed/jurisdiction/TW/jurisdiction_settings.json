@@ -151,7 +151,7 @@
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_deadlines": [
 				{
 					"when": "",
@@ -412,7 +412,7 @@
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_deadlines": [
 				{
 					"when": "",
@@ -678,7 +678,7 @@
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_deadlines": [
 				{
 					"when": "",

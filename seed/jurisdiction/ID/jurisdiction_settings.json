@@ -153,7 +153,7 @@
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_due_days": 7
 		},
 		"sources": {
@@ -510,7 +510,7 @@
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_due_days": 7
 		},
 		"sources": {
@@ -868,7 +868,7 @@
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_due_days": 7
 		},
 		"sources": {

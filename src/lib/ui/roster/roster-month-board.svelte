@@ -129,7 +129,7 @@
 		 * Offering a gesture the write path will refuse is worse than not offering it.
 		 */
 		swappable?: boolean;
-		/** The armed end of a swap, bindable so the day sheet's own Swap button can arm it. */
+		/** The armed end of a swap, bindable so a caller can arm the first cell itself. */
 		swapSource?: BoardCell | null;
 		onSwapDays?: (from: BoardCell, to: BoardCell) => void;
 	} = $props();
@@ -209,8 +209,8 @@
 	 * The rung a cell sits on, and the sentence that goes with it.
 	 *
 	 * Both go through the shared module rather than being decided here, because the day sheet and
-	 * (once it lands) the employee's calendar draw the same ladder, and a board that disagreed with
-	 * the drawer about why a day is locked would be worse than one that said nothing.
+	 * the employee's calendar draw the same ladder, and a board that disagreed with the sheet
+	 * about why a day is locked would be worse than one that said nothing.
 	 */
 	function rungOf(day: DayFacts | undefined): LockRung {
 		if (day == null) return 'OPEN';
@@ -221,8 +221,8 @@
 	}
 
 	/* ── THE SWAP GESTURE ──────────────────────────────────────────────────────────────────────
-		Two cells, one transaction. A cell is armed — by dragging it, or by pressing `x` on it, or by
-		the day sheet's own Swap button writing `swapSource` — and the second cell completes the pair.
+		Two cells, one transaction. A cell is armed — by dragging it, or by pressing `x` on it — and
+		the second cell completes the pair.
 
 		Arming is a state rather than a pure drag for one reason: drag-and-drop is a pointer gesture
 		and this board is fully keyboard-navigable, with arrow keys already moving a roving tabindex
@@ -557,8 +557,8 @@
 													completeSwap({ employmentId: person.id, date });
 												}}
 												ondragend={() => {
-													// Only clear an arming this drag created. A `swapSource` set from the
-													// day sheet survives, because the operator armed it deliberately.
+													// Only clear an arming this drag created; an arming a caller set
+													// deliberately is not this gesture's to undo.
 													if (armed) swapSource = null;
 												}}
 											>

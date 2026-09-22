@@ -274,8 +274,8 @@ export const workRulesValueSchema = Schema.Struct({
 					: faultIn(band.funnel_above_hours, 'work_day', 'hours', `Band ${band.label} funnel`)
 			]),
 			...rules.breaks.flatMap((brk, index) => [
-				faultIn(brk.when, 'work_day', 'boolean', `Break ${index + 1}`),
-				faultIn(brk.owed_minutes, 'work_day', 'minutes', `Break ${index + 1} owed minutes`)
+				faultIn(brk.when, 'rest_break', 'boolean', `Break ${index + 1}`),
+				faultIn(brk.owed_minutes, 'rest_break', 'minutes', `Break ${index + 1} owed minutes`)
 			]),
 			(rules.normal_hours ?? '').trim() === ''
 				? null

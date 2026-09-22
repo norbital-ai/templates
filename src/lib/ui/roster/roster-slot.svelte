@@ -35,6 +35,12 @@
 	const state = $derived(slotState(day));
 	const fill = $derived(slotFill(day));
 	const code = $derived(slotCode(day, dense));
+	/** The approved overtime keyed on the day, as a compact half-hour label, or null when none. */
+	const approvedOvertime = $derived(
+		(day?.approvedOvertimeHours ?? 0) > 0
+			? halfHoursLabel((day?.approvedOvertimeHours ?? 0) * 60)
+			: null
+	);
 
 	/**
 	 * The state's tint. Work is the plain card; everything that is not work is quieter, and a
@@ -94,10 +100,14 @@
 	)}
 	data-slot-state={state}
 	data-slot-fill={fill.kind}
-	aria-label={t(stateLabelKey[state])}
+	aria-label={approvedOvertime == null
+		? t(stateLabelKey[state])
+		: `${t(stateLabelKey[state])} · +${approvedOvertime} OT`}
 >
 	{#if dense}
-		<span class="block truncate text-xs leading-4">{code}</span>
+		<span class="block truncate text-xs leading-4"
+			>{code}{approvedOvertime == null ? '' : ` +${approvedOvertime}`}</span
+		>
 		<span
 			class={cn(
 				'block truncate text-[0.625rem] leading-3',
@@ -111,7 +121,9 @@
 		</span>
 	{:else}
 		<span class="block truncate text-xs leading-4 font-medium">
-			{code}{state === 'EXTRA_WORK' ? ' · OT' : ''}
+			{code}{state === 'EXTRA_WORK' ? ' · OT' : ''}{approvedOvertime == null
+				? ''
+				: ` +${approvedOvertime}`}
 		</span>
 		{#if (state === 'WORK' || state === 'EXTRA_WORK') && day?.shiftStart != null && day.shiftEnd != null}
 			<!-- The tile has the room the board does not: the window in full, not `8a–6p`. -->

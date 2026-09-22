@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+	expandOvertimeMonthGrid,
 	expandRosterMonthGrid,
 	expandTimeMonthGrid,
 	isLongFormImportHeaders,
@@ -77,4 +78,55 @@ test('a time-entry month grid reads closed ranges and open punches', () => {
 		},
 		{ employee_number: 'PUBEM0023', work_date: '2026-05-06', clock_in: '20:31' }
 	]);
+});
+
+test('an overtime month grid reads half-hour cells and omits blanks', () => {
+	const rows = expandOvertimeMonthGrid(
+		{
+			sheetName: 'Overtime',
+			headers: ['employee_number', '4', '5', '6', '7'],
+			rows: [
+				{
+					rowNumber: 2,
+					cells: new Map([
+						['employee_number', 'PUBEM0023'],
+						['4', 3],
+						['5', ''],
+						['6', '2.5'],
+						['7', 0]
+					])
+				}
+			]
+		},
+		'2026-05'
+	);
+	assert.deepEqual(rows, [
+		{ employee_number: 'PUBEM0023', work_date: '2026-05-04', overtime_hours: 3 },
+		{ employee_number: 'PUBEM0023', work_date: '2026-05-06', overtime_hours: 2.5 },
+		{ employee_number: 'PUBEM0023', work_date: '2026-05-07', overtime_hours: 0 }
+	]);
+});
+
+test('an overtime cell that is not a half-hour step between 0 and 24 refuses the sheet by name', () => {
+	const read = (cell: unknown) =>
+		expandOvertimeMonthGrid(
+			{
+				sheetName: 'Overtime',
+				headers: ['employee_number', '4'],
+				rows: [
+					{
+						rowNumber: 2,
+						cells: new Map([
+							['employee_number', 'PUBEM0023'],
+							['4', cell]
+						])
+					}
+				]
+			},
+			'2026-05'
+		);
+	assert.throws(() => read('2.3'), /half-hour steps/);
+	assert.throws(() => read(-1), /cannot be negative/);
+	assert.throws(() => read(25), /cannot exceed the 24 hours/);
+	assert.throws(() => read('three'), /is not a number of hours/);
 });

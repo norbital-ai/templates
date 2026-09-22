@@ -4982,6 +4982,41 @@
 		"parts": []
 	},
 	{
+		"id": "ce974ad9-b231-5738-8af6-a40026d3da50",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "SEVERANCE_TAX",
+		"name": "Severance withholding (退職所得扣繳)",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (台財稅字第11204674210號公告): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"assessment_period": "PAY_PERIOD",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record tax residency as resident or non-resident on the employment terms before calculating Taiwan withholding."
+			},
+			{
+				"when": "(person.terms.tax_residency == \"RESIDENT\") && base > 0.0",
+				"employee": "floor_unit(progressive(base, [198000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), 0.0, 50.0, 398000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), (398000.0 - 198000.0) * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))) / 2.0, 100.0]) * 6.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.terms.tax_residency == \"NON_RESIDENT\") && base > 0.0",
+				"employee": "floor_unit(progressive(base, [198000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), 0.0, 50.0, 398000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), (398000.0 - 198000.0) * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))) / 2.0, 100.0]) * 18.0 / 100.0)",
+				"employer": "0.0"
+			}
+		],
+		"elections": [],
+		"parts": [],
+		"short_name": null,
+		"listing_order": null,
+		"listing_group": null,
+		"assessed_on": "code('SEVERANCE_PAY')"
+	},
+	{
 		"id": "c967118f-55ab-46ce-989f-f20577bcbd49",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "INCOME_TAX_BONUS",
@@ -5012,6 +5047,41 @@
 		"parts": []
 	},
 	{
+		"id": "776fe914-0c01-5c03-8c9a-b2f5cb723a25",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "SEVERANCE_TAX",
+		"name": "Severance withholding (退職所得扣繳)",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"assessment_period": "PAY_PERIOD",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record tax residency as resident or non-resident on the employment terms before calculating Taiwan withholding."
+			},
+			{
+				"when": "(person.terms.tax_residency == \"RESIDENT\") && base > 0.0",
+				"employee": "floor_unit(progressive(base, [206000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), 0.0, 50.0, 414000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), (414000.0 - 206000.0) * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))) / 2.0, 100.0]) * 6.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.terms.tax_residency == \"NON_RESIDENT\") && base > 0.0",
+				"employee": "floor_unit(progressive(base, [206000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), 0.0, 50.0, 414000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), (414000.0 - 206000.0) * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))) / 2.0, 100.0]) * 18.0 / 100.0)",
+				"employer": "0.0"
+			}
+		],
+		"elections": [],
+		"parts": [],
+		"short_name": null,
+		"listing_order": null,
+		"listing_group": null,
+		"assessed_on": "code('SEVERANCE_PAY')"
+	},
+	{
 		"id": "c4004336-ab78-45d0-835e-bb6dd90c142f",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "INCOME_TAX_BONUS",
@@ -5040,6 +5110,41 @@
 		"listing_order": 41,
 		"listing_group": null,
 		"parts": []
+	},
+	{
+		"id": "e307ee8c-2c0e-5649-8712-06fadf51ce7d",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "SEVERANCE_TAX",
+		"name": "Severance withholding (退職所得扣繳)",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
+		"assessment_period": "PAY_PERIOD",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record tax residency as resident or non-resident on the employment terms before calculating Taiwan withholding."
+			},
+			{
+				"when": "(person.terms.tax_residency == \"RESIDENT\") && base > 0.0",
+				"employee": "floor_unit(progressive(base, [206000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), 0.0, 50.0, 414000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), (414000.0 - 206000.0) * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))) / 2.0, 100.0]) * 6.0 / 100.0)",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.terms.tax_residency == \"NON_RESIDENT\") && base > 0.0",
+				"employee": "floor_unit(progressive(base, [206000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), 0.0, 50.0, 414000.0 * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))), (414000.0 - 206000.0) * (person.employment.service_years + (person.employment.service_months - 12.0 * person.employment.service_years >= 6.0 ? 1.0 : (person.employment.service_months - 12.0 * person.employment.service_years > 0.0 ? 0.5 : 0.0))) / 2.0, 100.0]) * 18.0 / 100.0)",
+				"employer": "0.0"
+			}
+		],
+		"elections": [],
+		"parts": [],
+		"short_name": null,
+		"listing_order": null,
+		"listing_group": null,
+		"assessed_on": "code('SEVERANCE_PAY')"
 	},
 	{
 		"id": "d7017cd0-9ebc-4093-ad16-b2e942862701",

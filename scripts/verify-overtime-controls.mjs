@@ -2,10 +2,10 @@
  * Overtime controls: hours become money, and the statutory ceiling funnels instead of dropping.
  *
  * The earlier engine classified a day into retained and excess hours (`classifyOvertimeByCalendarMonth`)
- * and then priced the retained slice (`priceDay`). Both are gone: overtime hours are derived
- * from the clocks (`deriveDailyOvertime`) and priced by the version's `bands`, where the slice
- * above a named limit funnels to the INCENTIVE line at the band's own award. These
- * checks exercise those two halves against the migrated source.
+ * and then priced the retained slice (`priceDay`). Both are gone: the payable hours come from the
+ * day's keyed approval (`deriveDailyOvertime`, with the day type's own premium) and are priced by
+ * the version's `bands`, where the slice above a named limit funnels to the INCENTIVE line at the
+ * band's own award. These checks exercise those two halves against the migrated source.
  */
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -130,14 +130,27 @@ Effect.runPromise(
 			assert.equal(evaluatedLimits(workRules().limits, 60).daily_total, 11);
 			assert.equal(evaluatedLimits(workRules().limits, 0).daily_total, 12);
 
-			// Hours are derived from the clocks: a full shift earns nothing, a late clock-out does.
+			// Overtime is keyed: a full shift earns nothing, a late clock-out with no approval earns
+			// nothing, and the keyed figure is what pays.
 			assert.equal(deriveDailyOvertime(entry(), scheduled(), []), null);
+			assert.equal(
+				deriveDailyOvertime(
+					entry({ worked_intervals: [interval('08:30', '20:45')] }),
+					scheduled(),
+					[]
+				),
+				null,
+				'an unapproved overrun is not payable'
+			);
 			const late = deriveDailyOvertime(
-				entry({ worked_intervals: [interval('08:30', '20:45')] }),
+				entry({
+					worked_intervals: [interval('08:30', '20:45')],
+					approved_overtime_hours: 3
+				}),
 				scheduled(),
 				[]
 			);
-			assert.equal(late.hours, 3.25, '08:30–20:45 is 3h15m outside the shift, to the minute');
+			assert.equal(late.hours, 3, 'the keyed three hours');
 			assert.equal(late.totalWorkHours, 11.25, '12.25 clocked less the recorded hour');
 
 			// An ordinary overrun funnels the slice above the ceiling at the band's own award.
@@ -176,7 +189,7 @@ Effect.runPromise(
 				]
 			);
 
-			console.log('Overtime controls verified: 6 checks passed.');
+			console.log('Overtime controls verified: 8 checks passed.');
 		})
 	)
 );

@@ -15,7 +15,8 @@ const SITE_USE: Readonly<Record<ExpressionContext['site'], string>> = {
 	work_day: 'work bands, breaks, limits and the night premium — one priced person-day',
 	assessment: '`statutory_contributions.assessed_on` and `ordinary_on` — one scheme’s wage',
 	scheme: 'contribution rules and `statutory_contributions.elections[].required_when`',
-	leave_day: '`leave_catalogue.pay_fraction` — one charged leave day'
+	leave_day: '`leave_catalogue.pay_fraction` — one charged leave day',
+	rest_break: '`work_rules.breaks[]` — one day’s rest-break obligation'
 };
 
 /** A table cell: the pipe is the table's own character. */

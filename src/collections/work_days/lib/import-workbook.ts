@@ -1,5 +1,5 @@
 /**
- * The browser half of the `work_days` import: one collection, one workbook grammar, two sheets.
+ * The browser half of the `work_days` import: one collection, one workbook grammar, three sheets.
  *
  * `roster_entries/lib/import-workbook.ts` and `time_entries/lib/import-workbook.ts` were the same
  * file twice. Both read the `Settings` sheet through `readWorkbookSettings`, identified a row by
@@ -9,12 +9,14 @@
  * said once.
  *
  * One payload: the legal entity, month and timezone from the Settings sheet, the Roster sheet as
- * the plan and the Time entries sheet as the attendance. A sheet the file does not carry is
- * absent from the payload, which is how the pipeline knows to leave that half alone.
+ * the plan, the Time entries sheet as the attendance and the Overtime sheet as the approved hours.
+ * A sheet the file does not carry is absent from the payload, which is how the pipeline knows to
+ * leave that half alone.
  *
- * The issued template for both is one legal entity × one month: a person down the side and a
+ * The issued template for all three is one legal entity × one month: a person down the side and a
  * calendar day across the top. A long-form sheet still imports, including the files operators
- * already have on disk.
+ * already have on disk — except that a file still carrying the retired `overtime_in`/`overtime_out`
+ * columns is refused by name rather than silently imported without its overtime.
  */
 
 import {
@@ -27,18 +29,22 @@ import {
 	type WorkbookGrids
 } from '../../../lib/workbook-rows.js';
 import {
+	expandOvertimeMonthGrid,
 	expandRosterMonthGrid,
 	expandTimeMonthGrid,
 	isLongFormImportHeaders,
-	isMonthGridImportHeaders
+	isMonthGridImportHeaders,
+	parseOvertimeHours,
+	RETIRED_OVERTIME_COLUMNS
 } from '../import-month-grid.js';
 import { Schema } from 'effect';
 import { readWorkbookSettings, SETTINGS_SHEET_NAME } from '../../../lib/workbook-settings.js';
 
 const ROSTER_SHEET_NAME = 'Roster';
 const ATTENDANCE_SHEET_NAME = 'Time entries';
+const OVERTIME_SHEET_NAME = 'Overtime';
 
-export { ROSTER_SHEET_NAME, ATTENDANCE_SHEET_NAME };
+export { ROSTER_SHEET_NAME, ATTENDANCE_SHEET_NAME, OVERTIME_SHEET_NAME };
 
 /** `shift_code` is one of the entity's roster codes: a shift, REST or OFF. */
 const rosterImportRowSchema = Schema.Struct({
@@ -56,6 +62,13 @@ const attendanceImportRowSchema = Schema.Struct({
 });
 type AttendanceImportRow = Schema.Schema.Type<typeof attendanceImportRowSchema>;
 
+const overtimeImportRowSchema = Schema.Struct({
+	employee_number: Schema.String,
+	work_date: Schema.String,
+	overtime_hours: Schema.Number
+});
+type OvertimeImportRow = Schema.Schema.Type<typeof overtimeImportRowSchema>;
+
 /** The whole workbook. A sheet the file does not carry is absent; an empty sheet is `[]`. */
 type SchedulingImportPayload = {
 	readonly legal_entity: string;
@@ -63,6 +76,7 @@ type SchedulingImportPayload = {
 	readonly timezone?: string;
 	readonly roster?: readonly RosterImportRow[];
 	readonly attendance?: readonly AttendanceImportRow[];
+	readonly overtime?: readonly OvertimeImportRow[];
 };
 
 function identifyPersonDay(reader: RowReader): string {
@@ -135,16 +149,41 @@ function longFormRosterRows(table: SheetTable): readonly RosterImportRow[] {
  * and derives whether the final interval is open from whether a close arrived. `JSON.stringify`
  * drops an undefined property on the way out, so absence travels as absence.
  *
- * Overtime is calculated from actual presence and the effective schedule; a workbook cannot assert
- * it as a second class of time, so any overtime/state column is never read.
+ * A file that still carries the retired overtime-window columns is refused by name: overtime is
+ * keyed now, and importing such a file as if it carried none would silently drop its overtime.
  */
 function longFormAttendanceRows(table: SheetTable): readonly AttendanceImportRow[] {
+	const retired = table.headers.filter((header) => RETIRED_OVERTIME_COLUMNS.includes(header));
+	if (retired.length > 0)
+		throw new WorkbookImportError(
+			`The "${table.sheetName}" sheet still carries ${retired.join(', ')}.`,
+			[
+				`Overtime is no longer read from a clock window: key the approved hours on the "${OVERTIME_SHEET_NAME}" sheet.`
+			]
+		);
 	return readRows(table, identifyPersonDay, (reader): AttendanceImportRow => ({
 		employee_number: reader.requiredText('employee_number') ?? '',
 		work_date: reader.calendarDate('work_date') ?? '',
 		clock_in: reader.clockTime('clock_in'),
 		clock_out: reader.clockTime('clock_out')
 	}));
+}
+
+/** Blank overtime is no approval; a stated figure is kept, in the half-hour steps the write path enforces. */
+function longFormOvertimeRows(table: SheetTable): readonly OvertimeImportRow[] {
+	const parsed = readRows(table, identifyPersonDay, (reader) => {
+		const employee_number = reader.requiredText('employee_number') ?? '';
+		const work_date = reader.calendarDate('work_date') ?? '';
+		const text = reader.text('overtime_hours');
+		if (text == null) return { employee_number, work_date, overtime_hours: 0 };
+		const value = Number(text);
+		if (!Number.isFinite(value) || value < 0 || value > 24 || Math.round(value * 2) !== value * 2) {
+			reader.reject('overtime_hours', 'a number of hours in half-hour steps between 0 and 24');
+			return { employee_number, work_date, overtime_hours: 0 };
+		}
+		return { employee_number, work_date, overtime_hours: value };
+	});
+	return parsed.filter((row) => row.overtime_hours > 0);
 }
 
 /**
@@ -162,10 +201,11 @@ export function schedulingImportPayload(grids: WorkbookGrids): SchedulingImportP
 	const settings = readWorkbookSettings(grids);
 	const hasRoster = grids.has(ROSTER_SHEET_NAME);
 	const hasAttendance = grids.has(ATTENDANCE_SHEET_NAME);
-	if (!hasRoster && !hasAttendance)
+	const hasOvertime = grids.has(OVERTIME_SHEET_NAME);
+	if (!hasRoster && !hasAttendance && !hasOvertime)
 		throw new WorkbookImportError(
-			`This file has neither a "${ROSTER_SHEET_NAME}" nor a "${ATTENDANCE_SHEET_NAME}" sheet.`,
-			['Start from the scheduling workbook template, which carries both.']
+			`This file has none of the "${ROSTER_SHEET_NAME}", "${ATTENDANCE_SHEET_NAME}" or "${OVERTIME_SHEET_NAME}" sheets.`,
+			['Start from the scheduling workbook template, which carries all three.']
 		);
 	if (settings.legal_entity == null || settings.legal_entity === '')
 		throw new WorkbookImportError('This file does not say which legal entity it is for.', [
@@ -189,9 +229,20 @@ export function schedulingImportPayload(grids: WorkbookGrids): SchedulingImportP
 				monthGrid: expandTimeMonthGrid
 			})
 		: undefined;
-	if ((roster?.length ?? 0) === 0 && (attendance?.length ?? 0) === 0)
+	const overtime = hasOvertime
+		? readSheet<OvertimeImportRow>(grids, OVERTIME_SHEET_NAME, {
+				longFormColumns: ['employee_number', 'work_date', 'overtime_hours'],
+				longForm: longFormOvertimeRows,
+				monthGrid: expandOvertimeMonthGrid
+			})
+		: undefined;
+	if (
+		(roster?.length ?? 0) === 0 &&
+		(attendance?.length ?? 0) === 0 &&
+		(overtime?.length ?? 0) === 0
+	)
 		throw new WorkbookImportError('This file has nothing to import.', [
-			'Fill the Roster sheet, the Time entries sheet, or both.'
+			'Fill the Roster sheet, the Time entries sheet, the Overtime sheet, or any of them.'
 		]);
 	return {
 		legal_entity: settings.legal_entity,
@@ -200,6 +251,7 @@ export function schedulingImportPayload(grids: WorkbookGrids): SchedulingImportP
 			? {}
 			: { timezone: settings.timezone }),
 		...(roster === undefined ? {} : { roster }),
-		...(attendance === undefined ? {} : { attendance })
+		...(attendance === undefined ? {} : { attendance }),
+		...(overtime === undefined ? {} : { overtime })
 	};
 }

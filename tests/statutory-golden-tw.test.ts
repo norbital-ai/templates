@@ -1094,12 +1094,13 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	);
 	assert.deepEqual(facts('TW-LEAVER'), [15, 31, 0, 1500]);
 	assert.deepEqual(facts('TW-WHOLE'), [31, 31, 0, 3100]);
-	// 勞工請假規則 §7: 事假 is unpaid — one calendar day of wage, 40,000 ÷ 31 = 1,290.32, comes off
-	// the salary line. `payroll.allowance_npl_prorates` is false, so the allowance stays whole.
-	assert.deepEqual(facts('TW-NPL'), [31, 31, 0, 3100]);
+	// 勞工請假規則 §7: 事假 is unpaid — one calendar day of wage comes off the salary line, and
+	// 勞基法 §2(3) makes the recurring 交通津貼 工資, so the allowance loses its day too:
+	// (40,000 + 3,100) ÷ 31 = 1,390.32 in all, split across the two lines.
+	assert.deepEqual(facts('TW-NPL'), [30, 31, 1, 3000]);
 	const absence = slips.get('TW-NPL')!.adjustments.find((row) => row.bucket === 'ABSENCE')!;
 	assert.deepEqual([absence.quantity, absence.amount], [1, 1290.32]);
-	assert.equal(slips.get('TW-NPL')!.gross, 40_000 - 1290.32 + 3100);
+	assert.equal(slips.get('TW-NPL')!.gross, 40_000 - 1290.32 + 3000);
 	// 勞基法 §2(3): a recurring 交通津貼 is 工資, so it is in the insured wage and the taxable pay:
 	// the contractual 40,000 + 3,100 = 43,100 insures at grade 43,900 (× 11.5% = 5,048.50 →
 	// 1,010 / 3,534), and a day of 事假 does not re-declare the grade; the whole month's 薪資所得
@@ -1232,12 +1233,15 @@ test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,
 	// 財政部 台財稅字第11404675280號函 (4 Dec 2025), the table and its 說明: the bracket's lower bound
 	// × 12, less 101,000 for the taxpayer and each of the spouse and dependants, the married
 	// standard deduction 272,000 and the salary special deduction 227,000, at the 115年度 brackets,
-	// ÷ 12, cut to the ten dollars; NT$2,000 or under withholds nothing. The fixture is the
+	// ÷ 12, cut to the ten dollars; NT$2,000 or under withholds nothing. The seed file is the
 	// table as printed (25 pages, 80,001 to 500,000 in steps of 500, twelve dependant columns),
 	// read from the PDF, not derived. The rung is evaluated the way the run evaluates it, on a wage
 	// at the top of each bracket, so the anchor to the bracket's lower bound is what is tested.
 	const table = JSON.parse(
-		readFileSync(new URL('./fixtures/withholding-table-115.json', import.meta.url), 'utf8')
+		readFileSync(
+			new URL('../seed/jurisdiction/TW/withholding-table-115.json', import.meta.url),
+			'utf8'
+		)
 	) as { from: number; to: number; withhold: number[] }[];
 	const rung = contributionSchemes('TW')
 		.find((row) => row.code === 'INCOME_TAX' && row.settings_id === settingsVersions('TW')[1]!.id)!
@@ -1684,4 +1688,99 @@ test('Taiwan — the old-system pension reserve is the entity’s declared 2–1
 				?.employer_amount ?? 0,
 			0
 		);
+});
+
+test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on the excess over the 定額免稅', () => {
+	// Seven years’ service on a 1,000,000 wage pays 0.5 month per year: 3,500,000. 115年度
+	// (台財稅字第11304670610號公告): 206,000 × 7 = 1,442,000 is exempt, the band to 414,000 × 7 =
+	// 2,898,000 half taxable, the rest whole — so 3,500,000 is taxed on 728,000 + 602,000 =
+	// 1,330,000, withheld at 6% = 79,800. A 400,000 wage pays 1,400,000, under the exempt
+	// ceiling: nothing withheld. A non-resident withholds 18% of the same 1,330,000.
+	// 3 years 6 months of service rounds to 4 years (a tail of six months or more counts as one
+	// year, 高雄國稅局): 0.5 × 3.5 = 1,750,000, taxed on (1,656,000 − 824,000)/2 +
+	// (1,750,000 − 1,656,000) = 510,000, withheld 6% = 30,600 — 3.5 years of 年資 would have
+	// taxed 514,500.
+	const leaver = (key: string, wage: number, hire: string, exit: string, residency?: string) => ({
+		key,
+		wage,
+		citizenship: 'CITIZEN',
+		hire_date: hire,
+		exit_date: exit,
+		exit_reason: 'REDUNDANCY',
+		...(residency != null ? { tax_residency: residency } : {})
+	});
+	// The off-boarding asks for the class; the band prices it from the wage, and `SEVERANCE_TAX`
+	// reads the paid severance through its `assessed_on`.
+	const paySeverance = (world: PayrollWorld, period: string) => {
+		const version = world.jurisdiction_settings.find((row) =>
+			String(row.effective_range.start).startsWith(period)
+		)!;
+		const catalogue = world.adhoc_catalogue!.find(
+			(row) => row.code === 'SEVERANCE_PAY' && row.settings_id === version.id
+		)!;
+		for (const [index, employment] of world.employments.entries())
+			world.adhoc_requests!.push({
+				id: `d0000000-0000-4000-8000-0000000000${index}c`,
+				employment_id: employment.id,
+				catalogue_id: catalogue.id,
+				amount: 0,
+				event_date: `${period}-31`,
+				pay_period: period,
+				payslip_id: null,
+				reason: 'SEVERANCE_PAY',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+	};
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: [
+				leaver('TW-SEV-LARGE', 1_000_000, '2019-01-01', '2026-01-31'),
+				leaver('TW-SEV-SMALL', 400_000, '2019-01-01', '2026-01-31'),
+				leaver('TW-SEV-NR', 1_000_000, '2019-01-01', '2026-01-31', 'NON_RESIDENT'),
+				leaver('TW-SEV-TAIL', 1_000_000, '2022-07-01', '2026-01-31')
+			]
+		},
+		(world) => paySeverance(world, '2026-01')
+	);
+	const paid = (key: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === 'SEVERANCE_PAY')?.amount;
+	assert.equal(paid('TW-SEV-LARGE'), 3_500_000);
+	assert.equal(paid('TW-SEV-SMALL'), 1_400_000);
+	assert.deepEqual(charge(slips.get('TW-SEV-LARGE')!, 'SEVERANCE_TAX'), [3_500_000, 79_800, 0]);
+	// The exemption: 1,400,000 sits under 206,000 × 7.
+	assert.deepEqual(charge(slips.get('TW-SEV-SMALL')!, 'SEVERANCE_TAX'), [1_400_000, 0, 0]);
+	assert.deepEqual(charge(slips.get('TW-SEV-NR')!, 'SEVERANCE_TAX'), [3_500_000, 239_400, 0]);
+	assert.deepEqual(charge(slips.get('TW-SEV-TAIL')!, 'SEVERANCE_TAX'), [1_750_000, 30_600, 0]);
+	// The class counts toward nothing: the monthly 薪資所得 withholding reads the wage alone, not
+	// the severance beside it.
+	const pension = slips
+		.get('TW-SEV-LARGE')!
+		.statutory.find((row) => row.scheme_code === 'LABOR_PENSION')!.employee_amount;
+	assert.equal(charge(slips.get('TW-SEV-LARGE')!, 'INCOME_TAX')[0], 1_000_000 - pension);
+	// The 民國114年 figures, 198,000 / 398,000 (台財稅字第11204674210號公告), govern a severance
+	// paid in December 2025: the same 3,500,000 is taxed on 1,414,000, withheld 84,840.
+	const december = buildStatutory(
+		{
+			code: 'TW',
+			period: '2025-12',
+			riskClass: '1',
+			people: [leaver('TW-SEV-2025', 1_000_000, '2018-12-01', '2025-12-31')]
+		},
+		(world) => paySeverance(world, '2025-12')
+	);
+	assert.equal(
+		december.slips
+			.get('TW-SEV-2025')!
+			.adjustments.find((row) => row.component_code === 'SEVERANCE_PAY')?.amount,
+		3_500_000
+	);
+	assert.deepEqual(
+		charge(december.slips.get('TW-SEV-2025')!, 'SEVERANCE_TAX'),
+		[3_500_000, 84_840, 0]
+	);
 });
