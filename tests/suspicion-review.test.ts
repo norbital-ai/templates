@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { encode as encodeJpeg } from 'jpeg-js';
 import { Effect, Schema } from 'effect';
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
@@ -118,6 +119,15 @@ function automationHarness(options: {
 	readonly assignmentPhotos?: ReadonlyArray<Record<string, unknown>>;
 	/** Photos still awaiting facts, which the review's inspection pass finds by the empty hash. */
 	readonly pendingPhotos?: ReadonlyArray<Record<string, unknown>>;
+	/** Embedding backfill passes the automation's first pass receives, in order. */
+	readonly embeddingPasses?: ReadonlyArray<{
+		readonly selected: number;
+		readonly embedded: number;
+		readonly failed?: number;
+		readonly issues?: ReadonlyArray<string>;
+	}>;
+	/** Cross-assignment near-duplicate rows `findNearest` answers with; the default is none. */
+	readonly nearest?: ReadonlyArray<Record<string, unknown>>;
 	/** Bytes `readFileAsset` answers with; absent makes it fail like a photo whose object is gone. */
 	readonly photoBytes?: Uint8Array;
 }) {
@@ -132,9 +142,30 @@ function automationHarness(options: {
 	const logsByReview: Record<string, { readonly id: string } | undefined> = {};
 	const progressUpdates: Array<{ readonly progress: number; readonly text?: string }> = [];
 	const photoUpdates: Array<Record<string, unknown>> = [];
+	const embedRecordsCalls: Array<string> = [];
 	const assignmentPhotos = [...(options.assignmentPhotos ?? [inspectedPhoto()])];
 	const pendingPhotos = [...(options.pendingPhotos ?? [])];
 	const api = {
+		/**
+		 * The host's embedding backfill, answered pass by pass. The default is "nothing pending", so
+		 * a test that does not care about the first pass still gets a truthful empty answer.
+		 */
+		embed: (input: { readonly collection: string }) =>
+			Effect.sync(() => {
+				embedRecordsCalls.push(input.collection);
+				const pass = options.embeddingPasses?.[embedRecordsCalls.length - 1] ?? {
+					selected: 0,
+					embedded: 0,
+					failed: 0
+				};
+				return {
+					collection: input.collection,
+					selected: pass.selected,
+					embedded: pass.embedded,
+					failed: pass.failed ?? 0,
+					...(pass.issues === undefined ? {} : { issues: pass.issues })
+				};
+			}),
 		progress: (update: { readonly progress: number; readonly text?: string }) =>
 			Effect.sync(() => {
 				progressUpdates.push(update);
@@ -218,7 +249,7 @@ function automationHarness(options: {
 							? pendingPhotos.filter((photo) => photo.sha256 === '')
 							: assignmentPhotos
 					),
-				findNearest: () => Effect.succeed([])
+				findNearest: () => Effect.succeed(options.nearest ?? [])
 			},
 			communication_logs: { findMany: () => Effect.succeed([]) },
 			suspicion_reviews: {
@@ -306,6 +337,7 @@ function automationHarness(options: {
 	};
 	return {
 		api,
+		embedRecordsCalls,
 		assignmentPageAfterIds,
 		inferenceCounts,
 		reviewCreateAttempts,
@@ -892,6 +924,7 @@ test('treats identical files within one assignment as a neutral repeat, not dupl
 	const context = JSON.parse(buildSuspicionInferenceContext(hillview, selected)) as {
 		photo_summary: {
 			similarity_relationships: number;
+			record_embedding_photos: number;
 			job_site_photo_dataset: ReadonlyArray<{
 				readonly asset_name: string;
 				readonly gps_metadata: string;
@@ -899,6 +932,11 @@ test('treats identical files within one assignment as a neutral repeat, not dupl
 		};
 	};
 	assert.equal(context.photo_summary.similarity_relationships, 0);
+	assert.equal(
+		context.photo_summary.record_embedding_photos,
+		0,
+		'a photo without a record embedding cannot nominate similar photos'
+	);
 	assert.equal(
 		Object.hasOwn(context.photo_summary, 'within_assignment_exact_sha_group_count'),
 		false
@@ -1061,6 +1099,7 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 			}>;
 		};
 		photo_summary: {
+			record_embedding_photos: number;
 			job_site_photo_dataset: ReadonlyArray<{
 				readonly asset_name: string;
 				readonly gps_metadata: string;
@@ -1075,6 +1114,11 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 		}>;
 	};
 	assert.match(context.attachment_manifest.instruction, /role and asset_name are authoritative/);
+	assert.equal(
+		context.photo_summary.record_embedding_photos,
+		probes.length,
+		'every probe with a record embedding is counted as able to nominate'
+	);
 	assert.deepEqual(context.attachment_manifest.images.at(-1), {
 		asset_name: 'foreign-near.jpg',
 		gps_metadata: 'missing_from_asset',
@@ -2019,6 +2063,89 @@ test('inspects a filed photo before judging its assignment', async () => {
 	assert.ok(Array.isArray(update?.flags), 'the flags were written');
 	assert.equal(outcome.inference_count, 1, 'the assignment was judged on inspected facts');
 	assert.equal(outcome.counts.checked, 1);
+});
+
+/**
+ * The embedding backfill is the automation's first pass, and it is bounded per call: the loop has
+ * to keep asking until the host answers "nothing pending". The review then judges the assignment.
+ */
+test('embeds filed photos before inspecting and judging them', async () => {
+	const selected = assignment('assignment-embedding');
+	const harness = automationHarness({
+		assignments: [selected],
+		embeddingPasses: [
+			{ selected: 2, embedded: 2 },
+			{ selected: 0, embedded: 0 }
+		]
+	});
+	const outcome = await runAutomation(harness.api);
+
+	assert.deepEqual(harness.embedRecordsCalls, ['photo_evidence', 'photo_evidence']);
+	assert.equal(outcome.counts.embedded_photos, 2);
+	assert.equal(outcome.counts.embedding_failed, 0);
+	assert.equal(outcome.counts.checked, 1);
+	assert.equal(outcome.failure_count, 0);
+});
+
+/** A refused row keeps its null embedding for the next run; it never blocks the review itself. */
+test('reports a failed photo embedding and still reviews the assignment', async () => {
+	const selected = assignment('assignment-embedding-failed');
+	const harness = automationHarness({
+		assignments: [selected],
+		embeddingPasses: [
+			{ selected: 3, embedded: 1, failed: 2, issues: ['provider refused two rows'] }
+		]
+	});
+	const outcome = await runAutomation(harness.api);
+
+	assert.equal(outcome.counts.embedded_photos, 1);
+	assert.equal(outcome.counts.embedding_failed, 2);
+	assert.equal(outcome.counts.checked, 1);
+	assert.equal(outcome.failure_count, 0);
+});
+
+/**
+ * The duplicate net separates the two facts the prompt distinguishes: the same file under another
+ * assignment is `exact_duplicate` (byte-identical, SHA-256), while a merely similar image is
+ * `visual_duplicate`. Both name the matched rows so the review can cite them.
+ */
+test('reports a byte-identical foreign photo as exact_duplicate and a near match as visual_duplicate', async () => {
+	const selected = assignment('assignment-reuse');
+	const photo = pendingPhoto(selected.id);
+	const bytes = solidJpeg();
+	const sha256 = createHash('sha256').update(bytes).digest('hex');
+	const foreignRow = (id: string, candidateSha: string) => ({
+		id,
+		photo: {
+			storage_key: `photos/${id}.jpg`,
+			file_name: `${id}.jpg`,
+			file_size: 1,
+			mime_type: 'image/jpeg'
+		},
+		sha256: candidateSha,
+		flags: [],
+		matched_evidence_ids: [],
+		created_at: null,
+		job_assignment_id: 'assignment-other',
+		variation_request_id: null
+	});
+	const harness = automationHarness({
+		assignments: [selected],
+		assignmentPhotos: [photo],
+		pendingPhotos: [photo],
+		photoBytes: bytes,
+		nearest: [foreignRow('photo-identical', sha256), foreignRow('photo-similar', 'other-sha')]
+	});
+	await runAutomation(harness.api);
+
+	const update = harness.photoUpdates[0];
+	const flags = update?.flags as ReadonlyArray<string>;
+	assert.ok(flags.includes('exact_duplicate'), `flags: ${JSON.stringify(flags)}`);
+	assert.ok(flags.includes('visual_duplicate'), `flags: ${JSON.stringify(flags)}`);
+	assert.deepEqual([...(update?.matched_evidence_ids as ReadonlyArray<string>)].sort(), [
+		'photo-identical',
+		'photo-similar'
+	]);
 });
 
 /**

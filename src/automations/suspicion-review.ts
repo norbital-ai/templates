@@ -268,7 +268,9 @@ const inspectFiledPhoto = (api: Api, photo: FiledPhoto) =>
 					});
 		const inspected = yield* inspectPhoto({ bytes: asset.bytes, mimeType });
 		const embedding = hexToBinaryEmbedding(inspected.perceptualHash);
-		const flags = new Set([
+		// The row's own flag union, not the inspection's: `exact_duplicate` is decided here, by
+		// comparing stored fingerprints, and never by the byte inspection itself.
+		const flags = new Set<PhotoEvidenceRow['flags'][number]>([
 			...inspected.flags,
 			...evaluateCaptureGeolocation(
 				inspected.captureLocation,
@@ -284,16 +286,22 @@ const inspectFiledPhoto = (api: Api, photo: FiledPhoto) =>
 			columns: { id: true, sha256: true, job_assignment_id: true, variation_request_id: true }
 		});
 		const candidates = nearest.filter(
-			(candidate) =>
-				candidate.id !== photo.id &&
-				candidate.sha256 !== '' &&
-				candidate.sha256 !== inspected.sha256
+			(candidate) => candidate.id !== photo.id && candidate.sha256 !== ''
 		);
 		const candidateAssignments = yield* assignmentIdsOf(api, candidates);
-		const matched = candidates.flatMap((candidate) =>
-			candidateAssignments.get(candidate.id) === assignmentId ? [] : [candidate.id]
+		const foreign = candidates.filter(
+			(candidate) => candidateAssignments.get(candidate.id) !== assignmentId
 		);
-		if (matched.length > 0) flags.add('visual_duplicate');
+		// A byte-identical file under another assignment is the stronger fact and is reported as
+		// `exact_duplicate`; a perceptual near-match that is not the same file stays
+		// `visual_duplicate`. Both flags can stand when one photo matches several foreign rows.
+		if (foreign.some((candidate) => candidate.sha256 === inspected.sha256)) {
+			flags.add('exact_duplicate');
+		}
+		if (foreign.some((candidate) => candidate.sha256 !== inspected.sha256)) {
+			flags.add('visual_duplicate');
+		}
+		const matched = foreign.map((candidate) => candidate.id);
 		const facts: Pick<
 			PhotoEvidenceRow,
 			'sha256' | 'perceptual_embedding' | 'flags' | 'matched_evidence_ids'
@@ -305,6 +313,26 @@ const inspectFiledPhoto = (api: Api, photo: FiledPhoto) =>
 		};
 		yield* api.collection.photo_evidence.update(photo.id, facts);
 	});
+
+/**
+ * Fill the record embeddings the similar-photo task retrieves with.
+ *
+ * A record embedding is a platform column, so the host computes and writes it — this pass is the
+ * caller, and it is deliberately not a seeding step: a workspace keeps its own similarity index
+ * current on the clock. One call is bounded and re-runnable, so the loop continues until nothing
+ * is selected; a row that fails keeps its null embedding and is retried next run.
+ */
+export const embedFiledPhotos = Effect.fn('SuspicionReview.embedFiledPhotos')(function* (api: Api) {
+	let embedded = 0;
+	for (;;) {
+		const pass = yield* api.embed({ collection: 'photo_evidence' });
+		embedded += pass.embedded;
+		if (pass.failed > 0) {
+			return { embedded, failed: pass.failed, issues: pass.issues ?? [] };
+		}
+		if (pass.selected === 0) return { embedded, failed: 0, issues: [] };
+	}
+});
 
 /**
  * Inspect every photo still awaiting facts, oldest id first so a backlog drains in order.
@@ -940,6 +968,16 @@ export function buildSuspicionInferenceContext(
 			flag_counts: flagCounts,
 			similarity_relationships: facts.photos.reduce(
 				(count, photo) => count + photo.matched_evidence_ids.length,
+				0
+			),
+			/**
+			 * How many of this assignment's photos can probe for cross-assignment scene reuse.
+			 *
+			 * A zero here means the similar-photo task had nothing to retrieve with, not that the
+			 * corpus was checked and found clear; the durable basis keeps that distinction.
+			 */
+			record_embedding_photos: facts.photos.reduce(
+				(count, photo) => count + Number((photo.record_embedding?.length ?? 0) > 0),
 				0
 			),
 			job_site_photo_dataset: namedDataset
