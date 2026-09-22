@@ -146,6 +146,10 @@
 	"app.field_ops_controller.review_status_failed": "Suspicion review status could not be loaded. Assignment progress remains available.",
 	"app.field_ops_controller.run_suspicion_review": "Run now",
 	"app.field_ops_controller.suspicion_review_running": "Review running",
+	"app.field_ops_controller.import_assignments": "Import",
+	"app.field_ops_controller.import_running": "Importing…",
+	"app.field_ops_controller.import_done": "Imported {count} job assignments from {file}.",
+	"app.field_ops_controller.import_empty": "{file} has no rows under its header.",
 	"app.field_ops_controller.suspicion_review_progress": "{percent}% {text}",
 	"component.conversation_to_latest": "Latest"
 }

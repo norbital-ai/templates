@@ -589,3 +589,160 @@ test(
 		}
 	}
 );
+
+/**
+ * Who sees a log, and what makes a reviewed assignment unread again.
+ *
+ * The log above is read back by the founder, an administrator, which proves nothing about the
+ * policies. Here the seeded people read it under their own team's policy: a controller sees the
+ * log and the review it stands on; the contractor who holds the assignment sees neither. Then the
+ * contractor's own report on the assignment clears its review stamp, and the next run judges it
+ * afresh — which is how new evidence reaches the review.
+ */
+const ADA_QUILL_CONTROLLER = 'ada.quill@example.test';
+const BEN_VOSS_CONTRACTOR = 'ben.voss@example.test';
+const VISIBILITY_PHOTO_ID = '01990000-0000-7000-8005-000000000404';
+
+test(
+	'a suspicion log is visible to controllers only, and a change makes the assignment unread',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	async () => {
+		const guest = await bootPublicSeedGuest({
+			// Seeded people can only be signed in inside the tenant their rows name.
+			tenantId: 'field-ops-public-seed',
+			releaseId: 'field-ops-suspicion-visibility',
+			gatewaySecret: 'field-ops-suspicion-visibility-gateway',
+			founderEmail: 'field-ops-suspicion-visibility@example.test',
+			founderClaimId: 'field-ops-suspicion-visibility-founder',
+			secretsKey: 'field-ops-suspicion-visibility-secrets-key',
+			invocationTimeoutMillis: 90_000,
+			files: true,
+			ai: recordedAi(
+				Array.from({ length: SUSPICION_AI_TRANSCRIPT_LENGTH * 2 }, () =>
+					recordedPhotoSuspicious(LOG_ASSET_NAME)
+				)
+			)
+		});
+		const signIn = async (email: string): Promise<string> => {
+			const started = await guest.guestCommand('identity.continueSession', { email }, 'system');
+			const credential = (started.value as { readonly credential?: unknown }).credential;
+			assert.equal(typeof credential, 'string', JSON.stringify(started.value));
+			return String(credential);
+		};
+		const checkedAt = async (): Promise<unknown> =>
+			(
+				(await guest.query(`select suspicion_checked_at from job_assignments where id = $1::uuid`, [
+					PUBLIC_ASSIGNMENT_ID
+				])) as ReadonlyArray<{ readonly suspicion_checked_at: unknown }>
+			)[0]?.suspicion_checked_at;
+		const runReview = async (label: string): Promise<void> => {
+			const started = await postGuestCommand(
+				guest.baseUrl,
+				START_COMMAND,
+				{ name: SUSPICION_AUTOMATION, input: { assignment_id: PUBLIC_ASSIGNMENT_ID } },
+				sessionHeaders(guest.credential)
+			);
+			assert.ok(
+				started.status >= 200 && started.status < 300,
+				`${label}: ${START_COMMAND} HTTP ${started.status}: ${JSON.stringify(started.value)}`
+			);
+		};
+		const read = (credential: string, collection: string) =>
+			postGuestCommand(
+				guest.baseUrl,
+				'collections.findMany',
+				{ collection, where: { job_assignment_id: { eq: PUBLIC_ASSIGNMENT_ID } }, limit: 10 },
+				sessionHeaders(credential)
+			);
+		try {
+			if (guest.files === undefined) throw new Error('files: true must return files');
+			const { reference: photoJpeg } = solidRgbJpegPair(JPEG_WIDTH, JPEG_HEIGHT);
+			await writeAsset(guest.files.rootDirectory, LOG_STORAGE_KEY, photoJpeg);
+			await pushMutation(
+				guest.baseUrl,
+				guest.credential,
+				guest.schemaFingerprint,
+				{
+					collection: 'photo_evidence',
+					action: 'create',
+					inputs: [
+						{
+							id: VISIBILITY_PHOTO_ID,
+							job_assignment_id: PUBLIC_ASSIGNMENT_ID,
+							photo: photoDescriptor(LOG_STORAGE_KEY, LOG_ASSET_NAME, photoJpeg.byteLength)
+						}
+					]
+				},
+				[],
+				'file the photo the review judges'
+			);
+			await runReview('first review');
+			assert.equal(typeof (await checkedAt()), 'string', 'the review stamps the assignment');
+
+			// The controller team reads the log and the review behind it.
+			const controller = await signIn(ADA_QUILL_CONTROLLER);
+			const controllerLogs = rowsOf(
+				requireOk(await read(controller, 'suspicious_activity_logs'), 'controller logs'),
+				'controller logs'
+			);
+			assert.equal(controllerLogs.length, 1, JSON.stringify(controllerLogs));
+			assert.match(String(controllerLogs[0]?.reason), /empty bay/);
+			assert.equal(
+				rowsOf(
+					requireOk(await read(controller, 'suspicion_reviews'), 'controller reviews'),
+					'controller reviews'
+				).length,
+				1
+			);
+
+			// The contractor holding this very assignment is refused both.
+			const contractor = await signIn(BEN_VOSS_CONTRACTOR);
+			for (const collection of ['suspicious_activity_logs', 'suspicion_reviews']) {
+				const refused = await read(contractor, collection);
+				const visible =
+					refused.status >= 200 && refused.status < 300
+						? rowsOf(refused.value, collection).length
+						: 0;
+				assert.equal(visible, 0, `${collection}: ${JSON.stringify(refused.value)}`);
+			}
+
+			// The contractor reports on the work: the reviewed assignment is unread again.
+			const [{ row_version: rowVersion }] = (await guest.query(
+				`select row_version from job_assignments where id = $1::uuid`,
+				[PUBLIC_ASSIGNMENT_ID]
+			)) as ReadonlyArray<{ readonly row_version: number }>;
+			await pushMutation(
+				guest.baseUrl,
+				contractor,
+				guest.schemaFingerprint,
+				{
+					collection: 'job_assignments',
+					action: 'update',
+					inputs: [{ id: PUBLIC_ASSIGNMENT_ID, summary: 'Two grab bars installed.' }]
+				},
+				[
+					{
+						row: { collection: 'job_assignments', recordId: PUBLIC_ASSIGNMENT_ID },
+						rowVersion: Number(rowVersion)
+					}
+				],
+				'contractor report'
+			);
+			assert.equal(await checkedAt(), null, 'a change clears the review stamp');
+
+			// The next run judges it again, on the new evidence.
+			await runReview('second review');
+			assert.equal(typeof (await checkedAt()), 'string', 'the re-review stamps it again');
+			assert.equal(
+				rowsOf(
+					requireOk(await read(controller, 'suspicion_reviews'), 'reviews after the change'),
+					'reviews after the change'
+				).length,
+				2,
+				'the changed assignment is reviewed a second time'
+			);
+		} finally {
+			await guest.stop();
+		}
+	}
+);

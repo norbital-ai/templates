@@ -16,7 +16,9 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import Icon from '@iconify/svelte';
 	import { Effect } from 'effect';
+	import { importCollectionRecords } from '@norbital-ai/bolt/client';
 	import { calendarDateInTimeZone, calendarDayOfInstant } from '../lib/calendar-date.js';
+	import { csvRecords } from '../lib/csv.js';
 
 	const today = calendarDateInTimeZone(new Date());
 
@@ -156,6 +158,41 @@
 			? null
 			: Math.round(suspicionReviewSnapshot.progress.progress * 100)
 	);
+
+	/**
+	 * A CSV of work orders — `site, scheduled_for, title`, optionally `nature, description,
+	 * assignee_user_id, external_ref` — through the assignment import pipeline, which checks the whole
+	 * sheet and files any site it does not know before it creates a row.
+	 */
+	let importRunning = $state(false);
+	let importMessage = $state<{ tone: 'ok' | 'error'; text: string } | null>(null);
+	async function importAssignments(file: File | undefined): Promise<void> {
+		if (file === undefined) return;
+		importRunning = true;
+		importMessage = null;
+		try {
+			const rows = csvRecords(await file.text());
+			if (rows.length === 0) {
+				importMessage = {
+					tone: 'error',
+					text: t('app.field_ops_controller.import_empty', { file: file.name })
+				};
+				return;
+			}
+			const count = await importCollectionRecords({
+				records: [{ collection: 'job_assignments', id: crypto.randomUUID(), values: { rows } }]
+			});
+			importMessage = {
+				tone: 'ok',
+				text: t('app.field_ops_controller.import_done', { count, file: file.name })
+			};
+		} catch (error) {
+			importMessage = { tone: 'error', text: getErrorMessage(error) };
+		} finally {
+			importRunning = false;
+		}
+	}
+	let importInput = $state<HTMLInputElement | null>(null);
 
 	function assignmentStatusLabel(status: string): string {
 		if (status !== 'unassigned' && status !== 'assigned' && status !== 'completed') {
@@ -323,6 +360,27 @@
 					? t('app.field_ops_controller.suspicion_review_running')
 					: t('app.field_ops_controller.run_suspicion_review')}
 			</Button>
+			<input
+				bind:this={importInput}
+				type="file"
+				accept=".csv,text/csv"
+				class="hidden"
+				onchange={(event) => {
+					const input = event.currentTarget;
+					void importAssignments(input.files?.[0]).finally(() => (input.value = ''));
+				}}
+			/>
+			<Button
+				variant="outline"
+				size="sm"
+				disabled={importRunning}
+				onclick={() => importInput?.click()}
+			>
+				<Icon icon="lucide:upload" class="size-4 shrink-0" />
+				{importRunning
+					? t('app.field_ops_controller.import_running')
+					: t('app.field_ops_controller.import_assignments')}
+			</Button>
 			<Button variant="secondary" size="sm" onclick={() => (assignContractorOpen = true)}>
 				<Icon icon="lucide:user-round-check" class="size-4 shrink-0" />
 				{t('app.field_ops_controller.assign_contractor')}
@@ -331,6 +389,16 @@
 	</Inline>
 	{#if suspicionReviewError}
 		<p role="alert" class="text-sm text-destructive">{suspicionReviewError}</p>
+	{/if}
+	{#if importMessage}
+		<p
+			role={importMessage.tone === 'error' ? 'alert' : 'status'}
+			class="whitespace-pre-line text-sm {importMessage.tone === 'error'
+				? 'text-destructive'
+				: 'text-muted-foreground'}"
+		>
+			{importMessage.text}
+		</p>
 	{/if}
 {/snippet}
 

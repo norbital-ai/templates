@@ -1,6 +1,8 @@
 import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { currentDate } from '../../lib/clock.js';
+import { PDQ_DIMENSIONS, photoSourceKey } from '../photo_evidence/photo-integrity.js';
+import type { Row as PhotoEvidenceRow } from '../photo_evidence/$types.js';
 import model from './+model.js';
 import type { CreateInput, Row, UpdateInput } from './$types.js';
 
@@ -35,6 +37,37 @@ const createColumns = {
 	source_message_id: true
 } as const;
 
+type FiledPhoto = Pick<PhotoEvidenceRow, 'photo' | 'source'>;
+type FiledMessage = {
+	readonly message: string;
+	readonly sender: string;
+	readonly source_message_id: string;
+};
+
+/**
+ * A photo filed through its assignment is born uninspected, exactly as a direct upload is: an empty
+ * hash and a zero vector until the suspicion review reads the bytes. A nested create does not run
+ * `photo_evidence`'s own transform, so the facts it would stamp are stamped here.
+ */
+function filedPhoto(photo: FiledPhoto) {
+	return {
+		...photo,
+		source_key: photoSourceKey(photo.source, photo.photo.storage_key),
+		sha256: '',
+		perceptual_embedding: new Array<number>(PDQ_DIMENSIONS).fill(0),
+		flags: [],
+		matched_evidence_ids: []
+	};
+}
+
+function assertFiledMessage(message: FiledMessage): void {
+	if (message.message.trim() === '') refuse('Communication log message cannot be empty.');
+	if (message.sender.trim() === '') refuse('Communication log sender cannot be empty.');
+	if (message.source_message_id.trim() === '') {
+		refuse('Communication log source_message_id cannot be empty.');
+	}
+}
+
 /**
  * A work order names its site and its day and may carry the dispatch system's reference and the
  * channel message it came from. The update selection carries the dispatch itself plus progress:
@@ -61,6 +94,18 @@ export default defineCollection({
 				location: true,
 				summary: true,
 				suspicion_checked_at: true
+			},
+			/**
+			 * A channel report lands on the work it is about as one write: the photos it carried, the
+			 * messages that are its slice of the conversation, and the progress it reports.
+			 */
+			with: {
+				job_assignment_photo_evidence: { create: { columns: { photo: true, source: true } } },
+				job_assignment_communications: {
+					create: {
+						columns: { message: true, sent_at: true, sender: true, source_message_id: true }
+					}
+				}
 			}
 		}
 	},
@@ -135,8 +180,20 @@ export default defineCollection({
 				};
 			};
 
-			/** Progress: assigning stamps the dispatch and completing stamps the completion, once each. */
+			/**
+			 * Progress: assigning stamps the dispatch and completing stamps the completion, once each.
+			 *
+			 * Any change other than the review's own stamp makes the assignment unread again, so the
+			 * suspicion review judges it afresh on its next run: new photos, a new status or a new
+			 * message are new evidence. The review's stamp is the one write that names nothing else.
+			 */
 			const recordProgress = (input: UpdateInput, stored: Row) => {
+				const reviewStamp = Object.entries(input).every(
+					([key, value]) => key === 'suspicion_checked_at' || key === 'id' || value === undefined
+				);
+				const photos = input.job_assignment_photo_evidence?.create ?? [];
+				const messages = input.job_assignment_communications?.create ?? [];
+				messages.forEach(assertFiledMessage);
 				const dispatchedAt =
 					input.assignee_user_id != null &&
 					stored.dispatched_at == null &&
@@ -156,7 +213,11 @@ export default defineCollection({
 					...input,
 					...(dispatchedAt === undefined ? {} : { dispatched_at: dispatchedAt }),
 					...(completedAt === undefined ? {} : { completed_at: completedAt }),
-					...(searchText === undefined ? {} : { search_text: searchText })
+					...(searchText === undefined ? {} : { search_text: searchText }),
+					...(reviewStamp ? {} : { suspicion_checked_at: null }),
+					...(photos.length === 0
+						? {}
+						: { job_assignment_photo_evidence: { create: photos.map(filedPhoto) } })
 				};
 			};
 

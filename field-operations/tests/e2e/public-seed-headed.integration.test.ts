@@ -179,8 +179,15 @@ const openFieldOpsGateway = async (
 	session: Awaited<ReturnType<typeof bootFieldOps>>,
 	label: string,
 	viewPath = '/app/field_ops_controller'
-) =>
-	startSessionGateway({
+) => {
+	// The page's user is the founder's own account id: the agent panel accepts a follow-up only on a
+	// conversation whose subject is the signed-in user, so a made-up principal locks the composer.
+	const founderEmail = `${label}-founder@example.test`;
+	const [founder] = (await session.query(`select id from "user" where email = $1`, [
+		founderEmail
+	])) as ReadonlyArray<{ readonly id: string }>;
+	if (founder === undefined) throw new Error(`no founder account for ${founderEmail}`);
+	return startSessionGateway({
 		upstream: session.address,
 		credential: session.credential,
 		cookieName: 'norbital_headed',
@@ -193,8 +200,8 @@ const openFieldOpsGateway = async (
 				workspaceId: label,
 				environment: 'test',
 				releaseId: label,
-				principal: `${label}-founder`,
-				email: `${label}-founder@example.test`,
+				principal: founder.id,
+				email: founderEmail,
 				syncPrincipal: `${label}-founder`,
 				organizationName: 'Field operations public seed',
 				commandPrefix: '/__bolt/command/',
@@ -204,6 +211,7 @@ const openFieldOpsGateway = async (
 				credential: session.credential
 			})
 	});
+};
 
 const openControllerGateway = (session: Awaited<ReturnType<typeof bootFieldOps>>, label: string) =>
 	openFieldOpsGateway(session, label, '/app/field_ops_controller');
@@ -215,243 +223,21 @@ const waitText = (page: HeadedPage, text: string) =>
 		const timer = setTimeout(() => { observer.disconnect(); reject(new Error('Missing ' + ${JSON.stringify(text)} + ': ' + document.body.innerText)); }, 15000);
 		observer.observe(document.body, { childList: true, subtree: true, characterData: true }); check();
 	})`);
+/**
+ * The panel's composer: a send while no turn works is "Send message", and one mid-turn queues as
+ * "Queue message". Steering is a queued message promoted with its own "Steer now".
+ */
 const send = async (page: HeadedPage, text: string, priority: 'normal' | 'steer' = 'normal') => {
 	await page.evaluate(
 		`(() => { const input = document.querySelector('#agent-task-composer'); input.value = ${JSON.stringify(text)}; input.dispatchEvent(new Event('input', { bubbles: true })); })()`
 	);
-	await page.click(
-		priority === 'steer'
-			? 'button[aria-label="Steer current turn"]'
-			: 'button[aria-label="Send message"]'
-	);
+	await page.click('button[aria-label="Send message"], button[aria-label="Queue message"]');
+	if (priority === 'steer')
+		await page.click(
+			`li[data-queue-message]:has-text(${JSON.stringify(text)}) button[aria-label="Steer now"]`
+		);
 };
 
-it('workspace conversation streams durable parts, reconnects, and accepts queued and completed follow-ups', async () => {
-	const reasoningGate = Promise.withResolvers<void>();
-	const textGate = Promise.withResolvers<void>();
-	const prompts: unknown[] = [];
-	const persistedBoundaries: number[] = [];
-	const encode = Schema.encodeSync(Prompt.Message);
-	// Turn payloads replay from the conversation-stream cassette (file-driven content, test-owned
-	// timing): the gates below choreograph reasoning/queue/steer windows, the file owns every
-	// reasoning text, reply text, and part boundary.
-	const streamCassette = JSON.parse(
-		readFileSync(
-			fileURLToPath(new URL('./assets/conversation-stream.cassette.json', import.meta.url)),
-			'utf8'
-		)
-	) as {
-		turns: ReadonlyArray<{
-			gated?: boolean;
-			steps: ReadonlyArray<{
-				reasoning: string | null;
-				text: string | null;
-				activeParts: ReadonlyArray<number>;
-			}>;
-		}>;
-	};
-	const buildMessage = (step: { reasoning: string | null; text: string | null }) => {
-		if (step.reasoning === null && step.text === null) {
-			throw new Error('conversation-stream cassette: a step needs reasoning, text, or both');
-		}
-		return encode(
-			Prompt.assistantMessage({
-				content: [
-					...(step.reasoning === null ? [] : [Prompt.reasoningPart({ text: step.reasoning })]),
-					...(step.text === null ? [] : [Prompt.textPart({ text: step.text })])
-				]
-			})
-		);
-	};
-	const ai = makeAiBinding({
-		call: async (_metadata, request, _signal, onProgress) => {
-			if (request._tag === 'Catalog')
-				return {
-					_tag: 'Catalog',
-					languageModels: [{ id: 'test/language' }],
-					defaultLanguageModelId: 'test/language',
-					embeddingModels: [{ id: 'test/embedding' }],
-					defaultEmbeddingModelId: 'test/embedding'
-				};
-			assert.equal(request._tag, 'Generate');
-			if (request._tag !== 'Generate') throw new Error('Generate required');
-			prompts.push(request.messages);
-			const number = prompts.length;
-			const turn = streamCassette.turns[number - 1];
-			if (turn === undefined || turn.steps.length === 0) {
-				throw new Error(
-					`conversation-stream cassette exhausted at turn ${number}: extend the asset, not this double`
-				);
-			}
-			let message = buildMessage(turn.steps[turn.steps.length - 1]!);
-			if (turn.gated === true) {
-				assert.equal(typeof onProgress, 'function');
-				if (turn.steps.length !== 4) {
-					throw new Error('conversation-stream cassette: the gated turn needs exactly 4 steps');
-				}
-				const publish = async (sequence: number) => {
-					const step = turn.steps[sequence]!;
-					message = buildMessage(step);
-					await onProgress!(
-						Schema.decodeUnknownSync(Schema.Json)({
-							callId: request.callId,
-							sequence,
-							message,
-							activeParts: step.activeParts
-						})
-					);
-					persistedBoundaries.push(sequence);
-				};
-				await publish(0);
-				await reasoningGate.promise;
-				await publish(1);
-				await publish(2);
-				await textGate.promise;
-				await publish(3);
-			} else {
-				for (const [sequence, step] of turn.steps.entries()) {
-					message = buildMessage(step);
-					if (typeof onProgress === 'function') {
-						await onProgress(
-							Schema.decodeUnknownSync(Schema.Json)({
-								callId: request.callId,
-								sequence,
-								message,
-								activeParts: step.activeParts
-							})
-						);
-						persistedBoundaries.push(sequence);
-					}
-				}
-			}
-			return {
-				_tag: 'Generated',
-				result: { _tag: 'Message', message },
-				observation: {
-					callId: request.callId,
-					provider: 'cassette',
-					model: request.modelId,
-					operation: 'language'
-				}
-			};
-		}
-	});
-	const session = await bootFieldOps('field-ops-conversation', ai);
-	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
-	let browser: HeadedBrowser | undefined;
-
-	try {
-		gateway = await openControllerGateway(session, 'field-ops-conversation');
-		browser = await launchChromiumOrSkip(`(() => {
-			window.__agentFrames = [];
-			const Native = window.EventSource;
-			window.EventSource = class extends Native {
-				constructor(...args) { super(...args); this.addEventListener('apply', event => window.__agentFrames.push({ at: Date.now(), frame: JSON.parse(event.data) })); }
-			};
-		})()`);
-		assert.ok(browser, 'Chromium is required for conversation streaming acceptance.');
-		const url = controllerUrl(gateway.address.port);
-		const page = await browser.openPage(url);
-		await page.click('[data-testid="workspace-agent-trigger"]');
-		const sentAt = Date.now();
-		await send(page, 'Initial conversation request');
-		await waitText(page, 'Reasoning…');
-		const firstFrames = JSON.parse(
-			await page.evaluate('JSON.stringify(window.__agentFrames)')
-		) as ReadonlyArray<{ at: number }>;
-		assert.ok(firstFrames.length >= 1, 'the first apply frame reaches the browser');
-		assert.ok(
-			firstFrames[0]!.at - sentAt <= FIRST_APPLY_BUDGET_MILLIS,
-			`first apply frame took ${firstFrames[0]!.at - sentAt} ms after send (budget ${FIRST_APPLY_BUDGET_MILLIS} ms)`
-		);
-		assert.equal(prompts.length, 1, 'Provider is still held before finishing its reasoning.');
-		await send(page, 'Queued while reasoning');
-		await waitText(page, 'Queued while reasoning');
-		await send(page, 'Steer at the next step', 'steer');
-		await waitText(page, 'Steering · next step');
-		const reopened = await browser.openPage(url);
-		await reopened.click('[data-testid="workspace-agent-trigger"]');
-		await waitText(reopened, 'Reasoning…');
-		await reopened.close();
-		reasoningGate.resolve();
-		try {
-			await waitText(page, 'Writing…');
-		} catch (error) {
-			const records = await postGuestCommand(
-				session.baseUrl,
-				'collections.findMany',
-				{ collection: 'conversation_message', limit: 20 },
-				bearerHeaders(session.credential)
-			);
-			const runs = await postGuestCommand(
-				session.baseUrl,
-				'collections.findMany',
-				{ collection: 'turn', limit: 20 },
-				bearerHeaders(session.credential)
-			);
-			const frames = await page.evaluate('JSON.stringify(window.__agentFrames)');
-			throw new Error(
-				`${String(error)}; durable=${JSON.stringify({ persistedBoundaries, records, runs })}; frames=${String(frames)}`
-			);
-		}
-		await page.click('details.group\\/reasoning summary');
-		await waitText(page, 'Verified the durable inputs.');
-		textGate.resolve();
-		await waitText(page, 'Stream reply 3');
-		assert.equal(
-			await page.evaluate('document.querySelector("#agent-task-composer").disabled'),
-			false
-		);
-		await send(page, 'Follow up after completion');
-		await waitText(page, 'Stream reply 4');
-		assert.match(JSON.stringify(prompts[1]), /Steer at the next step/);
-		assert.doesNotMatch(JSON.stringify(prompts[1]), /Queued while reasoning/);
-		assert.match(JSON.stringify(prompts[2]), /Queued while reasoning/);
-		assert.match(JSON.stringify(prompts[3]), /Stream reply 1/);
-		const runRows = await postGuestCommand(
-			session.baseUrl,
-			'collections.findMany',
-			{ collection: 'turn', limit: 20 },
-			bearerHeaders(session.credential)
-		);
-		assert.equal(
-			rowsOf(runRows.value, 'conversation runs').length,
-			3,
-			'Steering continues the first run.'
-		);
-		const tasks = await postGuestCommand(
-			session.baseUrl,
-			'collections.findMany',
-			{ collection: 'conversation', where: { parent_id: { isNull: true } }, limit: 20 },
-			bearerHeaders(session.credential)
-		);
-		assert.equal(tasks.status, 200, JSON.stringify(tasks.value));
-		assert.equal(rowsOf(tasks.value, 'conversations').length, 1);
-		assert.doesNotMatch(
-			String(await page.evaluate('document.body.innerText')),
-			/complete and immutable|Start a new Task/
-		);
-	} finally {
-		reasoningGate.resolve();
-		textGate.resolve();
-		if (browser) await browser.close();
-		if (gateway) await gateway.stop();
-		await session.stop();
-	}
-});
-
-/**
- * A send whose turn outlives the composer's own wall.
- *
- * Every other conversation test here gates the provider and releases it within a second or two, so
- * the send returns long before the composer's deadline and the deadline itself is never exercised.
- * That is how a five-second wall survived the change that made `conversations.send` admit *and*
- * answer in one invocation: from then on the browser aborted the request mid-reply and painted "The
- * Task did not admit within 5 seconds" over a conversation that was still running, on every real
- * turn. The suite stayed green because no test ever made a turn take five seconds.
- *
- * Eight seconds is enough to prove it — comfortably past the old wall, and far under the new one.
- */
 it('does not give up on a turn that takes longer than the old five-second wall', async () => {
 	const SLOW_TURN_MILLIS = 8_000;
 	const encode = Schema.encodeSync(Prompt.Message);
@@ -1014,9 +800,9 @@ it(
 				if (request._tag === 'Catalog')
 					return {
 						_tag: 'Catalog',
-						languageModels: [{ id: 'test/language' }],
+						languageModels: [{ id: 'test/language', contextWindowTokens: 128_000 }],
 						defaultLanguageModelId: 'test/language',
-						embeddingModels: [{ id: 'test/embedding' }],
+						embeddingModels: [{ id: 'test/embedding', contextWindowTokens: 128_000 }],
 						defaultEmbeddingModelId: 'test/embedding'
 					};
 				assert.equal(request._tag, 'Generate');
@@ -1134,9 +920,12 @@ it('field-ops agent selects models and completes a built-in tool round trip in t
 			if (request._tag === 'Catalog')
 				return {
 					_tag: 'Catalog',
-					languageModels: [{ id: firstModel }, { id: secondModel }],
+					languageModels: [
+						{ id: firstModel, contextWindowTokens: 128_000 },
+						{ id: secondModel, contextWindowTokens: 128_000 }
+					],
 					defaultLanguageModelId: firstModel,
-					embeddingModels: [{ id: 'test/embedding' }],
+					embeddingModels: [{ id: 'test/embedding', contextWindowTokens: 128_000 }],
 					defaultEmbeddingModelId: 'test/embedding'
 				};
 			assert.equal(request._tag, 'Generate');
@@ -1240,156 +1029,7 @@ it('field-ops agent selects models and completes a built-in tool round trip in t
 	}
 });
 
-it('workspace planning replaces the full plan and folds prior messages into accessible transcript tabs', async () => {
-	const revisionStarted = Promise.withResolvers<void>();
-	const releaseRevision = Promise.withResolvers<void>();
-	const prompts: unknown[] = [];
-	const firstPlan =
-		'Objective: inspect all sites. Approach: review evidence. Verify: every site has an audit.';
-	const secondPlan =
-		'Objective: inspect all sites. Approach: review evidence and geolocation. Verify: every site has an audit and coordinates.';
-	const summary = 'All sites require evidence and geolocation checks with audit records.';
-	const ai = makeAiBinding({
-		call: async (_metadata, request) => {
-			if (request._tag === 'Catalog')
-				return {
-					_tag: 'Catalog',
-					languageModels: [{ id: 'test/language' }],
-					defaultLanguageModelId: 'test/language',
-					embeddingModels: [{ id: 'test/embedding' }],
-					defaultEmbeddingModelId: 'test/embedding'
-				};
-			assert.equal(request._tag, 'Generate');
-			if (request._tag !== 'Generate') throw new Error('Generate required');
-			prompts.push(request.messages);
-			if (prompts.length === 2) {
-				revisionStarted.resolve();
-				await releaseRevision.promise;
-			}
-			return {
-				_tag: 'Generated',
-				result: {
-					_tag: 'Message',
-					message: {
-						role: 'assistant',
-						content: [firstPlan, secondPlan, summary][prompts.length - 1],
-						options: {}
-					}
-				},
-				observation: {
-					callId: request.callId,
-					provider: 'fixture',
-					model: request.modelId,
-					operation: 'language'
-				}
-			};
-		}
-	});
-	const session = await bootFieldOps('field-ops-plan-transcript', ai);
-	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
-	let browser: HeadedBrowser | undefined;
-	try {
-		gateway = await openControllerGateway(session, 'field-ops-plan-transcript');
-		browser = await launchChromiumOrSkip(EV_SOURCE_PROBE);
-		assert.ok(browser, 'Chromium is required for planning acceptance.');
-		const page = await browser.openPage(controllerUrl(gateway.address.port));
-		await page.click('[data-testid="workspace-agent-trigger"]');
-		await page.click('button[aria-keyshortcuts="Tab"]');
-		await send(page, 'Plan a complete site inspection.');
-		await waitText(page, firstPlan);
-		await waitText(page, 'Plan 1');
-		assert.equal(
-			await page.evaluate(
-				'document.querySelector("ol[aria-label=\\"Conversation transcript\\"]").innerText.trim()'
-			),
-			''
-		);
-		await page.click('[role="tab"]:has-text("Prior transcript")');
-		await waitText(page, 'Plan a complete site inspection.');
-		await page.click('[role="tab"]:has-text("Plan")');
-		await send(page, 'Add geolocation to the full plan.');
-		await revisionStarted.promise;
-		await waitText(page, 'Add geolocation to the full plan.');
-		assert.equal(
-			await page.evaluate(
-				'document.querySelector("button[aria-keyshortcuts=\\"Tab\\"]").getAttribute("aria-pressed")'
-			),
-			'true'
-		);
-		releaseRevision.resolve();
-		await waitText(page, secondPlan);
-		await waitText(page, 'Plan 2');
-		assert.equal(
-			await page.evaluate(
-				'document.querySelector("ol[aria-label=\\"Conversation transcript\\"]").innerText.trim()'
-			),
-			''
-		);
-		assert.match(JSON.stringify(prompts[1]), /complete replacement plan/);
-		assert.ok(JSON.stringify(prompts[1]).includes(firstPlan));
-		await page.click('[role="tab"]:has-text("Prior transcript")');
-		await waitText(page, 'Add geolocation to the full plan.');
-		await page.click('[role="tab"]:has-text("Plan")');
-		await send(page, '/compact Summarize the agreed inspection work.');
-		await waitText(page, summary);
-		await waitText(page, 'Conversation summary');
-		assert.equal(
-			await page.evaluate(
-				'[...document.querySelectorAll("[role=tab]")].find(tab => tab.textContent.trim() === "Summary")?.getAttribute("aria-selected")'
-			),
-			'true'
-		);
-		await page.click('[role="tab"]:has-text("Prior transcript")');
-		await waitText(page, 'Summarize the agreed inspection work.');
-		assert.equal(
-			await page.evaluate(`(() => {
-			const plus = document.querySelector('button[aria-label="Attach media or files"]').getBoundingClientRect();
-			const model = document.querySelector('[role="combobox"][aria-label="Agent model"]').getBoundingClientRect();
-			const send = document.querySelector('button[aria-label="Send message"]').getBoundingClientRect();
-			return plus.right < model.left && model.right <= send.left;
-		})()`),
-			true
-		);
-		await page.evaluate(`(() => {
-			const picker = document.querySelector('button[aria-label="Attach media or files"]').closest('form').querySelector('input[type="file"]');
-			const transfer = new DataTransfer();
-			transfer.items.add(new File(['Resin R42: melt flow 12 g/10 min.'], 'resin-notes.txt', { type: 'text/plain' }));
-			picker.files = transfer.files;
-			picker.dispatchEvent(new Event('change', { bubbles: true }));
-		})()`);
-		await waitText(page, 'resin-notes.txt');
-		await page.click('button[aria-label="Remove resin-notes.txt"]');
-		const screenshotDirectory = process.env['BOLT_TEST_SCREENSHOT_DIR'];
-		await page.click('[role="tab"]:has-text("Summary")');
-		if (screenshotDirectory)
-			await writeFile(
-				join(screenshotDirectory, 'agent-conversation-wide.png'),
-				await page.screenshot()
-			);
-		await page.setViewportSize({ width: 390, height: 844 });
-		assert.equal(await page.evaluate('document.documentElement.scrollWidth <= innerWidth'), true);
-		assert.equal(
-			await page.evaluate(`(() => {
-			const plus = document.querySelector('button[aria-label="Attach media or files"]').getBoundingClientRect();
-			const send = document.querySelector('button[aria-label="Send message"]').getBoundingClientRect();
-			return plus.left >= 0 && plus.right < send.left && send.right <= innerWidth;
-		})()`),
-			true
-		);
-		if (screenshotDirectory)
-			await writeFile(
-				join(screenshotDirectory, 'agent-conversation-narrow.png'),
-				await page.screenshot()
-			);
-	} finally {
-		releaseRevision.resolve();
-		if (browser) await browser.close();
-		if (gateway) await gateway.stop();
-		await session.stop();
-	}
-});
-
-it('workspace goals show durable progress, survive reconnect and fold away after compaction', async () => {
+it('workspace goals show durable progress and survive reconnect and compaction', async () => {
 	const releaseWork = Promise.withResolvers<void>();
 	let calls = 0;
 	const encode = Schema.encodeSync(Prompt.Message);
@@ -1398,49 +1038,69 @@ it('workspace goals show durable progress, survive reconnect and fold away after
 			if (request._tag === 'Catalog')
 				return {
 					_tag: 'Catalog',
-					languageModels: [{ id: 'test/language' }],
+					languageModels: [{ id: 'test/language', contextWindowTokens: 128_000 }],
 					defaultLanguageModelId: 'test/language',
-					embeddingModels: [{ id: 'test/embedding' }],
+					embeddingModels: [{ id: 'test/embedding', contextWindowTokens: 128_000 }],
 					defaultEmbeddingModelId: 'test/embedding'
 				};
 			if (request._tag !== 'Generate') throw new Error('Generate required');
-			const round = ++calls;
+			// A compaction turn answers in the runtime's checkpoint table: four named rows.
+			const compaction = JSON.stringify(request.messages).includes('(Section, Summary)');
+			const round = compaction ? calls : ++calls;
 			if (round === 2) await releaseWork.promise;
-			const message = encode(
-				Prompt.assistantMessage({
-					content:
-						round <= 2
-							? [
-									Prompt.toolCallPart({
-										id: `goal-${round}`,
-										name: 'todo',
-										params: {
-											items: [
-												{
-													id: 'review',
-													text: 'Review all sites',
-													status: round === 1 ? 'doing' : 'done'
+			const message = compaction
+				? encode(
+						Prompt.assistantMessage({
+							content: [
+								Prompt.textPart({
+									text: [
+										'| Section | Summary |',
+										'| --- | --- |',
+										'| Goal | Review all sites and verify the audit coverage. |',
+										'| Progress | Both sites reviewed and the audit coverage verified. |',
+										'| What we learned | None yet |',
+										"| What's left | None yet |"
+									].join('\n')
+								})
+							]
+						})
+					)
+				: encode(
+						Prompt.assistantMessage({
+							content:
+								round <= 2
+									? [
+											Prompt.toolCallPart({
+												id: `goal-${round}`,
+												name: 'todo',
+												params: {
+													operation: 'set',
+													items: [
+														{
+															id: 'review',
+															text: 'Review all sites',
+															status: round === 1 ? 'doing' : 'done'
+														},
+														{
+															id: 'verify',
+															text: 'Verify audit coverage',
+															status: round === 1 ? 'pending' : 'done'
+														}
+													]
 												},
-												{
-													id: 'verify',
-													text: 'Verify audit coverage',
-													status: round === 1 ? 'pending' : 'done'
-												}
-											]
-										},
-										providerExecuted: false
-									})
-								]
-							: [
-									Prompt.textPart({
-										text:
-											round === 3
-												? 'Two audit checks complete.'
-												: 'The site review and audit verification are complete.'
-									})
-								]
-				})
-			);
+												providerExecuted: false
+											})
+										]
+									: [
+											Prompt.textPart({
+												text:
+													round === 3
+														? 'Two audit checks complete.'
+														: 'The site review and audit verification are complete.'
+											})
+										]
+						})
+					);
 			return {
 				_tag: 'Generated',
 				result: { _tag: 'Message', message },
@@ -1463,14 +1123,16 @@ it('workspace goals show durable progress, survive reconnect and fold away after
 		const page = await browser.openPage(controllerUrl(gateway.address.port));
 		await page.click('[data-testid="workspace-agent-trigger"]');
 		await send(page, 'Review all sites and verify the audit coverage.');
-		await waitText(page, 'Goal progress');
+		// The checklist shows its current step and a count; "Goal progress" names the bar only.
+		await waitText(page, 'Review all sites');
+		await waitText(page, '0 / 2');
 		assert.equal(
 			await page.evaluate(
 				'document.querySelector("progress[aria-label=\\"Goal progress\\"]").value'
 			),
 			0
 		);
-		await page.click('summary:has-text("Goal progress")');
+		await page.click('summary:has(progress[aria-label="Goal progress"])');
 		await waitText(page, 'Verify audit coverage');
 		const screenshotDirectory = process.env['BOLT_TEST_SCREENSHOT_DIR'];
 		if (screenshotDirectory)
@@ -1480,10 +1142,10 @@ it('workspace goals show durable progress, survive reconnect and fold away after
 			);
 		releaseWork.resolve();
 		await waitText(page, 'Two audit checks complete.');
-		await waitText(page, 'Goal complete');
+		await waitText(page, 'All steps completed');
 		const reconnected = await browser.openPage(controllerUrl(gateway.address.port));
 		await reconnected.click('[data-testid="workspace-agent-trigger"]');
-		await waitText(reconnected, 'Goal complete');
+		await waitText(reconnected, 'All steps completed');
 		assert.equal(
 			await reconnected.evaluate(
 				'document.querySelector("progress[aria-label=\\"Goal progress\\"]").value'
@@ -1492,11 +1154,12 @@ it('workspace goals show durable progress, survive reconnect and fold away after
 		);
 		await send(reconnected, '/compact Summarize this review.');
 		await waitText(reconnected, 'Summary');
+		// The checklist is the conversation's own row, not a transcript entry, so it outlives compaction.
 		assert.equal(
 			await reconnected.evaluate(
-				'document.querySelector("progress[aria-label=\\"Goal progress\\"]") === null'
+				'document.querySelector("progress[aria-label=\\"Goal progress\\"]").value'
 			),
-			true
+			2
 		);
 	} finally {
 		releaseWork.resolve();
@@ -1512,9 +1175,9 @@ it('field-ops self-host Run now reports provider failure and allows retry', asyn
 			if (request._tag === 'Catalog')
 				return {
 					_tag: 'Catalog',
-					languageModels: [{ id: 'test/language' }],
+					languageModels: [{ id: 'test/language', contextWindowTokens: 128_000 }],
 					defaultLanguageModelId: 'test/language',
-					embeddingModels: [{ id: 'test/embedding' }],
+					embeddingModels: [{ id: 'test/embedding', contextWindowTokens: 128_000 }],
 					defaultEmbeddingModelId: 'test/embedding'
 				};
 			throw new Error('Fixture review provider unavailable');

@@ -140,6 +140,10 @@
 	"app.field_ops_controller.review_status_failed": "无法加载疑点审查状态。任务进度仍可正常查看。",
 	"app.field_ops_controller.run_suspicion_review": "立即运行",
 	"app.field_ops_controller.suspicion_review_running": "审查进行中",
+	"app.field_ops_controller.import_assignments": "导入",
+	"app.field_ops_controller.import_running": "正在导入…",
+	"app.field_ops_controller.import_done": "已从 {file} 导入 {count} 个工作分派。",
+	"app.field_ops_controller.import_empty": "{file} 的表头下没有数据行。",
 	"app.field_ops_controller.suspicion_review_progress": "{percent}% {text}",
 	"component.conversation_to_latest": "最新"
 }
