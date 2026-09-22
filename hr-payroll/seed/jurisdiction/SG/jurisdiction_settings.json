@@ -22,67 +22,67 @@
 			"bands": [
 				{
 					"label": "PH-NON-WORKING-DAY",
-					"when": "day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0",
 					"take_hours": "0.0",
-					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
+					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.monthly_wage * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "PT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal < (person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours ? hours_beyond_normal : (person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours",
 					"price_amount": "hours * ordinary_hour * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal - ((person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours)",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-0.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "0.5 * (person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-2.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
 					"price_amount": "2.0 * (person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "up_to_unit(hours) * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"PUBLIC_HOLIDAY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				}
@@ -291,67 +291,67 @@
 			"bands": [
 				{
 					"label": "PH-NON-WORKING-DAY",
-					"when": "day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0",
 					"take_hours": "0.0",
-					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
+					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.monthly_wage * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "PT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal < (person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours ? hours_beyond_normal : (person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours",
 					"price_amount": "hours * ordinary_hour * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal - ((person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours)",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-0.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "0.5 * (person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-2.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
 					"price_amount": "2.0 * (person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "up_to_unit(hours) * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"PUBLIC_HOLIDAY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				}
@@ -560,67 +560,67 @@
 			"bands": [
 				{
 					"label": "PH-NON-WORKING-DAY",
-					"when": "day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0",
 					"take_hours": "0.0",
-					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
+					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.monthly_wage * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "PT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal < (person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours ? hours_beyond_normal : (person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours",
 					"price_amount": "hours * ordinary_hour * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal - ((person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours)",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-0.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "0.5 * (person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-2.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
 					"price_amount": "2.0 * (person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "up_to_unit(hours) * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"PUBLIC_HOLIDAY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				}
@@ -829,67 +829,67 @@
 			"bands": [
 				{
 					"label": "PH-NON-WORKING-DAY",
-					"when": "day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0",
 					"take_hours": "0.0",
-					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
+					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.monthly_wage * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "PT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal < (person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours ? hours_beyond_normal : (person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours",
 					"price_amount": "hours * ordinary_hour * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal - ((person.terms.working_days_per_week <= 5.0 ? 9.0 : 8.0) - normal_hours)",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-0.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "0.5 * (person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by == \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-2.0X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\" && requested_by != \"EMPLOYEE\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
 					"price_amount": "2.0 * (person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "up_to_unit(hours) * ordinary_hour * 1.5"
 				},
 				{
 					"label": "OT-1.0X",
-					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary : person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week : person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week))"
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.basic_salary <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"PUBLIC_HOLIDAY\"",
+					"when": "(person.employment.classification != \"MANAGERIAL\" && person.employment.classification != \"NON_EA\" && person.terms.monthly_basic <= (person.terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)) && day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				}
