@@ -447,7 +447,10 @@ export const settle = async (
 		last = paint;
 		await new Promise((resolve) => setTimeout(resolve, 250));
 	}
-	throw new Error(`${label} never settled in ${timeoutMs} ms: ${JSON.stringify(last, null, 2)}`);
+	const errors = await page.evaluate('JSON.stringify((globalThis.__sweepErrors ?? []).slice(-8))');
+	throw new Error(
+		`${label} never settled in ${timeoutMs} ms: ${JSON.stringify(last, null, 2)}\nerrors: ${String(errors)}`
+	);
 };
 
 /** The mounted shell publishes its navigation actions; nothing can be driven before it does. */

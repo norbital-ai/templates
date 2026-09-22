@@ -53,6 +53,14 @@ export const startPublicSeedHost = async (
 		readonly hostTools?: WithSelfHostInput['hostTools'];
 		readonly files?: boolean;
 		readonly seed?: WithSelfHostInput['seed'];
+		/**
+		 * The largest control body this host reads.
+		 *
+		 * A surface that mounts many live queries registers all of them in one `sync.connect`, and
+		 * the test host's default (16 KiB) is far below the 1 MiB a deployed host reads — so a walk
+		 * that opens every surface had its registration refused and the client retried forever.
+		 */
+		readonly requestBodyLimitBytes?: number;
 	}
 ) => {
 	const { bundlePath, schemaFingerprint } = requireReleaseBundle(artifactDirectory, [
@@ -71,6 +79,9 @@ export const startPublicSeedHost = async (
 		...(options?.connector !== undefined ? { connector: options.connector } : {}),
 		...(options?.hostTools !== undefined ? { hostTools: options.hostTools } : {}),
 		...(options?.files === true ? { files: true } : {}),
+		...(options?.requestBodyLimitBytes === undefined
+			? {}
+			: { requestBodyLimitBytes: options.requestBodyLimitBytes }),
 		seed: options?.seed ?? {
 			stages,
 			rows: publicSeedDirectory,
