@@ -504,7 +504,12 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 		);
 	}
 
-	const session = await startPublicSeedHost(LABEL, { host: '0.0.0.0' });
+	// A surface that mounts a dozen live queries registers them in one body, and this walk opens
+	// every surface: the host reads what a deployed host reads (1 MiB), not the test default.
+	const session = await startPublicSeedHost(LABEL, {
+		host: '0.0.0.0',
+		requestBodyLimitBytes: 1_048_576
+	});
 	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
 	let browser: HeadedBrowser | undefined;
 	try {
