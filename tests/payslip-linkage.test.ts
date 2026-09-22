@@ -295,6 +295,7 @@ const terms = (overrides = {}) => ({
 	employment_type: 'PERMANENT',
 	department: null,
 	payroll_group: null,
+	paid_rest_days: false,
 	effective_range: { start: '2020-01-01', end: null },
 	...overrides
 });

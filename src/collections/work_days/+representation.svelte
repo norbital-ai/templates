@@ -845,6 +845,9 @@
 									{/if}
 									<!-- A rest-day worked reads differently by who asked for it (SG EA s.37, MY EA s.60). -->
 									<Field name="requested_by" label={t('component.requested_by')} />
+									<!-- TW 勞基法 §32(4) emergency hours and the §32-1 election, priced by the version's bands. -->
+									<Field name="emergency_cause" label={t('component.emergency_cause')} />
+									<Field name="time_off_in_lieu" label={t('component.time_off_in_lieu')} />
 
 									{#if problemMessage != null}
 										<Alert variant="destructive">
@@ -855,6 +858,8 @@
 								{:else}
 									<!-- Read-only actual: the same numbers, with nothing to press. -->
 									<Field name="requested_by" hidden />
+									<Field name="emergency_cause" hidden />
+									<Field name="time_off_in_lieu" hidden />
 									{@render fieldRow(
 										t('roster.day_sheet_recorded'),
 										(record?.worked_intervals?.length ?? 0) === 0

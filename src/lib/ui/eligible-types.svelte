@@ -63,6 +63,7 @@
 								statutory_work_category: true,
 								department: true,
 								payroll_group: true,
+								paid_rest_days: true,
 								grade: true,
 								residency_since: true
 							}

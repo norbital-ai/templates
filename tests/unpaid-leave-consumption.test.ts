@@ -51,6 +51,7 @@ const TERM = {
 	work_classification: 'NON_MANUAL',
 	department: null,
 	payroll_group: null,
+	paid_rest_days: false,
 	effective_range: { start: '2021-01-01', end: null }
 };
 function leaveEntry(id, dates) {

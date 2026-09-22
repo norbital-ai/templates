@@ -291,10 +291,15 @@ test('Vietnam — the December 2025 version, and the regional cap that moves off
 	// level, and the Resolution 954/2020 family deductions of 11,000,000 / 4,400,000 a month.
 	// A wage of 120,000,000 is the only way to see the unemployment ceiling, which is the one
 	// figure the 1 January 2026 version actually moves.
+	// Each authorised this employer to finalise the year (Decree 126/2020 art.8(6)(d)): without
+	// it December stays on the monthly table — which for these steady years is the same figure.
+	const finalise = {
+		PIT: { kind: 'REGISTERED', elections: { finalisation_authorised: true } }
+	} as const;
 	const people = [
-		{ key: 'VN-20M', wage: 20_000_000, citizenship: 'CITIZEN' },
-		{ key: 'VN-120M', wage: 120_000_000, citizenship: 'CITIZEN' },
-		{ key: 'VN-200M', wage: 200_000_000, citizenship: 'CITIZEN' }
+		{ key: 'VN-20M', wage: 20_000_000, citizenship: 'CITIZEN', registrations: finalise },
+		{ key: 'VN-120M', wage: 120_000_000, citizenship: 'CITIZEN', registrations: finalise },
+		{ key: 'VN-200M', wage: 200_000_000, citizenship: 'CITIZEN', registrations: finalise }
 	];
 	// December closes the tax year: the last payslip charges the annual scale on the year's income
 	// less what the year withheld (Law 04/2007 art.22 with Circular 111/2013 art.25), so the
@@ -472,8 +477,12 @@ test('Vietnam — leave exemption respects residence commencement and a future d
 					OVERTIME_PREMIUM: 0,
 					ENCASHMENT: 100000,
 					INCENTIVE: 0,
+					NIGHT_WAGE: 0,
 					ABSENCE: 0,
 					NO_PAY_LEAVE: 0,
+					// The PIT parts (Decree 253/2026 art.8(2)(g)-(h)); no meal or rent here.
+					MEAL: { ALLOWANCES: 0, ADHOC: 0 },
+					HOUSING: { ALLOWANCES: 0, ADHOC: 0 },
 					person: { terms: { tax_residency: residency }, employment: { exit_date: exit } },
 					period: { end: start }
 				});
@@ -874,6 +883,21 @@ test('Vietnam — fourteen days of no-pay leave inside an employed month is the 
 		);
 });
 
+test('Vietnam — June 2026 (the 16 May version, Decree 105/2026) charges the union fee at the same 2%', () => {
+	// Decree 105/2026/NĐ-CP (in force 16 May 2026) moves when the union fee is paid, not what it
+	// is: Law 50/2024 art.29(1)(b) still sets 2% of the SI salary fund. The reference level is
+	// 2,340,000 to 30 June 2026 (cap 46,800,000). 20,000,000: SI 8% = 1,600,000 / 17.5% =
+	// 3,500,000; the union fee 2% × 20,000,000 = 400,000, one company line.
+	const book = assessStatutory({
+		code: 'VN',
+		period: '2026-06',
+		region: 'I',
+		people: [{ key: 'VN-20M', wage: 20_000_000, citizenship: 'CITIZEN' }]
+	});
+	expectStatutory(book, 'VN-20M', 'SI', 1_600_000, 3_500_000);
+	expectStatutory(book, COMPANY, 'UNION_FEE', 0, 400_000);
+});
+
 test('every sealed version of `VN` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
@@ -950,9 +974,9 @@ test('Vietnam — the 300-hour sector limit, the reduced accident rate and union
 	// Decree 58/2020 art.5: the employer's SI share is 17.3% where the reduced 0.3% accident rate
 	// is granted: 17,600,000 × 17.3% = 3,044,800.
 	expectStatutory(book, 'VN-MEMBER', 'SI', 1_408_000, 3_044_800);
-	// Decision 1908/QĐ-TLĐ: a union member pays dues of 1% of the SI salary, capped at 10% of the
-	// reference level (234,000); a non-member pays none.
-	expectStatutory(book, 'VN-MEMBER', 'UNION_DUES', 176_000, 0);
+	// Decision 61/QĐ-TLĐ (from 1 July 2025): a union member pays dues of 0.5% of the SI salary,
+	// 17,600,000 × 0.5% = 88,000, under the 10%-of-reference-level cap; a non-member pays none.
+	expectStatutory(book, 'VN-MEMBER', 'UNION_DUES', 88_000, 0);
 	assert.equal(book.get('VN-NONMEMBER')!.get('UNION_DUES'), undefined);
 });
 
@@ -1007,7 +1031,7 @@ test('Vietnam — a part-timer under the floor and a trainee are outside compuls
 	expectStatutory(book, 'VN-PT-FLOOR', 'UI', 23_400, 23_400);
 });
 
-test('Vietnam — union dues below the floor are 1% of the SI salary (Decision 1908/QĐ-TLĐ art.23(3))', () => {
+test('Vietnam — union dues below the floor are 0.5% of the floored SI salary (Decision 61/QĐ-TLĐ)', () => {
 	const book = assessStatutory({
 		code: 'VN',
 		period: '2026-01',
@@ -1021,8 +1045,9 @@ test('Vietnam — union dues below the floor are 1% of the SI salary (Decision 1
 			}
 		]
 	});
-	// The SI salary is the floored 2,340,000, so the dues are 23,400 — not 20,000 on the raw wage.
-	expectStatutory(book, 'VN-DUES-2M', 'UNION_DUES', 23_400, 0);
+	// The SI salary is the floored 2,340,000, so the dues are 0.5% × 2,340,000 = 11,700 — not
+	// 10,000 on the raw wage.
+	expectStatutory(book, 'VN-DUES-2M', 'UNION_DUES', 11_700, 0);
 });
 
 test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve months whatever the months employed (Decree 253/2026 art.48(1)(b))', () => {
@@ -1035,7 +1060,17 @@ test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve mont
 	// months withheld on file — the year's tax is below what the monthly table took, and the
 	// finalisation refunds the difference through the payslip.
 	const people = [
-		{ key: 'VN-JULY', wage: 60_000_000, citizenship: 'CITIZEN', hire_date: '2026-07-01' }
+		// Authorised this employer to finalise (Decree 253/2026 art.51(2)(a)): one source, a contract
+		// of three months or more, still employed at settlement.
+		{
+			key: 'VN-JULY',
+			wage: 60_000_000,
+			citizenship: 'CITIZEN',
+			hire_date: '2026-07-01',
+			registrations: {
+				PIT: { kind: 'REGISTERED', elections: { finalisation_authorised: true } }
+			}
+		}
 	];
 	// The monthly table on 60,000,000 − 5,407,000 − 15,500,000 = 39,093,000: 500,000 + 2,000,000 +
 	// 20% × 9,093,000 = 4,318,600.

@@ -181,7 +181,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "year.earned.BASIC / 12.0",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
 				"limit": null
 			}
 		],
@@ -200,7 +200,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "year.earned.BASIC / 12.0",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
 				"limit": null
 			}
 		],
@@ -213,14 +213,14 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
-				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"when": "person.employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\"]",
 				"limit": null,
 				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
 			},
@@ -238,15 +238,15 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "RETIREMENT_PAY",
 		"name": "Retirement pay",
-		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan).",
-		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan). Applied 2026-09-23 (round 5): the exemption is its own required entity fact, `company.facts.retirement_exempt_establishment` — RA 7641 exempts retail, service and agricultural establishments of not more than ten employees, a different class from the SIL exemption of any establishment regularly employing fewer than ten (`small_establishment`); a small manufacturer owes retirement pay.",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !company.facts.retirement_exempt_establishment",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.paid_rest_days ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
 				"limit": null
 			}
 		],
@@ -258,14 +258,14 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
-				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"when": "person.employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\"]",
 				"limit": null,
 				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
 			},
@@ -283,15 +283,15 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "RETIREMENT_PAY",
 		"name": "Retirement pay",
-		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan).",
-		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan). Applied 2026-09-23 (round 5): the exemption is its own required entity fact, `company.facts.retirement_exempt_establishment` — RA 7641 exempts retail, service and agricultural establishments of not more than ten employees, a different class from the SIL exemption of any establishment regularly employing fewer than ten (`small_establishment`); a small manufacturer owes retirement pay.",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !company.facts.retirement_exempt_establishment",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.paid_rest_days ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
 				"limit": null
 			}
 		],
@@ -404,7 +404,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "year.earned.BASIC / 12.0",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
 				"limit": null
 			}
 		],
@@ -417,14 +417,14 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
-				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"when": "person.employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\"]",
 				"limit": null,
 				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
 			},
@@ -442,15 +442,15 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "RETIREMENT_PAY",
 		"name": "Retirement pay",
-		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan).",
-		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan). Applied 2026-09-23 (round 5): the exemption is its own required entity fact, `company.facts.retirement_exempt_establishment` — RA 7641 exempts retail, service and agricultural establishments of not more than ten employees, a different class from the SIL exemption of any establishment regularly employing fewer than ten (`small_establishment`); a small manufacturer owes retirement pay.",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !company.facts.retirement_exempt_establishment",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.paid_rest_days ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
 				"limit": null
 			}
 		],
@@ -563,7 +563,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "year.earned.BASIC / 12.0",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
 				"limit": null
 			}
 		],
@@ -576,14 +576,14 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
-				"when": "person.employment.exit_reason == \"REDUNDANCY\"",
+				"when": "person.employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\"]",
 				"limit": null,
 				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
 			},
@@ -601,19 +601,1057 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "RETIREMENT_PAY",
 		"name": "Retirement pay",
-		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan).",
-		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan). Applied 2026-09-23 (round 5): the exemption is its own required entity fact, `company.facts.retirement_exempt_establishment` — RA 7641 exempts retail, service and agricultural establishments of not more than ten employees, a different class from the SIL exemption of any establishment regularly employing fewer than ten (`small_establishment`); a small manufacturer owes retirement pay.",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !company.facts.retirement_exempt_establishment",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.payroll_group == \"MONTHLY\" ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.paid_rest_days ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
 				"limit": null
 			}
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "67a2226b-8bdf-5702-9297-ae478eac77b0",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "bonus",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Performance bonus",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3d62d2da-435e-5afc-be4a-55cdbf0ee622",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "BACKPAY_BASIC",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7fc48113-3d7b-5f93-b6f3-7227303ff8ad",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "BACKPAY_DUTY_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – duty allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "748a7df5-5949-5edb-b8e3-116b01415024",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "28fd6700-a8c0-53e2-b814-a9b51d5434bc",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "STATUTORY_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Statutory adjustment",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4c0a2c3e-9ffb-515c-b171-e96293a69d5a",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"name": "13th month pay",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7f977770-1cfe-5ebe-9265-75b7ab38aef6",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "person.employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\"]",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "80f133d1-1726-536e-bfd8-c8103033d0a4",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan). Applied 2026-09-23 (round 5): the exemption is its own required entity fact, `company.facts.retirement_exempt_establishment` — RA 7641 exempts retail, service and agricultural establishments of not more than ten employees, a different class from the SIL exemption of any establishment regularly employing fewer than ten (`small_establishment`); a small manufacturer owes retirement pay.",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !company.facts.retirement_exempt_establishment",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.paid_rest_days ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "414fa979-dd75-5eec-9a38-70c3d4567b3b",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "bonus",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Performance bonus",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "47c3cafc-13a0-522e-b1d6-8268f475e19d",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "BACKPAY_BASIC",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "34ea762d-9f2f-591a-8f97-b429cdb5d73d",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "BACKPAY_DUTY_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – duty allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3fcfea2e-777a-512c-8c83-d27c8a618544",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.ORDINARY"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a306c008-01e7-56d9-a5cf-3605af66f405",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "STATUTORY_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Statutory adjustment",
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ec308a22-f111-5f27-b3f9-2b4c1d72d454",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"name": "13th month pay",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f1f01afc-7f7f-5976-ae53-b6cea9d70a3f",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "SEPARATION_PAY",
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
+		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "person.employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\"]",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0))"
+			},
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_cent(person.terms.monthly_wage * ((round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 > 1.0 ? (round_unit(person.employment.service_months / 12.0) > 1.0 ? round_unit(person.employment.service_months / 12.0) : 1.0) * 0.5 : 1.0))"
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "1e0e48ac-33d5-5553-89ce-22068372bbee",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "RETIREMENT_PAY",
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. Applied 2026-09-19 (2): RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan). Applied 2026-09-23 (round 5): the exemption is its own required entity fact, `company.facts.retirement_exempt_establishment` — RA 7641 exempts retail, service and agricultural establishments of not more than ten employees, a different class from the SIL exemption of any establishment regularly employing fewer than ten (`small_establishment`); a small manufacturer owes retirement pay.",
+		"eligibility": "employment.exit_reason == \"RETIREMENT\" && employee.age >= 60 && employment.service_months >= 60 && !company.facts.retirement_exempt_establishment",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(22.5 * (person.terms.monthly_basic * 12.0 / (person.terms.paid_rest_days ? 365.0 : person.terms.working_days_per_week >= 6.0 ? 313.0 : 261.0)) * round_unit(person.employment.service_months / 12.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "91211b0a-302a-55ac-957c-c3f44d63b054",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "UNIFORM_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (e): uniform and clothing allowance to ₱7,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `UNIFORM`, capped over the calendar year.",
+		"name": "Uniform and clothing allowance",
+		"counts_toward": ["WTAX.UNIFORM"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "0e54943c-4164-59df-9449-6a369fe65118",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "MEDICAL_ASSISTANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱10,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `MEDICAL`, capped over the calendar year.",
+		"name": "Actual medical assistance",
+		"counts_toward": ["WTAX.MEDICAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3df7aa7e-009d-5afa-85ee-a891d69dc462",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "ACHIEVEMENT_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱10,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `AWARD`, capped over the calendar year.",
+		"name": "Employee achievement award",
+		"counts_toward": ["WTAX.AWARD"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "88ca7dfc-1854-5053-abca-02ee6e763a0e",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "CHRISTMAS_GIFT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (i): Christmas and major anniversary gifts to ₱5,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `GIFT`, capped over the calendar year.",
+		"name": "Christmas or anniversary gift",
+		"counts_toward": ["WTAX.GIFT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "81d1e07d-b8fc-537e-9db5-a8302f9c261b",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "CBA_PRODUCTIVITY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱10,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `CBA`, capped over the calendar year.",
+		"name": "CBA and productivity incentive benefit",
+		"counts_toward": ["WTAX.CBA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "78550396-cd08-5618-b1c9-42f35756aeee",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "OT_MEAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 25% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. Applied 2026-09-23 (round 5, V): the WTAX part `OT_MEAL` is exempt to 25% × the daily minimum wage × `person.period.overtime_days` (the payslip’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”).",
+		"name": "Overtime or night-shift meal allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.OT_MEAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "9386d90b-8f09-5b82-865d-d33f94156eb7",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "UNIFORM_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (e): uniform and clothing allowance to ₱7,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `UNIFORM`, capped over the calendar year.",
+		"name": "Uniform and clothing allowance",
+		"counts_toward": ["WTAX.UNIFORM"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d9030950-41bf-5601-9dab-42d4764a31f8",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "MEDICAL_ASSISTANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱10,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `MEDICAL`, capped over the calendar year.",
+		"name": "Actual medical assistance",
+		"counts_toward": ["WTAX.MEDICAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d839ad75-5e74-5a4b-baea-3a22d8bca50b",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "ACHIEVEMENT_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱10,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `AWARD`, capped over the calendar year.",
+		"name": "Employee achievement award",
+		"counts_toward": ["WTAX.AWARD"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "cf1960bc-be04-519c-9069-fd8924c59e5d",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "CHRISTMAS_GIFT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (i): Christmas and major anniversary gifts to ₱5,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `GIFT`, capped over the calendar year.",
+		"name": "Christmas or anniversary gift",
+		"counts_toward": ["WTAX.GIFT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "678da458-7d35-5acf-b970-1506252ff28d",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "CBA_PRODUCTIVITY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱10,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `CBA`, capped over the calendar year.",
+		"name": "CBA and productivity incentive benefit",
+		"counts_toward": ["WTAX.CBA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1e8fdc2e-6eab-5844-9d5d-547f98652b3d",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "OT_MEAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 25% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. Applied 2026-09-23 (round 5, V): the WTAX part `OT_MEAL` is exempt to 25% × the daily minimum wage × `person.period.overtime_days` (the payslip’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”).",
+		"name": "Overtime or night-shift meal allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.OT_MEAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e938285b-6c47-52bb-a949-75892cfc6322",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "UNIFORM_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (e): uniform and clothing allowance to ₱8,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `UNIFORM`, capped over the calendar year.",
+		"name": "Uniform and clothing allowance",
+		"counts_toward": ["WTAX.UNIFORM"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "5699c880-5c3c-5d0a-bc07-ca78ad662138",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "MEDICAL_ASSISTANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `MEDICAL`, capped over the calendar year.",
+		"name": "Actual medical assistance",
+		"counts_toward": ["WTAX.MEDICAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ad9d1a79-d931-5f20-a766-9a9b8d5e8bae",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "ACHIEVEMENT_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `AWARD`, capped over the calendar year.",
+		"name": "Employee achievement award",
+		"counts_toward": ["WTAX.AWARD"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "bbd6c48b-9ab6-5da5-9aa1-89ae818ce426",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "CHRISTMAS_GIFT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (i): Christmas and major anniversary gifts to ₱6,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `GIFT`, capped over the calendar year.",
+		"name": "Christmas or anniversary gift",
+		"counts_toward": ["WTAX.GIFT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ca7ee359-9c76-52c6-8937-15fa343d8595",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "CBA_PRODUCTIVITY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `CBA`, capped over the calendar year.",
+		"name": "CBA and productivity incentive benefit",
+		"counts_toward": ["WTAX.CBA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4c2c1de8-80d0-5abd-b3a3-137c2badf923",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "OT_MEAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 30% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. Applied 2026-09-23 (round 5, V): the WTAX part `OT_MEAL` is exempt to 30% × the daily minimum wage × `person.period.overtime_days` (the payslip’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”).",
+		"name": "Overtime or night-shift meal allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.OT_MEAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c972bc78-d456-5220-bca8-4641f68820cf",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "UNIFORM_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (e): uniform and clothing allowance to ₱8,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `UNIFORM`, capped over the calendar year.",
+		"name": "Uniform and clothing allowance",
+		"counts_toward": ["WTAX.UNIFORM"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b39252d5-ac0b-5f66-9e1a-3b5f41bc932c",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "MEDICAL_ASSISTANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `MEDICAL`, capped over the calendar year.",
+		"name": "Actual medical assistance",
+		"counts_toward": ["WTAX.MEDICAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3202d3b9-6479-51e8-89a0-333c76cef4e6",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "ACHIEVEMENT_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `AWARD`, capped over the calendar year.",
+		"name": "Employee achievement award",
+		"counts_toward": ["WTAX.AWARD"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ad4fc3e8-6cb0-582e-9747-6756cda19a33",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "CHRISTMAS_GIFT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (i): Christmas and major anniversary gifts to ₱6,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `GIFT`, capped over the calendar year.",
+		"name": "Christmas or anniversary gift",
+		"counts_toward": ["WTAX.GIFT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8a048c9f-52e5-5fd2-9615-4dd7281aa13b",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "CBA_PRODUCTIVITY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `CBA`, capped over the calendar year.",
+		"name": "CBA and productivity incentive benefit",
+		"counts_toward": ["WTAX.CBA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "cd840d04-ddb3-5144-a582-0482751be772",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "OT_MEAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 30% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. Applied 2026-09-23 (round 5, V): the WTAX part `OT_MEAL` is exempt to 30% × the daily minimum wage × `person.period.overtime_days` (the payslip’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”).",
+		"name": "Overtime or night-shift meal allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.OT_MEAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "250ea3f5-f207-5ebd-aa1e-94e77637d66d",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "UNIFORM_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (e): uniform and clothing allowance to ₱8,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `UNIFORM`, capped over the calendar year.",
+		"name": "Uniform and clothing allowance",
+		"counts_toward": ["WTAX.UNIFORM"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ce7f4f74-5f0d-5467-b64d-09019880836b",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "MEDICAL_ASSISTANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `MEDICAL`, capped over the calendar year.",
+		"name": "Actual medical assistance",
+		"counts_toward": ["WTAX.MEDICAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c84edd68-cc6b-5070-b6c1-90922dac34eb",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "ACHIEVEMENT_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `AWARD`, capped over the calendar year.",
+		"name": "Employee achievement award",
+		"counts_toward": ["WTAX.AWARD"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1696c7fa-746f-50bc-8225-559759a78f8b",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "CHRISTMAS_GIFT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (i): Christmas and major anniversary gifts to ₱6,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `GIFT`, capped over the calendar year.",
+		"name": "Christmas or anniversary gift",
+		"counts_toward": ["WTAX.GIFT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e166e26f-13c6-5b5e-a1af-ac9901ae28ef",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "CBA_PRODUCTIVITY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `CBA`, capped over the calendar year.",
+		"name": "CBA and productivity incentive benefit",
+		"counts_toward": ["WTAX.CBA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "431c35e2-110f-5250-837c-ebc63099c5da",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "OT_MEAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 30% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. Applied 2026-09-23 (round 5, V): the WTAX part `OT_MEAL` is exempt to 30% × the daily minimum wage × `person.period.overtime_days` (the payslip’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”).",
+		"name": "Overtime or night-shift meal allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.OT_MEAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1ed7a549-f25c-5008-80fb-1acfc67e70c8",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "UNIFORM_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (e): uniform and clothing allowance to ₱8,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `UNIFORM`, capped over the calendar year.",
+		"name": "Uniform and clothing allowance",
+		"counts_toward": ["WTAX.UNIFORM"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ecbd7255-60ed-51ca-b453-85b75928ea3e",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "MEDICAL_ASSISTANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `MEDICAL`, capped over the calendar year.",
+		"name": "Actual medical assistance",
+		"counts_toward": ["WTAX.MEDICAL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d04fc10a-839d-5440-bb57-0c73e7d91aa0",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "ACHIEVEMENT_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `AWARD`, capped over the calendar year.",
+		"name": "Employee achievement award",
+		"counts_toward": ["WTAX.AWARD"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "db9276d5-8b8c-5e88-a875-098a75cf0bf6",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "CHRISTMAS_GIFT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (i): Christmas and major anniversary gifts to ₱6,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `GIFT`, capped over the calendar year.",
+		"name": "Christmas or anniversary gift",
+		"counts_toward": ["WTAX.GIFT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "199ba47a-e65a-5b6e-9a4f-d018fc3393fa",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "CBA_PRODUCTIVITY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `CBA`, capped over the calendar year.",
+		"name": "CBA and productivity incentive benefit",
+		"counts_toward": ["WTAX.CBA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e1d07f8a-f323-5803-93fa-201edd0db4e8",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "OT_MEAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 30% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. Applied 2026-09-23 (round 5, V): the WTAX part `OT_MEAL` is exempt to 30% × the daily minimum wage × `person.period.overtime_days` (the payslip’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”).",
+		"name": "Overtime or night-shift meal allowance",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "WTAX.OT_MEAL"],
+		"raised_by": "MANUAL"
 	}
 ]

@@ -19,9 +19,34 @@ export type ReferenceWagePeriod = {
 	readonly paid_on: string | null;
 	readonly reference: string;
 	readonly approval_id?: string | null;
+	/** Set on a month read from the payslips that settled it, which no manual record stands for. */
+	readonly payslips?: readonly string[];
 };
 
-function periodDates(row: ReferenceWagePeriod): { readonly start: IsoDate; readonly end: IsoDate } {
+/**
+ * One calendar month's pay as the earlier payslips of that month settled it — the record a
+ * normal-wage reference reads without anyone typing it in (TW 施行細則 §24-1).
+ */
+export type PayslipWageMonth = {
+	readonly month: string;
+	/** The first and last day the month's contract lines covered. */
+	readonly start: IsoDate;
+	readonly end: IsoDate;
+	/** The latest settlement date, or null while any of the month's payslips is unpaid. */
+	readonly paid_on: IsoDate | null;
+	readonly payslips: readonly string[];
+	/** The contract lines by component code — the wage and each allowance class — as prorated. */
+	readonly contract: Readonly<Record<string, number>>;
+	/** Paid lines of classes marked `WAGES` (commission, a regular allowance raised ad hoc). */
+	readonly regular: number;
+	/** The month's unpaid days. */
+	readonly absence: number;
+};
+
+export function periodDates(row: ReferenceWagePeriod): {
+	readonly start: IsoDate;
+	readonly end: IsoDate;
+} {
 	const range = readRange(row.period);
 	if (range?.end == null)
 		throw new Error('Reference wage period must have a finite inclusive end.');
@@ -92,7 +117,9 @@ export function latestDueMonthNormalRate(options: {
 		.toSorted((left, right) => periodDates(right).end.localeCompare(periodDates(left).end));
 	if (eligible.length === 0)
 		throw new Error(
-			`Normal-wage rate requires a complete monthly wage period received or due before ${options.boundary}.`
+			`Normal-wage rate requires a complete monthly wage period received or due before ${options.boundary}: ` +
+				'no earlier payslip settles a whole month then. Run that month’s payroll first, or record ' +
+				'the month’s normal-hours wages as an employment wage period where it was paid before this workspace.'
 		);
 	const latestEnd = periodDates(eligible[0]!).end;
 	const matches = eligible.filter((row) => periodDates(row).end === latestEnd);

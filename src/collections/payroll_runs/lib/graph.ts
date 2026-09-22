@@ -43,6 +43,10 @@ export type PendingPayslip = {
 	readonly charges: readonly ContributionCharge[];
 	/** The captured input families, by source id — the pins and rows this payslip stores. */
 	readonly captured: MeasuredEmployment['captured'];
+	readonly settledOvertimeHours?: MeasuredEmployment['settledOvertimeHours'];
+	readonly inLieuSlices?: MeasuredEmployment['inLieuSlices'];
+	readonly overtimeDays?: number;
+	readonly minimumWage?: number;
 };
 
 /** The sources one payslip captured, by family. */
@@ -122,6 +126,15 @@ export function payrollRunGraph(options: {
 		calculationTrace: options.pending.map((payslip) => ({
 			employment_id: payslip.employmentId,
 			employee_number: payslip.employeeNumber,
+			overtime_hours: [...(payslip.settledOvertimeHours ?? [])].flatMap(([limit, byMonth]) =>
+				[...byMonth].map(([month, hours]) => ({ limit, month, hours }))
+			),
+			...((payslip.inLieuSlices ?? []).length === 0
+				? {}
+				: { time_off_in_lieu: [...(payslip.inLieuSlices ?? [])] }),
+			...(payslip.overtimeDays
+				? { overtime_days: payslip.overtimeDays, minimum_wage: payslip.minimumWage ?? 0 }
+				: {}),
 			schemes: payslip.charges.map((charge) => ({
 				scheme_code: charge.contribution.row.code,
 				rule_when: charge.ruleReference,

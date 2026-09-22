@@ -35,6 +35,7 @@ import {
 	COMPANY_ID,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
+import { monthsAt, priorWages } from './fixtures/prior-wages.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
@@ -940,11 +941,11 @@ test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 do
 	// net = gross − every employee leg; employer cost = Σ employer legs (settle.ts).
 	assert.equal(slip.total_deductions, 5088); // 1,053 + 92 + 943 + 3,000
 	assert.equal(slip.net, 62_495.35); // 67,583.35 − 5,088
-	// 健保法 §34: the insuring unit's supplementary premium is 2.11% of the month's total pay
-	// above the insured amounts, netted over the establishment — a company-scope charge on no
-	// payslip: (67,583.35 − 60,800) × 2.11% = 143.13 → 143. The insured's own supplement (§31) is
-	// on a bonus over four times the grade, and there is none this month.
-	assert.deepEqual(companyCharges.get('NHI_SUPPLEMENT_EMPLOYER'), [67_583.35, 143]);
+	// 健保法 §34: the insuring unit's supplementary premium is 2.11% of the month's 薪資所得 (格式
+	// 代號50) above the insured amounts. NHIA's Q&A keeps overtime within the 46-hour tax-free
+	// standard out of that total, so the base is the 60,000 salary alone: 60,000 − 60,800 < 0, no
+	// charge. The insured's own supplement (§31) is on a bonus over four times the grade; none here.
+	assert.equal(companyCharges.get('NHI_SUPPLEMENT_EMPLOYER'), undefined);
 	assert.equal(
 		slip.statutory.find((row) => row.scheme_code === 'NHI_SUPPLEMENT'),
 		undefined
@@ -1454,6 +1455,22 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 				charges: [],
 				approval_id: null
 			} as never);
+			// 施行細則 §24-1 values the days on the latest month's normal-hours wages: December 2025,
+			// paid before this workspace ran payroll, recorded at 60,000 (60,000 / 30 × 5 = 10,000).
+			world.employment_wage_periods = [
+				{
+					id: 'e1000000-0000-4000-8000-0000000enc03',
+					employment_id: employment.id,
+					period: { start: '2025-12-01', end: '2025-12-31' },
+					normal_wages: { currency: 'TWD', value: 60_000 },
+					ordinary_wages: null,
+					ordinary_days: null,
+					due_on: '2025-12-31',
+					paid_on: '2025-12-31',
+					reference: 'December 2025 payslip',
+					approval_id: null
+				} as never
+			];
 			// Ten weekdays of 09:00–23:00: 13 worked, 5 beyond the day — 50 in the month.
 			for (const day of ['05', '06', '07', '08', '09', '12', '13', '14', '15', '16'])
 				punch(world, 'TW-FIFTY', `2026-01-${day}`, '09:00', '23:00');
@@ -1656,8 +1673,8 @@ test('Taiwan — work on the 例假 earns a further day’s wage whatever the ho
 test('Taiwan — the old-system pension reserve is the entity’s declared 2–15% of its old-system workers’ wages (勞基法 §56(1))', () => {
 	// The entity declares 6%. One worker in service since 1998 who stayed on the old system (no
 	// 勞退 registration), 50,000 a month; one on the new system at the same wage; a migrant
-	// worker outside 勞退. The reserve is 6% of the old-system worker's wages alone: 3,000, an
-	// employer cost on that payslip.
+	// worker outside 勞退, who is on the 勞基法 pension system (MOL 1140153402A). The reserve is
+	// 6% of each old-system worker's wages: 3,000 apiece, an employer cost on each payslip.
 	const { slips } = buildStatutory({
 		code: 'TW',
 		period: '2026-01',
@@ -1682,12 +1699,12 @@ test('Taiwan — the old-system pension reserve is the entity’s declared 2–1
 		]
 	});
 	assert.deepEqual(charge(slips.get('TW-OLD')!, 'LABOR_PENSION_RESERVE'), [50_000, 0, 3000]);
-	for (const key of ['TW-NEW', 'TW-MIGRANT'])
-		assert.equal(
-			slips.get(key)!.statutory.find((row) => row.scheme_code === 'LABOR_PENSION_RESERVE')
-				?.employer_amount ?? 0,
-			0
-		);
+	assert.deepEqual(charge(slips.get('TW-MIGRANT')!, 'LABOR_PENSION_RESERVE'), [50_000, 0, 3000]);
+	assert.equal(
+		slips.get('TW-NEW')!.statutory.find((row) => row.scheme_code === 'LABOR_PENSION_RESERVE')
+			?.employer_amount ?? 0,
+		0
+	);
 });
 
 test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on the excess over the 定額免稅', () => {
@@ -1718,6 +1735,19 @@ test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on th
 		const catalogue = world.adhoc_catalogue!.find(
 			(row) => row.code === 'SEVERANCE_PAY' && row.settings_id === version.id
 		)!;
+		// 平均工資 is read from the wages paid: six earlier payslips at each leaver's wage.
+		const [year, month] = period.split('-').map(Number);
+		const from =
+			month! > 6
+				? `${year}-${String(month! - 6).padStart(2, '0')}`
+				: `${year! - 1}-${String(month! + 6).padStart(2, '0')}`;
+		const to = month! > 1 ? `${year}-${String(month! - 1).padStart(2, '0')}` : `${year! - 1}-12`;
+		for (const [index, employment] of world.employments.entries())
+			priorWages(
+				world,
+				employment.employee_number,
+				monthsAt(from, to, world.employment_terms[index]!.base_salary.value)
+			);
 		for (const [index, employment] of world.employments.entries())
 			world.adhoc_requests!.push({
 				id: `d0000000-0000-4000-8000-0000000000${index}c`,
@@ -1739,10 +1769,12 @@ test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on th
 			period: '2026-01',
 			riskClass: '1',
 			people: [
-				leaver('TW-SEV-LARGE', 1_000_000, '2019-01-01', '2026-01-31'),
-				leaver('TW-SEV-SMALL', 400_000, '2019-01-01', '2026-01-31'),
-				leaver('TW-SEV-NR', 1_000_000, '2019-01-01', '2026-01-31', 'NON_RESIDENT'),
-				leaver('TW-SEV-TAIL', 1_000_000, '2022-07-01', '2026-01-31')
+				// Service runs through the last day inclusive: 1 Feb 2019 – 31 Jan 2026 is seven
+				// years exactly, 1 Aug 2022 – 31 Jan 2026 three years six months.
+				leaver('TW-SEV-LARGE', 1_000_000, '2019-02-01', '2026-01-31'),
+				leaver('TW-SEV-SMALL', 400_000, '2019-02-01', '2026-01-31'),
+				leaver('TW-SEV-NR', 1_000_000, '2019-02-01', '2026-01-31', 'NON_RESIDENT'),
+				leaver('TW-SEV-TAIL', 1_000_000, '2022-08-01', '2026-01-31')
 			]
 		},
 		(world) => paySeverance(world, '2026-01')
@@ -1769,7 +1801,8 @@ test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on th
 			code: 'TW',
 			period: '2025-12',
 			riskClass: '1',
-			people: [leaver('TW-SEV-2025', 1_000_000, '2018-12-01', '2025-12-31')]
+			// 1 Jan 2019 – 31 Dec 2025: seven years exactly.
+			people: [leaver('TW-SEV-2025', 1_000_000, '2019-01-01', '2025-12-31')]
 		},
 		(world) => paySeverance(world, '2025-12')
 	);

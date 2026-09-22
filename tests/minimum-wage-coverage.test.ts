@@ -119,7 +119,8 @@ test('a covered person under the wage is a warning on the run; an intern is not'
 				wages: { by_region: { Malaysia: 1700 }, applies_when: 'employment.type != "INTERN"' }
 			}
 		},
-		company: { id: 'co', region: 'Malaysia' }
+		company: { id: 'co', region: 'Malaysia' },
+		lineageVersions: []
 	};
 	const bundle = (number: string, employmentType: string, basic: number) => ({
 		employment: {
@@ -177,7 +178,8 @@ test('a wages order’s rule on the contract’s composition warns like the floo
 		catalogueComponents: [
 			{ id: 'house', family: 'ALLOWANCE', destination: 'PAY', direction: 'ADD', counts_toward: [] }
 		],
-		allowanceCodeById: new Map()
+		allowanceCodeById: new Map(),
+		lineageVersions: []
 	};
 	const bundle = (number: string, basic: number) => ({
 		employment: {

@@ -1,4 +1,5 @@
 import {
+	boolean,
 	custom,
 	defineModel,
 	enums,
@@ -81,6 +82,14 @@ export default defineModel(
 		department: text(),
 		job_title: text(),
 		payroll_group: text(),
+		/**
+		 * The contract pays every day of the month, unworked rest days, special days and regular
+		 * holidays included — the DOLE Handbook's "monthly-paid employee" (ch.2 §D: "paid every day of
+		 * the month, including unworked rest days, special days, and regular holidays. Factor 365");
+		 * false pays worked days and unworked regular holidays only. A statutory day factor reads it
+		 * as `terms.paid_rest_days`; `payroll_group` is the employer's own label and states no law.
+		 */
+		paid_rest_days: boolean().notNull().default(false),
 		/** The entity's own benefit tier; catalogue predicates read it as terms.grade. */
 		grade: text(),
 		/**

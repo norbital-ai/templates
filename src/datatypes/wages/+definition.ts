@@ -16,6 +16,26 @@ export const wagesValueSchema = Schema.Struct({
 		)
 	),
 	/**
+	 * Region → hourly minimum wage, where the order states one (VN Decree 293/2025 art.3(1)(b),
+	 * TW 基本工資 per hour). An hourly-paid contract is held to it; a monthly one on a `PART_TIME`
+	 * employment is held to it pro rata, hourly × weekly hours × 52 ÷ 12, never the full month.
+	 */
+	hourly_by_region: Schema.optionalKey(
+		Schema.Record(Schema.String, Schema.Finite.check(Schema.isGreaterThan(0)))
+	),
+	/**
+	 * Employment type → region → monthly minimum wage, where a separate order sets that type's
+	 * floor (PH RA 10361 s.24: the regional boards' domestic-worker wage orders, e.g. NCR-DW-06).
+	 * A person of a type listed here is held to that table and never to `by_region`; a region the
+	 * type's table omits states no floor for them.
+	 */
+	by_employment_type: Schema.optionalKey(
+		Schema.Record(
+			Schema.String,
+			Schema.Record(Schema.String, Schema.Finite.check(Schema.isGreaterThan(0)))
+		)
+	),
+	/**
 	 * Who the wages order covers: a boolean over the person, empty for everyone. A person it
 	 * excludes — an intern on industrial training, an apprentice before the order reached them, a
 	 * domestic servant — reads `wage_floor` as 0 in scheme rules, so a base floored at the minimum

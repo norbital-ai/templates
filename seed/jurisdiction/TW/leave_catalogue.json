@@ -4,7 +4,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -95,7 +95,8 @@
 					"eligibility": "",
 					"days": 0
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -106,7 +107,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "SICK_LEAVE",
 		"name": "Ordinary injury or sickness leave (普通傷病假)",
-		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
+		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -117,7 +118,8 @@
 					"eligibility": "",
 					"days": 30
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -383,11 +385,121 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "c80d0999-a976-4b7a-8560-7b3107cac9a8",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b93c2077-de82-58f1-bc8e-ae2c178aeaf7",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "HOSPITALISED_SICK_LEAVE",
+		"name": "住院傷病假 (hospitalised sickness leave)",
+		"authority": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). Applied 2026-09-18 as a rolling twenty-four-month pool of 365 days the outpatient row draws on too.",
+		"eligibility": "",
+		"is_npl": false,
+		"can_encash": false,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") + leave.taken(\"HOSPITALISED_SICK_LEAVE\") < 30.0 ? 0.5 : 0.0",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"rolling_months": 24,
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 365
+				}
+			]
+		},
+		"encash_on_exit": false
+	},
+	{
+		"id": "49d54f17-b90c-51d8-8b1c-c5c890a1b2d7",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "OFFICIAL_LEAVE",
+		"name": "公假 (official leave)",
+		"authority": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "82e584b0-a979-5b95-a0da-79feedc0ffee",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "JOB_SEARCH_LEAVE",
+		"name": "謀職假 (job-search leave)",
+		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "80aabf47-709c-5d95-a287-fd1f316f4364",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "STATUTORY_REST_IN_LIEU",
+		"name": "例假補假 (statutory rest day in lieu)",
+		"authority": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "08e7e4e0-c72b-5262-80af-7923bed9af93",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "COMPENSATORY_TIME_OFF",
+		"name": "補休 (time off in lieu of overtime pay)",
+		"authority": "勞動基準法 §32-1; 施行細則 §22-2 — the hours of 補休 the worker takes for overtime or 休息日 work they elected to take as time off (`work_days.time_off_in_lieu`). HR records each absence by the hour; the balance is not a leave entitlement: payroll keeps it from the elected days, consumes the oldest hours first, and pays what is untaken at the agreed expiry or on termination (`work_rules.time_off_in_lieu`). A paid day off: the wage is not reduced.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"unit": "HOUR",
+		"encash_on_exit": false
+	},
+	{
 		"id": "841da440-0fec-5216-85a4-3d894b10b38c",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -478,7 +590,8 @@
 					"eligibility": "",
 					"days": 0
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -489,7 +602,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "SICK_LEAVE",
 		"name": "Ordinary injury or sickness leave (普通傷病假)",
-		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
+		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -500,7 +613,8 @@
 					"eligibility": "",
 					"days": 30
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -768,23 +882,6 @@
 		"encash_on_exit": false
 	},
 	{
-		"id": "c80d0999-a976-4b7a-8560-7b3107cac9a8",
-		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
-		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"name": "Public holiday in lieu",
-		"authority": null,
-		"eligibility": "",
-		"entitlement": {
-			"availability": "CREDITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
-		},
-		"is_npl": false,
-		"can_encash": true,
-		"encash_on_exit": false
-	},
-	{
 		"id": "97d3f5d4-a4c1-49d2-a895-13246a10b2b8",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -802,11 +899,104 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "5c06d207-a7e7-5b38-af9f-d15e0e0d2d02",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "HOSPITALISED_SICK_LEAVE",
+		"name": "住院傷病假 (hospitalised sickness leave)",
+		"authority": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). Applied 2026-09-18 as a rolling twenty-four-month pool of 365 days the outpatient row draws on too.",
+		"eligibility": "",
+		"is_npl": false,
+		"can_encash": false,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") + leave.taken(\"HOSPITALISED_SICK_LEAVE\") < 30.0 ? 0.5 : 0.0",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"rolling_months": 24,
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 365
+				}
+			]
+		},
+		"encash_on_exit": false
+	},
+	{
+		"id": "62c3050e-2a29-5bce-8d2b-5ffecb87afed",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "OFFICIAL_LEAVE",
+		"name": "公假 (official leave)",
+		"authority": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "c31fa128-c4ef-5cbd-a829-fb096e203c2c",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "JOB_SEARCH_LEAVE",
+		"name": "謀職假 (job-search leave)",
+		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "4575e55f-9f6a-5111-936a-97c496ea3c7d",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "STATUTORY_REST_IN_LIEU",
+		"name": "例假補假 (statutory rest day in lieu)",
+		"authority": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "1bb9cf1f-8d45-5d77-afa4-06d0ece0776d",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "COMPENSATORY_TIME_OFF",
+		"name": "補休 (time off in lieu of overtime pay)",
+		"authority": "勞動基準法 §32-1; 施行細則 §22-2 — the hours of 補休 the worker takes for overtime or 休息日 work they elected to take as time off (`work_days.time_off_in_lieu`). HR records each absence by the hour; the balance is not a leave entitlement: payroll keeps it from the elected days, consumes the oldest hours first, and pays what is untaken at the agreed expiry or on termination (`work_rules.time_off_in_lieu`). A paid day off: the wage is not reduced.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"unit": "HOUR",
+		"encash_on_exit": false
+	},
+	{
 		"id": "61709f1e-ae6d-573e-868d-2f44b5010f84",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -897,7 +1087,8 @@
 					"eligibility": "",
 					"days": 0
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -908,7 +1099,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "SICK_LEAVE",
 		"name": "Ordinary injury or sickness leave (普通傷病假)",
-		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
+		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -919,7 +1110,8 @@
 					"eligibility": "",
 					"days": 30
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1204,54 +1396,6 @@
 		"encash_on_exit": false
 	},
 	{
-		"id": "b93c2077-de82-58f1-bc8e-ae2c178aeaf7",
-		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
-		"code": "HOSPITALISED_SICK_LEAVE",
-		"name": "住院傷病假 (hospitalised sickness leave)",
-		"authority": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). Applied 2026-09-18 as a rolling twenty-four-month pool of 365 days the outpatient row draws on too.",
-		"eligibility": "",
-		"is_npl": false,
-		"can_encash": false,
-		"pay_fraction": "leave.taken(\"SICK_LEAVE\") + leave.taken(\"HOSPITALISED_SICK_LEAVE\") < 30.0 ? 0.5 : 0.0",
-		"entitlement": {
-			"availability": "UPFRONT",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"rolling_months": 24,
-			"bands": [
-				{
-					"eligibility": "",
-					"days": 365
-				}
-			]
-		},
-		"encash_on_exit": false
-	},
-	{
-		"id": "5c06d207-a7e7-5b38-af9f-d15e0e0d2d02",
-		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
-		"code": "HOSPITALISED_SICK_LEAVE",
-		"name": "住院傷病假 (hospitalised sickness leave)",
-		"authority": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). Applied 2026-09-18 as a rolling twenty-four-month pool of 365 days the outpatient row draws on too.",
-		"eligibility": "",
-		"is_npl": false,
-		"can_encash": false,
-		"pay_fraction": "leave.taken(\"SICK_LEAVE\") + leave.taken(\"HOSPITALISED_SICK_LEAVE\") < 30.0 ? 0.5 : 0.0",
-		"entitlement": {
-			"availability": "UPFRONT",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"rolling_months": 24,
-			"bands": [
-				{
-					"eligibility": "",
-					"days": 365
-				}
-			]
-		},
-		"encash_on_exit": false
-	},
-	{
 		"id": "d079f3a3-74a9-5d35-9f63-03754aa2aeec",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "HOSPITALISED_SICK_LEAVE",
@@ -1273,74 +1417,6 @@
 				}
 			]
 		},
-		"encash_on_exit": false
-	},
-	{
-		"id": "49d54f17-b90c-51d8-8b1c-c5c890a1b2d7",
-		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
-		"code": "OFFICIAL_LEAVE",
-		"name": "公假 (official leave)",
-		"authority": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered.",
-		"eligibility": "",
-		"entitlement": {
-			"availability": "UNLIMITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
-		},
-		"is_npl": false,
-		"can_encash": false,
-		"encash_on_exit": false
-	},
-	{
-		"id": "82e584b0-a979-5b95-a0da-79feedc0ffee",
-		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
-		"code": "JOB_SEARCH_LEAVE",
-		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
-		"entitlement": {
-			"availability": "UNLIMITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
-		},
-		"is_npl": false,
-		"can_encash": false,
-		"encash_on_exit": false
-	},
-	{
-		"id": "62c3050e-2a29-5bce-8d2b-5ffecb87afed",
-		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
-		"code": "OFFICIAL_LEAVE",
-		"name": "公假 (official leave)",
-		"authority": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered.",
-		"eligibility": "",
-		"entitlement": {
-			"availability": "UNLIMITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
-		},
-		"is_npl": false,
-		"can_encash": false,
-		"encash_on_exit": false
-	},
-	{
-		"id": "c31fa128-c4ef-5cbd-a829-fb096e203c2c",
-		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
-		"code": "JOB_SEARCH_LEAVE",
-		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
-		"entitlement": {
-			"availability": "UNLIMITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
-		},
-		"is_npl": false,
-		"can_encash": false,
 		"encash_on_exit": false
 	},
 	{
@@ -1378,40 +1454,6 @@
 		"encash_on_exit": false
 	},
 	{
-		"id": "80aabf47-709c-5d95-a287-fd1f316f4364",
-		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
-		"code": "STATUTORY_REST_IN_LIEU",
-		"name": "例假補假 (statutory rest day in lieu)",
-		"authority": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE).",
-		"eligibility": "",
-		"entitlement": {
-			"availability": "CREDITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
-		},
-		"is_npl": false,
-		"can_encash": true,
-		"encash_on_exit": true
-	},
-	{
-		"id": "4575e55f-9f6a-5111-936a-97c496ea3c7d",
-		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
-		"code": "STATUTORY_REST_IN_LIEU",
-		"name": "例假補假 (statutory rest day in lieu)",
-		"authority": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE).",
-		"eligibility": "",
-		"entitlement": {
-			"availability": "CREDITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
-		},
-		"is_npl": false,
-		"can_encash": true,
-		"encash_on_exit": true
-	},
-	{
 		"id": "09a5b708-f5c8-5e1b-8548-bb6fcb9fdd55",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "STATUTORY_REST_IN_LIEU",
@@ -1427,5 +1469,23 @@
 		"is_npl": false,
 		"can_encash": true,
 		"encash_on_exit": true
+	},
+	{
+		"id": "179b71e8-f9fc-5d3f-b379-7d0cb8992bb3",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "COMPENSATORY_TIME_OFF",
+		"name": "補休 (time off in lieu of overtime pay)",
+		"authority": "勞動基準法 §32-1; 施行細則 §22-2 — the hours of 補休 the worker takes for overtime or 休息日 work they elected to take as time off (`work_days.time_off_in_lieu`). HR records each absence by the hour; the balance is not a leave entitlement: payroll keeps it from the elected days, consumes the oldest hours first, and pays what is untaken at the agreed expiry or on termination (`work_rules.time_off_in_lieu`). A paid day off: the wage is not reduced.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"unit": "HOUR",
+		"encash_on_exit": false
 	}
 ]

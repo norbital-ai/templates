@@ -162,12 +162,12 @@ const readWave2 = (
 					where: { employee_id: { in: employeeIds }, ...APPROVED },
 					limit: PAGE_LIMIT
 				}),
-				db.company_facts.findMany({
-					where: { company_id: { eq: companyId }, ...APPROVED },
-					limit: PAGE_LIMIT
-				}),
 				db.employment_wage_periods.findMany({
 					where: { employment_id: { in: employmentIds }, ...APPROVED },
+					limit: PAGE_LIMIT
+				}),
+				db.company_facts.findMany({
+					where: { company_id: { eq: companyId }, ...APPROVED },
 					limit: PAGE_LIMIT
 				}),
 				db.statutory_contributions.findMany({ where: under, limit: PAGE_LIMIT }),

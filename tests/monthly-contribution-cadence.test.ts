@@ -271,7 +271,7 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 			const monthly = createStatutoryWorld({
 				code,
 				period: '2026-01',
-				region: code === 'ID' ? 'DKI Jakarta' : 'I',
+				region: code === 'ID' ? 'DKI Jakarta' : code === 'TW' ? 'Taiwan' : 'I',
 				riskClass: code === 'TW' ? '1' : 'II',
 				people: [
 					{
@@ -298,7 +298,7 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 				code,
 				period: '2026-01-1',
 				payFrequency: 'SEMI_MONTHLY',
-				region: code === 'ID' ? 'DKI Jakarta' : 'I',
+				region: code === 'ID' ? 'DKI Jakarta' : code === 'TW' ? 'Taiwan' : 'I',
 				riskClass: code === 'TW' ? '1' : 'II',
 				people: [
 					{

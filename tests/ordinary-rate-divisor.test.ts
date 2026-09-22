@@ -11,7 +11,7 @@
  * per week shape and the grammar picks between them:
  *
  * ```
- * terms.payroll_group == "MONTHLY"        365 / 12  paid for all 365 days
+ * terms.paid_rest_days                   365 / 12  paid for all 365 days
  * terms.ordinary_hours_per_week > 40      313 / 12  the six-day factor
  * (everyone)                              261 / 12  the five-day factor
  * ```
@@ -49,7 +49,7 @@ const PH_WORK = (
  * makes a green suite prove a false premise. The rate rows here turn on two of these members; the
  * rest are stated because the engine reads them.
  */
-const person = (hoursPerWeek: number, daysPerWeek: number, payrollGroup: string) =>
+const person = (hoursPerWeek: number, daysPerWeek: number, paidRestDays: boolean) =>
 	personContext({
 		employee: {
 			gender: null,
@@ -69,7 +69,8 @@ const person = (hoursPerWeek: number, daysPerWeek: number, payrollGroup: string)
 			statutory_work_category: 'NON_MANUAL',
 			base_salary: { value: 15_650, currency: 'PHP' },
 			department: 'Production',
-			payroll_group: payrollGroup,
+			payroll_group: 'BI-MONTHLY',
+			paid_rest_days: paidRestDays,
 			grade: null,
 			residency_since: null
 		},
@@ -87,10 +88,10 @@ const terms = (hoursPerWeek: number, daysPerWeek: number, salary = 15_650): Rate
 	working_days_per_week: daysPerWeek
 });
 
-const dayWageOf = (hoursPerWeek: number, daysPerWeek: number, payrollGroup = 'BI-MONTHLY') => {
+const dayWageOf = (hoursPerWeek: number, daysPerWeek: number, paidRestDays = false) => {
 	const divisor = ordinaryDivisorDays({
 		expression: PH_WORK.ordinary_divisor_days,
-		person: person(hoursPerWeek, daysPerWeek, payrollGroup),
+		person: person(hoursPerWeek, daysPerWeek, paidRestDays),
 		employeeNumber: 'OPSPH000'
 	});
 	return { divisor, wage: ordinaryDayWage(terms(hoursPerWeek, daysPerWeek), divisor) };
@@ -111,15 +112,15 @@ test('a five-day week keeps 261/12, and forty hours is not more than forty', () 
 test('a monthly-paid employee keeps 365/12, whatever their roster', () => {
 	// They are paid for all 365 days, so the 261-against-313 question is not theirs. The bank
 	// rosters one of them on the six-day pattern, so the ordering of the rows is load-bearing.
-	assert.deepEqual(dayWageOf(48, 6, 'MONTHLY'), { divisor: 365 / 12, wage: 15_650 / (365 / 12) });
-	assert.deepEqual(dayWageOf(40, 5, 'MONTHLY'), { divisor: 365 / 12, wage: 15_650 / (365 / 12) });
+	assert.deepEqual(dayWageOf(48, 6, true), { divisor: 365 / 12, wage: 15_650 / (365 / 12) });
+	assert.deepEqual(dayWageOf(40, 5, true), { divisor: 365 / 12, wage: 15_650 / (365 / 12) });
 });
 
 test('the Work states every week shape it rosters, so no person falls through', () => {
 	// `ordinaryDivisorDays` refuses by name rather than pricing an hour at nothing, and the
 	// expression's final arm is everyone. This is the check that the Philippine seed keeps it.
 	assert.match(PH_WORK.ordinary_divisor_days, /: \(261\.0 \/ 12\.0\)$/);
-	assert.doesNotThrow(() => dayWageOf(0, 0, ''));
+	assert.doesNotThrow(() => dayWageOf(0, 0, false));
 });
 
 for (const code of ['MY', 'MY-nihon'] as const)

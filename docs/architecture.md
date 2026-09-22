@@ -223,7 +223,7 @@ The `person` root: `employee.gender`, `age`, `age_months`, `citizenship`, `marit
 `service_years`, `service_start`, `exit_date`, `open_ended`, `contract_months`, `exit_reason`,
 `absent_days_12m`; `terms.basic_salary`,
 `monthly_basic`, `fixed_allowances`, `monthly_wage`, `statutory_wages`, `workman`,
-`statutory_work_category`, `department`, `payroll_group`, `grade`, `ordinary_hours_per_week`,
+`statutory_work_category`, `department`, `payroll_group`, `paid_rest_days`, `grade`, `ordinary_hours_per_week`,
 `working_days_per_week`, `pay_frequency`, `pass_type`, `tax_residency`, `notice_days`;
 `children.count`, `children.citizens`, `children.under(n)`; `company.region`, `company.headcount`,
 `company.headcount_citizens`, `company.facts.<key>`; `facts.<CODE>.registered`,

@@ -59,6 +59,7 @@
 				pass_type: true,
 				tax_residency: true,
 				notice_days: true,
+				paid_rest_days: true,
 				effective_range: true
 			},
 			limit: 100
@@ -83,6 +84,7 @@
 		readonly pass_type: string | null;
 		readonly tax_residency: string | null;
 		readonly notice_days: number | null;
+		readonly paid_rest_days: boolean;
 		readonly effective_range: unknown;
 	};
 	const inForce = $derived.by((): TermsRow | null => {
@@ -219,10 +221,11 @@
 			grade: grade.trim() === '' ? null : grade.trim(),
 			ordinary_hours_per_week: row.ordinary_hours_per_week,
 			shift_pattern_id: shiftPatternId,
-			// Carried unchanged: the successor keeps the pass, tax residency and notice of the row it replaces.
+			// Carried unchanged: the successor keeps the pass, tax residency, notice and paid-day basis of the row it replaces.
 			pass_type: row.pass_type,
 			tax_residency: row.tax_residency,
-			notice_days: row.notice_days
+			notice_days: row.notice_days,
+			paid_rest_days: row.paid_rest_days
 		};
 		try {
 			return buildChangeTermsWrites({

@@ -212,7 +212,7 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 }
 
 /** The last payslip of a contract: the exit date falls on or before this period's wage window. */
-function isFinalPayslip(bundle: EmploymentBundle): boolean {
+export function isFinalPayslip(bundle: Pick<EmploymentBundle, 'employment' | 'window'>): boolean {
 	const exit = employmentDates(bundle.employment).exit;
 	return exit != null && exit <= bundle.window.salary.end;
 }
@@ -256,7 +256,7 @@ export function loanShortfallIssues(options: {
 						code: 'LOAN_REPAYMENT_BELOW_MINIMUM',
 						message:
 							`${options.employeeNumber} recovered ${taken} under ${component.code}, below the ` +
-							`agreed minimum of ${floor}: net pay could not carry ${short} of this period's ` +
+							`agreed minimum of ${floor}: ${shortfall.cause === 'DEDUCTION_CEILING' ? 'the deduction ceiling' : 'net pay'} could not carry ${short} of this period's ` +
 							'instalment. Resolve the deduction or withhold this person from the run.',
 						collection: 'employments',
 						recordId: options.employmentId
@@ -266,7 +266,7 @@ export function loanShortfallIssues(options: {
 						severity: 'WARNING',
 						message:
 							`${options.employeeNumber} could not repay ${short} under ${component.code} this ` +
-							'period; net pay would have gone negative. It stays outstanding.',
+							`period; ${shortfall.cause === 'DEDUCTION_CEILING' ? 'it would have taken deductions past the lawful ceiling' : 'net pay would have gone negative'}. It stays outstanding.`,
 						collection: 'employments',
 						recordId: options.employmentId
 					}

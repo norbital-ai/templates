@@ -17,9 +17,11 @@ export default defineModel(
 		/**
 		 * PUBLIC and SUBSTITUTE days price as the regime's PUBLIC_HOLIDAY; SPECIAL (a Philippine
 		 * special non-working day) as SPECIAL_HOLIDAY. A substitute is the observed day of a holiday
-		 * that fell on a rest day.
+		 * that fell on a rest day. DOUBLE is two regular holidays on one day (PH Handbook ch.2:
+		 * Araw ng Kagitingan on Maundy Thursday or Good Friday, 200% unworked and 300% worked); it
+		 * prices as PUBLIC_HOLIDAY and bands read `holiday.kind` to tell it apart.
 		 */
-		kind: enums(['PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY', 'SUBSTITUTE'])
+		kind: enums(['PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY', 'SUBSTITUTE', 'DOUBLE_HOLIDAY'])
 			.notNull()
 			.default('PUBLIC_HOLIDAY'),
 		/** The statutory date when the observance moved, e.g. a Sunday holiday taken on Monday. */

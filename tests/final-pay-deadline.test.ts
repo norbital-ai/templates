@@ -6,6 +6,8 @@ const warningsFor = (code: 'SG' | 'PH' | 'TW', reason: string, exit: string) =>
 	buildStatutory({
 		code,
 		period: exit.slice(0, 7),
+		// TW prices 職災 on the entity's industry class and refuses without one.
+		riskClass: code === 'TW' ? '1' : null,
 		people: [{ key: 'LEAVER', wage: 6000, exit_date: exit, exit_reason: reason }]
 	}).warnings;
 

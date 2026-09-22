@@ -147,6 +147,45 @@
 						/></Stack
 					></label
 				>
+				<label class="text-sm"
+					><Stack gap="xs"
+						>{t('employee_children.prior_childcare_days')}<Input
+							type="number"
+							min="0"
+							step="1"
+							value={row.prior_childcare_days ?? ''}
+							{disabled}
+							oninput={(event) =>
+								edit(index, { prior_childcare_days: count(event.currentTarget.value) })}
+						/></Stack
+					></label
+				>
+				<label class="text-sm"
+					><Stack gap="xs"
+						>{t('employee_children.prior_extended_childcare_days')}<Input
+							type="number"
+							min="0"
+							step="1"
+							value={row.prior_extended_childcare_days ?? ''}
+							{disabled}
+							oninput={(event) =>
+								edit(index, { prior_extended_childcare_days: count(event.currentTarget.value) })}
+						/></Stack
+					></label
+				>
+				<label class="text-sm"
+					><Stack gap="xs"
+						>{t('employee_children.prior_infant_care_days')}<Input
+							type="number"
+							min="0"
+							step="1"
+							value={row.prior_infant_care_days ?? ''}
+							{disabled}
+							oninput={(event) =>
+								edit(index, { prior_infant_care_days: count(event.currentTarget.value) })}
+						/></Stack
+					></label
+				>
 			</Grid>
 		{/each}
 		<Cluster

@@ -45,8 +45,12 @@ import { gatherRun, type GatheredRun } from './gather.js';
 import { periodGrammarFault, resolveWindow, type PayrollWindow } from './period.js';
 import { payrollRunGraph, type PendingPayslip } from './graph.js';
 import { settle } from './settle.js';
-import { loanShortfallIssues } from '../../../lib/payroll/loan.js';
-import { finalPayIssues, minimumWageIssues } from '../../../lib/payroll/contribution.js';
+import { isFinalPayslip, loanShortfallIssues } from '../../../lib/payroll/loan.js';
+import {
+	finalPayIssues,
+	minimumWageIssues,
+	windowMinimumWage
+} from '../../../lib/payroll/contribution.js';
 import {
 	blockers,
 	describeIssues,
@@ -214,7 +218,9 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			adjustments: measured.adjustments,
 			charges,
 			currency: measured.currency,
-			employeeNumber: String(employment.employee_number)
+			employeeNumber: String(employment.employee_number),
+			ceiling: configuration.jurisdiction.payroll.deduction_ceiling,
+			finalPay: isFinalPayslip(measured.bundle)
 		});
 		const recovered = new Set(
 			settlement.adjustments
@@ -228,6 +234,14 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 				collection: 'employments',
 				recordId: employment.id,
 				message: `${employment.employee_number}: employee statutory contributions of ${settlement.unfundedContributions} ${measured.currency} remain unfunded. Arrange and reconcile funding separately; later payroll does not automatically recover this amount.`
+			});
+		// A deduction the law forbids is not the run's to shorten: the operator resolves it.
+		if (settlement.ceilingExcess > 0)
+			issues.push({
+				code: 'DEDUCTION_CEILING_EXCEEDED',
+				collection: 'employments',
+				recordId: employment.id,
+				message: `${employment.employee_number}: deductions exceed the lawful ceiling by ${settlement.ceilingExcess} ${measured.currency} (${configuration.jurisdiction.payroll.deduction_ceiling?.authority}). Reduce or defer the deduction, or withhold this person from the run.`
 			});
 		// What the guard could not take is a fact about the month, not a rounding: an agreement with
 		// a stated minimum blocks here, one without it warns. Nothing read `shortfalls` before.
@@ -250,6 +264,13 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			// only ever touches deductions.
 			proration: measured.proration,
 			charges,
+			settledOvertimeHours: measured.settledOvertimeHours,
+			inLieuSlices: measured.inLieuSlices,
+			overtimeDays: measured.periodOvertimeDays,
+			minimumWage: windowMinimumWage(
+				configuration,
+				measured.bundle.employedDays ?? measured.bundle.window.salary
+			),
 			// The captured inputs: every source the run read, whether or not it produced money. The
 			// pins are the settlement lock, so zero-value sources ride with the payslip too — except a
 			// repayment the guard dropped, which no slip recovered.

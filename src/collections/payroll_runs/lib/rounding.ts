@@ -37,9 +37,9 @@ export function roundMoney(value: number, method: RoundingMethod): number {
 		case 'NEAREST_CENT':
 			return Math.round((value + eps) * 100) / 100;
 		case 'TRUNCATE_CENT':
-			return Math.trunc(value * 100 + (value < 0 ? -eps : eps)) / 100;
+			return Math.trunc((value + (value < 0 ? -eps : eps)) * 100) / 100;
 		case 'UP_5_CENTS':
-			return Math.ceil(value * 20 - eps) / 20;
+			return Math.ceil((value - eps) * 20) / 20;
 		case 'NEAREST_UNIT':
 			return Math.round(value + eps);
 		case 'FLOOR_UNIT':

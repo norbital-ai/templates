@@ -1,7 +1,7 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate } from '@norbital-ai/std/date';
 import type { WorkspaceRow } from '../collections/jurisdiction_holidays/$types.js';
-import type { HolidaySnapshot } from '../datatypes/holiday_snapshots/+definition.js';
+import { HOLIDAY_KINDS, type HolidaySnapshot } from '../datatypes/holiday_snapshots/+definition.js';
 import { dateKey } from './iso-day.js';
 
 /** What a consumer reads off a holiday row; the snapshot is the same columns, dates as day keys. */
@@ -17,7 +17,7 @@ function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
 		company_id: row.company_id,
 		date: dateKey(row.date),
 		name: row.name,
-		kind: row.kind === 'SPECIAL_HOLIDAY' || row.kind === 'SUBSTITUTE' ? row.kind : 'PUBLIC_HOLIDAY',
+		kind: HOLIDAY_KINDS.find((kind) => kind === row.kind) ?? 'PUBLIC_HOLIDAY',
 		replaces: row.replaces == null ? null : dateKey(row.replaces),
 		given_to:
 			row.given_to === 'ONLY_IF_OFF_ON_REPLACED_DATE' ? 'ONLY_IF_OFF_ON_REPLACED_DATE' : 'EVERYONE',

@@ -25,7 +25,11 @@ const ID_BPJS = ['JHT', 'JKK', 'JKM', 'JKP', 'JP', 'KESEHATAN'];
 
 const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	// CPF Act s.2: every allowance is wages; a bonus is Additional Wages. SHG funds and SDL read total wages.
-	SG: { bonus: ['CDAC', 'CPF.ADDITIONAL', 'ECF', 'MBMF', 'SDL', 'SINDA'] },
+	// EA s.11(1) salary in lieu of notice: not CPF wages (CPF Board), so outside the SHG funds; SDL Act s.2 wages.
+	SG: {
+		bonus: ['CDAC', 'CPF.ADDITIONAL', 'ECF', 'MBMF', 'SDL', 'SINDA'],
+		SALARY_IN_LIEU_OF_NOTICE: ['SDL']
+	},
 	// EPF Act s.2 (wages, no retirement/termination benefit), SOCSO/EIS s.2 wages, PSMB Act wages,
 	// ITA 1967 s.13(1)(a) with PCB's additional-remuneration method for one-off pay.
 	// LHDN 2026 D(b), E(13): normal/additional EPF classification controls tax-relief projection.
@@ -45,7 +49,17 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		TERMINATION_BENEFIT: []
 	},
 	// RA 11199 s.8(f) compensation; NIRC s.32(B)(7)(e) 13th month and other benefits (de minimis meal).
+	// RR 2-98 s.2.78.1(A)(3) as amended (RR 11-2018, RR 4-2025, RR 29-2025): each de minimis class
+	// is its own WTAX part, capped by the formula (the OT meal by its own band).
 	PH: {
+		ACHIEVEMENT_AWARD: ['WTAX.AWARD'],
+		CBA_PRODUCTIVITY: ['WTAX.CBA'],
+		CHRISTMAS_GIFT: ['WTAX.GIFT'],
+		DEPENDANT_MEDICAL_ALLOWANCE: [...PH_SSS, 'WTAX.DEP_MEDICAL'],
+		LAUNDRY_ALLOWANCE: [...PH_SSS, 'WTAX.LAUNDRY'],
+		MEDICAL_ASSISTANCE: ['WTAX.MEDICAL'],
+		OT_MEAL_ALLOWANCE: [...PH_SSS, 'WTAX.OT_MEAL'],
+		UNIFORM_ALLOWANCE: ['WTAX.UNIFORM'],
 		BACKPAY_ADD_WAGES: [...PH_SSS, 'WTAX.ORDINARY'],
 		BACKPAY_BASIC: [...PH_SSS, 'WTAX.ORDINARY'],
 		BACKPAY_DUTY_ALLOWANCE: [...PH_SSS, 'WTAX.ORDINARY'],
@@ -59,19 +73,27 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		corporate_duty_allowance: [...PH_SSS, 'WTAX.ORDINARY'],
 		duty_allowance: [...PH_SSS, 'WTAX.ORDINARY'],
 		leader: [...PH_SSS, 'WTAX.ORDINARY'],
-		meal: [...PH_SSS, 'WTAX.SPECIAL'],
+		meal: [...PH_SSS, 'WTAX.RICE'],
 		position: [...PH_SSS, 'WTAX.ORDINARY'],
 		transport: [...PH_SSS, 'WTAX.ORDINARY']
 	},
 	// Circular 111/2013 art.2(2): allowances are salary income except severance and job-loss allowances.
-	VN: { INSURANCE_EQUIVALENT: ['PIT'], JOB_LOSS_ALLOWANCE: [], SEVERANCE_ALLOWANCE: [] },
+	VN: {
+		INSURANCE_EQUIVALENT: ['PIT'],
+		// Decree 253/2026 art.8(2)(g)-(h): the meal above its cap, the rent up to 15% of income.
+		MEAL_ALLOWANCE: ['PIT.MEAL'],
+		HOUSING: ['PIT.HOUSING'],
+		JOB_LOSS_ALLOWANCE: [],
+		SEVERANCE_ALLOWANCE: []
+	},
 	// 所得稅法 §14(1)(3): a bonus is 薪資所得; 勞退條例 §14 and NHI supplement read it; severance is outside.
 	TW: {
 		SEVERANCE_PAY: [],
 		bonus: [
-			'INCOME_TAX',
+			'INCOME_TAX_BONUS',
 			'INCOME_TAX_NON_RESIDENT',
 			'LABOR_PENSION_RESERVE',
+			'NHI_SUPPLEMENT',
 			'NHI_SUPPLEMENT_EMPLOYER'
 		]
 	},
@@ -89,13 +111,16 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		MEDICAL_ALLOWANCE: ['PPH21.ADDITIONAL', 'PPH26'],
 		PESANGON: [],
 		PENSION_OFFSET: [],
-		PKWT_COMPENSATION: ['PPH21.ADDITIONAL', 'PPH26'],
+		// PP 68/2009 art.1 angka 4: paid when the PKWT ends (PP 35/2021 art.15(2)), so it is uang
+		// pesangon at the final rates (PPH21_FINAL_SEVERANCE reads it by code); only PPh 26 by membership.
+		PKWT_COMPENSATION: ['PPH26'],
 		RETROACTIVE_PAY: ['PPH21.ADDITIONAL', 'PPH26'],
 		SPECIAL_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH26'],
 		THR: ['PPH21.ADDITIONAL', 'PPH26'],
-		// PP 68/2009 art.2: the final rates cover only pesangon, UPMK and uang penggantian hak;
-		// uang pisah is ordinary remuneration (PMK 168/2023 art.15).
-		UANG_PISAH: ['PPH21.ADDITIONAL', 'PPH26'],
+		// PP 68/2009 art.1 angka 4: uang pesangon is any payment, under whatever name, made in connection
+		// with the end of service, so uang pisah carries the final severance rates like pesangon;
+		// only a non-resident's enters PPh 26.
+		UANG_PISAH: ['PPH26'],
 		UPMK: []
 	}
 };

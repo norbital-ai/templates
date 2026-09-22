@@ -36,6 +36,29 @@ export const employeeChildSchema = Schema.Struct({
 		Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
 	),
 	/**
+	 * Childcare leave days already taken for this child with earlier employers, declared by the
+	 * employee (SG CDCA s.12B(2)(a)(i): 42 days a citizen child, and 14 under EA s.87A, whoever the
+	 * employer). Absent is none. Read as `children.prior_childcare_days`.
+	 */
+	prior_childcare_days: Schema.optionalKey(
+		Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
+	),
+	/**
+	 * Extended childcare leave days already taken for this child with earlier employers (SG CDCA
+	 * s.12B(2)(a)(ii): 12 days a child). Absent is none. Read as
+	 * `children.prior_extended_childcare_days`.
+	 */
+	prior_extended_childcare_days: Schema.optionalKey(
+		Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
+	),
+	/**
+	 * Unpaid infant care leave days already taken for this child with earlier employers (SG CDCA
+	 * s.12D(2)(a): 24 days a child). Absent is none. Read as `children.prior_infant_care_days`.
+	 */
+	prior_infant_care_days: Schema.optionalKey(
+		Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
+	),
+	/**
 	 * A recorded family classification, available through `children.classed(x)`.
 	 * It does not establish a tax claim. MY child relief uses the statutory registration's
 	 * tax-year child_claims declaration and entitlement share.

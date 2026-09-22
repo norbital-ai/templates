@@ -8,6 +8,7 @@ import type {
 } from '../../collections/payroll_runs/lib/configuration.js';
 import { requiredDateKey, type IsoDate } from '../../collections/payroll_runs/lib/dates.js';
 import { contractAllowancesOn } from './contract-allowances.js';
+import { monthlyWageAverage } from './contribution.js';
 import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
@@ -41,6 +42,8 @@ import {
 	shiftPeriod
 } from '../../collections/payroll_runs/lib/dates.js';
 import { stint } from '../employment-contract.js';
+import { activeTimeOff } from '../leave/activity.js';
+import { dateKey } from '../iso-day.js';
 import { payRequestTerms } from '../component_entry_cap_subject.js';
 import type { PayslipAdjustment } from '../../datatypes/payslip_adjustments/+definition.js';
 import { oppositeBucket, settlementBucket } from './family.js';
@@ -353,6 +356,14 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 								)
 							},
 				fixedAllowances: contractAllowancesOn(options.bundle, options.configuration, asOf),
+				monthlyWage6mAverage: monthlyWageAverage(options.bundle, options.configuration, asOf, 6),
+				earnings: options.earnedByMonth ?? null,
+				// The approved time off, as calendar spans: 施行細則 §2's periods and MY s.60E(3B)'s days.
+				leaveSpans: activeTimeOff(options.bundle.leave.entries).map((row) => ({
+					code: row.leave_code,
+					from: dateKey(row.from_date),
+					to: dateKey(row.to_date)
+				})),
 				terms: payRequestTerms(options.bundle.termsHistory, options.bundle.employment, asOf),
 				children: options.bundle.children,
 				company,

@@ -151,7 +151,9 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			const charges = built.slips.get('EPF-BONUS')!.statutory;
 			const epf = charges.find((row) => row.scheme_code === 'EPF')!;
 			const pcb = charges.find((row) => row.scheme_code === 'PCB')!;
-			assert.deepEqual([epf.employee_amount, epf.employer_amount], [660, 720]);
+			// EPF Act Third Schedule, note to Part A: a wage of RM5,000 or less lifted above RM5,000 by a
+			// bonus keeps the employer's 13%: 13% × (2,000 + 4,000) = 780; employee 11% × 6,000 = 660.
+			assert.deepEqual([epf.employee_amount, epf.employer_amount], [660, 780]);
 			assert.deepEqual(
 				[pcb.employee_amount, pcb.employer_amount],
 				[voluntary === 0 ? 315.4 : 598.75, 0]
@@ -282,7 +284,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 					period: '2026-01',
 					people: [person('MISSING_HOME', [claim('HOME_INTEREST', 1000)])]
 				}),
-			/first-home/
+			/first-home/i // the declaration is required once interest is claimed (round 5, D15)
 		);
 	});
 }

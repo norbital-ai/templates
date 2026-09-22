@@ -5,14 +5,17 @@ import type { WorkspaceSchema } from '$bolt/types.js';
 import type { WorkspaceRow } from '../../collections/leave_entries/$types.js';
 import type { LeaveWindow } from './entitlement.js';
 import { withPendingLeaveEntries, type LeaveActivity } from './pending.js';
+import { activeTimeOff } from './activity.js';
 import { normaliseLeaveDays } from './activity-fields.js';
-import { computedEntitlement } from './entitlement.js';
+import { computedEntitlement, leaveWindowOf } from './entitlement.js';
 import { dateKey, dayInstant } from '../iso-day.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import type { CompanyFactRevision } from '../declared-facts.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import { addDays } from '../../collections/payroll_runs/lib/dates.js';
+import { addDays, daysBetween } from '../../collections/payroll_runs/lib/dates.js';
 import { rosterCodeKind } from '../scheduling/roster-code.js';
+import { patternDaysPerWeek, patternWorkload } from '../scheduling/work-pattern.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { resolveCompanyFacts } from '../declared-facts.js';
 import { personFactsOn } from '../payroll/facts.js';
 import {
@@ -83,6 +86,7 @@ export type LeaveContext = {
 		| 'employment_id'
 		| 'effective_range'
 		| 'shift_pattern_id'
+		| 'ordinary_hours_per_week'
 		| 'employment_type'
 		| 'residency_status'
 		| 'work_classification'
@@ -90,6 +94,7 @@ export type LeaveContext = {
 		| 'statutory_work_category'
 		| 'department'
 		| 'payroll_group'
+		| 'paid_rest_days'
 		| 'grade'
 		| 'residency_since'
 		| 'pay_frequency'
@@ -182,7 +187,7 @@ export type LeaveContext = {
 	patterns: Pick<WorkspaceRow<'shift_patterns'>, 'id' | 'code' | 'pattern' | 'effective_range'>[];
 	shifts: Pick<
 		WorkspaceRow<'shift_definitions'>,
-		'id' | 'company_id' | 'variant' | 'effective_range'
+		'id' | 'company_id' | 'code' | 'variant' | 'effective_range'
 	>[];
 	payslips: Pick<
 		WorkspaceRow<'payslips'>,
@@ -262,6 +267,7 @@ export function readLeaveContext(
 						employment_id: true,
 						effective_range: true,
 						shift_pattern_id: true,
+						ordinary_hours_per_week: true,
 						employment_type: true,
 						residency_status: true,
 						work_classification: true,
@@ -269,6 +275,7 @@ export function readLeaveContext(
 						statutory_work_category: true,
 						department: true,
 						payroll_group: true,
+						paid_rest_days: true,
 						grade: true,
 						residency_since: true,
 						pay_frequency: true,
@@ -450,7 +457,13 @@ export function readLeaveContext(
 					? Effect.succeed([])
 					: api.db.shift_definitions.findMany({
 							where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
-							columns: { id: true, company_id: true, variant: true, effective_range: true },
+							columns: {
+								id: true,
+								company_id: true,
+								code: true,
+								variant: true,
+								effective_range: true
+							},
 							limit: LIMIT
 						}),
 				api.db.jurisdiction_holidays.findMany({
@@ -706,12 +719,25 @@ export function leavePool(
 	};
 }
 
+/** The employment's approved time off by leave code, as calendar spans (MY s.60E(3B) reads them). */
+function leaveSpans(context: LeaveContext, employmentId: string) {
+	return activeTimeOff(
+		context.entries.filter((row) => row.employment_id === employmentId && row.approval_id == null)
+	).map((row) => ({
+		code: row.leave_code,
+		from: dateKey(row.from_date),
+		to: dateKey(row.to_date)
+	}));
+}
+
 /** The person of one employment on one date, as every leave rule reads them; uncached. */
 export function personAt(
 	context: LeaveContext,
 	employmentId: string,
 	date: string,
-	event?: PersonInput['event']
+	event?: PersonInput['event'],
+	/** One recorded child (its index in the employee's children), as if the only one. */
+	childIndex?: number
 ): PersonContext {
 	const employment = context.employments.find((row) => row.id === employmentId);
 	if (!employment) refuse('Leave requires an approved employment.');
@@ -722,6 +748,20 @@ export function personAt(
 	const terms = context.terms.filter((row) => row.employment_id === employmentId);
 	const range = employment.effective_range;
 	const yearBefore = addDays(date, -365);
+	const term = terms.find((row) => coversDate(row.effective_range, date)) ?? null;
+	// The contract's week, so a part-timer's grant can be read against their contracted hours
+	// (`entitlement.scale`): the stated hours, else the pattern's.
+	const pattern = context.patterns.find((row) => row.id === term?.shift_pattern_id)?.pattern;
+	const shiftById = new Map(context.shifts.map((row) => [row.id, row]));
+	const week =
+		term == null || pattern == null
+			? null
+			: {
+					ordinary_hours_per_week:
+						decodeNumber(term.ordinary_hours_per_week ?? 0) ||
+						(patternWorkload(pattern, shiftById)?.average_weekly_paid_minutes ?? 0) / 60,
+					working_days_per_week: patternDaysPerWeek(pattern, shiftById)
+				};
 	return personContext({
 		event,
 		employee,
@@ -735,8 +775,13 @@ export function personAt(
 					row.employment_id === employmentId && row.work_date > yearBefore && row.work_date <= date
 			).length
 		},
-		terms: terms.find((row) => coversDate(row.effective_range, date)) ?? null,
-		children: childrenOn(employee.children ?? [], date),
+		leaveSpans: leaveSpans(context, employmentId),
+		terms: term,
+		week,
+		children: childrenOn(
+			(employee.children ?? []).filter((_, index) => childIndex == null || index === childIndex),
+			date
+		),
 		company: {
 			...company,
 			facts: resolveCompanyFacts(
@@ -840,7 +885,8 @@ export function leaveRules(
 			hire,
 			exit,
 			context.facts ?? [],
-			context.absences ?? []
+			context.absences ?? [],
+			leaveSpans(context, employmentId)
 		])
 	);
 	const personOn = (date: string, forEvent: PersonInput['event'] = event): PersonContext => {
@@ -864,7 +910,7 @@ export function leaveRules(
 		(exit == null || date <= exit) &&
 		terms.some((row) => coversDate(row.effective_range, date)) &&
 		catalogueAt(date) != null;
-	const eligibleOn = (date: string): boolean => {
+	const eligibleOnDay = (date: string): boolean => {
 		const known = eligibility.get(date);
 		if (known !== undefined) return known;
 		const catalogue = catalogueAt(date);
@@ -886,6 +932,39 @@ export function leaveRules(
 		eligibility.set(date, eligible);
 		return eligible;
 	};
+	/**
+	 * A row that `qualifies_window` stays eligible for the rest of a leave year once it qualifies
+	 * on a day of it: the qualifying facts are the year's, so a child who turns 7 mid-year keeps
+	 * the year (SG CDCA s.12B(1)(b)), while the service qualifying period still bars the days
+	 * before it is served. The grant itself is the year's once the facts hold at the close of any
+	 * day of it (`grantedOn`): three months served by the end of 31 December earn the year's days
+	 * even though none is left to take them in.
+	 */
+	const qualified = new Map<string, string | null>();
+	const qualifiedFrom = (date: string, close: boolean): string | null | undefined => {
+		const rule = catalogueAt(date)?.entitlement;
+		if (rule?.qualifies_window !== true || event != null || !servedOn(date)) return undefined;
+		const window = leaveWindowOf(date, rule);
+		const key = `${close}/${window.start}`;
+		if (!qualified.has(key))
+			qualified.set(
+				key,
+				daysBetween(window.start, window.end).find((day) =>
+					close
+						? servedOn(day) && isEligible(catalogueAt(day)!.eligibility, personOn(addDays(day, 1)))
+						: eligibleOnDay(day)
+				) ?? null
+			);
+		return qualified.get(key);
+	};
+	const eligibleOn = (date: string): boolean => {
+		const first = qualifiedFrom(date, false);
+		return first === undefined ? eligibleOnDay(date) : first != null && first <= date;
+	};
+	const grantedOn = (date: string): boolean => {
+		const first = qualifiedFrom(date, true);
+		return first === undefined ? eligibleOnDay(date) : first != null && first <= date;
+	};
 	const amounts = new Map<string, ReturnType<typeof computedEntitlement>>();
 	const entitlementAt = (window: LeaveWindow, date: string) => {
 		const key = `${window.start}/${window.end}/${date}`;
@@ -901,7 +980,7 @@ export function leaveRules(
 			hireDate: hire,
 			exitDate: exit,
 			servedOn,
-			eligibleOn,
+			eligibleOn: grantedOn,
 			personOn
 		});
 		amounts.set(key, result);
@@ -919,6 +998,10 @@ export function leaveRules(
 		catalogueOn,
 		eligibleOn,
 		personOn,
+		/** The person seen with one recorded child only, for a per-child cap (`child_lifetime`). */
+		childPersonOn: (date: string, index: number) =>
+			personAt(context, employmentId, date, undefined, index),
+		children: employee.children ?? [],
 		entitlementAt
 	};
 }

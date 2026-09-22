@@ -42,10 +42,45 @@ export const payrollSettingsValueSchema = Schema.Struct({
 					/** CEL over the person on the final service day; empty is every leaver (the default deadline). */
 					when: Schema.String,
 					days: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
-					basis: Schema.Literals(['EVENT_DATE', 'MONTH_END', 'NEXT_PAYDAY']),
+					/**
+					 * What `days` counts from: the last day, the end of its month, the next payday — or
+					 * `WORKING_DAYS`, the leaver's own working days after the last day on their pattern,
+					 * less the published holidays (VN Labour Code art.48(1): 14 working days).
+					 */
+					basis: Schema.Literals(['EVENT_DATE', 'MONTH_END', 'NEXT_PAYDAY', 'WORKING_DAYS']),
 					authority: Schema.String.check(Schema.isMinLength(1))
 				})
 			)
+		)
+	),
+	/**
+	 * The most the employer may deduct from a payslip's pay, where the law caps it (MY EA s.24(8),
+	 * SG EA s.32, ID PP 36/2021 art.65, VN Labour Code art.102(3)). The run drops whole loan
+	 * recoveries past it — they stay outstanding — and refuses a payslip whose other deductions
+	 * still exceed it. Absent or null is no ceiling.
+	 */
+	deduction_ceiling: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				/** The share of the base the counted deductions may reach: `0.5` is half. */
+				share: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+				/** The pay the share is taken of: gross pay, or gross less the employee's statutory charges. */
+				basis: Schema.Literals(['GROSS', 'NET_OF_STATUTORY']),
+				/** Whether the employee's statutory charges count toward the ceiling (SG CPF, s.27(1)(h)). */
+				counts_statutory: Schema.Boolean,
+				/** Whether loan and advance recoveries count toward it (SG s.32 exempts s.27(1)(f)). */
+				counts_loans: Schema.Boolean,
+				/** Catalogue codes of deduction lines the ceiling does not reach. */
+				exempt_codes: Schema.Array(Schema.String),
+				/** Whether the whole final payslip is outside the ceiling (SG s.32(2)). */
+				final_pay_exempt: Schema.Boolean,
+				/**
+				 * Whether loan and advance recoveries — amounts due to the employer — taken from the final
+				 * payslip are outside the ceiling while its other deductions stay counted (MY s.24(9)(b)).
+				 */
+				final_pay_exempts_loans: Schema.optionalKey(Schema.Boolean),
+				authority: Schema.String.check(Schema.isMinLength(1))
+			})
 		)
 	),
 	/**
@@ -76,6 +111,18 @@ export const payrollSettingsValueSchema = Schema.Struct({
 	 * or false is the holiday paid whatever surrounds it.
 	 */
 	holiday_in_no_pay_leave_unpaid: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * A special non-working day the daily- or hourly-paid did not work earns nothing ("no work, no
+	 * pay": PH Labor Code, DOLE Handbook ch.3 §C). Absent or false is the rostered day paid.
+	 */
+	special_holiday_unworked_unpaid: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * An unworked regular holiday is paid to the daily- or hourly-paid only where they were present,
+	 * or on leave with pay, on the workday immediately preceding it — a rest or non-work day in
+	 * between looks further back, and an unworked holiday before it passes the test to the day
+	 * before that (PH Handbook ch.2 §D–E). Absent or false is the holiday paid regardless.
+	 */
+	regular_holiday_prior_workday: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	/**
 	 * A contracted day of at most this many hours counts as half a working day in the part-month
 	 * count (SG EA s.20A(2): five hours or less); absent or null is no half days.

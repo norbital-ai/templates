@@ -20,6 +20,7 @@ import { compileEligibility } from '../collections/payroll_runs/lib/eligibility.
 import { refuseUnlessDraftOnBoth, type SealedVersion } from './settings_seal.js';
 import { assessedOnMentions, compileExpression, type DeclaredKey } from './expressions/compile.js';
 import { openKeyMentions } from './expressions/contexts.js';
+import { WAGES } from './expressions/person-functions.js';
 
 const CATALOGUE_FAMILIES = ['ALLOWANCE', 'ADHOC', 'CLAIM', 'LOAN'] as const;
 /** `code('X')` may also name a leave row's encashment line, `<code>_ENCASHMENT`. */
@@ -297,6 +298,8 @@ export function refuseUnknownMemberships(
 ): void {
 	if (schemes == null) return;
 	for (const membership of countsToward ?? []) {
+		// Not a scheme: the reserved mark that files a regular pay class into the earnings history.
+		if (membership === WAGES) continue;
 		const [scheme, part, ...rest] = membership.split('.');
 		const declared = scheme == null ? undefined : schemes.get(scheme);
 		if (declared == null)

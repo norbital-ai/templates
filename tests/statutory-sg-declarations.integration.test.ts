@@ -35,8 +35,10 @@ test(
 			id: schemeId,
 			settings_id: JURISDICTION_ID
 		});
+		// CDAC refuses a citizen or PR with no race recorded (round 5, D16): the others are recorded
+		// outside the fund.
 		rows.employees = rows.employees!.map((row) =>
-			row.id === employeeId ? { ...row, race: 'CHINESE' } : row
+			row.id === employeeId ? { ...row, race: 'CHINESE' } : { ...row, race: row.race ?? 'OTHERS' }
 		);
 		rows.employment_terms = rows.employment_terms!.map((row) =>
 			row.employment_id === EMPLOYMENT_ID ? { ...row, residency_status: 'CITIZEN' } : row

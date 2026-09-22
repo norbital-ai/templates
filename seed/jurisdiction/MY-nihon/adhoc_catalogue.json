@@ -224,15 +224,15 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
-		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`). Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * (\"wages_12m\" in person.employment.exit_fact_keys ? person.employment.exit_facts.wages_12m : person.employment.earned_monthly_average(12) * 12.0) / 365.0)",
 				"limit": null
 			}
 		],
@@ -244,15 +244,15 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice. Applied 2026-09-23 (audit): s.12(3): where the termination is attributable to redundancy, closure or a change of ownership the notice \"shall be not less than that provided under paragraph (2)(a), (b) or (c) … regardless of anything to the contrary contained in the contract\" — the contract's shorter notice gives way to the statutory weeks for REDUNDANCY and RETRENCHMENT; an employer's UNILATERAL termination owes the s.12 notice too. Applied 2026-09-23: EA s.14(1)(a) — a dismissal for misconduct after due inquiry is without notice, so no notice or pay in lieu is owed.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"DISMISSAL\"]) && !(\"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
+				"amount": "round_cent(person.terms.monthly_wage * ((person.employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && person.terms.notice_days < (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) ? (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0) : (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0))) / 30.0)",
 				"limit": null
 			}
 		],
@@ -264,15 +264,15 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
-		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`). Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * (\"wages_12m\" in person.employment.exit_fact_keys ? person.employment.exit_facts.wages_12m : person.employment.earned_monthly_average(12) * 12.0) / 365.0)",
 				"limit": null
 			}
 		],
@@ -284,15 +284,15 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice. Applied 2026-09-23 (audit): s.12(3): where the termination is attributable to redundancy, closure or a change of ownership the notice \"shall be not less than that provided under paragraph (2)(a), (b) or (c) … regardless of anything to the contrary contained in the contract\" — the contract's shorter notice gives way to the statutory weeks for REDUNDANCY and RETRENCHMENT; an employer's UNILATERAL termination owes the s.12 notice too. Applied 2026-09-23: EA s.14(1)(a) — a dismissal for misconduct after due inquiry is without notice, so no notice or pay in lieu is owed.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"DISMISSAL\"]) && !(\"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
+				"amount": "round_cent(person.terms.monthly_wage * ((person.employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && person.terms.notice_days < (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) ? (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0) : (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0))) / 30.0)",
 				"limit": null
 			}
 		],
@@ -304,15 +304,15 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`).",
-		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`). Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * person.terms.monthly_wage / 26.0)",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * (\"wages_12m\" in person.employment.exit_fact_keys ? person.employment.exit_facts.wages_12m : person.employment.earned_monthly_average(12) * 12.0) / 365.0)",
 				"limit": null
 			}
 		],
@@ -324,15 +324,243 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice.",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"DISMISSAL\"]",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice. Applied 2026-09-23 (audit): s.12(3): where the termination is attributable to redundancy, closure or a change of ownership the notice \"shall be not less than that provided under paragraph (2)(a), (b) or (c) … regardless of anything to the contrary contained in the contract\" — the contract's shorter notice gives way to the statutory weeks for REDUNDANCY and RETRENCHMENT; an employer's UNILATERAL termination owes the s.12 notice too. Applied 2026-09-23: EA s.14(1)(a) — a dismissal for misconduct after due inquiry is without notice, so no notice or pay in lieu is owed.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"DISMISSAL\"]) && !(\"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) / 30.0)",
+				"amount": "round_cent(person.terms.monthly_wage * ((person.employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && person.terms.notice_days < (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) ? (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0) : (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0))) / 30.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PCB.ADDITIONAL"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "24dce23d-295e-59b6-9c91-ef85d1483f7b",
+		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
+		"code": "BPAYBS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f349b6c2-faea-5cdf-8600-3a05523416a7",
+		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
+		"code": "ADJ",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Adjustment",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e4ec0df1-6f77-54e7-bf8b-fc3fae613fb9",
+		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4ee88b3f-02fb-54ac-8036-4b28a43657e5",
+		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
+		"code": "TERMINATION_BENEFIT",
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`). Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * (\"wages_12m\" in person.employment.exit_fact_keys ? person.employment.exit_facts.wages_12m : person.employment.earned_monthly_average(12) * 12.0) / 365.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "a0ea8969-336e-5e9d-9851-9e3cc1c0a959",
+		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
+		"code": "NOTICE_IN_LIEU",
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice. Applied 2026-09-23 (audit): s.12(3): where the termination is attributable to redundancy, closure or a change of ownership the notice \"shall be not less than that provided under paragraph (2)(a), (b) or (c) … regardless of anything to the contrary contained in the contract\" — the contract's shorter notice gives way to the statutory weeks for REDUNDANCY and RETRENCHMENT; an employer's UNILATERAL termination owes the s.12 notice too. Applied 2026-09-23: EA s.14(1)(a) — a dismissal for misconduct after due inquiry is without notice, so no notice or pay in lieu is owed.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"DISMISSAL\"]) && !(\"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * ((person.employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && person.terms.notice_days < (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) ? (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0) : (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0))) / 30.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PCB.ADDITIONAL"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "e6efcb7f-c25b-59f8-b484-d6a211e1a20d",
+		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
+		"code": "BPAYBS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – basic",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "fccf2c9e-36be-5400-989e-0c4b33d6db81",
+		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
+		"code": "ADJ",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Adjustment",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "168d47a0-c8b4-560f-b181-c56baaf3e798",
+		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Back pay – additional wages",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8e518c81-fe43-5468-a090-ab37cb5ddca6",
+		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
+		"code": "TERMINATION_BENEFIT",
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.3(2)(b) excludes a termination for misconduct. Applied 2026-09-19 (2): EA 1955 First Schedule paras 1 and 2: the Regulations reach an employee whose wages are RM4,000 a month or less and, whatever the wage, one engaged in manual labour or its supervision (`terms.workman`). Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.workman)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.service_years < 2 ? 10.0 : person.employment.service_years < 5 ? 15.0 : 20.0) * (round_unit(person.employment.service_days / 30.4375) / 12.0) * (\"wages_12m\" in person.employment.exit_fact_keys ? person.employment.exit_facts.wages_12m : person.employment.earned_monthly_average(12) * 12.0) / 365.0)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "32e0d524-ae03-5dc2-9496-9e5e2f5e8dc0",
+		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
+		"code": "NOTICE_IN_LIEU",
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 s.13(1)–(2): either party may terminate without notice by paying an indemnity of the wages the employee would have earned in the notice period; s.12(2) the minimum notice is four weeks under two years’ service, six under five and eight at five or more, where the contract states none. Applied 2026-09-19 (2): EA 1955 s.12(2): where the contract states no notice the period is four weeks under two years’ service, six under five and eight at five or more (`terms.notice_days` when stated, else the statutory weeks in days); s.13(1)–(2): the indemnity is the wages that would have accrued over the notice period — the monthly wage (basic and fixed allowances) over the calendar days of notice. A contract that expires on its own date owes no notice. Applied 2026-09-23 (audit): s.12(3): where the termination is attributable to redundancy, closure or a change of ownership the notice \"shall be not less than that provided under paragraph (2)(a), (b) or (c) … regardless of anything to the contrary contained in the contract\" — the contract's shorter notice gives way to the statutory weeks for REDUNDANCY and RETRENCHMENT; an employer's UNILATERAL termination owes the s.12 notice too. Applied 2026-09-23: EA s.14(1)(a) — a dismissal for misconduct after due inquiry is without notice, so no notice or pay in lieu is owed.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"DISMISSAL\"]) && !(\"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * ((person.employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && person.terms.notice_days < (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0)) ? (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0) : (person.terms.notice_days > 0.0 ? person.terms.notice_days : (person.employment.service_years < 2 ? 28.0 : person.employment.service_years < 5 ? 42.0 : 56.0))) / 30.0)",
 				"limit": null
 			}
 		],

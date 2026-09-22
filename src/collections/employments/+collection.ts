@@ -39,6 +39,7 @@ const terms = {
 			department: true,
 			job_title: true,
 			payroll_group: true,
+			paid_rest_days: true,
 			grade: true,
 			pass_type: true,
 			tax_residency: true,

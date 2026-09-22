@@ -100,6 +100,7 @@
 			<Field name="pass_type" label={t('component.pass_type')} />
 			<Field name="tax_residency" label={t('component.tax_residency')} />
 			<Field name="notice_days" label={t('component.notice_days')} />
+			<Field name="paid_rest_days" label={t('component.paid_rest_days')} />
 		</Grid>
 	</FormSection>
 

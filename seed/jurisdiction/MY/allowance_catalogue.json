@@ -152,5 +152,109 @@
 			"SKBBK",
 			"SOCSO"
 		]
+	},
+	{
+		"id": "9685eb71-b69f-54b5-bffd-6fdd10e7ae56",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "SUA",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Scale-up allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SKBBK",
+			"SOCSO"
+		]
+	},
+	{
+		"id": "5ce58bab-3d09-5e6b-b5b6-4357cbcdc703",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "ONCALL",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "On-call allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		]
+	},
+	{
+		"id": "7fcc7fe6-54c0-59a2-a4f8-6627a382de7d",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "SUA",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Scale-up allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SKBBK",
+			"SOCSO"
+		]
+	},
+	{
+		"id": "96b17668-b196-57f1-9c8c-fe717b620d0c",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "ONCALL",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "On-call allowance",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		]
 	}
 ]

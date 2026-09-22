@@ -99,6 +99,7 @@ const driftAi = (failPub2: () => boolean) => {
 							],
 							leave_catalogue: [],
 							pay_component: [],
+							instruments: [],
 							notes: []
 						}
 					: {
@@ -113,6 +114,7 @@ const driftAi = (failPub2: () => boolean) => {
 							],
 							leave_catalogue: [],
 							pay_component: [],
+							instruments: [],
 							notes: []
 						};
 			const observation = {

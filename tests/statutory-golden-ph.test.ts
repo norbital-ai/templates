@@ -52,7 +52,7 @@ test('Philippines — a whole month on FIXED_DAYS 21.75 prorates to one, so the 
 	const book = assessStatutory({ code: 'PH', period: '2026-01', people: PH_PEOPLE });
 	// The regime's proration is `FIXED_DAYS: 21.75` for every employee, monthly-paid included,
 	// because `proration` takes no predicate rows (bank README NOT APPLIED #16; the `ordinary_rate`
-	// predicate on `terms.payroll_group == "MONTHLY"` that separates the two populations prices
+	// predicate on `terms.paid_rest_days` that separates the two populations prices
 	// overtime only, never the salary line).
 	//
 	// 21.75 is the DOLE Monday-to-Friday factor 261/12 — a count of WORKING days — so the numerator
@@ -533,6 +533,44 @@ test('Philippines — a weekly-paying company withholds on Annex E’s weekly co
 	expectStatutory(week5, 'PH-WEEKLY', 'HDMF', 200, 200);
 });
 
+test('Philippines — the week of 1–4 January 2026 is priced on the version before RR 29-2025 commenced', () => {
+	// RR 29-2025 s.3: in force fifteen days after its 22 December 2025 posting, i.e. 6 January
+	// 2026, so the week whose Sunday is 4 January is governed by the 1 January version (RR
+	// 11-2018's de minimis figures). Its Annex E weekly column is unchanged: a weekly payslip of
+	// 10,000 with nothing deducted this week is in the third bracket, 432.60 + 20% × (10,000 −
+	// 7,692) = 432.60 + 461.60 = 894.20. SSS, PhilHealth and Pag-IBIG wait for January's last week.
+	const week1 = assessStatutory({
+		code: 'PH',
+		period: '2026-01-1',
+		payFrequency: 'WEEKLY',
+		people: [{ key: 'PH-WEEKLY', wage: 10_000, pay_frequency: 'WEEKLY' }]
+	});
+	expectStatutory(week1, 'PH-WEEKLY', 'WTAX', 894.2, 0);
+	expectStatutory(week1, 'PH-WEEKLY', 'SSS', 0, 0);
+});
+
+test('Philippines — NCR-DW-06 holds a kasambahay to ₱7,800 from 7 February 2026, NCR-DW-05’s ₱7,000 before it', () => {
+	// RA 10361 s.24 and the NCR domestic-worker orders (nwpc.dole.gov.ph/ncr/): NCR-DW-05 ₱7,000 a
+	// month from 4 January 2025; NCR-DW-06 ₱7,000 + ₱800 = ₱7,800, published 22 January 2026 and
+	// effective 7 February 2026. A ₱7,500 kasambahay meets the January floor (7,500 ≥ 7,000) and
+	// falls below February's (7,500 < 7,800). The version is chosen at the salary window's end:
+	// 31 January (the 6 January version, ₱7,000) and 28 February (the 7 February version).
+	const below = (period: string) =>
+		buildStatutory({
+			code: 'PH',
+			period,
+			region: 'NCR',
+			people: [{ key: 'DW-7500', wage: 7_500, employment_type: 'DOMESTIC' }]
+		}).warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW'));
+	assert.deepEqual(below('2026-01'), []);
+	const february = below('2026-02');
+	assert.equal(february.length, 1, february.join('\n'));
+	assert.match(
+		february[0]!,
+		/DW-7500 is contracted at 7500 a month, below the NCR minimum wage of 7800/
+	);
+});
+
 test('every sealed version of `PH` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
@@ -799,7 +837,7 @@ test('Philippines — the entity may carry the month’s premiums on the end-mon
 const rankAndFile = personContext({
 	employee: null,
 	employment: { service_start: '2020-01-01' },
-	terms: { base_salary: { value: 30_000, currency: 'PHP' }, payroll_group: 'MONTHLY' },
+	terms: { base_salary: { value: 30_000, currency: 'PHP' }, paid_rest_days: true },
 	week: { ordinary_hours_per_week: 40, working_days_per_week: 5 },
 	asOf: '2026-06-30'
 });
@@ -834,19 +872,25 @@ test('Philippines — Labor Code arts. 87, 93 and 94 premiums on every version',
 	for (const version of settingsVersions('PH')) {
 		// Art.87: 25% on the hourly rate beyond eight hours.
 		assert.deepEqual(priceDay(version, 'ORDINARY', 10), [['OT-1.25X', 2, 250]]);
-		// Art.93(a): 130% for the first eight hours on a rest day; art.87 on top beyond: 169%.
+		// `rankAndFile` is monthly-paid on the 365 factor: the salary already pays every day of the
+		// month at 100% (Handbook ch.2 §E), rest days and holidays included, so a band adds only what
+		// the Handbook's total rate exceeds it by; hours beyond eight are paid by no base.
+		// Art.93(a): 130% for the first eight hours on a rest day → 8 × 100 × (1.3 − 1) = 240; art.87
+		// on top beyond: 2 × 100 × 1.69 = 338.
 		assert.deepEqual(priceDay(version, 'REST_DAY', 10), [
-			['OT-1.3X', 8, 1040],
+			['OT-1.3X', 8, 240],
 			['OT-1.69X', 2, 338]
 		]);
-		// Art.94(b): 200% for work on a regular holiday; 260% beyond eight hours.
+		// Art.94(b): 200% for work on a regular holiday → 8 × 100 × (2.0 − 1) = 800; 260% beyond
+		// eight hours → 2 × 100 × 2.6 = 520.
 		assert.deepEqual(priceDay(version, 'PUBLIC_HOLIDAY', 10), [
-			['OT-2.0X', 8, 1600],
+			['OT-2.0X', 8, 800],
 			['OT-2.6X', 2, 520]
 		]);
-		// Special (non-working) day: 130% and 169% (DOLE Handbook ch.3 §D.1, ch.4 §C.3).
+		// Special (non-working) day: 130% → 8 × 100 × 0.3 = 240, and 169% → 338 (DOLE Handbook
+		// ch.3 §D.1, ch.4 §C.3).
 		assert.deepEqual(priceDay(version, 'SPECIAL_HOLIDAY', 10), [
-			['OT-1.3X', 8, 1040],
+			['OT-1.3X', 8, 240],
 			['OT-1.69X', 2, 338]
 		]);
 		// Art.82: managerial employees are outside Title I, so outside the premiums.
@@ -884,13 +928,13 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 	// Handbook ch.2 §E: a monthly-paid employee's daily rate is monthly × 12 ÷ 365; a daily-paid
 	// employee on a five-day week is ÷ 261 (21.75 a month), on a six-day week ÷ 313 (26.0833).
 	for (const version of settingsVersions('PH')) {
-		const divisor = (payroll_group: string, hours: number, days: number) =>
+		const divisor = (paid_rest_days: boolean, hours: number, days: number) =>
 			ordinaryDivisorDays({
 				expression: version.work_rules.ordinary_divisor_days,
 				person: personContext({
 					employee: null,
 					employment: { service_start: '2020-01-01' },
-					terms: { base_salary: { value: 30_000, currency: 'PHP' }, payroll_group },
+					terms: { base_salary: { value: 30_000, currency: 'PHP' }, paid_rest_days },
 					week: { ordinary_hours_per_week: hours, working_days_per_week: days },
 					asOf: '2026-06-30'
 				})
@@ -898,13 +942,13 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 		// The factors as the Handbook derives them — 365, 261 and 313 days over twelve months —
 		// stated as the fractions, so a daily floor of ₱600 × 313 ÷ 12 meets the wage order's
 		// ₱15,650 exactly rather than by a rounded 26.0833.
-		assert.equal(divisor('MONTHLY', 40, 5), 365 / 12);
-		assert.equal(divisor('', 40, 5), 261 / 12);
-		assert.equal(divisor('', 48, 6), 313 / 12);
+		assert.equal(divisor(true, 40, 5), 365 / 12);
+		assert.equal(divisor(false, 40, 5), 261 / 12);
+		assert.equal(divisor(false, 48, 6), 313 / 12);
 		// Handbook ch.2 §E on the salary line too (`proration_by`): a daily-paid employee’s absent
-		// day on the 261 factor is ₱30,000 × 12 ÷ 261 = ₱1,379.31; a monthly-paid one’s (payroll
-		// group MONTHLY) is ÷ 30.4167 = ₱986.30, and their part month prorates on the same divisor.
-		const absent = (payroll_group, hours = 40, days = 5) =>
+		// day on the 261 factor is ₱30,000 × 12 ÷ 261 = ₱1,379.31; a monthly-paid one’s (paid for
+		// every day of the month, `terms.paid_rest_days`) is ÷ 30.4167 = ₱986.30, and their part month prorates on the same divisor.
+		const absent = (paid_rest_days: boolean, hours = 40, days = 5) =>
 			absenceDayRate({
 				terms: {
 					base_salary: { value: 30_000, currency: 'PHP' },
@@ -916,22 +960,22 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 				person: personContext({
 					employee: null,
 					employment: { service_start: '2020-01-01' },
-					terms: { base_salary: { value: 30_000, currency: 'PHP' }, payroll_group },
+					terms: { base_salary: { value: 30_000, currency: 'PHP' }, paid_rest_days },
 					week: { ordinary_hours_per_week: hours, working_days_per_week: days },
 					asOf: '2026-02-28'
 				}),
 				period: { start: '2026-02-01', end: '2026-02-28' },
 				workingDaysIn: () => 20
 			});
-		assert.equal(absent('BI-MONTHLY'), 30_000 / (261 / 12));
-		assert.equal(absent('MONTHLY'), 30_000 / (365 / 12));
+		assert.equal(absent(false), 30_000 / (261 / 12));
+		assert.equal(absent(true), 30_000 / (365 / 12));
 		// A six-day week's absent day is on the 313 factor the overtime hour is built on: ₱30,000
 		// ÷ 26.0833 = ₱1,150.16 — the ₱15,650 daily-paid floor comes back as its ₱600 day.
-		assert.equal(absent('BI-MONTHLY', 48, 6), 30_000 / (313 / 12));
+		assert.equal(absent(false, 48, 6), 30_000 / (313 / 12));
 		assert.deepEqual(version.work_rules.proration_by, [
-			{ when: 'terms.payroll_group == "MONTHLY"', basis: { by: 'FIXED_DAYS', days: 365 / 12 } },
+			{ when: 'terms.paid_rest_days', basis: { by: 'FIXED_DAYS', days: 365 / 12 } },
 			{
-				when: 'terms.pay_frequency != "DAILY" && terms.payroll_group != "MONTHLY" && terms.ordinary_hours_per_week > 40.0',
+				when: 'terms.pay_frequency != "DAILY" && !terms.paid_rest_days && terms.ordinary_hours_per_week > 40.0',
 				basis: { by: 'FIXED_DAYS', days: 313 / 12 }
 			}
 		]);
@@ -1000,6 +1044,9 @@ test('Philippines — the statutory leave ladder on every version', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PH_2026 = 'bb5137fd-d7fd-4a26-8eae-77211521f892';
+// The version governing 31 January 2026 since RR 29-2025 split January on the 6th: a separation
+// row must come from the catalogue in force on the final service day.
+const PH_2026_JAN6 = 'b585862c-5438-5a97-a36d-44e55ceb5498';
 
 test('Philippines — a salary change mid-month is one month of pay, never more (DOLE Handbook ch.2 §E)', () => {
 	// January 2026 holds 22 Monday-to-Friday working days — 17 to the 23rd and 5 from the 24th —
@@ -1244,10 +1291,16 @@ test('Philippines — a minimum-wage earner’s overtime and night differential 
 	expectStatutorySkipped(book, 'PH-MWE', 'WTAX');
 	// Wage Order NCR-28 (s.2: ₱695 + ₱60 = ₱755 non-agriculture; s.7: fifteen days after its
 	// 11 September 2026 publication): from 26 September 2026 the NCR floor is 755 × 313 ÷ 12 =
-	// 19,692.92 (313 factor). A version is read at the period's end, so a ₱16,000 earner — above
-	// the NCR-26 floor on the fixture's five-day factor (₱695 × 261 ÷ 12 = 15,116.25) — is
-	// withheld on in August and is a minimum-wage earner in September, when the floor is ₱755 ×
-	// 261 ÷ 12 = 16,421.25 (RA 9504: at or below the statutory minimum).
+	// 19,692.92 (313 factor). A ₱16,000 earner is above the NCR-26 floor on the fixture's five-day
+	// factor (₱695 × 261 ÷ 12 = 15,116.25) and below NCR-28's (₱755 × 261 ÷ 12 = 16,421.25). The
+	// order fixes the SMW from its effective date (RR 11-2018 s.2.78.1(B)(13): the SMW is "the rate
+	// fixed by the RTWPB"), and the exemption attaches to the pay for the days on which the employee
+	// is an MWE (RR 10-2008 / RR 11-2018): above NCR-26's floor to 25 September, at or below NCR-28's
+	// from the 26th. August is taxed whole: ₱16,000. September on the fixture's Mon–Fri pattern has
+	// 22 paid days, 19 to the 25th and 3 from the 26th (28–30), so ₱16,000 × 3 ÷ 22 = ₱2,181.82 is
+	// exempt and ₱16,000 × 19 ÷ 22 = ₱13,818.18 taxed. October is exempt whole. This golden once
+	// said September was exempt (NCR-28 read back to the 1st, audit PH §5G), then taxed it whole
+	// against the day-weighted floor (15,333.75); both were wrong.
 	assert.deepEqual(
 		settingsVersions('PH')
 			.filter((version) => String(version.effective_range.start).slice(0, 10) >= '2026-04-01')
@@ -1260,9 +1313,10 @@ test('Philippines — a minimum-wage earner’s overtime and night differential 
 			['2026-09-26', 19_692.92]
 		]
 	);
-	for (const [period, withheld] of [
-		['2026-08', 1],
-		['2026-09', 0]
+	for (const [period, base] of [
+		['2026-08', 16_000],
+		['2026-09', 13_818.18],
+		['2026-10', undefined]
 	] as const) {
 		const ncr = assessStatutory({
 			code: 'PH',
@@ -1270,7 +1324,7 @@ test('Philippines — a minimum-wage earner’s overtime and night differential 
 			region: 'NCR',
 			people: [{ key: 'PH-NCR-MWE', wage: 16_000 }]
 		});
-		assert.equal((ncr.get('PH-NCR-MWE')!.get('WTAX')?.base ?? 0) > 0, withheld === 1, period);
+		assert.equal(ncr.get('PH-NCR-MWE')!.get('WTAX')?.base, base, period);
 	}
 	// An apprentice at ₱12,000 is above three quarters of the ₱15,650 floor (₱11,737.50): no warning.
 	const { warnings } = buildStatutory({
@@ -1479,10 +1533,14 @@ test('Philippines — separation pay: a month per year on redundancy, half a mon
 		},
 		(world) => {
 			const row = world.adhoc_catalogue!.find(
-				(item) => item.code === 'SEPARATION_PAY' && item.settings_id === PH_2026
+				(item) => item.code === 'SEPARATION_PAY' && item.settings_id === PH_2026_JAN6
 			)!;
 			for (const [index, key] of ['PH-REDUNDANT', 'PH-RETRENCHED', 'PH-RETRENCHED-8M'].entries()) {
 				const employment = world.employments.find((item) => item.employee_number === key)!;
+				// Labor Code arts.298–299: the authorised cause, recorded on the departure.
+				employment.exit_facts = {
+					termination_cause: key === 'PH-REDUNDANT' ? 'REDUNDANCY' : 'RETRENCHMENT'
+				};
 				world.adhoc_requests!.push({
 					id: `d0000000-0000-4000-8000-0000000000f${index}`,
 					employment_id: employment.id,

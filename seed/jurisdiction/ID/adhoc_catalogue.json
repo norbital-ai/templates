@@ -528,18 +528,18 @@
 		"id": "7a9279fd-7afa-5917-ad54-bbdf9e630950",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || ((employee.religion == \"CHRISTIAN\" ? (employment.exit_date >= \"2025-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2025-11-25\")) : (employee.religion == \"CATHOLIC\" ? (employment.exit_date >= \"2025-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2025-11-25\")) : (employee.religion == \"HINDU\" ? (employment.exit_date >= \"2026-03-19\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-17\")) : (employee.religion == \"BUDDHIST\" ? (employment.exit_date >= \"2026-05-31\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-05-01\")) : (employee.religion == \"CONFUCIAN\" ? (employment.exit_date >= \"2026-02-17\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-01-18\")) : (employment.exit_date >= \"2026-03-21\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\")))))))))",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || employment.exit_date >= employment.exit_facts.thr_holiday_date || (employment.type == \"PERMANENT\" && timestamp(employment.exit_date + \"T00:00:00Z\") >= timestamp(employment.exit_facts.thr_holiday_date + \"T00:00:00Z\") - duration(\"720h\")))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
 				"limit": null
 			}
 		],
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Corrected 2026-09-23: the version in force in December 2025 measures a Christian or Catholic leaver against Christmas 2025 (25 December 2025; a PKWTT leaver from 25 November), not Christmas 2026.",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Corrected 2026-09-23: the version in force in December 2025 measures a Christian or Catholic leaver against Christmas 2025 (25 December 2025; a PKWTT leaver from 25 November), not Christmas 2026. Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)).",
 		"name": "THR (religious holiday allowance)",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"raised_by": "SEPARATION"
@@ -548,18 +548,18 @@
 		"id": "d21a02ca-669c-5295-8f16-124fa8d4143d",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || ((employee.religion == \"CHRISTIAN\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"CATHOLIC\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"HINDU\" ? (employment.exit_date >= \"2026-03-19\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-17\")) : (employee.religion == \"BUDDHIST\" ? (employment.exit_date >= \"2026-05-31\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-05-01\")) : (employee.religion == \"CONFUCIAN\" ? (employment.exit_date >= \"2026-02-17\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-01-18\")) : (employment.exit_date >= \"2026-03-21\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\")))))))))",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || employment.exit_date >= employment.exit_facts.thr_holiday_date || (employment.type == \"PERMANENT\" && timestamp(employment.exit_date + \"T00:00:00Z\") >= timestamp(employment.exit_facts.thr_holiday_date + \"T00:00:00Z\") - duration(\"720h\")))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
 				"limit": null
 			}
 		],
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)).",
 		"name": "THR (religious holiday allowance)",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"raised_by": "SEPARATION"
@@ -568,18 +568,18 @@
 		"id": "6905cf49-a5ed-5833-ad3d-d08074b60c4e",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || ((employee.religion == \"CHRISTIAN\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"CATHOLIC\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"HINDU\" ? (employment.exit_date >= \"2026-03-19\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-17\")) : (employee.religion == \"BUDDHIST\" ? (employment.exit_date >= \"2026-05-31\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-05-01\")) : (employee.religion == \"CONFUCIAN\" ? (employment.exit_date >= \"2026-02-17\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-01-18\")) : (employment.exit_date >= \"2026-03-21\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\")))))))))",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || employment.exit_date >= employment.exit_facts.thr_holiday_date || (employment.type == \"PERMANENT\" && timestamp(employment.exit_date + \"T00:00:00Z\") >= timestamp(employment.exit_facts.thr_holiday_date + \"T00:00:00Z\") - duration(\"720h\")))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
 		"bands": [
 			{
 				"when": "",
-				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
 				"limit": null
 			}
 		],
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)).",
 		"name": "THR (religious holiday allowance)",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"raised_by": "SEPARATION"
@@ -629,7 +629,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "PKWT_COMPENSATION",
 		"name": "Uang kompensasi PKWT (fixed-term compensation)",
-		"authority": "PP 35/2021 arts.15–17: a non-foreign fixed-term worker with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.15–17: a non-foreign fixed-term worker with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-23 (round 4): PP 35/2021 art.15(2) pays the compensation when the PKWT ends, and PP 68/2009 art.1 angka 4 defines uang pesangon as income paid \"dengan nama dan dalam bentuk apapun, sehubungan dengan berakhirnya masa kerja atau terjadi pemutusan hubungan kerja\", so it carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and leaves the TER base; a non-resident's is PPh 26. Kring Pajak (DJP, 7 June 2023) refers compensation paid in connection with the end of service to PP 68/2009 and PMK-16/PMK.03/2010.",
 		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -641,7 +641,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -689,7 +689,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "PKWT_COMPENSATION",
 		"name": "Uang kompensasi PKWT (fixed-term compensation)",
-		"authority": "PP 35/2021 arts.15–17: a non-foreign fixed-term worker with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.15–17: a non-foreign fixed-term worker with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-23 (round 4): PP 35/2021 art.15(2) pays the compensation when the PKWT ends, and PP 68/2009 art.1 angka 4 defines uang pesangon as income paid \"dengan nama dan dalam bentuk apapun, sehubungan dengan berakhirnya masa kerja atau terjadi pemutusan hubungan kerja\", so it carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and leaves the TER base; a non-resident's is PPh 26. Kring Pajak (DJP, 7 June 2023) refers compensation paid in connection with the end of service to PP 68/2009 and PMK-16/PMK.03/2010.",
 		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -701,7 +701,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -749,7 +749,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "PKWT_COMPENSATION",
 		"name": "Uang kompensasi PKWT (fixed-term compensation)",
-		"authority": "PP 35/2021 arts.15–17: a non-foreign fixed-term worker with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.15–17: a non-foreign fixed-term worker with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-23 (round 4): PP 35/2021 art.15(2) pays the compensation when the PKWT ends, and PP 68/2009 art.1 angka 4 defines uang pesangon as income paid \"dengan nama dan dalam bentuk apapun, sehubungan dengan berakhirnya masa kerja atau terjadi pemutusan hubungan kerja\", so it carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and leaves the TER base; a non-resident's is PPh 26. Kring Pajak (DJP, 7 June 2023) refers compensation paid in connection with the end of service to PP 68/2009 and PMK-16/PMK.03/2010.",
 		"eligibility": "employment.type == \"CONTRACT\" && employee.citizenship != \"FOREIGNER\" && employment.service_months >= 1",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -761,7 +761,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -769,7 +769,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 1 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 4 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -809,7 +809,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 1 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 4 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -849,7 +849,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 1 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 4 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",

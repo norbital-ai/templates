@@ -38,7 +38,8 @@ function facts(): LeaveContext {
 				base_salary: { value: 3000, currency: 'MYR' },
 				statutory_work_category: 'NON_MANUAL',
 				department: null,
-				payroll_group: null
+				payroll_group: null,
+				paid_rest_days: false
 			}
 		],
 		entries: [],

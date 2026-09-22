@@ -22,8 +22,9 @@ export default defineModel(
 		attendance_to: instant({ precision: 'day' }).notNull(),
 		/**
 		 * How each charge was derived: per payslip, every scheme's base lines, producer reads,
-		 * governing rule and shares. Engine-owned and frozen with the run; the Flow screen renders
-		 * it, nothing consumes it in a calculation.
+		 * governing rule and shares, and the overtime each payslip settled as every ceiling counts it.
+		 * Engine-owned and frozen with the run; the Flow screen renders it, and a later run's quarter
+		 * and year overtime ceilings read its settled counts.
 		 */
 		calculation_trace: custom('payroll_trace')
 			.notNull()

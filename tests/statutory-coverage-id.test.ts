@@ -32,7 +32,7 @@ for (const [region, prior, current] of [
 				code: 'ID',
 				period,
 				region,
-				riskClass: '1',
+				riskClass: 'I',
 				people: [{ key: 'UMK', wage: 2_000_000, marital_status: 'SINGLE' }]
 			});
 			const charge = chargeOf(book, 'UMK', 'KESEHATAN');
@@ -48,7 +48,7 @@ test('ID: a province name cannot select a lower UMP where every city and regency
 				code: 'ID',
 				period: '2026-01',
 				region: 'Jawa Barat',
-				riskClass: '1',
+				riskClass: 'I',
 				people: [{ key: 'PROVINCE', wage: 2_000_000 }]
 			}),
 		/KESEHATAN bounds its base by the regional minimum wage/
@@ -69,7 +69,7 @@ function separationAmounts(options: {
 			code: 'ID',
 			period: '2026-01',
 			region: 'DKI Jakarta',
-			riskClass: '1',
+			riskClass: 'I',
 			people: [
 				{
 					key: 'LEAVER',
@@ -83,7 +83,7 @@ function separationAmounts(options: {
 			]
 		},
 		(world) => {
-			world.employments[0]!.exit_facts = options.facts;
+			world.employments[0]!.exit_facts = { thr_holiday_date: HOLIDAY_2026, ...options.facts };
 			const version = world.jurisdiction_settings.find((row) =>
 				String(row.effective_range.start).startsWith('2026-01')
 			)!;
@@ -122,7 +122,11 @@ function separationAmounts(options: {
 	);
 }
 
+/** Idul Fitri 1447 H (SKB 2026): the religious holiday a January 2026 departure's THR is judged against. */
+const HOLIDAY_2026 = '2026-03-21';
+
 const standardFacts = (cause: string, extra: ExitFacts = {}): ExitFacts => ({
+	thr_holiday_date: HOLIDAY_2026,
 	termination_cause: cause,
 	separation_wage_basis: 'MONTHLY',
 	micro_small_enterprise: false,
@@ -256,7 +260,7 @@ test('ID fixed-term compensation remains separate from permanent termination ben
 			code: 'ID',
 			period: '2026-01',
 			region: 'DKI Jakarta',
-			riskClass: '1',
+			riskClass: 'I',
 			people: ['PERMANENT', 'CONTRACT'].map((employment_type) => ({
 				key: employment_type,
 				employment_type,
@@ -268,7 +272,10 @@ test('ID fixed-term compensation remains separate from permanent termination ben
 		},
 		(world) => {
 			world.employments[0]!.exit_facts = standardFacts('EFFICIENCY_PREVENT_LOSS');
-			world.employments[1]!.exit_facts = { micro_small_enterprise: false };
+			world.employments[1]!.exit_facts = {
+				micro_small_enterprise: false,
+				thr_holiday_date: HOLIDAY_2026
+			};
 			const version = world.jurisdiction_settings.find((row) =>
 				String(row.effective_range.start).startsWith('2026-01')
 			)!;
@@ -308,7 +315,7 @@ function contractualCashOut(conversion: string) {
 		code: 'ID',
 		period: '2026-03',
 		region: 'DKI Jakarta',
-		riskClass: '1',
+		riskClass: 'I',
 		people: [{ key: 'POLICY', wage: 6_000_000 }]
 	});
 	// Synthetic employer policies, not a claim that either divisor is prescribed by law.

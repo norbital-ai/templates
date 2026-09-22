@@ -31,6 +31,8 @@ function isReduction(previous: unknown, next: unknown): boolean {
  * TW art. 5 defers dependant reductions to the January after the event while increases take the
  * event month. A deferred field therefore reads its prior declaration's value until the January
  * following the reduction; every other field of the declaration applies from its own date.
+ * `YEAR_START` defers every change the same way (ID PMK 168/2023 art.9(4): the PTKP status on
+ * 1 January governs the year); a change declared on 1 January is that day's status.
  */
 function deferredElections(options: {
 	readonly rows: readonly FactRow[];
@@ -41,7 +43,9 @@ function deferredElections(options: {
 	readonly status: StatutoryFactStatus;
 }): StatutoryFactStatus {
 	if (options.status.kind !== 'REGISTERED') return options.status;
-	const deferred = options.fields.filter((field) => field.change_effect === 'NEXT_YEAR_JANUARY');
+	const deferred = options.fields.filter(
+		(field) => field.change_effect === 'NEXT_YEAR_JANUARY' || field.change_effect === 'YEAR_START'
+	);
 	if (deferred.length === 0) return options.status;
 	const elections = { ...(options.status.elections ?? {}) };
 	for (const field of deferred) {
@@ -62,13 +66,19 @@ function deferredElections(options: {
 			.filter((row) => row.start != null && row.start <= options.asOf)
 			.toSorted((left, right) => left.start!.localeCompare(right.start!));
 		if (declarations.length === 0) continue;
+		const everyChange = field.change_effect === 'YEAR_START';
 		let effective = declarations[0]!.value;
 		for (const declaration of declarations.slice(1)) {
-			if (!isReduction(effective, declaration.value)) {
+			if (
+				everyChange ? effective === declaration.value : !isReduction(effective, declaration.value)
+			) {
 				effective = declaration.value;
 				continue;
 			}
-			const january = `${Number(declaration.start!.slice(0, 4)) + 1}-01-01`;
+			const january =
+				everyChange && declaration.start!.endsWith('-01-01')
+					? declaration.start!
+					: `${Number(declaration.start!.slice(0, 4)) + 1}-01-01`;
 			if (options.asOf >= january) effective = declaration.value;
 		}
 		elections[field.key] = effective;

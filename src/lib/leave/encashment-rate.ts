@@ -17,7 +17,10 @@ import { listedAllowances } from '../payroll/contract-allowances.js';
 import { creditOriginalDate } from './balance.js';
 import {
 	latestDueMonthNormalRate,
-	previousWagePeriodOrdinaryRate
+	periodDates,
+	previousWagePeriodOrdinaryRate,
+	type PayslipWageMonth,
+	type ReferenceWagePeriod
 } from '../payroll/reference-wages.js';
 import { termsAt } from '../payroll/work.js';
 import {
@@ -134,12 +137,59 @@ export function leaveEncashmentRate(options: {
 				rule.preserve_year_end_rate && entry.to_date != null && entry.to_date === eventDate
 					? addDays(eventDate, 1)
 					: eventDate;
+			// The payslips that settled a month are its record; a manual record stands only for a
+			// month no payslip settled (one paid before the workspace ran payroll).
+			const allowanceCodes = new Set(configuration.allowanceCodeById.values());
+			const unclassified = (month: PayslipWageMonth) =>
+				Object.keys(month.contract).filter(
+					(code) =>
+						allowanceCodes.has(code) &&
+						!rule.include_allowances.includes(code) &&
+						!rule.exclude_allowances.includes(code)
+				);
+			const settled = (bundle.payslipWageMonths ?? []).map((month): ReferenceWagePeriod => ({
+				id: `payslips:${month.payslips.join(',')}`,
+				period: { start: month.start, end: month.end },
+				// An unclassified allowance refuses below, once this month is the one selected.
+				normal_wages: {
+					currency,
+					value:
+						Object.entries(month.contract).reduce(
+							(sum, [code, amount]) =>
+								rule.exclude_allowances.includes(code) ? sum : sum + amount,
+							0
+						) +
+						month.regular -
+						month.absence
+				},
+				ordinary_wages: null,
+				ordinary_days: null,
+				due_on: monthBounds(month.month).end,
+				paid_on: month.paid_on,
+				reference: `Payslips ${month.month}`,
+				payslips: month.payslips
+			}));
 			const prior = latestDueMonthNormalRate({
-				periods: bundle.wagePeriods ?? [],
+				periods: [
+					...settled,
+					...(bundle.wagePeriods ?? []).filter(
+						(row) =>
+							!(bundle.payslipWageMonths ?? []).some(
+								(month) => month.month === monthKey(periodDates(row).start)
+							)
+					)
+				],
 				boundary,
 				currency
 			});
-			options.referenceWageIds?.add(prior.row.id);
+			const selected = (bundle.payslipWageMonths ?? []).find(
+				(month) => `payslips:${month.payslips.join(',')}` === prior.row.id
+			);
+			if (selected != null && unclassified(selected).length > 0)
+				throw new Error(
+					`Leave cash-out requires a wage-base classification for allowance ${unclassified(selected).join(', ')}.`
+				);
+			if (prior.row.payslips == null) options.referenceWageIds?.add(prior.row.id);
 			return prior.normalDay;
 		}
 		const prior = previousWagePeriodOrdinaryRate({
@@ -210,6 +260,12 @@ export function leaveEncashmentRate(options: {
 		if (!(workingDays > 0))
 			throw new Error('Leave cash-out reference month has no normal working days.');
 	}
+	const declared = version?.facts ?? [];
+	for (const key of rule.required_facts ?? [])
+		if (!declared.some((field) => field.key === key))
+			throw new Error(
+				`Leave cash-out requires entity fact ${key}, which ${eventDate}'s version does not declare.`
+			);
 	const person = personContext({
 		employee: bundle.employee,
 		employment: stint(bundle.employment),
@@ -220,7 +276,9 @@ export function leaveEncashmentRate(options: {
 		company: {
 			...configuration.company,
 			facts: resolveCompanyFacts(
-				version?.facts ?? [],
+				declared.map((field) =>
+					rule.required_facts?.includes(field.key) ? { ...field, required: true } : field
+				),
 				{ ...configuration.company, facts: configuration.recordedCompanyFacts },
 				{ asOf: eventDate, revisions: configuration.companyFactRevisions }
 			)

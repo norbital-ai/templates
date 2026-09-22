@@ -118,8 +118,19 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		description:
 			'Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days)'
 	},
-	{ path: 'employment.service_months', description: 'Completed months since the stint began' },
-	{ path: 'employment.service_years', description: 'Completed years since the stint began' },
+	{
+		path: 'employment.service_months',
+		description: 'Completed months since the stint began; a leaver counts through the exit day'
+	},
+	{
+		path: 'employment.service_months_exact',
+		description:
+			'Completed months plus the part month as a share of its days, for a pro-rata part year'
+	},
+	{
+		path: 'employment.service_years',
+		description: 'Completed years since the stint began; a leaver counts through the exit day'
+	},
 	{
 		path: 'employment.service_start',
 		description:
@@ -156,6 +167,26 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Rostered days with an empty punch in the twelve months to the rule date (leave rules only)'
 	},
 	{
+		path: 'employment.earned_monthly_average(months)',
+		description:
+			'The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only'
+	},
+	{
+		path: 'employment.average_daily_wage(months, codes)',
+		description:
+			'Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only'
+	},
+	{
+		path: 'employment.average_monthly_wage(months, codes)',
+		description:
+			'That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out)'
+	},
+	{
+		path: 'employment.service_months_net(codes, days)',
+		description:
+			'Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only'
+	},
+	{
 		path: 'terms.basic_salary',
 		description: 'Contracted base salary, in the cadence it is stated'
 	},
@@ -180,6 +211,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of'
 	},
 	{
+		path: 'terms.gross_monthly',
+		description:
+			'The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts'
+	},
+	{
 		path: 'terms.monthly_wage_6m_average',
 		description:
 			'The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger'
@@ -195,7 +231,15 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'terms.department',
 		description: 'Department — an employer’s own catalogue tier, never a statute’s'
 	},
-	{ path: 'terms.payroll_group', description: 'Payroll group' },
+	{
+		path: 'terms.payroll_group',
+		description: 'Payroll group — an employer’s own label, never a statute’s'
+	},
+	{
+		path: 'terms.paid_rest_days',
+		description:
+			'The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365)'
+	},
 	{
 		path: 'terms.grade',
 		description: 'Grade — an employer’s own catalogue tier, never a statute’s'
@@ -237,6 +281,21 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'children.citizens_under(n)', description: 'Of them, those under n completed years' },
 	{
+		path: 'children.prior_childcare_days',
+		description:
+			'Childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG GPCL and EA s.87A lifetime caps count every employer)'
+	},
+	{
+		path: 'children.prior_extended_childcare_days',
+		description:
+			'Extended childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12B(2)(a)(ii))'
+	},
+	{
+		path: 'children.prior_infant_care_days',
+		description:
+			'Unpaid infant care leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12D(2)(a))'
+	},
+	{
 		path: 'children.classed(x)',
 		description:
 			'Family records in classification x; these counts do not establish tax-relief claims'
@@ -257,6 +316,22 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'wage_floor',
 		description: 'The region’s minimum wage, or 0 when the wages order excludes this person'
 	},
+	...(
+		[
+			'BASE',
+			'OVERTIME',
+			'NIGHT_PREMIUM',
+			'OVERTIME_PREMIUM',
+			'ABSENCE',
+			'NO_PAY_LEAVE',
+			'ENCASHMENT',
+			'INCENTIVE',
+			'NIGHT_WAGE'
+		] as const
+	).map((line) => ({
+		path: `wage_floor_pay.${line}`,
+		description: `The part of ${line} paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll`
+	})),
 	{
 		path: 'facts.<CODE>.registered',
 		description: 'Whether the employment is registered with the scheme of that code'
@@ -322,11 +397,21 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'period.leave_full_days.<CODE>',
 		description: 'Approved full working dates of the named leave code in the assessment window'
 	},
+	{
+		path: 'period.leave_pay.<CODE>',
+		description:
+			'The salary the assessment window attributes to the named leave code’s days: salary × leave days ÷ working days, at most the salary'
+	},
 	{ path: 'period.working_days', description: 'Scheduled working days of the pay month' },
 	{
 		path: 'period.unpaid_days',
 		description:
 			'Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch'
+	},
+	{
+		path: 'period.overtime_days',
+		description:
+			'Dates in the assessment window with overtime hours or hours inside the night window, counted once per date'
 	}
 ];
 
@@ -353,6 +438,7 @@ const PERSON_BLANK = {
 		risk_class: '',
 		service_days: 0,
 		service_months: 0,
+		service_months_exact: 0,
 		service_years: 0,
 		service_start: '',
 		exit_date: '',
@@ -361,7 +447,8 @@ const PERSON_BLANK = {
 		exit_reason: '',
 		exit_facts: {},
 		exit_fact_keys: [],
-		absent_days_12m: 0
+		absent_days_12m: 0,
+		history: { as_of: '', through: '', wages: null, leave: null }
 	},
 	terms: {
 		basic_salary: 0,
@@ -369,12 +456,14 @@ const PERSON_BLANK = {
 		ordinary_day: 0,
 		fixed_allowances: 0,
 		monthly_wage: 0,
+		gross_monthly: 0,
 		monthly_wage_6m_average: 0,
 		workman: false,
 		statutory_work_category: '',
 		statutory_wages: 0,
 		department: '',
 		payroll_group: '',
+		paid_rest_days: false,
 		grade: '',
 		pay_frequency: '',
 		pass_type: '',
@@ -391,16 +480,32 @@ const PERSON_BLANK = {
 		citizen_ages: [],
 		classes: [],
 		births: 0,
-		birthdates: []
+		birthdates: [],
+		prior_childcare_days: 0,
+		prior_extended_childcare_days: 0,
+		prior_infant_care_days: 0
 	},
 	company: { region: '', headcount: 1, headcount_citizens: 1, facts: {} },
 	wage_floor: 0,
+	wage_floor_pay: {
+		BASE: 0,
+		OVERTIME: 0,
+		NIGHT_PREMIUM: 0,
+		OVERTIME_PREMIUM: 0,
+		ABSENCE: 0,
+		NO_PAY_LEAVE: 0,
+		ENCASHMENT: 0,
+		INCENTIVE: 0,
+		NIGHT_WAGE: 0
+	},
 	period: {
 		working_days: 22,
 		unpaid_days: 0,
 		unpaid_full_days: 0,
 		leave_full_days: {},
-		leave_days: {}
+		leave_days: {},
+		leave_pay: {},
+		overtime_days: 0
 	},
 	facts: {},
 	event: {
@@ -476,6 +581,11 @@ const YEAR_FIELDS: readonly ContextField[] = [
 		path: 'earned.<code>',
 		description:
 			'Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them'
+	},
+	{
+		path: 'earned.ABSENCE',
+		description:
+			'Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned'
 	}
 ];
 
@@ -672,7 +782,7 @@ const COMMON_FUNCTIONS: readonly ExpressionFunction[] = [
 const EARNED_AVERAGE: ExpressionFunction = {
 	path: 'earned_average(code, months_back, months)',
 	description:
-		'The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window. `code` may be a list of codes — reserved lines among them (`OVERTIME`) — summed month by month (TW 施行細則 §27: the three-month average of 工資, overtime included)'
+		'The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window. `code` may be a list of codes — reserved lines among them (`OVERTIME`) — summed month by month (TW 施行細則 §27: the three-month average of 工資, overtime included); a scheme part (`WTAX.RICE`) sums every class counting toward it'
 };
 
 const DAYS_UNDER: ExpressionFunction = {
@@ -766,7 +876,12 @@ const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 			{
 				path: 'earned_monthly_excess(code, limit)',
 				description:
-					'Earlier payments in the tax year exceeding the allowance limit in each calendar month.'
+					'Earlier payments in the tax year exceeding the allowance limit in each calendar month; `code` may be a scheme part (`WTAX.RICE`), every class counting toward it.'
+			},
+			{
+				path: 'earned_daily_excess(code, share)',
+				description:
+					'Earlier payments in the tax year exceeding a per-day ceiling in each calendar month: `share` × the monthly `minimum_wage(region)` each earlier payslip was calculated at × its days with overtime or night-window hours (`person.period.overtime_days`) — the floor of that payslip’s own time, not today’s; `code` may be a scheme part (`WTAX.OT_MEAL`).'
 			},
 			{
 				path: 'annual_quantity_exempt(code, limit)',
@@ -810,6 +925,7 @@ const PERSON_CONTEXT: ExpressionContext = {
 		'facts',
 		'period.leave_full_days',
 		'period.leave_days',
+		'period.leave_pay',
 		'employment.exit_facts'
 	],
 	functions: functionsFor('person'),
@@ -849,6 +965,7 @@ const REST_BREAK_CONTEXT: ExpressionContext = {
 		'facts',
 		'period.leave_full_days',
 		'period.leave_days',
+		'period.leave_pay',
 		'employment.exit_facts'
 	],
 	functions: functionsFor('person'),
@@ -881,6 +998,7 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 		'facts',
 		'period.leave_full_days',
 		'period.leave_days',
+		'period.leave_pay',
 		'employment.exit_facts'
 	],
 	functions: functionsFor('person'),
@@ -916,6 +1034,7 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		'person.facts',
 		'person.period.leave_full_days',
 		'person.period.leave_days',
+		'person.period.leave_pay',
 		'person.employment.exit_facts'
 	],
 	functions: functionsFor('entry'),
@@ -934,7 +1053,7 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		rates: { ordinary_day: 0, ordinary_hour: 0 },
 		limits: structuredClone(LIMITS_BLANK),
 		period: structuredClone(PERIOD_BLANK),
-		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0 } },
+		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0, ABSENCE: 0 } },
 		leave: {}
 	}
 };
@@ -973,6 +1092,16 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 				'Hours inside the night window, 0 where none is declared; a break rule reads it too'
 		},
 		{ path: 'requested_by', description: 'EMPLOYER | EMPLOYEE: who asked for rest-day work' },
+		{
+			path: 'emergency_cause',
+			description:
+				'The extra hours were forced by a disaster, accident or emergency (`work_days.emergency_cause`; TW 勞基法 §32(4), paid double by §24(1)(3)); outside the hours ceilings'
+		},
+		{
+			path: 'time_off_in_lieu',
+			description:
+				'The worker elected time off instead of overtime pay (`work_days.time_off_in_lieu`; TW 勞基法 §32-1); bands honouring it leave the hours unpriced and the run warns what they would have paid'
+		},
 		{ path: 'ordinary_hour', description: 'Ordinary hour rate' },
 		{ path: 'day_wage', description: 'Ordinary day wage' },
 		{ path: 'hours', description: 'The hours this band consumed, for its price' },
@@ -980,9 +1109,14 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		{
 			path: 'holiday.kind',
 			description:
-				'The published row on the date, in the day-type words: PUBLIC_HOLIDAY | SPECIAL_HOLIDAY | SUBSTITUTE, or empty; unlike `day_type` it does not move with the precedence rule'
+				'The published row on the date, in the day-type words: PUBLIC_HOLIDAY | SPECIAL_HOLIDAY | SUBSTITUTE | DOUBLE_HOLIDAY (two regular holidays on one date), or empty; unlike `day_type` it does not move with the precedence rule'
 		},
-		{ path: 'holiday.name', description: 'Published holiday name, or empty' }
+		{ path: 'holiday.name', description: 'Published holiday name, or empty' },
+		{
+			path: 'holiday.prior_day_present',
+			description:
+				'Present, or on leave with pay, on the workday immediately preceding the holiday — a rest or non-work day, or an unworked holiday, looks further back (PH Handbook ch.2 §D–E); true on a day with no holiday'
+		}
 	],
 	bare: [
 		'date',
@@ -999,6 +1133,8 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'off_day',
 		'night_hours',
 		'requested_by',
+		'emergency_cause',
+		'time_off_in_lieu',
 		'ordinary_hour',
 		'day_wage',
 		'hours'
@@ -1009,6 +1145,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'person.facts',
 		'person.period.leave_full_days',
 		'person.period.leave_days',
+		'person.period.leave_pay',
 		'person.employment.exit_facts'
 	],
 	functions: functionsFor('work_day'),
@@ -1028,11 +1165,13 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		off_day: false,
 		night_hours: 0,
 		requested_by: 'EMPLOYER',
+		emergency_cause: false,
+		time_off_in_lieu: false,
 		ordinary_hour: 25.5,
 		day_wage: 204,
 		hours: 4,
 		limits: structuredClone(LIMITS_BLANK),
-		holiday: { kind: '', name: '' }
+		holiday: { kind: '', name: '', prior_day_present: true }
 	}
 };
 
@@ -1053,6 +1192,11 @@ const RESERVED_LINES: readonly ContextField[] = [
 		path: 'INCENTIVE',
 		description:
 			'The overtime lines a band funnelled above its named limit — the hours beyond the statutory ceiling, priced at the band’s award; also inside OVERTIME'
+	},
+	{
+		path: 'NIGHT_WAGE',
+		description:
+			'The ordinary (not overtime) hours inside the night window at the ordinary hour — already inside BASE; a law that exempts the whole night-work wage, not only its premium, subtracts it'
 	}
 ];
 
@@ -1081,6 +1225,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		'person.facts',
 		'person.period.leave_full_days',
 		'person.period.leave_days',
+		'person.period.leave_pay',
 		'person.employment.exit_facts'
 	],
 	functions: functionsFor('assessment'),
@@ -1091,7 +1236,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			start: '',
 			end: '',
 			months_employed: 0,
-			earned: { BASIC: 0 },
+			earned: { BASIC: 0, ABSENCE: 0 },
 			ALLOWANCES: 0,
 			ADHOC: 0,
 			CLAIMS: 0
@@ -1122,6 +1267,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		NO_PAY_LEAVE: 0,
 		ENCASHMENT: 0,
 		INCENTIVE: 0,
+		NIGHT_WAGE: 0,
 		ALLOWANCES: 0,
 		ADHOC: 0,
 		CLAIMS: 0
@@ -1162,13 +1308,22 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		'person.facts',
 		'person.period.leave_full_days',
 		'person.period.leave_days',
+		'person.period.leave_pay',
 		'person.employment.exit_facts'
 	],
 	functions: functionsFor('scheme'),
 	blank: {
 		person: personBlank(),
 		period: structuredClone(PERIOD_BLANK),
-		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0 } },
+		year: {
+			start: '',
+			end: '',
+			months_employed: 0,
+			earned: { BASIC: 0, ABSENCE: 0 },
+			ALLOWANCES: 0,
+			ADHOC: 0,
+			CLAIMS: 0
+		},
 		scheme: {
 			code: '',
 			deduction: 0,

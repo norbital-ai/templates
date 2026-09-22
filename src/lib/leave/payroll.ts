@@ -151,6 +151,7 @@ export function prepareLeavePayroll(options: {
 								half_day_start: true,
 								half_day_end: true,
 								days: true,
+								hours: true,
 								encash_days: true,
 								as_adjustment_entry: true,
 								reversal_of_id: true,

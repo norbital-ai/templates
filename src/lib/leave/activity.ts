@@ -19,7 +19,10 @@ import {
 } from './balance.js';
 import { assertLeaveWindow, grantedDays, leaveWindowOf, type LeaveWindow } from './entitlement.js';
 import { leavePool, leaveRules, type LeaveContext } from './context.js';
-import { evaluatePersonNumber } from '../../collections/payroll_runs/lib/eligibility.js';
+import {
+	evaluatePersonNumber,
+	isEligible
+} from '../../collections/payroll_runs/lib/eligibility.js';
 import {
 	emptyActivityFields,
 	leaveActivityOf,
@@ -325,6 +328,59 @@ export function planLeaveActivity(
 		return true;
 	};
 	/**
+	 * Per-child lifetime caps (`child_lifetime`): every day of this leave, taken here, under the
+	 * person's other employments here and now asked for, is placed on one child's cap whose predicate
+	 * holds on the first or last day of that day's leave year. The days fit when such a placement
+	 * exists — a transport problem (leave years to caps), answered by maximum flow.
+	 */
+	const judgeChildLifetime = (
+		caps: NonNullable<ReturnType<typeof rules.catalogueOn>['entitlement']['child_lifetime']>,
+		rule: ReturnType<typeof rules.catalogueOn>['entitlement'],
+		charged: readonly LeaveCharge[],
+		quantity: number
+	): void => {
+		const own = activeTimeOff(sameLeave).filter((row) => row.leave_code === rules.selected.code);
+		const earlier = [...own, ...priorTimeOff()].flatMap((row) => row.charges);
+		const taken = earlier.reduce((sum, row) => sum + row.days, 0);
+		const years = new Map<string, { window: LeaveWindow; days: number }>();
+		for (const charge of [...earlier, ...charged]) {
+			const window = leaveWindowOf(charge.date, rule);
+			const year = years.get(window.start) ?? { window, days: 0 };
+			year.days += charge.days;
+			years.set(window.start, year);
+		}
+		const first = charged[0]!.date;
+		const buckets = rules.children.flatMap((_, child) =>
+			caps.map((cap) => ({
+				room:
+					typeof cap.days === 'string'
+						? Math.max(0, evaluatePersonNumber(cap.days, rules.childPersonOn(first, child)))
+						: cap.days,
+				holds: (window: LeaveWindow) =>
+					[window.start, window.end].some((date) =>
+						isEligible(cap.eligibility, rules.childPersonOn(date, child))
+					)
+			}))
+		);
+		const supply = [...years.values()];
+		const reach = supply.map(({ window }) => buckets.map((bucket) => bucket.holds(window)));
+		const granted = buckets
+			.filter((_, index) => reach.some((row) => row[index]))
+			.reduce((sum, bucket) => sum + bucket.room, 0);
+		if (
+			placeable(
+				supply.map((year) => year.days),
+				buckets.map((bucket) => bucket.room),
+				reach
+			) +
+				1e-9 <
+			taken + quantity
+		)
+			refuse(
+				`${rules.selected.code} is granted for ${granted} days in a lifetime; ${taken} are already taken and this would add ${quantity}.`
+			);
+	};
+	/**
 	 * A lifetime cap in days (`lifetime_days`, SG GPCL: 42 a child) is counted over every leave
 	 * year and every employment of the person here.
 	 */
@@ -332,6 +388,10 @@ export function planLeaveActivity(
 		const first = charged[0];
 		if (first == null) return;
 		const rule = rules.catalogueOn(first.date).entitlement;
+		if (rule.child_lifetime != null && rule.child_lifetime.length > 0) {
+			judgeChildLifetime(rule.child_lifetime, rule, charged, quantity);
+			return;
+		}
 		if (rule.lifetime_days == null) return;
 		const person = rules.personOn(first.date);
 		const cap =
@@ -704,4 +764,72 @@ function hourlyShare(hours: number, range: HalfDayRange, variant: RosterCodeVari
 /** The record label the ledger and pickers read: the activity and the day it turns on. */
 function leaveSummary(kind: LeaveActivityKind, fields: LeaveEntryActivity): string {
 	return `${kind} · ${fields.from_date ?? fields.effective_on ?? ''}`;
+}
+
+/**
+ * The most of `supply[i]` that can be placed on caps `room[j]` along the edges `reach[i][j]`:
+ * augmenting paths over source → supply → cap → sink.
+ */
+function placeable(
+	supply: readonly number[],
+	room: readonly number[],
+	reach: readonly (readonly boolean[])[]
+): number {
+	const left = [...supply];
+	const free = [...room];
+	const flow = supply.map(() => room.map(() => 0));
+	let total = 0;
+	for (;;) {
+		// Breadth-first from every supply with days left; a cap node may send back along its flow.
+		const fromSupply = new Map<number, number>(); // cap → supply it was reached from
+		const fromCap = new Map<number, number>(); // supply → cap it was reached from
+		const queue: ['s' | 'c', number][] = [];
+		left.forEach((days, i) => {
+			if (days > 1e-9) {
+				fromCap.set(i, -1);
+				queue.push(['s', i]);
+			}
+		});
+		let sink = -1;
+		while (queue.length > 0 && sink < 0) {
+			const [kind, node] = queue.shift()!;
+			if (kind === 's') {
+				for (let j = 0; j < room.length; j += 1)
+					if (reach[node]![j] && !fromSupply.has(j)) {
+						fromSupply.set(j, node);
+						if (free[j]! > 1e-9) {
+							sink = j;
+							break;
+						}
+						queue.push(['c', j]);
+					}
+			} else
+				for (let i = 0; i < supply.length; i += 1)
+					if (flow[i]![node]! > 1e-9 && !fromCap.has(i)) {
+						fromCap.set(i, node);
+						queue.push(['s', i]);
+					}
+		}
+		if (sink < 0) return total;
+		// Walk back to the origin: forward edges (i, j) carry any amount; the backward step from a
+		// supply to the cap it was reached from gives up flow already placed there.
+		const path: [number, number][] = [];
+		for (let j = sink; j >= 0;) {
+			const i = fromSupply.get(j)!;
+			path.push([i, j]);
+			j = fromCap.get(i)!;
+		}
+		const origin = path.at(-1)![0];
+		let push = Math.min(free[sink]!, left[origin]!);
+		for (let k = 0; k + 1 < path.length; k += 1)
+			push = Math.min(push, flow[path[k]![0]]![path[k + 1]![1]]!);
+		for (let k = 0; k < path.length; k += 1) {
+			const [i, j] = path[k]!;
+			flow[i]![j]! += push;
+			if (k + 1 < path.length) flow[i]![path[k + 1]![1]]! -= push;
+		}
+		free[sink]! -= push;
+		left[origin]! -= push;
+		total += push;
+	}
 }

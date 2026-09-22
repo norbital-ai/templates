@@ -22,6 +22,7 @@ import { resolveEmployment, type ResolvedEmployment } from '../../../lib/employm
  * Recurring allowances remain eligible in each period their range covers.
  */
 
+import type { InLieuSlice } from '../../../datatypes/payroll_trace/+definition.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceRow } from '../$types.js';
@@ -73,7 +74,10 @@ import {
 } from './settlement.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import type { StatutoryPeriodHistory } from '../../../lib/payroll/statutory-history.js';
-import type { ReferenceWagePeriod } from '../../../lib/payroll/reference-wages.js';
+import type {
+	PayslipWageMonth,
+	ReferenceWagePeriod
+} from '../../../lib/payroll/reference-wages.js';
 
 type Employment = ResolvedEmployment;
 type Employee = WorkspaceRow<'employees'>;
@@ -122,6 +126,8 @@ export type EmploymentBundle = {
 	readonly workDays: readonly WorkDay[];
 	/** Approved dated wage history a statutory ordinary rate or conversion may consume. */
 	readonly wagePeriods: readonly ReferenceWagePeriod[];
+	/** The person's earlier payslips as months of pay, the record a normal-wage reference reads first. */
+	readonly payslipWageMonths?: readonly PayslipWageMonth[];
 	/** The rosters of record whose cycles touch the attendance span, as day ranges. */
 	readonly rosters: readonly { readonly start: IsoDate; readonly end: IsoDate }[];
 	/** Completed months of service at the period end. */
@@ -167,8 +173,13 @@ export type GatheredRun = {
 	>;
 	/** employee id → calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, ReadonlyMap<string, number>>>;
-	/** employee id → calendar month → regulated overtime hours earlier payslips settled. */
-	readonly priorOvertimeHours: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/** employee id → limit key (`''` regulated) → calendar month → overtime earlier payslips settled. */
+	readonly priorOvertimeHours: ReadonlyMap<
+		string,
+		ReadonlyMap<string, ReadonlyMap<string, number>>
+	>;
+	/** employee id → the in-lieu slices earlier payslips credited and paid (TW 勞基法 §32-1). */
+	readonly priorInLieu?: ReadonlyMap<string, readonly InLieuSlice[]>;
 	/** `employee id:YYYY-MM` → what the month's earlier instalments settled and charged. */
 	readonly monthPrior: ReadonlyMap<string, MonthPrior>;
 	readonly companyMonthPrior?: CompanyMonthPrior;
@@ -449,6 +460,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				workDays: workDaysByEmployment.get(employment.id) ?? [],
 				rosters: rostersByEmployment.get(employment.id) ?? [],
 				wagePeriods: wagePeriodsByEmployment.get(employment.id) ?? [],
+				payslipWageMonths: prior.payslipWageMonths.get(employment.employee_id) ?? [],
 				serviceMonths: completedMonths(hire, paid.end),
 				age: dob == null ? null : completedYears(dob, paid.end),
 				employedDays: settlement.employedDays,
@@ -502,7 +514,9 @@ type PriorSettlement = {
 	readonly yearEarned: Map<string, Map<string, number>>;
 	readonly yearQuantityPayments: Map<string, Map<string, QuantityPayment[]>>;
 	readonly earnedByMonth: Map<string, Map<string, Map<string, number>>>;
-	readonly priorOvertimeHours: Map<string, Map<string, number>>;
+	readonly priorOvertimeHours: Map<string, Map<string, Map<string, number>>>;
+	readonly priorInLieu: Map<string, InLieuSlice[]>;
+	readonly payslipWageMonths: Map<string, PayslipWageMonth[]>;
 	readonly monthPrior: Map<string, MonthPrior>;
 	readonly companyMonthPrior?: CompanyMonthPrior;
 	readonly consumedEntries: Map<string, number>;
@@ -618,7 +632,9 @@ function gatherPriorSettlement(
 			yearEarned: new Map<string, Map<string, number>>(),
 			yearQuantityPayments: new Map<string, Map<string, QuantityPayment[]>>(),
 			earnedByMonth: new Map<string, Map<string, Map<string, number>>>(),
-			priorOvertimeHours: new Map<string, Map<string, number>>(),
+			priorOvertimeHours: new Map<string, Map<string, Map<string, number>>>(),
+			priorInLieu: new Map<string, InLieuSlice[]>(),
+			payslipWageMonths: new Map<string, PayslipWageMonth[]>(),
 			monthPrior: new Map<string, MonthPrior>(),
 			consumedEntries
 		};
@@ -656,6 +672,7 @@ function gatherPriorSettlement(
 				inTaxYear,
 				employmentToEmployee,
 				periodByRun: new Map(priorRuns.map((run) => [run.id, run.period])),
+				traceByRun: new Map(priorRuns.map((run) => [run.id, run.calculation_trace])),
 				catalogueComponents: options.configuration.catalogueComponents
 			}))
 		};

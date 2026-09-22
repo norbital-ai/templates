@@ -21,14 +21,20 @@
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
+					"label": "EMERGENCY-2.0X",
+					"when": "day_type == \"ORDINARY\" && emergency_cause",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
 					"label": "OT-1.3333333333333333X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && !emergency_cause && !time_off_in_lieu",
 					"take_hours": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
 					"price_amount": "hours * ordinary_hour * 1.3333333333333333"
 				},
 				{
 					"label": "OT-1.6666666666666667X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && !emergency_cause && !time_off_in_lieu",
 					"take_hours": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
 				},
@@ -40,13 +46,13 @@
 				},
 				{
 					"label": "OT-1.3333333333333333X",
-					"when": "day_type == \"REST_DAY\"",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
 					"take_hours": "(overtime_hours < 2.0 ? overtime_hours : 2.0)",
 					"price_amount": "hours * ordinary_hour * 1.3333333333333333"
 				},
 				{
 					"label": "OT-1.6666666666666667X",
-					"when": "day_type == \"REST_DAY\"",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
 					"take_hours": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
 				},
@@ -79,27 +85,33 @@
 				},
 				{
 					"key": "monthly_ot",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 46,
 					"unit": "WORKED_HOURS",
-					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)"
+					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "quarterly_ot",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "QUARTER",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 138,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "monthly_ot_consent",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 54,
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
-					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
+					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "weekly_normal",
@@ -129,22 +141,38 @@
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
 					"Taiwan": 28590
 				},
-				"applies_when": "employment.type != \"INTERN\""
+				"hourly_by_region": {
+					"Taiwan": 190
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 190.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 28590.0 : 1.0",
+				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$28,590 a month and NT$190 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure."
+			},
+			"ordinary_rate_reference": {
+				"reference": "LATEST_DUE_MONTH",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY"],
+				"authority": "勞動基準法施行細則 §24-1(2)(1)(2): 一日工資，為勞工之特別休假於年度終結或契約終止前一日之正常工作時間所得之工資。其為計月者，為年度終結或契約終止前最近一個月正常工作時間所得之工資除以三十所得之金額 — the normal-hours wage actually earned in the latest month, read from that month's payslips (the wage and each normal-hours allowance as prorated, a class marked WAGES such as commission, less unpaid days; overtime is not normal-hours pay). A mid-month raise and variable normal-hours pay are therefore the month's own figures. A month no payslip settled is read from an approved employment_wage_periods record. Daily and hourly wages keep the preceding day's agreed normal wage (encashment.day_amount). https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1"
 			},
 			"encashment": {
 				"reference": "PREVIOUS_DAY_OR_MONTH",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": true,
-				"day_amount": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"DAILY\" ? terms.basic_salary + terms.fixed_allowances / 30.0 : terms.monthly_wage / 30.0",
+				"day_amount": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"DAILY\" ? terms.basic_salary + terms.fixed_allowances / 30.0 : terms.monthly_wage / 30.0",
 				"include_allowances": [],
 				"exclude_allowances": [],
-				"authority": "Labor Standards Act article 38(4); Enforcement Rules article 24-1(2). Monthly normal-working-hours pay uses the latest completed wage month, divided by 30. Hourly or daily pay uses the preceding day’s agreed normal working wage; a NT$200 hourly worker with four normal hours receives NT$800 per unused day. Carried leave preserves the original year-end valuation. Normal-hours wage allowances must be classified explicitly. Source: https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+				"authority": "Labor Standards Act article 38(4); Enforcement Rules article 24-1(2). Monthly normal-working-hours pay uses the latest completed wage month, divided by 30. Hourly, daily or weekly pay uses the preceding day’s agreed normal working wage — only a wage 計月 is divided by thirty (§24-1(2)(1)(2): 其為計月者 ... 除以三十), so a weekly wage is not converted to a month; its day is the week’s normal-hours wage over the contract’s normal working days in that week; a NT$200 hourly worker with four normal hours receives NT$800 per unused day. Carried leave preserves the original year-end valuation. Normal-hours wage allowances must be classified explicitly. Source: https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+			},
+			"time_off_in_lieu": {
+				"leave_code": "COMPENSATORY_TIME_OFF",
+				"year_leave_code": "ANNUAL_LEAVE",
+				"expiry_months": "has(company.facts.time_off_in_lieu_months) ? double(company.facts.time_off_in_lieu_months) : 0.0",
+				"authority": "勞動基準法第32條之1 — where the worker chooses 補休 for a §32(1)–(2) extension or 休息日 work and the employer agrees, the hours are credited hour for hour; 補休期限由勞雇雙方協商, and hours untaken at the expiry or on termination are paid at that day's overtime rates (§32-1(2)). 施行細則第22條之2: 補休 is taken in the order the hours were worked (oldest first); an agreed period ending after the last day of the §24(2) annual-leave year ends on that day; the pay is due on the agreed pay day or within 30 days of expiry, and under §9 (immediately) on termination. MOL 加班補休規定 Q&A: the end of the annual-leave year is the final deadline and cannot be deferred. Payroll keeps the balance: each elected hour is credited on the payslip that settles its day at what its band would have paid; hours HR records as COMPENSATORY_TIME_OFF leave consume the oldest unexpired credit; a credit expires `time_off_in_lieu_months` (entity fact, the agreement) after its day, never later than the end of the ANNUAL_LEAVE year, and what is left is paid in the run whose salary window reaches the expiry or the exit. Sources: https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1 ; https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2 ; https://www.mol.gov.tw/1607/28162/28166/28180/28198/28202/"
 			}
 		},
 		"payroll": {
@@ -180,47 +208,260 @@
 				"https://www.bli.gov.tw/Files/24831",
 				"https://www.mol.gov.tw/1607/1632/1640/76053/",
 				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe",
-				"https://www.dgpa.gov.tw/information?uid=41&pid=12573",
 				"https://www.bli.gov.tw/0005472.htm",
 				"https://www.bli.gov.tw/0006928.html",
 				"https://www.bli.gov.tw/0106129.html",
 				"https://www.nhi.gov.tw/ch/cp-2985-e7319-3150-1.html",
 				"https://www.nhi.gov.tw/ch/dl-64814-5f26c2b955c24ebbbbf1479877ecfb7e-1.pdf",
-				"https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+				"https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true",
+				"https://www.bli.gov.tw/0005475.html",
+				"https://www.bli.gov.tw/0106148.html",
+				"https://www.bli.gov.tw/0011588.html",
+				"https://www.bli.gov.tw/Files/25709",
+				"https://www.dot.gov.tw/singlehtml/ch_313?cntId=3783c45ec28543838fe285d06d00f3b8",
+				"https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802",
+				"https://www.mol.gov.tw/1607/1632/1633/84947/post",
+				"https://www.dgpa.gov.tw/information?uid=30&pid=12982",
+				"https://www.dgpa.gov.tw/information?uid=30&pid=12573",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030028",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050002",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340013",
+				"https://law.moj.gov.tw/News/NewsList.aspx",
+				"https://law.moj.gov.tw/Hot/HOT_LAWWORD.ashx?ty=NEWS&kw=勞動部",
+				"https://www.mol.gov.tw/1607/1632/1633/RssList",
+				"https://www.mol.gov.tw/1607/1632/2665/RssList",
+				"https://www.bli.gov.tw/news.xml",
+				"https://www.dot.gov.tw/Rss/ch26",
+				"https://www.dot.gov.tw/multiplehtml/06afbfc0e60e4ccb88f3f7f956aaacc7",
+				"https://www.dot.gov.tw/multiplehtml/ch_313",
+				"https://law-out.mof.gov.tw/",
+				"https://gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=8",
+				"https://gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=4",
+				"https://www.mohw.gov.tw/lp-18-1.html",
+				"https://www.dgpa.gov.tw/informationlist?uid=30"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718).\n\nFinding changes (read these before comparing, every run):\nEach month read law.moj.gov.tw/News/NewsList.aspx?psize=60, which lists the last year of changes newest first; ?type=q shows drafts (預告). Flag 勞動部, 財政部 and 衛生福利部 items that touch 勞動基準法, 勞工請假規則, 最低工資, 勞工保險/就業保險/職災保險, 勞工退休金, 全民健康保險, 所得稅法, 扣繳 or 紀念日及節日. GET keyword search works: law.moj.gov.tw/Hot/HOT_LAWWORD.ashx?ty=NEWS&kw=<詞> for news, and law.moj.gov.tw/Law/LawSearchResult.aspx?ty=ONEBAR&kw=<詞> for laws. /LawClass/LawHistory.aspx?pcode=<code> gives amendment dates. Then read the RSS feeds: mol.gov.tw/1607/1632/1633/RssList (新聞稿, where the 最低工資審議 result and 勞保費率 appear), bli.gov.tw/news.xml, and dot.gov.tw/Rss/ch26. Every November check dot.gov.tw/multiplehtml/06afbfc0e60e4ccb88f3f7f956aaacc7 for next year's 扣除額. Every December check dot.gov.tw/multiplehtml/ch_313 for the next 薪資所得扣繳稅額表. Also check the BLI index pages 0005475/0106148/0011588 for the next 分級表. Formal 公告 are in 行政院公報 at gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=8 (衛生勞動) and &chapter=4 (財政經濟). nhi.gov.tw sits behind a Cloudflare challenge, so use info.nhi.gov.tw/api or data.gov.tw and mohw.gov.tw/lp-18-1.html for the NHI rate. BLI /Files ids are .docx/.ods/.pdf siblings, so cite the one the index labels (pdf). A press release announcing a 預告 or a 審議 result is pending until the 公告 or 令 is gazetted."
 		},
 		"facts": [
 			{
 				"key": "overtime_consent",
 				"type": "boolean",
-				"label": "Overtime consent"
+				"label": "Overtime consent",
+				"default_value": false,
+				"description": "勞動基準法 §32(2): a month's overtime may exceed 46 hours, to 54 (138 a quarter), only with the consent of the union or, where there is none, the labour-management conference. Unrecorded is no consent — the statute's own 46-hour month."
 			},
 			{
 				"key": "shift_or_continuous_work",
 				"type": "boolean",
-				"label": "Shift or continuous work"
+				"label": "Shift or continuous work",
+				"default_value": false,
+				"description": "勞動基準法 §35: 勞工繼續工作四小時，至少應有三十分鐘之休息。但實行輪班制或其工作有連續性或緊急性者，雇主得在工作時間內，另行調配其休息時間 — true where the entity runs shifts or continuous work and so rearranges the break inside working time. Unrecorded is the rule, not its exception: false."
 			},
 			{
 				"key": "responsibility_system",
 				"type": "boolean",
-				"label": "Approved responsibility system"
+				"label": "Approved responsibility system",
+				"default_value": false,
+				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
 				"key": "pension_reserve_rate",
 				"type": "number",
-				"label": "Pension reserve rate"
+				"label": "Pension reserve rate",
+				"minimum": 2,
+				"maximum": 15,
+				"description": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內，按月提撥勞工退休準備金 — the percentage the competent authority approved for this entity's 勞工退休準備金. Required once the entity has a worker on the old (LSA) pension system: the LABOR_PENSION_RESERVE scheme refuses the run by name while it is unrecorded; an entity with no such worker leaves it blank."
+			},
+			{
+				"key": "time_off_in_lieu_months",
+				"type": "number",
+				"label": "Agreed 補休 period (months)",
+				"description": "勞動基準法 §32-1(2): 補休期限由勞雇雙方協商 — the months after the day worked within which hours elected as 補休 are to be taken, as the worker and the employer agreed. Leave it unrecorded where no period was agreed: 施行細則 §22-2(1) and MOL's 加班補休規定 Q&A make the last day of the annual-leave year the final deadline, which also caps any longer agreement.",
+				"minimum": 1,
+				"integer": true
 			}
 		],
 		"obligations": [
 			{
-				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
-				"description": "Unused annual leave settlement and employee records",
-				"trigger": "Year end, agreed carry-forward expiry or contract termination",
-				"timing": "Year end, agreed carry-forward expiry or contract termination",
-				"owner": "HR and Payroll / leave statement, wage basis and payment",
-				"authority": "Partial; LSA article 38 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930), Enforcement Rules article 24-1 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0202.aspx?flno=1-51&id=FL014931)",
+				"code": "LABOUR_EMPLOYMENT_INSURANCE_ENROLMENT",
+				"description": "Enrol and withdraw each worker in labour insurance and, where covered (nationals and foreign spouses of household-registered nationals, 就業保險法 §5), employment insurance.",
+				"trigger": "Hire, departure, start or end of unpaid leave that suspends cover",
+				"timing": "On the day of hire and on the day of leaving (列表通知保險人 當日); a late enrolment starts cover only from the day after notice.",
+				"owner": "HR / BLI enrolment and withdrawal notices",
+				"authority": "勞工保險條例 §6, §11 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11); 就業保險法 §5, §6(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=6)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OCCUPATIONAL_ACCIDENT_INSURANCE_ENROLMENT",
+				"description": "Enrol and withdraw each employee (including those over 65 and foreign workers) in occupational accident insurance.",
+				"trigger": "Hire or departure",
+				"timing": "On the day of hire and on the day of leaving.",
+				"owner": "HR / BLI enrolment and withdrawal notices",
+				"authority": "勞工職業災害保險及保護法 §6, §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "NHI_ENROLMENT",
+				"description": "Enrol the employee (and the dependants the employee elects to enrol with the unit) in national health insurance, and withdraw on departure.",
+				"trigger": "Employee meets enrolment conditions; departure or other withdrawal cause",
+				"timing": "Within three days of meeting the conditions; withdrawal within three days of the cause.",
+				"owner": "HR / NHIA enrolment and withdrawal filings",
+				"authority": "全民健康保險法 §15(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "LABOUR_PENSION_REGISTRATION",
+				"description": "Register the start and end of labour pension contributions for each covered worker, and stop contributions during unpaid leave, military service or suspension.",
+				"trigger": "Hire, departure, reinstatement, death, 留職停薪",
+				"timing": "Within seven days of the event (列表通知勞保局); 留職停薪 stop within seven days in writing.",
+				"owner": "HR / BLI pension start/stop notices",
+				"authority": "勞工退休金條例 §7, §16, §18, §20(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "INSURED_SALARY_ADJUSTMENT",
+				"description": "Report changed monthly insured salary / contribution wage for labour, employment and occupational accident insurance, labour pension and NHI.",
+				"trigger": "A salary change",
+				"timing": "Changes in February–July by 31 August; changes in August–January by the end of the following February; effective the first day of the month after notice.",
+				"owner": "HR / grade adjustment filings with BLI and NHIA",
+				"authority": "勞工保險條例 §14(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=14); 勞工職業災害保險及保護法 §17(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=17); 勞工退休金條例 §15(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=15); 全民健康保險法 §21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=21)",
 				"status": "PARTIAL"
+			},
+			{
+				"code": "INSURANCE_PREMIUM_REMITTANCE",
+				"description": "Pay labour, employment and occupational accident insurance premiums (employee share deducted plus the employer share) and the wage-arrears fund levy on the BLI bill.",
+				"trigger": "Monthly BLI bill",
+				"timing": "By the end of the following month; fifteen-day grace; late fee 0.1% a day to 20% (labour/employment insurance) and 0.2% a day to 20% (occupational accident insurance).",
+				"owner": "Finance / BLI payment receipt",
+				"authority": "勞工保險條例 §16, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=16); 就業保險法 §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=40); 勞工職業災害保險及保護法 §20, §21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=20); 勞動基準法 §28(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=28). Engine computes the premiums and levy; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "NHI_PREMIUM_REMITTANCE",
+				"description": "Pay NHI regular premiums (employee and dependant shares deducted plus the employer share) and the employer supplementary premium.",
+				"trigger": "Monthly NHIA bill",
+				"timing": "By the end of the following month; the employer supplementary premium is paid with the regular premium; fifteen-day grace, then 0.1% a day to 15%.",
+				"owner": "Finance / NHIA payment receipt",
+				"authority": "全民健康保險法 §30, §34, §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=30). Engine computes the premiums; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "NHI_SUPPLEMENTARY_PREMIUM_WITHHOLDING",
+				"description": "Withhold the 2.11% supplementary premium on bonuses above four times the insured amount (and on salary paid to a person not insured through this employer), remit it, and report the annual deduction details.",
+				"trigger": "Payment of a bonus or of salary to a person insured elsewhere",
+				"timing": "Withhold at payment; remit by the end of the month after payment; report deduction details (扣費明細) by 31 January of the following year (5 February where January has three or more consecutive holidays), or within ten days on dissolution.",
+				"owner": "Payroll and Finance / remittance and 扣費明細",
+				"authority": "全民健康保險法 §31 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=31); 全民健康保險扣取及繳納補充保險費辦法 §10 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060027&flno=10). Engine withholds the bonus premium; salary paid to a person insured elsewhere is not assessed.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "LABOUR_PENSION_REMITTANCE",
+				"description": "Pay the employer 6% contribution and the worker’s voluntary contribution on the BLI bill, and notify each worker monthly of the amount contributed.",
+				"trigger": "Monthly BLI pension bill (sent by the 25th of the following month)",
+				"timing": "By the end of the month after the bill month (再次月底前); late fee 3% a day of the amount due up to 100%. Written monthly notice of the contribution to the worker.",
+				"owner": "Finance / BLI receipt; HR / monthly notice",
+				"authority": "勞工退休金條例 §14, §19, §21(1), §53 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=19). Engine computes the contribution; payment and notice are external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WITHHOLDING_TAX_REMITTANCE",
+				"description": "Remit salary, bonus and retirement-income (severance) withholding tax.",
+				"trigger": "Tax withheld from a payment",
+				"timing": "Residents: by the 10th of the following month. Non-residents: within ten days of withholding, filing the withholding certificate for verification at the same time.",
+				"owner": "Finance / national treasury payment receipt",
+				"authority": "所得稅法 §88, §92 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92), §114 penalties (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=114). Engine computes the withholding; remittance is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "ANNUAL_WITHHOLDING_STATEMENTS",
+				"description": "File withholding certificates (各類所得扣繳暨免扣繳憑單) for all salary and retirement income paid in the year, including payments below the withholding threshold, and issue them to employees.",
+				"trigger": "Calendar-year end, or dissolution, merger or transfer of the business",
+				"timing": "File by 31 January and issue to the payee by 10 February (5 February / 15 February where January has three or more consecutive holidays); on dissolution, issue at once and file within ten days.",
+				"owner": "Finance / accepted filing and delivery record",
+				"authority": "所得稅法 §89(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=89), §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92), §111, §114",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WAGE_PAYMENT_AND_PAYSLIP",
+				"description": "Pay wages at least twice a month unless monthly (or advance) payment is agreed, in legal tender, in full and directly, with an itemised statement: agreed total wage, each item paid, each deduction and the net paid.",
+				"trigger": "Each pay date",
+				"timing": "At least twice monthly unless monthly payment is agreed; statement with every payment (paper or electronic).",
+				"owner": "Payroll / payslip and bank transfer record",
+				"authority": "勞動基準法 §22, §23(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23); 施行細則 §14-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=14-1). Engine produces the itemised payslip; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_ROSTER_RETENTION",
+				"description": "Keep a wage roster (工資清冊) with wages paid, each item’s calculation and totals, including each year’s annual-leave dates and unused-leave pay.",
+				"trigger": "Every payment",
+				"timing": "Retain for five years.",
+				"owner": "Payroll / wage roster",
+				"authority": "勞動基準法 §23(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23), §38(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "ATTENDANCE_RECORDS",
+				"description": "Keep attendance records to the minute and provide a copy on the worker’s request.",
+				"trigger": "Every working day",
+				"timing": "Record daily to the minute; retain for five years.",
+				"owner": "HR / time and attendance record",
+				"authority": "勞動基準法 §30(5)–(6) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "INSURANCE_AND_PENSION_RECORDS",
+				"description": "Keep the employee register, attendance and payroll records for insurance, and the pension register (hire, departure, attendance, wages, monthly contributions, pension-system election documents).",
+				"trigger": "Employment",
+				"timing": "Retain for five years from the worker’s departure.",
+				"owner": "HR / employee and pension registers",
+				"authority": "勞工保險條例 §10(3)–(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=10); 勞工退休金條例 §21(2)–(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=21)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "EMPLOYMENT_CONTRACT_TERMS",
+				"description": "Agree the statutory contract terms: place and work, hours, rest and leave, wage calculation and pay dates, termination, severance and retirement, bonuses and allowances, and the other listed matters.",
+				"trigger": "Hire or amendment of terms",
+				"timing": "At contract formation.",
+				"owner": "HR / signed contract",
+				"authority": "勞動基準法施行細則 §7 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WORK_RULES_FILING",
+				"description": "An employer of thirty or more workers draws up work rules, files them with the competent authority and posts them.",
+				"trigger": "Thirty or more workers; amendment of the rules",
+				"timing": "Within thirty days of reaching thirty workers (施行細則 §37); post after approval.",
+				"owner": "HR / approved work rules",
+				"authority": "勞動基準法 §70 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=70)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "LABOUR_MANAGEMENT_CONFERENCE",
+				"description": "Hold labour-management conferences, the body whose consent governs flexible hours, overtime extension and rest-day adjustment where there is no union.",
+				"trigger": "Establishment of a business unit",
+				"timing": "At least once every three months.",
+				"owner": "HR / minutes",
+				"authority": "勞動基準法 §83 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=83); 勞資會議實施辦法 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020008&flno=18)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OVERTIME_CONSENT_AND_FILING",
+				"description": "Obtain union (or labour-management conference) consent before extending working hours; an employer of thirty or more using the 54-hour month / 138-hour quarter ceiling files it with the local authority; post the arrangement.",
+				"trigger": "Overtime is required",
+				"timing": "Before overtime is worked; filing where thirty or more workers; announce under 施行細則 §20.",
+				"owner": "HR / consent minutes and filing receipt",
+				"authority": "勞動基準法 §32(1)–(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32); 施行細則 §20 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=20). Engine applies the monthly and quarterly caps from the entity fact `overtime_consent`.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "EMERGENCY_WORK_NOTICE",
+				"description": "Overtime for natural disaster, incident or emergency: notify the union within 24 hours of the start (or report to the local authority), paying extended hours at double; suspension of rest days and holidays: report within 24 hours after, pay double and give rest afterwards.",
+				"trigger": "Emergency extension of hours or suspension of rest days and holidays",
+				"timing": "Within 24 hours; compensatory rest afterwards.",
+				"owner": "HR / notice and rest record",
+				"authority": "勞動基準法 §24(1)(3), §32(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32), §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=40)",
+				"status": "EXTERNAL"
 			},
 			{
 				"code": "COMPENSATORY_REST_FOR_STATUTORY",
@@ -232,22 +473,130 @@
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "OLD_SYSTEM_PENSION_RESERVE",
-				"description": "Old-system pension reserve and committee duties",
-				"trigger": "Employer retains workers covered by the old system",
-				"timing": "Employer retains workers covered by the old system",
-				"owner": "Finance / applicability assessment and reserve records",
-				"authority": "External; LSA article 56 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"code": "OVERTIME_COMP_TIME_SETTLEMENT",
+				"description": "Where a worker chose compensatory time off for overtime or rest-day work, pay the untaken hours at that day’s overtime rate when the agreed period expires or the contract ends.",
+				"trigger": "Expiry of the agreed comp-time period or contract termination",
+				"timing": "On expiry or termination (the pay-date rule of 施行細則 §22-2).",
+				"owner": "HR records 補休 taken (COMPENSATORY_TIME_OFF); payroll keeps the balance and pays it",
+				"authority": "勞動基準法 §32-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1); 施行細則 §22-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
+				"description": "Tell the worker of the annual-leave entitlement, pay unused days at year end or termination, and give the yearly written notice of leave dates and unused-leave pay.",
+				"trigger": "Worker qualifies for annual leave; year end, agreed carry-forward expiry or contract termination",
+				"timing": "Notice within thirty days of qualifying; year-end pay on the agreed pay day or within thirty days after the year end; termination pay immediately; the written notice before that pay deadline.",
+				"owner": "HR and Payroll / leave statement, wage basis and payment",
+				"authority": "Partial; LSA §38(3)–(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38); Enforcement Rules §24, §24-1, §24-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1). Engine values the cash-out; notices are external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_NOTICE",
+				"description": "Give notice before terminating under §11 or the §13 proviso — ten days (three months to one year’s service), twenty (one to three years), thirty (three years or more) — allow job-search leave of up to two days a week on full pay, or pay wages for the notice not given.",
+				"trigger": "Employer termination under §11 or §13 proviso",
+				"timing": "Before the termination by the notice period; unpaid notice owed at termination.",
+				"owner": "HR / notice letter; Payroll / notice pay",
+				"authority": "勞動基準法 §16 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16); 勞動部 109年10月29日勞動關2字第1090128292A號令. Engine prices notice pay from the declared notice days (`NOTICE_PAY`).",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "LAYOFF_REPORT",
+				"description": "Report each worker to be laid off (name, sex, age, address, telephone, job, reason, need for job counselling) to the local authority and the public employment service.",
+				"trigger": "Termination by the employer for redundancy (資遣)",
+				"timing": "Ten days before the worker leaves; within three days after leaving where the layoff is due to disaster, incident or force majeure.",
+				"owner": "HR / layoff report receipt",
+				"authority": "就業服務法 §33 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33)",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
-				"description": "Tax returns, annual employee statements and agency remittance",
-				"trigger": "Applicable authority's filing calendar",
-				"timing": "Applicable authority's filing calendar",
-				"owner": "Finance / accepted filing and payment receipts",
-				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
-				"status": "UNVERIFIED"
+				"code": "MASS_LAYOFF_PLAN",
+				"description": "For a mass layoff (thresholds by establishment size within sixty days), notify the layoff plan to the authority, the union, labour representatives and affected workers, and post it.",
+				"trigger": "A layoff reaching the Mass Layoff Act §2 thresholds",
+				"timing": "Sixty days before (not required for disaster, incident or emergency).",
+				"owner": "HR / layoff plan and notices",
+				"authority": "大量解僱勞工保護法 §2, §4 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020012&flno=4)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SEVERANCE_PAYMENT",
+				"description": "Pay severance: new-system seniority half a month’s average wage a year up to six months; retained old-system seniority one month’s average wage a year.",
+				"trigger": "Termination under LSA §11, §13 proviso, §14 or §20",
+				"timing": "Within thirty days of termination.",
+				"owner": "Payroll / severance calculation and payment",
+				"authority": "勞動基準法 §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17); 勞工退休金條例 §11(2), §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=12), §45-1 penalty. Engine prices severance from the declared termination ground and average wage.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "FINAL_WAGE_SETTLEMENT",
+				"description": "Settle all wages when the contract ends.",
+				"trigger": "Contract termination",
+				"timing": "Immediately (應即結清).",
+				"owner": "Payroll / final payslip and payment",
+				"authority": "勞動基準法施行細則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=9). Engine warns when the run pays after the deadline.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "SERVICE_CERTIFICATE",
+				"description": "Issue a certificate of service when the worker asks on termination.",
+				"trigger": "Termination and the worker’s request",
+				"timing": "On request; refusal is not permitted.",
+				"owner": "HR / certificate issued",
+				"authority": "勞動基準法 §19 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=19)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OLD_SYSTEM_PENSION_RESERVE",
+				"description": "For workers remaining on the old pension system, appropriate the monthly reserve (2–15% of wages), estimate the reserve each year end and top up any shortfall, with the supervisory committee.",
+				"trigger": "Employer retains old-system workers or retained old-system seniority",
+				"timing": "Monthly appropriation; year-end estimate; shortfall paid in one sum by the end of March of the following year; committee review.",
+				"owner": "Finance / Bank of Taiwan account, committee minutes",
+				"authority": "Partial; LSA §56 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=56). Engine computes the monthly appropriation from `pension_reserve_rate`; the year-end top-up is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "RETIREMENT_PAYMENT",
+				"description": "Pay old-system retirement pay (two bases a year for the first fifteen years, one thereafter, maximum 45, on the average wage at approved retirement).",
+				"trigger": "Retirement of a worker with old-system seniority",
+				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
+				"owner": "Finance / retirement pay record",
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
+				"description": "Compensate occupational injury: medical costs, original wages during treatment, disability and death compensation (offsettable against insurance paid by the employer).",
+				"trigger": "Occupational accident or disease",
+				"timing": "During treatment (wage compensation on the normal pay dates); lump sums on assessment.",
+				"owner": "HR and Finance / accident record and payments",
+				"authority": "勞動基準法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59). Engine pays occupational injury leave at the full wage; other compensation is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PARENTAL_LEAVE_INSURANCE_CONTINUATION",
+				"description": "During 育嬰留職停薪 the worker may continue the original social insurance: the employer share is waived and the worker’s share may be deferred for three years; reinstate the worker at the end of the leave.",
+				"trigger": "Parental leave without pay",
+				"timing": "For the leave period; reinstatement at its end.",
+				"owner": "HR / insurance continuation and reinstatement record",
+				"authority": "性別平等工作法 §16, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=16); The engine does not model insurance continuation during the leave.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MINIMUM_WAGE",
+				"description": "Pay at least the monthly and hourly minimum wage announced under the Minimum Wage Act (effective 1 January of the following year unless another date is approved).",
+				"trigger": "Every wage agreement and each new minimum wage announcement",
+				"timing": "From the announced commencement date.",
+				"owner": "HR / contract terms",
+				"authority": "最低工資法 §4, §5, §14, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5). Engine warns when a monthly, daily or hourly contract falls below the version’s floor.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "FOREIGN_WORKER_EMPLOYMENT_STABILISATION_FEE",
+				"description": "Pay the employment stabilisation fee for foreign workers employed in 就業服務法 §46(1)(8)–(10) work (e.g. manufacturing, construction, caregiving), and hold valid work permits.",
+				"trigger": "Employment of a permitted foreign worker",
+				"timing": "Monthly per the authority’s bill; thirty-day grace, then 0.3% a day to 30%.",
+				"owner": "Finance / fee payment; HR / work permit",
+				"authority": "就業服務法 §43, §55, §57 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=55)",
+				"status": "EXTERNAL"
 			},
 			{
 				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
@@ -257,6 +606,40 @@
 				"owner": "HR / applicable-law register, permits and retained evidence",
 				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
 				"status": "EXTERNAL"
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "lsa_termination_ground",
+				"type": "string",
+				"label": "勞基法 termination ground",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+			},
+			{
+				"key": "average_daily_wage",
+				"type": "number",
+				"label": "Average daily wage (平均工資)",
+				"description": "勞基法 §2(4): wages received in the six months before the termination day divided by the total days, excluding the periods in 施行細則 §2. Severance is 30 times this a month. Absent, a monthly-paid employee’s is read from the payslips; a daily or hourly one states it, since §2(4)’s proviso floors it at 60% of wages over the days actually worked.",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] && terms.pay_frequency != \"MONTHLY\" && terms.pay_frequency != \"SEMI_MONTHLY\""
+			},
+			{
+				"key": "old_system_service_months",
+				"type": "number",
+				"label": "Retained old-system seniority (months)",
+				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "notice_days_given",
+				"type": "number",
+				"label": "Notice days given",
+				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
 			}
 		]
 	},
@@ -282,14 +665,20 @@
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
+					"label": "EMERGENCY-2.0X",
+					"when": "day_type == \"ORDINARY\" && emergency_cause",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
 					"label": "OT-1.3333333333333333X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && !emergency_cause && !time_off_in_lieu",
 					"take_hours": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
 					"price_amount": "hours * ordinary_hour * 1.3333333333333333"
 				},
 				{
 					"label": "OT-1.6666666666666667X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && !emergency_cause && !time_off_in_lieu",
 					"take_hours": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
 				},
@@ -301,13 +690,13 @@
 				},
 				{
 					"label": "OT-1.3333333333333333X",
-					"when": "day_type == \"REST_DAY\"",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
 					"take_hours": "(overtime_hours < 2.0 ? overtime_hours : 2.0)",
 					"price_amount": "hours * ordinary_hour * 1.3333333333333333"
 				},
 				{
 					"label": "OT-1.6666666666666667X",
-					"when": "day_type == \"REST_DAY\"",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
 					"take_hours": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
 				},
@@ -340,27 +729,33 @@
 				},
 				{
 					"key": "monthly_ot",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 46,
 					"unit": "WORKED_HOURS",
-					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)"
+					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "quarterly_ot",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "QUARTER",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 138,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "monthly_ot_consent",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 54,
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
-					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
+					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "weekly_normal",
@@ -390,22 +785,38 @@
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
 					"Taiwan": 29500
 				},
-				"applies_when": "employment.type != \"INTERN\""
+				"hourly_by_region": {
+					"Taiwan": 196
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
+				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure."
+			},
+			"ordinary_rate_reference": {
+				"reference": "LATEST_DUE_MONTH",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY"],
+				"authority": "勞動基準法施行細則 §24-1(2)(1)(2): 一日工資，為勞工之特別休假於年度終結或契約終止前一日之正常工作時間所得之工資。其為計月者，為年度終結或契約終止前最近一個月正常工作時間所得之工資除以三十所得之金額 — the normal-hours wage actually earned in the latest month, read from that month's payslips (the wage and each normal-hours allowance as prorated, a class marked WAGES such as commission, less unpaid days; overtime is not normal-hours pay). A mid-month raise and variable normal-hours pay are therefore the month's own figures. A month no payslip settled is read from an approved employment_wage_periods record. Daily and hourly wages keep the preceding day's agreed normal wage (encashment.day_amount). https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1"
 			},
 			"encashment": {
 				"reference": "PREVIOUS_DAY_OR_MONTH",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": true,
-				"day_amount": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"DAILY\" ? terms.basic_salary + terms.fixed_allowances / 30.0 : terms.monthly_wage / 30.0",
+				"day_amount": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"DAILY\" ? terms.basic_salary + terms.fixed_allowances / 30.0 : terms.monthly_wage / 30.0",
 				"include_allowances": [],
 				"exclude_allowances": [],
-				"authority": "Labor Standards Act article 38(4); Enforcement Rules article 24-1(2). Monthly normal-working-hours pay uses the latest completed wage month, divided by 30. Hourly or daily pay uses the preceding day’s agreed normal working wage; a NT$200 hourly worker with four normal hours receives NT$800 per unused day. Carried leave preserves the original year-end valuation. Normal-hours wage allowances must be classified explicitly. Source: https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+				"authority": "Labor Standards Act article 38(4); Enforcement Rules article 24-1(2). Monthly normal-working-hours pay uses the latest completed wage month, divided by 30. Hourly, daily or weekly pay uses the preceding day’s agreed normal working wage — only a wage 計月 is divided by thirty (§24-1(2)(1)(2): 其為計月者 ... 除以三十), so a weekly wage is not converted to a month; its day is the week’s normal-hours wage over the contract’s normal working days in that week; a NT$200 hourly worker with four normal hours receives NT$800 per unused day. Carried leave preserves the original year-end valuation. Normal-hours wage allowances must be classified explicitly. Source: https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+			},
+			"time_off_in_lieu": {
+				"leave_code": "COMPENSATORY_TIME_OFF",
+				"year_leave_code": "ANNUAL_LEAVE",
+				"expiry_months": "has(company.facts.time_off_in_lieu_months) ? double(company.facts.time_off_in_lieu_months) : 0.0",
+				"authority": "勞動基準法第32條之1 — where the worker chooses 補休 for a §32(1)–(2) extension or 休息日 work and the employer agrees, the hours are credited hour for hour; 補休期限由勞雇雙方協商, and hours untaken at the expiry or on termination are paid at that day's overtime rates (§32-1(2)). 施行細則第22條之2: 補休 is taken in the order the hours were worked (oldest first); an agreed period ending after the last day of the §24(2) annual-leave year ends on that day; the pay is due on the agreed pay day or within 30 days of expiry, and under §9 (immediately) on termination. MOL 加班補休規定 Q&A: the end of the annual-leave year is the final deadline and cannot be deferred. Payroll keeps the balance: each elected hour is credited on the payslip that settles its day at what its band would have paid; hours HR records as COMPENSATORY_TIME_OFF leave consume the oldest unexpired credit; a credit expires `time_off_in_lieu_months` (entity fact, the agreement) after its day, never later than the end of the ANNUAL_LEAVE year, and what is left is paid in the run whose salary window reaches the expiry or the exit. Sources: https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1 ; https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2 ; https://www.mol.gov.tw/1607/28162/28166/28180/28198/28202/"
 			}
 		},
 		"payroll": {
@@ -436,57 +847,266 @@
 				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340028",
 				"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
 				"https://data.gov.tw/dataset/20251",
-				"https://www.bli.gov.tw/Files/25659",
+				"https://www.bli.gov.tw/Files/25661",
 				"https://www.bli.gov.tw/Files/25664",
 				"https://www.bli.gov.tw/Files/25669",
-				"https://www.bli.gov.tw/Files/25697",
+				"https://www.bli.gov.tw/Files/25696",
 				"https://www.bli.gov.tw/Files/25709",
 				"https://www.bli.gov.tw/0011588.html",
 				"https://www.bli.gov.tw/0014162.htm",
 				"https://www.mol.gov.tw/1607/1632/1633/",
 				"https://www.mol.gov.tw/1607/1632/1633/84947/post",
-				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe",
-				"https://www.dgpa.gov.tw/information?uid=30&pid=12982",
+				"https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802",
 				"https://www.bli.gov.tw/0005472.htm",
 				"https://www.bli.gov.tw/0006928.html",
 				"https://www.bli.gov.tw/0106129.html",
 				"https://www.nhi.gov.tw/ch/cp-2985-e7319-3150-1.html",
 				"https://www.nhi.gov.tw/ch/dl-64814-5f26c2b955c24ebbbbf1479877ecfb7e-1.pdf",
-				"https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+				"https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true",
+				"https://www.bli.gov.tw/0005475.html",
+				"https://www.bli.gov.tw/0106148.html",
+				"https://www.dot.gov.tw/singlehtml/ch_313?cntId=3783c45ec28543838fe285d06d00f3b8",
+				"https://www.dgpa.gov.tw/information?uid=30&pid=12982",
+				"https://www.dgpa.gov.tw/information?uid=30&pid=12573",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030028",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050002",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340013",
+				"https://law.moj.gov.tw/News/NewsList.aspx",
+				"https://law.moj.gov.tw/Hot/HOT_LAWWORD.ashx?ty=NEWS&kw=勞動部",
+				"https://www.mol.gov.tw/1607/1632/1633/RssList",
+				"https://www.mol.gov.tw/1607/1632/2665/RssList",
+				"https://www.bli.gov.tw/news.xml",
+				"https://www.dot.gov.tw/Rss/ch26",
+				"https://www.dot.gov.tw/multiplehtml/06afbfc0e60e4ccb88f3f7f956aaacc7",
+				"https://www.dot.gov.tw/multiplehtml/ch_313",
+				"https://law-out.mof.gov.tw/",
+				"https://gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=8",
+				"https://gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=4",
+				"https://www.mohw.gov.tw/lp-18-1.html",
+				"https://www.dgpa.gov.tw/informationlist?uid=30"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718).\n\nFinding changes (read these before comparing, every run):\nEach month read law.moj.gov.tw/News/NewsList.aspx?psize=60, which lists the last year of changes newest first; ?type=q shows drafts (預告). Flag 勞動部, 財政部 and 衛生福利部 items that touch 勞動基準法, 勞工請假規則, 最低工資, 勞工保險/就業保險/職災保險, 勞工退休金, 全民健康保險, 所得稅法, 扣繳 or 紀念日及節日. GET keyword search works: law.moj.gov.tw/Hot/HOT_LAWWORD.ashx?ty=NEWS&kw=<詞> for news, and law.moj.gov.tw/Law/LawSearchResult.aspx?ty=ONEBAR&kw=<詞> for laws. /LawClass/LawHistory.aspx?pcode=<code> gives amendment dates. Then read the RSS feeds: mol.gov.tw/1607/1632/1633/RssList (新聞稿, where the 最低工資審議 result and 勞保費率 appear), bli.gov.tw/news.xml, and dot.gov.tw/Rss/ch26. Every November check dot.gov.tw/multiplehtml/06afbfc0e60e4ccb88f3f7f956aaacc7 for next year's 扣除額. Every December check dot.gov.tw/multiplehtml/ch_313 for the next 薪資所得扣繳稅額表. Also check the BLI index pages 0005475/0106148/0011588 for the next 分級表. Formal 公告 are in 行政院公報 at gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=8 (衛生勞動) and &chapter=4 (財政經濟). nhi.gov.tw sits behind a Cloudflare challenge, so use info.nhi.gov.tw/api or data.gov.tw and mohw.gov.tw/lp-18-1.html for the NHI rate. BLI /Files ids are .docx/.ods/.pdf siblings, so cite the one the index labels (pdf). A press release announcing a 預告 or a 審議 result is pending until the 公告 or 令 is gazetted."
 		},
 		"facts": [
 			{
 				"key": "overtime_consent",
 				"type": "boolean",
-				"label": "Overtime consent"
+				"label": "Overtime consent",
+				"default_value": false,
+				"description": "勞動基準法 §32(2): a month's overtime may exceed 46 hours, to 54 (138 a quarter), only with the consent of the union or, where there is none, the labour-management conference. Unrecorded is no consent — the statute's own 46-hour month."
 			},
 			{
 				"key": "shift_or_continuous_work",
 				"type": "boolean",
-				"label": "Shift or continuous work"
+				"label": "Shift or continuous work",
+				"default_value": false,
+				"description": "勞動基準法 §35: 勞工繼續工作四小時，至少應有三十分鐘之休息。但實行輪班制或其工作有連續性或緊急性者，雇主得在工作時間內，另行調配其休息時間 — true where the entity runs shifts or continuous work and so rearranges the break inside working time. Unrecorded is the rule, not its exception: false."
 			},
 			{
 				"key": "responsibility_system",
 				"type": "boolean",
-				"label": "Approved responsibility system"
+				"label": "Approved responsibility system",
+				"default_value": false,
+				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
 				"key": "pension_reserve_rate",
 				"type": "number",
-				"label": "Pension reserve rate"
+				"label": "Pension reserve rate",
+				"minimum": 2,
+				"maximum": 15,
+				"description": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內，按月提撥勞工退休準備金 — the percentage the competent authority approved for this entity's 勞工退休準備金. Required once the entity has a worker on the old (LSA) pension system: the LABOR_PENSION_RESERVE scheme refuses the run by name while it is unrecorded; an entity with no such worker leaves it blank."
+			},
+			{
+				"key": "time_off_in_lieu_months",
+				"type": "number",
+				"label": "Agreed 補休 period (months)",
+				"description": "勞動基準法 §32-1(2): 補休期限由勞雇雙方協商 — the months after the day worked within which hours elected as 補休 are to be taken, as the worker and the employer agreed. Leave it unrecorded where no period was agreed: 施行細則 §22-2(1) and MOL's 加班補休規定 Q&A make the last day of the annual-leave year the final deadline, which also caps any longer agreement.",
+				"minimum": 1,
+				"integer": true
 			}
 		],
 		"obligations": [
 			{
-				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
-				"description": "Unused annual leave settlement and employee records",
-				"trigger": "Year end, agreed carry-forward expiry or contract termination",
-				"timing": "Year end, agreed carry-forward expiry or contract termination",
-				"owner": "HR and Payroll / leave statement, wage basis and payment",
-				"authority": "Partial; LSA article 38 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930), Enforcement Rules article 24-1 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0202.aspx?flno=1-51&id=FL014931)",
+				"code": "LABOUR_EMPLOYMENT_INSURANCE_ENROLMENT",
+				"description": "Enrol and withdraw each worker in labour insurance and, where covered (nationals and foreign spouses of household-registered nationals, 就業保險法 §5), employment insurance.",
+				"trigger": "Hire, departure, start or end of unpaid leave that suspends cover",
+				"timing": "On the day of hire and on the day of leaving (列表通知保險人 當日); a late enrolment starts cover only from the day after notice.",
+				"owner": "HR / BLI enrolment and withdrawal notices",
+				"authority": "勞工保險條例 §6, §11 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11); 就業保險法 §5, §6(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=6)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OCCUPATIONAL_ACCIDENT_INSURANCE_ENROLMENT",
+				"description": "Enrol and withdraw each employee (including those over 65 and foreign workers) in occupational accident insurance.",
+				"trigger": "Hire or departure",
+				"timing": "On the day of hire and on the day of leaving.",
+				"owner": "HR / BLI enrolment and withdrawal notices",
+				"authority": "勞工職業災害保險及保護法 §6, §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "NHI_ENROLMENT",
+				"description": "Enrol the employee (and the dependants the employee elects to enrol with the unit) in national health insurance, and withdraw on departure.",
+				"trigger": "Employee meets enrolment conditions; departure or other withdrawal cause",
+				"timing": "Within three days of meeting the conditions; withdrawal within three days of the cause.",
+				"owner": "HR / NHIA enrolment and withdrawal filings",
+				"authority": "全民健康保險法 §15(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "LABOUR_PENSION_REGISTRATION",
+				"description": "Register the start and end of labour pension contributions for each covered worker, and stop contributions during unpaid leave, military service or suspension.",
+				"trigger": "Hire, departure, reinstatement, death, 留職停薪",
+				"timing": "Within seven days of the event (列表通知勞保局); 留職停薪 stop within seven days in writing.",
+				"owner": "HR / BLI pension start/stop notices",
+				"authority": "勞工退休金條例 §7, §16, §18, §20(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "INSURED_SALARY_ADJUSTMENT",
+				"description": "Report changed monthly insured salary / contribution wage for labour, employment and occupational accident insurance, labour pension and NHI.",
+				"trigger": "A salary change",
+				"timing": "Changes in February–July by 31 August; changes in August–January by the end of the following February; effective the first day of the month after notice.",
+				"owner": "HR / grade adjustment filings with BLI and NHIA",
+				"authority": "勞工保險條例 §14(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=14); 勞工職業災害保險及保護法 §17(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=17); 勞工退休金條例 §15(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=15); 全民健康保險法 §21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=21)",
 				"status": "PARTIAL"
+			},
+			{
+				"code": "INSURANCE_PREMIUM_REMITTANCE",
+				"description": "Pay labour, employment and occupational accident insurance premiums (employee share deducted plus the employer share) and the wage-arrears fund levy on the BLI bill.",
+				"trigger": "Monthly BLI bill",
+				"timing": "By the end of the following month; fifteen-day grace; late fee 0.1% a day to 20% (labour/employment insurance) and 0.2% a day to 20% (occupational accident insurance).",
+				"owner": "Finance / BLI payment receipt",
+				"authority": "勞工保險條例 §16, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=16); 就業保險法 §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=40); 勞工職業災害保險及保護法 §20, §21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=20); 勞動基準法 §28(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=28). Engine computes the premiums and levy; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "NHI_PREMIUM_REMITTANCE",
+				"description": "Pay NHI regular premiums (employee and dependant shares deducted plus the employer share) and the employer supplementary premium.",
+				"trigger": "Monthly NHIA bill",
+				"timing": "By the end of the following month; the employer supplementary premium is paid with the regular premium; fifteen-day grace, then 0.1% a day to 15%.",
+				"owner": "Finance / NHIA payment receipt",
+				"authority": "全民健康保險法 §30, §34, §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=30). Engine computes the premiums; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "NHI_SUPPLEMENTARY_PREMIUM_WITHHOLDING",
+				"description": "Withhold the 2.11% supplementary premium on bonuses above four times the insured amount (and on salary paid to a person not insured through this employer), remit it, and report the annual deduction details.",
+				"trigger": "Payment of a bonus or of salary to a person insured elsewhere",
+				"timing": "Withhold at payment; remit by the end of the month after payment; report deduction details (扣費明細) by 31 January of the following year (5 February where January has three or more consecutive holidays), or within ten days on dissolution.",
+				"owner": "Payroll and Finance / remittance and 扣費明細",
+				"authority": "全民健康保險法 §31 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=31); 全民健康保險扣取及繳納補充保險費辦法 §10 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060027&flno=10). Engine withholds the bonus premium; salary paid to a person insured elsewhere is not assessed.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "LABOUR_PENSION_REMITTANCE",
+				"description": "Pay the employer 6% contribution and the worker’s voluntary contribution on the BLI bill, and notify each worker monthly of the amount contributed.",
+				"trigger": "Monthly BLI pension bill (sent by the 25th of the following month)",
+				"timing": "By the end of the month after the bill month (再次月底前); late fee 3% a day of the amount due up to 100%. Written monthly notice of the contribution to the worker.",
+				"owner": "Finance / BLI receipt; HR / monthly notice",
+				"authority": "勞工退休金條例 §14, §19, §21(1), §53 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=19). Engine computes the contribution; payment and notice are external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WITHHOLDING_TAX_REMITTANCE",
+				"description": "Remit salary, bonus and retirement-income (severance) withholding tax.",
+				"trigger": "Tax withheld from a payment",
+				"timing": "Residents: by the 10th of the following month. Non-residents: within ten days of withholding, filing the withholding certificate for verification at the same time.",
+				"owner": "Finance / national treasury payment receipt",
+				"authority": "所得稅法 §88, §92 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92), §114 penalties (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=114). Engine computes the withholding; remittance is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "ANNUAL_WITHHOLDING_STATEMENTS",
+				"description": "File withholding certificates (各類所得扣繳暨免扣繳憑單) for all salary and retirement income paid in the year, including payments below the withholding threshold, and issue them to employees.",
+				"trigger": "Calendar-year end, or dissolution, merger or transfer of the business",
+				"timing": "File by 31 January and issue to the payee by 10 February (5 February / 15 February where January has three or more consecutive holidays); on dissolution, issue at once and file within ten days.",
+				"owner": "Finance / accepted filing and delivery record",
+				"authority": "所得稅法 §89(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=89), §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92), §111, §114",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WAGE_PAYMENT_AND_PAYSLIP",
+				"description": "Pay wages at least twice a month unless monthly (or advance) payment is agreed, in legal tender, in full and directly, with an itemised statement: agreed total wage, each item paid, each deduction and the net paid.",
+				"trigger": "Each pay date",
+				"timing": "At least twice monthly unless monthly payment is agreed; statement with every payment (paper or electronic).",
+				"owner": "Payroll / payslip and bank transfer record",
+				"authority": "勞動基準法 §22, §23(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23); 施行細則 §14-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=14-1). Engine produces the itemised payslip; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_ROSTER_RETENTION",
+				"description": "Keep a wage roster (工資清冊) with wages paid, each item’s calculation and totals, including each year’s annual-leave dates and unused-leave pay.",
+				"trigger": "Every payment",
+				"timing": "Retain for five years.",
+				"owner": "Payroll / wage roster",
+				"authority": "勞動基準法 §23(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23), §38(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "ATTENDANCE_RECORDS",
+				"description": "Keep attendance records to the minute and provide a copy on the worker’s request.",
+				"trigger": "Every working day",
+				"timing": "Record daily to the minute; retain for five years.",
+				"owner": "HR / time and attendance record",
+				"authority": "勞動基準法 §30(5)–(6) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "INSURANCE_AND_PENSION_RECORDS",
+				"description": "Keep the employee register, attendance and payroll records for insurance, and the pension register (hire, departure, attendance, wages, monthly contributions, pension-system election documents).",
+				"trigger": "Employment",
+				"timing": "Retain for five years from the worker’s departure.",
+				"owner": "HR / employee and pension registers",
+				"authority": "勞工保險條例 §10(3)–(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=10); 勞工退休金條例 §21(2)–(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=21)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "EMPLOYMENT_CONTRACT_TERMS",
+				"description": "Agree the statutory contract terms: place and work, hours, rest and leave, wage calculation and pay dates, termination, severance and retirement, bonuses and allowances, and the other listed matters.",
+				"trigger": "Hire or amendment of terms",
+				"timing": "At contract formation.",
+				"owner": "HR / signed contract",
+				"authority": "勞動基準法施行細則 §7 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WORK_RULES_FILING",
+				"description": "An employer of thirty or more workers draws up work rules, files them with the competent authority and posts them.",
+				"trigger": "Thirty or more workers; amendment of the rules",
+				"timing": "Within thirty days of reaching thirty workers (施行細則 §37); post after approval.",
+				"owner": "HR / approved work rules",
+				"authority": "勞動基準法 §70 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=70)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "LABOUR_MANAGEMENT_CONFERENCE",
+				"description": "Hold labour-management conferences, the body whose consent governs flexible hours, overtime extension and rest-day adjustment where there is no union.",
+				"trigger": "Establishment of a business unit",
+				"timing": "At least once every three months.",
+				"owner": "HR / minutes",
+				"authority": "勞動基準法 §83 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=83); 勞資會議實施辦法 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020008&flno=18)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OVERTIME_CONSENT_AND_FILING",
+				"description": "Obtain union (or labour-management conference) consent before extending working hours; an employer of thirty or more using the 54-hour month / 138-hour quarter ceiling files it with the local authority; post the arrangement.",
+				"trigger": "Overtime is required",
+				"timing": "Before overtime is worked; filing where thirty or more workers; announce under 施行細則 §20.",
+				"owner": "HR / consent minutes and filing receipt",
+				"authority": "勞動基準法 §32(1)–(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32); 施行細則 §20 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=20). Engine applies the monthly and quarterly caps from the entity fact `overtime_consent`.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "EMERGENCY_WORK_NOTICE",
+				"description": "Overtime for natural disaster, incident or emergency: notify the union within 24 hours of the start (or report to the local authority), paying extended hours at double; suspension of rest days and holidays: report within 24 hours after, pay double and give rest afterwards.",
+				"trigger": "Emergency extension of hours or suspension of rest days and holidays",
+				"timing": "Within 24 hours; compensatory rest afterwards.",
+				"owner": "HR / notice and rest record",
+				"authority": "勞動基準法 §24(1)(3), §32(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32), §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=40)",
+				"status": "EXTERNAL"
 			},
 			{
 				"code": "COMPENSATORY_REST_FOR_STATUTORY",
@@ -498,22 +1118,130 @@
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "OLD_SYSTEM_PENSION_RESERVE",
-				"description": "Old-system pension reserve and committee duties",
-				"trigger": "Employer retains workers covered by the old system",
-				"timing": "Employer retains workers covered by the old system",
-				"owner": "Finance / applicability assessment and reserve records",
-				"authority": "External; LSA article 56 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"code": "OVERTIME_COMP_TIME_SETTLEMENT",
+				"description": "Where a worker chose compensatory time off for overtime or rest-day work, pay the untaken hours at that day’s overtime rate when the agreed period expires or the contract ends.",
+				"trigger": "Expiry of the agreed comp-time period or contract termination",
+				"timing": "On expiry or termination (the pay-date rule of 施行細則 §22-2).",
+				"owner": "HR records 補休 taken (COMPENSATORY_TIME_OFF); payroll keeps the balance and pays it",
+				"authority": "勞動基準法 §32-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1); 施行細則 §22-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
+				"description": "Tell the worker of the annual-leave entitlement, pay unused days at year end or termination, and give the yearly written notice of leave dates and unused-leave pay.",
+				"trigger": "Worker qualifies for annual leave; year end, agreed carry-forward expiry or contract termination",
+				"timing": "Notice within thirty days of qualifying; year-end pay on the agreed pay day or within thirty days after the year end; termination pay immediately; the written notice before that pay deadline.",
+				"owner": "HR and Payroll / leave statement, wage basis and payment",
+				"authority": "Partial; LSA §38(3)–(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38); Enforcement Rules §24, §24-1, §24-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1). Engine values the cash-out; notices are external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_NOTICE",
+				"description": "Give notice before terminating under §11 or the §13 proviso — ten days (three months to one year’s service), twenty (one to three years), thirty (three years or more) — allow job-search leave of up to two days a week on full pay, or pay wages for the notice not given.",
+				"trigger": "Employer termination under §11 or §13 proviso",
+				"timing": "Before the termination by the notice period; unpaid notice owed at termination.",
+				"owner": "HR / notice letter; Payroll / notice pay",
+				"authority": "勞動基準法 §16 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16); 勞動部 109年10月29日勞動關2字第1090128292A號令. Engine prices notice pay from the declared notice days (`NOTICE_PAY`).",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "LAYOFF_REPORT",
+				"description": "Report each worker to be laid off (name, sex, age, address, telephone, job, reason, need for job counselling) to the local authority and the public employment service.",
+				"trigger": "Termination by the employer for redundancy (資遣)",
+				"timing": "Ten days before the worker leaves; within three days after leaving where the layoff is due to disaster, incident or force majeure.",
+				"owner": "HR / layoff report receipt",
+				"authority": "就業服務法 §33 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33)",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
-				"description": "Tax returns, annual employee statements and agency remittance",
-				"trigger": "Applicable authority's filing calendar",
-				"timing": "Applicable authority's filing calendar",
-				"owner": "Finance / accepted filing and payment receipts",
-				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
-				"status": "UNVERIFIED"
+				"code": "MASS_LAYOFF_PLAN",
+				"description": "For a mass layoff (thresholds by establishment size within sixty days), notify the layoff plan to the authority, the union, labour representatives and affected workers, and post it.",
+				"trigger": "A layoff reaching the Mass Layoff Act §2 thresholds",
+				"timing": "Sixty days before (not required for disaster, incident or emergency).",
+				"owner": "HR / layoff plan and notices",
+				"authority": "大量解僱勞工保護法 §2, §4 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020012&flno=4)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SEVERANCE_PAYMENT",
+				"description": "Pay severance: new-system seniority half a month’s average wage a year up to six months; retained old-system seniority one month’s average wage a year.",
+				"trigger": "Termination under LSA §11, §13 proviso, §14 or §20",
+				"timing": "Within thirty days of termination.",
+				"owner": "Payroll / severance calculation and payment",
+				"authority": "勞動基準法 §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17); 勞工退休金條例 §11(2), §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=12), §45-1 penalty. Engine prices severance from the declared termination ground and average wage.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "FINAL_WAGE_SETTLEMENT",
+				"description": "Settle all wages when the contract ends.",
+				"trigger": "Contract termination",
+				"timing": "Immediately (應即結清).",
+				"owner": "Payroll / final payslip and payment",
+				"authority": "勞動基準法施行細則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=9). Engine warns when the run pays after the deadline.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "SERVICE_CERTIFICATE",
+				"description": "Issue a certificate of service when the worker asks on termination.",
+				"trigger": "Termination and the worker’s request",
+				"timing": "On request; refusal is not permitted.",
+				"owner": "HR / certificate issued",
+				"authority": "勞動基準法 §19 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=19)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OLD_SYSTEM_PENSION_RESERVE",
+				"description": "For workers remaining on the old pension system, appropriate the monthly reserve (2–15% of wages), estimate the reserve each year end and top up any shortfall, with the supervisory committee.",
+				"trigger": "Employer retains old-system workers or retained old-system seniority",
+				"timing": "Monthly appropriation; year-end estimate; shortfall paid in one sum by the end of March of the following year; committee review.",
+				"owner": "Finance / Bank of Taiwan account, committee minutes",
+				"authority": "Partial; LSA §56 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=56). Engine computes the monthly appropriation from `pension_reserve_rate`; the year-end top-up is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "RETIREMENT_PAYMENT",
+				"description": "Pay old-system retirement pay (two bases a year for the first fifteen years, one thereafter, maximum 45, on the average wage at approved retirement).",
+				"trigger": "Retirement of a worker with old-system seniority",
+				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
+				"owner": "Finance / retirement pay record",
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
+				"description": "Compensate occupational injury: medical costs, original wages during treatment, disability and death compensation (offsettable against insurance paid by the employer).",
+				"trigger": "Occupational accident or disease",
+				"timing": "During treatment (wage compensation on the normal pay dates); lump sums on assessment.",
+				"owner": "HR and Finance / accident record and payments",
+				"authority": "勞動基準法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59). Engine pays occupational injury leave at the full wage; other compensation is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PARENTAL_LEAVE_INSURANCE_CONTINUATION",
+				"description": "During 育嬰留職停薪 the worker may continue the original social insurance: the employer share is waived and the worker’s share may be deferred for three years; reinstate the worker at the end of the leave.",
+				"trigger": "Parental leave without pay",
+				"timing": "For the leave period; reinstatement at its end.",
+				"owner": "HR / insurance continuation and reinstatement record",
+				"authority": "性別平等工作法 §16, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=16); The engine does not model insurance continuation during the leave.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MINIMUM_WAGE",
+				"description": "Pay at least the monthly and hourly minimum wage announced under the Minimum Wage Act (effective 1 January of the following year unless another date is approved).",
+				"trigger": "Every wage agreement and each new minimum wage announcement",
+				"timing": "From the announced commencement date.",
+				"owner": "HR / contract terms",
+				"authority": "最低工資法 §4, §5, §14, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5). Engine warns when a monthly, daily or hourly contract falls below the version’s floor.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "FOREIGN_WORKER_EMPLOYMENT_STABILISATION_FEE",
+				"description": "Pay the employment stabilisation fee for foreign workers employed in 就業服務法 §46(1)(8)–(10) work (e.g. manufacturing, construction, caregiving), and hold valid work permits.",
+				"trigger": "Employment of a permitted foreign worker",
+				"timing": "Monthly per the authority’s bill; thirty-day grace, then 0.3% a day to 30%.",
+				"owner": "Finance / fee payment; HR / work permit",
+				"authority": "就業服務法 §43, §55, §57 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=55)",
+				"status": "EXTERNAL"
 			},
 			{
 				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
@@ -523,6 +1251,49 @@
 				"owner": "HR / applicable-law register, permits and retained evidence",
 				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
 				"status": "EXTERNAL"
+			},
+			{
+				"code": "FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE",
+				"description": "Foreign professionals and specialist professionals enter the new labour pension system without permanent residence; those already employed may elect in writing within six months to keep the LSA pension. Permanent-resident foreign professionals, specialist and senior professionals enter employment insurance.",
+				"trigger": "Amendment of 2025-08-29 in force 1 January 2026; hire of a foreign professional; grant of permanent residence",
+				"timing": "Pension: new hires from the hire date; existing workers’ written election within six months of commencement (by 30 June 2026), otherwise register contributions within fifteen days after that period. Employment insurance: enrol on commencement day for existing permanent residents, or on the day permanent residence is granted.",
+				"owner": "HR / election record, BLI pension and employment-insurance registration",
+				"authority": "External; 外國專業人才延攬及僱用法 §24, §25 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030295&flno=24 ; https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030295&flno=25); 勞動部 Q&A https://www.mol.gov.tw/1607/28690/2282/2302/2316/86977/post",
+				"status": "EXTERNAL"
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "lsa_termination_ground",
+				"type": "string",
+				"label": "勞基法 termination ground",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+			},
+			{
+				"key": "average_daily_wage",
+				"type": "number",
+				"label": "Average daily wage (平均工資)",
+				"description": "勞基法 §2(4): wages received in the six months before the termination day divided by the total days, excluding the periods in 施行細則 §2. Severance is 30 times this a month. Absent, a monthly-paid employee’s is read from the payslips; a daily or hourly one states it, since §2(4)’s proviso floors it at 60% of wages over the days actually worked.",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] && terms.pay_frequency != \"MONTHLY\" && terms.pay_frequency != \"SEMI_MONTHLY\""
+			},
+			{
+				"key": "old_system_service_months",
+				"type": "number",
+				"label": "Retained old-system seniority (months)",
+				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "notice_days_given",
+				"type": "number",
+				"label": "Notice days given",
+				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
 			}
 		]
 	},
@@ -548,14 +1319,20 @@
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
+					"label": "EMERGENCY-2.0X",
+					"when": "day_type == \"ORDINARY\" && emergency_cause",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
 					"label": "OT-1.3333333333333333X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && !emergency_cause && !time_off_in_lieu",
 					"take_hours": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
 					"price_amount": "hours * ordinary_hour * 1.3333333333333333"
 				},
 				{
 					"label": "OT-1.6666666666666667X",
-					"when": "day_type == \"ORDINARY\"",
+					"when": "day_type == \"ORDINARY\" && !emergency_cause && !time_off_in_lieu",
 					"take_hours": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
 				},
@@ -567,13 +1344,13 @@
 				},
 				{
 					"label": "OT-1.3333333333333333X",
-					"when": "day_type == \"REST_DAY\"",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
 					"take_hours": "(overtime_hours < 2.0 ? overtime_hours : 2.0)",
 					"price_amount": "hours * ordinary_hour * 1.3333333333333333"
 				},
 				{
 					"label": "OT-1.6666666666666667X",
-					"when": "day_type == \"REST_DAY\"",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
 					"take_hours": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0)",
 					"price_amount": "hours * ordinary_hour * 1.6666666666666667"
 				},
@@ -606,27 +1383,33 @@
 				},
 				{
 					"key": "monthly_ot",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 46,
 					"unit": "WORKED_HOURS",
-					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)"
+					"when": "!(has(company.facts.overtime_consent) && company.facts.overtime_consent)",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "quarterly_ot",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "QUARTER",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 138,
-					"unit": "WORKED_HOURS"
+					"unit": "WORKED_HOURS",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "monthly_ot_consent",
+					"counts_day_when": "day_type == \"REST_DAY\" && !statutory_rest",
 					"period": "MONTH",
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 54,
 					"unit": "WORKED_HOURS",
 					"when": "has(company.facts.overtime_consent) && company.facts.overtime_consent",
-					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter"
+					"authority": "勞基法 §32(2): 54 overtime hours a month where a union or the labour-management conference consents, inside the 138-hour quarter",
+					"counts_beyond_normal_when": "day_type == \"PUBLIC_HOLIDAY\" || statutory_rest"
 				},
 				{
 					"key": "weekly_normal",
@@ -656,22 +1439,38 @@
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`).",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
 					"Taiwan": 29500
 				},
-				"applies_when": "employment.type != \"INTERN\""
+				"hourly_by_region": {
+					"Taiwan": 196
+				},
+				"applies_when": "employment.type != \"INTERN\"",
+				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
+				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure."
+			},
+			"ordinary_rate_reference": {
+				"reference": "LATEST_DUE_MONTH",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY"],
+				"authority": "勞動基準法施行細則 §24-1(2)(1)(2): 一日工資，為勞工之特別休假於年度終結或契約終止前一日之正常工作時間所得之工資。其為計月者，為年度終結或契約終止前最近一個月正常工作時間所得之工資除以三十所得之金額 — the normal-hours wage actually earned in the latest month, read from that month's payslips (the wage and each normal-hours allowance as prorated, a class marked WAGES such as commission, less unpaid days; overtime is not normal-hours pay). A mid-month raise and variable normal-hours pay are therefore the month's own figures. A month no payslip settled is read from an approved employment_wage_periods record. Daily and hourly wages keep the preceding day's agreed normal wage (encashment.day_amount). https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1"
 			},
 			"encashment": {
 				"reference": "PREVIOUS_DAY_OR_MONTH",
-				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
 				"preserve_year_end_rate": true,
-				"day_amount": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"DAILY\" ? terms.basic_salary + terms.fixed_allowances / 30.0 : terms.monthly_wage / 30.0",
+				"day_amount": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.working_days_per_week + terms.fixed_allowances / 30.0 : terms.pay_frequency == \"DAILY\" ? terms.basic_salary + terms.fixed_allowances / 30.0 : terms.monthly_wage / 30.0",
 				"include_allowances": [],
 				"exclude_allowances": [],
-				"authority": "Labor Standards Act article 38(4); Enforcement Rules article 24-1(2). Monthly normal-working-hours pay uses the latest completed wage month, divided by 30. Hourly or daily pay uses the preceding day’s agreed normal working wage; a NT$200 hourly worker with four normal hours receives NT$800 per unused day. Carried leave preserves the original year-end valuation. Normal-hours wage allowances must be classified explicitly. Source: https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+				"authority": "Labor Standards Act article 38(4); Enforcement Rules article 24-1(2). Monthly normal-working-hours pay uses the latest completed wage month, divided by 30. Hourly, daily or weekly pay uses the preceding day’s agreed normal working wage — only a wage 計月 is divided by thirty (§24-1(2)(1)(2): 其為計月者 ... 除以三十), so a weekly wage is not converted to a month; its day is the week’s normal-hours wage over the contract’s normal working days in that week; a NT$200 hourly worker with four normal hours receives NT$800 per unused day. Carried leave preserves the original year-end valuation. Normal-hours wage allowances must be classified explicitly. Source: https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+			},
+			"time_off_in_lieu": {
+				"leave_code": "COMPENSATORY_TIME_OFF",
+				"year_leave_code": "ANNUAL_LEAVE",
+				"expiry_months": "has(company.facts.time_off_in_lieu_months) ? double(company.facts.time_off_in_lieu_months) : 0.0",
+				"authority": "勞動基準法第32條之1 — where the worker chooses 補休 for a §32(1)–(2) extension or 休息日 work and the employer agrees, the hours are credited hour for hour; 補休期限由勞雇雙方協商, and hours untaken at the expiry or on termination are paid at that day's overtime rates (§32-1(2)). 施行細則第22條之2: 補休 is taken in the order the hours were worked (oldest first); an agreed period ending after the last day of the §24(2) annual-leave year ends on that day; the pay is due on the agreed pay day or within 30 days of expiry, and under §9 (immediately) on termination. MOL 加班補休規定 Q&A: the end of the annual-leave year is the final deadline and cannot be deferred. Payroll keeps the balance: each elected hour is credited on the payslip that settles its day at what its band would have paid; hours HR records as COMPENSATORY_TIME_OFF leave consume the oldest unexpired credit; a credit expires `time_off_in_lieu_months` (entity fact, the agreement) after its day, never later than the end of the ANNUAL_LEAVE year, and what is left is paid in the run whose salary window reaches the expiry or the exit. Sources: https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1 ; https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2 ; https://www.mol.gov.tw/1607/28162/28166/28180/28198/28202/"
 			}
 		},
 		"payroll": {
@@ -702,57 +1501,266 @@
 				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340028",
 				"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
 				"https://data.gov.tw/dataset/20251",
-				"https://www.bli.gov.tw/Files/25659",
+				"https://www.bli.gov.tw/Files/25661",
 				"https://www.bli.gov.tw/Files/25664",
 				"https://www.bli.gov.tw/Files/25669",
-				"https://www.bli.gov.tw/Files/25697",
+				"https://www.bli.gov.tw/Files/25696",
 				"https://www.bli.gov.tw/Files/25709",
 				"https://www.bli.gov.tw/0011588.html",
 				"https://www.bli.gov.tw/0014162.htm",
 				"https://www.mol.gov.tw/1607/1632/1633/",
 				"https://www.mol.gov.tw/1607/1632/1633/84947/post",
-				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe",
-				"https://www.dgpa.gov.tw/information?uid=41&pid=12573",
+				"https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802",
 				"https://www.bli.gov.tw/0005472.htm",
 				"https://www.bli.gov.tw/0006928.html",
 				"https://www.bli.gov.tw/0106129.html",
 				"https://www.nhi.gov.tw/ch/cp-2985-e7319-3150-1.html",
 				"https://www.nhi.gov.tw/ch/dl-64814-5f26c2b955c24ebbbbf1479877ecfb7e-1.pdf",
-				"https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true"
+				"https://www.mol.gov.tw/media/yqoj1nut/勞基法新制上路不動產經紀業調適指引.pdf?mediaDL=true",
+				"https://www.bli.gov.tw/0005475.html",
+				"https://www.bli.gov.tw/0106148.html",
+				"https://www.dot.gov.tw/singlehtml/ch_313?cntId=3783c45ec28543838fe285d06d00f3b8",
+				"https://www.dgpa.gov.tw/information?uid=30&pid=12982",
+				"https://www.dgpa.gov.tw/information?uid=30&pid=12573",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030028",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050002",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340013",
+				"https://law.moj.gov.tw/News/NewsList.aspx",
+				"https://law.moj.gov.tw/Hot/HOT_LAWWORD.ashx?ty=NEWS&kw=勞動部",
+				"https://www.mol.gov.tw/1607/1632/1633/RssList",
+				"https://www.mol.gov.tw/1607/1632/2665/RssList",
+				"https://www.bli.gov.tw/news.xml",
+				"https://www.dot.gov.tw/Rss/ch26",
+				"https://www.dot.gov.tw/multiplehtml/06afbfc0e60e4ccb88f3f7f956aaacc7",
+				"https://www.dot.gov.tw/multiplehtml/ch_313",
+				"https://law-out.mof.gov.tw/",
+				"https://gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=8",
+				"https://gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=4",
+				"https://www.mohw.gov.tw/lp-18-1.html",
+				"https://www.dgpa.gov.tw/informationlist?uid=30"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlaw.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050031, 各類所得扣繳率標準 G0340028, 所得稅法 G0340003, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718).\n\nFinding changes (read these before comparing, every run):\nEach month read law.moj.gov.tw/News/NewsList.aspx?psize=60, which lists the last year of changes newest first; ?type=q shows drafts (預告). Flag 勞動部, 財政部 and 衛生福利部 items that touch 勞動基準法, 勞工請假規則, 最低工資, 勞工保險/就業保險/職災保險, 勞工退休金, 全民健康保險, 所得稅法, 扣繳 or 紀念日及節日. GET keyword search works: law.moj.gov.tw/Hot/HOT_LAWWORD.ashx?ty=NEWS&kw=<詞> for news, and law.moj.gov.tw/Law/LawSearchResult.aspx?ty=ONEBAR&kw=<詞> for laws. /LawClass/LawHistory.aspx?pcode=<code> gives amendment dates. Then read the RSS feeds: mol.gov.tw/1607/1632/1633/RssList (新聞稿, where the 最低工資審議 result and 勞保費率 appear), bli.gov.tw/news.xml, and dot.gov.tw/Rss/ch26. Every November check dot.gov.tw/multiplehtml/06afbfc0e60e4ccb88f3f7f956aaacc7 for next year's 扣除額. Every December check dot.gov.tw/multiplehtml/ch_313 for the next 薪資所得扣繳稅額表. Also check the BLI index pages 0005475/0106148/0011588 for the next 分級表. Formal 公告 are in 行政院公報 at gazette.nat.gov.tw/egFront/advancedSearchResult.do?action=doQuery&chapter=8 (衛生勞動) and &chapter=4 (財政經濟). nhi.gov.tw sits behind a Cloudflare challenge, so use info.nhi.gov.tw/api or data.gov.tw and mohw.gov.tw/lp-18-1.html for the NHI rate. BLI /Files ids are .docx/.ods/.pdf siblings, so cite the one the index labels (pdf). A press release announcing a 預告 or a 審議 result is pending until the 公告 or 令 is gazetted."
 		},
 		"facts": [
 			{
 				"key": "overtime_consent",
 				"type": "boolean",
-				"label": "Overtime consent"
+				"label": "Overtime consent",
+				"default_value": false,
+				"description": "勞動基準法 §32(2): a month's overtime may exceed 46 hours, to 54 (138 a quarter), only with the consent of the union or, where there is none, the labour-management conference. Unrecorded is no consent — the statute's own 46-hour month."
 			},
 			{
 				"key": "shift_or_continuous_work",
 				"type": "boolean",
-				"label": "Shift or continuous work"
+				"label": "Shift or continuous work",
+				"default_value": false,
+				"description": "勞動基準法 §35: 勞工繼續工作四小時，至少應有三十分鐘之休息。但實行輪班制或其工作有連續性或緊急性者，雇主得在工作時間內，另行調配其休息時間 — true where the entity runs shifts or continuous work and so rearranges the break inside working time. Unrecorded is the rule, not its exception: false."
 			},
 			{
 				"key": "responsibility_system",
 				"type": "boolean",
-				"label": "Approved responsibility system"
+				"label": "Approved responsibility system",
+				"default_value": false,
+				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
 				"key": "pension_reserve_rate",
 				"type": "number",
-				"label": "Pension reserve rate"
+				"label": "Pension reserve rate",
+				"minimum": 2,
+				"maximum": 15,
+				"description": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內，按月提撥勞工退休準備金 — the percentage the competent authority approved for this entity's 勞工退休準備金. Required once the entity has a worker on the old (LSA) pension system: the LABOR_PENSION_RESERVE scheme refuses the run by name while it is unrecorded; an entity with no such worker leaves it blank."
+			},
+			{
+				"key": "time_off_in_lieu_months",
+				"type": "number",
+				"label": "Agreed 補休 period (months)",
+				"description": "勞動基準法 §32-1(2): 補休期限由勞雇雙方協商 — the months after the day worked within which hours elected as 補休 are to be taken, as the worker and the employer agreed. Leave it unrecorded where no period was agreed: 施行細則 §22-2(1) and MOL's 加班補休規定 Q&A make the last day of the annual-leave year the final deadline, which also caps any longer agreement.",
+				"minimum": 1,
+				"integer": true
 			}
 		],
 		"obligations": [
 			{
-				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
-				"description": "Unused annual leave settlement and employee records",
-				"trigger": "Year end, agreed carry-forward expiry or contract termination",
-				"timing": "Year end, agreed carry-forward expiry or contract termination",
-				"owner": "HR and Payroll / leave statement, wage basis and payment",
-				"authority": "Partial; LSA article 38 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930), Enforcement Rules article 24-1 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0202.aspx?flno=1-51&id=FL014931)",
+				"code": "LABOUR_EMPLOYMENT_INSURANCE_ENROLMENT",
+				"description": "Enrol and withdraw each worker in labour insurance and, where covered (nationals and foreign spouses of household-registered nationals, 就業保險法 §5), employment insurance.",
+				"trigger": "Hire, departure, start or end of unpaid leave that suspends cover",
+				"timing": "On the day of hire and on the day of leaving (列表通知保險人 當日); a late enrolment starts cover only from the day after notice.",
+				"owner": "HR / BLI enrolment and withdrawal notices",
+				"authority": "勞工保險條例 §6, §11 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11); 就業保險法 §5, §6(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=6)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OCCUPATIONAL_ACCIDENT_INSURANCE_ENROLMENT",
+				"description": "Enrol and withdraw each employee (including those over 65 and foreign workers) in occupational accident insurance.",
+				"trigger": "Hire or departure",
+				"timing": "On the day of hire and on the day of leaving.",
+				"owner": "HR / BLI enrolment and withdrawal notices",
+				"authority": "勞工職業災害保險及保護法 §6, §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "NHI_ENROLMENT",
+				"description": "Enrol the employee (and the dependants the employee elects to enrol with the unit) in national health insurance, and withdraw on departure.",
+				"trigger": "Employee meets enrolment conditions; departure or other withdrawal cause",
+				"timing": "Within three days of meeting the conditions; withdrawal within three days of the cause.",
+				"owner": "HR / NHIA enrolment and withdrawal filings",
+				"authority": "全民健康保險法 §15(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "LABOUR_PENSION_REGISTRATION",
+				"description": "Register the start and end of labour pension contributions for each covered worker, and stop contributions during unpaid leave, military service or suspension.",
+				"trigger": "Hire, departure, reinstatement, death, 留職停薪",
+				"timing": "Within seven days of the event (列表通知勞保局); 留職停薪 stop within seven days in writing.",
+				"owner": "HR / BLI pension start/stop notices",
+				"authority": "勞工退休金條例 §7, §16, §18, §20(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "INSURED_SALARY_ADJUSTMENT",
+				"description": "Report changed monthly insured salary / contribution wage for labour, employment and occupational accident insurance, labour pension and NHI.",
+				"trigger": "A salary change",
+				"timing": "Changes in February–July by 31 August; changes in August–January by the end of the following February; effective the first day of the month after notice.",
+				"owner": "HR / grade adjustment filings with BLI and NHIA",
+				"authority": "勞工保險條例 §14(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=14); 勞工職業災害保險及保護法 §17(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=17); 勞工退休金條例 §15(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=15); 全民健康保險法 §21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=21)",
 				"status": "PARTIAL"
+			},
+			{
+				"code": "INSURANCE_PREMIUM_REMITTANCE",
+				"description": "Pay labour, employment and occupational accident insurance premiums (employee share deducted plus the employer share) and the wage-arrears fund levy on the BLI bill.",
+				"trigger": "Monthly BLI bill",
+				"timing": "By the end of the following month; fifteen-day grace; late fee 0.1% a day to 20% (labour/employment insurance) and 0.2% a day to 20% (occupational accident insurance).",
+				"owner": "Finance / BLI payment receipt",
+				"authority": "勞工保險條例 §16, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=16); 就業保險法 §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=40); 勞工職業災害保險及保護法 §20, §21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=20); 勞動基準法 §28(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=28). Engine computes the premiums and levy; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "NHI_PREMIUM_REMITTANCE",
+				"description": "Pay NHI regular premiums (employee and dependant shares deducted plus the employer share) and the employer supplementary premium.",
+				"trigger": "Monthly NHIA bill",
+				"timing": "By the end of the following month; the employer supplementary premium is paid with the regular premium; fifteen-day grace, then 0.1% a day to 15%.",
+				"owner": "Finance / NHIA payment receipt",
+				"authority": "全民健康保險法 §30, §34, §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=30). Engine computes the premiums; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "NHI_SUPPLEMENTARY_PREMIUM_WITHHOLDING",
+				"description": "Withhold the 2.11% supplementary premium on bonuses above four times the insured amount (and on salary paid to a person not insured through this employer), remit it, and report the annual deduction details.",
+				"trigger": "Payment of a bonus or of salary to a person insured elsewhere",
+				"timing": "Withhold at payment; remit by the end of the month after payment; report deduction details (扣費明細) by 31 January of the following year (5 February where January has three or more consecutive holidays), or within ten days on dissolution.",
+				"owner": "Payroll and Finance / remittance and 扣費明細",
+				"authority": "全民健康保險法 §31 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=31); 全民健康保險扣取及繳納補充保險費辦法 §10 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060027&flno=10). Engine withholds the bonus premium; salary paid to a person insured elsewhere is not assessed.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "LABOUR_PENSION_REMITTANCE",
+				"description": "Pay the employer 6% contribution and the worker’s voluntary contribution on the BLI bill, and notify each worker monthly of the amount contributed.",
+				"trigger": "Monthly BLI pension bill (sent by the 25th of the following month)",
+				"timing": "By the end of the month after the bill month (再次月底前); late fee 3% a day of the amount due up to 100%. Written monthly notice of the contribution to the worker.",
+				"owner": "Finance / BLI receipt; HR / monthly notice",
+				"authority": "勞工退休金條例 §14, §19, §21(1), §53 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=19). Engine computes the contribution; payment and notice are external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WITHHOLDING_TAX_REMITTANCE",
+				"description": "Remit salary, bonus and retirement-income (severance) withholding tax.",
+				"trigger": "Tax withheld from a payment",
+				"timing": "Residents: by the 10th of the following month. Non-residents: within ten days of withholding, filing the withholding certificate for verification at the same time.",
+				"owner": "Finance / national treasury payment receipt",
+				"authority": "所得稅法 §88, §92 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92), §114 penalties (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=114). Engine computes the withholding; remittance is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "ANNUAL_WITHHOLDING_STATEMENTS",
+				"description": "File withholding certificates (各類所得扣繳暨免扣繳憑單) for all salary and retirement income paid in the year, including payments below the withholding threshold, and issue them to employees.",
+				"trigger": "Calendar-year end, or dissolution, merger or transfer of the business",
+				"timing": "File by 31 January and issue to the payee by 10 February (5 February / 15 February where January has three or more consecutive holidays); on dissolution, issue at once and file within ten days.",
+				"owner": "Finance / accepted filing and delivery record",
+				"authority": "所得稅法 §89(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=89), §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92), §111, §114",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WAGE_PAYMENT_AND_PAYSLIP",
+				"description": "Pay wages at least twice a month unless monthly (or advance) payment is agreed, in legal tender, in full and directly, with an itemised statement: agreed total wage, each item paid, each deduction and the net paid.",
+				"trigger": "Each pay date",
+				"timing": "At least twice monthly unless monthly payment is agreed; statement with every payment (paper or electronic).",
+				"owner": "Payroll / payslip and bank transfer record",
+				"authority": "勞動基準法 §22, §23(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23); 施行細則 §14-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=14-1). Engine produces the itemised payslip; payment is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_ROSTER_RETENTION",
+				"description": "Keep a wage roster (工資清冊) with wages paid, each item’s calculation and totals, including each year’s annual-leave dates and unused-leave pay.",
+				"trigger": "Every payment",
+				"timing": "Retain for five years.",
+				"owner": "Payroll / wage roster",
+				"authority": "勞動基準法 §23(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23), §38(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "ATTENDANCE_RECORDS",
+				"description": "Keep attendance records to the minute and provide a copy on the worker’s request.",
+				"trigger": "Every working day",
+				"timing": "Record daily to the minute; retain for five years.",
+				"owner": "HR / time and attendance record",
+				"authority": "勞動基準法 §30(5)–(6) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "INSURANCE_AND_PENSION_RECORDS",
+				"description": "Keep the employee register, attendance and payroll records for insurance, and the pension register (hire, departure, attendance, wages, monthly contributions, pension-system election documents).",
+				"trigger": "Employment",
+				"timing": "Retain for five years from the worker’s departure.",
+				"owner": "HR / employee and pension registers",
+				"authority": "勞工保險條例 §10(3)–(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=10); 勞工退休金條例 §21(2)–(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=21)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "EMPLOYMENT_CONTRACT_TERMS",
+				"description": "Agree the statutory contract terms: place and work, hours, rest and leave, wage calculation and pay dates, termination, severance and retirement, bonuses and allowances, and the other listed matters.",
+				"trigger": "Hire or amendment of terms",
+				"timing": "At contract formation.",
+				"owner": "HR / signed contract",
+				"authority": "勞動基準法施行細則 §7 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WORK_RULES_FILING",
+				"description": "An employer of thirty or more workers draws up work rules, files them with the competent authority and posts them.",
+				"trigger": "Thirty or more workers; amendment of the rules",
+				"timing": "Within thirty days of reaching thirty workers (施行細則 §37); post after approval.",
+				"owner": "HR / approved work rules",
+				"authority": "勞動基準法 §70 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=70)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "LABOUR_MANAGEMENT_CONFERENCE",
+				"description": "Hold labour-management conferences, the body whose consent governs flexible hours, overtime extension and rest-day adjustment where there is no union.",
+				"trigger": "Establishment of a business unit",
+				"timing": "At least once every three months.",
+				"owner": "HR / minutes",
+				"authority": "勞動基準法 §83 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=83); 勞資會議實施辦法 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020008&flno=18)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OVERTIME_CONSENT_AND_FILING",
+				"description": "Obtain union (or labour-management conference) consent before extending working hours; an employer of thirty or more using the 54-hour month / 138-hour quarter ceiling files it with the local authority; post the arrangement.",
+				"trigger": "Overtime is required",
+				"timing": "Before overtime is worked; filing where thirty or more workers; announce under 施行細則 §20.",
+				"owner": "HR / consent minutes and filing receipt",
+				"authority": "勞動基準法 §32(1)–(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32); 施行細則 §20 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=20). Engine applies the monthly and quarterly caps from the entity fact `overtime_consent`.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "EMERGENCY_WORK_NOTICE",
+				"description": "Overtime for natural disaster, incident or emergency: notify the union within 24 hours of the start (or report to the local authority), paying extended hours at double; suspension of rest days and holidays: report within 24 hours after, pay double and give rest afterwards.",
+				"trigger": "Emergency extension of hours or suspension of rest days and holidays",
+				"timing": "Within 24 hours; compensatory rest afterwards.",
+				"owner": "HR / notice and rest record",
+				"authority": "勞動基準法 §24(1)(3), §32(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32), §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=40)",
+				"status": "EXTERNAL"
 			},
 			{
 				"code": "COMPENSATORY_REST_FOR_STATUTORY",
@@ -764,22 +1772,130 @@
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "OLD_SYSTEM_PENSION_RESERVE",
-				"description": "Old-system pension reserve and committee duties",
-				"trigger": "Employer retains workers covered by the old system",
-				"timing": "Employer retains workers covered by the old system",
-				"owner": "Finance / applicability assessment and reserve records",
-				"authority": "External; LSA article 56 (https://laws.mol.gov.tw/Eng/PrintFLAWDAT0201.aspx?id=FL014930)",
+				"code": "OVERTIME_COMP_TIME_SETTLEMENT",
+				"description": "Where a worker chose compensatory time off for overtime or rest-day work, pay the untaken hours at that day’s overtime rate when the agreed period expires or the contract ends.",
+				"trigger": "Expiry of the agreed comp-time period or contract termination",
+				"timing": "On expiry or termination (the pay-date rule of 施行細則 §22-2).",
+				"owner": "HR records 補休 taken (COMPENSATORY_TIME_OFF); payroll keeps the balance and pays it",
+				"authority": "勞動基準法 §32-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1); 施行細則 §22-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
+				"description": "Tell the worker of the annual-leave entitlement, pay unused days at year end or termination, and give the yearly written notice of leave dates and unused-leave pay.",
+				"trigger": "Worker qualifies for annual leave; year end, agreed carry-forward expiry or contract termination",
+				"timing": "Notice within thirty days of qualifying; year-end pay on the agreed pay day or within thirty days after the year end; termination pay immediately; the written notice before that pay deadline.",
+				"owner": "HR and Payroll / leave statement, wage basis and payment",
+				"authority": "Partial; LSA §38(3)–(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38); Enforcement Rules §24, §24-1, §24-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1). Engine values the cash-out; notices are external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_NOTICE",
+				"description": "Give notice before terminating under §11 or the §13 proviso — ten days (three months to one year’s service), twenty (one to three years), thirty (three years or more) — allow job-search leave of up to two days a week on full pay, or pay wages for the notice not given.",
+				"trigger": "Employer termination under §11 or §13 proviso",
+				"timing": "Before the termination by the notice period; unpaid notice owed at termination.",
+				"owner": "HR / notice letter; Payroll / notice pay",
+				"authority": "勞動基準法 §16 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16); 勞動部 109年10月29日勞動關2字第1090128292A號令. Engine prices notice pay from the declared notice days (`NOTICE_PAY`).",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "LAYOFF_REPORT",
+				"description": "Report each worker to be laid off (name, sex, age, address, telephone, job, reason, need for job counselling) to the local authority and the public employment service.",
+				"trigger": "Termination by the employer for redundancy (資遣)",
+				"timing": "Ten days before the worker leaves; within three days after leaving where the layoff is due to disaster, incident or force majeure.",
+				"owner": "HR / layoff report receipt",
+				"authority": "就業服務法 §33 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33)",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
-				"description": "Tax returns, annual employee statements and agency remittance",
-				"trigger": "Applicable authority's filing calendar",
-				"timing": "Applicable authority's filing calendar",
-				"owner": "Finance / accepted filing and payment receipts",
-				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
-				"status": "UNVERIFIED"
+				"code": "MASS_LAYOFF_PLAN",
+				"description": "For a mass layoff (thresholds by establishment size within sixty days), notify the layoff plan to the authority, the union, labour representatives and affected workers, and post it.",
+				"trigger": "A layoff reaching the Mass Layoff Act §2 thresholds",
+				"timing": "Sixty days before (not required for disaster, incident or emergency).",
+				"owner": "HR / layoff plan and notices",
+				"authority": "大量解僱勞工保護法 §2, §4 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020012&flno=4)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SEVERANCE_PAYMENT",
+				"description": "Pay severance: new-system seniority half a month’s average wage a year up to six months; retained old-system seniority one month’s average wage a year.",
+				"trigger": "Termination under LSA §11, §13 proviso, §14 or §20",
+				"timing": "Within thirty days of termination.",
+				"owner": "Payroll / severance calculation and payment",
+				"authority": "勞動基準法 §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17); 勞工退休金條例 §11(2), §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=12), §45-1 penalty. Engine prices severance from the declared termination ground and average wage.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "FINAL_WAGE_SETTLEMENT",
+				"description": "Settle all wages when the contract ends.",
+				"trigger": "Contract termination",
+				"timing": "Immediately (應即結清).",
+				"owner": "Payroll / final payslip and payment",
+				"authority": "勞動基準法施行細則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=9). Engine warns when the run pays after the deadline.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "SERVICE_CERTIFICATE",
+				"description": "Issue a certificate of service when the worker asks on termination.",
+				"trigger": "Termination and the worker’s request",
+				"timing": "On request; refusal is not permitted.",
+				"owner": "HR / certificate issued",
+				"authority": "勞動基準法 §19 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=19)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OLD_SYSTEM_PENSION_RESERVE",
+				"description": "For workers remaining on the old pension system, appropriate the monthly reserve (2–15% of wages), estimate the reserve each year end and top up any shortfall, with the supervisory committee.",
+				"trigger": "Employer retains old-system workers or retained old-system seniority",
+				"timing": "Monthly appropriation; year-end estimate; shortfall paid in one sum by the end of March of the following year; committee review.",
+				"owner": "Finance / Bank of Taiwan account, committee minutes",
+				"authority": "Partial; LSA §56 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=56). Engine computes the monthly appropriation from `pension_reserve_rate`; the year-end top-up is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "RETIREMENT_PAYMENT",
+				"description": "Pay old-system retirement pay (two bases a year for the first fifteen years, one thereafter, maximum 45, on the average wage at approved retirement).",
+				"trigger": "Retirement of a worker with old-system seniority",
+				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
+				"owner": "Finance / retirement pay record",
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
+				"description": "Compensate occupational injury: medical costs, original wages during treatment, disability and death compensation (offsettable against insurance paid by the employer).",
+				"trigger": "Occupational accident or disease",
+				"timing": "During treatment (wage compensation on the normal pay dates); lump sums on assessment.",
+				"owner": "HR and Finance / accident record and payments",
+				"authority": "勞動基準法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59). Engine pays occupational injury leave at the full wage; other compensation is external.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PARENTAL_LEAVE_INSURANCE_CONTINUATION",
+				"description": "During 育嬰留職停薪 the worker may continue the original social insurance: the employer share is waived and the worker’s share may be deferred for three years; reinstate the worker at the end of the leave.",
+				"trigger": "Parental leave without pay",
+				"timing": "For the leave period; reinstatement at its end.",
+				"owner": "HR / insurance continuation and reinstatement record",
+				"authority": "性別平等工作法 §16, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=16); The engine does not model insurance continuation during the leave.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MINIMUM_WAGE",
+				"description": "Pay at least the monthly and hourly minimum wage announced under the Minimum Wage Act (effective 1 January of the following year unless another date is approved).",
+				"trigger": "Every wage agreement and each new minimum wage announcement",
+				"timing": "From the announced commencement date.",
+				"owner": "HR / contract terms",
+				"authority": "最低工資法 §4, §5, §14, §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5). Engine warns when a monthly, daily or hourly contract falls below the version’s floor.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "FOREIGN_WORKER_EMPLOYMENT_STABILISATION_FEE",
+				"description": "Pay the employment stabilisation fee for foreign workers employed in 就業服務法 §46(1)(8)–(10) work (e.g. manufacturing, construction, caregiving), and hold valid work permits.",
+				"trigger": "Employment of a permitted foreign worker",
+				"timing": "Monthly per the authority’s bill; thirty-day grace, then 0.3% a day to 30%.",
+				"owner": "Finance / fee payment; HR / work permit",
+				"authority": "就業服務法 §43, §55, §57 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=55)",
+				"status": "EXTERNAL"
 			},
 			{
 				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
@@ -789,6 +1905,49 @@
 				"owner": "HR / applicable-law register, permits and retained evidence",
 				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
 				"status": "EXTERNAL"
+			},
+			{
+				"code": "FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE",
+				"description": "Foreign professionals and specialist professionals enter the new labour pension system without permanent residence; those already employed may elect in writing within six months to keep the LSA pension. Permanent-resident foreign professionals, specialist and senior professionals enter employment insurance.",
+				"trigger": "Amendment of 2025-08-29 in force 1 January 2026; hire of a foreign professional; grant of permanent residence",
+				"timing": "Pension: new hires from the hire date; existing workers’ written election within six months of commencement (by 30 June 2026), otherwise register contributions within fifteen days after that period. Employment insurance: enrol on commencement day for existing permanent residents, or on the day permanent residence is granted.",
+				"owner": "HR / election record, BLI pension and employment-insurance registration",
+				"authority": "External; 外國專業人才延攬及僱用法 §24, §25 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030295&flno=24 ; https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030295&flno=25); 勞動部 Q&A https://www.mol.gov.tw/1607/28690/2282/2302/2316/86977/post",
+				"status": "EXTERNAL"
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "lsa_termination_ground",
+				"type": "string",
+				"label": "勞基法 termination ground",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+			},
+			{
+				"key": "average_daily_wage",
+				"type": "number",
+				"label": "Average daily wage (平均工資)",
+				"description": "勞基法 §2(4): wages received in the six months before the termination day divided by the total days, excluding the periods in 施行細則 §2. Severance is 30 times this a month. Absent, a monthly-paid employee’s is read from the payslips; a daily or hourly one states it, since §2(4)’s proviso floors it at 60% of wages over the days actually worked.",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] && terms.pay_frequency != \"MONTHLY\" && terms.pay_frequency != \"SEMI_MONTHLY\""
+			},
+			{
+				"key": "old_system_service_months",
+				"type": "number",
+				"label": "Retained old-system seniority (months)",
+				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "notice_days_given",
+				"type": "number",
+				"label": "Notice days given",
+				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
 			}
 		]
 	}

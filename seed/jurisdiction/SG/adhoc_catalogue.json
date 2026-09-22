@@ -20,6 +20,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "8e009c7b-9a56-55d1-9346-af49e1c4032c",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
+		"code": "SALARY_IN_LIEU_OF_NOTICE",
+		"name": "Salary in lieu of notice",
+		"authority": "Employment Act 1968 s.11(1): either party may end the contract without notice by paying the salary at the gross rate of pay that would have accrued over the notice period (s.10(3), where the contract states none: one day under 26 weeks' service, one week under two years, two weeks under five, four weeks from five); raised by HR with the amount, since MOM states no formula for a monthly-rated employee's week. CPF Board (“Are CPF contributions payable on compensation in lieu of notice?”; Refund Reasons: salary in lieu of notice does not attract CPF): outside CPF. The self-help group funds follow the CPF base, so it is outside CDAC, ECF, MBMF and SINDA: CPF Board FAQ “Are CPF contributions payable on compensation in lieu of notice?” — “CPF contributions are not payable on compensation in lieu of notice payable by you to your employee”; CPF Board FAQ on SHG contributions for 13th month wage — they are “based on the total wages payable to an employee in a calendar month”; CPF Board FAQ on interns — CDAC, ECF and SINDA contributions “are payable … if CPF contributions are payable” (the CDAC Rules (CPFA1953-R6) r.3(1) deduct “from the monthly wages” at the Schedule rate and define no wages of their own, so Interpretation Act 1965 s.21 — “expressions used in the subsidiary legislation have the same meanings as in the Act conferring the power” — gives the term its CPF Act 1953 s.2(1) meaning, “the remuneration in money, including any bonus, due or granted to a person in respect of the person’s employment”; citations verified on sso.agc.gov.sg 2026-09-23, round 5); Muis, MBMF employer information, Table 2: “Termination Benefits — Retirement gratuity, retrenchment pay, ex-gratia payment, salary in lieu of notice, severance pay, compensation for loss of employment” — Accounted for MBMF: No. Skills Development Levy Act 1979 s.2: “wages” is the remuneration in money due in respect of the employment, and the only payments notified out of it are medical reimbursements (S 375/2023), so it counts toward SDL.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["SDL"],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "c865d731-f7b4-5103-89af-d275927ca697",
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "bonus",
@@ -37,6 +57,26 @@
 			}
 		],
 		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e77397a4-b44d-5e25-9077-c47262486016",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "SALARY_IN_LIEU_OF_NOTICE",
+		"name": "Salary in lieu of notice",
+		"authority": "Employment Act 1968 s.11(1): either party may end the contract without notice by paying the salary at the gross rate of pay that would have accrued over the notice period (s.10(3), where the contract states none: one day under 26 weeks' service, one week under two years, two weeks under five, four weeks from five); raised by HR with the amount, since MOM states no formula for a monthly-rated employee's week. CPF Board (“Are CPF contributions payable on compensation in lieu of notice?”; Refund Reasons: salary in lieu of notice does not attract CPF): outside CPF. The self-help group funds follow the CPF base, so it is outside CDAC, ECF, MBMF and SINDA: CPF Board FAQ “Are CPF contributions payable on compensation in lieu of notice?” — “CPF contributions are not payable on compensation in lieu of notice payable by you to your employee”; CPF Board FAQ on SHG contributions for 13th month wage — they are “based on the total wages payable to an employee in a calendar month”; CPF Board FAQ on interns — CDAC, ECF and SINDA contributions “are payable … if CPF contributions are payable” (the CDAC Rules (CPFA1953-R6) r.3(1) deduct “from the monthly wages” at the Schedule rate and define no wages of their own, so Interpretation Act 1965 s.21 — “expressions used in the subsidiary legislation have the same meanings as in the Act conferring the power” — gives the term its CPF Act 1953 s.2(1) meaning, “the remuneration in money, including any bonus, due or granted to a person in respect of the person’s employment”; citations verified on sso.agc.gov.sg 2026-09-23, round 5); Muis, MBMF employer information, Table 2: “Termination Benefits — Retirement gratuity, retrenchment pay, ex-gratia payment, salary in lieu of notice, severance pay, compensation for loss of employment” — Accounted for MBMF: No. Skills Development Levy Act 1979 s.2: “wages” is the remuneration in money due in respect of the employment, and the only payments notified out of it are medical reimbursements (S 375/2023), so it counts toward SDL.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["SDL"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -60,6 +100,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "797c5838-9a03-5f0c-90af-3bd818f489cb",
+		"settings_id": "10000000-0000-5000-8000-000000000040",
+		"code": "SALARY_IN_LIEU_OF_NOTICE",
+		"name": "Salary in lieu of notice",
+		"authority": "Employment Act 1968 s.11(1): either party may end the contract without notice by paying the salary at the gross rate of pay that would have accrued over the notice period (s.10(3), where the contract states none: one day under 26 weeks' service, one week under two years, two weeks under five, four weeks from five); raised by HR with the amount, since MOM states no formula for a monthly-rated employee's week. CPF Board (“Are CPF contributions payable on compensation in lieu of notice?”; Refund Reasons: salary in lieu of notice does not attract CPF): outside CPF. The self-help group funds follow the CPF base, so it is outside CDAC, ECF, MBMF and SINDA: CPF Board FAQ “Are CPF contributions payable on compensation in lieu of notice?” — “CPF contributions are not payable on compensation in lieu of notice payable by you to your employee”; CPF Board FAQ on SHG contributions for 13th month wage — they are “based on the total wages payable to an employee in a calendar month”; CPF Board FAQ on interns — CDAC, ECF and SINDA contributions “are payable … if CPF contributions are payable” (the CDAC Rules (CPFA1953-R6) r.3(1) deduct “from the monthly wages” at the Schedule rate and define no wages of their own, so Interpretation Act 1965 s.21 — “expressions used in the subsidiary legislation have the same meanings as in the Act conferring the power” — gives the term its CPF Act 1953 s.2(1) meaning, “the remuneration in money, including any bonus, due or granted to a person in respect of the person’s employment”; citations verified on sso.agc.gov.sg 2026-09-23, round 5); Muis, MBMF employer information, Table 2: “Termination Benefits — Retirement gratuity, retrenchment pay, ex-gratia payment, salary in lieu of notice, severance pay, compensation for loss of employment” — Accounted for MBMF: No. Skills Development Levy Act 1979 s.2: “wages” is the remuneration in money due in respect of the employment, and the only payments notified out of it are medical reimbursements (S 375/2023), so it counts toward SDL.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["SDL"],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "ad069fca-7764-5b93-9f51-597c6d22f803",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "bonus",
@@ -77,6 +137,66 @@
 			}
 		],
 		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "81623ac0-afba-56fa-9033-12f9209fa7dc",
+		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
+		"code": "SALARY_IN_LIEU_OF_NOTICE",
+		"name": "Salary in lieu of notice",
+		"authority": "Employment Act 1968 s.11(1): either party may end the contract without notice by paying the salary at the gross rate of pay that would have accrued over the notice period (s.10(3), where the contract states none: one day under 26 weeks' service, one week under two years, two weeks under five, four weeks from five); raised by HR with the amount, since MOM states no formula for a monthly-rated employee's week. CPF Board (“Are CPF contributions payable on compensation in lieu of notice?”; Refund Reasons: salary in lieu of notice does not attract CPF): outside CPF. The self-help group funds follow the CPF base, so it is outside CDAC, ECF, MBMF and SINDA: CPF Board FAQ “Are CPF contributions payable on compensation in lieu of notice?” — “CPF contributions are not payable on compensation in lieu of notice payable by you to your employee”; CPF Board FAQ on SHG contributions for 13th month wage — they are “based on the total wages payable to an employee in a calendar month”; CPF Board FAQ on interns — CDAC, ECF and SINDA contributions “are payable … if CPF contributions are payable” (the CDAC Rules (CPFA1953-R6) r.3(1) deduct “from the monthly wages” at the Schedule rate and define no wages of their own, so Interpretation Act 1965 s.21 — “expressions used in the subsidiary legislation have the same meanings as in the Act conferring the power” — gives the term its CPF Act 1953 s.2(1) meaning, “the remuneration in money, including any bonus, due or granted to a person in respect of the person’s employment”; citations verified on sso.agc.gov.sg 2026-09-23, round 5); Muis, MBMF employer information, Table 2: “Termination Benefits — Retirement gratuity, retrenchment pay, ex-gratia payment, salary in lieu of notice, severance pay, compensation for loss of employment” — Accounted for MBMF: No. Skills Development Levy Act 1979 s.2: “wages” is the remuneration in money due in respect of the employment, and the only payments notified out of it are medical reimbursements (S 375/2023), so it counts toward SDL.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["SDL"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7ef4874b-cae6-59e2-afd4-814ff52bc95b",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "bonus",
+		"name": "Bonus",
+		"authority": "CPF Act 1953 First Schedule: a bonus is an Additional Wage, charged under the Additional Wage ceiling (102,000 less the year’s Ordinary Wages subject to CPF).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "31e00673-0f32-5eb3-978e-306e1c1b5b4c",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "SALARY_IN_LIEU_OF_NOTICE",
+		"name": "Salary in lieu of notice",
+		"authority": "Employment Act 1968 s.11(1): either party may end the contract without notice by paying the salary at the gross rate of pay that would have accrued over the notice period (s.10(3), where the contract states none: one day under 26 weeks' service, one week under two years, two weeks under five, four weeks from five); raised by HR with the amount, since MOM states no formula for a monthly-rated employee's week. CPF Board (“Are CPF contributions payable on compensation in lieu of notice?”; Refund Reasons: salary in lieu of notice does not attract CPF): outside CPF. The self-help group funds follow the CPF base, so it is outside CDAC, ECF, MBMF and SINDA: CPF Board FAQ “Are CPF contributions payable on compensation in lieu of notice?” — “CPF contributions are not payable on compensation in lieu of notice payable by you to your employee”; CPF Board FAQ on SHG contributions for 13th month wage — they are “based on the total wages payable to an employee in a calendar month”; CPF Board FAQ on interns — CDAC, ECF and SINDA contributions “are payable … if CPF contributions are payable” (the CDAC Rules (CPFA1953-R6) r.3(1) deduct “from the monthly wages” at the Schedule rate and define no wages of their own, so Interpretation Act 1965 s.21 — “expressions used in the subsidiary legislation have the same meanings as in the Act conferring the power” — gives the term its CPF Act 1953 s.2(1) meaning, “the remuneration in money, including any bonus, due or granted to a person in respect of the person’s employment”; citations verified on sso.agc.gov.sg 2026-09-23, round 5); Muis, MBMF employer information, Table 2: “Termination Benefits — Retirement gratuity, retrenchment pay, ex-gratia payment, salary in lieu of notice, severance pay, compensation for loss of employment” — Accounted for MBMF: No. Skills Development Levy Act 1979 s.2: “wages” is the remuneration in money due in respect of the employment, and the only payments notified out of it are medical reimbursements (S 375/2023), so it counts toward SDL.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["SDL"],
 		"raised_by": "MANUAL"
 	}
 ]
