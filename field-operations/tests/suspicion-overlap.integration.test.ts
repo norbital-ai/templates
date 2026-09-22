@@ -98,6 +98,8 @@ test(
 			assert.deepEqual(result.counts, {
 				checked: 0,
 				failed: 0,
+				embedded_photos: 0,
+				embedding_failed: 0,
 				inspected_photos: 0,
 				inspection_failed: 0,
 				skipped_no_longer_pending: 1

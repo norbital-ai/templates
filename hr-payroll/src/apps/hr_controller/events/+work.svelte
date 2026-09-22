@@ -7,7 +7,7 @@
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 	import { client } from '../../../lib/workspace-client.js';
 	import { Effect } from 'effect';
-	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -25,7 +25,17 @@
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
-	import { Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import * as Sheet from '@norbital-ai/ui/sheet';
+	import {
+		createCollectionRouteKey,
+		getCollectionNavigationContext
+	} from '@norbital-ai/ui/collection-navigation';
+	import {
+		getCollectionSurfaceRuntime,
+		resolveCollectionSurface
+	} from '@norbital-ai/ui/collection-runtime';
+	import { setDayDraftContext } from '../../../lib/ui/roster/day-draft.js';
 	import { toast } from 'svelte-sonner';
 	import { runWorkbookImport } from '../../../lib/ui/workbook-import.js';
 	import { schedulingImportPayload } from '../../../collections/work_days/lib/import-workbook.js';
@@ -39,7 +49,6 @@
 		monthWorkDateInstantBounds,
 		periodInCompanyGrammar,
 		periodMonthOf,
-		shiftDayKey,
 		shiftMonthKey,
 		todayKey
 	} from '../../../lib/ui/calendar.js';
@@ -52,7 +61,6 @@
 	import RosterMonthBoard, {
 		type BoardCell
 	} from '../../../lib/ui/roster/roster-month-board.svelte';
-	import DaySheet from '../../../lib/ui/roster/day-sheet.svelte';
 	import {
 		buildRosterMonth,
 		employmentMonthEmptyReason,
@@ -61,13 +69,10 @@
 		indexWorkDaysByPersonDay,
 		lockRung,
 		lockRungFreezes,
-		intervalDrafts,
 		lockRungSourceLock,
 		monthDays,
 		personDayKey,
-		termCovers,
-		type DayFacts,
-		type IntervalDraft
+		termCovers
 	} from '../../../lib/ui/roster/roster-month.js';
 	import {
 		PATTERN_WITH,
@@ -75,7 +80,6 @@
 		patternRosterCodeId,
 		termPatternRow
 	} from '../../../lib/scheduling/work-pattern.js';
-	import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 	import { unresolvedClockOutEmploymentIds as openClockOutEmploymentIds } from '../../../lib/ui/roster/roster-month-board-filter.js';
 	import {
 		MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS,
@@ -89,12 +93,8 @@
 		sourceLockReason,
 		type SettlementClaim
 	} from '../../../lib/scheduling/lock.js';
-	import {
-		overlappingWorkShifts,
-		type ValidationDay
-	} from '../../../lib/scheduling/workforce-validation.js';
 
-	const { t } = useI18n<TenantI18nKeys>();
+	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const selectedCompany = $derived(companyById(selectedCompanyId));
@@ -114,19 +114,26 @@
 	);
 	const calendarMonth = $derived(periodMonthOf(period));
 	/**
-	 * The day sheet's subject. Nothing else: the drawer owns its editors and its write, and the
-	 * app holds only which cell is open.
+	 * The cell the operator is looking at, if it has no stored person-day yet.
+	 *
+	 * A cell with a row opens the standard record sidesheet for it; a cell without one is a create,
+	 * and this is the identity the create sheet is handed. Nothing else about the sheet lives here —
+	 * the representation owns its editors and its write, and the record sheet owns its own read.
 	 */
-	const daySheet = $state({
+	const dayCreate = $state({
 		open: false,
 		employmentId: null as string | null,
 		date: null as string | null
 	});
+	setDayDraftContext({
+		employmentId: () => dayCreate.employmentId,
+		date: () => dayCreate.date
+	});
 	/**
 	 * The armed end of a swap, and whether one is in flight.
 	 *
-	 * The source is bound to the board, so a drag and the drawer's button set one thing; the flag
-	 * guards the two writes of the pair.
+	 * The source is bound to the board, so a drag and the keyboard arm one thing; the flag guards
+	 * the two writes of the pair.
 	 */
 	const swap = $state({ source: null as BoardCell | null });
 	/** Local-only eye filter: it narrows the already-loaded month facts and never issues a query. */
@@ -356,9 +363,8 @@
 	});
 	const workDayIds = $derived(workDayIndexes.ids);
 	const workDayByKey = $derived(workDayIndexes.byPersonDay);
-	const workDaysError = $derived(workDaysQuery?.error ?? null);
 	const matrixMutationReady = $derived(
-		workDaysQuery?.current !== undefined && workDaysError == null
+		workDaysQuery?.current !== undefined && workDaysQuery?.error == null
 	);
 
 	/**
@@ -706,164 +712,44 @@
 		return patternRosterCodeId(patternRow?.pattern ?? null, date, patternAnchor(patternRow));
 	}
 
-	function validationDay(employmentId: string, date: string, codeId: string | null): ValidationDay {
-		const code = codeId == null ? null : rosterCodesById.get(codeId);
-		const kind = code == null ? null : rosterCodeKind(code.variant);
-		const window = code != null && kind === 'WORK' ? workWindow(code.variant) : null;
-		return {
-			employment_id: employmentId,
-			work_date: date,
-			designation: kind,
-			shift:
-				code == null || window == null
-					? null
-					: {
-							code: code.code,
-							start_time: window.start_time,
-							end_time: window.end_time,
-							break_minutes: window.break_minutes
-						}
-		};
-	}
-
-	/** The day before and the day after, which is where a shift can overrun into another one. */
-	function adjacentValidationDays(employmentId: string, date: string): ValidationDay[] {
-		return [shiftDayKey(date, -1), shiftDayKey(date, 1)].flatMap((neighbour) => {
-			const day = facts.get(personDayKey(employmentId, neighbour));
-			return day?.designation === 'WORK' && day.shiftStart != null && day.shiftEnd != null
-				? [
-						{
-							employment_id: day.employmentId,
-							work_date: day.date,
-							designation: 'WORK' as const,
-							shift: {
-								code: day.shiftCode ?? 'WORK',
-								start_time: day.shiftStart,
-								end_time: day.shiftEnd,
-								break_minutes: day.shiftBreakMinutes ?? 0
-							}
-						}
-					]
-				: [];
-		});
-	}
-
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
-	 * THE DAY SHEET
+	 * OPENING A DAY — the record sheet, or the create sheet when there is no record yet
+	 *
+	 * A cell with a stored row opens the workspace's own record sidesheet for that `work_days`
+	 * record: the URL stack, the collection's `+representation.svelte`, the lock seal in the header.
+	 * That is the same surface every collection table opens, and it reads the record through the
+	 * collection client rather than through this page.
+	 *
+	 * A cell with no row has no record to open — pattern-projected days are the normal case — so it
+	 * opens the create sheet instead, rendering the very same representation with the person and the
+	 * day this cell already knows. Nothing is written until the operator saves.
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
 
+	const dayRouteKey = createCollectionRouteKey({ view: 'work' });
+	/**
+	 * Captured at initialisation, like every context read. A click handler runs long after the
+	 * component mounted, and `getContext` outside initialisation throws rather than answering.
+	 */
+	const detailNavigation = getCollectionNavigationContext();
+	const collectionSurfaceRuntime = getCollectionSurfaceRuntime();
+	const workDaysSurface = $derived(
+		resolveCollectionSurface(collectionSurfaceRuntime?.surfaces, 'work_days')
+	);
+
 	function openDaySheet(employmentId: string, date: string): void {
-		daySheet.employmentId = employmentId;
-		daySheet.date = date;
-		daySheet.open = true;
-	}
-
-	const daySheetKey = $derived(
-		daySheet.employmentId == null || daySheet.date == null
-			? null
-			: personDayKey(daySheet.employmentId, daySheet.date)
-	);
-	const daySheetDay = $derived(daySheetKey == null ? undefined : facts.get(daySheetKey));
-	const daySheetPerson = $derived(
-		people.find((person) => person.id === daySheet.employmentId) ?? null
-	);
-	/** The code the day carries when the drawer opens; the drawer seeds its picker from it. */
-	const daySheetRosterCodeId = $derived(
-		daySheet.employmentId == null || daySheet.date == null
-			? null
-			: effectiveCodeId(daySheet.employmentId, daySheet.date)
-	);
-	const daySheetEntry = $derived(
-		daySheetKey == null ? null : (workDayByKey.get(daySheetKey) ?? null)
-	);
-	/**
-	 * The punches the drawer edits.
-	 *
-	 * Read off the month's own attendance query rather than re-fetched, so the sheet and the cell
-	 * behind it can never be a write apart. `DayFacts` carries totals, not intervals — a grid needs
-	 * a glyph — so this is the one place the list itself is needed.
-	 */
-	const daySheetIntervals = $derived<readonly IntervalDraft[]>(
-		intervalDrafts(daySheetEntry?.worked_intervals)
-	);
-	/**
-	 * Whether this day carries an explicit plan.
-	 *
-	 * A row may exist purely because somebody punched on it, and a row with no
-	 * `shift_definition_id` is a day with no assignment to clear.
-	 */
-	const daySheetHasExplicitEntry = $derived.by(() => {
-		if (daySheetKey == null) return false;
-		const stored = workDayByKey.get(daySheetKey);
-		return stored?.shift_definition_id != null;
-	});
-	const daySheetRung = $derived(
-		daySheetDay == null ? 'OPEN' : lockRung(daySheetDay, claimFor(daySheetDay))
-	);
-	const daySheetLockReason = $derived.by(() => {
-		if (daySheetDay == null) return null;
-		const lock = lockRungSourceLock(daySheetDay, claimFor(daySheetDay));
-		return lock == null ? null : sourceLockReason(lock, t);
-	});
-	/**
-	 * The plan half is editable on any day the payroll lock does not hold. There is no draft month
-	 * and no publication freeze: a plan write must leave the month's WORK-day count and paid
-	 * minutes equal to what the work pattern projects, and `work_days/+collection.ts` refuses one that
-	 * does not. Consumed and paid days stay read-only through the payroll lock.
-	 */
-	const daySheetPlanLocked = $derived(!matrixMutationReady);
-	const daySheetPlanLockedReason = $derived(
-		workDaysError?.message ?? (workDaysQuery?.current === undefined ? t('component.loading') : null)
-	);
-
-	/** Roster codes effective on the day the drawer is open on. */
-	const daySheetCodeOptions = $derived.by(() => {
-		const date = daySheet.date;
-		return (shiftsQuery?.current ?? [])
-			.filter((code) => {
-				const start =
-					code.effective_range?.start == null ? null : formatDateISO(code.effective_range.start);
-				const end =
-					code.effective_range?.end == null ? null : formatDateISO(code.effective_range.end);
-				return date != null && start != null && date >= start && (end == null || date <= end);
-			})
-			.map((code) => {
-				const window = rosterCodeKind(code.variant) === 'WORK' ? workWindow(code.variant) : null;
-				return {
-					value: code.id,
-					label:
-						window == null
-							? `${code.code} · ${rosterCodeKind(code.variant)}`
-							: `${code.code} · ${window.start_time}–${window.end_time}`,
-					search_term: `${code.code} ${code.name} ${window?.start_time ?? ''} ${window?.end_time ?? ''}`
-				};
+		const stored = workDayByKey.get(personDayKey(employmentId, date));
+		const recordId = stored?.id;
+		if (recordId != null && isSettledId(recordId)) {
+			detailNavigation?.open({
+				collectionName: 'work_days',
+				recordId,
+				routeKey: dayRouteKey
 			});
-	});
-
-	/**
-	 * The overlap a chosen code would create, over the ±1-day window.
-	 *
-	 * Handed to the drawer as `resolveOverlap`: the drawer owns its draft and asks this question
-	 * whenever its choice changes. The whole month lives here, so the judge lives here too —
-	 * `overlappingWorkShifts` over the day before, the day itself and the day after.
-	 */
-	function overlapSentenceFor(
-		employmentId: string,
-		date: string,
-		codeId: string | null
-	): string | null {
-		if (codeId == null) return null;
-		const selected = validationDay(employmentId, date, codeId);
-		const overlap = overlappingWorkShifts([
-			...adjacentValidationDays(employmentId, date),
-			selected
-		])[0];
-		return overlap == null
-			? null
-			: t('roster.overlapping_shift_description', {
-					first: overlap.first.shift?.code ?? 'WORK',
-					second: overlap.second.shift?.code ?? 'WORK'
-				});
+			return;
+		}
+		dayCreate.employmentId = employmentId;
+		dayCreate.date = date;
+		dayCreate.open = true;
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -1161,39 +1047,33 @@
 {/snippet}
 
 <!--
- 	The day sheet, which replaced the single-select assignment dialog.
-
- 	The drawer owns its editors and its person-day write (an internal `CollectionForm`); the app
- 	owns the checks around it — the live overlap sentence, the locks, the swap pair. That split is
- 	what lets Employee Self-Service render the very same component with `mode="employee"` over its
- 	own single-person month without inheriting a controller's checks. The drawer sits outside the
- 	shell so it can overlay the whole app.
- -->
-<DaySheet
-	bind:open={daySheet.open}
-	mode="controller"
-	timeZone={boardTimeZone}
-	person={daySheetPerson}
-	date={daySheet.date}
-	day={daySheetDay}
-	intervals={daySheetIntervals}
-	rosterCodeOptions={daySheetCodeOptions}
-	rosterCodeId={daySheetRosterCodeId}
-	hasExplicitEntry={daySheetHasExplicitEntry}
-	planLocked={daySheetPlanLocked}
-	planLockedReason={daySheetPlanLockedReason}
-	lockRung={daySheetRung}
-	lockReason={daySheetLockReason}
-	canSwap={swapEnabled}
-	resolveOverlap={(codeId) =>
-		daySheet.employmentId == null || daySheet.date == null
-			? null
-			: overlapSentenceFor(daySheet.employmentId, daySheet.date, codeId)}
-	onStartSwap={() => {
-		// Arming, not swapping. The board is the surface that knows which second cell is legal, so
-		// the drawer hands the gesture back and steps out of the way.
-		if (daySheet.employmentId == null || daySheet.date == null) return;
-		swap.source = { employmentId: daySheet.employmentId, date: daySheet.date };
-		daySheet.open = false;
-	}}
-/>
+	The create sheet: a cell with no stored person-day opens the collection's own representation,
+	exactly as the record sidesheet renders it, with the person and the day this cell names. The
+	representation owns its editors and its write; this sheet owns only the chrome and the identity.
+-->
+<Sheet.Root bind:open={dayCreate.open}>
+	<Sheet.Content flush class="sm:max-w-xl">
+		<Sheet.Header class="shrink-0 border-b px-5 py-4">
+			<Sheet.Title>{t('component.create_work_day')}</Sheet.Title>
+			<Sheet.Description class="sr-only">
+				{t('component.work_day_planned_description')}
+			</Sheet.Description>
+		</Sheet.Header>
+		<!-- The create sheet owns the vertical axis, exactly as the record sheet's tabs do. -->
+		<Scroll name={t('component.create_work_day')} class="p-5">
+			{#if workDaysSurface?.representation}
+				{@const Representation = workDaysSurface.representation}
+				<Representation
+					record={null}
+					close={() => {
+						dayCreate.open = false;
+					}}
+				/>
+			{:else if workDaysSurface?.representationLoading}
+				<p class="text-sm text-muted-foreground" role="status">{t('component.loading')}</p>
+			{:else}
+				<p class="text-sm text-muted-foreground" role="alert">{t('table.noCustomViewDesc')}</p>
+			{/if}
+		</Scroll>
+	</Sheet.Content>
+</Sheet.Root>

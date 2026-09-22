@@ -1,6 +1,7 @@
 import { parse as parseExif } from 'exifr/src/core.mjs';
 import 'exifr/src/file-parsers/jpeg.mjs';
 import 'exifr/src/file-parsers/tiff.mjs';
+import 'exifr/src/file-parsers/heif.mjs';
 import 'exifr/src/segment-parsers/tiff-exif.mjs';
 import 'exifr/src/dicts/tiff-ifd0-keys.mjs';
 import 'exifr/src/dicts/tiff-exif-keys.mjs';
@@ -36,7 +37,8 @@ const pngExif = (bytes) => {
  *
  * Inputs are already bytes, so URL, filesystem and Blob readers do not belong in the guest. PNG
  * eXIf is an uncompressed TIFF payload; extracting it here avoids Exifr's full PNG parser, whose ICC
- * support dynamically loads Node's `zlib` and cannot run in the tenant isolate.
+ * support dynamically loads Node's `zlib` and cannot run in the tenant isolate. The HEIF parser
+ * walks the ISO-BMFF boxes on the same full buffer, so a HEIC's Exif item needs no reader either.
  */
 export const parse = (bytes, format, options) => {
 	const input = format === 'png' ? pngExif(bytes) : bytes;

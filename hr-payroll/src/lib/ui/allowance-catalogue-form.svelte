@@ -89,6 +89,13 @@
 							></span>
 						{/if}
 					</Grid>
+					{#if form.values().destination === 'PAY'}
+						<Field
+							name="npl_prorates"
+							label={t('component.npl_prorates')}
+							description={t('component.npl_prorates_hint')}
+						/>
+					{/if}
 				</Stack>
 			{/snippet}
 

@@ -157,6 +157,8 @@ const dayFactsSchema = Schema.Struct({
 	pendingLeave: Schema.Boolean,
 	/** Planned extra work: a WORK day whose baseline (or the holiday calendar) is not work. */
 	plannedOT: Schema.Boolean,
+	/** The approved overtime keyed on the day, in hours after the shift; null is no approval. */
+	approvedOvertimeHours: Schema.NullOr(Schema.Number),
 	clockedIn: Schema.Boolean,
 	workedIntervalCount: Schema.Number,
 	attendanceState: Schema.NullOr(Schema.Literals(['OPEN', 'CLOSED'])),
@@ -267,7 +269,9 @@ const workDayLikeSchema = Schema.Struct({
 				})
 			)
 		)
-	)
+	),
+	/** The approved overtime the scheduler keyed, in hours after the shift. */
+	approved_overtime_hours: Schema.optional(Schema.NullOr(Schema.Number))
 });
 type WorkDayLike = Schema.Schema.Type<typeof workDayLikeSchema>;
 
@@ -639,6 +643,8 @@ function factsForDate(
 			employmentState === 'ACTIVE' &&
 			designation === 'WORK' &&
 			(holidayName != null || baselineKind === 'REST' || baselineKind === 'OFF'),
+		approvedOvertimeHours:
+			employmentState === 'ACTIVE' ? (workDay?.approved_overtime_hours ?? null) : null,
 		clockedIn: intervals.length > 0,
 		workedIntervalCount: intervals.length,
 		attendanceState:
@@ -760,7 +766,7 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
  * Tailwind can see every one of them. The label is a catalog key so every surface resolves it
  * through the same `t`; a locale switch re-reads it everywhere at once.
  */
-export const STATUS_PRESENTATION: Record<
+const STATUS_PRESENTATION: Record<
 	DayStatus,
 	{ readonly labelKey: TenantI18nKeys; readonly className: string }
 > = {
@@ -1000,7 +1006,9 @@ export function clockToDayMinutes(clock: string, offsetDays: number): number | n
  * start belongs to the next morning — so "beyond schedule" on the day sheet and the workload check
  * at publication measure the same shift the same way.
  */
-export function scheduledMinutes(day: DayFacts): number | null {
+export function scheduledMinutes(
+	day: Pick<DayFacts, 'shiftStart' | 'shiftEnd' | 'shiftBreakMinutes'>
+): number | null {
 	if (day.shiftStart == null || day.shiftEnd == null) return null;
 	const start = clockMinutes(day.shiftStart);
 	const rawEnd = clockMinutes(day.shiftEnd);
@@ -1011,16 +1019,17 @@ export function scheduledMinutes(day: DayFacts): number | null {
 /**
  * Worked time past what the roster planned — DERIVED, and read-only everywhere it appears.
  *
- * There is no overtime field on this record and none may be added: `overtime_authorized` and the
- * five `approved_ot_*_hours` buckets were dropped in `drop_time_entry_overtime_approval`, and
- * `docs/architecture.md` §Gates records why. Overtime is priced by the payroll engine from actual
- * intervals against the effective schedule and the jurisdiction's bands. This number exists so an
- * operator can see that a day ran long; it is not an input to anything, and a control that let
- * somebody type it would be re-introducing the buckets by another name.
+ * It is not payable overtime: `work_days.approved_overtime_hours` is the record payroll pays, and
+ * `beyondScheduleMinutes` exists so the scheduler can see that a day ran long before keying an
+ * approval. The two are deliberately separate facts — the clock measures what happened, the
+ * approval authorises what is paid — and a reader that treated this number as an amount would be
+ * re-deriving overtime the way the pre-approval engine did.
  *
  * Null when the day is unplanned or still open, because "beyond" needs both ends to mean anything.
  */
-export function beyondScheduleMinutes(day: DayFacts): number | null {
+export function beyondScheduleMinutes(
+	day: Pick<DayFacts, 'shiftStart' | 'shiftEnd' | 'shiftBreakMinutes' | 'workedMinutes'>
+): number | null {
 	const planned = scheduledMinutes(day);
 	if (planned == null || day.workedMinutes == null) return null;
 	return day.workedMinutes - planned;
@@ -1036,21 +1045,6 @@ const intervalDraftSchema = Schema.Struct({
 	end: Schema.NullOr(Schema.String)
 });
 export type IntervalDraft = Schema.Schema.Type<typeof intervalDraftSchema>;
-
-/**
- * The stored punches of a day, as the editor holds them.
- *
- * A stored bound reaches the client as ISO text. Both attendance surfaces open the same drawer, so
- * they read the day through the same exact record shape.
- */
-export function intervalDrafts(
-	intervals: readonly { readonly start: string; readonly end: string | null }[] | null | undefined
-): readonly IntervalDraft[] {
-	return (intervals ?? []).map((interval) => ({
-		start: interval.start,
-		end: interval.end
-	}));
-}
 
 /**
  * Why a draft cannot be written, in the order `work_days/+collection.ts` refuses it.

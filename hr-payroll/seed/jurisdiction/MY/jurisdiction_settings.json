@@ -166,7 +166,7 @@
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\"",
@@ -426,7 +426,7 @@
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\"",
@@ -689,7 +689,7 @@
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\"",

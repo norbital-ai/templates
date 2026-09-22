@@ -14,14 +14,18 @@ import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import type ln from 'exceljs';
 import { SETTINGS_SHEET_NAME } from '../../../lib/workbook-settings.js';
 import { calendarDaysInMonth } from '../../../lib/period.js';
-import { ATTENDANCE_SHEET_NAME, ROSTER_SHEET_NAME } from './import-workbook.js';
+import {
+	ATTENDANCE_SHEET_NAME,
+	OVERTIME_SHEET_NAME,
+	ROSTER_SHEET_NAME
+} from './import-workbook.js';
 
 const READ_ME_SHEET_NAME = 'Read me first';
 
 export const XLSX_MEDIA_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 const READ_ME_LINES = [
-	'Scheduling import — one legal entity, one month, two sheets',
+	'Scheduling import — one legal entity, one month, three sheets',
 	'',
 	'"Roster" is the planned assignment: who is scheduled where, one person per row and one',
 	"calendar day per column. A cell holds one of the entity's roster codes (a shift, REST or OFF).",
@@ -29,8 +33,11 @@ const READ_ME_LINES = [
 	'',
 	'"Time entries" is what actually happened on the clock, one person-day per row with a',
 	'clock_in and a clock_out column, each a local wall time HH:mm. A blank clock_out is a day',
-	'still open. Overtime is calculated from the actual presence and the effective schedule; a',
-	'workbook cannot assert it as a second class of time, so an overtime column is never read.',
+	'still open.',
+	'',
+	'"Overtime" is the approved overtime: a person per row and a calendar day per column, and a',
+	'cell holds the approved hours after the shift — 0.5, 1, 1.5, and so on, breaks included.',
+	'Blank is no approval, and an hour the clock shows past the shift with no approval is not paid.',
 	'',
 	'The "Settings" sheet states the legal entity, the month (YYYY-MM) and the IANA timezone once.',
 	'Do not rename the sheets or the columns: the importer refuses the whole file by name.',
@@ -68,6 +75,12 @@ export function schedulingTemplateWorkbook(options: {
 
 	const attendance = workbook.addWorksheet(ATTENDANCE_SHEET_NAME);
 	attendance.addRow(['employee_number', 'work_date', 'clock_in', 'clock_out']);
+
+	const overtime = workbook.addWorksheet(OVERTIME_SHEET_NAME);
+	overtime.addRow([
+		'employee_number',
+		...calendarDaysInMonth(options.month).map((day) => String(Number(day.slice(-2))))
+	]);
 
 	return workbook;
 }

@@ -175,6 +175,7 @@ test('every name `+teams.ts` declares is a policy this workspace ships', () => {
 		Supervisor: ['supervisor'],
 		'L1 Manager': ['manager'],
 		'Senior Management': ['senior_management'],
+		'Production Manager': ['supervisor'],
 		'HQ Payroll HR': ['hr_controller'],
 		'HR Manager': ['hr_manager'],
 		'Manager (HR Controller)': ['hr_controller'],

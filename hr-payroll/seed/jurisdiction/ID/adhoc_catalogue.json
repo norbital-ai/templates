@@ -242,25 +242,6 @@
 		"raised_by": "MANUAL"
 	},
 	{
-		"id": "8683dc63-2ff3-4681-8f0d-a5efbe676a9c",
-		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
-		"code": "TAX_INCENTIVE",
-		"eligibility": "",
-		"evidence": "NONE",
-		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "",
-				"amount": "entry.amount",
-				"limit": null
-			}
-		],
-		"name": "Tax incentive (advance / reimburse)",
-		"counts_toward": [],
-		"raised_by": "MANUAL"
-	},
-	{
 		"id": "e669a4a7-5cca-4651-bcf0-770548d160df",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "CLAWBACK_OVERTIME",
@@ -374,25 +355,6 @@
 		"raised_by": "MANUAL"
 	},
 	{
-		"id": "60abc022-7617-42b1-bd7b-e835873671e4",
-		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
-		"code": "TAX_INCENTIVE",
-		"eligibility": "",
-		"evidence": "NONE",
-		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "",
-				"amount": "entry.amount",
-				"limit": null
-			}
-		],
-		"name": "Tax incentive (advance / reimburse)",
-		"counts_toward": [],
-		"raised_by": "MANUAL"
-	},
-	{
 		"id": "49b0ff00-7f1d-4418-ad37-962fab829e01",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "CLAWBACK_OVERTIME",
@@ -503,25 +465,6 @@
 		],
 		"name": "Retroactive pay",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
-		"raised_by": "MANUAL"
-	},
-	{
-		"id": "96b6dfd9-799b-4ceb-aabd-998ba99fb886",
-		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
-		"code": "TAX_INCENTIVE",
-		"eligibility": "",
-		"evidence": "NONE",
-		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "",
-				"amount": "entry.amount",
-				"limit": null
-			}
-		],
-		"name": "Tax incentive (advance / reimburse)",
-		"counts_toward": [],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -826,7 +769,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. PPh 21 and PPh 26 treat it as ordinary remuneration: PP 68/2009 art.2’s final rates cover only uang pesangon, uang penghargaan masa kerja and uang penggantian hak, so uang pisah enters the TER base (PMK 168/2023 art.15) and the PPh 26 withholding.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -838,7 +781,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -866,7 +809,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. PPh 21 and PPh 26 treat it as ordinary remuneration: PP 68/2009 art.2’s final rates cover only uang pesangon, uang penghargaan masa kerja and uang penggantian hak, so uang pisah enters the TER base (PMK 168/2023 art.15) and the PPh 26 withholding.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -878,7 +821,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -906,7 +849,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. PPh 21 and PPh 26 treat it as ordinary remuneration: PP 68/2009 art.2’s final rates cover only uang pesangon, uang penghargaan masa kerja and uang penggantian hak, so uang pisah enters the TER base (PMK 168/2023 art.15) and the PPh 26 withholding.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -918,7 +861,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{

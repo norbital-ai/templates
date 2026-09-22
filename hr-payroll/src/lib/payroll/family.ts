@@ -67,6 +67,12 @@ export type FamilyPayItem = {
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ADHOC' | 'ALLOWANCE' | 'LOAN';
 	/** The schemes (and parts, `CPF.ADDITIONAL`) this class counts toward; absent (a work line) is none. */
 	readonly counts_toward?: readonly string[];
+	/**
+	 * Whether an unpaid day comes off this allowance class; absent follows the version's
+	 * `payroll.allowance_npl_prorates`, and false marks a class the statute excludes from the
+	 * deduction's wage (SG's travel, food and housing allowances; MY's travelling allowance).
+	 */
+	readonly npl_prorates?: boolean | null;
 };
 
 import type {

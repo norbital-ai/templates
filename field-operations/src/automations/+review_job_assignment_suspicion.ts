@@ -2,6 +2,7 @@ import { defineAutomation } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema, Semaphore } from 'effect';
 import { currentDate } from '../lib/clock.js';
 import {
+	embedFiledPhotos,
 	inspectFiledPhotos,
 	loadUncheckedAssignments,
 	reviewAssignmentSuspicion
@@ -62,16 +63,28 @@ export class SuspicionReviewIncompleteError extends Error {
 }
 
 export default defineAutomation(
-	{ schedule: '0 * * * *' },
+	{ schedule: '*/15 * * * *' },
 	{
 		input: InputSchema,
 		output: OutputSchema,
 		policies: ['suspicion_review_automation'],
 		description:
-			'Hourly and on manual request, reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious.',
+			'Every 15 minutes and on manual request, embeds newly filed photos, then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious.',
 		handler: (api, { args }) =>
 			Effect.gen(function* () {
-				yield* api.progress({ progress: 0.02, text: 'Inspecting filed photos' });
+				yield* api.progress({ progress: 0.02, text: 'Embedding filed photos' });
+				const embedding = yield* embedFiledPhotos(api).pipe(
+					Effect.catch((error: unknown) =>
+						Effect.succeed({ embedded: 0, failed: 1, issues: [failureSummary(error)] })
+					)
+				);
+				if (embedding.failed > 0) {
+					yield* Effect.logError(
+						`[field-ops-suspicion-review] ${embedding.failed} photo embedding(s) failed`,
+						embedding.issues.join('; ')
+					);
+				}
+				yield* api.progress({ progress: 0.04, text: 'Inspecting filed photos' });
 				const inspection = yield* inspectFiledPhotos(api);
 				yield* api.progress({ progress: 0.05, text: 'Loading unchecked assignments' });
 				const assignments = yield* loadUncheckedAssignments(api, args.assignment_id);
@@ -79,6 +92,8 @@ export default defineAutomation(
 				const counts: Record<string, number> = {
 					checked: 0,
 					failed: 0,
+					embedded_photos: embedding.embedded,
+					embedding_failed: embedding.failed,
 					inspected_photos: inspection.inspected,
 					inspection_failed: inspection.failures.length
 				};

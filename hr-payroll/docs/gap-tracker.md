@@ -33,7 +33,7 @@ configured source bundle.
 | `employment_wage_periods`                                     | employment_id, period (finite inclusive range, non-overlapping per employment), normal_wages, ordinary_wages with ordinary_days, due_on, paid_on, reference — approved dated wage history for statutory rates                                                                                                                                                                                          |
 | `payslip_wage_periods`                                        | payslip_id × wage_period_id, unique pair — the immutable pin of a consumed wage record; payroll writes it, there is no direct write surface                                                                                                                                                                                                                                                            |
 | `jurisdiction_holidays`                                       | company_id, date, name, kind (PUBLIC \| SPECIAL \| SUBSTITUTE), replaces, given_to, source, published_at                                                                                                                                                                                                                                                                                               |
-| `shift_definitions`, `shift_patterns`, `rosters`, `work_days` | roster vocabulary; cycles of whole weeks; the roster of record (one employment, one calendar month, whole or refused, outranks the pattern); the day's shift and worked intervals — breaks derived from the punches, holidays overlaid by date, membership by month                                                                                                                                    |
+| `shift_definitions`, `shift_patterns`, `rosters`, `work_days` | roster vocabulary; cycles of whole weeks; the roster of record (one employment, one calendar month, whole or refused, outranks the pattern); the day's shift, worked intervals and approved overtime — breaks derived from the punches, holidays overlaid by date, membership by month                                                                                                                 |
 | `leave_entries`                                               | catalogue_id, leave_code, the activity by its fields (a charged range is time off, `encash_days` an encashment, a destination window a carry-forward, stated `days` an adjustment, `reversal_of_id` a reversal), charges, allocations, certificate_file, payslip_id                                                                                                                                    |
 | `claim_requests`, `adhoc_requests`                            | a claim: employment_id, catalogue_id, amount, incurred_on, evidence_file, as_adjustment_entry, payslip_id; an ad hoc request: the same with `event_date` and `reason`, due whole in one period. An allowance has no instance row: it is on the contract (`employment_terms.allowances`) and its working is the payslip's proration segments                                                            |
 | `loans`, `loan_repayments`                                    | agreement with principal and range; dated instalments                                                                                                                                                                                                                                                                                                                                                  |
@@ -343,3 +343,41 @@ values or deployed release. Current limitations are listed in the [compliance ma
 - Contribution assessment moved toward explicit formulas over family outputs and declared facts.
 - Earlier payment and allowance collection designs were replaced by the current contract-allowance
   and ad hoc request model. Refer to the [README](../README.md) for current collection ownership.
+
+### 22 September 2026
+
+- The unpaid-leave deduction is computed on the wage including the fixed allowances, except the
+  classes a statute keeps out of that wage. `payroll.allowance_npl_prorates` is the version's
+  default and `allowance_catalogue.npl_prorates` lets a class overrule it: SG's travel, food and
+  housing allowances (EA s.2) and MY's travelling allowance state false, and every other class
+  loses the day with the salary. Verified against MY s.18A(c), SG s.20A/s.28, ID's fixed
+  allowances (PP 36/2021 art.5), TW's 工資 (勞基法 §2(3)) and VN's contractual wage, with hand
+  cases in `tests/allowance-proration-golden.test.ts` and the 事假 case in
+  `statutory-golden-tw.test.ts`.
+- The public seed's write path is now gated column by column:
+  `tests/public-seed-catalogue-write-path.test.ts` decodes every custom-typed value of every
+  sealed version with the datatype a draft write uses. It caught `wages.authority` as an
+  undeclared property (ID, MY, MY-nihon, PH), the TW rest-break rule compiled against the wrong
+  context and MY's empty default final-pay deadline.
+- ID uang pisah enters the PPh 21 TER base and the PPh 26 withholding in all three sealed
+  versions — PP 68/2009 art.2's final rates reach only pesangon, UPMK and uang penggantian hak,
+  so the class is ordinary remuneration (PMK 168/2023 art.15) — and the register records it in
+  `counts-toward-matrix.test.ts`. `TAX_INCENTIVE` was deleted: no authority, no bank usage and no
+  scheme reads it.
+- PH's two separation classes now carry their tax position beside the benefit: separation pay for
+  redundancy or retrenchment is exempt under NIRC s.32(B)(6)(b) because the cause is beyond the
+  employee's control, and the statutory RA 7641 retirement benefit under s.32(B)(6)(a) — the
+  RA 4917 age-50 / ten-year test belongs to a BIR-qualified private plan, which this class is not.
+- TW severance withholding is implemented: `SEVERANCE_TAX` in every TW version reads the paid
+  `SEVERANCE_PAY` class and withholds 6% (resident) / 18% (non-resident) on the excess over the
+  退職所得 定額免稅 (所得稅法 §14(1)(9), 各類所得扣繳率標準 §2). 115年度: 206,000 × 退職服務年資
+  exempt, half taxable to 414,000 × 年資, whole above, with a service tail of six months or more
+  counted as a year — 198,000 / 398,000 in the 114年度 version. The class counts toward nothing,
+  so the monthly 薪資所得 withholding still reads the wage alone. Hand case in
+  `statutory-golden-tw.test.ts`.
+
+- Overtime is the employer's keyed approval, not a derivation from the clock:
+  `work_days.approved_overtime_hours` arrives with the roster (the workbook's Overtime sheet) or is
+  keyed by the scheduler on the day sheet, in half-hour steps inclusive of breaks, and payroll pays
+  it and nothing else beyond the shift. The clock still decides the day's premium work, and a day
+  with no attendance pays no overtime whatever its approval says.

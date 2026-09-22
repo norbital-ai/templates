@@ -50,8 +50,6 @@
 		client.db.employees.findFirst({ where: { email: { eq: user.email } } })
 	);
 	const employeeId = $derived(employeeQuery.current?.id);
-	/** The day sheet's heading names the person; the calendar never needs it. */
-	const employeeName = $derived(employeeQuery.current?.name ?? '');
 	const companiesQuery = $derived(
 		client.db.companies.findMany({
 			where: { approval_id: { isNull: true } },
@@ -361,7 +359,7 @@
 -->
 {#snippet schedule()}
 	<Cover gap="md" top={scheduleIntro}>
-		<EmploymentMonth {employmentId} {employeeName} selfService />
+		<EmploymentMonth {employmentId} selfService />
 	</Cover>
 {/snippet}
 

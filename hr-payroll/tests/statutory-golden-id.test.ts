@@ -64,7 +64,8 @@ function idWorld(period: string) {
 		period,
 		// DKI Jakarta: UMP 5,729,876 in 2026, which is the BPJS Kesehatan salary floor.
 		region: 'DKI Jakarta',
-		// PP 44/2015 Ps.16 group II, "risiko rendah", recomposed by PP 49/2023 to 0.40%.
+		// PP 44/2015 Ps.16 group II, "risiko rendah": the art.16(1) rate 0.54%, which is what BPJS
+		// bills — the 0.14% JKP recomposition stays inside it, never a second payslip line.
 		riskClass: 'II',
 		people: ID_PEOPLE
 	};
@@ -395,6 +396,89 @@ test('Indonesia — a married woman is TK/0 unless the PTKP election combines he
 	// married ladder applies (K/3, category C): 750,000.
 	expectStatutory(book, 'ID-W-15M', 'PPH21', 1_092_420, 0);
 	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', 936360, 0);
+});
+
+test('Indonesia — the K/I annual reckoning carries the spouse’s PTKP', () => {
+	// UU PPh art.7(1) and PMK 101/PMK.010/2016: PTKP K/I/3 is 54,000,000 (self) + 4,500,000
+	// (married) + 54,000,000 (the spouse's income combined) + 13,500,000 (three dependants) =
+	// 126,000,000. The annual rule carried self + married + dependants only, so a K/I employee's
+	// December refund was short 54,000,000 of relief.
+	const priorPeriods = [
+		'2026-01',
+		'2026-02',
+		'2026-03',
+		'2026-04',
+		'2026-05',
+		'2026-06',
+		'2026-07',
+		'2026-08',
+		'2026-09',
+		'2026-10',
+		'2026-11'
+	];
+	const priorJp = (period: string) => (period < '2026-03' ? 105_474 : 110_863);
+	const book = assessStatutoryUnvalidated(
+		{
+			...idWorld('2026-12'),
+			people: [
+				{
+					key: 'ID-W-KI-15M',
+					wage: 15_000_000,
+					gender: 'FEMALE',
+					marital_status: 'MARRIED',
+					children: 3,
+					registrations: { PPH21: { kind: 'REGISTERED', elections: { ptkp: 'KI' } } }
+				}
+			]
+		},
+		(world) => {
+			const employment = world.employments.find((row) => row.employee_number === 'ID-W-KI-15M');
+			assert.ok(employment);
+			for (const period of priorPeriods) {
+				const runId = `ki-prior-${period}`;
+				world.payroll_runs.push({ id: runId, company_id: COMPANY_ID, period });
+				world.payslips.push({
+					id: `ki-payslip-${period}`,
+					payroll_run_id: runId,
+					employment_id: employment.id,
+					status: 'PAID',
+					paid_at: `${period}-28T00:00:00.000Z`,
+					currency: 'IDR',
+					base: [],
+					adjustments: [],
+					statutory: [
+						{
+							scheme_code: 'PPH21',
+							employee_amount: 936_360,
+							employer_amount: 0,
+							base_amount: 15_000_000,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'JP',
+							employee_amount: priorJp(period),
+							employer_amount: priorJp(period) * 2,
+							base_amount: 15_000_000,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'JHT',
+							employee_amount: 300_000,
+							employer_amount: 555_000,
+							base_amount: 15_000_000,
+							rule_when: null,
+							authority: null
+						}
+					]
+				});
+			}
+		}
+	);
+	// PKP = 180,606,000 − 6,000,000 − 1,319,578 − 3,600,000 − 126,000,000 = 43,686,422 →
+	// 43,686,000; annual tax at 5% = 2,184,300; December = 2,184,300 − 11 × 936,360 = −8,115,660.
+	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', -8_115_660, 0);
 });
 
 test('every sealed version of `ID` is priced by a golden here', () => {
@@ -1064,4 +1148,13 @@ test('Indonesia — efficiency or closure because of losses is half the pesangon
 	assert.equal(paid('ID-RETRENCHED', 'PESANGON'), 25_000_000);
 	assert.equal(paid('ID-REDUNDANT', 'UPMK'), 20_000_000);
 	assert.equal(paid('ID-RETRENCHED', 'UPMK'), 20_000_000);
+	// PP 68/2009 art.2–4: severance paid at once carries its own final tax — nothing to
+	// 50,000,000 and 5% to 100,000,000 — separate from the monthly TER, which reads neither line.
+	// The redundant leaver's 50,000,000 + 20,000,000 = 70,000,000 pays 5% × 20,000,000; the
+	// retrenched one's 25,000,000 + 20,000,000 = 45,000,000 stays under the first rung.
+	const finalTax = (key: string) =>
+		slips.get(key)!.statutory.find((row) => row.scheme_code === 'PPH21_FINAL_SEVERANCE')
+			?.employee_amount;
+	assert.equal(finalTax('ID-REDUNDANT'), 1_000_000);
+	assert.equal(finalTax('ID-RETRENCHED'), 0);
 });

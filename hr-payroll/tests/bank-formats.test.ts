@@ -49,13 +49,12 @@ test('the OCBC FAST file reproduces the bank upload layout byte for byte', () =>
 	});
 	assert.equal(file.name, 'ocbc_fast_20260912.txt');
 	assert.equal(file.contentType, 'TEXT');
-	const lines = String(file.content)
-		.split('\n')
-		.filter((line) => line.length > 0);
-	assert.equal(lines.length, 3, 'one header and one line per payment');
-	for (const line of lines) assert.equal(line.length, 1000, 'every record is 1000 characters');
-
-	const [header, first, second] = lines;
+	const content = String(file.content);
+	const records = content.split('\n');
+	assert.equal(records.length, 5, 'one header, one record per payment, and the trailer');
+	const [header, first, second] = records;
+	for (const record of [header, first, second])
+		assert.equal(record.length, 1000, 'every bank record is 1000 characters');
 	assert.equal(header.slice(0, 36), '3009520260912OCBCSGSGXXX701433716001');
 	assert.equal(header.slice(205, 209), 'FAST');
 	assert.equal(header.slice(225, 233), '12092026');
@@ -69,6 +68,40 @@ test('the OCBC FAST file reproduces the bank upload layout byte for byte', () =>
 	assert.equal(second.slice(45, 54), 'Zuyao Liu');
 	assert.equal(second.slice(188, 205), '00000000000240000');
 	assert.equal(second.slice(240, 244), 'SALA');
+
+	// The bank's own file for these payments is 3104 bytes: three 1000-character records, three
+	// newlines, and the 101-byte trailer (`'   \n'` + 97 spaces) every reference file ends with.
+	assert.equal(content.length, 3_104);
+	assert.equal(records[3], '   ', 'the trailer opens with its blank three-character field');
+	assert.equal(records[4], ' '.repeat(97), 'and closes with 97 blank characters, no newline');
+});
+
+test('a bank code that is not an 11-character BIC is refused, not shifted into the next field', () => {
+	assert.throws(
+		() =>
+			ocbcFastFile({
+				payDate: '2026-09-12',
+				period: '2026-09',
+				payer,
+				payments: [{ ...payments[0], bank: { ...payments[0].bank, bank_code: 'DBSSSGSG' } }]
+			}),
+		/11-character BIC/
+	);
+});
+
+test('an account number normalising would rewrite is refused, not silently changed', () => {
+	assert.throws(
+		() =>
+			ocbcFastFile({
+				payDate: '2026-09-12',
+				period: '2026-09',
+				payer,
+				payments: [
+					{ ...payments[0], bank: { ...payments[0].bank, account_number: '093-912-632X' } }
+				]
+			}),
+		/numeric account/
+	);
 });
 
 test('an amount keeps its cents and a short account is left-padded to nine digits', () => {

@@ -145,7 +145,9 @@ export function prepareAllowanceSteps(
 					workingDaysIn: options.workingDaysIn,
 					contractOf: monthlyOf,
 					contractPeriod: 'MONTH',
-					unpaidDaysIn: prorates ? options.unpaidDaysIn : undefined
+					// The class may overrule the version: a statute that keeps a travelling allowance
+					// (SG EA s.2, MY s.2) out of the deduction's wage states false on the class.
+					unpaidDaysIn: (component.npl_prorates ?? prorates) ? options.unpaidDaysIn : undefined
 				});
 			}
 		}));

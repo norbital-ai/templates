@@ -363,7 +363,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `normal_hours` | The scheduled normal hours |
 | `hours_beyond_normal` | Worked hours past the normal day |
 | `hours_from_start_fraction` | Worked share of a normal day, 0..1 |
-| `overtime_hours` | Derived overtime hours |
+| `overtime_hours` | Payable overtime hours: the approved hours plus the day type’s clock-derived premium |
 | `consecutive_hours` | Longest unbroken work run in the day |
 | `continuous_attendance` | Work that must be carried on continuously |
 | `rest_day` | The roster’s weekly rest day, whatever the holiday made it |
@@ -834,6 +834,115 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `leave.day_index` | Which calendar day of the leave, from 1 |
 | `leave.days` | The days the whole entry charges |
 | `leave.taken(code)` | The days of that leave code charged in the leave year before this day, across every entry (TW 勞工請假規則 §4(3): thirty half-paid 普通傷病假 days a year, hospitalised or not) |
+
+| Function | Meaning |
+| --- | --- |
+| `round_cent(value)` | Round to the nearest cent |
+| `truncate_cent(value)` | Truncate to the cent |
+| `up_5_cents(value)` | Round up to the next five cents |
+| `round_unit(value)` | Round to the nearest whole unit |
+| `floor_unit(value)` | Floor to the whole unit |
+| `up_to_unit(value)` | Round up to the whole unit |
+| `bracket(base, up_to, step)` | Round a figure up to the next bracket |
+| `ladder(base, grades)` | Step a figure up to the next grade in a table |
+| `progressive(value, table)` | Apply a progressive [from, base, rate] table |
+| `minimum_wage(region)` | The version’s minimum wage for a region |
+
+## `rest_break` — One day’s rest-break obligation: the person, and what the day’s punches measured.
+
+Used by: `work_rules.breaks[]` — one day’s rest-break obligation.
+
+Bare names: `wage_floor`, `consecutive_hours`, `overtime_hours`, `continuous_attendance`, `night_hours`.
+
+Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<key>`, `period.leave_days.<key>`, `employment.exit_facts.<key>`.
+
+| Member | Meaning |
+| --- | --- |
+| `employee.gender` | Recorded gender |
+| `employee.age` | Completed years on the rule date |
+| `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
+| `employee.birth_date` | Date of birth as `YYYY-MM-DD`, or empty |
+| `employee.birthday(age)` | Date the given age is reached, as `YYYY-MM-DD`, or empty without a birth date. A leap-day anniversary in a non-leap year falls on 1 March, matching age_on. |
+| `employee.age_months_on(date)` | Completed months of age on that day — a retirement age stated in years and months (VN Decree 135/2020: 61 years 3 months for a man in 2026) |
+| `employee.age_on(date)` | Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters |
+| `employee.citizenship` | Residency standing from the effective terms |
+| `employee.marital_status` | Marital status |
+| `employee.spouse_status` | NONE \| WITHOUT_INCOME \| WITH_INCOME |
+| `employee.dependents_count` | Declared dependant count for schemes such as ID PTKP and TW exemptions; child-specific rules read `children` |
+| `employee.solo_parent` | Solo-parent flag |
+| `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
+| `employee.disabled` | Disability flag |
+| `employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
+| `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
+| `employment.classification` | Work classification |
+| `employment.risk_class` | The employment risk class, or empty |
+| `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
+| `employment.service_months` | Completed months since the stint began |
+| `employment.service_years` | Completed years since the stint began |
+| `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
+| `employment.exit_date` | Last day of work, or empty while open |
+| `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
+| `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
+| `employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
+| `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
+| `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
+| `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
+| `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
+| `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
+| `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
+| `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
+| `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
+| `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
+| `terms.statutory_work_category` | Statutory work category of the terms |
+| `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
+| `terms.payroll_group` | Payroll group |
+| `terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
+| `terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
+| `terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
+| `terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
+| `terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
+| `terms.notice_days` | Notice days the contract states, 0 when none |
+| `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
+| `terms.working_days_per_week` | Roster-measured working week, days |
+| `children.count` | Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions |
+| `children.under(n)` | Children under n completed years |
+| `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `children.citizens` | Children recorded as citizens |
+| `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
+| `children.citizens_under(n)` | Of them, those under n completed years |
+| `children.classed(x)` | Family records in classification x; these counts do not establish tax-relief claims |
+| `children.unclassed_under(n)` | Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead |
+| `company.region` | Employing entity region |
+| `company.headcount` | Active employments in the entity |
+| `company.headcount_citizens` | Of them, the citizens |
+| `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
+| `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
+| `facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
+| `facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
+| `facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
+| `facts.<CODE>.elections.<key>` | Declared scheme inputs resolved from the statutory facts effective on the rule date |
+| `facts.<CODE>.election_keys` | Keys explicitly supplied on that effective statutory declaration; distinct from resolved defaults |
+| `event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
+| `event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
+| `event.child_index` | Which recorded child the event concerns, 1-based; 0 when none |
+| `event.date` | The day of the event, or empty |
+| `event.child_citizenship` | The named child’s recorded citizenship, or empty |
+| `event.child_age` | The named child’s completed years, -1 when none is named |
+| `event.child_shared_weeks` | The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded |
+| `event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
+| `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
+| `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
+| `period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
+| `period.working_days` | Scheduled working days of the pay month |
+| `period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
+| `consecutive_hours` | The longest unbroken work run in the day |
+| `overtime_hours` | Payable overtime hours: the approved hours plus the day type’s clock-derived premium |
+| `continuous_attendance` | Work that must be carried on continuously |
+| `night_hours` | Hours inside the night window, 0 where none is declared |
 
 | Function | Meaning |
 | --- | --- |

@@ -997,8 +997,8 @@
 										class={cn(
 											'min-w-0 px-2.5 py-2',
 											item.system
-												? 'w-full max-w-lg rounded-lg bg-muted'
-												: 'w-fit max-w-[min(100%,44rem)] rounded-e-xl rounded-bl-xl rounded-tl-sm border border-border bg-card'
+												? 'w-full rounded-lg bg-muted'
+												: 'w-full rounded-lg border border-border bg-card'
 										)}
 									>
 										<Stack gap="xs">
@@ -1042,10 +1042,10 @@
 																class={cn(
 																	'w-full object-cover transition-opacity duration-150 group-hover:opacity-90',
 																	item.photos.length === 1
-																		? 'h-40 sm:h-52'
+																		? 'aspect-[4/3] max-h-96'
 																		: item.photos.length > 6
-																			? 'h-20 sm:h-24'
-																			: 'h-24 sm:h-32'
+																			? 'aspect-[4/3] max-h-60'
+																			: 'aspect-[4/3] max-h-72'
 																)}
 																loading="lazy"
 																decoding="async"

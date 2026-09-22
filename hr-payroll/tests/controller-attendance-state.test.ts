@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
 	attendanceChanged,
-	daySheetSaveIntent,
-	daySheetSaveLabelKey
+	daySaveIntent,
+	daySaveLabelKey
 } from '../src/lib/ui/roster/controller-attendance-state.ts';
 import { assessAttendanceDraft } from '../src/lib/ui/roster/roster-month.ts';
 
@@ -44,18 +44,18 @@ test('attendance equality includes interval bounds and the actual unpaid break',
 });
 
 test('save intent tracks plan and attendance independently', () => {
-	assert.equal(daySheetSaveIntent(true, false), 'assignment');
-	assert.equal(daySheetSaveIntent(false, true), 'attendance');
-	assert.equal(daySheetSaveIntent(true, true), 'changes');
-	assert.equal(daySheetSaveIntent(false, false), 'none');
+	assert.equal(daySaveIntent(true, false), 'assignment');
+	assert.equal(daySaveIntent(false, true), 'attendance');
+	assert.equal(daySaveIntent(true, true), 'changes');
+	assert.equal(daySaveIntent(false, false), 'none');
 });
 
 test('footer labels name the pending write, not a generic Save', () => {
-	assert.equal(daySheetSaveLabelKey('controller', 'assignment'), 'roster.save_assignment');
-	assert.equal(daySheetSaveLabelKey('controller', 'attendance'), 'roster.save_attendance');
-	assert.equal(daySheetSaveLabelKey('controller', 'changes'), 'roster.save_changes');
-	assert.equal(daySheetSaveLabelKey('employee', 'attendance'), 'roster.save_punch');
-	assert.equal(daySheetSaveLabelKey('employee', 'changes'), 'roster.save_punch');
+	assert.equal(daySaveLabelKey('controller', 'assignment'), 'roster.save_assignment');
+	assert.equal(daySaveLabelKey('controller', 'attendance'), 'roster.save_attendance');
+	assert.equal(daySaveLabelKey('controller', 'changes'), 'roster.save_changes');
+	assert.equal(daySaveLabelKey('employee', 'attendance'), 'roster.save_punch');
+	assert.equal(daySaveLabelKey('employee', 'changes'), 'roster.save_punch');
 	const messages = JSON.parse(
 		readFileSync(fileURLToPath(new URL('../src/i18n/messages.en.json', import.meta.url)), 'utf8')
 	);

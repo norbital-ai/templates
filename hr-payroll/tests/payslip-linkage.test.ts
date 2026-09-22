@@ -264,7 +264,7 @@ function configuration(overrides = {}) {
  * shift's grant less that gap, so a rest day (no grant) and a working day (an hour granted, an hour
  * already taken) both price the hours actually clocked.
  */
-const clock = (date, from, to) => {
+const clock = (date, from, to, approved = 0) => {
 	const plus = (time, minutes) => {
 		const [hours, mins] = time.split(':').map(Number);
 		const total = hours * 60 + mins + minutes;
@@ -274,6 +274,9 @@ const clock = (date, from, to) => {
 		id: `day-${date}`,
 		work_date: date,
 		shift_definition_id: null,
+		// The approved overtime is keyed beside the clock: payroll pays this and nothing else beyond
+		// the shift, so a fixture that expects an overtime line states the hours it authorised.
+		approved_overtime_hours: approved,
 		worked_intervals: [
 			{ start: `${date}T${from}:00.000+08:00`, end: `${date}T${plus(from, 90)}:00.000+08:00` },
 			{ start: `${date}T${plus(from, 150)}:00.000+08:00`, end: `${date}T${to}:00.000+08:00` }
@@ -391,8 +394,8 @@ test('the ordinary rate is derived from the pattern, not from a payroll conventi
 // ── the cut-off boundary ────────────────────────────────────────────────────────────────────────
 
 test('a clock past the cut-off is in the bundle, is derived, and is still not paid', () => {
-	const inside = clock('2026-03-20', '08:30', '20:30');
-	const outside = clock('2026-03-21', '08:30', '20:30');
+	const inside = clock('2026-03-20', '08:30', '20:30', 3);
+	const outside = clock('2026-03-21', '08:30', '20:30', 3);
 	const measured = measure({ workDays: [inside, outside] });
 
 	// Both days are derived — the statutory monthly counter has to see the whole calendar month.
@@ -416,7 +419,7 @@ test('the same clock one day earlier is inside the cut-off and is paid', () => {
 	// one work day. If the window check were removed there would be a third row; if it were
 	// over-broad there would be only one.
 	const measured = measure({
-		workDays: [clock('2026-03-20', '08:30', '20:30'), clock('2026-03-19', '08:30', '20:30')]
+		workDays: [clock('2026-03-20', '08:30', '20:30', 3), clock('2026-03-19', '08:30', '20:30', 3)]
 	});
 	const overtime = measured.adjustments.filter((row) => row.label === OT_ORDINARY);
 	assert.deepEqual(
@@ -439,7 +442,7 @@ test('the same clock one day earlier is inside the cut-off and is paid', () => {
 });
 
 test('an overtime adjustment names its Work output, statutory band and work day', () => {
-	const day = clock('2026-03-20', '08:30', '20:30');
+	const day = clock('2026-03-20', '08:30', '20:30', 3);
 	const measured = measure({ workDays: [day] });
 	const row = lineOf(measured, OT_ORDINARY);
 	assert.equal(row.catalogueComponent.family, 'WORK');
@@ -545,8 +548,8 @@ test('a day worked to its scheduled end pays no overtime at all', () => {
 test('overtime crosses into a second band only where the ladder says so', () => {
 	// A single open 1.5× band: three hours and six hours differ by exactly three hours of pay, and
 	// nothing is rerated at some invented threshold along the way.
-	const three = measure({ workDays: [clock('2026-03-19', '08:30', '20:30')] });
-	const six = measure({ workDays: [clock('2026-03-19', '08:30', '23:30')] });
+	const three = measure({ workDays: [clock('2026-03-19', '08:30', '20:30', 3)] });
+	const six = measure({ workDays: [clock('2026-03-19', '08:30', '23:30', 6)] });
 	assert.equal(amountOf(three, OT_ORDINARY), 74.66);
 	assert.equal(amountOf(six, OT_ORDINARY), 149.32);
 	// The row's `rate` is the band's own average over its slice; the ladder's base hour is the
@@ -563,7 +566,7 @@ test('a rest day pays a day’s wages, and only the hours past the normal day ru
 	assert.equal(amountOf(eight, OT_REST_BEYOND), null);
 
 	// Two hours past the normal day, and only those two, reach the 2.0× hourly band.
-	const ten = measure({ workDays: [clock('2026-03-15', '08:30', '19:30')] });
+	const ten = measure({ workDays: [clock('2026-03-15', '08:30', '19:30', 2)] });
 	assert.equal(amountOf(ten, OT_REST_FULL), 132.73);
 	assert.equal(amountOf(ten, OT_REST_BEYOND), 66.37, '2 h × 2.0 × (3451 / 26 / 8)');
 	assert.equal(lineOf(ten, OT_REST_BEYOND).quantity, 2);
@@ -592,14 +595,14 @@ test('a public holiday is paid at its own statutory rate, from the holiday calen
 			}
 		]
 	]);
-	const worked = measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] }, { holidays });
+	const worked = measure({ workDays: [clock('2026-03-10', '08:30', '19:30', 2)] }, { holidays });
 	assert.equal(worked.overtimeDays[0].dayType, 'PUBLIC_HOLIDAY');
 	assert.equal(amountOf(worked, OT_HOLIDAY), 265.46, 'two days’ wages: 2 × 132.73');
 	assert.equal(amountOf(worked, OT_HOLIDAY_BEYOND), 99.55, '2 h × 3.0 × (3451 / 26 / 8)');
 	assert.equal(amountOf(worked, OT_ORDINARY), null, 'a holiday is not an ordinary day');
 
 	// The same clock on the same date, with no holiday declared, is ordinary overtime beyond 17:30.
-	const ordinary = measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] });
+	const ordinary = measure({ workDays: [clock('2026-03-10', '08:30', '19:30', 2)] });
 	assert.equal(amountOf(ordinary, OT_HOLIDAY), null);
 	assert.equal(amountOf(ordinary, OT_ORDINARY), 49.77, '2 h × 1.5 × (3451 / 26 / 8)');
 });
@@ -627,7 +630,7 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 		}
 	];
 	const worked = measure(
-		{ workDays: [clock('2026-03-10', '08:30', '19:30')] },
+		{ workDays: [clock('2026-03-10', '08:30', '19:30', 2)] },
 		{ holidays, bands: rules }
 	);
 	assert.equal(worked.overtimeDays[0].dayType, 'SPECIAL_HOLIDAY');
@@ -636,7 +639,7 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 	assert.equal(amountOf(worked, OT_HOLIDAY), null);
 	// A regime that states no SPECIAL_HOLIDAY ladder prices the day at nothing on the overtime
 	// lines; the wage itself still settles.
-	const unpriced = measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] }, { holidays });
+	const unpriced = measure({ workDays: [clock('2026-03-10', '08:30', '19:30', 2)] }, { holidays });
 	assert.deepEqual(unpriced.adjustments, []);
 	assert.equal(amountOf(unpriced, 'BASIC'), 3451);
 });
@@ -655,7 +658,7 @@ test('SUBSTITUTE precedence keeps the rest day and observes the holiday on the n
 			}
 		]
 	]);
-	const days = [clock('2026-03-15', '08:30', '12:30'), clock('2026-03-16', '08:30', '19:30')];
+	const days = [clock('2026-03-15', '08:30', '12:30'), clock('2026-03-16', '08:30', '19:30', 2)];
 	const substituted = measure(
 		{ workDays: days },
 		{ holidays, holidayRestPrecedence: 'SUBSTITUTE' }
@@ -718,8 +721,8 @@ test('a holiday the calendar substitutes itself is observed once, not twice', ()
 		{
 			workDays: [
 				clock('2026-03-15', '08:30', '12:30'),
-				clock('2026-03-16', '08:30', '19:30'),
-				clock('2026-03-17', '08:30', '19:30')
+				clock('2026-03-16', '08:30', '19:30', 2),
+				clock('2026-03-17', '08:30', '19:30', 2)
 			]
 		},
 		{ holidays, holidayRestPrecedence: 'SUBSTITUTE' }
@@ -754,7 +757,7 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 		{
 			workDays: [
 				{
-					...clock('2026-03-10', '14:30', '23:59'),
+					...clock('2026-03-10', '14:30', '23:59', 2.5),
 					worked_intervals: [
 						{ start: '2026-03-10T14:30:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
 					]
@@ -827,7 +830,7 @@ test('a mid-month joiner is paid the days they were employed, over the month’s
 	// Their overtime is priced at the full-month rate, not at their part-month pay: the numerator of
 	// the ordinary rate is the contract salary, unprorated.
 	assert.equal(measured.ordinaryHourlyRate, 3451 / 26 / 8);
-	const withOvertime = measure({ ...joined, workDays: [clock('2026-03-19', '08:30', '20:30')] });
+	const withOvertime = measure({ ...joined, workDays: [clock('2026-03-19', '08:30', '20:30', 3)] });
 	assert.equal(amountOf(withOvertime, OT_ORDINARY), 74.66);
 });
 

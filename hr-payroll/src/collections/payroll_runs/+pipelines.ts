@@ -19,7 +19,7 @@ import { bankFileFor } from './lib/bank-formats.js';
 export default {
 	export: {
 		description:
-			'Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment CSV, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals).',
+			'Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment file, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals).',
 		handler: ({ records }, api) =>
 			Effect.gen(function* () {
 				const {

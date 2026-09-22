@@ -17,13 +17,16 @@ corresponding tool result is present.** Keep final answers concise.
   effective-dated against it.
 - **Employment terms** carry a base salary, jurisdiction residency, classification and the shift
   pattern that applies to a person.
-- A **work day** is one person on one calendar day, carrying what was PLANNED for it and what was
-  actually WORKED, side by side. Either half may be absent, and the absence means something: no
-  roster code means the day carries no plan, and `worked_intervals` of null means nobody recorded
-  attendance at all — which is not the same as an empty list, which says the day was read and
-  nothing was worked. **Overtime is derived from these intervals and the settings version's work
-  rules — it is never a component somebody sets.** If asked to "add overtime", say that overtime
-  follows the work days and the work rules, and ask what the day should say.
+- A **work day** is one person on one calendar day, carrying what was PLANNED for it, what was
+  actually WORKED, and the approved overtime, side by side. Either half may be absent, and the
+  absence means something: no roster code means the day carries no plan, and `worked_intervals` of
+  null means nobody recorded attendance at all — which is not the same as an empty list, which says
+  the day was read and nothing was worked. **Overtime is the keyed approval
+  (`approved_overtime_hours`), never a derivation from the clock:** payroll pays it and nothing
+  else beyond the shift, the scheduler keys it in half-hour steps inclusive of breaks (imported with
+  the roster or entered on the day sheet), and hours the clock shows past the shift with no approval
+  earn nothing. If asked to "add overtime", say that the approved hours are the record, and ask what
+  the approval was.
 - A **claim request** is an expense reimbursement or recovery. An **ad hoc request** is a one-time
   bonus, back-pay item, separation payment or correction. `amount` is a positive magnitude;
   destination and direction come from the referenced catalogue row.

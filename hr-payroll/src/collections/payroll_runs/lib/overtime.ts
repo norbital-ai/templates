@@ -1,18 +1,20 @@
 /**
  * Clocks become hours; hours become money.
  *
- * Overtime is the one place payroll depends on what actually happened rather than what was agreed,
- * and it is where a rebuild is most likely to silently change someone's pay. Overtime is **computed
- * here, never stored**: a work day records punches, and every hour of overtime on this payslip is
- * derived from those punches, the statutory day type and the effective employment terms. Nothing
- * upstream may hand payroll a duration it did not derive, because a stored duration and the clock it
- * came from can disagree, and only one of them is what the employee actually worked.
+ * Overtime is **keyed, never derived**: the employer's approval is the record, imported with the
+ * roster or entered by the scheduler as `work_days.approved_overtime_hours`, in half-hour steps and
+ * inclusive of breaks. Payroll pays that figure and nothing else beyond the shift. An hour the
+ * clock shows past the shift with no approval earns nothing — work done is not the same fact as
+ * work authorised, and only the approval authorises pay. That is the client's reading, and it is
+ * what replaces the pre-refactor engine, which derived the overrun from the punch and paid it.
  *
- * A work day stores only observed work intervals and one actual unpaid-break total. There is no
- * overtime punch, overtime state or payable overtime field to drift from those observations. On an
- * ordinary day, overtime is the observed work, measured from the shift start, in excess of the
- * contract's normal hours. On a REST, OFF or observed public holiday, every observed worked hour is
- * overtime. The result is exact to the minute, with no one-hour minimum and no coarser floor.
+ * The clock still decides everything else. The ordinary part of the day, the day type, the night
+ * window and the statutory rest-break assessment all read `worked_intervals`; a day with no
+ * attendance pays no overtime at all, whatever its approval says, because an approval is not a
+ * clock. On a REST, OFF or observed public holiday the observed day up to the normal day is
+ * premium work and needs no approval — the roster and the calendar made it premium — and only the
+ * hours beyond that boundary are the approved figure. Clock-derived parts stay exact to the minute;
+ * the keyed part is exact to the half hour the scheduler enters.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  * REST-DAY AND PUBLIC-HOLIDAY WORK IS PRICED BY STATUTE, FROM THE SEEDED RULES.
@@ -53,8 +55,13 @@
  * subtracted the break the entry recorded, so deducting the requirement on top would charge a
  * thirty-minute break twice on every day that actually took one.
  *
- * Absent member, no governing rule, or no shortfall, and the arithmetic below is byte for byte what
- * it was before any of this existed. That is asserted in `overtime-derivation.test.ts`, not assumed.
+ * The shortfall reduces the clock-derived premium hours only, never the keyed approval: the
+ * approved figure is inclusive of breaks by the scheduler's own definition, so deducting from it
+ * would charge the break twice — once inside the number that was keyed and once here.
+ *
+ * Absent member, no governing rule, or no shortfall, and the clock-derived arithmetic below is byte
+ * for byte what it was before any of this existed. That is asserted in `overtime-derivation.test.ts`,
+ * not assumed.
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
@@ -116,7 +123,9 @@ const WorkDayLikeSchema = Schema.Struct({
 		)
 	),
 	/** The day's break, derived by the caller (`derivedBreakMinutes`); absent reads as none. */
-	break_minutes: Schema.optional(Schema.Number)
+	break_minutes: Schema.optional(Schema.Number),
+	/** The employer's approved overtime for the day, breaks included; absent reads as none. */
+	approved_overtime_hours: Schema.optional(Schema.NullOr(Schema.Number))
 });
 export type WorkDayLike = Schema.Schema.Type<typeof WorkDayLikeSchema>;
 
@@ -271,9 +280,9 @@ export type DailyOvertime = {
 	readonly workDayId: string;
 	readonly dayType: DayType;
 	/**
-	 * Exact to the minute, and already net of any unpaid statutory break shortfall. Never
-	 * negative, never zero — a zero day is dropped, including a day whose whole overrun was consumed
-	 * by a break it was owed and did not take.
+	 * The payable quantity: the keyed approval, plus the clock-derived premium a rest, off or
+	 * holiday day makes of the observed day up to the normal day — that part net of any unpaid
+	 * statutory break shortfall. Never negative, never zero — a zero day is dropped.
 	 */
 	readonly hours: number;
 	/** Contracted hours for the day, the boundary `STATUTORY_DAY_WAGE` bands against. */
@@ -302,11 +311,12 @@ export type DailyOvertime = {
 };
 
 /**
- * Derive one day's overtime hours from one work day's attendance.
+ * Read one day's payable overtime from the keyed approval and the observed day.
  *
- * Returns `null` when the day earns nothing, which is the common case: the gates fire, or the
- * overrun floors away to zero. A day that earns nothing produces no entry at all rather than a
- * zero one, so provenance never claims a payslip line consumed a record it did not.
+ * Returns `null` when the day earns nothing, which is the common case: the gates fire, no
+ * attendance was recorded, no hours were approved, or the premium floors away to zero. A day that
+ * earns nothing produces no entry at all rather than a zero one, so provenance never claims a
+ * payslip line consumed a record it did not.
  *
  * `restBreakRules` is the jurisdiction's transcribed rest-break member, optional in the signature so
  * that a caller which has none — and every caller had none before the member was restored — computes
@@ -344,22 +354,23 @@ export function deriveDailyOvertime(
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	if (day.dayType === 'ORDINARY' && day.shift == null) return null;
 	const totalWorkHours = dailyWorkedHours(entry, day, utcOffsetMinutes);
-	// Overtime on an ordinary day is work in excess of the normal hours (EA s.60A(3), and every
-	// other regime's "beyond the normal day"), not the clock-out past the shift end: a two-hour-late
-	// arrival that stays two hours late worked a normal day and earns nothing beyond it, where the
-	// overrun paid the two hours the person had not worked. On a rest day or holiday every hour
-	// is overtime.
-	const raw =
+	// An approval is not a clock. A day nobody attended earns no overtime, whatever was keyed for
+	// it: the approval authorises hours, and hours are what the punches record.
+	if (totalWorkHours <= 0) return null;
+	const approvedHours = Math.max(0, decodeNumber(entry.approved_overtime_hours ?? 0));
+	// What the clock showed beyond the normal day. It is the quantity the rest-break rules assess
+	// and it no longer decides pay: the approved figure does.
+	const observedBeyond =
 		day.dayType === 'ORDINARY' ? Math.max(0, totalWorkHours - day.normalHours) : totalWorkHours;
 
 	/**
-	 * The rest break is assessed from the punches and deducted from the raw overrun.
+	 * The rest break is assessed from the punches.
 	 *
-	 * The assessment reads `worked_intervals`, not `raw`: the trigger is consecutive hours, and the
-	 * excess this function computes is a different quantity that discards the normal day. A day of
-	 * 08:00–19:00 with a 20-minute pause crosses Malaysia's five
-	 * consecutive hours whether or not any of it was overtime — measuring the trigger off `raw` would
-	 * make the rule fire on the tail of a shift instead of on the stretch the statute describes.
+	 * The assessment reads `worked_intervals`, not the payable figure: the trigger is consecutive
+	 * hours, and the payable quantity discards the normal day. A day of 08:00–19:00 with a 20-minute
+	 * pause crosses Malaysia's five consecutive hours whether or not any of it was overtime —
+	 * measuring the trigger off the payable figure would make the rule fire on the tail of a shift
+	 * instead of on the stretch the statute describes.
 	 *
 	 * Only the **shortfall** is deducted, and only where the statute says the break is not working
 	 * time. `clockedWorkHours` above has already taken the derived break off the day, so
@@ -381,13 +392,20 @@ export function deriveDailyOvertime(
 		intervals: entry.worked_intervals ?? [],
 		breakMinutes: entry.break_minutes ?? 0,
 		breaks,
-		overtimeHours: raw,
+		overtimeHours: observedBeyond,
 		nightHours,
 		person: person ?? null
 	});
 	const restBreakDeductedHours =
 		restBreak.rule?.counts_as_worked_time === false ? (restBreak.shortfallMinutes ?? 0) / 60 : 0;
-	const hours = roundMinute(Math.max(0, raw - restBreakDeductedHours));
+	// On an ordinary day the payable quantity is the approval exactly; on a rest, off or holiday day
+	// the observed day up to the normal day is already premium, and only the hours beyond it are the
+	// approved figure. The shortfall reduces the clock-derived part, never the approval.
+	const premiumHours =
+		day.dayType === 'ORDINARY'
+			? 0
+			: Math.max(0, Math.min(totalWorkHours, day.normalHours) - restBreakDeductedHours);
+	const hours = roundMinute(Math.max(0, premiumHours + approvedHours));
 	if (hours <= 0) return null;
 	return {
 		date: workDate,

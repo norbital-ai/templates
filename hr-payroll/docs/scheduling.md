@@ -95,35 +95,42 @@ Controller → Events → Work is the operational month board. People holds the 
 terms; Settings → Catalog holds family calculation definitions. The board identifies projected base,
 explicit assignments and clocked time so an implied schedule cannot be confused with an observation.
 
-A workbook may carry both planned roster data and actual attendance:
+A workbook may carry planned roster data, actual attendance and the approved overtime:
 
 ```text
 planned code  → resolve WORK / REST / OFF assignment
 blank cell    → no explicit assignment
 PH token      → validate against the entity's published holidays
 punch columns → normalize worked intervals
+OT hours      → key the approved overtime for the day
 ```
 
-Import does not manufacture holiday rows, personal holiday scope or overtime quantities. A source
-column named "OT in/out" is still an observed interval. Overlap normalization and source evidence
-belong to import; the resulting Work rows follow the ordinary validation and approval path.
+Import does not manufacture holiday rows or personal holiday scope, and it never derives overtime:
+the Overtime sheet's half-hour cells are the employer's approval, stored on the day as
+`work_days.approved_overtime_hours`, breaks included. A file still carrying the retired
+`overtime_in`/`overtime_out` columns is refused by name rather than imported with its overtime
+silently dropped. Overlap normalization and source evidence belong to import; the resulting Work
+rows follow the ordinary validation and approval path.
 
 Overtime follows this order:
 
 1. Resolve effective contract terms and the base schedule.
 2. Apply dated assignments and the entity's holiday classification.
 3. Validate and measure observed intervals.
-4. Determine coverage and price the applicable Work bands.
+4. Read the day's approved hours and price the applicable Work bands.
 5. Apply dated floors, compliance controls and the payroll settlement window.
 
-Overtime duration, type and amount are calculated values. A stored `overtime_eligible` or
-`requires_approval` flag would duplicate a derivation. The source includes a pure scheduled-extra-work
-detector; conditional approval based on joined schedule/calendar facts still needs a supported
-workflow integration. Detection alone is not an automatic approval path.
+Overtime is an input, not a derivation: payroll pays the keyed approval and nothing else beyond the
+shift, and an hour the clock shows past the shift with no approval earns nothing. On a REST, OFF or
+observed public holiday the observed day up to the normal day is premium work by the roster and the
+calendar, and only the hours beyond that boundary are the approved figure. The clock still decides
+the ordinary part of the day, the day type, the night window and the statutory rest-break
+assessment, and a day with no attendance pays no overtime whatever its approval says.
 
-The ordinary approval policy remains authoritative. Paying hours that occurred does not establish
-that the schedule complied with working-time requirements. Detailed band pricing, the incentive
-funnel, limits, breaks and coverage rules remain in [Architecture](architecture.md#work-calculation).
+The ordinary approval policy remains authoritative. Paying hours that were approved does not
+establish that the schedule complied with working-time requirements. Detailed band pricing, the
+incentive funnel, limits, breaks and coverage rules remain in
+[Architecture](architecture.md#work-calculation).
 
 ## Time-off interaction
 
@@ -162,7 +169,8 @@ to its window; a multi-month absence is not charged entirely to the first month.
 | Contract, terms and named pattern reference                     | Service scope and projected base                           |
 | Roster-code variant and explicit dated assignment               | Normal minutes, final day type and workload                |
 | Published holiday rows and an entry's own pay link              | Holiday classification for each date                       |
-| Observed intervals and break minutes                            | Open/closed state, duration and overtime value             |
+| Observed intervals and break minutes                            | Open/closed state, duration and premium value              |
+| Approved overtime hours, keyed on the day                       | The payable overtime beyond the shift                      |
 | Approved activity, half-day range and frozen dated charges      | Calendar presentation and period-specific charge selection |
 | Manual carry/encashment/correction terms and source allocations | Balance, expiry and outstanding monetary obligations       |
 | Effective family catalogues and contract facts                  | Eligibility, entitlement, statutory opt-ins and amounts    |

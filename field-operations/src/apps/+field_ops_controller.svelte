@@ -350,7 +350,11 @@
 		>
 			{#snippet start()}
 				<Cover gap="sm" top={dispatchControls}>
-					<Bound size="full" pad="md" class="rounded-lg border bg-card">
+					<Bound
+						size="full"
+						pad="md"
+						class="rounded-lg border bg-card [&_.kanban-lane]:gap-4 [&_.kanban-lane]:p-4"
+					>
 						<CollectionKanban
 							client={collectionClient}
 							collection="job_assignments"

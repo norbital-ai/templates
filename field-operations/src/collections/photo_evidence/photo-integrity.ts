@@ -1,5 +1,6 @@
 import { decode as decodePng } from 'fast-png';
 import { decode as decodeJpeg } from 'jpeg-js';
+import createLibheif from 'libheif-js/libheif-wasm/libheif-bundle.mjs';
 import { deepDiff } from '@norbital-ai/std/json';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect, Option, Schema } from 'effect';
@@ -112,7 +113,7 @@ const decodedImageSchema = Schema.Struct({
 	width: Schema.Int,
 	height: Schema.Int,
 	channels: Schema.Literals([3, 4]),
-	format: Schema.Literals(['jpeg', 'png'])
+	format: Schema.Literals(['jpeg', 'png', 'heic'])
 });
 
 type DecodedImage = Schema.Schema.Type<typeof decodedImageSchema>;
@@ -123,12 +124,15 @@ function toIsoDate(value: Date | string | undefined): string | null {
 	return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-function expectedMimeType(format: 'jpeg' | 'png'): string {
+function expectedMimeTypes(format: 'jpeg' | 'png' | 'heic'): readonly string[] {
 	switch (format) {
 		case 'jpeg':
-			return 'image/jpeg';
+			return ['image/jpeg'];
 		case 'png':
-			return 'image/png';
+			return ['image/png'];
+		// iPhones write `image/heic`; a HEIF-branded container may arrive as `image/heif`.
+		case 'heic':
+			return ['image/heic', 'image/heif'];
 		default: {
 			const _exhaustive: never = format;
 			return _exhaustive;
@@ -143,7 +147,8 @@ function captureLocationFromExif(exif: Exif): { lat: number; lon: number } | nul
 	return { lat, lon };
 }
 
-function decodeImage(bytes: Uint8Array): DecodedImage {
+/** JPEG and PNG arrive as a decoded raster directly; anything else is not a still image. */
+function decodeStillImage(bytes: Uint8Array): DecodedImage | null {
 	if (bytes[0] === 0xff && bytes[1] === 0xd8) {
 		const decoded = decodeJpeg(bytes, {
 			useTArray: true,
@@ -178,11 +183,87 @@ function decodeImage(bytes: Uint8Array): DecodedImage {
 			format: 'png'
 		};
 	}
-	throw new Error('Photo evidence currently supports JPEG and PNG images.');
+	return null;
 }
 
 /**
- * Inspect a JPEG/PNG evidence file.
+ * The HEIF container brands this pipeline accepts.
+ *
+ * `mif1`/`msf1` are the generic HEIF brands Apple and Samsung also write for still HEIC; `avif`
+ * is deliberately absent because the decoder was bundled for HEVC-coded HEIF, not AV1.
+ */
+const HEIF_BRANDS = new Set(['mif1', 'msf1', 'heic', 'heix', 'hevc', 'hevx']);
+
+function isHeif(bytes: Uint8Array): boolean {
+	if (bytes.length < 12) return false;
+	const kind = String.fromCharCode(bytes[4]!, bytes[5]!, bytes[6]!, bytes[7]!);
+	const brand = String.fromCharCode(bytes[8]!, bytes[9]!, bytes[10]!, bytes[11]!);
+	return kind === 'ftyp' && HEIF_BRANDS.has(brand);
+}
+
+/**
+ * Compile the bundled libheif once per isolate / Node process.
+ *
+ * The wasm-bundle build carries its WASM as base64 and touches no Node builtin, so it survives the
+ * tenant isolate's missing `fs`/`require`. Decoding belongs in the guest for a second reason: the
+ * deterministic facts are computed from the uploaded bytes themselves, not from a host-side
+ * derivative that could re-encode, strip metadata or normalise dimensions.
+ */
+const loadLibheif = Effect.runSync(
+	Effect.cached(Effect.tryPromise(() => Promise.resolve(createLibheif())))
+);
+
+const decodeHeif = (bytes: Uint8Array) =>
+	Effect.gen(function* () {
+		const libheif = yield* loadLibheif;
+		return yield* Effect.tryPromise({
+			try: async () => {
+				await libheif.ready;
+				const decoder = new libheif.HeifDecoder();
+				const images = decoder.decode(bytes);
+				if (images.length === 0) throw new Error('no HEIF image in the container');
+				const image = images[0]!;
+				try {
+					const width = image.get_width();
+					const height = image.get_height();
+					const rgba = await new Promise<Uint8ClampedArray>((resolve, reject) =>
+						image.display(
+							{ data: new Uint8ClampedArray(width * height * 4), width, height },
+							(result) =>
+								result == null ? reject(new Error('HEIF display failed')) : resolve(result.data)
+						)
+					);
+					return {
+						data: new Uint8Array(rgba.buffer, rgba.byteOffset, rgba.byteLength),
+						width,
+						height,
+						channels: 4,
+						format: 'heic'
+					} satisfies DecodedImage;
+				} finally {
+					for (const one of images) one.free();
+					decoder.decoder.delete();
+				}
+			},
+			catch: (cause) =>
+				new Error(
+					`Photo evidence could not decode this HEIF image: ${
+						cause instanceof Error ? cause.message : String(cause)
+					}`
+				)
+		});
+	});
+
+const decodeImage = (bytes: Uint8Array) =>
+	Effect.gen(function* () {
+		const still = yield* Effect.try(() => decodeStillImage(bytes));
+		if (still !== null) return still;
+		if (isHeif(bytes)) return yield* decodeHeif(bytes);
+		return yield* Effect.fail(new Error('Photo evidence supports JPEG, PNG and HEIC images.'));
+	});
+
+/**
+ * Inspect a JPEG, PNG or HEIC evidence file.
  *
  * PDQ hashes are computed in hex here; the inspection automation persists them as a 256-dim 0/1
  * `vector` via `hexToBinaryEmbedding`. Near-duplicate search uses the same `findNearest` path as omni
@@ -191,8 +272,9 @@ function decodeImage(bytes: Uint8Array): DecodedImage {
  */
 export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?: Date }) =>
 	Effect.gen(function* () {
-		const image = yield* Effect.try(() => decodeImage(input.bytes));
-		// PNG decodes as RGBA; JPEG already returns RGB so the common photo path holds one raster.
+		const image = yield* decodeImage(input.bytes);
+		// PNG and HEIC decode as RGBA; JPEG already returns RGB so the common photo path holds one
+		// raster.
 		const rgb =
 			image.channels === 3
 				? image.data
@@ -237,8 +319,8 @@ export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?:
 		const flags = new Set<PhotoIntegrityFlag>();
 		const capturedAt = toIsoDate(exif.DateTimeOriginal ?? exif.CreateDate);
 		const now = input.now ?? (yield* currentDate);
-		const expectedMime = expectedMimeType(image.format);
-		if (input.mimeType.toLowerCase() !== expectedMime || capturedAheadOf(capturedAt, now)) {
+		const expectedMimes = expectedMimeTypes(image.format);
+		if (!expectedMimes.includes(input.mimeType.toLowerCase()) || capturedAheadOf(capturedAt, now)) {
 			flags.add('metadata_anomaly');
 		}
 		if (

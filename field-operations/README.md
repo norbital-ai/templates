@@ -74,8 +74,9 @@ is the opening pass of the one hourly run rather than an automation of its own:
    leaves an assignment unchecked until every photo on it carries a hash.
 2. **Duplicate check** — the pass compares the photo against everything already stored: perceptual
    near-duplicates via `findNearest` on a 256-dim 0/1 vector indexed with HNSW (L2 metric,
-   threshold √31 ≈ PDQ Hamming 31), recorded as a `visual_duplicate` flag with the matched evidence
-   ids; exact SHA-256 matches are reported by the review as `exact_duplicate`.
+   threshold √31 ≈ PDQ Hamming 31) are recorded as `visual_duplicate`; a byte-identical file
+   (SHA-256) under another assignment is `exact_duplicate`. Both flags carry the matched evidence
+   ids. A match inside the photo's own assignment is a neutral repeat, never evidence.
 3. **Geolocation** — EXIF GPS is compared against the job site's map location (500 m tolerance).
    No GPS → `missing_geolocation`; capture beyond tolerance → `location_mismatch`.
 4. **Flags are evidence, not a verdict.** `metadata_anomaly`, `edited_metadata` and `low_quality`
@@ -102,6 +103,16 @@ inference can be invoked and is reported separately instead of claiming an infer
 Only a controller's stated resolution closes a log. The flags and views never leak to the
 contractor policy or the WhatsApp envoy: only the controller dashboard renders integrity or
 suspicion state.
+
+**Cross-assignment scene-reuse nomination (the review's second task).** PDQ cannot separate a crop
+of the same scene from an unrelated pair, so that task nominates candidates through the collection's
+learned record embedding. `photo_evidence` names Gemini Embedding 2 (multimodal, 256-dimension
+truncation) as its embedding model; the host resolves and normalizes the stored image and sends it
+as the provider's image content part, so `record_embedding` is a real scene vector and the Kismis /
+Lorong crop pair sits far closer than unrelated pairs. The host must have that model registered
+(`COLONY_AI_EMBEDDING_MODELS`); the review basis reports `record_embedding_photos` so a review taken
+without it is visible rather than silently clear. The deterministic PDQ net
+(`visual_duplicate` / `exact_duplicate`) runs independently of the embedding.
 
 **Network reach.** The review reaches no public page. Its inputs are tenant-held rows and the
 photo objects in storage; `api.infer` is called with no `tools`, nothing in this template calls

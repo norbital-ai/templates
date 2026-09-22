@@ -13,7 +13,7 @@ export default defineModel(
 	{
 		job_assignment_id: uuid(),
 		variation_request_id: uuid(),
-		photo: file({ mimeTypes: ['image/jpeg', 'image/png'] }).notNull(),
+		photo: file({ mimeTypes: ['image/jpeg', 'image/png', 'image/heic', 'image/heif'] }).notNull(),
 		source_key: text().notNull(),
 		source: custom('photo_source').notNull(),
 		sha256: text().notNull(),
@@ -63,8 +63,17 @@ export default defineModel(
 		 * The photo alone: `summary` is generated from `source` and reads "Workspace upload" or
 		 * "Photo" on nearly every row, so including it would add a constant to every vector and pull
 		 * the whole collection together.
+		 *
+		 * The model is named because the host keeps no default for an image: Gemini Embedding 2 is
+		 * multimodal (text and images in one vector space) and honours the 256-dimension truncation
+		 * this column is sized for. The host resolves the stored image, normalizes it, and sends it as
+		 * the provider's image content part.
 		 */
-		embedding: { fields: ['photo'], dimensions: 256 },
+		embedding: {
+			fields: ['photo'],
+			model: 'openrouter/google/gemini-embedding-2',
+			dimensions: 256
+		},
 		recordLabel: 'summary',
 		icon: 'lucide:scan-search',
 		indexes: [

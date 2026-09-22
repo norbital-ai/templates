@@ -851,12 +851,13 @@ export function calculateWorkAttendance(
 		dayWage,
 		ratesOn
 	} = options.work;
-	// ── overtime, derived from clocks and split beyond the jurisdiction's own daily ceilings ───
+	// ── overtime: the keyed approval, plus the premium the day type makes of the clock ─────────
 	//
 	// `worked_intervals` is the presence test for the actual half of a work day: NULL means no
 	// attendance was recorded at all, while an empty array means the day was read and nothing was
-	// worked. Only the second is attendance, and only attendance can be priced or claimed — a day
-	// carrying nothing but a plan has no clock to derive an hour from and no punch to freeze.
+	// worked. Only attendance can be priced or claimed — a day carrying nothing but a plan has no
+	// clock to measure an hour against and no punch to freeze, and `deriveDailyOvertime` reads the
+	// day's `approved_overtime_hours` only where a clock exists to have earned them.
 	const attendedDays = bundle.workDays.filter((day) => day.worked_intervals != null);
 	// Overtime settles in the window the hours fall in: this employment's own attendance window.
 	const overtimeAttendance = attendance;

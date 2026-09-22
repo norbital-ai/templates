@@ -159,7 +159,7 @@
 			"currency": "SGD",
 			"timezone": "Asia/Singapore",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"holiday_in_no_pay_leave_unpaid": true,
 			"short_day_half_hours": 5,
 			"final_pay_deadlines": [
@@ -428,7 +428,7 @@
 			"currency": "SGD",
 			"timezone": "Asia/Singapore",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"holiday_in_no_pay_leave_unpaid": true,
 			"short_day_half_hours": 5,
 			"final_pay_deadlines": [
@@ -697,7 +697,7 @@
 			"currency": "SGD",
 			"timezone": "Asia/Singapore",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"holiday_in_no_pay_leave_unpaid": true,
 			"short_day_half_hours": 5,
 			"final_pay_deadlines": [
@@ -966,7 +966,7 @@
 			"currency": "SGD",
 			"timezone": "Asia/Singapore",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false,
+			"allowance_npl_prorates": true,
 			"holiday_in_no_pay_leave_unpaid": true,
 			"short_day_half_hours": 5,
 			"final_pay_deadlines": [

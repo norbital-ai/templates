@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
+import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { Effect } from 'effect';
 import {
@@ -189,6 +190,58 @@ test('inspects the canonical 12 MP phone-photo envelope deterministically', asyn
 			flags: ['low_quality']
 		}
 	);
+});
+
+const photoEvidenceFixture = (name: string) =>
+	new Uint8Array(readFileSync(new URL(`./fixtures/${name}`, import.meta.url)));
+
+const popcountByte = (byte: number): number => {
+	let bits = byte;
+	let count = 0;
+	while (bits > 0) {
+		count += bits & 1;
+		bits >>>= 1;
+	}
+	return count;
+};
+
+const hammingDistance = (left: string, right: string): number => {
+	let distance = 0;
+	for (let index = 0; index < 32; index++) {
+		distance += popcountByte(
+			Number.parseInt(left.slice(index * 2, index * 2 + 2), 16) ^
+				Number.parseInt(right.slice(index * 2, index * 2 + 2), 16)
+		);
+	}
+	return distance;
+};
+
+/**
+ * The same phone photo as the field app can receive it: the iPhone's HEIC and a JPEG export of it.
+ * `suspicion-review` flags a reuse on Hamming distance ≤ 31, so a HEIC upload that hashed as a
+ * different scene would be invisible to the near-duplicate sweep — and to its own re-upload.
+ */
+test('hashes a HEIC upload as the same photo as its JPEG export', async () => {
+	const heic = await Effect.runPromise(
+		inspectPhoto({
+			bytes: photoEvidenceFixture('photo-evidence.heic'),
+			mimeType: 'image/heic',
+			now: new Date('2026-09-22T00:00:00Z')
+		})
+	);
+	const jpeg = await Effect.runPromise(
+		inspectPhoto({
+			bytes: photoEvidenceFixture('photo-evidence.jpg'),
+			mimeType: 'image/jpeg',
+			now: new Date('2026-09-22T00:00:00Z')
+		})
+	);
+
+	assert.deepEqual([heic.width, heic.height], [640, 853]);
+	assert.deepEqual(heic.flags, []);
+	assert.deepEqual(jpeg.flags, []);
+	assert.ok(hammingDistance(heic.perceptualHash, jpeg.perceptualHash) <= 31);
+	assert.notEqual(heic.sha256, jpeg.sha256);
 });
 
 test('accepts only the immutable fact shape supplied by the host inspection cache', () => {

@@ -36,7 +36,9 @@ export const wagesValueSchema = Schema.Struct({
 	 * the fixed allowances) is judged where the floor is, and a contract that fails it warns on
 	 * the run the same way.
 	 */
-	terms_when: Schema.optionalKey(Schema.String)
+	terms_when: Schema.optionalKey(Schema.String),
+	/** The wage order this table transcribes, in the operator's words; the engine never reads it. */
+	authority: Schema.optionalKey(Schema.String)
 }).check(
 	Schema.makeFilter((wages) => {
 		const fault =

@@ -43,14 +43,15 @@ import {
 import { isRestLimit, type WorkRules } from '../../datatypes/work_rules/+definition.js';
 
 /**
- * Which person, which day, the plan, the clock, and who asked for a rest day's work — the fact a
- * rest-day rate turns on. `payslip_id` is the payroll run's pin.
+ * Which person, which day, the plan, the clock, the approved overtime, and who asked for a rest
+ * day's work — the fact a rest-day rate turns on. `payslip_id` is the payroll run's pin.
  */
 const columns = {
 	employment_id: true,
 	work_date: true,
 	shift_definition_id: true,
 	worked_intervals: true,
+	approved_overtime_hours: true,
 	requested_by: true
 } as const;
 
@@ -129,6 +130,21 @@ function assertWorkedIntervals(value: readonly WorkedInterval[] | null | undefin
 			refuse('Each worked interval must end after it starts, including work across midnight.');
 		previousEnd = endedAt;
 	}
+}
+
+/**
+ * Approved overtime is keyed in half-hour steps — the unit the scheduler works in and the unit the
+ * payroll input is read in — and a day cannot hold more of it than a day has hours. It is not
+ * judged against the clock: the approval is the record, and a figure the punches disagree with is
+ * the scheduler's to correct, not this write's to silently trim.
+ */
+function assertApprovedOvertimeHours(value: number | null | undefined): void {
+	if (value == null) return;
+	if (!Number.isFinite(value) || value < 0)
+		refuse('Approved overtime hours must be zero or a positive number of hours.');
+	if (Math.round(value * 2) !== value * 2)
+		refuse('Approved overtime is keyed in half-hour steps — 0.5, 1, 1.5, and so on.');
+	if (value > 24) refuse('Approved overtime cannot exceed the 24 hours a day has.');
 }
 
 /**
@@ -657,6 +673,11 @@ export default defineCollection({
 						: (stored?.shift_definition_id ?? null);
 				assertWorkedIntervals(
 					input.worked_intervals !== undefined ? input.worked_intervals : stored?.worked_intervals
+				);
+				assertApprovedOvertimeHours(
+					input.approved_overtime_hours !== undefined
+						? input.approved_overtime_hours
+						: stored?.approved_overtime_hours
 				);
 				const companyId = employmentById.get(employmentId)?.company_id ?? null;
 				const windows = (companyId == null ? undefined : windowsByCompany.get(companyId)) ?? [];

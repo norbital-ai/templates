@@ -169,7 +169,7 @@
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": true
 		},
 		"sources": {
 			"urls": [
@@ -412,7 +412,7 @@
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": true
 		},
 		"sources": {
 			"urls": [
@@ -658,7 +658,7 @@
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
 			"tax_year_start_month": 1,
-			"allowance_npl_prorates": false
+			"allowance_npl_prorates": true
 		},
 		"sources": {
 			"urls": [

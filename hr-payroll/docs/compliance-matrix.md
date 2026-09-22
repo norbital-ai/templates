@@ -47,7 +47,7 @@ the status in this table.
 
 | Jurisdiction | Calculations represented                                                                                                    | Automated evidence                                                                                | Remaining verification                                                                                                                                                                                                                                      |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SG           | CPF, SDL, self-help funds, work premiums, leave and separation catalogue                                                    | `statutory-golden-sg.test.ts`, `statutory-work-bands.test.ts`, `leave-entitlement-golden.test.ts` | Verify allowance classifications, PR-date boundaries and fund-election handling. **Partial.**                                                                                                                                                               |
+| SG           | CPF, SDL, self-help funds, work premiums, leave and separation catalogue                                                    | `statutory-golden-sg.test.ts`, `statutory-work-bands.test.ts`, `leave-entitlement-golden.test.ts` | Allowance classifications are per class now (`allowance_catalogue.npl_prorates`; EA s.2 excludes travel, food and housing), and PR-date boundaries and fund-election handling are tested. **Partial.**                                                      |
 | MY           | EPF, SOCSO, EIS, HRD levy, PCB, overtime, leave and termination catalogue                                                   | `statutory-golden-my.test.ts`, `ordinary-rate-divisor.test.ts`                                    | Daily and hourly encashment now use the preceding wage period (s.60I(1C)); special PCB profiles and voluntary/compulsory contribution relief interaction remain open. **Partial.**                                                                          |
 | PH           | SSS, PhilHealth, Pag-IBIG, withholding tax, wage floors, work premiums and separation catalogue                             | `statutory-golden-ph.test.ts`, `semi-monthly-runs.test.ts`                                        | Verify employee-category rules, regional wage-order commencement, tax annualisation and SIL conversion bases. **Partial.**                                                                                                                                  |
 | ID           | BPJS schemes, PPh21, work premiums, THR and separation catalogue                                                            | `statutory-golden-id.test.ts`, `statutory-work-bands.test.ts`                                     | Cash-out remains blocked: no binding daily divisor exists (PP 35/2021 art. 40(4)(a) grants the entitlement; ÷30 is a ministry explanation by analogy, ÷25 only court practice). Verify regional wage-order selection beyond Jakarta/West Java. **Partial.** |
@@ -341,10 +341,11 @@ This is an unresolved rule-selection requirement, independent of employee-record
   valid declarations across entity lineages in the same jurisdiction.
 
 - VN declared non-residents receive 20% before resident short-contract rules. A tested VND20m
-  short-contract salary now withholds VND4m instead of VND2m. Before July 2026, only the
-  qualifying overtime premium is exempt for non-residents; full statutory overtime exemption
-  starts in July. The leave exemption also distinguishes resident and non-resident commencement,
-  and a future exit date no longer makes current-period cash-out exempt.
+  short-contract salary now withholds VND4m instead of VND2m. The 10% threshold is VND2m a payment
+  through the 2025 version and VND5m from the 2026 tax year (Decree 253/2026 art.69(1)(a)). Before
+  July 2026, only the qualifying overtime premium is exempt for non-residents; full statutory
+  overtime exemption starts in July. The leave exemption also distinguishes resident and
+  non-resident commencement, and a future exit date no longer makes current-period cash-out exempt.
 
 - MY and MY-nihon child relief uses declared tax-year claims. Recording a child alone no longer
   grants relief. Full and half shares are applied to the statutory category amounts; declarations
