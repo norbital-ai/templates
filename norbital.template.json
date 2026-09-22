@@ -8,7 +8,7 @@
 	"counts": {
 		"collections": 28,
 		"apps": 11,
-		"automations": 4
+		"automations": 5
 	},
 	"tags": ["HR", "Finance", "Approvals"],
 	"seed": {
