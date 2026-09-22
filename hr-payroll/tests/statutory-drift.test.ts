@@ -7,7 +7,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
+import { Schema } from 'effect';
 import {
+	StatutoryFindingsSchema,
 	describeSourcesRead,
 	diffStatutoryFindings,
 	officialUrlFor,
@@ -60,6 +62,7 @@ test('a changed rule table standing on a quote from a retrieved page is one chan
 				}
 			],
 			leave_catalogue: [],
+			instruments: [],
 			notes: []
 		},
 		[page]
@@ -107,6 +110,7 @@ test('an unchanged table, in any key or rule order, is no change', () => {
 					quote
 				}
 			],
+			instruments: [],
 			notes: ['A revision is announced for 2028.']
 		},
 		[page]
@@ -114,6 +118,104 @@ test('an unchanged table, in any key or rule order, is no change', () => {
 	assert.deepEqual(diff.changes, []);
 	assert.deepEqual(diff.notes, ['A revision is announced for 2028.']);
 	assert.equal(diff.requires_review, true, 'unstructured findings must reach the reviewer');
+});
+
+test("a quote matches its page whatever the whitespace between the page's line elements", () => {
+	const statute = {
+		...page,
+		text: '第 2 條 勞工結婚者給予婚假八日，工資照給。 第 3 條 勞工喪假依左列規定：'
+	};
+	const diff = diffStatutoryFindings(
+		{ contributions: [], leave_catalogue: [sealed.leave_catalogue[0]] },
+		{
+			contributions: [],
+			leave_catalogue: [
+				{
+					...sealed.leave_catalogue[0],
+					source_url: statute.url,
+					quote: '第2條勞工結婚者給予婚假八日，工資照給。'
+				}
+			],
+			instruments: [],
+			notes: []
+		},
+		[statute]
+	);
+	assert.deepEqual(diff.notes, []);
+});
+
+test('a work rule restated without its authority citation is no change', () => {
+	const limit = { key: 'weekly_normal', period: 'WEEK', measure: 'NORMAL_HOURS', max_hours: 40 };
+	const diff = diffStatutoryFindings(
+		{
+			contributions: [],
+			leave_catalogue: [],
+			work_rules: { limits: [{ ...limit, authority: 'LSA §30(1)' }] }
+		},
+		{
+			contributions: [],
+			leave_catalogue: [],
+			jurisdiction_settings: {
+				work_rules: {
+					limits: { proposed: [limit], source_url: page.url, quote, effective_from: null }
+				}
+			},
+			instruments: [],
+			notes: []
+		},
+		[page]
+	);
+	assert.deepEqual(diff.changes, []);
+});
+
+test('a submission missing its tables and its discovery list decodes and is sent to review, never failed', () => {
+	const partial = Schema.decodeUnknownSync(StatutoryFindingsSchema)({});
+	const diff = diffStatutoryFindings(sealed, partial, [page]);
+	assert.deepEqual(diff.changes, []);
+	assert.equal(diff.requires_review, true);
+	assert.ok(diff.notes.some((note) => /no discovery pass/.test(note)));
+	assert.ok(diff.notes.includes('Scheme EPF: no verified comparison; review required'));
+});
+
+test('a discovered instrument needing review, or standing on no verified quote, reaches the reviewer', () => {
+	const instrument = (status, source_url = page.url, text = quote) => ({
+		title: 'Contribution Rate Order 2027',
+		issued_on: '2026-09-01',
+		affects: 'Monthly remittance deadline moves to the 10th.',
+		status,
+		source_url,
+		quote: text,
+		effective_from: '2027-01-01'
+	});
+	const compared = (instruments) =>
+		diffStatutoryFindings(
+			sealed,
+			{
+				contributions: [
+					{ code: 'EPF', rules: [], source_url: page.url, effective_from: null, quote }
+				],
+				leave_catalogue: [{ ...sealed.leave_catalogue[0], source_url: page.url, quote }],
+				instruments,
+				notes: []
+			},
+			[page]
+		);
+	const reflected = compared([instrument('REFLECTED')]);
+	assert.deepEqual(reflected.notes, []);
+	assert.equal(reflected.requires_review, false);
+	const review = compared([instrument('REVIEW')]);
+	assert.deepEqual(review.notes, [
+		'Instrument Contribution Rate Order 2027 (2027-01-01): Monthly remittance deadline moves to the 10th. Review required.'
+	]);
+	assert.equal(review.requires_review, true);
+	const unverified = compared([
+		instrument('REFLECTED', page.url, 'a passage the page never carried')
+	]);
+	assert.match(
+		unverified.notes[0],
+		/Instrument Contribution Rate Order 2027: the quote does not appear/
+	);
+	assert.equal(unverified.requires_review, true);
 });
 
 test('a quote not on the page, a page not retrieved and an unknown code are notes, never changes', () => {
@@ -142,6 +244,7 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 				}
 			],
 			leave_catalogue: [],
+			instruments: [],
 			notes: []
 		},
 		[page]
@@ -174,6 +277,7 @@ test('missing research and unsupported threshold changes require review', () => 
 				}
 			],
 			leave_catalogue: [],
+			instruments: [],
 			notes: []
 		},
 		[page]
@@ -216,6 +320,7 @@ test('the proposed rules replace the cloned ones in the draft write', () => {
 				effective_from: '2027-01-01'
 			}
 		],
+		instruments: [],
 		notes: [],
 		unreachable: []
 	};
@@ -250,6 +355,7 @@ test('a changed rate preserves and targets its rule ladder', () => {
 				}
 			],
 			leave_catalogue: [],
+			instruments: [],
 			notes: []
 		},
 		[page]
@@ -287,6 +393,7 @@ test('drift compares deductions and refusal reasons and preserves them in unrela
 					}
 				],
 				leave_catalogue: [],
+				instruments: [],
 				notes: []
 			},
 			[page]
@@ -323,6 +430,7 @@ test('drift compares rebate changes and preserves an omitted rebate in a changed
 					}
 				],
 				leave_catalogue: [],
+				instruments: [],
 				notes: []
 			},
 			[reference]
@@ -347,6 +455,7 @@ test('a changed rate without a valid statutory commencement date is not proposed
 					{ code: 'EPF', rules: [rule('12.0')], source_url: page.url, quote, effective_from }
 				],
 				leave_catalogue: [],
+				instruments: [],
 				notes: []
 			},
 			[page]

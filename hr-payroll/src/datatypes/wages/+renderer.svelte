@@ -58,7 +58,9 @@
 	function commit(next: WageRow[], applies = appliesWhen): void {
 		rows = next;
 		if (props.mode !== 'edit') return;
+		// The keys this editor does not show (hourly table, scale, terms rule, authority) survive the edit.
 		props.onValueChange({
+			...wages,
 			by_region: Object.fromEntries(
 				next
 					.filter((row) => row.region.trim() !== '')

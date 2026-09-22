@@ -43,7 +43,16 @@ import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
 import { stint } from '../employment-contract.js';
+import {
+	CONTRACT,
+	LEAVE_ABSENCE,
+	LEAVE_DAYS,
+	OVERTIME_FLOOR_DAYS,
+	WAGES
+} from '../expressions/person-functions.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
+import type { InLieuSlice, PayrollTrace } from '../../datatypes/payroll_trace/+definition.js';
+import type { PayslipWageMonth } from './reference-wages.js';
 import type {
 	MeasuredEmployment,
 	MeasureEmploymentOptions,
@@ -123,12 +132,20 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		for (const step of prepareMoneySteps({
 			bundle,
 			configuration,
-			year: () => yearContextOf({ bundle, configuration, options, componentAmounts }),
+			year: () =>
+				yearContextOf({
+					bundle,
+					configuration,
+					options,
+					componentAmounts,
+					absence: absenceOf(leave.adjustments)
+				}),
 			salary: options.salary,
 			employed: { start: finalDate, end: finalDate },
 			contracted: { start: finalDate, end: finalDate },
 			requests,
 			consumedEntries: options.consumedEntries,
+			earnedByMonth: options.earnedByMonth,
 			period: options.period,
 			workingDaysIn: () => 0,
 			unpaidDaysIn,
@@ -189,6 +206,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			periodFullyUnpaidDays: 0,
 			periodLeaveDays: {},
 			periodFullLeaveDays: {},
+			periodLeavePay: {},
+			periodOvertimeDays: 0,
 			week: { ordinary_hours_per_week: 0, working_days_per_week: 0 }
 		};
 	}
@@ -242,15 +261,18 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		configuration,
 		work,
 		entryTotalByComponentId,
-		priorOvertimeHours: options.priorOvertimeHours
+		priorOvertimeHours: options.priorOvertimeHours,
+		priorInLieu: options.priorInLieu
 	});
 	const {
 		overtimeDays,
 		calendarMonthOvertimeHours,
 		calendarMonthAllOvertimeHours,
+		calendarMonthLimitHours,
 		nightShiftHours,
 		unpricedWeeks
 	} = workAttendance;
+	notes.push(...workAttendance.inLieuNotes);
 	/**
 	 * The unpaid days an allowance loses, for the jurisdictions whose allowances lose them
 	 * (`payroll.allowance_npl_prorates`): the no-pay leave this run charges and the rostered days
@@ -347,11 +369,19 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	const stepOptions = {
 		bundle,
 		configuration,
-		year: () => yearContextOf({ bundle, configuration, options, componentAmounts }),
+		year: () =>
+			yearContextOf({
+				bundle,
+				configuration,
+				options,
+				componentAmounts,
+				absence: absenceOf(measuredLeave.adjustments) + absenceOf(workAttendance.adjustments)
+			}),
 		salary: options.salary,
 		employed: wageDays,
 		contracted: employed,
 		consumedEntries: options.consumedEntries,
+		earnedByMonth: options.earnedByMonth,
 		period: options.period,
 		workingDaysIn,
 		unpaidDaysIn,
@@ -430,6 +460,12 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	});
 	const periodLeave = leaveCoverage(bundle.leave, options.salary, work.isOrdinaryWorkingDay);
 	const monthlyLeave = leaveCoverage(bundle.leave, monthThrough, work.isOrdinaryWorkingDay);
+	const salaryBase = base.reduce(
+		(sum, line) => (line.catalogueComponent.output === 'salary' ? sum + line.amount : sum),
+		0
+	);
+	const periodWorking = workingDaysIn(options.salary);
+	const monthWorking = workingDaysIn(month);
 
 	return {
 		bundle,
@@ -456,6 +492,9 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		overtimeDays,
 		calendarMonthOvertimeHours,
 		calendarMonthAllOvertimeHours,
+		calendarMonthLimitHours,
+		settledOvertimeHours: workAttendance.settledOvertimeHours,
+		inLieuSlices: workAttendance.inLieuSlices,
 		unpricedWeeks,
 		currency,
 		schedule,
@@ -470,6 +509,10 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		),
 		periodLeaveDays: periodLeave.byCode,
 		periodFullLeaveDays: periodLeave.fullDaysByCode,
+		periodLeavePay: leavePay(periodLeave.byCode, salaryBase, periodWorking, currency),
+		periodOvertimeDays: [...workAttendance.overtimeOrNightDates].filter(
+			(date) => date >= attendance.start && date <= attendance.end
+		).length,
 		monthlyContributionDays: {
 			employed: monthlyProration?.days ?? 0,
 			working: workingDaysIn(month),
@@ -481,6 +524,10 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			),
 			leaveDays: monthlyLeave.byCode,
 			fullLeaveDays: monthlyLeave.fullDaysByCode,
+			leavePay: leavePay(monthlyLeave.byCode, subject.terms.monthly_basic, monthWorking, currency),
+			overtimeDays: [...workAttendance.overtimeOrNightDates].filter(
+				(date) => date >= monthThrough.start && date <= monthThrough.end
+			).length,
 			unpaid:
 				unpaidLeaveDays(bundle.leave, monthThrough) +
 				work.absentDaysIn(monthThrough).reduce((total, day) => total + day.days, 0)
@@ -490,6 +537,24 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			working_days_per_week: rateTerms.working_days_per_week
 		}
 	};
+}
+
+/**
+ * The salary a window attributes to each leave code's days: salary × days ÷ working days, never
+ * more than the salary — for a law that exempts the pay of one leave (PH RA 11210 s.5 maternity).
+ */
+function leavePay(
+	days: Readonly<Record<string, number>>,
+	salary: number,
+	working: number,
+	currency: string
+): Record<string, number> {
+	return Object.fromEntries(
+		Object.entries(days).map(([code, count]) => [
+			code,
+			working > 0 ? cents(Math.min(salary, (salary * count) / working), currency) : 0
+		])
+	);
 }
 
 /**
@@ -787,8 +852,9 @@ function monthPriorOf(options: {
 export function prepareFamilyHistory(
 	options: Parameters<typeof contributionYearToDate>[0] & {
 		readonly api: PayrollReadApi & { readonly reads: ReadLog };
-		/** run id → its period, so a settled payslip's overtime lands in a calendar month. */
 		readonly periodByRun: ReadonlyMap<string, string>;
+		/** run id → its frozen trace, which carries each payslip's settled overtime counts. */
+		readonly traceByRun: ReadonlyMap<string, PayrollTrace>;
 		readonly catalogueComponents?: readonly CatalogueComponent[];
 	}
 ) {
@@ -801,7 +867,9 @@ export function prepareFamilyHistory(
 			yearEarned: earnedYearToDate(options),
 			yearQuantityPayments: earnedQuantityPaymentsYearToDate(options),
 			earnedByMonth: earnedByMonth(options),
+			payslipWageMonths: payslipWageMonths(options),
 			priorOvertimeHours: priorOvertimeHours(options),
+			priorInLieu: priorInLieu(options),
 			monthPrior: monthPriorOf(options),
 			consumedEntries
 		};
@@ -871,9 +939,20 @@ function earnedYearToDate(options: {
 					line.component_code,
 					(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
 				);
+			// Every unpaid day, absence or no-pay leave, under the reserved name: `BASIC - ABSENCE`
+			// is the basic actually earned (PH PD 851: a 13th month is a twelfth of it).
+			else if (line.bucket === 'ABSENCE')
+				byCode.set(ABSENCE, (byCode.get(ABSENCE) ?? 0) + decodeNumber(line.amount));
 		earned.set(employeeId, byCode);
 	}
 	return earned;
+}
+
+const ABSENCE = 'ABSENCE';
+
+/** This run's unpaid-day lines, the magnitude `year.earned.ABSENCE` adds to the year's. */
+function absenceOf(adjustments: readonly MeasuredAdjustment[]): number {
+	return adjustments.reduce((sum, line) => (line.bucket === ABSENCE ? sum + line.amount : sum), 0);
 }
 
 /**
@@ -885,7 +964,14 @@ function earnedByMonth(options: {
 	readonly payslips: readonly WorkspaceRow<'payslips'>[];
 	readonly employmentToEmployee: ReadonlyMap<string, string>;
 	readonly periodByRun: ReadonlyMap<string, string>;
+	readonly traceByRun: ReadonlyMap<string, PayrollTrace>;
+	readonly catalogueComponents?: readonly CatalogueComponent[];
 }): Map<string, Map<string, Map<string, number>>> {
+	const components = new Map(
+		(options.catalogueComponents ?? []).map((component) => [component.code, component])
+	);
+	const add = (byCode: Map<string, number>, code: string, amount: number) =>
+		byCode.set(code, (byCode.get(code) ?? 0) + amount);
 	const earned = new Map<string, Map<string, Map<string, number>>>();
 	for (const payslip of options.payslips) {
 		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
@@ -910,10 +996,117 @@ function earnedByMonth(options: {
 				if (line.family === 'WORK_DAY')
 					byCode.set('OVERTIME', (byCode.get('OVERTIME') ?? 0) + decodeNumber(line.amount));
 			}
+		// The month's wages as the person reads them (`employment.earned_monthly_average`): the
+		// contract lines (the wage and the standing allowances), the priced work and every paid line
+		// of a class marked `WAGES` in its `counts_toward` — a regular payment the law counts as wages
+		// (TW 勞基法 §2(3): 經常性給與 such as commission; MY EA s.2 "wages" includes commission) —
+		// less every unpaid day. An unmarked ad hoc class (a year-end bonus, back pay, a
+		// reimbursement) stays out: 施行細則 §10 and EA s.2(a)–(e) exclude it.
+		add(byCode, WAGES, 0);
+		// The contract lines by the segments that priced them, which back pay for an earlier month
+		// has none of: the day a 施行細則 §2 exclusion takes out is priced on it.
+		for (const segment of payslip.proration ?? [])
+			add(byCode, CONTRACT, decodeNumber(segment.prorated_amount));
+		for (const line of payslip.base) {
+			const component = components.get(line.component_code);
+			if (
+				component == null ||
+				(component.destination === 'PAY' && component.direction !== 'SUBTRACT')
+			)
+				add(byCode, WAGES, decodeNumber(line.amount));
+		}
+		for (const line of payslip.adjustments) {
+			if (
+				line.bucket === 'EARNING' &&
+				(line.family === 'WORK_DAY' ||
+					(components.get(line.component_code)?.counts_toward ?? []).includes(WAGES))
+			)
+				add(byCode, WAGES, decodeNumber(line.amount));
+			if (line.bucket !== 'ABSENCE') continue;
+			add(byCode, WAGES, -decodeNumber(line.amount));
+			// Each leave code's deduction and days, for a law that leaves a leave's days out.
+			if (line.family === 'LEAVE') {
+				add(byCode, LEAVE_ABSENCE + line.component_code, decodeNumber(line.amount));
+				add(byCode, LEAVE_DAYS + line.component_code, decodeNumber(line.quantity ?? 0));
+			}
+		}
+		// The window's overtime or night days at the floor then in force, so `earned_daily_excess`
+		// bounds a per-day ceiling at the minimum wage of each payslip's own time.
+		const traced = options.traceByRun
+			.get(payslip.payroll_run_id)
+			?.find((entry) => entry.employment_id === payslip.employment_id);
+		add(byCode, OVERTIME_FLOOR_DAYS, (traced?.overtime_days ?? 0) * (traced?.minimum_wage ?? 0));
 		byMonth.set(month, byCode);
 		earned.set(employeeId, byMonth);
 	}
 	return earned;
+}
+
+/**
+ * Each employee's earlier payslips as calendar months of pay, for a normal-wage reference (TW
+ * 施行細則 §24-1: 最近一個月正常工作時間所得之工資): the contract lines by the proration segments
+ * that priced them — so back pay for an earlier month, which has none, stays out — the paid lines
+ * of classes marked `WAGES`, and the unpaid days. Overtime and every other priced work line are
+ * not normal-hours pay and are left out.
+ */
+function payslipWageMonths(options: {
+	readonly payslips: readonly WorkspaceRow<'payslips'>[];
+	readonly employmentToEmployee: ReadonlyMap<string, string>;
+	readonly periodByRun: ReadonlyMap<string, string>;
+	readonly catalogueComponents?: readonly CatalogueComponent[];
+}): Map<string, PayslipWageMonth[]> {
+	const regular = new Set(
+		(options.catalogueComponents ?? [])
+			.filter((component) => (component.counts_toward ?? []).includes(WAGES))
+			.map((component) => component.code)
+	);
+	const byEmployee = new Map<string, Map<string, PayslipWageMonth>>();
+	for (const payslip of options.payslips) {
+		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
+		const month = options.periodByRun.get(payslip.payroll_run_id)?.slice(0, 7);
+		// A slip with no contract segment (a deferred joining month, an ended contract) states no month.
+		const segments = payslip.proration ?? [];
+		if (employeeId == null || month == null || segments.length === 0) continue;
+		const months = byEmployee.get(employeeId) ?? new Map<string, PayslipWageMonth>();
+		const paid = payslip.paid_at == null ? null : String(payslip.paid_at).slice(0, 10);
+		const earlier = months.get(month);
+		const contract: Record<string, number> = { ...earlier?.contract };
+		for (const segment of segments)
+			contract[segment.component_code] =
+				(contract[segment.component_code] ?? 0) + decodeNumber(segment.prorated_amount);
+		const froms = segments.map((segment) => String(segment.from));
+		const tos = segments.map((segment) => String(segment.to));
+		const lines = payslip.adjustments.map((line) => ({
+			bucket: line.bucket,
+			code: line.component_code,
+			amount: decodeNumber(line.amount)
+		}));
+		months.set(month, {
+			month,
+			start: [...froms, ...(earlier == null ? [] : [earlier.start])].toSorted()[0]!,
+			end: [...tos, ...(earlier == null ? [] : [earlier.end])].toSorted().at(-1)!,
+			paid_on:
+				earlier != null && earlier.paid_on == null
+					? null
+					: paid == null
+						? null
+						: [paid, earlier?.paid_on ?? paid].toSorted().at(-1)!,
+			payslips: [...(earlier?.payslips ?? []), payslip.id],
+			contract,
+			regular:
+				(earlier?.regular ?? 0) +
+				lines.reduce(
+					(sum, line) =>
+						line.bucket === 'EARNING' && regular.has(line.code) ? sum + line.amount : sum,
+					0
+				),
+			absence:
+				(earlier?.absence ?? 0) +
+				lines.reduce((sum, line) => (line.bucket === ABSENCE ? sum + line.amount : sum), 0)
+		});
+		byEmployee.set(employeeId, months);
+	}
+	return new Map([...byEmployee].map(([employeeId, months]) => [employeeId, [...months.values()]]));
 }
 
 /** The year axis of one employment in one run; `earned` reads this run's own lines as they land. */
@@ -922,6 +1115,8 @@ function yearContextOf(input: {
 	readonly configuration: Configuration;
 	readonly options: Pick<MeasureEmploymentOptions, 'period' | 'salary' | 'yearEarned'>;
 	readonly componentAmounts: ReadonlyMap<string, number>;
+	/** This run's unpaid-day lines, added to the year's `ABSENCE`. */
+	readonly absence: number;
 }): YearContext {
 	const { bundle, configuration, options, componentAmounts } = input;
 	const startMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
@@ -940,38 +1135,65 @@ function yearContextOf(input: {
 			closesTaxYear(options.period, startMonth, bundle.window.payFrequency) ||
 			(dates.exit != null && dates.exit <= options.salary.end),
 		earned: Object.fromEntries(
-			[...new Set(['BASIC', ...options.yearEarned.keys(), ...componentAmounts.keys()])].map(
-				(code) => [code, (options.yearEarned.get(code) ?? 0) + (componentAmounts.get(code) ?? 0)]
-			)
+			[
+				...new Set(['BASIC', ABSENCE, ...options.yearEarned.keys(), ...componentAmounts.keys()])
+			].map((code) => [
+				code,
+				(options.yearEarned.get(code) ?? 0) +
+					(code === ABSENCE ? input.absence : (componentAmounts.get(code) ?? 0))
+			])
 		)
 	};
 }
 
 /**
- * Regulated overtime hours earlier payslips settled: employee id → calendar month → hours.
- * Regulated is ordinary/off-day overtime — the same counter the monthly ceiling reads — identified
- * by the OVERTIME line the band carries. Rest-day and holiday work is outside every hours ceiling.
+ * Overtime earlier payslips settled, as each limit counted it at settlement: employee id → limit
+ * key (`''` the regulated count the monthly funnel reads) → calendar month → hours. Read from the
+ * run's frozen trace, never from the lines: an OVERTIME line cannot say whether its day was a rest
+ * day, a holiday or an emergency, nor whether a limit's `counts_day_when` held on it.
  */
 function priorOvertimeHours(options: {
 	readonly payslips: readonly WorkspaceRow<'payslips'>[];
 	readonly employmentToEmployee: ReadonlyMap<string, string>;
-	readonly periodByRun: ReadonlyMap<string, string>;
-}): Map<string, Map<string, number>> {
-	const hours = new Map<string, Map<string, number>>();
+	readonly traceByRun: ReadonlyMap<string, PayrollTrace>;
+}): Map<string, Map<string, Map<string, number>>> {
+	const hours = new Map<string, Map<string, Map<string, number>>>();
 	for (const payslip of options.payslips) {
 		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
-		const period = options.periodByRun.get(payslip.payroll_run_id);
-		if (employeeId == null || period == null) continue;
-		const month = periodMonth(period);
-		for (const line of payslip.adjustments) {
-			const key = line.statutory_rule_key ?? '';
-			if (line.family !== 'WORK_DAY' || !key.startsWith('OVERTIME:')) continue;
-			const byMonth = hours.get(employeeId) ?? new Map<string, number>();
-			byMonth.set(month, (byMonth.get(month) ?? 0) + decodeNumber(line.quantity ?? 0));
-			hours.set(employeeId, byMonth);
+		if (employeeId == null) continue;
+		const traced = options.traceByRun
+			.get(payslip.payroll_run_id)
+			?.find((entry) => entry.employment_id === payslip.employment_id);
+		const byLimit = hours.get(employeeId) ?? new Map<string, Map<string, number>>();
+		for (const { limit, month, hours: counted } of traced?.overtime_hours ?? []) {
+			const byMonth = byLimit.get(limit) ?? new Map<string, number>();
+			byMonth.set(month, (byMonth.get(month) ?? 0) + counted);
+			byLimit.set(limit, byMonth);
 		}
+		hours.set(employeeId, byLimit);
 	}
 	return hours;
+}
+
+/** Every in-lieu slice earlier payslips credited or paid, per employee (TW 勞基法 §32-1). */
+function priorInLieu(options: {
+	readonly payslips: readonly WorkspaceRow<'payslips'>[];
+	readonly employmentToEmployee: ReadonlyMap<string, string>;
+	readonly traceByRun: ReadonlyMap<string, PayrollTrace>;
+}): Map<string, InLieuSlice[]> {
+	const slices = new Map<string, InLieuSlice[]>();
+	for (const payslip of options.payslips) {
+		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
+		if (employeeId == null) continue;
+		const traced = options.traceByRun
+			.get(payslip.payroll_run_id)
+			?.find((entry) => entry.employment_id === payslip.employment_id);
+		slices.set(employeeId, [
+			...(slices.get(employeeId) ?? []),
+			...(traced?.time_off_in_lieu ?? [])
+		]);
+	}
+	return slices;
 }
 
 import { refuse } from '@norbital-ai/bolt/authoring';
@@ -1036,7 +1258,9 @@ export function calculateFamilyAssessments(options: {
 			headcount: gathered.headcount,
 			consumedEntries: gathered.consumedEntries,
 			yearEarned,
-			priorOvertimeHours: gathered.priorOvertimeHours.get(bundle.employment.employee_id)
+			earnedByMonth,
+			priorOvertimeHours: gathered.priorOvertimeHours.get(bundle.employment.employee_id),
+			priorInLieu: gathered.priorInLieu?.get(bundle.employment.employee_id)
 		});
 		// Deferral moves the wage payment, not insurance coverage. Preserve the employment and
 		// calendar measurements, but leave monetary inputs available for the run that pays them.
@@ -1050,6 +1274,11 @@ export function calculateFamilyAssessments(options: {
 						proration: [],
 						arrears: null,
 						componentAmounts: new Map(),
+						// A period is deferred only when the hire falls after its attendance window
+						// (`startsAfterWindow`), so no day of it can be elected here: every day from the
+						// hire on is in the next run's window, which credits the hours it elects and
+						// settles their payout (TW 勞基法 §32-1).
+						inLieuSlices: [],
 						captured: {
 							workDays: [],
 							payRequests: { CLAIM: [], ADHOC: [] },

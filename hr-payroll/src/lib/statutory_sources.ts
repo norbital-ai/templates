@@ -17,7 +17,10 @@ const CANONICAL_ORIGINS: Readonly<Record<string, readonly string[]>> = {
 		'https://jtksm.mohr.gov.my',
 		'https://gajiminimum.mohr.gov.my',
 		'https://hrdcorp.gov.my',
-		'https://www.johor.gov.my'
+		'https://www.johor.gov.my',
+		'https://www.kabinet.gov.my',
+		'https://belanjawan.mof.gov.my',
+		'https://www.mof.gov.my'
 	],
 	SG: [
 		'https://sso.agc.gov.sg',
@@ -26,7 +29,8 @@ const CANONICAL_ORIGINS: Readonly<Record<string, readonly string[]>> = {
 		'https://www.profamilyleave.msf.gov.sg',
 		'https://www.msf.gov.sg',
 		'https://ask.gov.sg',
-		'https://www.muis.gov.sg'
+		'https://www.muis.gov.sg',
+		'https://www.iras.gov.sg'
 	],
 	TW: [
 		'https://law.moj.gov.tw',
@@ -37,7 +41,9 @@ const CANONICAL_ORIGINS: Readonly<Record<string, readonly string[]>> = {
 		'https://www.mol.gov.tw',
 		'https://www.dot.gov.tw',
 		'https://www.dgpa.gov.tw',
-		'https://data.gov.tw'
+		'https://data.gov.tw',
+		'https://gazette.nat.gov.tw',
+		'https://www.mohw.gov.tw'
 	],
 	PH: [
 		'https://www.officialgazette.gov.ph',
@@ -47,7 +53,8 @@ const CANONICAL_ORIGINS: Readonly<Record<string, readonly string[]>> = {
 		'https://bir-cdn.bir.gov.ph',
 		'https://www.bir.gov.ph',
 		'https://nwpc.dole.gov.ph',
-		'https://bwc.dole.gov.ph'
+		'https://bwc.dole.gov.ph',
+		'https://elibrary.judiciary.gov.ph'
 	],
 	ID: [
 		'https://peraturan.bpk.go.id',
@@ -60,7 +67,8 @@ const CANONICAL_ORIGINS: Readonly<Record<string, readonly string[]>> = {
 		'https://www.bpjsketenagakerjaan.go.id',
 		'https://bpjs-kesehatan.go.id',
 		'https://jdih.jakarta.go.id',
-		'https://jdih.jabarprov.go.id'
+		'https://jdih.jabarprov.go.id',
+		'https://www.kemenkopmk.go.id'
 	],
 	VN: [
 		'https://vanban.chinhphu.vn',

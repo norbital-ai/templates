@@ -91,6 +91,7 @@ const previousTerms = () => ({
 	grade: null,
 	department: null,
 	payroll_group: null,
+	paid_rest_days: false,
 	residency_since: null,
 	effective_range: { start: '2025-01-01', end: null }
 });
@@ -116,6 +117,7 @@ test('change-terms closes the previous row the day before through the transformâ
 			department: null,
 			job_title: null,
 			payroll_group: null,
+			paid_rest_days: false,
 			grade: 'G3',
 			shift_pattern_id: id(5)
 		}

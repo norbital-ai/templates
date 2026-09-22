@@ -26,6 +26,7 @@ export type ChangeTermsFacts = {
 	readonly pass_type: string | null;
 	readonly tax_residency: string | null;
 	readonly notice_days: number | null;
+	readonly paid_rest_days: boolean;
 };
 
 /**

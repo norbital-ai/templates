@@ -94,13 +94,25 @@ function monthlyBaseSalary(terms: RateTerms): number {
 	}
 }
 
-/** Pay for one ordinary hour; round only the completed award. */
-export function ordinaryHourlyRate(terms: RateTerms, divisorDays: number): number {
+/**
+ * Pay for one ordinary hour; round only the completed award. `dailyMonthDays`, where the version
+ * states one, takes a daily wage to its month before the divisor prices the hour (ID PP 35/2021
+ * art.33(1)(b): daily × 21 ÷ 173).
+ */
+export function ordinaryHourlyRate(
+	terms: RateTerms,
+	divisorDays: number,
+	dailyMonthDays?: number
+): number {
 	// DAILY and HOURLY staff are paid from the stated rate, never annualised: the rate is what the
 	// contract says an hour costs. Monthly staff are untouched by this branch.
 	if (terms.pay_frequency === 'HOURLY') return decodeNumber(terms.base_salary.value);
 	if (terms.pay_frequency === 'DAILY')
-		return decodeNumber(terms.base_salary.value) / normalDailyHours(terms);
+		return (
+			(decodeNumber(terms.base_salary.value) *
+				(dailyMonthDays == null ? 1 : dailyMonthDays / divisorDays)) /
+			normalDailyHours(terms)
+		);
 	if (!(divisorDays > 0)) throw new Error('work_rules.ordinary_divisor_days must be positive.');
 	return monthlyBaseSalary(terms) / divisorDays / normalDailyHours(terms);
 }

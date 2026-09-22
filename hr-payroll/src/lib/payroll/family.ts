@@ -75,6 +75,7 @@ export type FamilyPayItem = {
 	readonly npl_prorates?: boolean | null;
 };
 
+import type { InLieuSlice } from '../../datatypes/payroll_trace/+definition.js';
 import type {
 	CatalogueComponent,
 	Configuration
@@ -229,6 +230,15 @@ export type MeasuredEmployment = {
 	readonly calendarMonthOvertimeHours: ReadonlyMap<string, number>;
 	/** Every hour beyond the normal day by calendar month, rest days and holidays included (reported only). */
 	readonly calendarMonthAllOvertimeHours?: ReadonlyMap<string, number>;
+	/** Limit key → its own count by calendar month, for a limit whose `counts_day_when` adds whole days. */
+	readonly calendarMonthLimitHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/**
+	 * The overtime this payslip settles (its attendance window), as each month, quarter and year
+	 * limit counts it: limit key → calendar month → hours, `''` the regulated count.
+	 */
+	readonly settledOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/** The in-lieu slices this payslip credited and paid, for the trace a later run reads. */
+	readonly inLieuSlices?: readonly InLieuSlice[];
 	/** Weeks whose normal hours beyond the weekly cap fall on scheduled days nobody clocked. */
 	readonly unpricedWeeks: readonly { readonly week: string; readonly hours: number }[];
 	readonly currency: string;
@@ -243,6 +253,10 @@ export type MeasuredEmployment = {
 	readonly periodFullyUnpaidDays: number;
 	readonly periodLeaveDays: Readonly<Record<string, number>>;
 	readonly periodFullLeaveDays: Readonly<Record<string, number>>;
+	/** The salary the pay period attributes to each paid leave code's days — what `person.period.leave_pay` reads. */
+	readonly periodLeavePay: Readonly<Record<string, number>>;
+	/** Attendance-window dates with overtime or night-window hours — what `person.period.overtime_days` reads. */
+	readonly periodOvertimeDays: number;
 	/** Calendar-month eligibility counts, independent of this payroll's wage window. */
 	readonly monthlyContributionDays?: {
 		readonly employed: number;
@@ -250,7 +264,9 @@ export type MeasuredEmployment = {
 		readonly fullyUnpaid: number;
 		readonly leaveDays: Readonly<Record<string, number>>;
 		readonly fullLeaveDays: Readonly<Record<string, number>>;
+		readonly leavePay: Readonly<Record<string, number>>;
 		readonly working: number;
+		readonly overtimeDays: number;
 	};
 	/** The contract's week as the run resolved it — what `terms.ordinary_hours_per_week` and the monthly basic read. */
 	readonly week: {
@@ -276,8 +292,15 @@ export type MeasureEmploymentOptions = {
 	readonly yearEarned: ReadonlyMap<string, number>;
 	/** Calculate a deferred period's wages without settling manual money again. */
 	readonly deferredWagesOnly?: boolean;
-	/** Regulated overtime hours earlier payslips settled, by calendar month: the cap counts them. */
-	readonly priorOvertimeHours?: ReadonlyMap<string, number>;
+	/**
+	 * Overtime earlier payslips settled, as each limit counts it: limit key → calendar month →
+	 * hours, `''` the regulated count the monthly funnel reads.
+	 */
+	readonly priorOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/** The in-lieu slices earlier payslips credited and paid (TW 勞基法 §32-1). */
+	readonly priorInLieu?: readonly InLieuSlice[];
+	/** calendar month → code → what earlier payslips filed; a pay request's person reads it. */
+	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 };
 
 export type Measurement = {
@@ -327,6 +350,8 @@ export type MeasureComponentOptions = {
 		readonly ordinaryHour: number;
 	};
 	readonly subject: PersonContext;
+	/** calendar month → code → what earlier payslips filed; a pay request's person reads it. */
+	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/**
 	 * Where a measurement says why it produced nothing.
 	 *

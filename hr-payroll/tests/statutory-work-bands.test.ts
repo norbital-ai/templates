@@ -98,6 +98,9 @@ test('Malaysia and Singapore — a rest day worked for exactly half the normal h
 		employment: { service_start: '2020-01-01' },
 		terms: { base_salary: { value: 2860, currency: 'SGD' } },
 		week: { ordinary_hours_per_week: 40, working_days_per_week: 5 },
+		// The work day's person carries the version's divisor (52 × 5 ÷ 12), as `ratesOn` builds it,
+		// so `terms.ordinary_day` is the Third Schedule day.
+		divisorDays: (52 * 5) / 12,
 		asOf: '2026-06-30'
 	});
 	assert.deepEqual(price('SG', restDay(4), singaporean), [['OT-1.0X', 4, 132]]);
@@ -264,7 +267,7 @@ test('Vietnam — full overtime exemption starts in January for residents and Ju
 	// Law 109/2025/QH15 art.4(8): "Tiền lương làm việc ban đêm, làm thêm giờ" is exempt income —
 	// the whole overtime wage, where Law 04/2007 exempted only the part above the ordinary rate.
 	// Art.29(2) and Decree 253/2026 art.69: resident salary rules apply from tax year 2026.
-	const [december, january, july] = settingsVersions('VN');
+	const [december, january, , july] = settingsVersions('VN');
 	const pit = (version) =>
 		contributionSchemes('VN').find((row) => row.settings_id === version.id && row.code === 'PIT');
 	assert.equal(january.effective_range.start.slice(0, 10), '2026-01-01');
@@ -287,8 +290,12 @@ test('Vietnam — full overtime exemption starts in January for residents and Ju
 					OVERTIME_PREMIUM: 100,
 					ENCASHMENT: 0,
 					INCENTIVE: 0,
+					NIGHT_WAGE: 0,
 					ABSENCE: 0,
 					NO_PAY_LEAVE: 0,
+					// The PIT parts (Decree 253/2026 art.8(2)(g)-(h)); no meal or rent here.
+					MEAL: { ALLOWANCES: 0, ADHOC: 0 },
+					HOUSING: { ALLOWANCES: 0, ADHOC: 0 },
 					person: { terms: { tax_residency: residency }, employment: { exit_date: '' } },
 					period: { end: version.effective_range.start.slice(0, 10) }
 				}),

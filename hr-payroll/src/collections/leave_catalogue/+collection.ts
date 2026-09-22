@@ -63,6 +63,16 @@ export default defineCollection({
 							if (daysProblem != null) refuse(`Entitlement days: ${daysProblem}`);
 						}
 					}
+					if ((row.entitlement?.scale ?? '').trim() !== '') {
+						const scaleProblem = compileExpression({
+							expression: row.entitlement?.scale ?? '',
+							site: 'person',
+							type: 'number'
+						});
+						if (scaleProblem != null) refuse(`Entitlement scale: ${scaleProblem}`);
+					}
+					const exitProblem = compileEligibility(row.entitlement?.encash_on_exit_when ?? '');
+					if (exitProblem != null) refuse(`Exit pay-out condition: ${exitProblem}`);
 					if (typeof row.entitlement?.lifetime_days === 'string') {
 						const capProblem = compileExpression({
 							expression: row.entitlement?.lifetime_days ?? '',

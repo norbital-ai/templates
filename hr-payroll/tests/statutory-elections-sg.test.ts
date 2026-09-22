@@ -227,11 +227,12 @@ test('SG: higher CPF rates require approval evidence and conflicting rate electi
 // https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups
 // https://www.sinda.org.sg/donate/sindafundcontribution/
 // https://www.muis.gov.sg/give-back/mbmf/mbmf-forms/
+// Religion is recorded for everyone: MBMF refuses an unrecorded one (round 5, D16).
 const funds = [
-	{ code: 'CDAC', race: 'CHINESE', religion: '', standard: 1 },
-	{ code: 'ECF', race: 'EURASIAN', religion: '', standard: 9 },
+	{ code: 'CDAC', race: 'CHINESE', religion: 'BUDDHISM', standard: 1 },
+	{ code: 'ECF', race: 'EURASIAN', religion: 'CHRISTIANITY', standard: 9 },
 	{ code: 'MBMF', race: 'MALAY', religion: 'ISLAM', standard: 6.5 },
-	{ code: 'SINDA', race: 'INDIAN', religion: '', standard: 7 }
+	{ code: 'SINDA', race: 'INDIAN', religion: 'HINDUISM', standard: 7 }
 ] as const;
 
 for (const { period } of versions)

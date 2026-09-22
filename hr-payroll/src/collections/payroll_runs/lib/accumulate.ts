@@ -21,9 +21,9 @@ import { CATALOGUE_WORDS, type CatalogueWord } from '../../../lib/expressions/co
 
 /**
  * The reserved lines of the assessment site. `OVERTIME_PREMIUM` is not a line of its own: it is
- * the part of every overtime line above the ordinary hour (amount − hours × ordinary hour), the
- * quantity a tax regime exempts where it exempts the premium and not the wage (VN art.4(8)
- * before 1 July 2026).
+ * the part of every overtime line within the limits (not funnelled to INCENTIVE) above the
+ * ordinary hour (amount − hours × ordinary hour), the quantity a tax regime exempts where it
+ * exempts the premium and not the wage (VN art.4(8) before 1 July 2026).
  */
 export type ReservedLine =
 	| 'BASE'
@@ -34,7 +34,13 @@ export type ReservedLine =
 	| 'NO_PAY_LEAVE'
 	| 'ENCASHMENT'
 	/** The overtime lines a band funnelled above its named limit — inside OVERTIME as well. */
-	| 'INCENTIVE';
+	| 'INCENTIVE'
+	/**
+	 * What the ordinary hours inside the night window earned at the ordinary hour — already inside
+	 * BASE, shown on its own display line. A law that exempts the whole night-work wage rather than
+	 * the premium alone subtracts it (VN Decree 253/2026 art.26(1)).
+	 */
+	| 'NIGHT_WAGE';
 
 /** One priced line that fed the payslip, as the calculation trace records it. */
 export type ContributionLine = {
@@ -119,13 +125,20 @@ export function accumulatePayslip(options: {
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
 		ENCASHMENT: 0,
-		INCENTIVE: 0
+		INCENTIVE: 0,
+		NIGHT_WAGE: 0
 	};
 	const codes = new Map<string, number>();
 	const familyOf = new Map<string, FamilyPayItem['family']>();
 	const countsTowardOf = new Map<string, readonly string[]>();
 	const lines: AccumulationLine[] = [];
 	for (const item of options.items) {
+		// A display line is not money; only the night wage is read, as a magnitude of its own.
+		if (
+			item.catalogueComponent.family === 'WORK' &&
+			item.catalogueComponent.output === 'night_wage'
+		)
+			magnitudes.NIGHT_WAGE += item.amount;
 		// Information is not money; no scheme charges it.
 		if (item.amount === 0 || item.bucket === 'INFORMATION') continue;
 		const effect = effectOf(item);
@@ -153,14 +166,17 @@ export function accumulatePayslip(options: {
 				countsTowardOf.set(rowCode, []);
 			}
 			if (reserved === 'OVERTIME') {
-				magnitudes.OVERTIME_PREMIUM += Math.max(
-					0,
-					item.amount - (item.quantity ?? 0) * (options.ordinaryHour ?? 0)
-				);
 				// The funnelled slice — the hours a band priced above its named limit — is its own
-				// magnitude too, for a law that taxes the overrun (VN Decree 253/2026 art.26(3)).
+				// magnitude too, for a law that taxes the overrun (VN Decree 253/2026 art.26(3)). Its
+				// premium is not the lawful overtime premium a law exempts (Circular 111/2013
+				// art.3(1)(i)), so it stays out of OVERTIME_PREMIUM and is taxed whole.
 				if ((item.catalogueComponent.output ?? '').startsWith(`${INCENTIVE_LINE}:`))
 					magnitudes.INCENTIVE += item.amount;
+				else
+					magnitudes.OVERTIME_PREMIUM += Math.max(
+						0,
+						item.amount - (item.quantity ?? 0) * (options.ordinaryHour ?? 0)
+					);
 			}
 			continue;
 		}
@@ -183,7 +199,8 @@ export function sumAccumulations(parts: readonly AccumulatedPayslip[]): Accumula
 		ABSENCE: 0,
 		NO_PAY_LEAVE: 0,
 		ENCASHMENT: 0,
-		INCENTIVE: 0
+		INCENTIVE: 0,
+		NIGHT_WAGE: 0
 	};
 	const codes = new Map<string, number>();
 	const familyOf = new Map<string, FamilyPayItem['family']>();

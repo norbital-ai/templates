@@ -52,7 +52,9 @@ const columns = {
 	shift_definition_id: true,
 	worked_intervals: true,
 	approved_overtime_hours: true,
-	requested_by: true
+	requested_by: true,
+	emergency_cause: true,
+	time_off_in_lieu: true
 } as const;
 
 const QUERY_LIMIT = 20_000;

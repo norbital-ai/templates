@@ -53,6 +53,30 @@ function cashWorld(
 	} as never);
 	return world;
 }
+/**
+ * An approved normal-wage record for a whole month no payslip in the world settled (TW 施行細則
+ * §24-1 reads the latest month's normal-hours wages; the payslips are the record where they exist).
+ */
+function recordNormalWages(world: ReturnType<typeof cashWorld>, month: string, value: number) {
+	const end = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
+		.toISOString()
+		.slice(0, 10);
+	world.employment_wage_periods = [
+		...(world.employment_wage_periods ?? []),
+		{
+			id: `${id(900).slice(0, -6)}${month.replace('-', '')}`,
+			employment_id: world.employments[0]!.id,
+			period: { start: `${month}-01`, end },
+			normal_wages: { currency: 'TWD', value },
+			ordinary_wages: null,
+			ordinary_days: null,
+			due_on: end,
+			paid_on: null,
+			reference: `WAGE-RECORD ${month}`,
+			approval_id: null
+		} as never
+	];
+}
 function payslip(world: ReturnType<typeof cashWorld>, period = '2026-06') {
 	const prepared = Effect.runSync(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
@@ -98,6 +122,11 @@ for (const [conversion, referenceMonth, expected] of [
 			effective_range: { start: '2026-08-01', end: null },
 			base_salary: { currency: 'TWD', value: 90_000 }
 		} as never);
+		// No earlier payslip stands in this world, so the months are recorded: June 30,000 (due
+		// 30 June), July 60,000 (due 31 July). 20 July reads June (30,000 / 30 = 1,000); 1 August
+		// reads July (60,000 / 30 = 2,000).
+		recordNormalWages(world, '2026-06', 30_000);
+		recordNormalWages(world, '2026-07', 60_000);
 		assert.equal(dailyRate(world, period), expected);
 	});
 
@@ -119,6 +148,8 @@ test('TW: carried leave preserves December normal wages when a raise began in De
 	} as never);
 	world.leave_entries[0]!.from_date = '2025-01-01';
 	world.leave_entries[0]!.to_date = '2025-12-31';
+	// The 2025 year ends 31 December: December's recorded 60,000 / 30 × 1.5 = 3,000.
+	recordNormalWages(world, '2025-12', 60_000);
 	assert.equal(amount(world), 3_000);
 });
 
@@ -173,7 +204,16 @@ for (const changed of ['salary', 'allowance'] as const)
 			newer.allowances = [{ catalogue_id: id(307), amount: 3_000 }];
 		}
 		world.employment_terms.push(newer as never);
-		assert.throws(() => dailyRate(world, '2026-07'), /reference-period wage record/);
+		// §24-1 reads June's normal-hours wages as earned, which the contract alone cannot state:
+		// with no payslip or record for June the cash-out stops and says so.
+		assert.throws(
+			() => dailyRate(world, '2026-07'),
+			/complete monthly wage period received or due before 2026-07-20/
+		);
+		// June recorded as earned: salary 30,000 × 15/30 + 60,000 × 15/30 = 45,000 → 1,500 a day;
+		// allowance 30,000 + 3,000 × 15/30 = 31,500 → 1,050 a day.
+		recordNormalWages(world, '2026-06', changed === 'salary' ? 45_000 : 31_500);
+		assert.equal(dailyRate(world, '2026-07'), changed === 'salary' ? 1_500 : 1_050);
 	});
 
 for (const unpaidDays of [14, 22])
@@ -328,7 +368,10 @@ test('MY: TP1 relief applies to normal and additional remuneration when unused l
 	assert.equal(slip.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 114.45);
 });
 test('TW: 60,001 / 30 × 1.5 rounds once to 3,000.05 (Enforcement Rules 24-1)', () => {
-	assert.equal(amount(cashWorld('TW', 60001)), 3000.05);
+	// Converted on 30 June: June is not yet due, so May's recorded 60,001 is the latest month.
+	const world = cashWorld('TW', 60001);
+	recordNormalWages(world, '2026-05', 60_001);
+	assert.equal(amount(world), 3000.05);
 });
 test('a later payment uses conversion-date terms, not the settlement month salary', () => {
 	const world = cashWorld('SG', 3000, '2026-05-31');
@@ -411,9 +454,10 @@ test('a daily rate without its preceding wage period is refused by name', () => 
 	assert.throws(() => amount(world), /Ordinary rate requires the wage period ending 2026-05-31/);
 });
 
-test('ID blocks cash-out until a current contractual/statutory daily basis is established', () => {
+test('ID blocks cash-out until the entity records its PK/PP/PKB daily basis', () => {
+	// UU 13/2003 art.79(4) as amended defers the leave basis to the PK, PP or PKB; see round4-L.
 	const world = cashWorld('ID', 6000000);
-	assert.throws(() => amount(world), /no verified valuation rule/);
+	assert.throws(() => amount(world), /Leave cash-out daily divisor is required before calculation/);
 });
 
 test('TW carried leave retains the original year-end salary despite a later increase', () => {
@@ -428,6 +472,9 @@ test('TW carried leave retains the original year-end salary despite a later incr
 	old.effective_range = { start: '2000-01-01', end: '2025-12-31T23:59:59.999Z' };
 	world.leave_entries[0]!.from_date = '2025-01-01';
 	world.leave_entries[0]!.to_date = '2025-12-31';
+	// December 2025's recorded 30,000 / 30 × 1.5 = 1,500, not the 2026 salary.
+	recordNormalWages(world, '2025-12', 30_000);
+	recordNormalWages(world, '2026-05', 60_000);
 	assert.equal(amount(world), 1500);
 });
 
@@ -472,7 +519,10 @@ test('TW current-year cash-out separates carried credit from current entitlement
 			credit_entry_id: null
 		}
 	];
-	// One carried day at 30,000 / 30 plus half a current day at 60,000 / 30.
+	// One carried day at December 2025's 30,000 / 30 plus half a current day at May 2026's
+	// 60,000 / 30 (the latest month due before the 30 June conversion).
+	recordNormalWages(world, '2025-12', 30_000);
+	recordNormalWages(world, '2026-05', 60_000);
 	assert.equal(amount(world), 2000);
 });
 

@@ -426,16 +426,17 @@ test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day
 			code: 'SG',
 			period: '2026-01',
 			people: [
-				// A workman at $2,860 on a 40-hour week: 12 × 2,860 ÷ (52 × 40) = 16.50 an hour (s.2,
-				// a contract of fewer than 44 hours); 12 × 2,860 ÷ (52 × 5) = 132.00 a day. Inside the
-				// $4,500 workman ceiling.
+				// A workman at $2,860 on a 40-hour week: 12 × 2,860 ÷ (52 × 44) = 34,320 ÷ 2,288 =
+				// 15.00 an hour (Fourth Schedule: 44 whatever the contract's week); 12 × 2,860 ÷ (52 × 5)
+				// = 132.00 a day. Inside the $4,500 workman ceiling.
 				{
 					key: 'SG-WORKMAN',
 					wage: 2860,
 					citizenship: 'CITIZEN',
 					statutory_work_category: 'MANUAL_LABOUR'
 				},
-				// A non-workman at $2,288: 13.20 an hour, 105.60 a day. Inside the $2,600 ceiling.
+				// A non-workman at $2,288: 12 × 2,288 ÷ 2,288 = 12.00 an hour, 105.60 a day. Inside the
+				// $2,600 ceiling.
 				{ key: 'SG-CLERK', wage: 2288, citizenship: 'CITIZEN' },
 				// The same $2,860 as a non-workman is over $2,600: s.35(b) takes Part 4 away.
 				{ key: 'SG-CLERK-OVER', wage: 2860, citizenship: 'CITIZEN' },
@@ -469,31 +470,32 @@ test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day
 	// shift, so its whole clock is work), then 3 h × 15.00 × 1.5 = 67.50.
 	assert.deepEqual(workLines(slips.get('SG-WORKMAN')!), [
 		['2026-01-01', 'OT-1.0X', 8, 132],
-		['2026-01-01', 'OT-1.5X', 2, 49.5],
-		['2026-01-05', 'OT-1.5X', 2, 49.5],
+		['2026-01-01', 'OT-1.5X', 2, 45],
+		['2026-01-05', 'OT-1.5X', 2, 45],
 		['2026-01-10', 'OT-1.0X', 4, 132],
 		['2026-01-11', 'OT-2.0X', 7, 264],
-		['2026-01-17', 'OT-1.5X', 3, 74.25],
+		['2026-01-17', 'OT-1.5X', 3, 67.5],
 		['2026-01-17', 'OT-2.0X', 8, 264]
 	]);
-	assert.equal(slips.get('SG-WORKMAN')!.gross, 2860 + 132 + 49.5 + 49.5 + 132 + 264 + 264 + 74.25);
-	// CPF Board: overtime is an Ordinary Wage. 3,825.25 × 20% = 765.05 → 765 (cents dropped);
-	// × 37% = 1,415.34 → 1,415 (nearest dollar, half up); employer 650. SDL 0.25% × 3,825.25 =
-	// 9.56 to the cent; the SDL Act rounds the employer's total remittance, not one employee.
-	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'CPF'), [3825.25, 765, 650]);
-	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'SDL'), [3825.25, 0, 9.56]);
+	assert.equal(slips.get('SG-WORKMAN')!.gross, 2860 + 132 + 45 + 45 + 132 + 264 + 264 + 67.5);
+	// CPF Board: overtime is an Ordinary Wage. 3,809.50 × 20% = 761.90 → 761 (cents dropped);
+	// × 37% = 1,409.515 → 1,410 (nearest dollar, half up); employer 649. SDL 0.25% × 3,809.50 =
+	// 9.52 to the cent; the SDL Act rounds the employer's total remittance, not one employee.
+	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'CPF'), [3809.5, 761, 649]);
+	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'SDL'), [3809.5, 0, 9.52]);
 
-	// The clerk: the same days at 13.20 an hour and 105.60 a day.
+	// The clerk: the same days at 12.00 an hour (2 × 12 × 1.5 = 36.00; 3 × 12 × 1.5 = 54.00) and
+	// 105.60 a day: 2,288 + 105.60 + 36 + 36 + 105.60 + 211.20 + 54 + 211.20 = 3,047.60.
 	assert.deepEqual(workLines(slips.get('SG-CLERK')!), [
 		['2026-01-01', 'OT-1.0X', 8, 105.6],
-		['2026-01-01', 'OT-1.5X', 2, 39.6],
-		['2026-01-05', 'OT-1.5X', 2, 39.6],
+		['2026-01-01', 'OT-1.5X', 2, 36],
+		['2026-01-05', 'OT-1.5X', 2, 36],
 		['2026-01-10', 'OT-1.0X', 4, 105.6],
 		['2026-01-11', 'OT-2.0X', 7, 211.2],
-		['2026-01-17', 'OT-1.5X', 3, 59.4],
+		['2026-01-17', 'OT-1.5X', 3, 54],
 		['2026-01-17', 'OT-2.0X', 8, 211.2]
 	]);
-	assert.equal(slips.get('SG-CLERK')!.gross, 3060.2);
+	assert.equal(slips.get('SG-CLERK')!.gross, 3047.6);
 
 	// s.35: outside Part 4 the rest days and the hours beyond normal produce no line, on either
 	// ceiling — but s.88 is Part 10 and reaches every employee: the holiday worked still earns
@@ -1045,6 +1047,23 @@ test('Singapore — the lineage carries a no-pay leave row, and a day of it come
 	assert.deepEqual(scheme(slip, 'CPF'), [3135, 627, 533]);
 });
 
+test('Singapore — the 1 July 2026 version (retirement age 64) moves no CPF figure', () => {
+	// The Retirement and Re-employment Act ages step to 64 and 69 on 1 July 2026 (MOM retirement
+	// and re-employment pages); the CPF First Schedule does not move until 1 January 2027. So July
+	// 2026 charges the 2026 table: 55 and below 37% (employee 20%): 600 / 510 on 3,000; above 60
+	// to 65 — a 64-year-old, now below the retirement age — 25% (12.5 / 12.5): 375 / 375.
+	const july = assessStatutory({
+		code: 'SG',
+		period: '2026-07',
+		people: [
+			{ key: 'SG-3000-30', wage: 3000, age: 30, citizenship: 'CITIZEN' },
+			{ key: 'SG-3000-64', wage: 3000, age: 64, citizenship: 'CITIZEN' }
+		]
+	});
+	expectStatutory(july, 'SG-3000-30', 'CPF', 600, 510);
+	expectStatutory(july, 'SG-3000-64', 'CPF', 375, 375);
+});
+
 test('every sealed version of `SG` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
@@ -1336,8 +1355,9 @@ test('Singapore — cash allowances, expense refunds, overtime and leave convers
 		}
 	);
 	const slip = slips.get('BASES')!;
-	// Basic hourly: 2,288 × 12 / (52 × 40) = 13.20. All allowances are excluded.
-	assert.deepEqual(workLines(slip), [['2026-01-05', 'OT-1.5X', 2, 39.6]]);
+	// Basic hourly (Fourth Schedule): 2,288 × 12 / (52 × 44) = 12.00; 2 × 12 × 1.5 = 36.00. All
+	// allowances are excluded.
+	assert.deepEqual(workLines(slip), [['2026-01-05', 'OT-1.5X', 2, 36]]);
 	// Gross daily: (2,288 + 250) × 12 / (52 × 5); 1.5 days rounds once to 175.71.
 	assert.equal(
 		slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')!.amount,
@@ -1345,8 +1365,11 @@ test('Singapore — cash allowances, expense refunds, overtime and leave convers
 	);
 	// CPF/SDL include every cash wage allowance, including travel/food/housing/productivity.
 	// Official expense reimbursement adds 100 to net without entering either statutory base.
-	assert.equal(slip.gross, 4153.31);
-	assert.deepEqual(scheme(slip, 'CPF'), [4153.31, 830, 707]);
-	assert.deepEqual(scheme(slip, 'SDL'), [4153.31, 0, 10.38]);
-	assert.equal(slip.net, 3423.31);
+	// Gross: 2,288 + 250 + 200 + 300 + 400 + 500 + 175.71 + 36 = 4,149.71. CPF: 20% = 829.94 → 829
+	// (cents dropped); 37% = 1,535.39 → 1,535; employer 706. SDL 0.25% = 10.37. Net: 4,149.71 −
+	// 829 + 100 = 3,420.71.
+	assert.equal(slip.gross, 4149.71);
+	assert.deepEqual(scheme(slip, 'CPF'), [4149.71, 829, 706]);
+	assert.deepEqual(scheme(slip, 'SDL'), [4149.71, 0, 10.37]);
+	assert.equal(slip.net, 3420.71);
 });

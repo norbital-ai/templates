@@ -5,7 +5,7 @@
 		"code": "INSURANCE_EQUIVALENT",
 		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
 		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month. The pensioner is `employee.receiving_pension`, the transferee `terms.pass_type` INTRA_COMPANY_TRANSFER, the retirement-age hire `employee.age_months_on(employment.service_start)` against Decree 135/2020 art.4’s roadmap.",
-		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.gender == \"FEMALE\" ? employee.age_months_on(employment.service_start) >= 680 : employee.age_months_on(employment.service_start) >= 735)) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
+		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.age_months_on(employment.service_start) >= (employee.gender == \"FEMALE\" ? (employment.service_start < \"2021-01-01\" ? 660 : employment.service_start < \"2022-01-01\" ? 664 : employment.service_start < \"2023-01-01\" ? 668 : employment.service_start < \"2024-01-01\" ? 672 : employment.service_start < \"2025-01-01\" ? 676 : employment.service_start < \"2026-01-01\" ? 680 : employment.service_start < \"2027-01-01\" ? 684 : employment.service_start < \"2028-01-01\" ? 688 : employment.service_start < \"2029-01-01\" ? 692 : employment.service_start < \"2030-01-01\" ? 696 : employment.service_start < \"2031-01-01\" ? 700 : employment.service_start < \"2032-01-01\" ? 704 : employment.service_start < \"2033-01-01\" ? 708 : employment.service_start < \"2034-01-01\" ? 712 : employment.service_start < \"2035-01-01\" ? 716 : 720) : (employment.service_start < \"2021-01-01\" ? 720 : employment.service_start < \"2022-01-01\" ? 723 : employment.service_start < \"2023-01-01\" ? 726 : employment.service_start < \"2024-01-01\" ? 729 : employment.service_start < \"2025-01-01\" ? 732 : employment.service_start < \"2026-01-01\" ? 735 : employment.service_start < \"2027-01-01\" ? 738 : employment.service_start < \"2028-01-01\" ? 741 : 744)))) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -23,7 +23,7 @@
 		"code": "INSURANCE_EQUIVALENT",
 		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
 		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month. The pensioner is `employee.receiving_pension`, the transferee `terms.pass_type` INTRA_COMPANY_TRANSFER, the retirement-age hire `employee.age_months_on(employment.service_start)` against Decree 135/2020 art.4’s roadmap.",
-		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.gender == \"FEMALE\" ? employee.age_months_on(employment.service_start) >= 684 : employee.age_months_on(employment.service_start) >= 738)) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
+		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.age_months_on(employment.service_start) >= (employee.gender == \"FEMALE\" ? (employment.service_start < \"2021-01-01\" ? 660 : employment.service_start < \"2022-01-01\" ? 664 : employment.service_start < \"2023-01-01\" ? 668 : employment.service_start < \"2024-01-01\" ? 672 : employment.service_start < \"2025-01-01\" ? 676 : employment.service_start < \"2026-01-01\" ? 680 : employment.service_start < \"2027-01-01\" ? 684 : employment.service_start < \"2028-01-01\" ? 688 : employment.service_start < \"2029-01-01\" ? 692 : employment.service_start < \"2030-01-01\" ? 696 : employment.service_start < \"2031-01-01\" ? 700 : employment.service_start < \"2032-01-01\" ? 704 : employment.service_start < \"2033-01-01\" ? 708 : employment.service_start < \"2034-01-01\" ? 712 : employment.service_start < \"2035-01-01\" ? 716 : 720) : (employment.service_start < \"2021-01-01\" ? 720 : employment.service_start < \"2022-01-01\" ? 723 : employment.service_start < \"2023-01-01\" ? 726 : employment.service_start < \"2024-01-01\" ? 729 : employment.service_start < \"2025-01-01\" ? 732 : employment.service_start < \"2026-01-01\" ? 735 : employment.service_start < \"2027-01-01\" ? 738 : employment.service_start < \"2028-01-01\" ? 741 : 744)))) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -41,7 +41,7 @@
 		"code": "INSURANCE_EQUIVALENT",
 		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
 		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month. The pensioner is `employee.receiving_pension`, the transferee `terms.pass_type` INTRA_COMPANY_TRANSFER, the retirement-age hire `employee.age_months_on(employment.service_start)` against Decree 135/2020 art.4’s roadmap.",
-		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.gender == \"FEMALE\" ? employee.age_months_on(employment.service_start) >= 684 : employee.age_months_on(employment.service_start) >= 738)) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2530000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
+		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.age_months_on(employment.service_start) >= (employee.gender == \"FEMALE\" ? (employment.service_start < \"2021-01-01\" ? 660 : employment.service_start < \"2022-01-01\" ? 664 : employment.service_start < \"2023-01-01\" ? 668 : employment.service_start < \"2024-01-01\" ? 672 : employment.service_start < \"2025-01-01\" ? 676 : employment.service_start < \"2026-01-01\" ? 680 : employment.service_start < \"2027-01-01\" ? 684 : employment.service_start < \"2028-01-01\" ? 688 : employment.service_start < \"2029-01-01\" ? 692 : employment.service_start < \"2030-01-01\" ? 696 : employment.service_start < \"2031-01-01\" ? 700 : employment.service_start < \"2032-01-01\" ? 704 : employment.service_start < \"2033-01-01\" ? 708 : employment.service_start < \"2034-01-01\" ? 712 : employment.service_start < \"2035-01-01\" ? 716 : 720) : (employment.service_start < \"2021-01-01\" ? 720 : employment.service_start < \"2022-01-01\" ? 723 : employment.service_start < \"2023-01-01\" ? 726 : employment.service_start < \"2024-01-01\" ? 729 : employment.service_start < \"2025-01-01\" ? 732 : employment.service_start < \"2026-01-01\" ? 735 : employment.service_start < \"2027-01-01\" ? 738 : employment.service_start < \"2028-01-01\" ? 741 : 744)))) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2530000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -52,5 +52,167 @@
 			}
 		],
 		"counts_toward": ["PIT"]
+	},
+	{
+		"id": "303f797b-224c-537b-9215-53baef7ea412",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "MEAL_ALLOWANCE",
+		"name": "Tiền ăn giữa ca, ăn trưa (meal allowance paid in money)",
+		"authority": "Circular 111/2013/TT-BTC art.2(2)(g.5): a mid-shift meal paid in money is taxable only above the Labour Ministry cap, 730,000 a month (Circular 26/2016/TT-BLĐTBXH); Decree 253/2026 art.69(1)(b) keeps it until 30 June 2026. Counts toward PIT.MEAL, where the PIT base takes only the part above the cap. Outside the insurance salary: Circular 06/2021/TT-BLĐTBXH art.30(3) lists the mid-shift meal among the benefits not in the SI salary.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": ["PIT.MEAL"]
+	},
+	{
+		"id": "61414af3-f218-537b-9802-ac5f561676b3",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "HOUSING",
+		"name": "Tiền thuê nhà, điện, nước trả thay (rent paid on the employee’s behalf)",
+		"authority": "Circular 111/2013/TT-BTC art.2(2)(đ)(đ.1): rent, electricity, water and related services the employer pays on the worker’s behalf are taxable at the amount paid but not above 15% of the worker’s total taxable income at the unit, the rent excluded. The employer pays the landlord, so the line is an employer cost, not pay. Counts toward PIT.HOUSING, where the PIT base takes the lower of the amount and that 15%. Housing is not in the insurance salary (Circular 06/2021/TT-BLĐTBXH art.30(3)).",
+		"eligibility": "",
+		"destination": "EMPLOYER",
+		"direction": null,
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": ["PIT.HOUSING"]
+	},
+	{
+		"id": "967227a4-f8d3-51ed-b5af-21c3df8ab048",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "MEAL_ALLOWANCE",
+		"name": "Tiền ăn giữa ca, ăn trưa (meal allowance paid in money)",
+		"authority": "Circular 111/2013/TT-BTC art.2(2)(g.5): a mid-shift meal paid in money is taxable only above the Labour Ministry cap, 730,000 a month (Circular 26/2016/TT-BLĐTBXH); Decree 253/2026 art.69(1)(b) keeps it until 30 June 2026. Counts toward PIT.MEAL, where the PIT base takes only the part above the cap. Outside the insurance salary: Circular 06/2021/TT-BLĐTBXH art.30(3) lists the mid-shift meal among the benefits not in the SI salary.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": ["PIT.MEAL"]
+	},
+	{
+		"id": "07c29007-a80d-5b42-b210-c51985446a2e",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "HOUSING",
+		"name": "Tiền thuê nhà, điện, nước trả thay (rent paid on the employee’s behalf)",
+		"authority": "Decree 253/2026/NĐ-CP art.8(2)(h): rent, electricity, water and related services the employer pays on the worker’s behalf are taxable at the amount paid but not above 15% of the worker’s total taxable income at the unit, the rent excluded. The employer pays the landlord, so the line is an employer cost, not pay. Counts toward PIT.HOUSING, where the PIT base takes the lower of the amount and that 15%. Housing is not in the insurance salary (Circular 06/2021/TT-BLĐTBXH art.30(3)).",
+		"eligibility": "",
+		"destination": "EMPLOYER",
+		"direction": null,
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": ["PIT.HOUSING"]
+	},
+	{
+		"id": "5478b5c9-e552-50dd-934a-d3500cc723ae",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "MEAL_ALLOWANCE",
+		"name": "Tiền ăn giữa ca, ăn trưa (meal allowance paid in money)",
+		"authority": "Decree 253/2026/NĐ-CP art.8(2)(g) with art.69(1)(b): a meal allowance the employer pays is taxable only above 1,200,000 a month from 1 July 2026. Counts toward PIT.MEAL, where the PIT base takes only the part above the cap. Outside the insurance salary: Circular 06/2021/TT-BLĐTBXH art.30(3) lists the mid-shift meal among the benefits not in the SI salary.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": ["PIT.MEAL"]
+	},
+	{
+		"id": "f1ce40bc-faa4-5cc7-a3a3-3892ccb96d11",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "HOUSING",
+		"name": "Tiền thuê nhà, điện, nước trả thay (rent paid on the employee’s behalf)",
+		"authority": "Decree 253/2026/NĐ-CP art.8(2)(h): rent, electricity, water and related services the employer pays on the worker’s behalf are taxable at the amount paid but not above 15% of the worker’s total taxable income at the unit, the rent excluded. The employer pays the landlord, so the line is an employer cost, not pay. Counts toward PIT.HOUSING, where the PIT base takes the lower of the amount and that 15%. Housing is not in the insurance salary (Circular 06/2021/TT-BLĐTBXH art.30(3)).",
+		"eligibility": "",
+		"destination": "EMPLOYER",
+		"direction": null,
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": ["PIT.HOUSING"]
+	},
+	{
+		"id": "d2195d57-6939-53ba-b7b9-b6335e93d4a1",
+		"settings_id": "3e9ec72c-8248-57c4-a30d-336b620f13b0",
+		"code": "INSURANCE_EQUIVALENT",
+		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
+		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. HR raises one standing row per such employee; the band prices it from the person each month. The pensioner is `employee.receiving_pension`, the transferee `terms.pass_type` INTRA_COMPANY_TRANSFER, the retirement-age hire `employee.age_months_on(employment.service_start)` against Decree 135/2020 art.4’s roadmap.",
+		"eligibility": "employee.receiving_pension || terms.pass_type == \"INTRA_COMPANY_TRANSFER\" || (employee.citizenship == \"FOREIGNER\" && (employee.age_months_on(employment.service_start) >= (employee.gender == \"FEMALE\" ? (employment.service_start < \"2021-01-01\" ? 660 : employment.service_start < \"2022-01-01\" ? 664 : employment.service_start < \"2023-01-01\" ? 668 : employment.service_start < \"2024-01-01\" ? 672 : employment.service_start < \"2025-01-01\" ? 676 : employment.service_start < \"2026-01-01\" ? 680 : employment.service_start < \"2027-01-01\" ? 684 : employment.service_start < \"2028-01-01\" ? 688 : employment.service_start < \"2029-01-01\" ? 692 : employment.service_start < \"2030-01-01\" ? 696 : employment.service_start < \"2031-01-01\" ? 700 : employment.service_start < \"2032-01-01\" ? 704 : employment.service_start < \"2033-01-01\" ? 708 : employment.service_start < \"2034-01-01\" ? 712 : employment.service_start < \"2035-01-01\" ? 716 : 720) : (employment.service_start < \"2021-01-01\" ? 720 : employment.service_start < \"2022-01-01\" ? 723 : employment.service_start < \"2023-01-01\" ? 726 : employment.service_start < \"2024-01-01\" ? 729 : employment.service_start < \"2025-01-01\" ? 732 : employment.service_start < \"2026-01-01\" ? 735 : employment.service_start < \"2027-01-01\" ? 738 : employment.service_start < \"2028-01-01\" ? 741 : 744)))) || (has(facts.SI) && !facts.SI.registered) || employment.type == \"INTERN\" || (employment.type == \"PART_TIME\" && terms.monthly_wage < 2340000.0) || (employee.citizenship == \"FOREIGNER\" && !employment.open_ended && employment.contract_months < 12)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + 3.0) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+			}
+		],
+		"counts_toward": ["PIT"]
+	},
+	{
+		"id": "7e10a7e7-fd6c-56e6-b08a-050a802846b5",
+		"settings_id": "3e9ec72c-8248-57c4-a30d-336b620f13b0",
+		"code": "MEAL_ALLOWANCE",
+		"name": "Tiền ăn giữa ca, ăn trưa (meal allowance paid in money)",
+		"authority": "Circular 111/2013/TT-BTC art.2(2)(g.5): a mid-shift meal paid in money is taxable only above the Labour Ministry cap, 730,000 a month (Circular 26/2016/TT-BLĐTBXH); Decree 253/2026 art.69(1)(b) keeps it until 30 June 2026. Counts toward PIT.MEAL, where the PIT base takes only the part above the cap. Outside the insurance salary: Circular 06/2021/TT-BLĐTBXH art.30(3) lists the mid-shift meal among the benefits not in the SI salary.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": ["PIT.MEAL"]
+	},
+	{
+		"id": "4efc5b9f-eaf0-5061-8de5-64d3c87dcb37",
+		"settings_id": "3e9ec72c-8248-57c4-a30d-336b620f13b0",
+		"code": "HOUSING",
+		"name": "Tiền thuê nhà, điện, nước trả thay (rent paid on the employee’s behalf)",
+		"authority": "Decree 253/2026/NĐ-CP art.8(2)(h): rent, electricity, water and related services the employer pays on the worker’s behalf are taxable at the amount paid but not above 15% of the worker’s total taxable income at the unit, the rent excluded. The employer pays the landlord, so the line is an employer cost, not pay. Counts toward PIT.HOUSING, where the PIT base takes the lower of the amount and that 15%. Housing is not in the insurance salary (Circular 06/2021/TT-BLĐTBXH art.30(3)).",
+		"eligibility": "",
+		"destination": "EMPLOYER",
+		"direction": null,
+		"bands": [
+			{
+				"when": "",
+				"limit": null,
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": ["PIT.HOUSING"]
 	}
 ]

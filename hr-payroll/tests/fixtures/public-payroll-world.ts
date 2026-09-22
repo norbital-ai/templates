@@ -214,6 +214,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				department: null,
 				job_title: 'Clerk',
 				payroll_group: null,
+				paid_rest_days: false,
 				shift_pattern_id: SHIFT_PATTERN_ID,
 				// The allowance on the contract: a monthly amount, prorated like the salary.
 				allowances: [{ catalogue_id: TRANSPORT_ID, amount: 310 }],

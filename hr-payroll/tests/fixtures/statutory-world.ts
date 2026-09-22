@@ -203,6 +203,28 @@ function childrenOf(count: number, period: string) {
 	}));
 }
 
+/**
+ * The departure declarations MY and SG require (round 5, D15), answered as the plain case: not
+ * leaving the country, no misconduct, a resignation with no notice question settled either way
+ * (MY: not without notice; SG: notice not served). A test that turns on one states it.
+ */
+function exitFactsFor(code: Lineage, person: Person): { exit_facts?: Record<string, boolean> } {
+	const reason = person.exit_reason;
+	const facts: Record<string, boolean> = {};
+	if (code === 'MY' || code === 'MY-nihon') {
+		if (person.citizenship === 'CITIZEN' && reason !== 'RETIREMENT' && reason !== 'DEATH')
+			facts.leaving_malaysia = false;
+		if (reason === 'RESIGNATION') facts.terminated_without_notice = false;
+	}
+	if (code === 'SG') {
+		if (person.citizenship === 'PERMANENT_RESIDENT') facts.leaving_singapore = false;
+		if (reason === 'RESIGNATION') facts.notice_served = false;
+	}
+	if ((code === 'MY' || code === 'MY-nihon' || code === 'SG') && reason === 'DISMISSAL')
+		facts.misconduct_dismissal = false;
+	return Object.keys(facts).length === 0 ? {} : { exit_facts: facts };
+}
+
 export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	const { code, period } = options;
 	const versions = settingsVersions(code);
@@ -230,14 +252,23 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		name: person.key,
 		date_of_birth: person.birth_date ?? birthDateFor(person.age ?? 40, period),
 		// Unrecorded unless stated: a predicate that turns on gender must be given one explicitly.
-		gender: person.gender ?? '',
+		// VN refuses a foreigner, and ID a married resident, whose gender is unrecorded; synthetic
+		// cases there are men unless stated, the reading those lineages took before they refused.
+		gender:
+			person.gender ??
+			((code === 'VN' && person.citizenship === 'FOREIGNER') ||
+			(code === 'ID' && person.marital_status === 'MARRIED')
+				? 'MALE'
+				: ''),
 		marital_status: person.marital_status ?? 'SINGLE',
 		spouse_status: person.spouse_status ?? 'NONE',
 		receiving_pension: person.receiving_pension ?? false,
 		solo_parent: person.solo_parent ?? false,
 		disabled: person.disabled ?? false,
-		race: person.race ?? null,
-		religion: person.religion ?? null,
+		// SG refuses an unrecorded race (citizens and PRs) or religion under the SHG funds; synthetic
+		// SG cases are outside every fund unless stated.
+		race: person.race ?? (code === 'SG' ? 'OTHERS' : null),
+		religion: person.religion ?? (code === 'SG' ? 'NONE' : null),
 		dependents_count: person.children ?? 0,
 		children:
 			person.child_rows == null
@@ -260,6 +291,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		bank: null,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
 		exit_reason: person.exit_reason ?? null,
+		...(person.exit_reason == null ? {} : exitFactsFor(code, person)),
 		approval_id: null
 	}));
 
@@ -271,12 +303,31 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		work_classification: person.work_classification ?? 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
 		employment_type: person.employment_type ?? 'PERMANENT',
-		residency_status: person.citizenship ?? null,
+		// VN, ID, TW and SG refuse an unrecorded citizenship; synthetic cases there are citizens unless stated.
+		residency_status:
+			person.citizenship === undefined &&
+			(code === 'VN' || code === 'ID' || code === 'TW' || code === 'SG')
+				? 'CITIZEN'
+				: (person.citizenship ?? null),
 		residency_since: person.residency_since ?? null,
-		pass_type: person.pass_type ?? null,
+		// A synthetic VN foreigner holds a work permit unless stated (Law 41/2024 art.2(2)).
+		// A synthetic TW foreigner is a foreign professional (not a migrant worker) unless stated.
+		pass_type:
+			person.pass_type ??
+			(code === 'VN' && person.citizenship === 'FOREIGNER'
+				? 'WORK_PERMIT'
+				: code === 'TW' && person.citizenship === 'FOREIGNER'
+					? 'OTHER'
+					: null),
 		// Synthetic golden cases declare tax residence. Explicit null tests missing declarations.
 		tax_residency:
-			person.tax_residency === undefined && (code === 'MY' || code === 'MY-nihon' || code === 'TW')
+			person.tax_residency === undefined &&
+			(code === 'MY' ||
+				code === 'MY-nihon' ||
+				code === 'TW' ||
+				code === 'PH' ||
+				code === 'VN' ||
+				code === 'ID')
 				? code === 'TW' && person.citizenship === 'FOREIGNER'
 					? 'NON_RESIDENT'
 					: 'RESIDENT'
@@ -286,6 +337,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		job_title: 'Fixture',
 		grade: person.grade ?? null,
 		payroll_group: null,
+		paid_rest_days: false,
 		shift_pattern_id: PATTERN_ID,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
 		approval_id: null
@@ -367,6 +419,18 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 						...(insuredAmount == null ? {} : { insured_amount: insuredAmount }),
 						// Synthetic unpaid-leave cases explicitly state whether continuation was agreed.
 						...(code === 'VN' && scheme.code === 'SI' ? { continue_si_unpaid: false } : {}),
+						// Synthetic VN and ID cases declare what those versions require of every employee:
+						// pension qualification and union membership (VN), and the PTKP status, dependants
+						// and tax identity at 1 January (ID) — the values the family record would suggest.
+						...(code === 'VN' && scheme.code === 'UI' ? { pension_qualified: false } : {}),
+						...(code === 'VN' && scheme.code === 'UNION_DUES' ? { union_member: false } : {}),
+						...(code === 'ID' && scheme.code === 'PPH21'
+							? {
+									ptkp_marital_status: person.marital_status ?? 'SINGLE',
+									ptkp_dependants: person.children ?? 0,
+									no_tax_id: false
+								}
+							: {}),
 						// Synthetic Taiwan table cases have an explicit withholding declaration.
 						// Production family records alone do not establish this exemption count.
 						...(code === 'TW' && scheme.code === 'INCOME_TAX'
@@ -418,7 +482,15 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				// seeded salaries are built on (IVA-22), and the floor RA 9504's exemption reads.
 				region: options.region ?? (code === 'PH' ? 'IV-A' : null),
 				risk_class: options.riskClass ?? null,
-				facts: options.companyFacts ?? {},
+				// PH declares both establishment-size exemptions as required entity facts.
+				facts:
+					code === 'PH'
+						? {
+								small_establishment: false,
+								retirement_exempt_establishment: false,
+								...options.companyFacts
+							}
+						: (options.companyFacts ?? {}),
 				effective_range: RANGE,
 				approval_id: null
 			}

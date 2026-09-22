@@ -85,13 +85,25 @@
 		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 24",
+					"days": 13
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 10
+				},
 				{
 					"eligibility": "employment.service_months >= 60",
 					"days": 22
@@ -133,7 +145,7 @@
 		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -141,11 +153,23 @@
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
-					"eligibility": "employment.service_months >= 60",
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
+					"days": 8
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 6
+				},
+				{
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
 					"days": 16
 				},
 				{
-					"eligibility": "employment.service_months >= 24",
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
 					"days": 12
 				},
 				{
@@ -153,7 +177,8 @@
 					"days": 8
 				}
 			],
-			"rounding": "WHOLE_DAY"
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -302,13 +327,25 @@
 		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 24",
+					"days": 13
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 10
+				},
 				{
 					"eligibility": "employment.service_months >= 60",
 					"days": 22
@@ -350,7 +387,7 @@
 		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -358,11 +395,23 @@
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
-					"eligibility": "employment.service_months >= 60",
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
+					"days": 8
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 6
+				},
+				{
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
 					"days": 16
 				},
 				{
-					"eligibility": "employment.service_months >= 24",
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
 					"days": 12
 				},
 				{
@@ -370,7 +419,8 @@
 					"days": 8
 				}
 			],
-			"rounding": "WHOLE_DAY"
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -519,13 +569,25 @@
 		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": [
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 24",
+					"days": 13
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 10
+				},
 				{
 					"eligibility": "employment.service_months >= 60",
 					"days": 22
@@ -567,7 +629,7 @@
 		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -575,11 +637,23 @@
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
-					"eligibility": "employment.service_months >= 60",
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
+					"days": 8
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 6
+				},
+				{
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
 					"days": 16
 				},
 				{
-					"eligibility": "employment.service_months >= 24",
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
 					"days": 12
 				},
 				{
@@ -587,7 +661,8 @@
 					"days": 8
 				}
 			],
-			"rounding": "WHOLE_DAY"
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -636,6 +711,490 @@
 	{
 		"id": "abd6ffff-b681-5cb2-a0ec-ac9cbbd92ec4",
 		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "6fe456ab-e67e-580d-a0b7-9e9750ac6656",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "eacaf062-9bb1-55a5-a5f4-23dc0cae9d93",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e6110aed-4ffb-5e86-9941-ae7eaf2534eb",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service. Applied 2026-09-19 (2): EA 1955 s.37(1)(b)?: no maternity allowance where at the time of confinement she has five or more surviving children (`children.count >= 6` with the newborn recorded); the leave itself is not conditioned.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 98
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_days >= 90 ? 1.0 : 0.0)",
+		"encash_on_exit": false
+	},
+	{
+		"id": "73c36758-d2f0-5e1d-9559-320c4a1c3628",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"authority": "Employment Act 1955 s.60F(1)(bb) — 60 days of paid sick leave in the aggregate in each calendar year where hospitalisation is necessary, IN ADDITION to the s.60F(1)(aa) days since the Employment (Amendment) Act 2022 deleted the former 60-day aggregate proviso. Certification is required. No proration.",
+		"eligibility": "employment.type != \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d2861419-f770-5ba4-bcac-46dd06d618f1",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
+		"eligibility": "employment.type != \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 24",
+					"days": 13
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 10
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 18
+				},
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8c76c5e1-4b0e-5437-8042-b92d05a34800",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d9781244-e89d-53b5-a43c-1e4a61dc1d84",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
+					"days": 8
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 6
+				},
+				{
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
+					"days": 12
+				},
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			],
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)"
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "8f5a9217-d33e-58e9-887c-52d990923d15",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b6b36ebd-985c-5a4b-b2e2-5a2eb10bf27e",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			],
+			"lifetime_events": 5
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "56044c70-dc29-52c3-b303-f8a1421ce659",
+		"settings_id": "cc1117f9-a68d-5007-8925-40a4e73473ba",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "4840d8de-36d2-52f8-a249-b8617c6210cf",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "18db5074-f1f6-56a8-9ceb-a83054d06af4",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8506c476-eae1-5c70-8f3a-526b1941093c",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. Applied 2026-09-18: a grant per confinement (`event.kind == \"BIRTH\"`). The leave is unconditional; the maternity allowance is paid where she was employed in the four months before confinement and ninety days in aggregate in the nine before it (read as three months’ service) and has fewer than five surviving children besides the newborn (s.37(2)(a), s.37(1)(c); `pay_fraction`). Applied 2026-09-18 (2): EA s.37(2): the maternity allowance is payable where she was employed at least ninety days in the nine months before confinement and at some time in the four months before it; the leave is hers regardless (s.37(1)). Read as three months’ service on the day (`pay_fraction`): a shorter service takes the leave unpaid. Applied 2026-09-18 (3): s.37(2)(a) counts the ninety days in aggregate, with any employer: days employed elsewhere in the nine months before the confinement are declared on the child (`employee_children.prior_employment_days`, read as `event.prior_employment_days`) and added to this employment’s service. Applied 2026-09-19 (2): EA 1955 s.37(1)(b)?: no maternity allowance where at the time of confinement she has five or more surviving children (`children.count >= 6` with the newborn recorded); the leave itself is not conditioned.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 98
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_days >= 90 ? 1.0 : 0.0)",
+		"encash_on_exit": false
+	},
+	{
+		"id": "6296bc51-2ca4-5901-8c4f-8f21e11a2091",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"authority": "Employment Act 1955 s.60F(1)(bb) — 60 days of paid sick leave in the aggregate in each calendar year where hospitalisation is necessary, IN ADDITION to the s.60F(1)(aa) days since the Employment (Amendment) Act 2022 deleted the former 60-day aggregate proviso. Certification is required. No proration.",
+		"eligibility": "employment.type != \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "9853a95a-9bf1-562b-9c53-271cde994fd9",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
+		"eligibility": "employment.type != \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months >= 24",
+					"days": 13
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 10
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 18
+				},
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3bcfb17a-04d0-525e-9d19-4e8f542359c5",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "0fc00ad2-2c45-5d77-b7e9-ab18d25cdf4d",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\" && employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
+					"days": 8
+				},
+				{
+					"eligibility": "employment.type == \"PART_TIME\"",
+					"days": 6
+				},
+				{
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 60",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months_net([\"UNPAID_LEAVE\"], 30.0) >= 24",
+					"days": 12
+				},
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			],
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)"
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "030619cf-335a-56fd-a92c-cd381bf091f9",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "456dc704-ce74-5412-a7f7-d2c2d3114b77",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			],
+			"lifetime_events": 5
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ad6cb440-193d-56cd-b2e1-6269f25c7254",
+		"settings_id": "3764f035-b3b6-52af-94a6-6d7f8b40ce43",
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",

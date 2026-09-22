@@ -28,10 +28,14 @@ import {
 	inclusiveDays,
 	intersectDays,
 	monthBounds,
+	monthDay,
 	monthKey,
 	requiredDateKey,
 	type IsoDate
 } from '../../collections/payroll_runs/lib/dates.js';
+import type { InLieuSlice } from '../../datatypes/payroll_trace/+definition.js';
+import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
+import { leaveWindowOf } from '../leave/entitlement.js';
 import { coversDate, live, readRange } from '../../collections/payroll_runs/lib/effective.js';
 import { addDays, weekStart } from '../period.js';
 import { dayInstant } from '../iso-day.js';
@@ -55,6 +59,7 @@ import {
 	OVERTIME_LINE,
 	nightAddsFor,
 	priceWorkDay,
+	workDayHolds,
 	type WorkBandDay
 } from './work-bands.js';
 import {
@@ -80,8 +85,8 @@ import {
 	rosteredWorkCodeMaps,
 	type RunIssue
 } from '../../collections/payroll_runs/lib/validate.js';
-import { leaveCoverage } from '../leave/payroll.js';
-import { latestDueMonthNormalRate, previousWagePeriodOrdinaryRate } from './reference-wages.js';
+import { leaveCoverage, unpaidLeaveDays } from '../leave/payroll.js';
+import { previousWagePeriodOrdinaryRate } from './reference-wages.js';
 import { countryOf } from '../jurisdiction_settings.js';
 import {
 	patternAnchor,
@@ -383,12 +388,19 @@ function asRateTerms(
 	// of work (MY EA s.60I(1)(b), with s.60A(3)(c) capping those at the s.60A(1) limits), so a
 	// ten-hour shift under an eight-hour normal day prices its hour at a day over eight, and the
 	// two hours beyond are overtime on that rate — not a cheaper hour that pays its own overtime.
-	// Nor longer than the week the version builds the hourly rate on, where it states one
-	// (`work_rules.rate_week_hours`): SG EA s.2 builds the hourly basic rate on 52 × 44 for any
-	// contract of 44 hours or more, so a six-day week of 8-hour days prices its hour on 44 and the
-	// hours beyond are overtime at that rate. Malaysia states none: its hour is the day over the
-	// daily normal hours (s.60I(1)(b)), 12.50 on a 48-hour six-day contract at RM2,600.
-	const hours = Math.min(rostered, normalDayHours * days, normalWeekHours);
+	// Where the version states the week a monthly wage's hour is built on
+	// (`work_rules.rate_week_hours`), a monthly-rated hour is on that week whatever the contract's:
+	// SG EA Fourth Schedule, 12 × monthly ÷ (52 × 44), so a 40-hour week and a 48-hour week both
+	// price the hour on 44. A part-timer's hour is on their own week (SG Part-Time Employees
+	// Regulations: 52 × the contract's hours), and other wage bases keep their own week, capped by
+	// it. Malaysia states none: its hour is the day over the daily normal hours (s.60I(1)(b)).
+	const fixedWeek =
+		(frequency === 'MONTHLY' || frequency === 'SEMI_MONTHLY') &&
+		terms.employment_type !== 'PART_TIME';
+	const hours =
+		fixedWeek && Number.isFinite(normalWeekHours)
+			? normalWeekHours
+			: Math.min(rostered, normalDayHours * days, normalWeekHours);
 	return {
 		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
 		pay_frequency: frequency,
@@ -645,7 +657,11 @@ export function prepareWorkContext(
 		person: subject,
 		employeeNumber: bundle.employment.employee_number
 	});
-	const hourlyRate = ordinaryHourlyRate(rateTerms, divisorDays);
+	// The days a month a daily wage is taken to before the divisor prices its hour, where stated.
+	const dailyMonthRule = (configuration.work.daily_month_days ?? '').trim();
+	const dailyMonthDays = (person: PersonContext) =>
+		dailyMonthRule === '' ? undefined : evaluatePersonNumber(dailyMonthRule, person);
+	const hourlyRate = ordinaryHourlyRate(rateTerms, divisorDays, dailyMonthDays(subject));
 	const dayWage = ordinaryDayWage(rateTerms, divisorDays);
 	// Resolve salary, allowances and hours on the day worked, including salary changes inside a month.
 	const ratesByDate = new Map<
@@ -664,11 +680,20 @@ export function prepareWorkContext(
 			workDays: bundle.workDays,
 			window: month
 		});
-		const datedPerson = personContext({
+		const personInput = {
 			employee: bundle.employee,
 			employment: employmentForPerson(),
 			terms: term,
 			fixedAllowances: contractAllowancesOn(bundle, configuration, date),
+			// The s.2 "gross rate of pay" allowances: the contract's, less the classes the version
+			// names (SG EA s.2(e): travelling, food or housing allowances).
+			grossAllowances: contractAllowancesOn(
+				bundle,
+				configuration,
+				date,
+				undefined,
+				configuration.work.gross_excluded_allowances
+			),
 			children: bundle.children,
 			company: configuration.company,
 			week: {
@@ -679,28 +704,37 @@ export function prepareWorkContext(
 			},
 			period: { working_days: workingDaysIn(month) },
 			asOf: date
-		});
+		};
+		const datedPerson = personContext(personInput);
 		const cap =
 			normalHoursRule === ''
 				? Number.POSITIVE_INFINITY
 				: evaluatePersonNumber(normalHoursRule, datedPerson);
 		const datedTerms = asRateTerms(term, workload, days, cap, normalWeekCap);
-		const person = {
-			...datedPerson,
-			terms: { ...datedPerson.terms, ordinary_hours_per_week: datedTerms.ordinary_hours_per_week }
+		const rateWeek = {
+			ordinary_hours_per_week: datedTerms.ordinary_hours_per_week,
+			working_days_per_week: days
 		};
 		const divisor = ordinaryDivisorDays({
 			expression: configuration.work.ordinary_divisor_days,
-			person,
+			person: {
+				...datedPerson,
+				terms: { ...datedPerson.terms, ordinary_hours_per_week: rateWeek.ordinary_hours_per_week }
+			},
 			employeeNumber: bundle.employment.employee_number
 		});
-		let ordinaryHour = ordinaryHourlyRate(datedTerms, divisor);
+		// The work day reads the rate a daily, hourly or weekly contract states as its month on the
+		// divisor just evaluated (`terms.monthly_basic`, `terms.ordinary_day`), as documented.
+		const person = personContext({ ...personInput, week: rateWeek, divisorDays: divisor });
+		let ordinaryHour = ordinaryHourlyRate(datedTerms, divisor, dailyMonthDays(person));
 		let dayWage = ordinaryDayWage(datedTerms, divisor);
 		// A verified dated wage record replaces the current contract's reconstruction where the
 		// version says so (MY s.60I(1C): the preceding wage period's earnings over its worked days).
+		// A latest-month normal-wage reference is the leave cash-out's (TW 施行細則 §24-1) alone: the
+		// overtime hour is the current month's normal wage (勞基法 §24), which the contract states.
 		const reference = configuration.work.ordinary_rate_reference;
 		if (
-			reference != null &&
+			reference?.reference === 'PREVIOUS_WAGE_PERIOD' &&
 			reference.pay_frequencies.some((frequency) => frequency === datedTerms.pay_frequency)
 		) {
 			const normalDailyHours =
@@ -709,25 +743,14 @@ export function prepareWorkContext(
 					: datedTerms.ordinary_hours_per_week / datedTerms.working_days_per_week;
 			if (!(normalDailyHours > 0))
 				throw new Error('Ordinary-rate reference requires positive contractual normal hours.');
-			if (reference.reference === 'LATEST_DUE_MONTH') {
-				const prior = latestDueMonthNormalRate({
-					periods: bundle.wagePeriods ?? [],
-					boundary: date,
-					currency
-				});
-				dayWage = prior.normalDay;
-				ordinaryHour = prior.normalDay / normalDailyHours;
-				options.referenceWageIds?.add(prior.row.id);
-			} else {
-				const prior = previousWagePeriodOrdinaryRate({
-					periods: bundle.wagePeriods ?? [],
-					currentPeriodStart: monthBounds(monthKey(date)).start,
-					currency
-				});
-				dayWage = prior.ordinaryDay;
-				ordinaryHour = prior.ordinaryDay / normalDailyHours;
-				options.referenceWageIds?.add(prior.row.id);
-			}
+			const prior = previousWagePeriodOrdinaryRate({
+				periods: bundle.wagePeriods ?? [],
+				currentPeriodStart: monthBounds(monthKey(date)).start,
+				currency
+			});
+			dayWage = prior.ordinaryDay;
+			ordinaryHour = prior.ordinaryDay / normalDailyHours;
+			options.referenceWageIds?.add(prior.row.id);
 		}
 		const rates = {
 			ordinaryHour,
@@ -807,6 +830,48 @@ export function prepareWorkContext(
 	};
 }
 
+/**
+ * Whether the person was present, or on leave with pay, on the workday immediately preceding a
+ * holiday (PH Handbook ch.2 §D–E): a rest or non-work day before it looks further back (§D.3),
+ * and so does an unworked holiday — two successive holidays are both paid to someone present
+ * before the first, and the second to someone who worked the first (§E). Silence is presence,
+ * as it is for the wage; a day read empty is present only under paid leave. A day before the
+ * terms begin states no workday, so the test passes.
+ */
+function presentBeforeHoliday(
+	bundle: Pick<EmploymentBundle, 'workDays' | 'termsHistory' | 'leave'>,
+	configuration: Pick<Configuration, 'holidays' | 'patternById' | 'shiftById'>,
+	holiday: IsoDate
+): boolean {
+	const rowOn = new Map(
+		bundle.workDays.map((row) => [requiredDateKey(row.work_date, 'work_days.work_date'), row])
+	);
+	// ponytail: a month's lookback; no roster rests longer than that between two workdays.
+	for (let back = 1; back <= 31; back += 1) {
+		const date = addDays(holiday, -back);
+		const row = rowOn.get(date);
+		if ((row?.worked_intervals?.length ?? 0) > 0) return true;
+		if (configuration.holidays.has(date)) continue;
+		const terms = bundle.termsHistory.find((candidate) =>
+			coversDate(candidate.effective_range, date)
+		);
+		if (terms == null) return true;
+		const patternRow = termPatternRow(terms, configuration.patternById);
+		const codeId =
+			row?.shift_definition_id ??
+			patternRosterCodeId(patternRow?.pattern ?? null, date, patternAnchor(patternRow));
+		const code = codeId == null ? undefined : configuration.shiftById.get(codeId);
+		if (code == null || rosterCodeKind(code.variant) !== 'WORK') continue;
+		if (row?.worked_intervals == null) return true;
+		const day = { start: date, end: date };
+		return (
+			(leaveCoverage(bundle.leave, day).days[date] ?? 0) > 0 &&
+			unpaidLeaveDays(bundle.leave, day) === 0
+		);
+	}
+	return true;
+}
+
 /** The contract's stated hours a day (`ordinary_hours_per_week` over its days), or null where it states none. */
 function statedDayHours(
 	terms: { readonly ordinary_hours_per_week?: unknown },
@@ -832,7 +897,10 @@ function contractDayHours(
 
 /** Price Work attendance using the money families' prepared period totals for wage coverage. */
 export function calculateWorkAttendance(
-	options: Pick<MeasureEmploymentOptions, 'bundle' | 'configuration' | 'priorOvertimeHours'> & {
+	options: Pick<
+		MeasureEmploymentOptions,
+		'bundle' | 'configuration' | 'priorOvertimeHours' | 'priorInLieu'
+	> & {
 		readonly work: ReturnType<typeof prepareWorkContext>;
 		readonly entryTotalByComponentId: ReadonlyMap<string, number>;
 	}
@@ -862,6 +930,8 @@ export function calculateWorkAttendance(
 	// Overtime settles in the window the hours fall in: this employment's own attendance window.
 	const overtimeAttendance = attendance;
 	const overtimeDays: DailyOvertime[] = [];
+	/** Clocked dates with overtime or night-window hours: a meal allowance's de minimis days (PH RR 11-2018 (j)). */
+	const overtimeOrNightDates = new Set<IsoDate>();
 	const bandDays: WorkBandDay[] = [];
 	const clockedDays = attendedDays
 		.map((entry) => ({ entry, workDate: requiredDateKey(entry.work_date, 'work_days.work_date') }))
@@ -963,9 +1033,25 @@ export function calculateWorkAttendance(
 						}
 					: null
 				: { ...daily, hours: daily.hours + weeklyExcess };
+		const nightHours =
+			configuration.nightPremium == null
+				? 0
+				: (() => {
+						const night = nightWindowHours(
+							clocked,
+							configuration.nightPremium,
+							day.dayType === 'ORDINARY' ? day.shift : null,
+							offset,
+							derived?.normalHours ?? day.normalHours
+						);
+						return night.ordinary + night.overtime;
+					})();
+		if ((derived?.hours ?? 0) > 0 || nightHours > 0) overtimeOrNightDates.add(workDate);
 		if (!derived) continue;
-		// A zero-hour holiday day is a band day, never an overtime day.
-		if (derived.hours > 0) overtimeDays.push(derived);
+		// A zero-hour holiday day is a band day, never an overtime day. Hours an emergency forced are
+		// outside every hours ceiling (TW 勞基法 §32(2) caps only the §32(1) extension, §32(4) stands
+		// apart), so they reach neither the ceiling counters nor the daily limit reports.
+		if (derived.hours > 0 && entry.emergency_cause !== true) overtimeDays.push(derived);
 		bandDays.push({
 			workDayId: derived.workDayId,
 			date: derived.date,
@@ -978,25 +1064,18 @@ export function calculateWorkAttendance(
 			breakMinutes: clocked.break_minutes,
 			holidayKind: configuration.holidays.get(workDate)?.kind ?? '',
 			holidayName: configuration.holidays.get(workDate)?.name ?? '',
+			holidayPriorPresent:
+				!configuration.holidays.has(workDate) ||
+				presentBeforeHoliday(bundle, configuration, workDate),
 			consecutiveHours: derived.restBreak?.longestRunHours ?? 0,
 			continuousAttendance: false,
 			restDay: day.restDay,
 			statutoryRest: day.statutoryRest,
 			offDay: day.offDay,
-			nightHours:
-				configuration.nightPremium == null
-					? 0
-					: (() => {
-							const night = nightWindowHours(
-								clocked,
-								configuration.nightPremium,
-								day.dayType === 'ORDINARY' ? day.shift : null,
-								offset,
-								derived.normalHours
-							);
-							return night.ordinary + night.overtime;
-						})(),
-			requestedBy: entry.requested_by ?? 'EMPLOYER'
+			nightHours,
+			requestedBy: entry.requested_by ?? 'EMPLOYER',
+			emergency: entry.emergency_cause === true,
+			timeOffInLieu: entry.time_off_in_lieu === true
 		});
 	}
 	// The wage the ceiling is measured against is derived per Employment Act 1955 s.2 as narrowed by
@@ -1038,24 +1117,85 @@ export function calculateWorkAttendance(
 	);
 	// The regulated-overtime ceiling governs the overtime the Act pays. A salaried engineer outside
 	// the overtime rule has no regulated hours to cap, so the ceiling is not reported against them.
-	const calendarMonthOvertimeHours = new Map<string, number>();
-	// The wider count an ALL_OVERTIME_HOURS limit reads: rest-day and holiday hours beyond the
-	// normal day too (MOM on SG's 72-hour month). Reported, never funnelled.
-	const calendarMonthAllOvertimeHours = new Map<string, number>();
-	for (const day of overtimeDays.filter((day) => paymentEligibleOn(day.date))) {
-		const calendarMonth = monthKey(day.date);
-		const regulated = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
-		const beyondNormal = regulated ? day.hours : Math.max(0, day.hours - day.normalHours);
-		calendarMonthAllOvertimeHours.set(
-			calendarMonth,
-			(calendarMonthAllOvertimeHours.get(calendarMonth) ?? 0) + beyondNormal
-		);
-		if (!regulated) continue;
-		calendarMonthOvertimeHours.set(
-			calendarMonth,
-			(calendarMonthOvertimeHours.get(calendarMonth) ?? 0) + day.hours
-		);
-	}
+	// Counted over the days `counts` admits: the whole calendar months for this run's report, the
+	// attendance window for what this payslip settles and a later run's quarter or year reads.
+	const funnelLimit = monthlyFunnelLimit(limits);
+	const countOvertime = (counts: (date: IsoDate) => boolean) => {
+		const regulatedByMonth = new Map<string, number>();
+		// The wider count an ALL_OVERTIME_HOURS limit reads: rest-day and holiday hours beyond the
+		// normal day too (MOM on SG's 72-hour month). Reported, never funnelled.
+		const allByMonth = new Map<string, number>();
+		for (const day of overtimeDays) {
+			if (!counts(day.date) || !paymentEligibleOn(day.date)) continue;
+			const calendarMonth = monthKey(day.date);
+			const regulated = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
+			const beyondNormal = regulated ? day.hours : Math.max(0, day.hours - day.normalHours);
+			allByMonth.set(calendarMonth, (allByMonth.get(calendarMonth) ?? 0) + beyondNormal);
+			if (!regulated) continue;
+			regulatedByMonth.set(calendarMonth, (regulatedByMonth.get(calendarMonth) ?? 0) + day.hours);
+		}
+		// Every month, quarter and year ceiling's own count. One whose `counts_day_when` holds on a
+		// day counts every hour worked on it in place of what its measure counted there (TW 勞基法
+		// §36(3): 休息日 hours enter the §32(2) totals); one whose `counts_beyond_normal_when` holds
+		// counts the hours past the normal day (TW: past eight on a 例假 or §37 休假日). Emergency
+		// days stay outside, as above.
+		const byLimit = new Map<string, Map<string, number>>();
+		// What the monthly funnel counts: the regulated hours plus the whole days its limit's
+		// `counts_day_when` adds — never the holiday hours `counts_beyond_normal_when` adds, which
+		// the tax exemption leaves out of the month (財政部 74 台財稅第16713號 item 3).
+		const funnelByMonth = new Map(regulatedByMonth);
+		for (const limit of limits) {
+			if (
+				(limit.measure !== 'OVERTIME_HOURS' && limit.measure !== 'ALL_OVERTIME_HOURS') ||
+				limit.period === 'DAY' ||
+				limit.period === 'WEEK'
+			)
+				continue;
+			const all = limit.measure === 'ALL_OVERTIME_HOURS';
+			const byMonth = new Map(all ? allByMonth : regulatedByMonth);
+			const whole = (limit.counts_day_when ?? '').trim();
+			const beyond = (limit.counts_beyond_normal_when ?? '').trim();
+			if (whole !== '' || beyond !== '')
+				for (const day of bandDays) {
+					if (day.emergency === true || !counts(day.date) || !paymentEligibleOn(day.date)) continue;
+					const rates = ratesOn(day.date);
+					const holds = (expression: string) =>
+						expression !== '' &&
+						workDayHolds({
+							work: configuration.work,
+							expression,
+							person: rates.person,
+							day,
+							rates
+						});
+					const everyHour = holds(whole);
+					if (!everyHour && !holds(beyond)) continue;
+					const regulated = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
+					const beyondNormal = regulated
+						? day.overtimeHours
+						: Math.max(0, day.overtimeHours - day.normalHours);
+					const counted = regulated || all ? beyondNormal : 0;
+					const month = monthKey(day.date);
+					const added = (everyHour ? day.workedHours : beyondNormal) - counted;
+					byMonth.set(month, (byMonth.get(month) ?? 0) + added);
+					if (everyHour && limit === funnelLimit)
+						funnelByMonth.set(month, (funnelByMonth.get(month) ?? 0) + added);
+				}
+			byLimit.set(limit.key, byMonth);
+		}
+		return { regulatedByMonth, allByMonth, byLimit, funnelByMonth };
+	};
+	const {
+		regulatedByMonth: calendarMonthOvertimeHours,
+		allByMonth: calendarMonthAllOvertimeHours,
+		byLimit: calendarMonthLimitHours
+	} = countOvertime(() => true);
+	const settled = countOvertime(
+		(date) => date >= overtimeAttendance.start && date <= overtimeAttendance.end
+	);
+	// What this payslip settled, as each ceiling counts it; `''` is the count the monthly funnel
+	// reads. Persisted on the run's trace for the next run's quarter and year.
+	const settledOvertimeHours = new Map([['', settled.funnelByMonth], ...settled.byLimit]);
 
 	// ── absent days: a rostered day with no time entry ─────────────────────────────────────
 	//
@@ -1123,10 +1263,34 @@ export function calculateWorkAttendance(
 					// Overtime hours add nothing where the person is outside statutory overtime pay.
 					const overtime = paymentEligibleOn(date) ? night.overtime : 0;
 					if (night.ordinary + overtime <= 0) return [];
-					// The adds follow the day where the version says so; a day the bands never saw
-					// (outside the overtime window, or an ineligible person) reads the plain figures.
+					// The adds follow the day where the version says so. A day the bands never saw — no
+					// overtime (an ordinary night shift), outside the overtime window, or an ineligible
+					// person — is read as the scheduled day it is, with no overtime; only an unscheduled
+					// day falls back to the plain figures.
+					const addDay =
+						bandDay ??
+						(priced == null
+							? null
+							: {
+									workDayId: entry.id,
+									date,
+									dayType: priced.dayType,
+									workedHours: priced.normalHours,
+									normalHours: priced.normalHours,
+									overtimeHours: 0,
+									breakMinutes: 0,
+									holidayKind: configuration.holidays.get(date)?.kind ?? '',
+									holidayName: configuration.holidays.get(date)?.name ?? '',
+									consecutiveHours: 0,
+									continuousAttendance: false,
+									restDay: priced.restDay,
+									statutoryRest: priced.statutoryRest,
+									offDay: priced.offDay,
+									nightHours: night.ordinary + night.overtime,
+									requestedBy: entry.requested_by ?? 'EMPLOYER'
+								});
 					const adds =
-						bandDay == null
+						addDay == null
 							? {
 									ordinary:
 										typeof nightPremium.ordinary_add === 'number' ? nightPremium.ordinary_add : 0,
@@ -1137,7 +1301,7 @@ export function calculateWorkAttendance(
 									work: { ...configuration.work, limits },
 									premium: nightPremium,
 									person: ratesOn(date).person,
-									day: bandDay,
+									day: addDay,
 									rates: ratesOn(date)
 								});
 					return [
@@ -1162,12 +1326,108 @@ export function calculateWorkAttendance(
 		}),
 		days: pricedBandDays,
 		limits,
-		prior: options.priorOvertimeHours ?? new Map(),
+		holds: (expression, day) =>
+			workDayHolds({
+				work: configuration.work,
+				expression,
+				person: ratesOn(day.date).person,
+				day,
+				rates: ratesOn(day.date)
+			}),
+		prior: options.priorOvertimeHours?.get('') ?? new Map(),
 		catalogueComponents: configuration.catalogueComponents,
 		currency: options.work.currency
 	});
-	for (const [month, hours] of capped.funnelledHours)
-		calendarMonthOvertimeHours.set(month, (calendarMonthOvertimeHours.get(month) ?? 0) - hours);
+	// Time off elected in lieu of overtime pay: bands honouring the election stand aside and leave
+	// those hours unpriced. Each band slice they left is credited at what it would have paid, in
+	// the order the hours were worked, and the run keeps the balance (TW 勞基法 §32-1).
+	const credits = pricedBandDays.flatMap((day): InLieuSlice[] => {
+		if (day.timeOffInLieu !== true) return [];
+		const price = (priced: WorkBandDay) =>
+			priceWorkDay({
+				work: { ...configuration.work, limits },
+				person: ratesOn(day.date).person,
+				day: priced,
+				rates: ratesOn(day.date)
+			});
+		const stood = new Map(price(day).map((row) => [row.ruleKey, row.hours]));
+		return price({ ...day, timeOffInLieu: false }).flatMap((row) => {
+			const hours = row.hours - (stood.get(row.ruleKey) ?? 0);
+			return hours > 0
+				? [
+						{
+							work_day_id: row.workDayId,
+							date: day.date,
+							line: row.line,
+							label: row.label,
+							hours,
+							rate: row.rate,
+							amount: row.rate * hours,
+							paid: false
+						}
+					]
+				: [];
+		});
+	});
+	const inLieuRules = configuration.work.time_off_in_lieu ?? null;
+	const inLieu =
+		inLieuRules == null
+			? { slices: [], adjustments: [], overdrawn: 0 }
+			: settleTimeOffInLieu({
+					rules: inLieuRules,
+					credits,
+					prior: options.priorInLieu ?? [],
+					bundle,
+					person: subject,
+					catalogueComponents: configuration.catalogueComponents,
+					shiftById: configuration.shiftById,
+					currency: options.work.currency
+				});
+	const inLieuDays = [...Map.groupBy(credits, (slice) => slice.date)].map(([date, slices]) => ({
+		date,
+		hours: slices.reduce((sum, slice) => sum + slice.hours, 0),
+		amount: cents(
+			slices.reduce((sum, slice) => sum + slice.amount, 0),
+			options.work.currency
+		)
+	}));
+	const inLieuNotes: RunIssue[] = [
+		...(inLieuDays.length === 0
+			? []
+			: [
+					{
+						code: 'TIME_OFF_IN_LIEU_OWED',
+						severity: 'WARNING' as const,
+						message:
+							`${bundle.employment.employee_number} elected time off instead of overtime pay for ` +
+							`${inLieuDays.reduce((sum, day) => sum + day.hours, 0)} hours ` +
+							`(${inLieuDays.map((day) => `${day.date}: ${day.hours} h, ${day.amount}`).join('; ')} ` +
+							`${options.work.currency} at the day's rates). This run pays none of it. The hours are ` +
+							(inLieuRules == null
+								? 'owed as time off; any not taken by the agreed expiry or the end of the contract are ' +
+									'owed as wages at these amounts — pay them as an ad hoc payment then. No time-off ' +
+									'balance is kept for them.'
+								: `owed as time off, taken as ${inLieuRules.leave_code} leave oldest first; payroll ` +
+									'pays any hour not taken by its expiry or the end of the contract at these amounts.'),
+						collection: 'employments',
+						recordId: bundle.employment.id
+					}
+				]),
+		...(inLieu.overdrawn <= 0
+			? []
+			: [
+					{
+						code: 'TIME_OFF_IN_LIEU_OVERDRAWN',
+						severity: 'WARNING' as const,
+						message:
+							`${bundle.employment.employee_number} took ${inLieu.overdrawn} hours of ` +
+							`${inLieuRules?.leave_code} leave in this period with no unexpired elected overtime ` +
+							'hours left to take them from. Record them under another leave type.',
+						collection: 'employments',
+						recordId: bundle.employment.id
+					}
+				])
+	];
 	const adjustments = [
 		...capped.rows,
 		...(nightPremium == null
@@ -1195,16 +1455,25 @@ export function calculateWorkAttendance(
 		])
 	];
 	return {
-		adjustments,
+		// An in-lieu payout names the elected day it pays, which an earlier payslip already pinned:
+		// it rides with the money, never with this payslip's captures.
+		adjustments: [...adjustments, ...inLieu.adjustments],
 		capturedWorkDayIds,
 		overtimeDays,
+		overtimeOrNightDates,
 		calendarMonthOvertimeHours,
 		calendarMonthAllOvertimeHours,
+		calendarMonthLimitHours,
+		settledOvertimeHours,
 		nightShiftHours,
 		/** The rostered days with no punch and no leave, for an allowance that loses unpaid days. */
 		absentDays,
 		/** Weeks whose normal hours beyond the weekly cap fall on scheduled days nobody clocked. */
 		unpricedWeeks,
+		/** Overtime elected as time off in lieu, with what the day's bands would have paid. */
+		inLieuNotes,
+		/** This payslip's in-lieu credits and payouts, for the trace a later run reads. */
+		inLieuSlices: inLieu.slices,
 		/** The limits that govern this person, the conditional ones judged. */
 		limits
 	};
@@ -1509,9 +1778,25 @@ function measureWorkComponent(
 			// Work includes those units; unpaid Leave deducts its own share once at the actual rate.
 			// A regular holiday not worked is still a paid day for the daily-paid (PH art.94: 100% of
 			// the daily wage); an empty punch on it records nothing to deduct.
-			const holidayUnit =
-				options.configuration.holidays.get(date)?.kind === 'PUBLIC_HOLIDAY' &&
-				(intervals == null || intervals.length === 0);
+			const holidayKind = options.configuration.holidays.get(date)?.kind;
+			const unworked = intervals == null || intervals.length === 0;
+			if (
+				holidayKind === 'SPECIAL_HOLIDAY' &&
+				unworked &&
+				options.configuration.jurisdiction.payroll.special_holiday_unworked_unpaid === true
+			)
+				continue;
+			const regularHoliday = holidayKind === 'PUBLIC_HOLIDAY' || holidayKind === 'DOUBLE_HOLIDAY';
+			// PH Handbook ch.2 §D: an unworked regular holiday is paid only to someone present, or on
+			// paid leave, on the workday before it, where the version says so.
+			if (
+				regularHoliday &&
+				unworked &&
+				options.configuration.jurisdiction.payroll.regular_holiday_prior_workday === true &&
+				!presentBeforeHoliday(options.bundle, options.configuration, date)
+			)
+				continue;
+			const holidayUnit = regularHoliday && unworked;
 			const hours =
 				actual != null && intervals != null && !holidayUnit
 					? Math.min(
@@ -1629,23 +1914,46 @@ function measureNightPremium(options: {
 	);
 	if (component == null) throw new Error('Work catalogue is missing its night premium output.');
 	if (!isEligible(component.eligibility, options.subject)) return [];
+	const wage = options.catalogueComponents.find(
+		(row) => row.family === 'WORK' && row.output === 'night_wage'
+	);
 	return options.days.flatMap((day) => {
 		const amount = cents(
 			day.rate * ((day.ordinary * day.adds.ordinary + day.overtime * day.adds.overtime) / 100),
 			options.currency
 		);
-		if (amount === 0) return [];
+		const ordinaryWage = cents(day.rate * day.ordinary, options.currency);
 		return [
-			{
-				input: { family: 'WORK_DAY' as const, id: day.id },
-				catalogueComponent: component,
-				bucket: settlementBucket(component.destination, component.direction),
-				label: component.code,
-				amount,
-				quantity: day.ordinary + day.overtime,
-				rate: day.rate,
-				statutoryRuleKey: null
-			}
+			...(amount === 0
+				? []
+				: [
+						{
+							input: { family: 'WORK_DAY' as const, id: day.id },
+							catalogueComponent: component,
+							bucket: settlementBucket(component.destination, component.direction),
+							label: component.code,
+							amount,
+							quantity: day.ordinary + day.overtime,
+							rate: day.rate,
+							statutoryRuleKey: null
+						}
+					]),
+			// The ordinary night hours' share of the salary, shown beside the premium (VN Decree
+			// 253/2026 art.26(1): the employer's statement of night hours and night wage paid).
+			...(wage == null || ordinaryWage === 0
+				? []
+				: [
+						{
+							input: { family: 'WORK_DAY' as const, id: day.id },
+							catalogueComponent: wage,
+							bucket: settlementBucket(wage.destination, wage.direction),
+							label: wage.code,
+							amount: ordinaryWage,
+							quantity: day.ordinary,
+							rate: day.rate,
+							statutoryRuleKey: null
+						}
+					])
 		];
 	});
 }
@@ -1700,25 +2008,173 @@ function measureWorkBands(options: {
 }
 
 /**
+ * The balance of overtime taken as time off (TW 勞基法 §32-1; 施行細則 §22-2), kept by payroll
+ * from what the payslips recorded and the leave HR approved — no leave row is ever written.
+ *
+ * Every credited slice, this run's and the earlier payslips', is consumed by the hours taken as
+ * `leave_code` leave, oldest slice first (§22-2(1): 依…事實發生時間先後順序補休), a slice only
+ * while unexpired on the day taken. A slice expires `expiry_months` after its day, and never later
+ * than the last day of the `year_leave_code` leave's year (§22-2(1)). What a slice has left once
+ * it has expired by the end of this salary window, or when the contract ends inside it, is paid at
+ * the credited value (§32-1(2)), less what an earlier payslip already paid of it.
+ */
+function settleTimeOffInLieu(options: {
+	readonly rules: NonNullable<Configuration['work']['time_off_in_lieu']>;
+	readonly credits: readonly InLieuSlice[];
+	readonly prior: readonly InLieuSlice[];
+	readonly bundle: EmploymentBundle;
+	readonly person: PersonContext;
+	readonly catalogueComponents: readonly CatalogueComponent[];
+	readonly shiftById: Configuration['shiftById'];
+	readonly currency: string;
+}): { slices: InLieuSlice[]; adjustments: MeasuredAdjustment[]; overdrawn: number } {
+	const { rules, bundle } = options;
+	if (options.credits.length === 0 && options.prior.length === 0)
+		return { slices: [], adjustments: [], overdrawn: 0 };
+	const through = bundle.window.salary.end;
+	const exit = employmentDates(bundle.employment).exit;
+	const leaving = exit != null && exit <= through;
+	const asOf = leaving ? exit : through;
+	const year = bundle.leave.catalogues.find((row) => row.code === rules.year_leave_code);
+	if (year == null)
+		refuse(
+			`Time off in lieu expires with the ${rules.year_leave_code} leave year, and this version has no such leave.`
+		);
+	const months = evaluatePersonNumber(rules.expiry_months, options.person);
+	const expiryOf = (date: IsoDate) => {
+		const yearEnd = leaveWindowOf(date, year.entitlement).end;
+		if (months <= 0) return yearEnd;
+		const agreed = addDays(
+			monthDay(
+				Number(date.slice(0, 4)),
+				Number(date.slice(5, 7)) - 1 + months,
+				Number(date.slice(8, 10))
+			),
+			-1
+		);
+		return agreed < yearEnd ? agreed : yearEnd;
+	};
+	const key = (slice: InLieuSlice) => `${slice.work_day_id}:${slice.line}:${slice.label}`;
+	const paidBefore = new Map<string, number>();
+	for (const slice of options.prior)
+		if (slice.paid) paidBefore.set(key(slice), (paidBefore.get(key(slice)) ?? 0) + slice.hours);
+	const credits = [...options.prior.filter((slice) => !slice.paid), ...options.credits].toSorted(
+		(left, right) => (left.date < right.date ? -1 : left.date > right.date ? 1 : 0)
+	);
+	const remaining = credits.map((slice) => slice.hours);
+	const reversed = new Set(
+		bundle.leave.entries.flatMap((entry) =>
+			entry.as_adjustment_entry === true && entry.reversal_of_id != null
+				? [entry.reversal_of_id]
+				: []
+		)
+	);
+	// §32-1 is hour for hour: an entry taken by the hour is its own hours (one day at a time), and
+	// a day or half day is its share of that day's roster code's paid hours — never eight hours a
+	// day, which over-consumed the balance on any shorter normal day.
+	const hoursOf = (entry: (typeof bundle.leave.entries)[number]) =>
+		entry.charges.map((charge) => {
+			if (entry.hours != null) return { date: charge.date, hours: decodeNumber(entry.hours) };
+			const shift =
+				charge.shift_definition_id == null
+					? null
+					: options.shiftById.get(charge.shift_definition_id);
+			const window = shift == null ? null : workWindow(shift.variant);
+			if (window == null)
+				refuse(
+					`${rules.leave_code} leave on ${charge.date} names no working roster code, so the hours it takes from the time-off balance are unknown.`
+				);
+			return { date: charge.date, hours: (charge.days * window.paid_minutes) / 60 };
+		});
+	const taken = bundle.leave.entries
+		.filter(
+			(entry) =>
+				entry.leave_code === rules.leave_code &&
+				entry.as_adjustment_entry !== true &&
+				!reversed.has(entry.id)
+		)
+		.flatMap(hoursOf)
+		.filter((charge) => charge.date <= asOf)
+		.toSorted((left, right) => (left.date < right.date ? -1 : left.date > right.date ? 1 : 0));
+	let overdrawn = 0;
+	for (const leave of taken) {
+		let hours = leave.hours;
+		credits.forEach((slice, index) => {
+			if (hours <= 0 || slice.date > leave.date || expiryOf(slice.date) < leave.date) return;
+			const used = Math.min(hours, remaining[index]!);
+			remaining[index] = remaining[index]! - used;
+			hours -= used;
+		});
+		if (leave.date >= bundle.attendance.start) overdrawn += hours;
+	}
+	const byOutput = new Map(
+		options.catalogueComponents
+			.filter((row) => row.family === 'WORK')
+			.map((row) => [row.output ?? '', row])
+	);
+	const payouts = credits.flatMap((slice, index): InLieuSlice[] => {
+		if (!leaving && expiryOf(slice.date) > through) return [];
+		const hours = remaining[index]! - (paidBefore.get(key(slice)) ?? 0);
+		return hours > 1e-9
+			? [{ ...slice, hours, amount: cents(slice.rate * hours, options.currency), paid: true }]
+			: [];
+	});
+	return {
+		slices: [...options.credits, ...payouts],
+		adjustments: payouts.map((slice): MeasuredAdjustment => {
+			const component = byOutput.get(`${slice.line}:${slice.label}`);
+			if (component == null)
+				throw new Error(
+					`Work rules produced ${slice.line} ${slice.label} with no pay item to settle it.`
+				);
+			return {
+				input: { family: 'WORK_DAY', id: slice.work_day_id },
+				catalogueComponent: component,
+				bucket: settlementBucket(component.destination, component.direction),
+				label: slice.label,
+				amount: slice.amount,
+				quantity: slice.hours,
+				rate: slice.rate,
+				statutoryRuleKey: `${slice.line}:${slice.label}`
+			};
+		}),
+		overdrawn
+	};
+}
+
+/** The calendar-month ceiling the overtime funnel reads: the first monthly OVERTIME_HOURS limit. */
+const monthlyFunnelLimit = (limits: Configuration['limits']) =>
+	limits.find(
+		(candidate) => candidate.period === 'MONTH' && candidate.measure === 'OVERTIME_HOURS'
+	);
+
+/**
  * The monthly overtime ceiling is a funnel, not a refusal: regulated overtime beyond the cap in a
  * calendar month is paid as incentive at the band's own multiple, exactly as a day's hours past
  * the daily ceiling are. The cap counts the month's earlier paid runs first, so a window that
- * straddles two months continues each month from where the last run left it.
+ * straddles two months continues each month from where the last run left it; within the month
+ * the hours fill it in the order they were worked.
  */
 export function funnelMonthlyOvertime(options: {
 	readonly rows: readonly MeasuredAdjustment[];
 	readonly days: readonly WorkBandDay[];
 	readonly limits: Configuration['limits'];
+	/** Whether a limit's day predicate (`counts_day_when`) holds on a day. */
+	readonly holds: (expression: string, day: WorkBandDay) => boolean;
 	readonly prior: ReadonlyMap<string, number>;
 	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly currency: string;
 }): { readonly rows: MeasuredAdjustment[]; readonly funnelledHours: ReadonlyMap<string, number> } {
-	const limit = options.limits.find(
-		(candidate) => candidate.period === 'MONTH' && candidate.measure === 'OVERTIME_HOURS'
-	);
+	const limit = monthlyFunnelLimit(options.limits);
 	if (limit == null) return { rows: [...options.rows], funnelledHours: new Map() };
 	const maxHours = decodeNumber(limit.max_hours);
-	const dateOf = new Map(options.days.map((day) => [day.workDayId, day.date]));
+	const dayOf = new Map(options.days.map((day) => [day.workDayId, day]));
+	// Rest-day and holiday work is not overtime for the ceiling (MY EA s.60A(4)(a)), so it neither
+	// counts toward it nor funnels: the same `regulated` split the monthly count reads. A day the
+	// limit's `counts_day_when` holds on counts and funnels with the rest (TW 勞基法 §36(3): 休息日
+	// hours enter the §32(2) month, and their pay is tax-free only inside it).
+	const unregulated = new Set(['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY']);
+	const whole = (limit.counts_day_when ?? '').trim();
 	const incentiveFor = (label: string) => {
 		const component = options.catalogueComponents.find(
 			(row) => row.family === 'WORK' && row.output === `${INCENTIVE_LINE}:${label}`
@@ -1733,10 +2189,22 @@ export function funnelMonthlyOvertime(options: {
 	const funnelled = new Map<string, number>();
 	const rows: MeasuredAdjustment[] = [];
 	const ordered = options.rows
-		.map((row, index) => ({ row, index, date: dateOf.get(row.input.id) ?? '' }))
+		.map((row, index) => {
+			const day = dayOf.get(row.input.id);
+			return {
+				row,
+				index,
+				date: day?.date ?? '',
+				regulated:
+					day != null &&
+					day.emergency !== true &&
+					(!unregulated.has(day.dayType) || (whole !== '' && options.holds(whole, day)))
+			};
+		})
 		.toSorted((left, right) => left.date.localeCompare(right.date) || left.index - right.index);
-	for (const { row, date } of ordered) {
+	for (const { row, date, regulated } of ordered) {
 		const overtime =
+			regulated &&
 			row.input.family === 'WORK_DAY' &&
 			row.catalogueComponent.output?.startsWith(`${OVERTIME_LINE}:`) === true &&
 			row.quantity != null &&
@@ -1845,8 +2313,8 @@ export function validateWorkInputs(options: {
 export function validateWorkResult(options: {
 	readonly configuration: Configuration;
 	readonly measured: MeasuredEmployment;
-	/** Regulated overtime hours earlier payslips settled, by calendar month. */
-	readonly priorOvertimeHours?: ReadonlyMap<string, number>;
+	/** Overtime earlier payslips settled: limit key (`''` regulated) → calendar month → hours. */
+	readonly priorOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 }): RunIssue[] {
 	const { configuration, measured } = options;
 	const { bundle } = measured;
@@ -1855,6 +2323,7 @@ export function validateWorkResult(options: {
 		employeeNumber: bundle.employment.employee_number,
 		hoursByMonth: measured.calendarMonthOvertimeHours,
 		allHoursByMonth: measured.calendarMonthAllOvertimeHours,
+		limitHoursByMonth: measured.calendarMonthLimitHours,
 		priorHoursByMonth: options.priorOvertimeHours ?? new Map()
 	});
 	// The daily ceiling is the jurisdiction's, read from its regime where `period = 'DAY'`.

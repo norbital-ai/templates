@@ -53,6 +53,8 @@ export type WorkBandDay = {
 	readonly breakMinutes: number;
 	readonly holidayKind: string;
 	readonly holidayName: string;
+	/** Present or on paid leave on the workday before the holiday (`presentBeforeHoliday`); true on other days. */
+	readonly holidayPriorPresent?: boolean;
 	readonly consecutiveHours: number;
 	readonly continuousAttendance: boolean;
 	/** The roster's weekly rest day, whatever holiday precedence called the day. */
@@ -65,6 +67,10 @@ export type WorkBandDay = {
 	readonly nightHours: number;
 	/** `work_days.requested_by`: EMPLOYER unless the row says EMPLOYEE. */
 	readonly requestedBy: string;
+	/** `work_days.emergency_cause`: the extra hours were forced by an emergency. */
+	readonly emergency?: boolean;
+	/** `work_days.time_off_in_lieu`: the worker elected time off instead of overtime pay. */
+	readonly timeOffInLieu?: boolean;
 };
 
 export type WorkBandRates = {
@@ -110,13 +116,40 @@ function contextOf(options: {
 		off_day: day.offDay ?? false,
 		night_hours: day.nightHours ?? 0,
 		requested_by: day.requestedBy ?? 'EMPLOYER',
+		emergency_cause: day.emergency ?? false,
+		time_off_in_lieu: day.timeOffInLieu ?? false,
 		ordinary_hour: rates.ordinaryHour,
 		day_wage: rates.dayWage,
 		// The slice a band consumed, for `price_amount`; zero until a band has one.
 		hours: 0,
 		limits,
-		holiday: { kind: day.holidayKind, name: day.holidayName }
+		holiday: {
+			kind: day.holidayKind,
+			name: day.holidayName,
+			prior_day_present: day.holidayPriorPresent ?? true
+		}
 	};
+}
+
+/** Whether a day-level predicate holds over the same context the bands read (a limit's `counts_day_when`). */
+export function workDayHolds(options: {
+	readonly work: WorkRules;
+	readonly expression: string;
+	readonly person: PersonContext;
+	readonly day: WorkBandDay;
+	readonly rates: WorkBandRates;
+}): boolean {
+	const { work, day } = options;
+	return evaluateBoolean(
+		expressionEngine,
+		options.expression,
+		contextOf({
+			person: options.person,
+			day,
+			rates: options.rates,
+			limits: evaluatedLimits(work.limits, day.breakMinutes)
+		})
+	);
 }
 
 /**

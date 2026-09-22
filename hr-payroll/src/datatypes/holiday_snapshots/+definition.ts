@@ -2,13 +2,21 @@ import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import { calendarDay } from '../../lib/iso-day.js';
 
+/** The calendar's kinds of day; DOUBLE_HOLIDAY is two regular holidays on one date. */
+export const HOLIDAY_KINDS = [
+	'PUBLIC_HOLIDAY',
+	'SPECIAL_HOLIDAY',
+	'SUBSTITUTE',
+	'DOUBLE_HOLIDAY'
+] as const;
+
 /** One holiday exactly as a payroll run read it: values as well as the id, so a replay needs no live read. */
 export const holidaySnapshotSchema = Schema.Struct({
 	id: Schema.String.check(Schema.isUUID()),
 	company_id: Schema.String.check(Schema.isUUID()),
 	date: calendarDay,
 	name: Schema.String,
-	kind: Schema.Literals(['PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY', 'SUBSTITUTE']),
+	kind: Schema.Literals(HOLIDAY_KINDS),
 	replaces: Schema.NullOr(calendarDay),
 	given_to: Schema.Literals(['EVERYONE', 'ONLY_IF_OFF_ON_REPLACED_DATE']),
 	published_at: Schema.String

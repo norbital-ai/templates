@@ -277,7 +277,26 @@ const leaveConfigurationValueSchema = Schema.Struct({
 });
 type LeaveConfiguration = Schema.Schema.Type<typeof leaveConfigurationValueSchema>;
 
+const instrumentFindingSchema = Schema.Struct({
+	title: Schema.NonEmptyString,
+	issued_on: Schema.NullOr(Schema.String),
+	/** What the instrument changes for this version: a scheme, a leave, a work rule or an obligation. */
+	affects: Schema.String.check(Schema.isMaxLength(400)),
+	status: Schema.Literals(['REFLECTED', 'PROPOSED', 'REVIEW', 'NOT_APPLICABLE']),
+	...evidence
+});
+
 export { contributionRuleSchema };
+
+/**
+ * The discovery pass's answer: the official instruments issued, amended or announced since the
+ * version commenced, before any row is compared. A smaller turn than the comparison, so the
+ * research reads the issuance listings first and the comparison opens what they revealed.
+ */
+export const StatutoryDiscoverySchema = Schema.Struct({
+	instruments: Schema.optionalKey(Schema.Array(instrumentFindingSchema)),
+	notes: Schema.optionalKey(Schema.Array(Schema.String.check(Schema.isMaxLength(600))))
+});
 
 /**
  * What the model returns per lineage: the official position of each statutory row it found
@@ -349,12 +368,14 @@ export const StatutoryFindingsSchema = Schema.Struct({
 			)
 		})
 	),
-	contributions: Schema.Array(
-		Schema.Struct({
-			code: Schema.NonEmptyString,
-			rules: Schema.Array(contributionRuleSchema),
-			...evidence
-		})
+	contributions: Schema.optionalKey(
+		Schema.Array(
+			Schema.Struct({
+				code: Schema.NonEmptyString,
+				rules: Schema.Array(contributionRuleSchema),
+				...evidence
+			})
+		)
 	),
 	contribution_configuration: Schema.optionalKey(
 		Schema.Array(
@@ -412,12 +433,14 @@ export const StatutoryFindingsSchema = Schema.Struct({
 			})
 		)
 	),
-	leave_catalogue: Schema.Array(
-		Schema.Struct({
-			code: Schema.NonEmptyString,
-			entitlement: leaveEntitlementValueSchema,
-			...evidence
-		})
+	leave_catalogue: Schema.optionalKey(
+		Schema.Array(
+			Schema.Struct({
+				code: Schema.NonEmptyString,
+				entitlement: leaveEntitlementValueSchema,
+				...evidence
+			})
+		)
 	),
 	leave_configuration: Schema.optionalKey(
 		Schema.Array(
@@ -459,8 +482,15 @@ export const StatutoryFindingsSchema = Schema.Struct({
 			})
 		)
 	),
+	/**
+	 * Every official instrument the research found issued, amended or announced since the version's
+	 * commencement (a regulation, circular, wage order, rate table, gazette notice), with what it
+	 * does to this version: already reflected in the sealed rows, carried by a proposed change, or
+	 * needing human review (an obligation, a rule the proposal cannot express, an unsettled date).
+	 */
+	instruments: Schema.optionalKey(Schema.Array(instrumentFindingSchema)),
 	/** Observations that are not a row: a notice of a future change, a page that had no table. */
-	notes: Schema.Array(Schema.String.check(Schema.isMaxLength(600)))
+	notes: Schema.optionalKey(Schema.Array(Schema.String.check(Schema.isMaxLength(600))))
 });
 type StatutoryFindings = Schema.Schema.Type<typeof StatutoryFindingsSchema>;
 
@@ -487,7 +517,10 @@ export type SealedStatutoryFacts = Readonly<{
 			entitlement: unknown;
 			configuration: LeaveConfiguration;
 		}>
-	>;
+	>; /** Compared by the model and reported for review; never proposed as a change. */
+	effective_from?: string | null;
+	obligations?: unknown;
+	payroll?: unknown;
 }>;
 
 /** The condition a rule governs under is its identity; the money it awards is the change. */
@@ -530,8 +563,14 @@ export function diffStatutoryFindings(
 			notes.push(`${what} ${finding.code}: cites ${finding.source_url}, which was not retrieved`);
 			return null;
 		}
-		if (quote.length < 20 || !page.text.includes(quote)) {
-			notes.push(`${what} ${finding.code}: the quote does not appear on ${page.url}`);
+		// Whitespace is layout, not wording: a statute page renders `第 2 條` across line elements that
+		// a browser reads as `第2條`, so the passage is compared with every space removed.
+		// NFKC too: a page's full-width comma or digit and the quote's half-width one are one text.
+		const compact = (text: string) => text.normalize('NFKC').replace(/\s+/g, '');
+		if (quote.length < 20 || !compact(page.text).includes(compact(quote))) {
+			notes.push(
+				`${what} ${finding.code}: the quote does not appear on ${page.url} ("${finding.quote.slice(0, 160)}")`
+			);
 			return null;
 		}
 		return page;
@@ -575,7 +614,7 @@ export function diffStatutoryFindings(
 		}
 		return day;
 	};
-	for (const finding of findings.contributions) {
+	for (const finding of findings.contributions ?? []) {
 		const scheme = sealed.contributions.find((row) => row.code === finding.code);
 		if (scheme == null) {
 			notes.push(`Scheme ${finding.code}: not a statutory scheme of this version`);
@@ -631,7 +670,7 @@ export function diffStatutoryFindings(
 			);
 		}
 	}
-	for (const finding of findings.leave_catalogue) {
+	for (const finding of findings.leave_catalogue ?? []) {
 		const type = sealed.leave_catalogue.find((row) => row.code === finding.code);
 		if (type == null) {
 			notes.push(`Leave ${finding.code}: not a statutory leave of this version`);
@@ -655,6 +694,17 @@ export function diffStatutoryFindings(
 			)
 		);
 	}
+	/** The value without its `authority` citations: a restatement that omits one changes nothing. */
+	const unannotated = (value: unknown): unknown =>
+		Array.isArray(value)
+			? value.map(unannotated)
+			: value != null && typeof value === 'object'
+				? Object.fromEntries(
+						Object.entries(value)
+							.filter(([key]) => key !== 'authority')
+							.map(([key, item]) => [key, unannotated(item)])
+					)
+				: value;
 	const compareConfiguration = (
 		collection: StatutoryProposalChange['collection'],
 		code: string,
@@ -670,7 +720,11 @@ export function diffStatutoryFindings(
 	) => {
 		const supported = { code, ...finding };
 		const page = verified(supported, what);
-		if (page == null || stableJson(previous) === stableJson(finding.proposed)) return false;
+		if (
+			page == null ||
+			stableJson(unannotated(previous)) === stableJson(unannotated(finding.proposed))
+		)
+			return false;
 		const effectiveFrom = effectiveDate(supported);
 		if (effectiveFrom == null) return false;
 		changes.push(
@@ -776,6 +830,17 @@ export function diffStatutoryFindings(
 			if (compared) reviewed.add(`Leave ${finding.code}`);
 		}
 	}
+	if (findings.instruments == null)
+		notes.push(
+			'The research listed no instruments, so no discovery pass stands behind it; review required'
+		);
+	for (const instrument of findings.instruments ?? []) {
+		const page = verified({ ...instrument, code: instrument.title }, 'Instrument');
+		if (page != null && instrument.status === 'REVIEW')
+			notes.push(
+				`Instrument ${instrument.title} (${instrument.effective_from ?? 'commencement unknown'}): ${instrument.affects} Review required.`
+			);
+	}
 	for (const label of [
 		...sealed.contributions.map((row) => `Scheme ${row.code}`),
 		...sealed.leave_catalogue.map((row) => `Leave ${row.code}`)
@@ -783,7 +848,7 @@ export function diffStatutoryFindings(
 		if (!reviewed.has(label)) notes.push(`${label}: no verified comparison; review required`);
 	return {
 		changes,
-		requires_review: notes.length > 0 || findings.notes.length > 0 || reviewed.size === 0,
-		notes: [...notes, ...findings.notes]
+		requires_review: notes.length > 0 || (findings.notes ?? []).length > 0 || reviewed.size === 0,
+		notes: [...notes, ...(findings.notes ?? [])]
 	};
 }

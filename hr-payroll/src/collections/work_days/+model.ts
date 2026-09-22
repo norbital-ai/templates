@@ -1,4 +1,12 @@
-import { custom, defineModel, enums, instant, numeric, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	boolean,
+	custom,
+	defineModel,
+	enums,
+	instant,
+	numeric,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 /**
  * One person-day: what was PLANNED for it, and what ACTUALLY happened on it.
@@ -41,6 +49,18 @@ export default defineModel(
 		approved_overtime_hours: numeric(),
 		/** Who asked for rest-day work, where the statute prices the two differently (SG s.37(2)/(3)); null is the employer. */
 		requested_by: enums(['EMPLOYER', 'EMPLOYEE']),
+		/**
+		 * The day's extra hours were forced by a natural disaster, an accident or an emergency: the
+		 * version's bands may price them apart (TW 勞基法 §24(1)(3): double, under §32(4)), and the
+		 * hours ceilings do not count them. Null is an ordinary day.
+		 */
+		emergency_cause: boolean(),
+		/**
+		 * The worker elected time off in lieu of the day's overtime pay, where the version's bands
+		 * honour an election (TW 勞基法 §32-1: hour for hour, cashed at the day's rate on expiry or
+		 * exit). Null is paid overtime.
+		 */
+		time_off_in_lieu: boolean(),
 		/** Set once a payslip has taken the day into account: the day is sealed. */
 		payslip_id: uuid()
 	},

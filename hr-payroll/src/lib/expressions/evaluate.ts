@@ -16,7 +16,16 @@ import {
 	childUnclassedUnder,
 	childUnder
 } from './child-under.js';
-import { ageMonthsOn, ageOn, birthday, leaveTaken } from './person-functions.js';
+import {
+	ageMonthsOn,
+	ageOn,
+	averageDailyWage,
+	averageMonthlyWage,
+	birthday,
+	earnedMonthlyAverage,
+	leaveTaken,
+	serviceMonthsNet
+} from './person-functions.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -34,6 +43,8 @@ export type ExpressionEngine = {
 	readonly annualQuantityExempt?: (code: string, limit: number) => number;
 	readonly earnedQuantityExempt?: (code: string, limit: number) => number;
 	readonly earnedMonthlyExcess?: (code: string, limit: number) => number;
+	/** `earned_daily_excess(code, share)`: earlier months' payments over a per-day share of the floor then in force. */
+	readonly earnedDailyExcess?: (code: string, share: number) => number;
 	/** `earned_average(code, months_back, months)`: a window of earlier payslips' earnings. */
 	readonly earnedAverage?: (code: string, monthsBack: number, months: number) => number;
 	/** `days_under(age)`: the pay window's days on which the person is under that age. */
@@ -91,6 +102,12 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.birthday(int): string', birthday],
 	['map.age_months_on(string): int', ageMonthsOn],
 	['map.taken(string): double', leaveTaken],
+	['map.earned_monthly_average(int): double', earnedMonthlyAverage],
+	['map.average_daily_wage(int, list): double', averageDailyWage],
+	['map.average_monthly_wage(int, list): double', averageMonthlyWage],
+	['map.average_daily_wage(int, list, list): double', averageDailyWage],
+	['map.average_monthly_wage(int, list, list): double', averageMonthlyWage],
+	['map.service_months_net(list, dyn): int', serviceMonthsNet],
 	['days_under(int): double', (age) => Number(bound.daysUnder?.(Number(age)) ?? 0)],
 	[
 		'coverage_days_30(string, int): double',
@@ -108,6 +125,10 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	[
 		'earned_monthly_excess(string, dyn): double',
 		(code, limit) => Number(bound.earnedMonthlyExcess?.(String(code), Number(limit)) ?? 0)
+	],
+	[
+		'earned_daily_excess(string, dyn): double',
+		(code, limit) => Number(bound.earnedDailyExcess?.(String(code), Number(limit)) ?? 0)
 	],
 	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
 	[
@@ -139,6 +160,7 @@ export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {})
 		annualQuantityExempt: options.annualQuantityExempt,
 		earnedQuantityExempt: options.earnedQuantityExempt,
 		earnedMonthlyExcess: options.earnedMonthlyExcess,
+		earnedDailyExcess: options.earnedDailyExcess,
 		earnedAverage: options.earnedAverage,
 		daysUnder: options.daysUnder,
 		coverageDays30: options.coverageDays30

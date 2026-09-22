@@ -14,7 +14,8 @@ import { INCENTIVE_LINE, OVERTIME_LINE } from './work-bands.js';
 const WORK_LINE_CODES = {
 	salary: 'BASIC',
 	absence: 'ABSENCE',
-	night: 'NIGHT_PREMIUM'
+	night: 'NIGHT_PREMIUM',
+	nightWage: 'NIGHT_WAGE'
 } as const;
 
 function item(options: {
@@ -22,6 +23,7 @@ function item(options: {
 	readonly code: string;
 	readonly output: string;
 	readonly absence?: boolean;
+	readonly display?: boolean;
 	readonly definition: CatalogueComponent['definition'];
 }): CatalogueComponent {
 	return {
@@ -33,7 +35,7 @@ function item(options: {
 		output: options.output,
 		eligibility: '',
 		family: 'WORK',
-		destination: 'PAY',
+		destination: options.display === true ? 'DISPLAY' : 'PAY',
 		direction: options.absence === true ? 'SUBTRACT' : 'ADD',
 		bands: [],
 		definition: options.definition
@@ -67,7 +69,20 @@ export function workPayItems(
 			code: WORK_LINE_CODES.night,
 			output: 'night',
 			definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
-		})
+		}),
+		// What the night's ordinary hours earned inside the salary: shown, never paid again. A law
+		// that exempts the whole night-work wage, not only its premium, reads it as `NIGHT_WAGE`.
+		...(work.night_premium == null
+			? []
+			: [
+					item({
+						settingsId: work.settings_id,
+						code: WORK_LINE_CODES.nightWage,
+						output: 'night_wage',
+						display: true,
+						definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
+					})
+				])
 	];
 	const seen = new Set(items.map((row) => row.output));
 	const add = (line: string, label: string) => {

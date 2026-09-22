@@ -36,7 +36,7 @@ Used by: catalogue eligibility, a scheme’s person conditions, `wages.applies_w
 
 Bare names: `wage_floor`.
 
-Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<key>`, `period.leave_days.<key>`, `employment.exit_facts.<key>`.
+Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<key>`, `period.leave_days.<key>`, `period.leave_pay.<key>`, `employment.exit_facts.<key>`.
 
 | Member | Meaning |
 | --- | --- |
@@ -61,8 +61,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
 | `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
-| `employment.service_months` | Completed months since the stint began |
-| `employment.service_years` | Completed years since the stint began |
+| `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
+| `employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
+| `employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -71,17 +72,23 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
+| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
 | `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
-| `terms.payroll_group` | Payroll group |
+| `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
+| `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
 | `terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
 | `terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
@@ -96,6 +103,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
+| `children.prior_childcare_days` | Childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG GPCL and EA s.87A lifetime caps count every employer) |
+| `children.prior_extended_childcare_days` | Extended childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12B(2)(a)(ii)) |
+| `children.prior_infant_care_days` | Unpaid infant care leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12D(2)(a)) |
 | `children.classed(x)` | Family records in classification x; these counts do not establish tax-relief claims |
 | `children.unclassed_under(n)` | Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead |
 | `company.region` | Employing entity region |
@@ -103,6 +113,15 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `company.headcount_citizens` | Of them, the citizens |
 | `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
+| `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NO_PAY_LEAVE` | The part of NO_PAY_LEAVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.ENCASHMENT` | The part of ENCASHMENT paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.INCENTIVE` | The part of INCENTIVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NIGHT_WAGE` | The part of NIGHT_WAGE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
 | `facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
@@ -119,8 +138,10 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
+| `period.leave_pay.<CODE>` | The salary the assessment window attributes to the named leave code’s days: salary × leave days ÷ working days, at most the salary |
 | `period.working_days` | Scheduled working days of the pay month |
 | `period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
+| `period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
 
 | Function | Meaning |
 | --- | --- |
@@ -139,7 +160,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 
 Used by: catalogue bands and entitlement amounts — one claim, allowance or loan entry.
 
-Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.employment.exit_facts.<key>`.
+Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`.
 
 | Member | Meaning |
 | --- | --- |
@@ -164,8 +185,9 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
 | `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
-| `person.employment.service_months` | Completed months since the stint began |
-| `person.employment.service_years` | Completed years since the stint began |
+| `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
+| `person.employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
+| `person.employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -174,17 +196,23 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
+| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `person.employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
 | `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `person.terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
-| `person.terms.payroll_group` | Payroll group |
+| `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
+| `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
 | `person.terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
 | `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
@@ -199,6 +227,9 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
+| `person.children.prior_childcare_days` | Childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG GPCL and EA s.87A lifetime caps count every employer) |
+| `person.children.prior_extended_childcare_days` | Extended childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12B(2)(a)(ii)) |
+| `person.children.prior_infant_care_days` | Unpaid infant care leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12D(2)(a)) |
 | `person.children.classed(x)` | Family records in classification x; these counts do not establish tax-relief claims |
 | `person.children.unclassed_under(n)` | Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead |
 | `person.company.region` | Employing entity region |
@@ -206,6 +237,15 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.company.headcount_citizens` | Of them, the citizens |
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
+| `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NO_PAY_LEAVE` | The part of NO_PAY_LEAVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.ENCASHMENT` | The part of ENCASHMENT paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.INCENTIVE` | The part of INCENTIVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NIGHT_WAGE` | The part of NIGHT_WAGE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
 | `person.facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `person.facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
@@ -222,8 +262,10 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `person.period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
+| `person.period.leave_pay.<CODE>` | The salary the assessment window attributes to the named leave code’s days: salary × leave days ÷ working days, at most the salary |
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
+| `person.period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
 | `entry.amount` | The keyed amount; zero where the entry carries none |
 | `entry.days` | Charged days |
 | `entry.hours` | Recorded hours |
@@ -250,6 +292,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `year.end` | Last day of the tax year |
 | `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
+| `year.earned.ABSENCE` | Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned |
 | `leave.days(code)` | Charged days of one leave code in the window |
 
 | Function | Meaning |
@@ -270,9 +313,9 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 
 Used by: work bands, breaks, limits and the night premium — one priced person-day.
 
-Bare names: `date`, `day_type`, `worked_hours`, `normal_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `ordinary_hour`, `day_wage`, `hours`.
+Bare names: `date`, `day_type`, `worked_hours`, `normal_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `emergency_cause`, `time_off_in_lieu`, `ordinary_hour`, `day_wage`, `hours`.
 
-Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.employment.exit_facts.<key>`.
+Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`.
 
 | Member | Meaning |
 | --- | --- |
@@ -297,8 +340,9 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
 | `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
-| `person.employment.service_months` | Completed months since the stint began |
-| `person.employment.service_years` | Completed years since the stint began |
+| `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
+| `person.employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
+| `person.employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -307,17 +351,23 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
+| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `person.employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
 | `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `person.terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
-| `person.terms.payroll_group` | Payroll group |
+| `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
+| `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
 | `person.terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
 | `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
@@ -332,6 +382,9 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
+| `person.children.prior_childcare_days` | Childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG GPCL and EA s.87A lifetime caps count every employer) |
+| `person.children.prior_extended_childcare_days` | Extended childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12B(2)(a)(ii)) |
+| `person.children.prior_infant_care_days` | Unpaid infant care leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12D(2)(a)) |
 | `person.children.classed(x)` | Family records in classification x; these counts do not establish tax-relief claims |
 | `person.children.unclassed_under(n)` | Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead |
 | `person.company.region` | Employing entity region |
@@ -339,6 +392,15 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.company.headcount_citizens` | Of them, the citizens |
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
+| `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NO_PAY_LEAVE` | The part of NO_PAY_LEAVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.ENCASHMENT` | The part of ENCASHMENT paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.INCENTIVE` | The part of INCENTIVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NIGHT_WAGE` | The part of NIGHT_WAGE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
 | `person.facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `person.facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
@@ -355,8 +417,10 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `person.period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
+| `person.period.leave_pay.<CODE>` | The salary the assessment window attributes to the named leave code’s days: salary × leave days ÷ working days, at most the salary |
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
+| `person.period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
 | `date` | The day |
 | `day_type` | ORDINARY \| REST_DAY \| PUBLIC_HOLIDAY \| SPECIAL_HOLIDAY \| OFF_DAY |
 | `worked_hours` | Net worked hours |
@@ -371,12 +435,15 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `off_day` | The roster left the day unassigned before the holiday |
 | `night_hours` | Hours inside the night window, 0 where none is declared; a break rule reads it too |
 | `requested_by` | EMPLOYER \| EMPLOYEE: who asked for rest-day work |
+| `emergency_cause` | The extra hours were forced by a disaster, accident or emergency (`work_days.emergency_cause`; TW 勞基法 §32(4), paid double by §24(1)(3)); outside the hours ceilings |
+| `time_off_in_lieu` | The worker elected time off instead of overtime pay (`work_days.time_off_in_lieu`; TW 勞基法 §32-1); bands honouring it leave the hours unpriced and the run warns what they would have paid |
 | `ordinary_hour` | Ordinary hour rate |
 | `day_wage` | Ordinary day wage |
 | `hours` | The hours this band consumed, for its price |
 | `limits.<key>` | Evaluated work limit, net worked hours |
-| `holiday.kind` | The published row on the date, in the day-type words: PUBLIC_HOLIDAY \| SPECIAL_HOLIDAY \| SUBSTITUTE, or empty; unlike `day_type` it does not move with the precedence rule |
+| `holiday.kind` | The published row on the date, in the day-type words: PUBLIC_HOLIDAY \| SPECIAL_HOLIDAY \| SUBSTITUTE \| DOUBLE_HOLIDAY (two regular holidays on one date), or empty; unlike `day_type` it does not move with the precedence rule |
 | `holiday.name` | Published holiday name, or empty |
+| `holiday.prior_day_present` | Present, or on leave with pay, on the workday immediately preceding the holiday — a rest or non-work day, or an unworked holiday, looks further back (PH Handbook ch.2 §D–E); true on a day with no holiday |
 
 | Function | Meaning |
 | --- | --- |
@@ -394,9 +461,9 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 
 Used by: `statutory_contributions.assessed_on` and `ordinary_on` — one scheme’s wage.
 
-Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`, `ALLOWANCES`, `ADHOC`, `CLAIMS`.
+Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`, `NIGHT_WAGE`, `ALLOWANCES`, `ADHOC`, `CLAIMS`.
 
-Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.elections.<key>`, `scheme.child_claims.<key>`, `scheme.deductions.<key>`, `scheme.deductions_current.<key>`, `scheme.deductions_prior.<key>`, `scheme.deductions_prior_employer.<key>`, `scheme.deduction_claim_counts.<key>`, `scheme.deduction_claims_missing_event.<key>`, `scheme.deduction_claims_negative_event.<key>`, `scheme.deductions_last_year.<key>`, `scheme.deductions_two_years_ago.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.employment.exit_facts.<key>`.
+Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.elections.<key>`, `scheme.child_claims.<key>`, `scheme.deductions.<key>`, `scheme.deductions_current.<key>`, `scheme.deductions_prior.<key>`, `scheme.deductions_prior_employer.<key>`, `scheme.deduction_claim_counts.<key>`, `scheme.deduction_claims_missing_event.<key>`, `scheme.deduction_claims_negative_event.<key>`, `scheme.deductions_last_year.<key>`, `scheme.deductions_two_years_ago.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`.
 
 | Member | Meaning |
 | --- | --- |
@@ -421,8 +488,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
 | `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
-| `person.employment.service_months` | Completed months since the stint began |
-| `person.employment.service_years` | Completed years since the stint began |
+| `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
+| `person.employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
+| `person.employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -431,17 +499,23 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
+| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `person.employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
 | `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `person.terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
-| `person.terms.payroll_group` | Payroll group |
+| `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
+| `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
 | `person.terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
 | `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
@@ -456,6 +530,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
+| `person.children.prior_childcare_days` | Childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG GPCL and EA s.87A lifetime caps count every employer) |
+| `person.children.prior_extended_childcare_days` | Extended childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12B(2)(a)(ii)) |
+| `person.children.prior_infant_care_days` | Unpaid infant care leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12D(2)(a)) |
 | `person.children.classed(x)` | Family records in classification x; these counts do not establish tax-relief claims |
 | `person.children.unclassed_under(n)` | Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead |
 | `person.company.region` | Employing entity region |
@@ -463,6 +540,15 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.company.headcount_citizens` | Of them, the citizens |
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
+| `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NO_PAY_LEAVE` | The part of NO_PAY_LEAVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.ENCASHMENT` | The part of ENCASHMENT paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.INCENTIVE` | The part of INCENTIVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NIGHT_WAGE` | The part of NIGHT_WAGE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
 | `person.facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `person.facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
@@ -479,8 +565,10 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `person.period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
+| `person.period.leave_pay.<CODE>` | The salary the assessment window attributes to the named leave code’s days: salary × leave days ÷ working days, at most the salary |
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
+| `person.period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
 | `period.key` | YYYY-MM or YYYY-MM-n |
 | `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
@@ -495,6 +583,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `year.end` | Last day of the tax year |
 | `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
+| `year.earned.ABSENCE` | Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned |
 | `scheme.code` | The scheme code |
 | `scheme.assessment_period` | PAY_PERIOD \| MONTH |
 | `scheme.year_to_date.base` | Base already charged this tax year: this employer’s earlier slips plus what an earlier employer declared on the fact (`opening`) |
@@ -540,6 +629,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `NO_PAY_LEAVE` | Unpaid leave days |
 | `ENCASHMENT` | Every encashed leave day |
 | `INCENTIVE` | The overtime lines a band funnelled above its named limit — the hours beyond the statutory ceiling, priced at the band’s award; also inside OVERTIME |
+| `NIGHT_WAGE` | The ordinary (not overtime) hours inside the night window at the ordinary hour — already inside BASE; a law that exempts the whole night-work wage, not only its premium, subtracts it |
 | `ALLOWANCES` | The signed sum of this payslip’s allowance lines whose class counts toward this scheme |
 | `ADHOC` | The signed sum of this payslip’s ad hoc lines (bonus, back pay, separation pay, claw-backs) whose class counts toward this scheme |
 | `CLAIMS` | The signed sum of this payslip’s claim lines whose class counts toward this scheme |
@@ -566,12 +656,13 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `progressive(value, table)` | Apply a progressive [from, base, rate] table |
 | `minimum_wage(region)` | The version’s minimum wage for a region |
 | `code('X')` | The signed total of the version’s class X this payslip — for a law that caps or exempts one class alone (MY’s termination-benefit exemption, PH’s de-minimis rice subsidy) |
-| `earned_average(code, months_back, months)` | The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window. `code` may be a list of codes — reserved lines among them (`OVERTIME`) — summed month by month (TW 施行細則 §27: the three-month average of 工資, overtime included) |
+| `earned_average(code, months_back, months)` | The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window. `code` may be a list of codes — reserved lines among them (`OVERTIME`) — summed month by month (TW 施行細則 §27: the three-month average of 工資, overtime included); a scheme part (`WTAX.RICE`) sums every class counting toward it |
 | `days_under(age)` | Calendar days employed in the assessment window before the specified birthday. |
 | `coverage_days_30(since, age)` | Covered days in the assessment month on a thirty-day calendar, starting no earlier than employment and registration. Continuing coverage runs to day 30; termination uses its actual day capped at 30. A positive age ends coverage before that birthday; 0 applies no age limit. |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |
 | `earned_quantity_exempt(code, limit)` | Earlier paid cash-out exempt within the annual day limit, valued at each payment’s original rate. |
-| `earned_monthly_excess(code, limit)` | Earlier payments in the tax year exceeding the allowance limit in each calendar month. |
+| `earned_monthly_excess(code, limit)` | Earlier payments in the tax year exceeding the allowance limit in each calendar month; `code` may be a scheme part (`WTAX.RICE`), every class counting toward it. |
+| `earned_daily_excess(code, share)` | Earlier payments in the tax year exceeding a per-day ceiling in each calendar month: `share` × the monthly `minimum_wage(region)` each earlier payslip was calculated at × its days with overtime or night-window hours (`person.period.overtime_days`) — the floor of that payslip’s own time, not today’s; `code` may be a scheme part (`WTAX.OT_MEAL`). |
 | `annual_quantity_exempt(code, limit)` | Current leave cash-out exempt within an annual day limit, after days paid earlier in the tax year. Each entry retains its own rate. |
 
 ## `scheme` — One statutory scheme for one person and period: rules and rate bands.
@@ -580,7 +671,7 @@ Used by: contribution rules and `statutory_contributions.elections[].required_wh
 
 Bare names: `base`, `ordinary`.
 
-Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.elections.<key>`, `scheme.child_claims.<key>`, `scheme.deductions.<key>`, `scheme.deductions_current.<key>`, `scheme.deductions_prior.<key>`, `scheme.deductions_prior_employer.<key>`, `scheme.deduction_claim_counts.<key>`, `scheme.deduction_claims_missing_event.<key>`, `scheme.deduction_claims_negative_event.<key>`, `scheme.deductions_last_year.<key>`, `scheme.deductions_two_years_ago.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.employment.exit_facts.<key>`.
+Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.elections.<key>`, `scheme.child_claims.<key>`, `scheme.deductions.<key>`, `scheme.deductions_current.<key>`, `scheme.deductions_prior.<key>`, `scheme.deductions_prior_employer.<key>`, `scheme.deduction_claim_counts.<key>`, `scheme.deduction_claims_missing_event.<key>`, `scheme.deduction_claims_negative_event.<key>`, `scheme.deductions_last_year.<key>`, `scheme.deductions_two_years_ago.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`.
 
 | Member | Meaning |
 | --- | --- |
@@ -605,8 +696,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
 | `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
-| `person.employment.service_months` | Completed months since the stint began |
-| `person.employment.service_years` | Completed years since the stint began |
+| `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
+| `person.employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
+| `person.employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -615,17 +707,23 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
+| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `person.employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
 | `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `person.terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
-| `person.terms.payroll_group` | Payroll group |
+| `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
+| `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
 | `person.terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
 | `person.terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
@@ -640,6 +738,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
+| `person.children.prior_childcare_days` | Childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG GPCL and EA s.87A lifetime caps count every employer) |
+| `person.children.prior_extended_childcare_days` | Extended childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12B(2)(a)(ii)) |
+| `person.children.prior_infant_care_days` | Unpaid infant care leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12D(2)(a)) |
 | `person.children.classed(x)` | Family records in classification x; these counts do not establish tax-relief claims |
 | `person.children.unclassed_under(n)` | Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead |
 | `person.company.region` | Employing entity region |
@@ -647,6 +748,15 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.company.headcount_citizens` | Of them, the citizens |
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
+| `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NO_PAY_LEAVE` | The part of NO_PAY_LEAVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.ENCASHMENT` | The part of ENCASHMENT paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.INCENTIVE` | The part of INCENTIVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.NIGHT_WAGE` | The part of NIGHT_WAGE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
 | `person.facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `person.facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
@@ -663,8 +773,10 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `person.period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
+| `person.period.leave_pay.<CODE>` | The salary the assessment window attributes to the named leave code’s days: salary × leave days ÷ working days, at most the salary |
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
+| `person.period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
 | `period.key` | YYYY-MM or YYYY-MM-n |
 | `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
@@ -679,6 +791,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `year.end` | Last day of the tax year |
 | `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
+| `year.earned.ABSENCE` | Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned |
 | `scheme.code` | The scheme code |
 | `scheme.assessment_period` | PAY_PERIOD \| MONTH |
 | `scheme.year_to_date.base` | Base already charged this tax year: this employer’s earlier slips plus what an earlier employer declared on the fact (`opening`) |
@@ -736,7 +849,8 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `coverage_days_30(since, age)` | Covered days in the assessment month on a thirty-day calendar, starting no earlier than employment and registration. Continuing coverage runs to day 30; termination uses its actual day capped at 30. A positive age ends coverage before that birthday; 0 applies no age limit. |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |
 | `earned_quantity_exempt(code, limit)` | Earlier paid cash-out exempt within the annual day limit, valued at each payment’s original rate. |
-| `earned_monthly_excess(code, limit)` | Earlier payments in the tax year exceeding the allowance limit in each calendar month. |
+| `earned_monthly_excess(code, limit)` | Earlier payments in the tax year exceeding the allowance limit in each calendar month; `code` may be a scheme part (`WTAX.RICE`), every class counting toward it. |
+| `earned_daily_excess(code, share)` | Earlier payments in the tax year exceeding a per-day ceiling in each calendar month: `share` × the monthly `minimum_wage(region)` each earlier payslip was calculated at × its days with overtime or night-window hours (`person.period.overtime_days`) — the floor of that payslip’s own time, not today’s; `code` may be a scheme part (`WTAX.OT_MEAL`). |
 | `annual_quantity_exempt(code, limit)` | Current leave cash-out exempt within an annual day limit, after days paid earlier in the tax year. Each entry retains its own rate. |
 
 ## `leave_day` — One charged day of leave: the person that day, and where in the leave it falls.
@@ -745,7 +859,7 @@ Used by: `leave_catalogue.pay_fraction` — one charged leave day.
 
 Bare names: `wage_floor`.
 
-Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<key>`, `period.leave_days.<key>`, `employment.exit_facts.<key>`.
+Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<key>`, `period.leave_days.<key>`, `period.leave_pay.<key>`, `employment.exit_facts.<key>`.
 
 | Member | Meaning |
 | --- | --- |
@@ -770,8 +884,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
 | `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
-| `employment.service_months` | Completed months since the stint began |
-| `employment.service_years` | Completed years since the stint began |
+| `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
+| `employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
+| `employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -780,17 +895,23 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
+| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
 | `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
-| `terms.payroll_group` | Payroll group |
+| `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
+| `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
 | `terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
 | `terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
@@ -805,6 +926,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
+| `children.prior_childcare_days` | Childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG GPCL and EA s.87A lifetime caps count every employer) |
+| `children.prior_extended_childcare_days` | Extended childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12B(2)(a)(ii)) |
+| `children.prior_infant_care_days` | Unpaid infant care leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12D(2)(a)) |
 | `children.classed(x)` | Family records in classification x; these counts do not establish tax-relief claims |
 | `children.unclassed_under(n)` | Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead |
 | `company.region` | Employing entity region |
@@ -812,6 +936,15 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `company.headcount_citizens` | Of them, the citizens |
 | `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
+| `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NO_PAY_LEAVE` | The part of NO_PAY_LEAVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.ENCASHMENT` | The part of ENCASHMENT paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.INCENTIVE` | The part of INCENTIVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NIGHT_WAGE` | The part of NIGHT_WAGE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
 | `facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
@@ -828,8 +961,10 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
+| `period.leave_pay.<CODE>` | The salary the assessment window attributes to the named leave code’s days: salary × leave days ÷ working days, at most the salary |
 | `period.working_days` | Scheduled working days of the pay month |
 | `period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
+| `period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
 | `leave.month_index` | Which month of the leave the day is in, from 1 |
 | `leave.day_index` | Which calendar day of the leave, from 1 |
 | `leave.days` | The days the whole entry charges |
@@ -854,7 +989,7 @@ Used by: `work_rules.breaks[]` — one day’s rest-break obligation.
 
 Bare names: `wage_floor`, `consecutive_hours`, `overtime_hours`, `continuous_attendance`, `night_hours`.
 
-Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<key>`, `period.leave_days.<key>`, `employment.exit_facts.<key>`.
+Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<key>`, `period.leave_days.<key>`, `period.leave_pay.<key>`, `employment.exit_facts.<key>`.
 
 | Member | Meaning |
 | --- | --- |
@@ -879,8 +1014,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
 | `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
-| `employment.service_months` | Completed months since the stint began |
-| `employment.service_years` | Completed years since the stint began |
+| `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
+| `employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
+| `employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -889,17 +1025,23 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
+| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
 | `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
+| `terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
-| `terms.payroll_group` | Payroll group |
+| `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
+| `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
 | `terms.grade` | Grade — an employer’s own catalogue tier, never a statute’s |
 | `terms.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY \| DAILY \| HOURLY |
 | `terms.pass_type` | EMPLOYMENT_PASS \| S_PASS \| WORK_PERMIT \| INTRA_COMPANY_TRANSFER \| OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a)) |
@@ -914,6 +1056,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
+| `children.prior_childcare_days` | Childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG GPCL and EA s.87A lifetime caps count every employer) |
+| `children.prior_extended_childcare_days` | Extended childcare leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12B(2)(a)(ii)) |
+| `children.prior_infant_care_days` | Unpaid infant care leave days taken for the recorded children with earlier employers, as declared; 0 when unrecorded (SG CDCA s.12D(2)(a)) |
 | `children.classed(x)` | Family records in classification x; these counts do not establish tax-relief claims |
 | `children.unclassed_under(n)` | Family records with no classification under n completed years; MY tax relief reads scheme.child_claims instead |
 | `company.region` | Employing entity region |
@@ -921,6 +1066,15 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `company.headcount_citizens` | Of them, the citizens |
 | `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
+| `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NO_PAY_LEAVE` | The part of NO_PAY_LEAVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.ENCASHMENT` | The part of ENCASHMENT paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.INCENTIVE` | The part of INCENTIVE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.NIGHT_WAGE` | The part of NIGHT_WAGE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `facts.<CODE>.registered` | Whether the employment is registered with the scheme of that code |
 | `facts.<CODE>.since` | The day the employment registered with that scheme as `YYYY-MM-DD`, or empty (PH SSS s.9(a): coverage is compulsory for an employee not over sixty when first covered — `employee.age_on(facts.SSS.since)`) |
 | `facts.<CODE>.since_months` | Completed months since the employment registered with that scheme, 0 when unrecorded |
@@ -937,8 +1091,10 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
+| `period.leave_pay.<CODE>` | The salary the assessment window attributes to the named leave code’s days: salary × leave days ÷ working days, at most the salary |
 | `period.working_days` | Scheduled working days of the pay month |
 | `period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
+| `period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
 | `consecutive_hours` | The longest unbroken work run in the day |
 | `overtime_hours` | Payable overtime hours: the approved hours plus the day type’s clock-derived premium |
 | `continuous_attendance` | Work that must be carried on continuously |

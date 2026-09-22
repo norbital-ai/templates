@@ -48,13 +48,20 @@ export function contractAllowancesOn(
 	bundle: EmploymentBundle,
 	configuration: Configuration,
 	asOf: IsoDate,
-	scheme?: string
+	scheme?: string,
+	/** Allowance codes left out of the sum (a gross rate's statutory exclusions). */
+	exclude: readonly string[] = []
 ): number {
 	const terms = bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf));
 	if (terms == null) return 0;
 	return listedAllowances(terms).reduce((sum, listed) => {
 		const component = contractAllowanceClass(configuration, listed.catalogue_id);
-		if (component == null || component.destination !== 'PAY' || component.direction !== 'ADD')
+		if (
+			component == null ||
+			component.destination !== 'PAY' ||
+			component.direction !== 'ADD' ||
+			exclude.includes(component.code)
+		)
 			return sum;
 		if (
 			scheme != null &&

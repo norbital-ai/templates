@@ -133,8 +133,13 @@ type ValidateOvertimeLimitsOptions = {
 	readonly hoursByMonth: ReadonlyMap<string, number>;
 	/** Every hour beyond the normal day, rest days and holidays included, for an ALL_OVERTIME_HOURS limit. */
 	readonly allHoursByMonth?: ReadonlyMap<string, number>;
-	/** Regulated overtime earlier PAID payslips settled, by calendar month; read by QUARTER and YEAR. */
-	readonly priorHoursByMonth?: ReadonlyMap<string, number>;
+	/** Limit key → its own count by calendar month, for a limit with `counts_day_when`. */
+	readonly limitHoursByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	/**
+	 * Earlier payslips' settled hours as each limit counts them: limit key → calendar month →
+	 * hours; read by QUARTER and YEAR for the months this run does not itself measure.
+	 */
+	readonly priorHoursByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 };
 
 /** The calendar bucket a month falls in under one limit period. */
@@ -164,18 +169,22 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 		)
 			continue;
 		const measured =
-			limit.measure === 'ALL_OVERTIME_HOURS'
+			options.limitHoursByMonth?.get(limit.key) ??
+			(limit.measure === 'ALL_OVERTIME_HOURS'
 				? (options.allHoursByMonth ?? options.hoursByMonth)
-				: options.hoursByMonth;
+				: options.hoursByMonth);
 		const totals = new Map<string, number>();
 		const add = (month: string, hours: number) => {
 			const bucket = limitBucket(month, period);
 			totals.set(bucket, (totals.get(bucket) ?? 0) + hours);
 		};
 		for (const [month, hours] of measured) add(month, hours);
+		// A month this run measures is counted whole from its own attendance, so an earlier slip of
+		// the same month (a semi-monthly first half) is already inside it.
 		if (period !== 'MONTH')
-			for (const [month, hours] of options.priorHoursByMonth ?? [])
+			for (const [month, hours] of options.priorHoursByMonth?.get(limit.key) ?? [])
 				if (
+					!measured.has(month) &&
 					[...measured.keys()].some(
 						(own) => limitBucket(own, period) === limitBucket(month, period)
 					)

@@ -56,12 +56,18 @@ export function assertLeaveWindow(
  * `days` a figure or a number over the person (a seniority ladder with no top). Nobody matched
  * is no days.
  */
-export function grantedDays(rule: Pick<LeaveEntitlement, 'bands'>, person: PersonContext): number {
+export function grantedDays(
+	rule: Pick<LeaveEntitlement, 'bands' | 'scale'>,
+	person: PersonContext
+): number {
 	const band = rule.bands.find((candidate) => isEligible(candidate.eligibility, person));
 	if (band == null) return 0;
-	return typeof band.days === 'string'
-		? Math.max(0, evaluatePersonNumber(band.days, person))
-		: band.days;
+	const days =
+		typeof band.days === 'string'
+			? Math.max(0, evaluatePersonNumber(band.days, person))
+			: band.days;
+	const scale = (rule.scale ?? '').trim();
+	return scale === '' ? days : days * Math.max(0, evaluatePersonNumber(scale, person));
 }
 
 /** An as-of query over effective rules and employment facts; this creates no records. */
@@ -95,7 +101,8 @@ export function computedEntitlement(options: {
 	const unlimited = rule.availability === 'UNLIMITED' || rule.availability === 'PER_EVENT';
 	// A full grant or unmetered entitlement needs eligibility through the query date only.
 	// Prorated upfront grants also project the remaining eligible part of the annual window.
-	const projectionEnd = unlimited || rule.proration === 'NONE' ? through : end;
+	const projectionEnd =
+		unlimited || (rule.proration === 'NONE' && rule.qualifies_window !== true) ? through : end;
 	/**
 	 * A qualifying period bars the taking, not the counting. SG EA s.43: an employee who has
 	 * served three months is entitled to leave in proportion to the completed months of service
@@ -112,13 +119,24 @@ export function computedEntitlement(options: {
 	// Ineligible (or not-yet-started) is no balance, never an unmetered one: an unlimited flag here
 	// would print a 0.00 row for a leave type the person cannot take at all.
 	const empty = { window, opening, unlimited: false, entitlement: 0, earned: 0, available: 0 };
-	if (opening == null || through < opening) return empty;
+	// A year qualified as a whole grants the year's days once it qualifies on any day of it.
+	if (opening == null || (through < opening && rule.qualifies_window !== true)) return empty;
 	// Earned by credit only: no rule grants days, so every debit must be funded by a posted
 	// credit in the same window.
 	if (rule.availability === 'CREDITED') return empty;
 	// The entitlement matrix: top-down, the first band whose predicate holds on the entitlement
 	// date is the grant; nobody matched is no days.
-	const target = grantedDays(rule, options.personOn(through));
+	// A year qualified as a whole reads its bands on its first and last days of service: a child
+	// below an age at any time in the year is below it on one of them, as every age span the
+	// bands name outlasts a year (SG CDCA s.12B(1)(b)).
+	const people = (rule.qualifies_window === true ? [counted[0]!, counted.at(-1)!] : [through]).map(
+		options.personOn
+	);
+	const target = Math.max(...people.map((person) => grantedDays(rule, person)));
+	// A grant the scale moved is the regulation's hours in the person's own days, which no
+	// statute rounds: it rounds up to the half day, never below the hours owed.
+	const scaled =
+		target !== Math.max(...people.map((person) => grantedDays({ ...rule, scale: null }, person)));
 	if (unlimited)
 		return { window, opening, unlimited: true, entitlement: null, earned: null, available: null };
 	const eligible = new Set(counted);
@@ -174,8 +192,19 @@ export function computedEntitlement(options: {
 	};
 	// The statute's own rounding of a part-year grant: MY s.60E(1) and SG s.88A(3) disregard a
 	// fraction under a half and count a half or more as a day; elsewhere the half day stands.
+	// Never below the row's floor (SG CDCA s.12B(1)(i): 2 days however short the service).
+	const floor = target > 0 ? Math.min(target, rule.minimum_days ?? 0) : 0;
 	const round = (value: number): number =>
-		rule.rounding === 'WHOLE_DAY' ? Math.floor(value + 0.5 + 1e-9) : roundHalfDay(value);
+		Math.max(
+			floor,
+			scaled
+				? Math.ceil(value * 2 - 1e-9) / 2
+				: rule.rounding === 'WHOLE_DAY'
+					? Math.floor(value + 0.5 + 1e-9)
+					: rule.rounding === 'EXACT'
+						? value
+						: roundHalfDay(value)
+		);
 	const entitlement = round(target * fraction(end));
 	const earned = round(target * fraction(through));
 	const releasedThrough =

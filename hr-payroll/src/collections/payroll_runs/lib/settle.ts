@@ -29,8 +29,10 @@
  *
  * A loan repayment is recovered whole or not at all: one repayment row is one payslip line on one
  * payslip. When net would go negative, whole recoveries are dropped in reverse emission order and
- * the row stays unlinked, so the next regular run recovers it. Single-use entries and statutory
- * charges remain assessed in full. A statutory shortfall is recorded separately from cash pay;
+ * the row stays unlinked, so the next regular run recovers it. The same happens first where the
+ * version caps deductions (`payroll.deduction_ceiling`): whole recoveries it counts are dropped
+ * until the counted deductions fit, and what still exceeds it is reported, never cut. Single-use
+ * entries and statutory charges remain assessed in full. A statutory shortfall is recorded separately from cash pay;
  * it does not authorize recovery from later wages. A deficit from non-statutory items is refused.
  */
 
@@ -43,6 +45,7 @@ import type {
 	SettlementBucket
 } from '../../../lib/payroll/family.js';
 import { cents } from './rounding.js';
+import type { PayrollSettings } from '../../../datatypes/payroll_settings/+definition.js';
 
 export type Settlement = {
 	readonly gross: number;
@@ -57,7 +60,11 @@ export type Settlement = {
 	readonly shortfalls: readonly {
 		readonly componentCatalogueId: string;
 		readonly amount: number;
+		/** Dropped to fit the deduction ceiling; absent is dropped to keep net pay from going negative. */
+		readonly cause?: 'DEDUCTION_CEILING';
 	}[];
+	/** What the counted deductions still exceed the deduction ceiling by once recoveries are dropped. */
+	readonly ceilingExcess: number;
 };
 
 export function settle(options: {
@@ -68,6 +75,10 @@ export function settle(options: {
 	readonly currency: string;
 	/** Who is being settled, for the refusal that names them. */
 	readonly employeeNumber?: string;
+	/** The version's cap on deductions; absent is none. */
+	readonly ceiling?: PayrollSettings['deduction_ceiling'];
+	/** Whether this is the contract's last payslip, which a ceiling may exempt. */
+	readonly finalPay?: boolean;
 }): Settlement {
 	const { currency } = options;
 	const statutoryEmployee = options.charges.reduce((total, charge) => total + charge.employee, 0);
@@ -91,16 +102,56 @@ export function settle(options: {
 	let adjustments = options.adjustments;
 	let otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
 	let net = cents(gross - statutoryEmployee - otherDeductions + payments, currency);
-	const shortfalls: { componentCatalogueId: string; amount: number }[] = [];
+	const shortfalls: Settlement['shortfalls'][number][] = [];
+	const recovers = (item: MeasuredAdjustment): boolean =>
+		item.input.family === 'LOAN_REPAYMENT' && item.bucket === 'DEDUCTION' && item.amount > 0;
+
+	let ceilingExcess = 0;
+	const ceiling = options.finalPay && options.ceiling?.final_pay_exempt ? null : options.ceiling;
+	if (ceiling != null) {
+		const countsLoans =
+			ceiling.counts_loans && !(options.finalPay && ceiling.final_pay_exempts_loans === true);
+		const counted = (item: PricedItem): boolean =>
+			item.bucket === 'DEDUCTION' &&
+			!ceiling.exempt_codes.includes(item.catalogueComponent.code) &&
+			(countsLoans || item.catalogueComponent.family !== 'LOAN');
+		const room =
+			ceiling.share * (gross - (ceiling.basis === 'NET_OF_STATUTORY' ? statutoryEmployee : 0)) -
+			(ceiling.counts_statutory ? statutoryEmployee : 0);
+		const countedTotal = [...base, ...adjustments].reduce(
+			(total, item) => total + (counted(item) ? item.amount : 0),
+			0
+		);
+		// Statutory charges the run cannot shorten: only the counted deductions can be over.
+		let over = cents(Math.min(countedTotal, countedTotal - room), currency);
+		if (over > 0) {
+			// Drop whole counted recoveries, last emitted first, until the rest fits.
+			const kept: MeasuredAdjustment[] = [];
+			for (const item of adjustments.toReversed()) {
+				if (over > 0 && recovers(item) && counted(item)) {
+					shortfalls.push({
+						componentCatalogueId: item.catalogueComponent.id,
+						amount: item.amount,
+						cause: 'DEDUCTION_CEILING'
+					});
+					over = cents(over - item.amount, currency);
+					continue;
+				}
+				kept.push(item);
+			}
+			adjustments = kept.toReversed();
+			otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
+			net = cents(gross - statutoryEmployee - otherDeductions + payments, currency);
+		}
+		ceilingExcess = Math.max(0, over);
+	}
 
 	if (net < 0) {
 		// Drop whole recoveries, last emitted first, until net is no longer negative.
 		let outstanding = -net;
 		const kept: MeasuredAdjustment[] = [];
 		for (const item of adjustments.toReversed()) {
-			const recovery =
-				item.input.family === 'LOAN_REPAYMENT' && item.bucket === 'DEDUCTION' && item.amount > 0;
-			if (recovery && outstanding > 0) {
+			if (recovers(item) && outstanding > 0) {
 				shortfalls.push({ componentCatalogueId: item.catalogueComponent.id, amount: item.amount });
 				outstanding = cents(outstanding - item.amount, currency);
 				continue;
@@ -130,6 +181,7 @@ export function settle(options: {
 		employerCost: cents(statutoryEmployer + employerAmounts, currency),
 		base,
 		adjustments,
-		shortfalls
+		shortfalls,
+		ceilingExcess
 	};
 }

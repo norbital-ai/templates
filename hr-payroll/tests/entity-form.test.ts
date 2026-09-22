@@ -211,6 +211,7 @@ test('the terms fields are Pay, Shift assignment, Standing, Organisation and Per
 		'job_title',
 		'notice_days',
 		'ordinary_hours_per_week',
+		'paid_rest_days',
 		'pass_type',
 		'pay_frequency',
 		'payroll_group',

@@ -56,6 +56,16 @@
 		{#if selected.length === 0}
 			<p class="text-meta">{t('component.counts_toward_nothing')}</p>
 		{/if}
+		<!-- The reserved WAGES mark: not a scheme, the earnings history a regular payment enters. -->
+		<div class="flex items-center gap-2 text-sm">
+			<Checkbox
+				checked={selected.includes('WAGES')}
+				{disabled}
+				aria-label="WAGES"
+				onCheckedChange={(checked) => set('WAGES', checked ? 'WAGES' : '')}
+			/>
+			<span class="min-w-0 flex-1">{t('component.counts_toward_wages')}</span>
+		</div>
 		{#each schemes as scheme (scheme.code)}
 			{@const parts = partsOf(scheme.parts)}
 			{@const current = membership(scheme.code)}

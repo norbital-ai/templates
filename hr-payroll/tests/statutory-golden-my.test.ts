@@ -27,6 +27,7 @@ import {
 	type BuiltPayslip,
 	settingsVersions
 } from './fixtures/statutory-world.ts';
+import { monthsAt, priorWages } from './fixtures/prior-wages.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
 const OUT = { kind: 'NOT_REGISTERED' } as const;
@@ -947,18 +948,17 @@ test('Malaysia — regulation 4’s 104-hour month is a ceiling on the employer,
 		8
 	);
 	assert.equal(hours('WORKDAY-OT-1.5X'), 112);
-	// The funnelled hours leave the regulated count at exactly the ceiling, so the run reports no
-	// breach of it: the INCENTIVE line is the record. (Each sixteen-hour day is reported against
-	// the s.60A(1) daily limit, which is a different ceiling.)
+	// Paying the excess as incentive does not undo the breach: reg.4 limits the hours required, so
+	// the run reports all 112 regulated hours against the 104-hour ceiling.
 	assert.ok(
-		!warnings.some((line) => line.startsWith('OVERTIME_LIMIT_EXCEEDED')),
+		warnings.some((line) => line.startsWith('OVERTIME_LIMIT_EXCEEDED') && /112/.test(line)),
 		warnings.join('\n')
 	);
 });
 
 test('MY-nihon — the company incentive boundary sits at eleven hours worked in a day', () => {
-	// The fork's only company term: `funnel_above_hours: limits.daily_total` on every hourly band —
-	// twelve clock hours less the shift's hour of break is eleven hours worked, and overtime past
+	// The fork's only company term: `funnel_above_hours: "11.0"` on every hourly band —
+	// eleven hours' total work in a day (its own policy, not the s.60A(7) limit), and overtime past
 	// it is the INCENTIVE line at the same s.60A(3)(a) 1.5× the statute owes. 09:00–22:30 is
 	// 12.5 h worked: 4.5 h past the normal eight, of which 3 h reach eleven and 1.5 h lie beyond.
 	const { slips } = buildStatutory(
@@ -1284,6 +1284,32 @@ test('Malaysia — the normal day is at most nine hours under the s.60A(1) provi
 	]);
 });
 
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — SKBBK Second and Third Phases follow Act A1788 Third Schedule Parts II and III`, () => {
+		// P.U. (B) 196/2026: Second Phase 1 June 2028 – 31 May 2031, Third Phase from 1 June 2031.
+		// Act A1788 s.17, Third Schedule column (4)(B) "Non-employment injury", employee only:
+		// row 36 (RM3,500–3,600): Part II RM35.50 (1.00% × 3,550), Part III RM44.40 (1.25% × 3,550 =
+		// 44.375, printed 44.40); rows 64–65 (RM5,900 and above, the RM6,000 ceiling): RM59.50 and RM74.40.
+		const people = [
+			{ key: 'W-3550', wage: 3550, citizenship: 'CITIZEN' },
+			{ key: 'W-7000', wage: 7000, citizenship: 'CITIZEN' }
+		];
+		const second = assessStatutory({ code, period: '2028-07', people });
+		expectStatutory(second, 'W-3550', 'SKBBK', 35.5, 0);
+		expectStatutory(second, 'W-7000', 'SKBBK', 59.5, 0);
+		const third = assessStatutory({ code, period: '2031-07', people });
+		expectStatutory(third, 'W-3550', 'SKBBK', 44.4, 0);
+		expectStatutory(third, 'W-7000', 'SKBBK', 74.4, 0);
+		// The last First Phase month stays at Part I: row 36 RM26.65 (0.75% × 3,550 = 26.625).
+		expectStatutory(
+			assessStatutory({ code, period: '2028-05', people }),
+			'W-3550',
+			'SKBBK',
+			26.65,
+			0
+		);
+	});
+
 test('every sealed version of `MY` and `MY-nihon` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
@@ -1507,7 +1533,19 @@ test('Malaysia — a non-citizen is Part F whatever the registration says (EPF A
 	const book = assessStatutory({
 		code: 'MY',
 		period: '2026-01',
-		people: [{ key: 'MY-F40', wage: 3000, age: 40, citizenship: 'FOREIGNER' }]
+		people: [
+			{
+				key: 'MY-F40',
+				wage: 3000,
+				age: 40,
+				citizenship: 'FOREIGNER',
+				// The declarations an EPF/EIS-registered non-citizen must carry (round 5, D15).
+				registrations: {
+					EPF: { kind: 'REGISTERED', elections: { member_before_1998: false } },
+					EIS: { kind: 'REGISTERED', elections: { mykas_resident: false } }
+				}
+			}
+		]
 	});
 	assert.equal(book.get('MY-F40')!.get('EPF'), undefined);
 	expectStatutory(book, 'MY-F40', 'EPF_NON_CITIZEN', 60, 60);
@@ -1516,7 +1554,8 @@ test('Malaysia — a non-citizen is Part F whatever the registration says (EPF A
 test('Malaysia — the termination benefit counts a part year to the nearest month (Termination and Lay-Off Benefits Regulations 1980 reg. 6(1))', () => {
 	// Hired 15 May 2023, made redundant on 31 January 2026 at RM3,000: 993 days of service is
 	// 32.6 months, the nearest month 33 — two years and nine months, inside the fifteen-day tier
-	// (two years or more, under five). 15 × 33/12 × 3,000 ÷ 26 = 4,759.615 → 4,759.62.
+	// (two years or more, under five). A day's wages is twelve months' wages ÷ 365 (JTKSM's
+	// published reg. 6 formula): 3,000 × 12 ÷ 365 = 98.6301; 15 × 33/12 × 98.6301 = 4,068.49.
 	const { slips } = buildStatutory(
 		{
 			code: 'MY',
@@ -1543,6 +1582,8 @@ test('Malaysia — the termination benefit counts a part year to the nearest mon
 						)!.id
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'MY-REDUNDANT')!;
+			// reg.6(2) reads the wages paid: twelve earlier payslips at the RM3,000 wage.
+			priorWages(world, 'MY-REDUNDANT', monthsAt('2025-01', '2025-12', 3000));
 			world.adhoc_requests!.push({
 				id: 'd0000000-0000-4000-8000-00000000ad21',
 				employment_id: employment.id,
@@ -1561,7 +1602,7 @@ test('Malaysia — the termination benefit counts a part year to the nearest mon
 	const slip = slips.get('MY-REDUNDANT')!;
 	assert.equal(
 		slip.adjustments.find((row) => row.component_code === 'TERMINATION_BENEFIT')?.amount,
-		4759.62
+		4068.49
 	);
 });
 

@@ -179,14 +179,25 @@ test('Indonesia — BPJS Kesehatan covers the household of five; a further membe
 	);
 });
 
-test('Indonesia — an unrecorded PTKP status withholds as TK/0', () => {
-	// Category A (TK/0, TK/1, K/0) is the default: a person whose marital status is not recorded
-	// reads as TK/0, so the TER A ladder governs rather than no ladder at all.
-	const book = assessStatutoryUnvalidated({
-		...idWorld('2026-01'),
-		people: [{ key: 'ID-BLANK-15M', wage: 15_000_000, marital_status: '' }]
-	});
-	expectStatutory(book, 'ID-BLANK-15M', 'PPH21', 1_092_420, 0);
+test('Indonesia — an unrecorded PTKP status stops PPh 21 rather than reading TK/0', () => {
+	// UU PPh art.7(2): the PTKP is the status at the start of the year, which the employee declares;
+	// no provision presumes TK/0 for an unknown one, and the current family record is not that
+	// declaration (PMK 168/2023 art.9(4)).
+	assert.throws(
+		() =>
+			assessStatutoryUnvalidated(
+				{
+					...idWorld('2026-01'),
+					people: [{ key: 'ID-BLANK-15M', wage: 15_000_000, marital_status: '' }]
+				},
+				(world) => {
+					for (const fact of world.employment_statutory_facts)
+						if (fact.status.kind === 'REGISTERED')
+							delete fact.status.elections?.ptkp_marital_status;
+				}
+			),
+		/PTKP marital status on 1 January is required before calculation/
+	);
 });
 
 test('Indonesia — the JP ceiling moves on 1 March 2026', () => {
@@ -398,11 +409,11 @@ test('Indonesia — a married woman is TK/0 unless the PTKP election combines he
 	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', 936360, 0);
 });
 
-test('Indonesia — the K/I annual reckoning carries the spouse’s PTKP', () => {
-	// UU PPh art.7(1) and PMK 101/PMK.010/2016: PTKP K/I/3 is 54,000,000 (self) + 4,500,000
-	// (married) + 54,000,000 (the spouse's income combined) + 13,500,000 (three dependants) =
-	// 126,000,000. The annual rule carried self + married + dependants only, so a K/I employee's
-	// December refund was short 54,000,000 of relief.
+test('Indonesia — a married woman whose husband has no income is relieved for self, marriage and dependants, never K/I', () => {
+	// PMK 168/2023 art.9(2)(b): a married woman employee holding the kecamatan statement that her
+	// husband has no income is relieved PTKP for herself (54,000,000) + married (4,500,000) + three
+	// dependants (13,500,000) = 72,000,000. The K/I addition for a spouse's combined income
+	// (UU PPh art.7(1)) belongs to the household's own annual return, not employer withholding.
 	const priorPeriods = [
 		'2026-01',
 		'2026-02',
@@ -476,9 +487,10 @@ test('Indonesia — the K/I annual reckoning carries the spouse’s PTKP', () =>
 			}
 		}
 	);
-	// PKP = 180,606,000 − 6,000,000 − 1,319,578 − 3,600,000 − 126,000,000 = 43,686,422 →
-	// 43,686,000; annual tax at 5% = 2,184,300; December = 2,184,300 − 11 × 936,360 = −8,115,660.
-	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', -8_115_660, 0);
+	// PKP = 180,606,000 − 6,000,000 − 1,319,578 − 3,600,000 − 72,000,000 = 97,686,422 →
+	// 97,686,000; annual tax = 5% × 60,000,000 + 15% × 37,686,000 = 3,000,000 + 5,652,900 =
+	// 8,652,900; December = 8,652,900 − 11 × 936,360 (10,299,960) = −1,647,060.
+	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', -1_647_060, 0);
 });
 
 test('every sealed version of `ID` is priced by a golden here', () => {
@@ -542,6 +554,22 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 	});
 	// The version in force in March 2026 (2026-03-01 → open).
 	const version = 'f5282c8e-2224-4714-afb7-7314a5bfe37d';
+	// Each departure is judged against the leaver's own religious holiday — here Idul Fitri 1447 H,
+	// 21 March 2026 (SKB 2026) — with the rest of the departure record a leaver owes.
+	for (const employment of world.employments)
+		if (employment.effective_range.end != null)
+			employment.exit_facts = {
+				thr_holiday_date: '2026-03-21',
+				micro_small_enterprise: false,
+				...(employment.employee_number === 'ID-PERM-25MAR'
+					? {
+							termination_cause: 'VOLUNTARY_RESIGNATION',
+							separation_pay_amount: 0,
+							separation_pay_reference: 'NONE',
+							pension_offset_applies: false
+						}
+					: {})
+			};
 	world.allowance_catalogue.push({
 		id: HOUSE_ALLOWANCE_ID,
 		settings_id: version,
@@ -1110,6 +1138,8 @@ test('Indonesia — efficiency or closure because of losses is half the pesangon
 				// PP 35/2021 art.43(1): the detailed cause, not the broad exit reason, chooses the
 				// multiplier — preventing loss pays the whole award, an actual loss pays half.
 				employment.exit_facts = {
+					// Idul Fitri 1447 H (SKB 2026): the holiday the departure's THR is judged against.
+					thr_holiday_date: '2026-03-21',
 					termination_cause:
 						key === 'ID-REDUNDANT' ? 'EFFICIENCY_PREVENT_LOSS' : 'EFFICIENCY_ACTUAL_LOSS',
 					separation_wage_basis: 'MONTHLY',

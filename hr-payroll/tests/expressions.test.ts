@@ -107,7 +107,11 @@ test('every declared path in the catalogue compiles as a value', () => {
 			'taken',
 			'days',
 			'balance',
-			'minimum_wage'
+			'minimum_wage',
+			'earned_monthly_average',
+			'average_daily_wage',
+			'average_monthly_wage',
+			'service_months_net'
 		].includes(path.split('.').at(-1) ?? '');
 	for (const context of Object.values(EXPRESSION_CONTEXTS))
 		for (const field of context.fields) {

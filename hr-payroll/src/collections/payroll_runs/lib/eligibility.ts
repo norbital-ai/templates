@@ -9,7 +9,7 @@
  * terms.ordinary_hours_per_week  terms.working_days_per_week
  * employee.solo_parent  employee.race  employee.religion  employee.residency_months
  * employment.type  employment.classification  employment.service_months  employment.service_start
- * terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.grade
+ * terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.paid_rest_days  terms.grade
  * children.count  children.under(age)  company.region
  *
  * compileEligibility validates syntax, available context members and a boolean result when
@@ -19,7 +19,7 @@
 import { Effect } from 'effect';
 import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std/reckon';
 import { decodeNumber } from '@norbital-ai/std/json';
-import { addDays, completedMonths, completedYears, inclusiveDays } from './dates.js';
+import { addDays, completedMonths, completedYears, inclusiveDays, monthDay } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
 import {
@@ -30,11 +30,17 @@ import {
 	childUnder
 } from '../../../lib/expressions/child-under.js';
 import { roundMoney } from './rounding.js';
+import type { ReservedLine } from './accumulate.js';
 import {
 	ageMonthsOn,
 	ageOn,
 	birthday,
-	leaveTaken
+	leaveTaken,
+	averageDailyWage,
+	averageMonthlyWage,
+	earnedMonthlyAverage,
+	serviceMonthsNet,
+	type PersonHistory
 } from '../../../lib/expressions/person-functions.js';
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
@@ -73,7 +79,10 @@ export type PersonContext = {
 		readonly risk_class: string;
 		/** Calendar days since the stint began, the rule date included (a ninety-day test counts these). */
 		readonly service_days: number;
+		/** Completed months of service; a leaver's count runs through the exit day inclusive. */
 		readonly service_months: number;
+		/** Completed months plus the part month as a fraction of that month's days: a pro-rata-for-a-part-year statute reads this. */
+		readonly service_months_exact: number;
 		/** Completed years of service on the rule date; separation payments count in these. */
 		readonly service_years: number;
 		/** First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire. */
@@ -94,6 +103,8 @@ export type PersonContext = {
 		 * MY s.60E(1)(b) forfeits annual leave past 10% of the year's working days.
 		 */
 		readonly absent_days_12m: number;
+		/** Earlier payslips and leave, for `earned_monthly_average`, `average_daily_wage` and `service_months_net`. */
+		readonly history: PersonHistory;
 	};
 	readonly terms: {
 		readonly basic_salary: number;
@@ -109,6 +120,13 @@ export type PersonContext = {
 		readonly ordinary_day: number;
 		/** Basic plus the fixed allowances: "one month's wage" where a statute says so. */
 		readonly monthly_wage: number;
+		/**
+		 * The gross rate of pay as a month: `monthly_basic` plus the contract's allowances less the
+		 * classes the version excludes (`work_rules.gross_excluded_allowances`; SG EA s.2: no
+		 * travelling, food or housing allowance). Where the caller applies no exclusions, every
+		 * allowance counts.
+		 */
+		readonly gross_monthly: number;
 		/** The same wage averaged over the last six months of the employment (VN art.46 severance). */
 		readonly monthly_wage_6m_average: number;
 		readonly workman: boolean;
@@ -119,6 +137,8 @@ export type PersonContext = {
 		/** Department and grade: an employer's own catalogue row may tier on them; no statute does. */
 		readonly department: string;
 		readonly payroll_group: string;
+		/** The contract pays every day of the month, rest days included (the PH 365 factor). */
+		readonly paid_rest_days: boolean;
 		readonly grade: string;
 		/** `MONTHLY` | `SEMI_MONTHLY` | `WEEKLY` | `DAILY` | `HOURLY`: a day factor or a rest-day rule that turns on the pay basis reads this. */
 		readonly pay_frequency: string;
@@ -155,6 +175,12 @@ export type PersonContext = {
 		readonly births: number;
 		/** Each child's date of birth; `children.born_on(date)` counts these. */
 		readonly birthdates: readonly string[];
+		/** Childcare leave days taken with earlier employers, declared over the children. */
+		readonly prior_childcare_days: number;
+		/** Extended childcare leave days taken with earlier employers, declared over the children. */
+		readonly prior_extended_childcare_days: number;
+		/** Unpaid infant care leave days taken with earlier employers, declared over the children. */
+		readonly prior_infant_care_days: number;
 	};
 	readonly company: {
 		readonly region: string;
@@ -170,6 +196,12 @@ export type PersonContext = {
 	 * The run supplies it; outside payroll it is 0 and no seeded predicate should match on it.
 	 */
 	readonly wage_floor: number;
+	/**
+	 * Each reserved line's part paid for the days on which the contract's month is at or below the
+	 * floor of the version in force that day — a minimum-wage earner's days. The run supplies it
+	 * (`wageFloorPay` in contribution.ts); zero outside payroll.
+	 */
+	readonly wage_floor_pay: Readonly<Record<ReservedLine, number>>;
 	/** The pay month, where a rate divisor turns on it; zero outside payroll. */
 	readonly period: {
 		readonly working_days: number;
@@ -177,6 +209,10 @@ export type PersonContext = {
 		readonly unpaid_full_days: number;
 		readonly leave_full_days: Readonly<Record<string, number>>;
 		readonly leave_days: Readonly<Record<string, number>>;
+		/** The window's salary share for each leave code's days: salary × leave days ÷ working days, at most the salary. */
+		readonly leave_pay: Readonly<Record<string, number>>;
+		/** Dates in the assessment window with overtime or night-window hours. */
+		readonly overtime_days: number;
 	};
 	/**
 	 * The employment's statutory facts by scheme code, where the caller supplied them: whether it
@@ -242,6 +278,12 @@ export type PersonInput = {
 	};
 	/** The contract's allowances in force on `asOf`, summed; see `contractAllowancesOn`. */
 	readonly fixedAllowances?: number | null;
+	/** Of them, those in the gross rate of pay; absent is all of them. */
+	readonly grossAllowances?: number | null;
+	/** calendar month → code → what earlier payslips filed (`earnedByMonth`); a payroll run supplies it. */
+	readonly earnings?: ReadonlyMap<string, ReadonlyMap<string, number>> | null;
+	/** Approved time-off spans by leave code; the leave site supplies them. */
+	readonly leaveSpans?: PersonHistory['leave'];
 	/** The contractual monthly wage averaged over the last six months; absent is this month's. */
 	readonly monthlyWage6mAverage?: number | null;
 	readonly terms: {
@@ -252,6 +294,7 @@ export type PersonInput = {
 		readonly statutory_work_category?: string | null;
 		readonly department?: string | null;
 		readonly payroll_group?: string | null;
+		readonly paid_rest_days?: boolean | null;
 		readonly grade?: string | null;
 		readonly residency_since?: string | null;
 		readonly pay_frequency?: string | null;
@@ -285,12 +328,17 @@ export type PersonInput = {
 		readonly unpaid_full_days?: number | null;
 		readonly leave_full_days?: Readonly<Record<string, number>> | null;
 		readonly leave_days?: Readonly<Record<string, number>> | null;
+		readonly leave_pay?: Readonly<Record<string, number>> | null;
+		readonly overtime_days?: number | null;
 	} | null;
 	readonly children?: ReadonlyArray<{
 		readonly child_birthdate: string;
 		readonly citizenship?: string | null;
 		readonly shared_parental_weeks?: number | null;
 		readonly prior_employment_days?: number | null;
+		readonly prior_childcare_days?: number | null;
+		readonly prior_extended_childcare_days?: number | null;
+		readonly prior_infant_care_days?: number | null;
 		readonly relief_class?: string | null;
 	}>;
 	/** Statutory facts by scheme code, in force on `asOf`; absent reads as no facts. */
@@ -348,6 +396,17 @@ function monthlyBasic(
 	}
 }
 
+/** Completed months from `start` to the morning of `end`, plus the part month's elapsed share of its days. */
+function exactMonths(start: string, end: string): number {
+	const months = completedMonths(start, end);
+	const year = Number(start.slice(0, 4));
+	const month = Number(start.slice(5, 7)) - 1;
+	const day = Number(start.slice(8, 10));
+	const from = monthDay(year, month + months, day);
+	const to = monthDay(year, month + months + 1, day);
+	return months + (inclusiveDays(from, end) - 1) / (inclusiveDays(from, to) - 1);
+}
+
 /** Whole calendar months between two days: the year and month difference, days ignored. */
 function wholeMonthsBetween(start: string, end: string): number {
 	return (
@@ -365,6 +424,11 @@ export function personContext(input: PersonInput): PersonContext {
 	const basic = salary == null ? 0 : decodeNumber(salary.value);
 	const fixed = decodeNumber(input.fixedAllowances ?? 0);
 	const exit = dateKey(input.employment.exit_date);
+	// A leaver's service runs through the last employed day inclusive: a rule date on or after the
+	// exit day measures to the morning after it (1 Aug 2020 – 31 Jan 2026 is 66 months), never past it.
+	const day = input.asOf.slice(0, 10);
+	const served = exit !== '' && exit < day ? exit : day;
+	const through = exit !== '' && exit <= served ? addDays(exit, 1) : day;
 	const children = (input.children ?? []).filter((child) => {
 		const birth = dateKey(child.child_birthdate);
 		return birth !== '' && birth <= input.asOf;
@@ -405,12 +469,10 @@ export function personContext(input: PersonInput): PersonContext {
 			type: input.terms?.employment_type ?? '',
 			classification: input.terms?.work_classification ?? '',
 			risk_class: input.employment.risk_class ?? '',
-			service_days:
-				start === '' || input.asOf.slice(0, 10) < start
-					? 0
-					: inclusiveDays(start, input.asOf.slice(0, 10)),
-			service_months: start === '' ? 0 : completedMonths(start, input.asOf),
-			service_years: start === '' ? 0 : completedYears(start, input.asOf),
+			service_days: start === '' || served < start ? 0 : inclusiveDays(start, served),
+			service_months: start === '' ? 0 : completedMonths(start, through),
+			service_months_exact: start === '' ? 0 : exactMonths(start, through),
+			service_years: start === '' ? 0 : completedYears(start, through),
 			service_start: start,
 			exit_date: exit,
 			open_ended: exit === '',
@@ -419,7 +481,18 @@ export function personContext(input: PersonInput): PersonContext {
 			exit_reason: input.employment.exit_reason ?? '',
 			exit_facts: input.employment.exit_facts ?? {},
 			exit_fact_keys: Object.keys(input.employment.exit_facts ?? {}),
-			absent_days_12m: decodeNumber(input.employment.absent_days_12m ?? 0)
+			absent_days_12m: decodeNumber(input.employment.absent_days_12m ?? 0),
+			history: {
+				as_of: day,
+				through,
+				wages:
+					input.earnings == null
+						? null
+						: Object.fromEntries(
+								[...input.earnings].map(([month, codes]) => [month, Object.fromEntries(codes)])
+							),
+				leave: input.leaveSpans ?? null
+			}
 		},
 		terms: {
 			basic_salary: basic,
@@ -431,12 +504,16 @@ export function personContext(input: PersonInput): PersonContext {
 					: 0,
 			fixed_allowances: fixed,
 			monthly_wage: basic + fixed,
+			gross_monthly:
+				monthlyBasic(basic, input.terms?.pay_frequency, input.week, input.divisorDays) +
+				decodeNumber(input.grossAllowances ?? fixed),
 			monthly_wage_6m_average: decodeNumber(input.monthlyWage6mAverage ?? basic + fixed),
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
 			statutory_work_category: input.terms?.statutory_work_category ?? '',
 			statutory_wages: decodeNumber(input.statutoryWages ?? 0),
 			department: input.terms?.department ?? '',
 			payroll_group: input.terms?.payroll_group ?? '',
+			paid_rest_days: input.terms?.paid_rest_days ?? false,
 			grade: input.terms?.grade ?? '',
 			pay_frequency: input.terms?.pay_frequency ?? '',
 			pass_type: input.terms?.pass_type ?? '',
@@ -455,7 +532,19 @@ export function personContext(input: PersonInput): PersonContext {
 				.map((child) => completedYears(dateKey(child.child_birthdate), input.asOf)),
 			classes: children.map((child) => (child.relief_class ?? '').trim()),
 			births: new Set(children.map((child) => dateKey(child.child_birthdate))).size,
-			birthdates: children.map((child) => dateKey(child.child_birthdate) ?? '')
+			birthdates: children.map((child) => dateKey(child.child_birthdate) ?? ''),
+			prior_childcare_days: children.reduce(
+				(sum, child) => sum + (child.prior_childcare_days ?? 0),
+				0
+			),
+			prior_extended_childcare_days: children.reduce(
+				(sum, child) => sum + (child.prior_extended_childcare_days ?? 0),
+				0
+			),
+			prior_infant_care_days: children.reduce(
+				(sum, child) => sum + (child.prior_infant_care_days ?? 0),
+				0
+			)
 		},
 		company: {
 			region: input.company?.region ?? '',
@@ -466,12 +555,25 @@ export function personContext(input: PersonInput): PersonContext {
 			facts: input.company?.facts ?? {}
 		},
 		wage_floor: decodeNumber(input.wageFloor ?? 0),
+		wage_floor_pay: {
+			BASE: 0,
+			OVERTIME: 0,
+			NIGHT_PREMIUM: 0,
+			OVERTIME_PREMIUM: 0,
+			ABSENCE: 0,
+			NO_PAY_LEAVE: 0,
+			ENCASHMENT: 0,
+			INCENTIVE: 0,
+			NIGHT_WAGE: 0
+		},
 		period: {
 			working_days: decodeNumber(input.period?.working_days ?? 0),
 			unpaid_days: decodeNumber(input.period?.unpaid_days ?? 0),
 			unpaid_full_days: decodeNumber(input.period?.unpaid_full_days ?? 0),
 			leave_full_days: input.period?.leave_full_days ?? {},
-			leave_days: input.period?.leave_days ?? {}
+			leave_days: input.period?.leave_days ?? {},
+			leave_pay: input.period?.leave_pay ?? {},
+			overtime_days: decodeNumber(input.period?.overtime_days ?? 0)
 		},
 		event: {
 			kind: input.event?.kind ?? '',
@@ -527,6 +629,26 @@ const engine = ROUNDING.reduce(
 		.registerFunction('age_on', 'map.age_on(string): int', ageOn)
 		.registerFunction('age_months_on', 'map.age_months_on(string): int', ageMonthsOn)
 		.registerFunction('taken', 'map.taken(string): double', leaveTaken)
+		.registerFunction(
+			'earned_monthly_average',
+			'map.earned_monthly_average(int): double',
+			earnedMonthlyAverage
+		)
+		.registerFunction(
+			'average_daily_wage',
+			'map.average_daily_wage(int, list): double',
+			averageDailyWage
+		)
+		.registerFunction(
+			'average_monthly_wage',
+			'map.average_monthly_wage(int, list): double',
+			averageMonthlyWage
+		)
+		.registerFunction(
+			'service_months_net',
+			'map.service_months_net(list, dyn): int',
+			serviceMonthsNet
+		)
 );
 
 function evaluate(expression: string, context: PersonContext): unknown {

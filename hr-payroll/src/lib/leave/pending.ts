@@ -30,7 +30,9 @@ export type LeaveActivity = Pick<
 	| 'event_kind'
 	| 'event_relationship'
 	| 'event_date'
->;
+> &
+	/** Hourly leave's own hours, one day at a time; payroll reads them where the day is charged by the hour. */
+	Partial<Pick<WorkspaceRow<'leave_entries'>, 'hours'>>;
 
 /**
  * Held activity reserves its original server-measured debits until approval or rejection.

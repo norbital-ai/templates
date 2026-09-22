@@ -45,6 +45,7 @@ export function leaveContext(): LeaveContext {
 				statutory_work_category: 'NON_MANUAL',
 				department: null,
 				payroll_group: null,
+				paid_rest_days: false,
 				grade: null,
 				residency_since: null
 			}

@@ -147,6 +147,17 @@
 				"applies_when": "employment.type != \"INTERN\"",
 				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
 				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.798-Kesra/2024, effective 1 January 2025. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order."
+			},
+			"daily_month_days": "terms.working_days_per_week >= 6.0 ? 25.0 : 21.0",
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"preserve_year_end_rate": false,
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary + (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? 0.0 : terms.fixed_allowances / company.facts.leave_cash_out_day_divisor) : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? 0.0 : terms.fixed_allowances / company.facts.leave_cash_out_day_divisor) : (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? terms.basic_salary : terms.monthly_wage) / company.facts.leave_cash_out_day_divisor",
+				"include_allowances": ["HOUSE_ALLOWANCE", "CAR_ALLOWANCE", "SPECIAL_ALLOWANCE"],
+				"exclude_allowances": [],
+				"required_facts": ["leave_cash_out_day_divisor", "leave_cash_out_wage_basis"],
+				"authority": "UU 13/2003 art.156(4)(a) as amended by UU 6/2023 art.81 and PP 35/2021 art.40(4)(a): uang penggantian hak includes annual leave not yet taken and not yet expired, with no amount or divisor. UU 13/2003 art.79(4) as amended: the implementation of annual leave is regulated in the employment agreement, company regulation or collective agreement. Art.157(1) as amended fixes the wage components (basic wage and fixed allowances) only for uang pesangon and UPMK, no longer for uang penggantian hak, and PP 36/2021 art.17 (monthly wage ÷25 on a six-day week, ÷21 on a five-day week) sets the daily wage only where wages are fixed daily. The Kemnaker JDIH item of 5 November 2014 (1/30 of the monthly wage) is an explanatory news item, not a regulation. The day is therefore priced from the entity's declared PK/PP/PKB basis: `leave_cash_out_wage_basis` (basic wage, or basic wage plus the contract's fixed allowances) divided by `leave_cash_out_day_divisor`; an entity that records neither stops the cash-out by name. Contract-listed allowances are paid regularly irrespective of attendance, so they are fixed allowances when the declared basis includes them. PP 36/2021 art.15 fixes time-unit wages only per jam, harian or bulanan: a daily wage is itself the day (art.17 converts a month into a day only where wages are fixed daily, and the day here is already fixed); a per-hour wage (art.16(1), part-time only) is the hour times the contract's normal hours of the day; a monthly fixed allowance adds its declared-divisor day share when the declared basis includes it. A weekly wage is not a time unit PP 36/2021 art.15 recognises, so a WEEKLY contract has no valuation rule. Source: https://learning.hukumonline.com/wp-content/uploads/2021/03/Peraturan-Pemerintah-Nomor-36-tahun-2021-tentang-Pengupahan.pdf"
 			}
 		},
 		"payroll": {
@@ -154,6 +165,15 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"deduction_ceiling": {
+				"share": 0.5,
+				"basis": "GROSS",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["KESEHATAN_TERMINATION_MONTH_EMPLOYEE", "PENSION_OFFSET"],
+				"final_pay_exempt": false,
+				"authority": "PP 36/2021 art.65: the deductions of art.63(1) — fines, damages, wage advances, rent, debts or their instalments, overpaid wages — may total at most 50% of each wage payment; contributions to the state and to social-security bodies are deducted under art.64(3), outside art.63, so the employee's BPJS share and PPh 21 are not counted, nor is the pension offset against separation pay (not a wage deduction). No final-payment exception."
+			},
 			"final_pay_due_days": 7
 		},
 		"sources": {
@@ -170,15 +190,47 @@
 				"https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003",
 				"https://jdih.kemnaker.go.id/peraturan/detail/2610/peraturan-menteri-nomor-16-tahun-2024",
 				"https://jdih.jakarta.go.id/dokumen/detail/14171/keputusan-gubernur-nomor-829-tahun-2024-tentang-upah-minimum-provinsi-tahun-2025",
-				"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2024kg00320798.pdf"
+				"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2024kg00320798.pdf",
+				"https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023",
+				"https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf",
+				"https://jdih.jakarta.go.id/dokumen/detail/14763",
+				"https://www.bpjsketenagakerjaan.go.id/peraturan.html",
+				"https://jdih.kemnaker.go.id/peraturan/detail/2302/undang-undang-nomor-6-tahun-2023",
+				"https://jdih.kemnaker.go.id/peraturan/detail/3043/undang-undang-nomor-2-tahun-2026",
+				"https://jdih.kemenkeu.go.id/dok/uu-7-tahun-1983",
+				"https://jdih.kemnaker.go.id/peraturan?keyword=&nomor=&tahun=&status=&terjemahan=&sort=terbaru",
+				"https://jdih.kemnaker.go.id/peraturan?keyword=upah&sort=terbaru",
+				"https://www.pajak.go.id/id/peraturan",
+				"https://jdih.kemenkeu.go.id/search?order=desc&bentuk=Peraturan+Menteri",
+				"https://www.bpjsketenagakerjaan.go.id/berita.html",
+				"https://jdih.jakarta.go.id/",
+				"https://www.kemenkopmk.go.id/pengumuman",
+				"https://www.setneg.go.id/"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts."
 		},
 		"facts": [
 			{
 				"key": "pph21_dtp_sector",
 				"type": "boolean",
-				"label": "Eligible PPh21 DTP sector"
+				"label": "Eligible PPh21 DTP sector",
+				"default_value": false,
+				"description": "PMK 10/2025 (as amended by PMK 105/2025) art.3: PPh 21 is government-borne only for an employer whose business classification (KLU) is listed in the regulation’s annex. Unrecorded is not listed: the tax is withheld."
+			},
+			{
+				"key": "leave_cash_out_day_divisor",
+				"type": "number",
+				"label": "Leave cash-out daily divisor",
+				"description": "The divisor of the monthly wage basis that the employment agreement, company regulation or collective agreement fixes for unused annual leave (UU 13/2003 art.79(4) as amended). Required before any annual leave is cashed out.",
+				"minimum": 1,
+				"maximum": 31
+			},
+			{
+				"key": "leave_cash_out_wage_basis",
+				"type": "string",
+				"label": "Leave cash-out wage basis",
+				"description": "The monthly wage the employment agreement, company regulation or collective agreement values unused annual leave on: BASIC (basic wage) or BASIC_AND_FIXED_ALLOWANCES. Required before any annual leave is cashed out.",
+				"options": ["BASIC", "BASIC_AND_FIXED_ALLOWANCES"]
 			}
 		],
 		"exit_facts": [
@@ -306,52 +358,268 @@
 				"description": "Article 58(3) requires the offset arrangement in the employment agreement, company regulation or collective agreement.",
 				"required_when": "employment.exit_facts.pension_offset_applies",
 				"min_length": 1
+			},
+			{
+				"key": "thr_holiday_date",
+				"type": "string",
+				"label": "Religious holiday the THR is judged against",
+				"description": "YYYY-MM-DD. Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends within the thirty days before the religious holiday keeps the THR; art.2(1) and art.5(4): a worker employed on the holiday is owed it; art.7(3): a PKWT that ends before the holiday is not. The religious holiday is the employee’s own (art.1(2): Idul Fitri for a Muslim, Natal for a Christian or Catholic, Nyepi for a Hindu, Waisak for a Buddhist, Imlek for a Confucian), on the date of the government’s joint ministerial decree (SKB) for its year: the first such holiday on or after the thirtieth day before the last day of work.",
+				"required_when": "employment.service_months >= 1",
+				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
+				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
 			}
 		],
 		"obligations": [
 			{
-				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
-				"description": "Termination procedure and compensation entitlement",
-				"trigger": "Each legally defined termination cause",
-				"timing": "Each legally defined termination cause",
-				"owner": "HR / notices, consultation, cause and settlement evidence",
-				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
+				"description": "Register the employer and every worker with BPJS Ketenagakerjaan (JKK, JKM, JHT, JP; JKP follows) and report wage, headcount and data changes",
+				"trigger": "Establishment, each hire (a transferring worker is continued from the first day), and any change in wage, headcount, address or participant data",
+				"timing": "Registration form with worker and family data within 30 working days of receiving it from BPJS (art.6(1)); the participant card to the worker within 3 working days of receipt (art.7(2)); wage and other changes within 7 working days (art.9(2)–(3))",
+				"owner": "HR / registration, card delivery and change reports",
+				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+				"description": "Withhold the employee JHT and JP shares and remit them with the employer JKK, JKM, JHT and JP contributions",
+				"trigger": "Each contribution month",
+				"timing": "\"paling lambat tanggal 15 bulan berikutnya\", the next working day when the 15th is a holiday; late payment carries a 2% fine for each month late, borne by the employer",
+				"owner": "Finance / BPJS Ketenagakerjaan payment and supporting worker data",
+				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "BPJS_KESEHATAN_REGISTRATION",
+				"description": "Register the employer, each worker and the worker's family (spouse and up to three children) with BPJS Kesehatan; enrol further members the worker elects",
+				"trigger": "Each hire; a foreigner once working six months in Indonesia (art.1 angka 2); family changes",
+				"timing": "On employment; a worker the employer fails to register may register themselves (art.13(2)) and the employer is sanctioned (art.17)",
+				"owner": "HR / BPJS Kesehatan enrolment",
+				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_KESEHATAN_REMITTANCE",
+				"description": "Collect the 1% (and any elected extra-member 1%) and remit it with the 4% employer contribution",
+				"trigger": "Each month",
+				"timing": "\"paling lambat tanggal 10 setiap bulan\", the next working day when the 10th is a holiday (art.39(1),(4)); unpaid by month end suspends cover from the 1st of the next month and the employer bears the care its workers need (art.42)",
+				"owner": "Finance / BPJS Kesehatan payment",
+				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WORK_ACCIDENT_REPORT",
+				"description": "Report a work accident or occupational disease to BPJS Ketenagakerjaan and the local manpower office",
+				"trigger": "A work accident, or an occupational disease diagnosed",
+				"timing": "Stage I within 2 x 24 hours of the accident or diagnosis; stage II within 2 x 24 hours of the doctor certifying recovery, disability or death (the benefit claim)",
+				"owner": "HR / accident forms and medical certificates",
+				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PPH21_REMITTANCE_AND_SPT_MASA",
+				"description": "Pay the PPh 21/26 withheld and file the SPT Masa PPh 21/26 with the monthly bukti potong (BPMP for permanent employees January–November) in Coretax",
+				"trigger": "Each tax period in which remuneration is paid",
+				"timing": "Payment by the 15th of the following month; SPT Masa within 20 days after the period ends; a Saturday, Sunday, public holiday or national cuti bersama moves either to the next working day",
+				"owner": "Finance / billing code, payment and SPT Masa receipt",
+				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PPH21_ANNUAL_STATEMENT_BPA1",
+				"description": "Issue Form BPA1 (formerly 1721-A1) to each permanent employee for the year, or for the part year to departure",
+				"trigger": "The last tax period: December, or the month a permanent employee stops working",
+				"timing": "Within one month after the last tax period ends",
+				"owner": "Finance / BPA1 delivered to the employee",
+				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PTKP_STATUS_AND_TAX_ID",
+				"description": "Obtain each employee's NIK/NPWP and PTKP status (marital status, dependants, a married woman's statement that her husband has no income)",
+				"trigger": "Hire, and the start of each calendar year",
+				"timing": "PTKP is fixed on the employee's condition at the start of the calendar year (PMK 168/2023 art.9)",
+				"owner": "HR / declarations and supporting documents",
+				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TAX_RECORD_RETENTION",
+				"description": "Keep the books, records and documents on which withholding is based",
+				"trigger": "Each record",
+				"timing": "10 years in Indonesia",
+				"owner": "Finance / archive",
+				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WAGE_PAYMENT_TIMING",
+				"description": "Pay wages in rupiah, in full, at the agreed time, at intervals of not more than one month",
+				"trigger": "Each pay date",
+				"timing": "The agreed date; the pay interval may not exceed 1 month (art.55(4)). Late wages: 5% per day from the 4th to the 8th day, then +1% per day capped at 50% in a month, then bank interest after a month (art.61)",
+				"owner": "Finance / payment evidence",
+				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PAYSLIP_ISSUE",
+				"description": "Give each worker a proof of wage payment with the wage details",
+				"trigger": "Each wage payment",
+				"timing": "\"pada saat Upah dibayarkan\" — at the time the wage is paid",
+				"owner": "Payroll / payslip delivery",
+				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_DEDUCTION_LIMITS",
+				"description": "Deduct from wages only for fines, damages, advances, rent, debts or overpayment on the required basis, and never more than half of each payment",
+				"trigger": "Each deduction other than tax and social security",
+				"timing": "Each payment: the total of deductions at most 50% of the wage paid (art.65); rent and debts need written agreement, third-party deductions a revocable power of attorney (arts.63–64)",
+				"owner": "Payroll / deduction authorisations",
+				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MINIMUM_WAGE_COMPLIANCE",
+				"description": "Pay no worker below the applicable provincial or city/regency minimum wage; basic wage at least 75% of basic plus fixed allowances",
+				"trigger": "Each new minimum-wage decree (in force 1 January) and each wage change",
+				"timing": "From the decree's commencement",
+				"owner": "HR / wage review",
+				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_STRUCTURE_AND_SCALE",
+				"description": "Draw up and apply a wage structure and scale and notify each worker of the grade that applies to them",
+				"trigger": "Standing duty; each change",
+				"timing": "Standing; each worker notified individually",
+				"owner": "HR / structure, scale and notices",
+				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "THR_PAYMENT_DEADLINE",
+				"description": "Pay the religious holiday allowance (THR) before the worker's religious holiday",
+				"trigger": "Each religious holiday of the worker (Idulfitri, Christmas, Nyepi, Waisak, Imlek)",
+				"timing": "\"paling lambat 7 (tujuh) hari sebelum Hari Raya Keagamaan\" (art.5(4)); a late payment carries a 5% fine of the THR due (art.10), without discharging the THR",
+				"owner": "Finance / THR payment",
+				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PKWT_REGISTRATION",
+				"description": "Record each fixed-term employment agreement (PKWT) with the Ministry of Manpower",
+				"trigger": "Signing of a PKWT or its extension",
+				"timing": "Online within 3 working days of signing; in writing at the city/regency manpower office within 7 working days where the online service is unavailable",
+				"owner": "HR / PKWT record receipt",
+				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
 				"code": "OVERTIME_CONSENT_RECORDS_AND",
-				"description": "Overtime consent, records and limits",
+				"description": "Overtime by written or digital order and the worker's consent, a signed list and a record of names and hours; rest and food for long overtime; the daily and weekly caps",
 				"trigger": "Overtime is requested or worked",
-				"timing": "Overtime is requested or worked",
+				"timing": "Before the overtime (order and consent); a list of each worker's overtime hours kept; at most 4 hours a day and 18 a week outside rest days and public holidays; 1,400 kcal of food and drink for 4 hours or more, not payable in cash",
 				"owner": "HR / consent and actual-hours records",
-				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
+				"description": "Termination by written notice stating the reason, bipartite negotiation on a rejection, and payment of the compensation for the cause",
+				"trigger": "Each termination initiated by the employer, and each legally defined cause",
+				"timing": "Notice at least 14 working days before termination, 7 during probation (art.37(3)–(4)); the worker may reject in writing within 7 working days, then bipartite negotiation and industrial-relations settlement (art.39)",
+				"owner": "HR / notices, consultation, cause and settlement evidence",
+				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_REPORT",
+				"description": "Report an unopposed termination to the manpower ministry or provincial/regency manpower office",
+				"trigger": "The worker received the notice and did not reject it",
+				"timing": "After the notice period, on termination",
+				"owner": "HR / termination report",
+				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
-				"description": "BPJS registration, wage reporting and remittance",
-				"trigger": "Covered employment and reportable wage changes",
-				"timing": "Covered employment and reportable wage changes",
-				"owner": "Finance / registration and accepted contribution records",
-				"authority": "External; BPJS participant guidance (https://www.bpjsketenagakerjaan.go.id/artikel/18893/artikel-siapa-sajakah-peserta-dari-bpjs-ketenagakerjaan)",
+				"code": "WLKP_EMPLOYMENT_REPORT",
+				"description": "Company employment report (Wajib Lapor Ketenagakerjaan di Perusahaan) through the online WLKP service",
+				"trigger": "Establishing, reopening, moving or closing the company; each year",
+				"timing": "Within 30 days after or before establishing, reopening or moving (art.6); every year thereafter (art.8)",
+				"owner": "HR / WLKP receipt",
+				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
-				"description": "Tax returns, annual employee statements and agency remittance",
-				"trigger": "Applicable authority's filing calendar",
-				"timing": "Applicable authority's filing calendar",
-				"owner": "Finance / accepted filing and payment receipts",
-				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
-				"status": "UNVERIFIED"
+				"code": "COMPANY_REGULATIONS",
+				"description": "Company regulations (Peraturan Perusahaan) for an employer of ten or more workers, ratified by the ministry or manpower office, unless a collective agreement applies",
+				"trigger": "Ten or more workers",
+				"timing": "In force once ratified; valid at most 2 years and then renewed",
+				"owner": "HR / ratified regulations",
+				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)",
+				"status": "EXTERNAL"
 			},
 			{
-				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
-				"description": "Work authorisation, employment records, privacy and workplace safety",
-				"trigger": "Hiring, employment, record retention and termination",
-				"timing": "Hiring, employment, record retention and termination",
-				"owner": "HR / applicable-law register, permits and retained evidence",
-				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
+				"description": "Approved foreign-worker employment plan (RPTKA) and the foreign-worker compensation fund (DKPTKA) for each foreign worker",
+				"trigger": "Each foreign worker employed",
+				"timing": "DKPTKA paid on the billing code before the RPTKA is approved, for the period the worker works in Indonesia (art.23(2)–(5))",
+				"owner": "HR / RPTKA approval and DKPTKA receipt",
+				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_LAWFUL_BASIS_AND_INFORMATION",
+				"description": "Process worker personal data only on a lawful basis (explicit valid consent, performance of the employment contract, a legal obligation such as BPJS and PPh 21 reporting, vital interests, public task, or legitimate interest); where processing rests on consent, inform the worker of the legality, purpose, data types, retention period, processing period and their rights, and tell them before any change.",
+				"trigger": "Collection or processing of an applicant's or worker's personal data",
+				"timing": "Before processing; before any change to the information given",
+				"owner": "HR / privacy notice and consent record",
+				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_SECURITY_CONFIDENTIALITY",
+				"description": "Protect and secure the personal data processed (technical and operational measures, security level set by the data's nature and risk), keep it confidential, supervise every party processing under the controller's control (a payroll vendor), and prevent unlawful processing and access.",
+				"trigger": "Holding or processing worker personal data",
+				"timing": "Continuous",
+				"owner": "HR / IT security; processor agreement",
+				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_IMPACT_ASSESSMENT",
+				"description": "Carry out a personal data protection impact assessment where processing is high-risk (automated decisions with legal or significant effect, specific data such as health, biometric or financial data, large-scale processing, systematic evaluation, scoring or monitoring, data matching, new technology).",
+				"trigger": "Introduction of high-risk processing (for example biometric attendance or large-scale payroll processing of health data)",
+				"timing": "Before the high-risk processing begins",
+				"owner": "DPO / DPIA record",
+				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_DELETION_DESTRUCTION",
+				"description": "Delete personal data no longer needed for its purpose, on withdrawal of consent or request, or when unlawfully obtained; destroy it when its retention period under the archive schedule ends or on request; notify the worker of the deletion or destruction.",
+				"trigger": "End of the purpose or retention period, withdrawal of consent, or a data-subject request",
+				"timing": "When the condition arises, subject to other statutory retention periods (tax and BPJS records)",
+				"owner": "HR / retention schedule and destruction record",
+				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_BREACH_NOTIFICATION",
+				"description": "On a failure of personal data protection, give written notice to the affected data subjects and to the PDP agency stating the data exposed, when and how it was exposed, and the handling and recovery measures; in certain cases also notify the public.",
+				"trigger": "A failure of personal data protection (breach) affecting worker personal data",
+				"timing": "No later than 3 × 24 hours",
+				"owner": "DPO / breach notice",
+				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_DPO_APPOINTMENT",
+				"description": "Appoint an officer performing the personal data protection function (internal or external) where processing serves a public service, where core activities require regular and systematic large-scale monitoring, or where core activities are large-scale processing of specific data or criminal-record data.",
+				"trigger": "The employer meets an art.53(1) criterion",
+				"timing": "Before or when the criterion is met; continuous",
+				"owner": "Management / DPO appointment letter",
+				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
 				"status": "EXTERNAL"
 			}
 		]
@@ -504,6 +772,17 @@
 				"applies_when": "employment.type != \"INTERN\"",
 				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
 				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order."
+			},
+			"daily_month_days": "terms.working_days_per_week >= 6.0 ? 25.0 : 21.0",
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"preserve_year_end_rate": false,
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary + (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? 0.0 : terms.fixed_allowances / company.facts.leave_cash_out_day_divisor) : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? 0.0 : terms.fixed_allowances / company.facts.leave_cash_out_day_divisor) : (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? terms.basic_salary : terms.monthly_wage) / company.facts.leave_cash_out_day_divisor",
+				"include_allowances": ["HOUSE_ALLOWANCE", "CAR_ALLOWANCE", "SPECIAL_ALLOWANCE"],
+				"exclude_allowances": [],
+				"required_facts": ["leave_cash_out_day_divisor", "leave_cash_out_wage_basis"],
+				"authority": "UU 13/2003 art.156(4)(a) as amended by UU 6/2023 art.81 and PP 35/2021 art.40(4)(a): uang penggantian hak includes annual leave not yet taken and not yet expired, with no amount or divisor. UU 13/2003 art.79(4) as amended: the implementation of annual leave is regulated in the employment agreement, company regulation or collective agreement. Art.157(1) as amended fixes the wage components (basic wage and fixed allowances) only for uang pesangon and UPMK, no longer for uang penggantian hak, and PP 36/2021 art.17 (monthly wage ÷25 on a six-day week, ÷21 on a five-day week) sets the daily wage only where wages are fixed daily. The Kemnaker JDIH item of 5 November 2014 (1/30 of the monthly wage) is an explanatory news item, not a regulation. The day is therefore priced from the entity's declared PK/PP/PKB basis: `leave_cash_out_wage_basis` (basic wage, or basic wage plus the contract's fixed allowances) divided by `leave_cash_out_day_divisor`; an entity that records neither stops the cash-out by name. Contract-listed allowances are paid regularly irrespective of attendance, so they are fixed allowances when the declared basis includes them. PP 36/2021 art.15 fixes time-unit wages only per jam, harian or bulanan: a daily wage is itself the day (art.17 converts a month into a day only where wages are fixed daily, and the day here is already fixed); a per-hour wage (art.16(1), part-time only) is the hour times the contract's normal hours of the day; a monthly fixed allowance adds its declared-divisor day share when the declared basis includes it. A weekly wage is not a time unit PP 36/2021 art.15 recognises, so a WEEKLY contract has no valuation rule. Source: https://learning.hukumonline.com/wp-content/uploads/2021/03/Peraturan-Pemerintah-Nomor-36-tahun-2021-tentang-Pengupahan.pdf"
 			}
 		},
 		"payroll": {
@@ -511,6 +790,15 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"deduction_ceiling": {
+				"share": 0.5,
+				"basis": "GROSS",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["KESEHATAN_TERMINATION_MONTH_EMPLOYEE", "PENSION_OFFSET"],
+				"final_pay_exempt": false,
+				"authority": "PP 36/2021 art.65: the deductions of art.63(1) — fines, damages, wage advances, rent, debts or their instalments, overpaid wages — may total at most 50% of each wage payment; contributions to the state and to social-security bodies are deducted under art.64(3), outside art.63, so the employee's BPJS share and PPh 21 are not counted, nor is the pension offset against separation pay (not a wage deduction). No final-payment exception."
+			},
 			"final_pay_due_days": 7
 		},
 		"sources": {
@@ -528,15 +816,45 @@
 				"https://jdih.kemnaker.go.id/peraturan/detail/2610/peraturan-menteri-nomor-16-tahun-2024",
 				"https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf",
 				"https://jdih.jakarta.go.id/dokumen/detail/14763",
-				"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2025kg00320862.pdf"
+				"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2025kg00320862.pdf",
+				"https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023",
+				"https://www.bpjsketenagakerjaan.go.id/peraturan.html",
+				"https://jdih.kemnaker.go.id/peraturan/detail/2302/undang-undang-nomor-6-tahun-2023",
+				"https://jdih.kemnaker.go.id/peraturan/detail/3043/undang-undang-nomor-2-tahun-2026",
+				"https://jdih.kemenkeu.go.id/dok/uu-7-tahun-1983",
+				"https://jdih.kemnaker.go.id/peraturan?keyword=&nomor=&tahun=&status=&terjemahan=&sort=terbaru",
+				"https://jdih.kemnaker.go.id/peraturan?keyword=upah&sort=terbaru",
+				"https://www.pajak.go.id/id/peraturan",
+				"https://jdih.kemenkeu.go.id/search?order=desc&bentuk=Peraturan+Menteri",
+				"https://www.bpjsketenagakerjaan.go.id/berita.html",
+				"https://jdih.jakarta.go.id/",
+				"https://www.kemenkopmk.go.id/pengumuman",
+				"https://www.setneg.go.id/"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts."
 		},
 		"facts": [
 			{
 				"key": "pph21_dtp_sector",
 				"type": "boolean",
-				"label": "Eligible PPh21 DTP sector"
+				"label": "Eligible PPh21 DTP sector",
+				"default_value": false,
+				"description": "PMK 10/2025 (as amended by PMK 105/2025) art.3: PPh 21 is government-borne only for an employer whose business classification (KLU) is listed in the regulation’s annex. Unrecorded is not listed: the tax is withheld."
+			},
+			{
+				"key": "leave_cash_out_day_divisor",
+				"type": "number",
+				"label": "Leave cash-out daily divisor",
+				"description": "The divisor of the monthly wage basis that the employment agreement, company regulation or collective agreement fixes for unused annual leave (UU 13/2003 art.79(4) as amended). Required before any annual leave is cashed out.",
+				"minimum": 1,
+				"maximum": 31
+			},
+			{
+				"key": "leave_cash_out_wage_basis",
+				"type": "string",
+				"label": "Leave cash-out wage basis",
+				"description": "The monthly wage the employment agreement, company regulation or collective agreement values unused annual leave on: BASIC (basic wage) or BASIC_AND_FIXED_ALLOWANCES. Required before any annual leave is cashed out.",
+				"options": ["BASIC", "BASIC_AND_FIXED_ALLOWANCES"]
 			}
 		],
 		"exit_facts": [
@@ -664,52 +982,268 @@
 				"description": "Article 58(3) requires the offset arrangement in the employment agreement, company regulation or collective agreement.",
 				"required_when": "employment.exit_facts.pension_offset_applies",
 				"min_length": 1
+			},
+			{
+				"key": "thr_holiday_date",
+				"type": "string",
+				"label": "Religious holiday the THR is judged against",
+				"description": "YYYY-MM-DD. Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends within the thirty days before the religious holiday keeps the THR; art.2(1) and art.5(4): a worker employed on the holiday is owed it; art.7(3): a PKWT that ends before the holiday is not. The religious holiday is the employee’s own (art.1(2): Idul Fitri for a Muslim, Natal for a Christian or Catholic, Nyepi for a Hindu, Waisak for a Buddhist, Imlek for a Confucian), on the date of the government’s joint ministerial decree (SKB) for its year: the first such holiday on or after the thirtieth day before the last day of work.",
+				"required_when": "employment.service_months >= 1",
+				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
+				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
 			}
 		],
 		"obligations": [
 			{
-				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
-				"description": "Termination procedure and compensation entitlement",
-				"trigger": "Each legally defined termination cause",
-				"timing": "Each legally defined termination cause",
-				"owner": "HR / notices, consultation, cause and settlement evidence",
-				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
+				"description": "Register the employer and every worker with BPJS Ketenagakerjaan (JKK, JKM, JHT, JP; JKP follows) and report wage, headcount and data changes",
+				"trigger": "Establishment, each hire (a transferring worker is continued from the first day), and any change in wage, headcount, address or participant data",
+				"timing": "Registration form with worker and family data within 30 working days of receiving it from BPJS (art.6(1)); the participant card to the worker within 3 working days of receipt (art.7(2)); wage and other changes within 7 working days (art.9(2)–(3))",
+				"owner": "HR / registration, card delivery and change reports",
+				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+				"description": "Withhold the employee JHT and JP shares and remit them with the employer JKK, JKM, JHT and JP contributions",
+				"trigger": "Each contribution month",
+				"timing": "\"paling lambat tanggal 15 bulan berikutnya\", the next working day when the 15th is a holiday; late payment carries a 2% fine for each month late, borne by the employer",
+				"owner": "Finance / BPJS Ketenagakerjaan payment and supporting worker data",
+				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "BPJS_KESEHATAN_REGISTRATION",
+				"description": "Register the employer, each worker and the worker's family (spouse and up to three children) with BPJS Kesehatan; enrol further members the worker elects",
+				"trigger": "Each hire; a foreigner once working six months in Indonesia (art.1 angka 2); family changes",
+				"timing": "On employment; a worker the employer fails to register may register themselves (art.13(2)) and the employer is sanctioned (art.17)",
+				"owner": "HR / BPJS Kesehatan enrolment",
+				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_KESEHATAN_REMITTANCE",
+				"description": "Collect the 1% (and any elected extra-member 1%) and remit it with the 4% employer contribution",
+				"trigger": "Each month",
+				"timing": "\"paling lambat tanggal 10 setiap bulan\", the next working day when the 10th is a holiday (art.39(1),(4)); unpaid by month end suspends cover from the 1st of the next month and the employer bears the care its workers need (art.42)",
+				"owner": "Finance / BPJS Kesehatan payment",
+				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WORK_ACCIDENT_REPORT",
+				"description": "Report a work accident or occupational disease to BPJS Ketenagakerjaan and the local manpower office",
+				"trigger": "A work accident, or an occupational disease diagnosed",
+				"timing": "Stage I within 2 x 24 hours of the accident or diagnosis; stage II within 2 x 24 hours of the doctor certifying recovery, disability or death (the benefit claim)",
+				"owner": "HR / accident forms and medical certificates",
+				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PPH21_REMITTANCE_AND_SPT_MASA",
+				"description": "Pay the PPh 21/26 withheld and file the SPT Masa PPh 21/26 with the monthly bukti potong (BPMP for permanent employees January–November) in Coretax",
+				"trigger": "Each tax period in which remuneration is paid",
+				"timing": "Payment by the 15th of the following month; SPT Masa within 20 days after the period ends; a Saturday, Sunday, public holiday or national cuti bersama moves either to the next working day",
+				"owner": "Finance / billing code, payment and SPT Masa receipt",
+				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PPH21_ANNUAL_STATEMENT_BPA1",
+				"description": "Issue Form BPA1 (formerly 1721-A1) to each permanent employee for the year, or for the part year to departure",
+				"trigger": "The last tax period: December, or the month a permanent employee stops working",
+				"timing": "Within one month after the last tax period ends",
+				"owner": "Finance / BPA1 delivered to the employee",
+				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PTKP_STATUS_AND_TAX_ID",
+				"description": "Obtain each employee's NIK/NPWP and PTKP status (marital status, dependants, a married woman's statement that her husband has no income)",
+				"trigger": "Hire, and the start of each calendar year",
+				"timing": "PTKP is fixed on the employee's condition at the start of the calendar year (PMK 168/2023 art.9)",
+				"owner": "HR / declarations and supporting documents",
+				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TAX_RECORD_RETENTION",
+				"description": "Keep the books, records and documents on which withholding is based",
+				"trigger": "Each record",
+				"timing": "10 years in Indonesia",
+				"owner": "Finance / archive",
+				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WAGE_PAYMENT_TIMING",
+				"description": "Pay wages in rupiah, in full, at the agreed time, at intervals of not more than one month",
+				"trigger": "Each pay date",
+				"timing": "The agreed date; the pay interval may not exceed 1 month (art.55(4)). Late wages: 5% per day from the 4th to the 8th day, then +1% per day capped at 50% in a month, then bank interest after a month (art.61)",
+				"owner": "Finance / payment evidence",
+				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PAYSLIP_ISSUE",
+				"description": "Give each worker a proof of wage payment with the wage details",
+				"trigger": "Each wage payment",
+				"timing": "\"pada saat Upah dibayarkan\" — at the time the wage is paid",
+				"owner": "Payroll / payslip delivery",
+				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_DEDUCTION_LIMITS",
+				"description": "Deduct from wages only for fines, damages, advances, rent, debts or overpayment on the required basis, and never more than half of each payment",
+				"trigger": "Each deduction other than tax and social security",
+				"timing": "Each payment: the total of deductions at most 50% of the wage paid (art.65); rent and debts need written agreement, third-party deductions a revocable power of attorney (arts.63–64)",
+				"owner": "Payroll / deduction authorisations",
+				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MINIMUM_WAGE_COMPLIANCE",
+				"description": "Pay no worker below the applicable provincial or city/regency minimum wage; basic wage at least 75% of basic plus fixed allowances",
+				"trigger": "Each new minimum-wage decree (in force 1 January) and each wage change",
+				"timing": "From the decree's commencement",
+				"owner": "HR / wage review",
+				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_STRUCTURE_AND_SCALE",
+				"description": "Draw up and apply a wage structure and scale and notify each worker of the grade that applies to them",
+				"trigger": "Standing duty; each change",
+				"timing": "Standing; each worker notified individually",
+				"owner": "HR / structure, scale and notices",
+				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "THR_PAYMENT_DEADLINE",
+				"description": "Pay the religious holiday allowance (THR) before the worker's religious holiday",
+				"trigger": "Each religious holiday of the worker (Idulfitri, Christmas, Nyepi, Waisak, Imlek)",
+				"timing": "\"paling lambat 7 (tujuh) hari sebelum Hari Raya Keagamaan\" (art.5(4)); a late payment carries a 5% fine of the THR due (art.10), without discharging the THR",
+				"owner": "Finance / THR payment",
+				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PKWT_REGISTRATION",
+				"description": "Record each fixed-term employment agreement (PKWT) with the Ministry of Manpower",
+				"trigger": "Signing of a PKWT or its extension",
+				"timing": "Online within 3 working days of signing; in writing at the city/regency manpower office within 7 working days where the online service is unavailable",
+				"owner": "HR / PKWT record receipt",
+				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
 				"code": "OVERTIME_CONSENT_RECORDS_AND",
-				"description": "Overtime consent, records and limits",
+				"description": "Overtime by written or digital order and the worker's consent, a signed list and a record of names and hours; rest and food for long overtime; the daily and weekly caps",
 				"trigger": "Overtime is requested or worked",
-				"timing": "Overtime is requested or worked",
+				"timing": "Before the overtime (order and consent); a list of each worker's overtime hours kept; at most 4 hours a day and 18 a week outside rest days and public holidays; 1,400 kcal of food and drink for 4 hours or more, not payable in cash",
 				"owner": "HR / consent and actual-hours records",
-				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
+				"description": "Termination by written notice stating the reason, bipartite negotiation on a rejection, and payment of the compensation for the cause",
+				"trigger": "Each termination initiated by the employer, and each legally defined cause",
+				"timing": "Notice at least 14 working days before termination, 7 during probation (art.37(3)–(4)); the worker may reject in writing within 7 working days, then bipartite negotiation and industrial-relations settlement (art.39)",
+				"owner": "HR / notices, consultation, cause and settlement evidence",
+				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_REPORT",
+				"description": "Report an unopposed termination to the manpower ministry or provincial/regency manpower office",
+				"trigger": "The worker received the notice and did not reject it",
+				"timing": "After the notice period, on termination",
+				"owner": "HR / termination report",
+				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
-				"description": "BPJS registration, wage reporting and remittance",
-				"trigger": "Covered employment and reportable wage changes",
-				"timing": "Covered employment and reportable wage changes",
-				"owner": "Finance / registration and accepted contribution records",
-				"authority": "External; BPJS participant guidance (https://www.bpjsketenagakerjaan.go.id/artikel/18893/artikel-siapa-sajakah-peserta-dari-bpjs-ketenagakerjaan)",
+				"code": "WLKP_EMPLOYMENT_REPORT",
+				"description": "Company employment report (Wajib Lapor Ketenagakerjaan di Perusahaan) through the online WLKP service",
+				"trigger": "Establishing, reopening, moving or closing the company; each year",
+				"timing": "Within 30 days after or before establishing, reopening or moving (art.6); every year thereafter (art.8)",
+				"owner": "HR / WLKP receipt",
+				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
-				"description": "Tax returns, annual employee statements and agency remittance",
-				"trigger": "Applicable authority's filing calendar",
-				"timing": "Applicable authority's filing calendar",
-				"owner": "Finance / accepted filing and payment receipts",
-				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
-				"status": "UNVERIFIED"
+				"code": "COMPANY_REGULATIONS",
+				"description": "Company regulations (Peraturan Perusahaan) for an employer of ten or more workers, ratified by the ministry or manpower office, unless a collective agreement applies",
+				"trigger": "Ten or more workers",
+				"timing": "In force once ratified; valid at most 2 years and then renewed",
+				"owner": "HR / ratified regulations",
+				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)",
+				"status": "EXTERNAL"
 			},
 			{
-				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
-				"description": "Work authorisation, employment records, privacy and workplace safety",
-				"trigger": "Hiring, employment, record retention and termination",
-				"timing": "Hiring, employment, record retention and termination",
-				"owner": "HR / applicable-law register, permits and retained evidence",
-				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
+				"description": "Approved foreign-worker employment plan (RPTKA) and the foreign-worker compensation fund (DKPTKA) for each foreign worker",
+				"trigger": "Each foreign worker employed",
+				"timing": "DKPTKA paid on the billing code before the RPTKA is approved, for the period the worker works in Indonesia (art.23(2)–(5))",
+				"owner": "HR / RPTKA approval and DKPTKA receipt",
+				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_LAWFUL_BASIS_AND_INFORMATION",
+				"description": "Process worker personal data only on a lawful basis (explicit valid consent, performance of the employment contract, a legal obligation such as BPJS and PPh 21 reporting, vital interests, public task, or legitimate interest); where processing rests on consent, inform the worker of the legality, purpose, data types, retention period, processing period and their rights, and tell them before any change.",
+				"trigger": "Collection or processing of an applicant's or worker's personal data",
+				"timing": "Before processing; before any change to the information given",
+				"owner": "HR / privacy notice and consent record",
+				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_SECURITY_CONFIDENTIALITY",
+				"description": "Protect and secure the personal data processed (technical and operational measures, security level set by the data's nature and risk), keep it confidential, supervise every party processing under the controller's control (a payroll vendor), and prevent unlawful processing and access.",
+				"trigger": "Holding or processing worker personal data",
+				"timing": "Continuous",
+				"owner": "HR / IT security; processor agreement",
+				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_IMPACT_ASSESSMENT",
+				"description": "Carry out a personal data protection impact assessment where processing is high-risk (automated decisions with legal or significant effect, specific data such as health, biometric or financial data, large-scale processing, systematic evaluation, scoring or monitoring, data matching, new technology).",
+				"trigger": "Introduction of high-risk processing (for example biometric attendance or large-scale payroll processing of health data)",
+				"timing": "Before the high-risk processing begins",
+				"owner": "DPO / DPIA record",
+				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_DELETION_DESTRUCTION",
+				"description": "Delete personal data no longer needed for its purpose, on withdrawal of consent or request, or when unlawfully obtained; destroy it when its retention period under the archive schedule ends or on request; notify the worker of the deletion or destruction.",
+				"trigger": "End of the purpose or retention period, withdrawal of consent, or a data-subject request",
+				"timing": "When the condition arises, subject to other statutory retention periods (tax and BPJS records)",
+				"owner": "HR / retention schedule and destruction record",
+				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_BREACH_NOTIFICATION",
+				"description": "On a failure of personal data protection, give written notice to the affected data subjects and to the PDP agency stating the data exposed, when and how it was exposed, and the handling and recovery measures; in certain cases also notify the public.",
+				"trigger": "A failure of personal data protection (breach) affecting worker personal data",
+				"timing": "No later than 3 × 24 hours",
+				"owner": "DPO / breach notice",
+				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_DPO_APPOINTMENT",
+				"description": "Appoint an officer performing the personal data protection function (internal or external) where processing serves a public service, where core activities require regular and systematic large-scale monitoring, or where core activities are large-scale processing of specific data or criminal-record data.",
+				"trigger": "The employer meets an art.53(1) criterion",
+				"timing": "Before or when the criterion is met; continuous",
+				"owner": "Management / DPO appointment letter",
+				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
 				"status": "EXTERNAL"
 			}
 		]
@@ -862,6 +1396,17 @@
 				"applies_when": "employment.type != \"INTERN\"",
 				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
 				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order."
+			},
+			"daily_month_days": "terms.working_days_per_week >= 6.0 ? 25.0 : 21.0",
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+				"preserve_year_end_rate": false,
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary + (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? 0.0 : terms.fixed_allowances / company.facts.leave_cash_out_day_divisor) : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? 0.0 : terms.fixed_allowances / company.facts.leave_cash_out_day_divisor) : (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? terms.basic_salary : terms.monthly_wage) / company.facts.leave_cash_out_day_divisor",
+				"include_allowances": ["HOUSE_ALLOWANCE", "CAR_ALLOWANCE", "SPECIAL_ALLOWANCE"],
+				"exclude_allowances": [],
+				"required_facts": ["leave_cash_out_day_divisor", "leave_cash_out_wage_basis"],
+				"authority": "UU 13/2003 art.156(4)(a) as amended by UU 6/2023 art.81 and PP 35/2021 art.40(4)(a): uang penggantian hak includes annual leave not yet taken and not yet expired, with no amount or divisor. UU 13/2003 art.79(4) as amended: the implementation of annual leave is regulated in the employment agreement, company regulation or collective agreement. Art.157(1) as amended fixes the wage components (basic wage and fixed allowances) only for uang pesangon and UPMK, no longer for uang penggantian hak, and PP 36/2021 art.17 (monthly wage ÷25 on a six-day week, ÷21 on a five-day week) sets the daily wage only where wages are fixed daily. The Kemnaker JDIH item of 5 November 2014 (1/30 of the monthly wage) is an explanatory news item, not a regulation. The day is therefore priced from the entity's declared PK/PP/PKB basis: `leave_cash_out_wage_basis` (basic wage, or basic wage plus the contract's fixed allowances) divided by `leave_cash_out_day_divisor`; an entity that records neither stops the cash-out by name. Contract-listed allowances are paid regularly irrespective of attendance, so they are fixed allowances when the declared basis includes them. PP 36/2021 art.15 fixes time-unit wages only per jam, harian or bulanan: a daily wage is itself the day (art.17 converts a month into a day only where wages are fixed daily, and the day here is already fixed); a per-hour wage (art.16(1), part-time only) is the hour times the contract's normal hours of the day; a monthly fixed allowance adds its declared-divisor day share when the declared basis includes it. A weekly wage is not a time unit PP 36/2021 art.15 recognises, so a WEEKLY contract has no valuation rule. Source: https://learning.hukumonline.com/wp-content/uploads/2021/03/Peraturan-Pemerintah-Nomor-36-tahun-2021-tentang-Pengupahan.pdf"
 			}
 		},
 		"payroll": {
@@ -869,6 +1414,15 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"deduction_ceiling": {
+				"share": 0.5,
+				"basis": "GROSS",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["KESEHATAN_TERMINATION_MONTH_EMPLOYEE", "PENSION_OFFSET"],
+				"final_pay_exempt": false,
+				"authority": "PP 36/2021 art.65: the deductions of art.63(1) — fines, damages, wage advances, rent, debts or their instalments, overpaid wages — may total at most 50% of each wage payment; contributions to the state and to social-security bodies are deducted under art.64(3), outside art.63, so the employee's BPJS share and PPh 21 are not counted, nor is the pension offset against separation pay (not a wage deduction). No final-payment exception."
+			},
 			"final_pay_due_days": 7
 		},
 		"sources": {
@@ -886,15 +1440,45 @@
 				"https://jdih.kemnaker.go.id/peraturan/detail/2610/peraturan-menteri-nomor-16-tahun-2024",
 				"https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf",
 				"https://jdih.jakarta.go.id/dokumen/detail/14763",
-				"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2025kg00320862.pdf"
+				"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2025kg00320862.pdf",
+				"https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023",
+				"https://www.bpjsketenagakerjaan.go.id/peraturan.html",
+				"https://jdih.kemnaker.go.id/peraturan/detail/2302/undang-undang-nomor-6-tahun-2023",
+				"https://jdih.kemnaker.go.id/peraturan/detail/3043/undang-undang-nomor-2-tahun-2026",
+				"https://jdih.kemenkeu.go.id/dok/uu-7-tahun-1983",
+				"https://jdih.kemnaker.go.id/peraturan?keyword=&nomor=&tahun=&status=&terjemahan=&sort=terbaru",
+				"https://jdih.kemnaker.go.id/peraturan?keyword=upah&sort=terbaru",
+				"https://www.pajak.go.id/id/peraturan",
+				"https://jdih.kemenkeu.go.id/search?order=desc&bentuk=Peraturan+Menteri",
+				"https://www.bpjsketenagakerjaan.go.id/berita.html",
+				"https://jdih.jakarta.go.id/",
+				"https://www.kemenkopmk.go.id/pengumuman",
+				"https://www.setneg.go.id/"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts."
 		},
 		"facts": [
 			{
 				"key": "pph21_dtp_sector",
 				"type": "boolean",
-				"label": "Eligible PPh21 DTP sector"
+				"label": "Eligible PPh21 DTP sector",
+				"default_value": false,
+				"description": "PMK 10/2025 (as amended by PMK 105/2025) art.3: PPh 21 is government-borne only for an employer whose business classification (KLU) is listed in the regulation’s annex. Unrecorded is not listed: the tax is withheld."
+			},
+			{
+				"key": "leave_cash_out_day_divisor",
+				"type": "number",
+				"label": "Leave cash-out daily divisor",
+				"description": "The divisor of the monthly wage basis that the employment agreement, company regulation or collective agreement fixes for unused annual leave (UU 13/2003 art.79(4) as amended). Required before any annual leave is cashed out.",
+				"minimum": 1,
+				"maximum": 31
+			},
+			{
+				"key": "leave_cash_out_wage_basis",
+				"type": "string",
+				"label": "Leave cash-out wage basis",
+				"description": "The monthly wage the employment agreement, company regulation or collective agreement values unused annual leave on: BASIC (basic wage) or BASIC_AND_FIXED_ALLOWANCES. Required before any annual leave is cashed out.",
+				"options": ["BASIC", "BASIC_AND_FIXED_ALLOWANCES"]
 			}
 		],
 		"exit_facts": [
@@ -1022,52 +1606,268 @@
 				"description": "Article 58(3) requires the offset arrangement in the employment agreement, company regulation or collective agreement.",
 				"required_when": "employment.exit_facts.pension_offset_applies",
 				"min_length": 1
+			},
+			{
+				"key": "thr_holiday_date",
+				"type": "string",
+				"label": "Religious holiday the THR is judged against",
+				"description": "YYYY-MM-DD. Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends within the thirty days before the religious holiday keeps the THR; art.2(1) and art.5(4): a worker employed on the holiday is owed it; art.7(3): a PKWT that ends before the holiday is not. The religious holiday is the employee’s own (art.1(2): Idul Fitri for a Muslim, Natal for a Christian or Catholic, Nyepi for a Hindu, Waisak for a Buddhist, Imlek for a Confucian), on the date of the government’s joint ministerial decree (SKB) for its year: the first such holiday on or after the thirtieth day before the last day of work.",
+				"required_when": "employment.service_months >= 1",
+				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
+				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
 			}
 		],
 		"obligations": [
 			{
-				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
-				"description": "Termination procedure and compensation entitlement",
-				"trigger": "Each legally defined termination cause",
-				"timing": "Each legally defined termination cause",
-				"owner": "HR / notices, consultation, cause and settlement evidence",
-				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
+				"description": "Register the employer and every worker with BPJS Ketenagakerjaan (JKK, JKM, JHT, JP; JKP follows) and report wage, headcount and data changes",
+				"trigger": "Establishment, each hire (a transferring worker is continued from the first day), and any change in wage, headcount, address or participant data",
+				"timing": "Registration form with worker and family data within 30 working days of receiving it from BPJS (art.6(1)); the participant card to the worker within 3 working days of receipt (art.7(2)); wage and other changes within 7 working days (art.9(2)–(3))",
+				"owner": "HR / registration, card delivery and change reports",
+				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+				"description": "Withhold the employee JHT and JP shares and remit them with the employer JKK, JKM, JHT and JP contributions",
+				"trigger": "Each contribution month",
+				"timing": "\"paling lambat tanggal 15 bulan berikutnya\", the next working day when the 15th is a holiday; late payment carries a 2% fine for each month late, borne by the employer",
+				"owner": "Finance / BPJS Ketenagakerjaan payment and supporting worker data",
+				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "BPJS_KESEHATAN_REGISTRATION",
+				"description": "Register the employer, each worker and the worker's family (spouse and up to three children) with BPJS Kesehatan; enrol further members the worker elects",
+				"trigger": "Each hire; a foreigner once working six months in Indonesia (art.1 angka 2); family changes",
+				"timing": "On employment; a worker the employer fails to register may register themselves (art.13(2)) and the employer is sanctioned (art.17)",
+				"owner": "HR / BPJS Kesehatan enrolment",
+				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "BPJS_KESEHATAN_REMITTANCE",
+				"description": "Collect the 1% (and any elected extra-member 1%) and remit it with the 4% employer contribution",
+				"trigger": "Each month",
+				"timing": "\"paling lambat tanggal 10 setiap bulan\", the next working day when the 10th is a holiday (art.39(1),(4)); unpaid by month end suspends cover from the 1st of the next month and the employer bears the care its workers need (art.42)",
+				"owner": "Finance / BPJS Kesehatan payment",
+				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WORK_ACCIDENT_REPORT",
+				"description": "Report a work accident or occupational disease to BPJS Ketenagakerjaan and the local manpower office",
+				"trigger": "A work accident, or an occupational disease diagnosed",
+				"timing": "Stage I within 2 x 24 hours of the accident or diagnosis; stage II within 2 x 24 hours of the doctor certifying recovery, disability or death (the benefit claim)",
+				"owner": "HR / accident forms and medical certificates",
+				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PPH21_REMITTANCE_AND_SPT_MASA",
+				"description": "Pay the PPh 21/26 withheld and file the SPT Masa PPh 21/26 with the monthly bukti potong (BPMP for permanent employees January–November) in Coretax",
+				"trigger": "Each tax period in which remuneration is paid",
+				"timing": "Payment by the 15th of the following month; SPT Masa within 20 days after the period ends; a Saturday, Sunday, public holiday or national cuti bersama moves either to the next working day",
+				"owner": "Finance / billing code, payment and SPT Masa receipt",
+				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PPH21_ANNUAL_STATEMENT_BPA1",
+				"description": "Issue Form BPA1 (formerly 1721-A1) to each permanent employee for the year, or for the part year to departure",
+				"trigger": "The last tax period: December, or the month a permanent employee stops working",
+				"timing": "Within one month after the last tax period ends",
+				"owner": "Finance / BPA1 delivered to the employee",
+				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PTKP_STATUS_AND_TAX_ID",
+				"description": "Obtain each employee's NIK/NPWP and PTKP status (marital status, dependants, a married woman's statement that her husband has no income)",
+				"trigger": "Hire, and the start of each calendar year",
+				"timing": "PTKP is fixed on the employee's condition at the start of the calendar year (PMK 168/2023 art.9)",
+				"owner": "HR / declarations and supporting documents",
+				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TAX_RECORD_RETENTION",
+				"description": "Keep the books, records and documents on which withholding is based",
+				"trigger": "Each record",
+				"timing": "10 years in Indonesia",
+				"owner": "Finance / archive",
+				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WAGE_PAYMENT_TIMING",
+				"description": "Pay wages in rupiah, in full, at the agreed time, at intervals of not more than one month",
+				"trigger": "Each pay date",
+				"timing": "The agreed date; the pay interval may not exceed 1 month (art.55(4)). Late wages: 5% per day from the 4th to the 8th day, then +1% per day capped at 50% in a month, then bank interest after a month (art.61)",
+				"owner": "Finance / payment evidence",
+				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PAYSLIP_ISSUE",
+				"description": "Give each worker a proof of wage payment with the wage details",
+				"trigger": "Each wage payment",
+				"timing": "\"pada saat Upah dibayarkan\" — at the time the wage is paid",
+				"owner": "Payroll / payslip delivery",
+				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_DEDUCTION_LIMITS",
+				"description": "Deduct from wages only for fines, damages, advances, rent, debts or overpayment on the required basis, and never more than half of each payment",
+				"trigger": "Each deduction other than tax and social security",
+				"timing": "Each payment: the total of deductions at most 50% of the wage paid (art.65); rent and debts need written agreement, third-party deductions a revocable power of attorney (arts.63–64)",
+				"owner": "Payroll / deduction authorisations",
+				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "MINIMUM_WAGE_COMPLIANCE",
+				"description": "Pay no worker below the applicable provincial or city/regency minimum wage; basic wage at least 75% of basic plus fixed allowances",
+				"trigger": "Each new minimum-wage decree (in force 1 January) and each wage change",
+				"timing": "From the decree's commencement",
+				"owner": "HR / wage review",
+				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "WAGE_STRUCTURE_AND_SCALE",
+				"description": "Draw up and apply a wage structure and scale and notify each worker of the grade that applies to them",
+				"trigger": "Standing duty; each change",
+				"timing": "Standing; each worker notified individually",
+				"owner": "HR / structure, scale and notices",
+				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "THR_PAYMENT_DEADLINE",
+				"description": "Pay the religious holiday allowance (THR) before the worker's religious holiday",
+				"trigger": "Each religious holiday of the worker (Idulfitri, Christmas, Nyepi, Waisak, Imlek)",
+				"timing": "\"paling lambat 7 (tujuh) hari sebelum Hari Raya Keagamaan\" (art.5(4)); a late payment carries a 5% fine of the THR due (art.10), without discharging the THR",
+				"owner": "Finance / THR payment",
+				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PKWT_REGISTRATION",
+				"description": "Record each fixed-term employment agreement (PKWT) with the Ministry of Manpower",
+				"trigger": "Signing of a PKWT or its extension",
+				"timing": "Online within 3 working days of signing; in writing at the city/regency manpower office within 7 working days where the online service is unavailable",
+				"owner": "HR / PKWT record receipt",
+				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
 				"code": "OVERTIME_CONSENT_RECORDS_AND",
-				"description": "Overtime consent, records and limits",
+				"description": "Overtime by written or digital order and the worker's consent, a signed list and a record of names and hours; rest and food for long overtime; the daily and weekly caps",
 				"trigger": "Overtime is requested or worked",
-				"timing": "Overtime is requested or worked",
+				"timing": "Before the overtime (order and consent); a list of each worker's overtime hours kept; at most 4 hours a day and 18 a week outside rest days and public holidays; 1,400 kcal of food and drink for 4 hours or more, not payable in cash",
 				"owner": "HR / consent and actual-hours records",
-				"authority": "External; PP 35/2021 (https://peraturan.bpk.go.id/Home/Download/154582/PP%20Nomor%2035%20Tahun%202021.pdf)",
+				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
+				"description": "Termination by written notice stating the reason, bipartite negotiation on a rejection, and payment of the compensation for the cause",
+				"trigger": "Each termination initiated by the employer, and each legally defined cause",
+				"timing": "Notice at least 14 working days before termination, 7 during probation (art.37(3)–(4)); the worker may reject in writing within 7 working days, then bipartite negotiation and industrial-relations settlement (art.39)",
+				"owner": "HR / notices, consultation, cause and settlement evidence",
+				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "TERMINATION_REPORT",
+				"description": "Report an unopposed termination to the manpower ministry or provincial/regency manpower office",
+				"trigger": "The worker received the notice and did not reject it",
+				"timing": "After the notice period, on termination",
+				"owner": "HR / termination report",
+				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "BPJS_REGISTRATION_WAGE_REPORTING",
-				"description": "BPJS registration, wage reporting and remittance",
-				"trigger": "Covered employment and reportable wage changes",
-				"timing": "Covered employment and reportable wage changes",
-				"owner": "Finance / registration and accepted contribution records",
-				"authority": "External; BPJS participant guidance (https://www.bpjsketenagakerjaan.go.id/artikel/18893/artikel-siapa-sajakah-peserta-dari-bpjs-ketenagakerjaan)",
+				"code": "WLKP_EMPLOYMENT_REPORT",
+				"description": "Company employment report (Wajib Lapor Ketenagakerjaan di Perusahaan) through the online WLKP service",
+				"trigger": "Establishing, reopening, moving or closing the company; each year",
+				"timing": "Within 30 days after or before establishing, reopening or moving (art.6); every year thereafter (art.8)",
+				"owner": "HR / WLKP receipt",
+				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
 				"status": "EXTERNAL"
 			},
 			{
-				"code": "TAX_RETURNS_ANNUAL_EMPLOYEE",
-				"description": "Tax returns, annual employee statements and agency remittance",
-				"trigger": "Applicable authority's filing calendar",
-				"timing": "Applicable authority's filing calendar",
-				"owner": "Finance / accepted filing and payment receipts",
-				"authority": "Unverified filing coverage; calculation or workbook export is not submission",
-				"status": "UNVERIFIED"
+				"code": "COMPANY_REGULATIONS",
+				"description": "Company regulations (Peraturan Perusahaan) for an employer of ten or more workers, ratified by the ministry or manpower office, unless a collective agreement applies",
+				"trigger": "Ten or more workers",
+				"timing": "In force once ratified; valid at most 2 years and then renewed",
+				"owner": "HR / ratified regulations",
+				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)",
+				"status": "EXTERNAL"
 			},
 			{
-				"code": "WORK_AUTHORISATION_EMPLOYMENT_RECORDS",
-				"description": "Work authorisation, employment records, privacy and workplace safety",
-				"trigger": "Hiring, employment, record retention and termination",
-				"timing": "Hiring, employment, record retention and termination",
-				"owner": "HR / applicable-law register, permits and retained evidence",
-				"authority": "Separate compliance review required; these areas are not implemented by the payroll engine",
+				"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
+				"description": "Approved foreign-worker employment plan (RPTKA) and the foreign-worker compensation fund (DKPTKA) for each foreign worker",
+				"trigger": "Each foreign worker employed",
+				"timing": "DKPTKA paid on the billing code before the RPTKA is approved, for the period the worker works in Indonesia (art.23(2)–(5))",
+				"owner": "HR / RPTKA approval and DKPTKA receipt",
+				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_LAWFUL_BASIS_AND_INFORMATION",
+				"description": "Process worker personal data only on a lawful basis (explicit valid consent, performance of the employment contract, a legal obligation such as BPJS and PPh 21 reporting, vital interests, public task, or legitimate interest); where processing rests on consent, inform the worker of the legality, purpose, data types, retention period, processing period and their rights, and tell them before any change.",
+				"trigger": "Collection or processing of an applicant's or worker's personal data",
+				"timing": "Before processing; before any change to the information given",
+				"owner": "HR / privacy notice and consent record",
+				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_SECURITY_CONFIDENTIALITY",
+				"description": "Protect and secure the personal data processed (technical and operational measures, security level set by the data's nature and risk), keep it confidential, supervise every party processing under the controller's control (a payroll vendor), and prevent unlawful processing and access.",
+				"trigger": "Holding or processing worker personal data",
+				"timing": "Continuous",
+				"owner": "HR / IT security; processor agreement",
+				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_IMPACT_ASSESSMENT",
+				"description": "Carry out a personal data protection impact assessment where processing is high-risk (automated decisions with legal or significant effect, specific data such as health, biometric or financial data, large-scale processing, systematic evaluation, scoring or monitoring, data matching, new technology).",
+				"trigger": "Introduction of high-risk processing (for example biometric attendance or large-scale payroll processing of health data)",
+				"timing": "Before the high-risk processing begins",
+				"owner": "DPO / DPIA record",
+				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_DELETION_DESTRUCTION",
+				"description": "Delete personal data no longer needed for its purpose, on withdrawal of consent or request, or when unlawfully obtained; destroy it when its retention period under the archive schedule ends or on request; notify the worker of the deletion or destruction.",
+				"trigger": "End of the purpose or retention period, withdrawal of consent, or a data-subject request",
+				"timing": "When the condition arises, subject to other statutory retention periods (tax and BPJS records)",
+				"owner": "HR / retention schedule and destruction record",
+				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_BREACH_NOTIFICATION",
+				"description": "On a failure of personal data protection, give written notice to the affected data subjects and to the PDP agency stating the data exposed, when and how it was exposed, and the handling and recovery measures; in certain cases also notify the public.",
+				"trigger": "A failure of personal data protection (breach) affecting worker personal data",
+				"timing": "No later than 3 × 24 hours",
+				"owner": "DPO / breach notice",
+				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PDP_DPO_APPOINTMENT",
+				"description": "Appoint an officer performing the personal data protection function (internal or external) where processing serves a public service, where core activities require regular and systematic large-scale monitoring, or where core activities are large-scale processing of specific data or criminal-record data.",
+				"trigger": "The employer meets an art.53(1) criterion",
+				"timing": "Before or when the criterion is met; continuous",
+				"owner": "Management / DPO appointment letter",
+				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
 				"status": "EXTERNAL"
 			}
 		]

@@ -3,6 +3,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
+	import { Checkbox } from '@norbital-ai/ui/checkbox';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
@@ -48,7 +49,7 @@
 		}))
 	);
 	const roundingOptions = $derived(
-		(['HALF_DAY', 'WHOLE_DAY'] as const).map((value) => ({
+		(['HALF_DAY', 'WHOLE_DAY', 'EXACT'] as const).map((value) => ({
 			value,
 			label: t(`leave.rounding.${value}`)
 		}))
@@ -67,6 +68,16 @@
 	const rows = $derived<Band[]>(
 		current.bands.map((band, index) => ({ id: `band-${index}`, ...band }))
 	);
+	const childRows = $derived<Band[]>(
+		(current.child_lifetime ?? []).map((cap, index) => ({ id: `child-${index}`, ...cap }))
+	);
+	/** A matrix edit as rows of predicate and days: a figure where the text is one, else the expression. */
+	const bandsFrom = (next: readonly Band[]) =>
+		next.map(({ eligibility, days }) => ({
+			eligibility,
+			days:
+				String(days).trim() === '' ? 0 : Number.isFinite(Number(days)) ? Number(days) : String(days)
+		}));
 	function emit(next: LeaveEntitlement): void {
 		if (props.mode === 'edit') props.onValueChange(next);
 	}
@@ -170,6 +181,33 @@
 		>
 		<label class="text-sm font-medium"
 			><Stack gap="xs">
+				{t('leave.minimum_days')}
+				<Input
+					type="number"
+					min="0"
+					step="0.5"
+					value={current.minimum_days ?? ''}
+					{disabled}
+					oninput={(event) =>
+						emit({
+							...current,
+							minimum_days:
+								event.currentTarget.value.trim() === ''
+									? null
+									: Math.max(0, Number(event.currentTarget.value) || 0)
+						})}
+				/>
+			</Stack></label
+		>
+		<label class="flex items-center gap-2 text-sm font-medium"
+			><Checkbox
+				checked={current.qualifies_window === true}
+				{disabled}
+				onCheckedChange={(checked) => emit({ ...current, qualifies_window: checked === true })}
+			/>{t('leave.qualifies_window')}</label
+		>
+		<label class="text-sm font-medium"
+			><Stack gap="xs">
 				{t('leave.consumes_after_days')}
 				<Input
 					type="number"
@@ -221,16 +259,23 @@
 			onChange={(next) =>
 				emit({
 					...current,
-					bands: next.map(({ eligibility, days }) => ({
-						eligibility,
-						days:
-							String(days).trim() === ''
-								? 0
-								: Number.isFinite(Number(days))
-									? Number(days)
-									: String(days)
-					}))
+					bands: bandsFrom(next)
 				})}
+		/>
+		<p class="text-meta">{t('leave.child_lifetime')}</p>
+		<MatrixRenderer
+			class="w-full"
+			rows={childRows}
+			columns={BAND_COLUMNS}
+			{disabled}
+			{readonly}
+			allowAddRows={!disabled}
+			emptyMessage={t('renderer.leave_entitlement.empty')}
+			addRowLabel={t('leave.add_band')}
+			createRow={(): Band => ({ id: crypto.randomUUID(), eligibility: '', days: 0 })}
+			bounded={false}
+			onChange={(next) =>
+				emit({ ...current, child_lifetime: next.length === 0 ? null : bandsFrom(next) })}
 		/>
 	{/if}
 </Stack>

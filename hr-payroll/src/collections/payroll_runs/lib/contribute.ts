@@ -30,6 +30,7 @@
 
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { assessedOnMentions } from '../../../lib/expressions/compile.js';
+import { OVERTIME_FLOOR_DAYS } from '../../../lib/expressions/person-functions.js';
 import { requireFactValues, resolveFactValues } from '../../../lib/declared-facts.js';
 import { DEDUCTION_TOTAL_KEYS, deductionTotals } from '../../../lib/statutory-deductions.js';
 import {
@@ -130,6 +131,14 @@ type SchemeAssessment = {
 		string,
 		readonly { readonly start: string; readonly end: string | null }[]
 	>;
+	/** Where the registered declaration changed inside the period: each declaration and its intervals. */
+	readonly standingsByScheme?: ReadonlyMap<
+		string,
+		readonly {
+			readonly status: StatutoryFactStatus;
+			readonly intervals: readonly { readonly start: string; readonly end: string | null }[];
+		}[]
+	>;
 	/** `contribution_code` → what has already been charged this tax year. */
 	readonly yearToDate: (code: string) => {
 		employee: number;
@@ -158,7 +167,9 @@ type SchemeAssessment = {
 		readonly fullyUnpaid: number;
 		readonly leaveDays: Readonly<Record<string, number>>;
 		readonly fullLeaveDays: Readonly<Record<string, number>>;
+		readonly leavePay: Readonly<Record<string, number>>;
 		readonly working: number;
+		readonly overtimeDays?: number;
 	};
 	/** The period being settled: the shared six-member root. */
 	readonly period: {
@@ -419,13 +430,51 @@ function engineFor(
 					month > input.year.end.slice(0, 7)
 				)
 					continue;
-				excess += Math.max(0, (codes.get(code) ?? 0) - limit);
+				excess += Math.max(0, earnedUnder(codes, code, input.componentsByCode) - limit);
+			}
+			return excess;
+		},
+		earnedDailyExcess: (code, share) => {
+			let excess = 0;
+			for (const [month, codes] of input.earnedByMonth ?? []) {
+				if (
+					input.year == null ||
+					month < input.year.start.slice(0, 7) ||
+					month > input.year.end.slice(0, 7)
+				)
+					continue;
+				const allowed = share * (codes.get(OVERTIME_FLOOR_DAYS) ?? 0);
+				excess += Math.max(0, earnedUnder(codes, code, input.componentsByCode) - allowed);
 			}
 			return excess;
 		},
 		earnedAverage: (code, monthsBack, months) =>
-			earnedAverage(input.earnedByMonth ?? new Map(), input.period.key, code, monthsBack, months)
+			earnedAverage(
+				input.earnedByMonth ?? new Map(),
+				input.period.key,
+				code,
+				monthsBack,
+				months,
+				input.componentsByCode
+			)
 	});
+}
+
+/**
+ * What one month earned under a name: a component code, or a scheme part (`WTAX.RICE`) — every
+ * class whose `counts_toward` lists it — so a formula pools by treatment, never by a tenant's code.
+ */
+function earnedUnder(
+	byCode: ReadonlyMap<string, number>,
+	name: string,
+	componentsByCode: SchemeAssessment['componentsByCode']
+): number {
+	if (!name.includes('.')) return byCode.get(name) ?? 0;
+	const [scheme, part] = name.split('.');
+	let total = 0;
+	for (const [code, amount] of byCode)
+		if (countsToward(componentsByCode?.get(code)?.counts_toward, scheme!, part!)) total += amount;
+	return total;
 }
 
 /**
@@ -466,7 +515,8 @@ export function earnedAverage(
 	periodKey: string,
 	code: string,
 	monthsBack: number,
-	months: number
+	months: number,
+	componentsByCode?: SchemeAssessment['componentsByCode']
 ): number {
 	if (!(months > 0)) return 0;
 	const year = Number(periodKey.slice(0, 4));
@@ -479,7 +529,7 @@ export function earnedAverage(
 		const byCode = earnedByMonth.get(key);
 		if (byCode == null) continue;
 		present += 1;
-		total += byCode.get(code) ?? 0;
+		total += earnedUnder(byCode, code, componentsByCode);
 	}
 	return present === 0 ? 0 : total / months;
 }
@@ -774,6 +824,7 @@ function assessedBase(options: {
 		NO_PAY_LEAVE: options.accumulation.reserved.NO_PAY_LEAVE,
 		ENCASHMENT: options.accumulation.reserved.ENCASHMENT,
 		INCENTIVE: options.accumulation.reserved.INCENTIVE,
+		NIGHT_WAGE: options.accumulation.reserved.NIGHT_WAGE,
 		// The catalogue words, pre-aggregated for this scheme: what its classes count toward.
 		...catalogueWords(
 			options.accumulation,
@@ -896,7 +947,9 @@ function monthlyAssessment(input: SchemeAssessment): SchemeAssessment {
 							unpaid_days: input.monthlyContributionDays.unpaid,
 							unpaid_full_days: input.monthlyContributionDays.fullyUnpaid,
 							leave_days: input.monthlyContributionDays.leaveDays,
-							leave_full_days: input.monthlyContributionDays.fullLeaveDays
+							leave_full_days: input.monthlyContributionDays.fullLeaveDays,
+							leave_pay: input.monthlyContributionDays.leavePay,
+							overtime_days: input.monthlyContributionDays.overtimeDays ?? 0
 						}
 					},
 		projection: { payslipsRemaining: months, futurePayslipEquivalents: months - 1 },
@@ -1186,8 +1239,59 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 					input.currency,
 					input.monthPrior?.charged.get(code)?.directed ?? 0
 				);
-		const assessedEmployee = evaluateNumber(schemeEngine, rule.employee, context);
-		const assessedEmployer = evaluateNumber(schemeEngine, rule.employer, context);
+		// A declaration that changed inside the period prices each of its standings on its own days
+		// (a mid-month election, a re-enrolment after a gap), the shares summed.
+		const standings = input.standingsByScheme?.get(contribution.row.id);
+		const [assessedEmployee, assessedEmployer] =
+			standings == null
+				? [
+						evaluateNumber(schemeEngine, rule.employee, context),
+						evaluateNumber(schemeEngine, rule.employer, context)
+					]
+				: standings.reduce(
+						([employee, employer], standing) => {
+							const standingInput = {
+								...schemeInput,
+								facts: new Map(schemeInput.facts).set(contribution.row.id, standing.status),
+								coverageByScheme: new Map([[contribution.row.id, standing.intervals]])
+							};
+							const engine = engineFor(
+								standingInput,
+								contribution.row.assessment_period === 'MONTH' ? accumulation : input.accumulation,
+								contribution.row.id
+							);
+							const ownBase = assessedBase({
+								input: standingInput,
+								contribution,
+								accumulation,
+								produced: schemeProduced,
+								reads: reliefs,
+								ordinaryReads: ordinaryReliefs
+							}).base;
+							const own: Record<string, unknown> = {
+								...schemeContext({
+									input: standingInput,
+									contribution,
+									status: standing.status,
+									expressions,
+									produced: schemeProduced,
+									reads: reliefs,
+									ordinaryReads: ordinaryReliefs
+								}),
+								base: ownBase,
+								ordinary: ordinary ?? ownBase
+							};
+							requireSchemeFacts(contribution, standing.status, own, engine);
+							const selected = selectRule(contribution.row.rules, own, engine);
+							if (selected == null) return [employee, employer];
+							const priced = selectedRuleContext(selected, own, engine, code);
+							return [
+								employee + evaluateNumber(engine, selected.employee, priced),
+								employer + evaluateNumber(engine, selected.employer, priced)
+							];
+						},
+						[0, 0]
+					);
 		if (monthlyAssessed)
 			monthlyProduced.set(code, {
 				base,

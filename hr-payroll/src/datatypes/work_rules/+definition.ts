@@ -61,6 +61,20 @@ export const workLimitValueSchema = Schema.Struct({
 	 * belongs to no one person, is judged against the unconditional limits only.
 	 */
 	when: Schema.optionalKey(Schema.String),
+	/**
+	 * Boolean over the work day: a day it holds on adds every hour worked on it to this limit's
+	 * count, not only the hours beyond its normal day (TW 勞基法 §36(3): hours worked on a 休息日
+	 * count toward the §32(2) overtime totals). An emergency day stays outside every ceiling.
+	 * Read by the monthly, quarterly and yearly ceiling report only; absent is none.
+	 */
+	counts_day_when: Schema.optionalKey(Schema.String),
+	/**
+	 * Boolean over the work day: a day it holds on adds the hours worked beyond its normal day to
+	 * this limit's count, where the measure left them out (TW 勞基法 §32(2) as read by 勞委會
+	 * (89)台勞動二字第0041535號: hours past eight on a 例假 or a §37 休假日 are extended hours).
+	 * `counts_day_when` wins on a day both hold. Read by the ceiling report only; absent is none.
+	 */
+	counts_beyond_normal_when: Schema.optionalKey(Schema.String),
 	authority: Schema.optionalKey(Schema.String)
 });
 export type WorkHoursLimit = Schema.Schema.Type<typeof workLimitValueSchema>;
@@ -171,6 +185,12 @@ export const workRulesValueSchema = Schema.Struct({
 	 * week shape (the Philippines). The hour is that day over the contract's normal daily hours.
 	 */
 	ordinary_divisor_days: cel,
+	/**
+	 * Days over the person a daily wage is taken to a month by before `ordinary_divisor_days`
+	 * prices its hour (ID PP 35/2021 art.33(1)(b): × 21 on a five-day week, × 25 on a six-day
+	 * one, then 1/173). Absent or empty is the day over its normal hours.
+	 */
+	daily_month_days: Schema.optionalKey(Schema.String),
 	/** A statutory ordinary rate taken from approved dated wage history instead of the current contract. */
 	ordinary_rate_reference: Schema.optionalKey(
 		Schema.NullOr(
@@ -199,6 +219,12 @@ export const workRulesValueSchema = Schema.Struct({
 				include_allowances: Schema.Array(Schema.String),
 				exclude_allowances: Schema.Array(Schema.String),
 				preserve_year_end_rate: Schema.Boolean,
+				/**
+				 * Entity facts (`company.facts.<key>`) the valuation cannot proceed without, where the law
+				 * defers the basis to the contract, company regulation or collective agreement (ID UU
+				 * 13/2003 art.79(4) as amended). Required only when leave is cashed out.
+				 */
+				required_facts: Schema.optionalKey(Schema.Array(Schema.String)),
 				authority: Schema.String.check(
 					Schema.makeFilter(
 						(value) => value.trim() !== '' || 'Leave cash-out authority is required.'
@@ -207,6 +233,11 @@ export const workRulesValueSchema = Schema.Struct({
 			})
 		)
 	),
+	/**
+	 * Allowance codes outside the gross rate of pay, read at the work day as
+	 * `person.terms.gross_monthly` (SG EA s.2: travelling, food or housing allowances). Absent is none.
+	 */
+	gross_excluded_allowances: Schema.optionalKey(Schema.Array(Schema.String)),
 	/** Boolean over the person: who the overtime ladder covers. Empty is everyone. */
 	overtime_when: Schema.String,
 	/**
@@ -219,9 +250,9 @@ export const workRulesValueSchema = Schema.Struct({
 	 */
 	normal_hours: Schema.optionalKey(Schema.String),
 	/**
-	 * The most hours a week the hourly rate is built on, where the statute defines the hour over
-	 * the week (SG EA s.2: 12 × monthly ÷ (52 × 44), or 52 × the contract's hours under 44).
-	 * Absent where the hour is the day over the daily normal hours (MY s.60I(1)(b)).
+	 * The hours a week a full-time monthly-rated hour is built on, whatever the contract's week, where the
+	 * statute fixes it (SG EA Fourth Schedule: 12 × monthly ÷ (52 × 44)); a cap on other wage
+	 * bases' week. Absent where the hour is the day over the daily normal hours (MY s.60I(1)(b)).
 	 */
 	rate_week_hours: Schema.optionalKey(Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0)))),
 	bands: Schema.Array(workRateBandValueSchema),
@@ -232,6 +263,25 @@ export const workRulesValueSchema = Schema.Struct({
 	/** The instrument the rules transcribe; quoted by refusals. */
 	authority: Schema.optionalKey(Schema.String),
 	night_premium: Schema.optionalKey(Schema.NullOr(nightPremiumValueSchema)),
+	/**
+	 * The balance of hours a worker took as time off instead of overtime pay, where the law lets
+	 * them (TW 勞基法 §32-1): each elected hour is credited at what its band would have paid, hours
+	 * taken as `leave_code` leave use the oldest credit first, and what is left is paid at the
+	 * credited value once it expires or the contract ends. A credit expires `expiry_months` (a
+	 * number over the person; 0 where none was agreed) after its day, and never later than the last
+	 * day of the `year_leave_code` leave's year. Absent: bands honouring the election leave the
+	 * hours unpriced and the run only warns.
+	 */
+	time_off_in_lieu: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				leave_code: Schema.String.check(Schema.isMinLength(1)),
+				year_leave_code: Schema.String.check(Schema.isMinLength(1)),
+				expiry_months: cel,
+				authority: Schema.String
+			})
+		)
+	),
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE'])
 }).check(
 	Schema.makeFilter((rules) => {
@@ -264,6 +314,9 @@ export const workRulesValueSchema = Schema.Struct({
 				? null
 				: faultIn(rules.encashment.day_amount, 'person', 'money', 'Leave cash-out daily pay'),
 			faultIn(rules.ordinary_divisor_days, 'person', 'days', 'Ordinary divisor'),
+			(rules.daily_month_days ?? '').trim() === ''
+				? null
+				: faultIn(rules.daily_month_days ?? '', 'person', 'days', 'Daily wage month'),
 			faultIn(rules.overtime_when, 'person', 'boolean', 'Overtime eligibility'),
 			...rules.bands.flatMap((band) => [
 				faultIn(band.when, 'work_day', 'boolean', `Band ${band.label}`),
@@ -285,7 +338,31 @@ export const workRulesValueSchema = Schema.Struct({
 					? null
 					: faultIn(limit.when ?? '', 'person', 'boolean', `Limit ${limit.key}`)
 			),
+			...rules.limits.map((limit) =>
+				!('counts_day_when' in limit) || (limit.counts_day_when ?? '').trim() === ''
+					? null
+					: faultIn(limit.counts_day_when ?? '', 'work_day', 'boolean', `Limit ${limit.key} day`)
+			),
+			...rules.limits.map((limit) =>
+				!('counts_beyond_normal_when' in limit) ||
+				(limit.counts_beyond_normal_when ?? '').trim() === ''
+					? null
+					: faultIn(
+							limit.counts_beyond_normal_when ?? '',
+							'work_day',
+							'boolean',
+							`Limit ${limit.key} beyond-normal day`
+						)
+			),
 
+			rules.time_off_in_lieu == null
+				? null
+				: faultIn(
+						rules.time_off_in_lieu.expiry_months,
+						'person',
+						'number',
+						'Time off in lieu expiry months'
+					),
 			...(rules.proration_by ?? []).map((arm, index) =>
 				faultIn(arm.when, 'person', 'boolean', `Proration arm ${index + 1}`)
 			),

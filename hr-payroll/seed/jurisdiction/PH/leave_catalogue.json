@@ -21,7 +21,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "VAWC_LEAVE",
 		"name": "Leave for victims of violence against women and their children",
-		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43 Applied 2026-09-23 (round 5): RA 9262 s.43 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -62,7 +62,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash.",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash. Applied 2026-09-23 (round 5): RA 8187 s.2 grants it to a married male employee for his lawful wife's delivery; an unrecorded `employee.gender` or `employee.marital_status` offers no paternity leave until recorded — the grant's conditions, never a default.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -85,7 +85,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SPECIAL_LEAVE_FOR_WOMEN",
 		"name": "Special leave for women (gynaecological surgery)",
-		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service).",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service). Applied 2026-09-23 (round 5): RA 9710 s.18 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -125,18 +125,19 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken. Applied 2026-09-23 (round 5): DOLE Handbook on Workers’ Statutory Monetary Benefits (2023) ch.7 §D: the use and conversion “may be on a pro rata basis”, and its illustration — hired 1 January 2022, resigned 1 March 2023 — converts 5 days earned as of 31 December 2022 plus (2/12) × 5 = 0.833 for January and February 2023, 5.833 in all, unrounded. The year's five days are therefore earned by completed months of the leave year and never rounded (`COMPLETED_MONTHS`, `EXACT`); a year of whole service still holds all five from its start. Coverage (§B) checked against the Handbook: government, personal service (overtaken for the kasambahay by RA 10361 s.29, `ANNUAL_LEAVE_DOMESTIC`), managerial employees and managerial staff (`MANAGERIAL`), field personnel and the unsupervised (`FIELD_PERSONNEL`, `PAID_BY_RESULTS`), and establishments regularly employing fewer than ten (`small_establishment`) are outside; those already enjoying the benefit or five days' vacation leave with pay hold it through the employer's own leave row, which this statutory row does not duplicate.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
-			"proration": "NONE",
+			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
 					"eligibility": "employment.service_months >= 12",
 					"days": 5
 				}
-			]
+			],
+			"rounding": "EXACT"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -164,7 +165,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash.",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -230,7 +231,7 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SOLO_PARENT_LEAVE",
 		"name": "Parental leave for solo parents",
-		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`).",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`). Applied 2026-09-23 (round 5): solo-parent standing is what the Solo Parent Identification Card establishes (RA 11861 ss.15, 20: the benefit is availed on presenting the SPIC the local social welfare office issues); `employee.solo_parent` is false until the employer records a presented card, the statute's own default.",
 		"eligibility": "employee.solo_parent",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -288,7 +289,7 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "VAWC_LEAVE",
 		"name": "Leave for victims of violence against women and their children",
-		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43 Applied 2026-09-23 (round 5): RA 9262 s.43 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -329,7 +330,7 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash.",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash. Applied 2026-09-23 (round 5): RA 8187 s.2 grants it to a married male employee for his lawful wife's delivery; an unrecorded `employee.gender` or `employee.marital_status` offers no paternity leave until recorded — the grant's conditions, never a default.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -352,7 +353,7 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SPECIAL_LEAVE_FOR_WOMEN",
 		"name": "Special leave for women (gynaecological surgery)",
-		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service).",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service). Applied 2026-09-23 (round 5): RA 9710 s.18 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -392,18 +393,19 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken. Applied 2026-09-23 (round 5): DOLE Handbook on Workers’ Statutory Monetary Benefits (2023) ch.7 §D: the use and conversion “may be on a pro rata basis”, and its illustration — hired 1 January 2022, resigned 1 March 2023 — converts 5 days earned as of 31 December 2022 plus (2/12) × 5 = 0.833 for January and February 2023, 5.833 in all, unrounded. The year's five days are therefore earned by completed months of the leave year and never rounded (`COMPLETED_MONTHS`, `EXACT`); a year of whole service still holds all five from its start. Coverage (§B) checked against the Handbook: government, personal service (overtaken for the kasambahay by RA 10361 s.29, `ANNUAL_LEAVE_DOMESTIC`), managerial employees and managerial staff (`MANAGERIAL`), field personnel and the unsupervised (`FIELD_PERSONNEL`, `PAID_BY_RESULTS`), and establishments regularly employing fewer than ten (`small_establishment`) are outside; those already enjoying the benefit or five days' vacation leave with pay hold it through the employer's own leave row, which this statutory row does not duplicate.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
-			"proration": "NONE",
+			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
 					"eligibility": "employment.service_months >= 12",
 					"days": 5
 				}
-			]
+			],
+			"rounding": "EXACT"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -431,7 +433,7 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash.",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -497,7 +499,7 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SOLO_PARENT_LEAVE",
 		"name": "Parental leave for solo parents",
-		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`).",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`). Applied 2026-09-23 (round 5): solo-parent standing is what the Solo Parent Identification Card establishes (RA 11861 ss.15, 20: the benefit is availed on presenting the SPIC the local social welfare office issues); `employee.solo_parent` is false until the employer records a presented card, the statute's own default.",
 		"eligibility": "employee.solo_parent",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -555,7 +557,7 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "VAWC_LEAVE",
 		"name": "Leave for victims of violence against women and their children",
-		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43 Applied 2026-09-23 (round 5): RA 9262 s.43 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -596,7 +598,7 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash.",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash. Applied 2026-09-23 (round 5): RA 8187 s.2 grants it to a married male employee for his lawful wife's delivery; an unrecorded `employee.gender` or `employee.marital_status` offers no paternity leave until recorded — the grant's conditions, never a default.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -619,7 +621,7 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "SPECIAL_LEAVE_FOR_WOMEN",
 		"name": "Special leave for women (gynaecological surgery)",
-		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service).",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service). Applied 2026-09-23 (round 5): RA 9710 s.18 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -659,18 +661,19 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken. Applied 2026-09-23 (round 5): DOLE Handbook on Workers’ Statutory Monetary Benefits (2023) ch.7 §D: the use and conversion “may be on a pro rata basis”, and its illustration — hired 1 January 2022, resigned 1 March 2023 — converts 5 days earned as of 31 December 2022 plus (2/12) × 5 = 0.833 for January and February 2023, 5.833 in all, unrounded. The year's five days are therefore earned by completed months of the leave year and never rounded (`COMPLETED_MONTHS`, `EXACT`); a year of whole service still holds all five from its start. Coverage (§B) checked against the Handbook: government, personal service (overtaken for the kasambahay by RA 10361 s.29, `ANNUAL_LEAVE_DOMESTIC`), managerial employees and managerial staff (`MANAGERIAL`), field personnel and the unsupervised (`FIELD_PERSONNEL`, `PAID_BY_RESULTS`), and establishments regularly employing fewer than ten (`small_establishment`) are outside; those already enjoying the benefit or five days' vacation leave with pay hold it through the employer's own leave row, which this statutory row does not duplicate.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
-			"proration": "NONE",
+			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
 					"eligibility": "employment.service_months >= 12",
 					"days": 5
 				}
-			]
+			],
+			"rounding": "EXACT"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -698,7 +701,7 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash.",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -764,7 +767,7 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "SOLO_PARENT_LEAVE",
 		"name": "Parental leave for solo parents",
-		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`).",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`). Applied 2026-09-23 (round 5): solo-parent standing is what the Solo Parent Identification Card establishes (RA 11861 ss.15, 20: the benefit is availed on presenting the SPIC the local social welfare office issues); `employee.solo_parent` is false until the employer records a presented card, the statute's own default.",
 		"eligibility": "employee.solo_parent",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -888,7 +891,7 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "VAWC_LEAVE",
 		"name": "Leave for victims of violence against women and their children",
-		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43 Applied 2026-09-23 (round 5): RA 9262 s.43 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -929,7 +932,7 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash.",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash. Applied 2026-09-23 (round 5): RA 8187 s.2 grants it to a married male employee for his lawful wife's delivery; an unrecorded `employee.gender` or `employee.marital_status` offers no paternity leave until recorded — the grant's conditions, never a default.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -952,7 +955,7 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "SPECIAL_LEAVE_FOR_WOMEN",
 		"name": "Special leave for women (gynaecological surgery)",
-		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service).",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service). Applied 2026-09-23 (round 5): RA 9710 s.18 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -992,18 +995,19 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken.",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken. Applied 2026-09-23 (round 5): DOLE Handbook on Workers’ Statutory Monetary Benefits (2023) ch.7 §D: the use and conversion “may be on a pro rata basis”, and its illustration — hired 1 January 2022, resigned 1 March 2023 — converts 5 days earned as of 31 December 2022 plus (2/12) × 5 = 0.833 for January and February 2023, 5.833 in all, unrounded. The year's five days are therefore earned by completed months of the leave year and never rounded (`COMPLETED_MONTHS`, `EXACT`); a year of whole service still holds all five from its start. Coverage (§B) checked against the Handbook: government, personal service (overtaken for the kasambahay by RA 10361 s.29, `ANNUAL_LEAVE_DOMESTIC`), managerial employees and managerial staff (`MANAGERIAL`), field personnel and the unsupervised (`FIELD_PERSONNEL`, `PAID_BY_RESULTS`), and establishments regularly employing fewer than ten (`small_establishment`) are outside; those already enjoying the benefit or five days' vacation leave with pay hold it through the employer's own leave row, which this statutory row does not duplicate.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
-			"proration": "NONE",
+			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
 					"eligibility": "employment.service_months >= 12",
 					"days": 5
 				}
-			]
+			],
+			"rounding": "EXACT"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1031,7 +1035,7 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash.",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1097,7 +1101,7 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "SOLO_PARENT_LEAVE",
 		"name": "Parental leave for solo parents",
-		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`).",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`). Applied 2026-09-23 (round 5): solo-parent standing is what the Solo Parent Identification Card establishes (RA 11861 ss.15, 20: the benefit is availed on presenting the SPIC the local social welfare office issues); `employee.solo_parent` is false until the employer records a presented card, the statute's own default.",
 		"eligibility": "employee.solo_parent",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1136,6 +1140,586 @@
 	{
 		"id": "5f7a9db9-2628-5de3-92a6-d191917ba25b",
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "ANNUAL_LEAVE_DOMESTIC",
+		"name": "Service incentive leave (kasambahay)",
+		"authority": "RA 10361 (Batas Kasambahay) s.29: a kasambahay of one year’s service is entitled to five days of service incentive leave with pay; unused leave is not cumulative, not carried over and not convertible to cash.",
+		"eligibility": "employment.type == \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e2bf392e-26c2-550d-b896-61381659c653",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "f8af68c1-5103-5408-ba06-e19041d883be",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "VAWC_LEAVE",
+		"name": "Leave for victims of violence against women and their children",
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43 Applied 2026-09-23 (round 5): RA 9262 s.43 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "58e12f46-d282-5b92-b513-d06de6f951b9",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 2,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "dde2efff-2e45-515d-b5f3-985b3539df96",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash. Applied 2026-09-23 (round 5): RA 8187 s.2 grants it to a married male employee for his lawful wife's delivery; an unrecorded `employee.gender` or `employee.marital_status` offers no paternity leave until recorded — the grant's conditions, never a default.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			],
+			"lifetime_events": 4
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cf513e1d-7d48-5408-89e7-79ae77cbb687",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "SPECIAL_LEAVE_FOR_WOMEN",
+		"name": "Special leave for women (gynaecological surgery)",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service). Applied 2026-09-23 (round 5): RA 9710 s.18 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "17304eb3-9936-5a11-8452-b0e1cb61fbc4",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "c0639de1-95c1-5750-a559-1805d9c11c01",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken. Applied 2026-09-23 (round 5): DOLE Handbook on Workers’ Statutory Monetary Benefits (2023) ch.7 §D: the use and conversion “may be on a pro rata basis”, and its illustration — hired 1 January 2022, resigned 1 March 2023 — converts 5 days earned as of 31 December 2022 plus (2/12) × 5 = 0.833 for January and February 2023, 5.833 in all, unrounded. The year's five days are therefore earned by completed months of the leave year and never rounded (`COMPLETED_MONTHS`, `EXACT`); a year of whole service still holds all five from its start. Coverage (§B) checked against the Handbook: government, personal service (overtaken for the kasambahay by RA 10361 s.29, `ANNUAL_LEAVE_DOMESTIC`), managerial employees and managerial staff (`MANAGERIAL`), field personnel and the unsupervised (`FIELD_PERSONNEL`, `PAID_BY_RESULTS`), and establishments regularly employing fewer than ten (`small_establishment`) are outside; those already enjoying the benefit or five days' vacation leave with pay hold it through the employer's own leave row, which this statutory row does not duplicate.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			],
+			"rounding": "EXACT"
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "756fa2ae-bdcb-59f1-b444-12e3fb159ca9",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3f715bd5-1d0b-5fbb-964d-3608747f7b4f",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"days": 60
+				},
+				{
+					"eligibility": "employee.solo_parent",
+					"days": 120
+				},
+				{
+					"eligibility": "",
+					"days": 105
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d06721d2-adbc-508c-b48a-6f7f48404c42",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ca5c034d-6c12-57d7-8a86-ed3ebbd219f2",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "99a2813b-8035-5996-9a3b-23c0486e1324",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "SOLO_PARENT_LEAVE",
+		"name": "Parental leave for solo parents",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`). Applied 2026-09-23 (round 5): solo-parent standing is what the Solo Parent Identification Card establishes (RA 11861 ss.15, 20: the benefit is availed on presenting the SPIC the local social welfare office issues); `employee.solo_parent` is false until the employer records a presented card, the statute's own default.",
+		"eligibility": "employee.solo_parent",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 7
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"evidence": "REQUIRED",
+		"encash_on_exit": false
+	},
+	{
+		"id": "844cefff-50b7-528b-adb2-28dc95d4debe",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "841922f2-3abd-51e3-a504-8ebd363b7d36",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "ANNUAL_LEAVE_DOMESTIC",
+		"name": "Service incentive leave (kasambahay)",
+		"authority": "RA 10361 (Batas Kasambahay) s.29: a kasambahay of one year’s service is entitled to five days of service incentive leave with pay; unused leave is not cumulative, not carried over and not convertible to cash.",
+		"eligibility": "employment.type == \"DOMESTIC\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "271c92c2-ff5f-5564-9a6d-7ce78abc6449",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d717fad5-7bf9-5ddc-bf30-2d75597ec589",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "VAWC_LEAVE",
+		"name": "Leave for victims of violence against women and their children",
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43 Applied 2026-09-23 (round 5): RA 9262 s.43 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "961eac54-9937-5ab1-be68-684b2df721c9",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 2,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "28cbb7c7-d67f-53eb-b235-cefc1fa1a47f",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"authority": "Republic Act 8187 sec. 3 Applied 2026-09-18: seven days per delivery of the legitimate spouse, for the first four (RA 8187 s.2; `lifetime_events`). Applied 2026-09-19 (2): RA 8187 s.2: seven days for the delivery of, or miscarriage by, the legitimate spouse (`event.kind in [BIRTH, MISCARRIAGE]`), the first four deliveries; s.4? the leave is not convertible to cash. Applied 2026-09-23 (round 5): RA 8187 s.2 grants it to a married male employee for his lawful wife's delivery; an unrecorded `employee.gender` or `employee.marital_status` offers no paternity leave until recorded — the grant's conditions, never a default.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			],
+			"lifetime_events": 4
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ecfb6daf-7bf8-5301-bf36-c848acd058b3",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "SPECIAL_LEAVE_FOR_WOMEN",
+		"name": "Special leave for women (gynaecological surgery)",
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012 Applied 2026-09-18: two months per gynaecological surgery (RA 9710 s.18; `event.kind == \"SURGERY\"`), after six months’ aggregate service in the twelve before it (read as six months’ service). Applied 2026-09-23 (round 5): RA 9710 s.18 grants it to a woman employee; an unrecorded `employee.gender` offers none until recorded.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind == \"SURGERY\" && employment.service_months >= 6",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d531953e-1235-58cb-b62d-4c72a17ca1b8",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d6236098-9883-5c4b-95f0-9aaacd2eeb5a",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95 Art.95(2) and Handbook ch.7 §B: service incentive leave does not reach field personnel, workers paid by results, domestic helpers, or an establishment regularly employing fewer than ten (`company.facts.small_establishment`). Applied 2026-09-19 (2): RA 10361 s.29: a kasambahay of one year’s service has the five days of service incentive leave too; the Labor Code art.95 exclusion of domestic workers is overtaken. Applied 2026-09-23 (round 5): DOLE Handbook on Workers’ Statutory Monetary Benefits (2023) ch.7 §D: the use and conversion “may be on a pro rata basis”, and its illustration — hired 1 January 2022, resigned 1 March 2023 — converts 5 days earned as of 31 December 2022 plus (2/12) × 5 = 0.833 for January and February 2023, 5.833 in all, unrounded. The year's five days are therefore earned by completed months of the leave year and never rounded (`COMPLETED_MONTHS`, `EXACT`); a year of whole service still holds all five from its start. Coverage (§B) checked against the Handbook: government, personal service (overtaken for the kasambahay by RA 10361 s.29, `ANNUAL_LEAVE_DOMESTIC`), managerial employees and managerial staff (`MANAGERIAL`), field personnel and the unsupervised (`FIELD_PERSONNEL`, `PAID_BY_RESULTS`), and establishments regularly employing fewer than ten (`small_establishment`) are outside; those already enjoying the benefit or five days' vacation leave with pay hold it through the employer's own leave row, which this statutory row does not duplicate.",
+		"eligibility": "employment.type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			],
+			"rounding": "EXACT"
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "3566369c-7ca4-5cce-8815-612648e28207",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "985d38e6-0c1b-54e4-9693-8f21f7c0ad28",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"days": 60
+				},
+				{
+					"eligibility": "employee.solo_parent",
+					"days": 120
+				},
+				{
+					"eligibility": "",
+					"days": 105
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ed79ded7-3aeb-5d18-a78d-43fce44222cc",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "43b76ca8-d1cb-5209-9c3f-921608822fd2",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "08afaca6-45f9-5bee-accf-a0447524d342",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "SOLO_PARENT_LEAVE",
+		"name": "Parental leave for solo parents",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`). Applied 2026-09-23 (round 5): solo-parent standing is what the Solo Parent Identification Card establishes (RA 11861 ss.15, 20: the benefit is availed on presenting the SPIC the local social welfare office issues); `employee.solo_parent` is false until the employer records a presented card, the statute's own default.",
+		"eligibility": "employee.solo_parent",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 7
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"is_npl": false,
+		"can_encash": false,
+		"evidence": "REQUIRED",
+		"encash_on_exit": false
+	},
+	{
+		"id": "975004e0-dfc5-579d-b124-d6d716f0aa71",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": null,
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "4b068677-dd47-5a2d-ade0-7f0b2577c5f8",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
 		"code": "ANNUAL_LEAVE_DOMESTIC",
 		"name": "Service incentive leave (kasambahay)",
 		"authority": "RA 10361 (Batas Kasambahay) s.29: a kasambahay of one year’s service is entitled to five days of service incentive leave with pay; unused leave is not cumulative, not carried over and not convertible to cash.",

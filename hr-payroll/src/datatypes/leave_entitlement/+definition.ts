@@ -53,15 +53,59 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 		Schema.NullOr(Schema.Union([Schema.Finite.check(Schema.isGreaterThan(0)), Schema.String]))
 	),
 	/**
+	 * Lifetime caps each recorded child holds, instead of one for the person: every day of the leave
+	 * is placed on one child's cap whose predicate holds on the first or last day of the day's leave
+	 * year, and the days must fit. Predicate and days are read over the person as if that child were
+	 * their only one (SG CDCA s.12B(2)(a): 42 days of childcare leave and 12 of extended childcare
+	 * leave for any qualifying child; s.12D(2)(a): 24 of infant care leave). Absent is no such cap.
+	 */
+	child_lifetime: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Array(
+				Schema.Struct({
+					eligibility: Schema.String,
+					days: Schema.Union([Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), Schema.String])
+				})
+			)
+		)
+	),
+	/**
 	 * A window measured back from the day rather than a leave year: the `days` may be taken in any
 	 * such span (TW hospitalised sickness: one year within two, `24`). Absent is the leave year.
 	 */
 	rolling_months: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**
-	 * How a prorated grant rounds: to the half day (the default), or to the whole day with a half
-	 * or more rounding up (MY EA s.60E(1); SG EA s.88A(3)).
+	 * How a prorated grant rounds: to the half day (the default), to the whole day with a half
+	 * or more rounding up (MY EA s.60E(1); SG EA s.88A(3)), or not at all (PH SIL: the DOLE
+	 * Handbook converts 2/12 × 5 = 0.833 days).
 	 */
-	rounding: Schema.optionalKey(Schema.NullOr(Schema.Literals(['HALF_DAY', 'WHOLE_DAY']))),
+	rounding: Schema.optionalKey(Schema.NullOr(Schema.Literals(['HALF_DAY', 'WHOLE_DAY', 'EXACT']))),
+	/**
+	 * The fewest days a prorated grant rounds to, however short the service in the leave year (SG
+	 * CDCA s.12B(1)(i): 2 days for less than 5 months served in the relevant period). Absent is none.
+	 */
+	minimum_days: Schema.optionalKey(
+		Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
+	),
+	/**
+	 * The leave year is qualified as a whole: once eligible on a day of it, eligible for the rest
+	 * of it, and the grant is the whole year's — its service counted from the year's first day and
+	 * its bands read on its first and last days of service (SG CDCA s.12B(1)(b), s.12D(1)(b): a
+	 * child below 7 — or 2 — "at any time during any relevant period"). Absent is day by day.
+	 */
+	qualifies_window: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * Of a row off-boarding pays out (`encash_on_exit`), the CEL predicate over the leaver on the
+	 * last day, departure facts included, that must hold for the pay-out: MY EA s.60E(3A) and SG EA
+	 * s.88A(8) withhold it on a dismissal for misconduct. Absent or empty is every leaver.
+	 */
+	encash_on_exit_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * A number over the person the matched band's days are multiplied by, before any proration
+	 * and rounding: a part-timer's share of the full-time grant by contracted hours (SG Part-Time
+	 * Employees Regulations; TW 僱用部分時間工作勞工應行注意事項). Absent or empty is the whole grant.
+	 */
+	scale: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	bands: Schema.Array(
 		Schema.Struct({
 			/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */

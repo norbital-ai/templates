@@ -4,7 +4,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.88A(8) pays untaken annual leave to an employee dismissed on any ground other than misconduct; `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "MONTHLY",
@@ -44,7 +44,9 @@
 					"days": 7
 				}
 			],
-			"rounding": "WHOLE_DAY"
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -55,7 +57,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
-		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it.",
+		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -78,7 +80,8 @@
 					"eligibility": "employment.service_months >= 3",
 					"days": 5
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"evidence_after_days": 0,
 		"is_npl": false,
@@ -91,7 +94,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
-		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months.",
+		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -114,7 +117,8 @@
 					"eligibility": "employment.service_months >= 3",
 					"days": 15
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"evidence_after_days": 0,
 		"is_npl": false,
@@ -179,12 +183,12 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven.",
-		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
+		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven. Applied 2026-09-23 (round 5): the 42 and 14 days a child count every employer — MSF ProFamily “Childcare leave” (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave): “up to a total of 42 days per child”; the days the employee declares as taken with earlier employers (`employee_children[].prior_childcare_days`, summed as `children.prior_childcare_days`) come off the lifetime room. The year’s six (or two) are not reduced by leave taken with a previous employer: “Employees are entitled to take (prorated) GPCL with the new employer, regardless of the GPCL taken with the previous employer” — only the Government reimbursement of days 4–6 is once a calendar year. Applied 2026-09-23 (round 5, W): CDCA s.12B as in force (SSO informal consolidation, archived https://web.archive.org/web/20250121024936/https://sso.agc.gov.sg/Act/CDCSA2001?ValidDate=20241015&ViewType=Pdf): (1) an employee who “has served an employer for a period of not less than 3 months” and “has any child who is below 7 years of age and who is, or who becomes, a qualifying child, at any time during any relevant period” is entitled for that relevant period to “(i) 2 days, if the employee serves the employer for a period of less than 5 months during that relevant period; (ii) 3 days … not less than 5 months but less than 7 months; (iii) 4 days … 7 … 9; (iv) 5 days … 9 … 11; and (v) 6 days … not less than 11 months” — the completed months served in the leave year, six in twelve rounded half up, never under two (`proration: COMPLETED_MONTHS`, `rounding: WHOLE_DAY`, `minimum_days: 2`; MOM “Pro-rated childcare leave” tabulates the same: 3–4 months 2, 5–6 3, 7–8 4, 9–10 5, 11–12 6, and a leaver’s 0–2 months in the year of leaving 2). The child’s age is the year’s, not the day’s (`qualifies_window`): a child who turns 7 in the year still carries it; the three months’ service still bars the days before they are served. (1A) extended childcare leave: 2 days for a child “of or above 7 years of age but below 13 years of age” at any time in the period, not prorated (MOM “Extended childcare leave”: “Extended childcare leave are not pro-rated”); (2)(a) “(i) more than 42 days of childcare leave in respect of any qualifying child; (ii) more than 12 days of extended childcare leave in respect of any qualifying child; and (iii) more than a combined total of 6 days of childcare leave and extended childcare leave during any relevant period”; (3) while entitled under s.12B the employee has no EA s.87A childcare leave. So childcare, extended childcare and EA s.87A leave are one row and one annual pool (six days at most, two where no citizen child is under 7), and the lifetime room is 42 for each citizen child, 12 more for each citizen child of 7 or over, and 14 for each other child, less the days declared as taken with earlier employers for the children (`prior_childcare_days`, childcare and extended childcare alike — MSF: “covering all types of childcare leave (GPCL, ECL and leave under the Employment Act)”). EA s.87A’s 2 days are not prorated (MOM: “the 2 days of childcare leave cannot be pro-rated”) — the floor of 2 keeps them whole. Applied 2026-09-23 (round 5, W, 2): the caps are each child’s, not a sum over the children (`child_lifetime`): every day is placed on one child’s cap for which the child qualifies in that leave year — 42 for a citizen child below 7 (s.12B(2)(a)(i)), 12 for a citizen child of 7 to 12 (s.12B(2)(a)(ii)), 14 for any other child below 7 (EA s.87A) — less that child’s own days declared with earlier employers (`prior_childcare_days`; extended childcare separately as `prior_extended_childcare_days`). The year’s days are earned once the three months are served by the close of any day of it (MOM table: 3 completed months → 2 days), though they can be taken only from the day after.",
+		"eligibility": "(children.under(7) >= 1 || children.citizens_under(13) >= 1) && employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
-			"proration": "NONE",
+			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
 					"eligibility": "children.citizens_under(7) >= 1",
@@ -195,27 +199,21 @@
 					"days": 2
 				}
 			],
-			"lifetime_days": "children.citizens * 42.0 + (children.count - children.citizens) * 14.0"
-		},
-		"is_npl": false,
-		"can_encash": false,
-		"encash_on_exit": false
-	},
-	{
-		"id": "cd589777-2c2a-53b0-be79-d6bdc8a29ead",
-		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
-		"code": "EXTENDED_CHILDCARE_LEAVE",
-		"name": "Extended childcare leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12C: a citizen child aged seven to twelve, and no citizen child under seven (who would carry s.12B childcare leave instead) — `children.citizens_under`.",
-		"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0 && employment.service_months >= 3",
-		"entitlement": {
-			"availability": "UPFRONT",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": [
+			"rounding": "WHOLE_DAY",
+			"minimum_days": 2,
+			"qualifies_window": true,
+			"child_lifetime": [
 				{
-					"eligibility": "",
-					"days": 2
+					"eligibility": "children.citizens_under(7) >= 1",
+					"days": "42.0 - children.prior_childcare_days"
+				},
+				{
+					"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0",
+					"days": "12.0 - children.prior_extended_childcare_days"
+				},
+				{
+					"eligibility": "children.under(7) >= 1 && children.citizens == 0.0",
+					"days": "14.0 - children.prior_childcare_days"
 				}
 			]
 		},
@@ -228,7 +226,7 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`).",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`). Applied 2026-09-23 (round 5, W): CDCA s.12D(1) (Act 32 of 2023 wef 01/01/2024): a child “below 2 years of age … at any time during any relevant period” gives “unpaid infant care leave of 12 days for that relevant period” — the whole period, not prorated (`qualifies_window`); s.12D(2)(a): “not entitled to more than 24 days of unpaid infant care leave in respect of any qualifying child” (`lifetime_days`, summed over the citizen children). Applied 2026-09-23 (round 5, W, 2): the 24 days are each citizen child’s (`child_lifetime`), less that child’s days declared with earlier employers (`prior_infant_care_days`).",
 		"eligibility": "children.citizens_under(2) >= 1 && employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -238,6 +236,13 @@
 				{
 					"eligibility": "",
 					"days": 12
+				}
+			],
+			"qualifies_window": true,
+			"child_lifetime": [
+				{
+					"eligibility": "children.citizens_under(2) >= 1",
+					"days": "24.0 - children.prior_infant_care_days"
 				}
 			]
 		},
@@ -350,7 +355,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.88A(8) pays untaken annual leave to an employee dismissed on any ground other than misconduct; `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "MONTHLY",
@@ -390,7 +395,9 @@
 					"days": 7
 				}
 			],
-			"rounding": "WHOLE_DAY"
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -401,7 +408,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
-		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it.",
+		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -424,7 +431,8 @@
 					"eligibility": "employment.service_months >= 3",
 					"days": 5
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"evidence_after_days": 0,
 		"is_npl": false,
@@ -437,7 +445,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
-		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months.",
+		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -460,7 +468,8 @@
 					"eligibility": "employment.service_months >= 3",
 					"days": 15
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"evidence_after_days": 0,
 		"is_npl": false,
@@ -525,12 +534,12 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven.",
-		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
+		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven. Applied 2026-09-23 (round 5): the 42 and 14 days a child count every employer — MSF ProFamily “Childcare leave” (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave): “up to a total of 42 days per child”; the days the employee declares as taken with earlier employers (`employee_children[].prior_childcare_days`, summed as `children.prior_childcare_days`) come off the lifetime room. The year’s six (or two) are not reduced by leave taken with a previous employer: “Employees are entitled to take (prorated) GPCL with the new employer, regardless of the GPCL taken with the previous employer” — only the Government reimbursement of days 4–6 is once a calendar year. Applied 2026-09-23 (round 5, W): CDCA s.12B as in force (SSO informal consolidation, archived https://web.archive.org/web/20250121024936/https://sso.agc.gov.sg/Act/CDCSA2001?ValidDate=20241015&ViewType=Pdf): (1) an employee who “has served an employer for a period of not less than 3 months” and “has any child who is below 7 years of age and who is, or who becomes, a qualifying child, at any time during any relevant period” is entitled for that relevant period to “(i) 2 days, if the employee serves the employer for a period of less than 5 months during that relevant period; (ii) 3 days … not less than 5 months but less than 7 months; (iii) 4 days … 7 … 9; (iv) 5 days … 9 … 11; and (v) 6 days … not less than 11 months” — the completed months served in the leave year, six in twelve rounded half up, never under two (`proration: COMPLETED_MONTHS`, `rounding: WHOLE_DAY`, `minimum_days: 2`; MOM “Pro-rated childcare leave” tabulates the same: 3–4 months 2, 5–6 3, 7–8 4, 9–10 5, 11–12 6, and a leaver’s 0–2 months in the year of leaving 2). The child’s age is the year’s, not the day’s (`qualifies_window`): a child who turns 7 in the year still carries it; the three months’ service still bars the days before they are served. (1A) extended childcare leave: 2 days for a child “of or above 7 years of age but below 13 years of age” at any time in the period, not prorated (MOM “Extended childcare leave”: “Extended childcare leave are not pro-rated”); (2)(a) “(i) more than 42 days of childcare leave in respect of any qualifying child; (ii) more than 12 days of extended childcare leave in respect of any qualifying child; and (iii) more than a combined total of 6 days of childcare leave and extended childcare leave during any relevant period”; (3) while entitled under s.12B the employee has no EA s.87A childcare leave. So childcare, extended childcare and EA s.87A leave are one row and one annual pool (six days at most, two where no citizen child is under 7), and the lifetime room is 42 for each citizen child, 12 more for each citizen child of 7 or over, and 14 for each other child, less the days declared as taken with earlier employers for the children (`prior_childcare_days`, childcare and extended childcare alike — MSF: “covering all types of childcare leave (GPCL, ECL and leave under the Employment Act)”). EA s.87A’s 2 days are not prorated (MOM: “the 2 days of childcare leave cannot be pro-rated”) — the floor of 2 keeps them whole. Applied 2026-09-23 (round 5, W, 2): the caps are each child’s, not a sum over the children (`child_lifetime`): every day is placed on one child’s cap for which the child qualifies in that leave year — 42 for a citizen child below 7 (s.12B(2)(a)(i)), 12 for a citizen child of 7 to 12 (s.12B(2)(a)(ii)), 14 for any other child below 7 (EA s.87A) — less that child’s own days declared with earlier employers (`prior_childcare_days`; extended childcare separately as `prior_extended_childcare_days`). The year’s days are earned once the three months are served by the close of any day of it (MOM table: 3 completed months → 2 days), though they can be taken only from the day after.",
+		"eligibility": "(children.under(7) >= 1 || children.citizens_under(13) >= 1) && employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
-			"proration": "NONE",
+			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
 					"eligibility": "children.citizens_under(7) >= 1",
@@ -541,27 +550,21 @@
 					"days": 2
 				}
 			],
-			"lifetime_days": "children.citizens * 42.0 + (children.count - children.citizens) * 14.0"
-		},
-		"is_npl": false,
-		"can_encash": false,
-		"encash_on_exit": false
-	},
-	{
-		"id": "23608f60-9728-59c2-aaf1-e24935cfd8f9",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
-		"code": "EXTENDED_CHILDCARE_LEAVE",
-		"name": "Extended childcare leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12C: a citizen child aged seven to twelve, and no citizen child under seven (who would carry s.12B childcare leave instead) — `children.citizens_under`.",
-		"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0 && employment.service_months >= 3",
-		"entitlement": {
-			"availability": "UPFRONT",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": [
+			"rounding": "WHOLE_DAY",
+			"minimum_days": 2,
+			"qualifies_window": true,
+			"child_lifetime": [
 				{
-					"eligibility": "",
-					"days": 2
+					"eligibility": "children.citizens_under(7) >= 1",
+					"days": "42.0 - children.prior_childcare_days"
+				},
+				{
+					"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0",
+					"days": "12.0 - children.prior_extended_childcare_days"
+				},
+				{
+					"eligibility": "children.under(7) >= 1 && children.citizens == 0.0",
+					"days": "14.0 - children.prior_childcare_days"
 				}
 			]
 		},
@@ -574,7 +577,7 @@
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`).",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`). Applied 2026-09-23 (round 5, W): CDCA s.12D(1) (Act 32 of 2023 wef 01/01/2024): a child “below 2 years of age … at any time during any relevant period” gives “unpaid infant care leave of 12 days for that relevant period” — the whole period, not prorated (`qualifies_window`); s.12D(2)(a): “not entitled to more than 24 days of unpaid infant care leave in respect of any qualifying child” (`lifetime_days`, summed over the citizen children). Applied 2026-09-23 (round 5, W, 2): the 24 days are each citizen child’s (`child_lifetime`), less that child’s days declared with earlier employers (`prior_infant_care_days`).",
 		"eligibility": "children.citizens_under(2) >= 1 && employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -584,6 +587,13 @@
 				{
 					"eligibility": "",
 					"days": 12
+				}
+			],
+			"qualifies_window": true,
+			"child_lifetime": [
+				{
+					"eligibility": "children.citizens_under(2) >= 1",
+					"days": "24.0 - children.prior_infant_care_days"
 				}
 			]
 		},
@@ -662,7 +672,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.88A(8) pays untaken annual leave to an employee dismissed on any ground other than misconduct; `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "MONTHLY",
@@ -702,7 +712,9 @@
 					"days": 7
 				}
 			],
-			"rounding": "WHOLE_DAY"
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -713,7 +725,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
-		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it.",
+		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -736,7 +748,8 @@
 					"eligibility": "employment.service_months >= 3",
 					"days": 5
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"evidence_after_days": 0,
 		"is_npl": false,
@@ -749,7 +762,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
-		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months.",
+		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -772,7 +785,8 @@
 					"eligibility": "employment.service_months >= 3",
 					"days": 15
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"evidence_after_days": 0,
 		"is_npl": false,
@@ -837,12 +851,12 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven.",
-		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
+		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven. Applied 2026-09-23 (round 5): the 42 and 14 days a child count every employer — MSF ProFamily “Childcare leave” (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave): “up to a total of 42 days per child”; the days the employee declares as taken with earlier employers (`employee_children[].prior_childcare_days`, summed as `children.prior_childcare_days`) come off the lifetime room. The year’s six (or two) are not reduced by leave taken with a previous employer: “Employees are entitled to take (prorated) GPCL with the new employer, regardless of the GPCL taken with the previous employer” — only the Government reimbursement of days 4–6 is once a calendar year. Applied 2026-09-23 (round 5, W): CDCA s.12B as in force (SSO informal consolidation, archived https://web.archive.org/web/20250121024936/https://sso.agc.gov.sg/Act/CDCSA2001?ValidDate=20241015&ViewType=Pdf): (1) an employee who “has served an employer for a period of not less than 3 months” and “has any child who is below 7 years of age and who is, or who becomes, a qualifying child, at any time during any relevant period” is entitled for that relevant period to “(i) 2 days, if the employee serves the employer for a period of less than 5 months during that relevant period; (ii) 3 days … not less than 5 months but less than 7 months; (iii) 4 days … 7 … 9; (iv) 5 days … 9 … 11; and (v) 6 days … not less than 11 months” — the completed months served in the leave year, six in twelve rounded half up, never under two (`proration: COMPLETED_MONTHS`, `rounding: WHOLE_DAY`, `minimum_days: 2`; MOM “Pro-rated childcare leave” tabulates the same: 3–4 months 2, 5–6 3, 7–8 4, 9–10 5, 11–12 6, and a leaver’s 0–2 months in the year of leaving 2). The child’s age is the year’s, not the day’s (`qualifies_window`): a child who turns 7 in the year still carries it; the three months’ service still bars the days before they are served. (1A) extended childcare leave: 2 days for a child “of or above 7 years of age but below 13 years of age” at any time in the period, not prorated (MOM “Extended childcare leave”: “Extended childcare leave are not pro-rated”); (2)(a) “(i) more than 42 days of childcare leave in respect of any qualifying child; (ii) more than 12 days of extended childcare leave in respect of any qualifying child; and (iii) more than a combined total of 6 days of childcare leave and extended childcare leave during any relevant period”; (3) while entitled under s.12B the employee has no EA s.87A childcare leave. So childcare, extended childcare and EA s.87A leave are one row and one annual pool (six days at most, two where no citizen child is under 7), and the lifetime room is 42 for each citizen child, 12 more for each citizen child of 7 or over, and 14 for each other child, less the days declared as taken with earlier employers for the children (`prior_childcare_days`, childcare and extended childcare alike — MSF: “covering all types of childcare leave (GPCL, ECL and leave under the Employment Act)”). EA s.87A’s 2 days are not prorated (MOM: “the 2 days of childcare leave cannot be pro-rated”) — the floor of 2 keeps them whole. Applied 2026-09-23 (round 5, W, 2): the caps are each child’s, not a sum over the children (`child_lifetime`): every day is placed on one child’s cap for which the child qualifies in that leave year — 42 for a citizen child below 7 (s.12B(2)(a)(i)), 12 for a citizen child of 7 to 12 (s.12B(2)(a)(ii)), 14 for any other child below 7 (EA s.87A) — less that child’s own days declared with earlier employers (`prior_childcare_days`; extended childcare separately as `prior_extended_childcare_days`). The year’s days are earned once the three months are served by the close of any day of it (MOM table: 3 completed months → 2 days), though they can be taken only from the day after.",
+		"eligibility": "(children.under(7) >= 1 || children.citizens_under(13) >= 1) && employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
-			"proration": "NONE",
+			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
 					"eligibility": "children.citizens_under(7) >= 1",
@@ -853,27 +867,21 @@
 					"days": 2
 				}
 			],
-			"lifetime_days": "children.citizens * 42.0 + (children.count - children.citizens) * 14.0"
-		},
-		"is_npl": false,
-		"can_encash": false,
-		"encash_on_exit": false
-	},
-	{
-		"id": "05b56ffa-a6ee-583d-8e0d-8a86b742b654",
-		"settings_id": "10000000-0000-5000-8000-000000000040",
-		"code": "EXTENDED_CHILDCARE_LEAVE",
-		"name": "Extended childcare leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12C: a citizen child aged seven to twelve, and no citizen child under seven (who would carry s.12B childcare leave instead) — `children.citizens_under`.",
-		"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0 && employment.service_months >= 3",
-		"entitlement": {
-			"availability": "UPFRONT",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": [
+			"rounding": "WHOLE_DAY",
+			"minimum_days": 2,
+			"qualifies_window": true,
+			"child_lifetime": [
 				{
-					"eligibility": "",
-					"days": 2
+					"eligibility": "children.citizens_under(7) >= 1",
+					"days": "42.0 - children.prior_childcare_days"
+				},
+				{
+					"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0",
+					"days": "12.0 - children.prior_extended_childcare_days"
+				},
+				{
+					"eligibility": "children.under(7) >= 1 && children.citizens == 0.0",
+					"days": "14.0 - children.prior_childcare_days"
 				}
 			]
 		},
@@ -886,7 +894,7 @@
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`).",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`). Applied 2026-09-23 (round 5, W): CDCA s.12D(1) (Act 32 of 2023 wef 01/01/2024): a child “below 2 years of age … at any time during any relevant period” gives “unpaid infant care leave of 12 days for that relevant period” — the whole period, not prorated (`qualifies_window`); s.12D(2)(a): “not entitled to more than 24 days of unpaid infant care leave in respect of any qualifying child” (`lifetime_days`, summed over the citizen children). Applied 2026-09-23 (round 5, W, 2): the 24 days are each citizen child’s (`child_lifetime`), less that child’s days declared with earlier employers (`prior_infant_care_days`).",
 		"eligibility": "children.citizens_under(2) >= 1 && employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -896,6 +904,13 @@
 				{
 					"eligibility": "",
 					"days": 12
+				}
+			],
+			"qualifies_window": true,
+			"child_lifetime": [
+				{
+					"eligibility": "children.citizens_under(2) >= 1",
+					"days": "24.0 - children.prior_infant_care_days"
 				}
 			]
 		},
@@ -978,7 +993,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`).",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.88A(8) pays untaken annual leave to an employee dismissed on any ground other than misconduct; `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "MONTHLY",
@@ -1018,7 +1033,9 @@
 					"days": 7
 				}
 			],
-			"rounding": "WHOLE_DAY"
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1029,7 +1046,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
-		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it.",
+		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1052,7 +1069,8 @@
 					"eligibility": "employment.service_months >= 3",
 					"days": 5
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"evidence_after_days": 0,
 		"is_npl": false,
@@ -1065,7 +1083,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
-		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months.",
+		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
 		"eligibility": "employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1088,7 +1106,8 @@
 					"eligibility": "employment.service_months >= 3",
 					"days": 15
 				}
-			]
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
 		},
 		"evidence_after_days": 0,
 		"is_npl": false,
@@ -1153,12 +1172,12 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven.",
-		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
+		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven. Applied 2026-09-23 (round 5): the 42 and 14 days a child count every employer — MSF ProFamily “Childcare leave” (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave): “up to a total of 42 days per child”; the days the employee declares as taken with earlier employers (`employee_children[].prior_childcare_days`, summed as `children.prior_childcare_days`) come off the lifetime room. The year’s six (or two) are not reduced by leave taken with a previous employer: “Employees are entitled to take (prorated) GPCL with the new employer, regardless of the GPCL taken with the previous employer” — only the Government reimbursement of days 4–6 is once a calendar year. Applied 2026-09-23 (round 5, W): CDCA s.12B as in force (SSO informal consolidation, archived https://web.archive.org/web/20250121024936/https://sso.agc.gov.sg/Act/CDCSA2001?ValidDate=20241015&ViewType=Pdf): (1) an employee who “has served an employer for a period of not less than 3 months” and “has any child who is below 7 years of age and who is, or who becomes, a qualifying child, at any time during any relevant period” is entitled for that relevant period to “(i) 2 days, if the employee serves the employer for a period of less than 5 months during that relevant period; (ii) 3 days … not less than 5 months but less than 7 months; (iii) 4 days … 7 … 9; (iv) 5 days … 9 … 11; and (v) 6 days … not less than 11 months” — the completed months served in the leave year, six in twelve rounded half up, never under two (`proration: COMPLETED_MONTHS`, `rounding: WHOLE_DAY`, `minimum_days: 2`; MOM “Pro-rated childcare leave” tabulates the same: 3–4 months 2, 5–6 3, 7–8 4, 9–10 5, 11–12 6, and a leaver’s 0–2 months in the year of leaving 2). The child’s age is the year’s, not the day’s (`qualifies_window`): a child who turns 7 in the year still carries it; the three months’ service still bars the days before they are served. (1A) extended childcare leave: 2 days for a child “of or above 7 years of age but below 13 years of age” at any time in the period, not prorated (MOM “Extended childcare leave”: “Extended childcare leave are not pro-rated”); (2)(a) “(i) more than 42 days of childcare leave in respect of any qualifying child; (ii) more than 12 days of extended childcare leave in respect of any qualifying child; and (iii) more than a combined total of 6 days of childcare leave and extended childcare leave during any relevant period”; (3) while entitled under s.12B the employee has no EA s.87A childcare leave. So childcare, extended childcare and EA s.87A leave are one row and one annual pool (six days at most, two where no citizen child is under 7), and the lifetime room is 42 for each citizen child, 12 more for each citizen child of 7 or over, and 14 for each other child, less the days declared as taken with earlier employers for the children (`prior_childcare_days`, childcare and extended childcare alike — MSF: “covering all types of childcare leave (GPCL, ECL and leave under the Employment Act)”). EA s.87A’s 2 days are not prorated (MOM: “the 2 days of childcare leave cannot be pro-rated”) — the floor of 2 keeps them whole. Applied 2026-09-23 (round 5, W, 2): the caps are each child’s, not a sum over the children (`child_lifetime`): every day is placed on one child’s cap for which the child qualifies in that leave year — 42 for a citizen child below 7 (s.12B(2)(a)(i)), 12 for a citizen child of 7 to 12 (s.12B(2)(a)(ii)), 14 for any other child below 7 (EA s.87A) — less that child’s own days declared with earlier employers (`prior_childcare_days`; extended childcare separately as `prior_extended_childcare_days`). The year’s days are earned once the three months are served by the close of any day of it (MOM table: 3 completed months → 2 days), though they can be taken only from the day after.",
+		"eligibility": "(children.under(7) >= 1 || children.citizens_under(13) >= 1) && employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
-			"proration": "NONE",
+			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
 					"eligibility": "children.citizens_under(7) >= 1",
@@ -1169,27 +1188,21 @@
 					"days": 2
 				}
 			],
-			"lifetime_days": "children.citizens * 42.0 + (children.count - children.citizens) * 14.0"
-		},
-		"is_npl": false,
-		"can_encash": false,
-		"encash_on_exit": false
-	},
-	{
-		"id": "c9fb22f3-4217-5335-a7a8-4989b914b4d6",
-		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
-		"code": "EXTENDED_CHILDCARE_LEAVE",
-		"name": "Extended childcare leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12C: a citizen child aged seven to twelve, and no citizen child under seven (who would carry s.12B childcare leave instead) — `children.citizens_under`.",
-		"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0 && employment.service_months >= 3",
-		"entitlement": {
-			"availability": "UPFRONT",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": [
+			"rounding": "WHOLE_DAY",
+			"minimum_days": 2,
+			"qualifies_window": true,
+			"child_lifetime": [
 				{
-					"eligibility": "",
-					"days": 2
+					"eligibility": "children.citizens_under(7) >= 1",
+					"days": "42.0 - children.prior_childcare_days"
+				},
+				{
+					"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0",
+					"days": "12.0 - children.prior_extended_childcare_days"
+				},
+				{
+					"eligibility": "children.under(7) >= 1 && children.citizens == 0.0",
+					"days": "14.0 - children.prior_childcare_days"
 				}
 			]
 		},
@@ -1202,7 +1215,7 @@
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
-		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`).",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`). Applied 2026-09-23 (round 5, W): CDCA s.12D(1) (Act 32 of 2023 wef 01/01/2024): a child “below 2 years of age … at any time during any relevant period” gives “unpaid infant care leave of 12 days for that relevant period” — the whole period, not prorated (`qualifies_window`); s.12D(2)(a): “not entitled to more than 24 days of unpaid infant care leave in respect of any qualifying child” (`lifetime_days`, summed over the citizen children). Applied 2026-09-23 (round 5, W, 2): the 24 days are each citizen child’s (`child_lifetime`), less that child’s days declared with earlier employers (`prior_infant_care_days`).",
 		"eligibility": "children.citizens_under(2) >= 1 && employment.service_months >= 3",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1212,6 +1225,13 @@
 				{
 					"eligibility": "",
 					"days": 12
+				}
+			],
+			"qualifies_window": true,
+			"child_lifetime": [
+				{
+					"eligibility": "children.citizens_under(2) >= 1",
+					"days": "24.0 - children.prior_infant_care_days"
 				}
 			]
 		},
@@ -1377,6 +1397,361 @@
 	{
 		"id": "9d2b6b1e-5f1c-5c2c-9a6e-0e7b8a5c4d04",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": "No-pay leave at the employee's request. Employment Act 1968 s.20A(1)(c): a day of leave of absence without pay is one day of the month's working days off the monthly gross rate; MOM, Salary for an incomplete month of work. A fixed allowance is not reduced (payroll.allowance_npl_prorates = false).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "121a125a-4685-5bbd-a432-73230ca5e05b",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. Applied 2026-09-18 (2): EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.88A(8) pays untaken annual leave to an employee dismissed on any ground other than misconduct; `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
+		"eligibility": "employment.service_months >= 3",
+		"entitlement": {
+			"availability": "MONTHLY",
+			"year_start_month": 1,
+			"proration": "CALENDAR_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 84",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 72",
+					"days": 13
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 12
+				},
+				{
+					"eligibility": "employment.service_months >= 48",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.service_months >= 36",
+					"days": 10
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 9
+				},
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 8
+				},
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			],
+			"rounding": "WHOLE_DAY",
+			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "7d3f50b6-2663-55cd-805c-4ae6f88cac94",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "SICK_LEAVE",
+		"name": "Outpatient sick leave",
+		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
+		"eligibility": "employment.service_months >= 3",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 5",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.service_months >= 4",
+					"days": 8
+				},
+				{
+					"eligibility": "employment.service_months >= 3",
+					"days": 5
+				}
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+		},
+		"evidence_after_days": 0,
+		"is_npl": false,
+		"can_encash": true,
+		"consumes_code": "HOSPITALIZATION_LEAVE",
+		"encash_on_exit": false
+	},
+	{
+		"id": "f664a443-2532-50e6-8389-c4203a7b4526",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalization leave",
+		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. Applied 2026-09-23 (round 2): Employment of Part-Time Employees Regulations: a part-timer’s annual and sick leave is (their hours a year ÷ a similar full-timer’s) × the full-timer’s days × the full-timer’s hours a day, in hours (MOM worked examples: a 44-hour, 8-hour-day full-timer). `entitlement.scale` states it in the part-timer’s own days — × 8 ÷ their hours a day — so a 20-hour, five-day week holds 14 × 20/44 × 8 ÷ 4 = 12.73 sick days of four hours (50.9 hours), held as 13 days: a scaled grant rounds up to the half day, never below the hours owed. The comparator is the MOM example’s 44-hour week, not a company’s own full-timer.",
+		"eligibility": "employment.service_months >= 3",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 60
+				},
+				{
+					"eligibility": "employment.service_months >= 5",
+					"days": 45
+				},
+				{
+					"eligibility": "employment.service_months >= 4",
+					"days": 30
+				},
+				{
+					"eligibility": "employment.service_months >= 3",
+					"days": 15
+				}
+			],
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+		},
+		"evidence_after_days": 0,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "aa9641ba-ad87-5be3-a4df-d6a4a685cf38",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. Applied 2026-09-18: a grant per birth (`event.kind == \"BIRTH\"`, the child named on the entry), 112 days where the child is a Singapore citizen (`event.child_citizenship`), else the EA s.76 84 days, of which the last four weeks are unpaid where the mother has two or more living children besides the newborn (`pay_fraction`). Applied 2026-09-19 (2): EA s.76: where the child is not a citizen the employer pays the first eight weeks only to a mother with fewer than two living children besides the newborn (`children.count >= 3` is two or more others: nothing is paid); the last four weeks are unpaid for every EA-only mother.",
+		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3 && event.kind == \"BIRTH\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.child_citizenship == \"CITIZEN\"",
+					"days": 112
+				},
+				{
+					"eligibility": "",
+					"days": 84
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"pay_fraction": "event.child_citizenship == \"CITIZEN\" ? 1.0 : (children.births >= 3 ? 0.0 : (leave.day_index > 56 ? 0.0 : 1.0))",
+		"encash_on_exit": false
+	},
+	{
+		"id": "bd687966-a4af-567b-acfc-17029a9e03bc",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. Applied 2026-09-18: a grant per child (`event.kind`, the child named on the entry, a Singapore citizen); the marriage condition is read as the father’s recorded status. Applied 2026-09-19 (2): CDCA s.12H as amended: four weeks for a child born or adopted on or after 1 April 2025; two weeks for an earlier child whose leave is taken within the twelve months (`event.date`).",
+		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"ADOPTION\"] && event.child_citizenship == \"CITIZEN\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.date >= \"2025-04-01\"",
+					"days": 28
+				},
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "79b6da20-f541-56f0-9f65-eabd682c6cbc",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. Applied 2026-09-18: the child, not the parent, is the citizen (`children.citizens`). Applied 2026-09-18 (3): GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employments here (`lifetime_days`). Applied 2026-09-19 (2): CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven. Applied 2026-09-23 (round 5): the 42 and 14 days a child count every employer — MSF ProFamily “Childcare leave” (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave): “up to a total of 42 days per child”; the days the employee declares as taken with earlier employers (`employee_children[].prior_childcare_days`, summed as `children.prior_childcare_days`) come off the lifetime room. The year’s six (or two) are not reduced by leave taken with a previous employer: “Employees are entitled to take (prorated) GPCL with the new employer, regardless of the GPCL taken with the previous employer” — only the Government reimbursement of days 4–6 is once a calendar year. Applied 2026-09-23 (round 5, W): CDCA s.12B as in force (SSO informal consolidation, archived https://web.archive.org/web/20250121024936/https://sso.agc.gov.sg/Act/CDCSA2001?ValidDate=20241015&ViewType=Pdf): (1) an employee who “has served an employer for a period of not less than 3 months” and “has any child who is below 7 years of age and who is, or who becomes, a qualifying child, at any time during any relevant period” is entitled for that relevant period to “(i) 2 days, if the employee serves the employer for a period of less than 5 months during that relevant period; (ii) 3 days … not less than 5 months but less than 7 months; (iii) 4 days … 7 … 9; (iv) 5 days … 9 … 11; and (v) 6 days … not less than 11 months” — the completed months served in the leave year, six in twelve rounded half up, never under two (`proration: COMPLETED_MONTHS`, `rounding: WHOLE_DAY`, `minimum_days: 2`; MOM “Pro-rated childcare leave” tabulates the same: 3–4 months 2, 5–6 3, 7–8 4, 9–10 5, 11–12 6, and a leaver’s 0–2 months in the year of leaving 2). The child’s age is the year’s, not the day’s (`qualifies_window`): a child who turns 7 in the year still carries it; the three months’ service still bars the days before they are served. (1A) extended childcare leave: 2 days for a child “of or above 7 years of age but below 13 years of age” at any time in the period, not prorated (MOM “Extended childcare leave”: “Extended childcare leave are not pro-rated”); (2)(a) “(i) more than 42 days of childcare leave in respect of any qualifying child; (ii) more than 12 days of extended childcare leave in respect of any qualifying child; and (iii) more than a combined total of 6 days of childcare leave and extended childcare leave during any relevant period”; (3) while entitled under s.12B the employee has no EA s.87A childcare leave. So childcare, extended childcare and EA s.87A leave are one row and one annual pool (six days at most, two where no citizen child is under 7), and the lifetime room is 42 for each citizen child, 12 more for each citizen child of 7 or over, and 14 for each other child, less the days declared as taken with earlier employers for the children (`prior_childcare_days`, childcare and extended childcare alike — MSF: “covering all types of childcare leave (GPCL, ECL and leave under the Employment Act)”). EA s.87A’s 2 days are not prorated (MOM: “the 2 days of childcare leave cannot be pro-rated”) — the floor of 2 keeps them whole. Applied 2026-09-23 (round 5, W, 2): the caps are each child’s, not a sum over the children (`child_lifetime`): every day is placed on one child’s cap for which the child qualifies in that leave year — 42 for a citizen child below 7 (s.12B(2)(a)(i)), 12 for a citizen child of 7 to 12 (s.12B(2)(a)(ii)), 14 for any other child below 7 (EA s.87A) — less that child’s own days declared with earlier employers (`prior_childcare_days`; extended childcare separately as `prior_extended_childcare_days`). The year’s days are earned once the three months are served by the close of any day of it (MOM table: 3 completed months → 2 days), though they can be taken only from the day after.",
+		"eligibility": "(children.under(7) >= 1 || children.citizens_under(13) >= 1) && employment.service_months >= 3",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "children.citizens_under(7) >= 1",
+					"days": 6
+				},
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			],
+			"rounding": "WHOLE_DAY",
+			"minimum_days": 2,
+			"qualifies_window": true,
+			"child_lifetime": [
+				{
+					"eligibility": "children.citizens_under(7) >= 1",
+					"days": "42.0 - children.prior_childcare_days"
+				},
+				{
+					"eligibility": "children.citizens_under(13) >= 1 && children.citizens_under(7) == 0",
+					"days": "12.0 - children.prior_extended_childcare_days"
+				},
+				{
+					"eligibility": "children.under(7) >= 1 && children.citizens == 0.0",
+					"days": "14.0 - children.prior_childcare_days"
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "fe450ca4-7b2b-5cc7-8321-846604c52f34",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "UNPAID_INFANT_CARE_LEAVE",
+		"name": "Unpaid infant care leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. Applied 2026-09-19 (2): CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`). Applied 2026-09-23 (round 5, W): CDCA s.12D(1) (Act 32 of 2023 wef 01/01/2024): a child “below 2 years of age … at any time during any relevant period” gives “unpaid infant care leave of 12 days for that relevant period” — the whole period, not prorated (`qualifies_window`); s.12D(2)(a): “not entitled to more than 24 days of unpaid infant care leave in respect of any qualifying child” (`lifetime_days`, summed over the citizen children). Applied 2026-09-23 (round 5, W, 2): the 24 days are each citizen child’s (`child_lifetime`), less that child’s days declared with earlier employers (`prior_infant_care_days`).",
+		"eligibility": "children.citizens_under(2) >= 1 && employment.service_months >= 3",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 12
+				}
+			],
+			"qualifies_window": true,
+			"child_lifetime": [
+				{
+					"eligibility": "children.citizens_under(2) >= 1",
+					"days": "24.0 - children.prior_infant_care_days"
+				}
+			]
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "afbce42e-a7d2-5f48-9a61-c133623d9815",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "ADOPTION_LEAVE",
+		"name": "Adoption leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. Applied 2026-09-18: a grant per adoption of a child under twelve months who is a Singapore citizen (`event.child_age`, `event.child_citizenship`).",
+		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3 && event.kind == \"ADOPTION\" && event.child_age < 1 && event.child_citizenship == \"CITIZEN\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 84
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "a91e2170-5cb8-5819-8ce4-eb12826bf7a0",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "SHARED_PARENTAL_LEAVE",
+		"name": "Shared parental leave",
+		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. Applied 2026-09-18: keyed to the child’s date of birth (`event.date`): 10 weeks for a child born or with a Formal Intent to Adopt from 1 April 2026, 6 weeks before it. Applied 2026-09-18 (3): the weeks are the couple’s pool, split as the parents agree: the share this parent takes is recorded on the child (`employee_children.shared_parental_weeks`, read as `event.child_shared_weeks`) and the default share stands where none is — three of six weeks, five of ten from 1 April 2026 (GPSPL). Applied 2026-09-19 (2): CDCA s.12E: the shared parental leave in weeks of its own exists for a child born or adopted on or after 1 April 2025; an earlier child’s share came out of the mother’s maternity leave and is not a grant of this row (`event.date`).",
+		"eligibility": "employment.service_months >= 3 && event.kind in [\"BIRTH\", \"ADOPTION\"] && event.child_citizenship == \"CITIZEN\" && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.date < \"2025-04-01\"",
+					"days": 0
+				},
+				{
+					"eligibility": "event.date >= \"2026-04-01\"",
+					"days": "event.child_shared_weeks > 10.0 ? 70.0 : event.child_shared_weeks > 0.0 ? event.child_shared_weeks * 7.0 : 35.0"
+				},
+				{
+					"eligibility": "",
+					"days": "event.child_shared_weeks > 6.0 ? 42.0 : event.child_shared_weeks > 0.0 ? event.child_shared_weeks * 7.0 : 21.0"
+				}
+			]
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "dbec1ba4-773d-5aa3-8d60-e3d644ef5162",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "NS_LEAVE",
+		"name": "National service leave",
+		"authority": "Enlistment Act 1970 s.13 and s.31",
+		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 0,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "222ecf12-cb46-59a5-bb1c-fe5e60d91bbb",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "CREDITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3682496b-676c-56f3-adcc-7f91bac847b5",
+		"settings_id": "55567377-e07d-5979-b0cd-53a4b2a4e28e",
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "No-pay leave at the employee's request. Employment Act 1968 s.20A(1)(c): a day of leave of absence without pay is one day of the month's working days off the monthly gross rate; MOM, Salary for an incomplete month of work. A fixed allowance is not reduced (payroll.allowance_npl_prorates = false).",

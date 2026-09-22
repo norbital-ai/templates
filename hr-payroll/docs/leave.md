@@ -29,16 +29,19 @@ immutable; changed rules require a successor revision. Codes identify leave type
 
 The entitlement definition contains:
 
-| Field                 | Values and meaning                                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `availability`        | `UPFRONT`, `MONTHLY`, `UNLIMITED` or `PER_EVENT` (a grant per birth, adoption or bereavement the entry names; `lifetime_events` caps the grants over the employment).                            |
-| `year_start_month`    | The first month of the annual leave window, including fiscal years.                                                                                                                              |
-| `proration`           | `NONE`, eligible `CALENDAR_MONTHS`, `COMPLETED_MONTHS`, `HALF_MONTHS` (a month with at least half its days eligible counts whole — VN Decree 145 art.66(2)) or eligible `CALENDAR_DAYS`.         |
-| `rolling_months`      | Measures the window over the trailing months ending on the day instead of the leave year (MY sick leave over 12, TW over 24).                                                                    |
-| `rounding`            | `HALF_DAY` (default) or `WHOLE_DAY`: a part-year grant rounds to the day, a half or more up (MY s.60E(1), SG s.88A(3)).                                                                          |
-| `lifetime_days`       | The most days of the leave a person may ever take, across years and their employments here; a number or an expression over the person (SG GPCL: `children.citizens * 42.0 + …`).                 |
-| `consumes_after_days` | Of a row that `consumes_code` another: the days a leave year that stay outside the pool; only days beyond them draw from it (TW menstrual leave: 3).                                             |
-| `bands`               | Annual quantities by completed months of service on this contract; `days` is a number or an expression over `leave_day` (`leave.month_index`, `leave.day_index`, `leave.days`, the person root). |
+| Field                 | Values and meaning                                                                                                                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `availability`        | `UPFRONT`, `MONTHLY`, `UNLIMITED` or `PER_EVENT` (a grant per birth, adoption or bereavement the entry names; `lifetime_events` caps the grants over the employment).                                                                                                          |
+| `year_start_month`    | The first month of the annual leave window, including fiscal years.                                                                                                                                                                                                            |
+| `proration`           | `NONE`, eligible `CALENDAR_MONTHS`, `COMPLETED_MONTHS`, `HALF_MONTHS` (a month with at least half its days eligible counts whole — VN Decree 145 art.66(2)) or eligible `CALENDAR_DAYS`.                                                                                       |
+| `rolling_months`      | Measures the window over the trailing months ending on the day instead of the leave year (MY sick leave over 12, TW over 24).                                                                                                                                                  |
+| `rounding`            | `HALF_DAY` (default) or `WHOLE_DAY`: a part-year grant rounds to the day, a half or more up (MY s.60E(1), SG s.88A(3)).                                                                                                                                                        |
+| `minimum_days`        | The fewest days a prorated grant rounds to (SG CDCA s.12B(1)(i): 2 days however short the service in the year).                                                                                                                                                                |
+| `qualifies_window`    | The leave year qualifies as a whole: eligible from its first qualifying day to its end, service counted from its first day, bands read on its first and last days of service (SG CDCA s.12B(1)(b), s.12D(1)(b): a child below 7 or 2 at any time in the year).                 |
+| `lifetime_days`       | The most days of the leave a person may ever take, across years and their employments here; a number or an expression over the person (SG GPCL: `children.citizens * 42.0 + …`).                                                                                               |
+| `child_lifetime`      | Lifetime caps each recorded child holds: every day is placed on one child's cap whose predicate holds on the first or last day of its leave year, predicate and days read as if that child were the only one (SG CDCA s.12B(2)(a): 42, 12 and EA 14 a child; s.12D(2)(a): 24). |
+| `consumes_after_days` | Of a row that `consumes_code` another: the days a leave year that stay outside the pool; only days beyond them draw from it (TW menstrual leave: 3).                                                                                                                           |
+| `bands`               | Annual quantities by completed months of service on this contract; `days` is a number or an expression over `leave_day` (`leave.month_index`, `leave.day_index`, `leave.days`, the person root).                                                                               |
 
 The catalogue row beside it: `pay_fraction` (an expression over `leave_day`, the share of the day
 wage paid — ID sick leave steps down by month), `paid_by: EMPLOYER | FUND` (a FUND day is
@@ -67,7 +70,7 @@ An empty eligibility expression includes everyone. Expressions use the shared pe
 ```text
 employee.gender  employee.age  employee.age_months  employee.citizenship  employee.spouse_status
 employment.type  employment.classification  employment.service_months  employment.service_start
-terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.grade
+terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.paid_rest_days  terms.grade
 terms.ordinary_hours_per_week  terms.working_days_per_week
 children.count  children.under(n)  company.region  company.headcount  company.facts.<key>
 ```

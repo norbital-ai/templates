@@ -234,6 +234,7 @@ function openKeyBlank(
 			exitFacts.map((field) => [field.key, EMPTY_OF[field.type]])
 		);
 		zeroMap(person.period, 'leave_days', openKeyMentions(expression, `${prefix}period.leave_days`));
+		zeroMap(person.period, 'leave_pay', openKeyMentions(expression, `${prefix}period.leave_pay`));
 		zeroMap(
 			person.period,
 			'leave_full_days',

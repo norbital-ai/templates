@@ -53,12 +53,27 @@ export const runLeaveEncashmentOnExit = (api: AutomationApi, employmentId: strin
 		const today = calendarDateInTimeZone(instant, version.payroll.timezone);
 		if (exit_date > today)
 			return { employment_id: employmentId, status: 'not_due' as const, raised: [] };
+		// The leaver on the last day, departure facts included, for a row's `encash_on_exit_when`.
+		const leaver = context.employments.find((row) => row.id === employmentId);
+		const exitVersion =
+			company == null ? null : settingsInForce(context.versions, company.settings_code, exit_date);
+		const person = resolveExitFacts(
+			exitVersion?.exit_facts ?? [],
+			leaver?.exit_facts ?? {},
+			personAt(context, employmentId, exit_date)
+		);
 		const submissions = exitEncashments({
 			employmentId,
 			exitDate: exit_date,
 			summaries: leaveBalanceSummaries(context, employmentId, exit_date),
 			encashable: new Set(
-				context.catalogues.flatMap((row) => (row.can_encash && row.encash_on_exit ? [row.id] : []))
+				context.catalogues.flatMap((row) =>
+					row.can_encash &&
+					row.encash_on_exit &&
+					isEligible(row.entitlement.encash_on_exit_when ?? '', person)
+						? [row.id]
+						: []
+				)
 			),
 			posted: new Set(
 				context.entries.flatMap((row) =>

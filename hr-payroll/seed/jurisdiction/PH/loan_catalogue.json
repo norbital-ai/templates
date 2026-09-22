@@ -354,5 +354,183 @@
 			}
 		],
 		"name": "Company loan"
+	},
+	{
+		"id": "d4eac876-e07d-503d-915b-3b642b45a728",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "LOAN_RECOVERY_SSS_SALARY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "SSS salary loan recovery"
+	},
+	{
+		"id": "0f0e6d0f-a4e6-5862-b53d-5aaab2838422",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "LOAN_RECOVERY_PAGIBIG_SALARY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Pag-IBIG salary loan recovery"
+	},
+	{
+		"id": "299fb6a5-dee1-547d-803f-901570a369b0",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "LOAN_RECOVERY_PAGIBIG_CALAMITY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Pag-IBIG calamity loan recovery"
+	},
+	{
+		"id": "4b9a90cf-7588-56b1-a2d7-1f541ffb6ffe",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "LOAN_RECOVERY_COMPANY",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Company loan recovery"
+	},
+	{
+		"id": "fe8f7edb-e04b-5c6f-ad3c-939c4312d67d",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "COMPANY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Company loan"
+	},
+	{
+		"id": "200ad73f-09b0-5469-a4e2-a807754afbfd",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "LOAN_RECOVERY_SSS_SALARY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "SSS salary loan recovery"
+	},
+	{
+		"id": "41ca6d50-27d4-513e-b6d1-4f3ad7698504",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "LOAN_RECOVERY_PAGIBIG_SALARY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Pag-IBIG salary loan recovery"
+	},
+	{
+		"id": "2440dc86-95fe-5de1-b11d-c83876813619",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "LOAN_RECOVERY_PAGIBIG_CALAMITY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Pag-IBIG calamity loan recovery"
+	},
+	{
+		"id": "c5b96171-70b5-5b73-8b48-802818950e04",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "LOAN_RECOVERY_COMPANY",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Company loan recovery"
+	},
+	{
+		"id": "e80fffea-45e0-52ea-87d3-a71e42a7a045",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "COMPANY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Company loan"
 	}
 ]

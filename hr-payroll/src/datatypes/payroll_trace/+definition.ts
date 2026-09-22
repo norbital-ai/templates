@@ -47,10 +47,47 @@ const traceSchemeSchema = Schema.Struct({
 	reads: Schema.Array(traceReadSchema)
 });
 
+/**
+ * One band slice of a day whose overtime the worker took as time off (`work_days.time_off_in_lieu`):
+ * credited on the payslip that settled the day (`paid` false) at what the band would have paid,
+ * or paid out (`paid` true) when it went untaken past its expiry or the contract's end. A later
+ * run reads both to keep the balance (TW 勞基法 §32-1).
+ */
+const traceInLieuSchema = Schema.Struct({
+	work_day_id: Schema.String,
+	date: Schema.String,
+	line: Schema.String,
+	label: Schema.String,
+	hours: Schema.Finite,
+	rate: Schema.Finite,
+	amount: Schema.Finite,
+	paid: Schema.Boolean
+});
+export type InLieuSlice = Schema.Schema.Type<typeof traceInLieuSchema>;
+
 const tracePayslipSchema = Schema.Struct({
 	employment_id: Schema.String,
 	employee_number: Schema.String,
-	schemes: Schema.Array(traceSchemeSchema)
+	schemes: Schema.Array(traceSchemeSchema),
+	/**
+	 * The overtime this payslip settled, by calendar month, as each month, quarter and year limit
+	 * counts it (`limit` its key; `''` the regulated count the monthly funnel reads). A later run's
+	 * quarter or year reads it: the lines alone cannot say which hours a limit counted.
+	 */
+	overtime_hours: Schema.optionalKey(
+		Schema.Array(
+			Schema.Struct({ limit: Schema.String, month: Schema.String, hours: Schema.Finite })
+		)
+	),
+	time_off_in_lieu: Schema.optionalKey(Schema.Array(traceInLieuSchema)),
+	/**
+	 * The attendance window's days with overtime or night-window hours (`person.period.overtime_days`),
+	 * and the region's monthly floor in force over the window (`minimum_wage(region)`), so a later
+	 * run bounds each earlier payslip's per-day de minimis ceiling at the floor of its own time
+	 * (`earned_daily_excess`).
+	 */
+	overtime_days: Schema.optionalKey(Schema.Finite),
+	minimum_wage: Schema.optionalKey(Schema.Finite)
 });
 
 export const payrollTraceValueSchema = Schema.Array(tracePayslipSchema);

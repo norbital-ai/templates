@@ -15,9 +15,14 @@ const factKeyShape = Schema.Struct({
 	/**
 	 * When a changed declared value takes effect, where the law defers it (TW salary-withholding
 	 * regulations art. 5: dependant reductions apply the following January, increases the event
-	 * month). Absent is immediate.
+	 * month). `YEAR_START` defers every change to the next 1 January (ID PMK 168/2023 art.9(4): the
+	 * PTKP status on 1 January governs the year). `MONTH_START`: a change takes effect only from
+	 * the first of a month (TW 勞工保險條例 §14(2): 自通知之次月一日生效), so a coverage declaration
+	 * changing it inside continuous cover is refused. Absent is immediate.
 	 */
-	change_effect: Schema.optionalKey(Schema.Literals(['EVENT_MONTH', 'NEXT_YEAR_JANUARY'])),
+	change_effect: Schema.optionalKey(
+		Schema.Literals(['EVENT_MONTH', 'NEXT_YEAR_JANUARY', 'YEAR_START', 'MONTH_START'])
+	),
 	/** When present, a supplied value must satisfy this Boolean expression. */
 	valid_when: Schema.optionalKey(Schema.String.check(Schema.isPattern(/\S/))),
 	/** Operator-facing refusal used when `valid_when` is false. */
