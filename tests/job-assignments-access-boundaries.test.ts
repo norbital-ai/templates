@@ -139,7 +139,7 @@ test('only the static review automation can mark assignments checked', () => {
 	assert.equal(grant(suspicionAutomation, 'suspicious_activity_logs', 'delete'), undefined);
 });
 
-test('WhatsApp can read every assignment, mutate only an existing one, and has no other authority', () => {
+test('WhatsApp updates an existing assignment with its photos and messages, and has no other authority', () => {
 	assert.equal(whatsappEnvoy.delegation, 'disabled');
 	assert.deepEqual(whatsappPolicy.capabilities?.apps, []);
 	assert.deepEqual(grant(whatsapp, 'job_assignments', 'read')?.where, undefined);
@@ -147,20 +147,28 @@ test('WhatsApp can read every assignment, mutate only an existing one, and has n
 	assert.deepEqual(grant(whatsapp, 'job_assignments', 'mutate.existing')?.fields, [
 		'status',
 		'completed_at',
-		'location',
-		'summary',
-		'amount_charged'
+		'summary'
 	]);
-	assert.deepEqual(Object.keys(whatsapp.grants), ['job_assignments']);
+	assert.deepEqual(Object.keys(whatsapp.grants), [
+		'job_assignments',
+		'photo_evidence',
+		'communication_logs'
+	]);
 	assert.deepEqual(Object.keys(whatsapp.grants.job_assignments ?? {}), ['read', 'mutate']);
 	assert.deepEqual(Object.keys(whatsapp.grants.job_assignments?.mutate ?? {}), ['existing']);
 	assert.equal(grant(whatsapp, 'job_assignments', 'mutate.new'), undefined);
+	// Photos and messages are filed only as new rows through the assignment update; never read back,
+	// changed or removed.
+	for (const collection of ['photo_evidence', 'communication_logs']) {
+		assert.deepEqual(Object.keys(whatsapp.grants[collection] ?? {}), ['mutate']);
+		assert.deepEqual(Object.keys(whatsapp.grants[collection]?.mutate ?? {}), ['new']);
+	}
 });
 
 test('contractor-facing WhatsApp envoy instructions do not disclose private review vocabulary', () => {
 	const hiddenVocabulary = /suspici|integrity|site_identity|\bflags?\b/i;
 	assert.doesNotMatch(whatsappEnvoy.task, hiddenVocabulary);
-	assert.match(whatsappEnvoy.task, /read job\s+assignments/i);
-	assert.match(whatsappEnvoy.task, /cannot create new records or delete anything/i);
-	assert.match(whatsappEnvoy.task, /only call write_collection/i);
+	assert.match(whatsappEnvoy.task, /read job_assignments/i);
+	assert.match(whatsappEnvoy.task, /one write_collection update/i);
+	assert.match(whatsappEnvoy.task, /cannot create or delete assignments/i);
 });

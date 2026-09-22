@@ -4,170 +4,118 @@ import { getErrorMessage } from '@norbital-ai/std/error';
 import { Effect, Schema } from 'effect';
 import type { Pipelines } from './$types.js';
 
-function shiftCalendarDate(value: string, days: number): string {
-	if (!isCalendarDate(value)) {
-		refuse('Calendar date must use YYYY-MM-DD.');
-	}
-	const date = new Date(`${value}T00:00:00.000Z`);
-	date.setUTCDate(date.getUTCDate() + days);
-	return date.toISOString().slice(0, 10);
-}
-
-/** One non-blank text value as a roster cell carries it: `trim().min(1)` on the wire. */
-const rosterText = Schema.String.check(Schema.isPattern(/^\s*\S[\s\S]*$/));
-const rosterUserId = Schema.String.check(
-	Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-);
+const text = Schema.String.check(Schema.isPattern(/^\s*\S[\s\S]*$/));
+const optionalText = Schema.optional(Schema.NullOr(Schema.String));
 
 const rowSchema = Schema.Struct({
-	site_name: rosterText,
-	scheduled_for: rosterText,
-	job_title: rosterText,
+	/** A site's name or site code; a name no site carries files a new site. */
+	site: text,
+	scheduled_for: text,
+	title: text,
+	nature: optionalText,
+	description: optionalText,
 	/**
-	 * The declared relationship value, supplied by the operator rather than resolved through a
-	 * private identity query. The relationship's database foreign key is the existence check.
+	 * The contractor's `user.id`, when the sheet already dispatches the work. Authored code holds no
+	 * query over the identity table; the relationship's foreign key is the existence check.
 	 */
-	assignee_user_id: rosterUserId,
-	summary: Schema.optional(Schema.String)
+	assignee_user_id: optionalText,
+	/** The dispatch system's own reference, unique across assignments. */
+	external_ref: optionalText
 });
 
-const importInputSchema = Schema.Struct({
-	week_start: rosterText,
-	rows: Schema.NonEmptyArray(rowSchema)
-});
-
-const importSchema = Schema.toStandardSchemaV1(importInputSchema);
+const importInputSchema = Schema.Struct({ rows: Schema.NonEmptyArray(rowSchema) });
 const decodeImportInput = Schema.decodeUnknownEffect(importInputSchema);
 
-type RosterRow = Schema.Schema.Type<typeof rowSchema>;
+type ImportRow = Schema.Schema.Type<typeof rowSchema>;
 
 const QUERY_LIMIT = 5_000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function formatNamedList(items: readonly string[]): string {
-	return items.map((item) => `• ${item}`).join('\n');
-}
-
-function normalizeKey(value: string): string {
-	return value.trim().toLowerCase();
-}
-
-function rowLabel(row: RosterRow, index: number): string {
-	return `Row ${index + 1}: ${row.job_title} at ${row.site_name} on ${row.scheduled_for}`;
-}
+const key = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
+const blank = (value: string | null | undefined) => (value ?? '').trim() === '';
+const label = (row: ImportRow, index: number) =>
+	`Row ${index + 1}: ${row.title} at ${row.site} on ${row.scheduled_for}`;
 
 export default {
 	import: {
 		description:
-			'Turns a week of roster rows into dispatched assignments by matching each row to a single unassigned job by site, date and title, using the explicit assignee user relationship value supplied in the roster.',
-		input: importSchema,
+			'Creates job assignments from a sheet of work orders — site, day, title, and optionally nature, description, assignee and dispatch reference. A site is matched by its name or code; a name no site carries is filed as a new site. The whole sheet is checked before anything is written.',
+		input: Schema.toStandardSchemaV1(importInputSchema),
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {
-				// The authored import handler receives an unknown document. Decode it against the same
-				// schema the pipeline declares before reading any roster fields.
-				const { week_start: weekStart, rows } = yield* decodeImportInput(input).pipe(
+				const { rows } = yield* decodeImportInput(input).pipe(
 					Effect.catch((error) => Effect.sync(() => refuse(getErrorMessage(error))))
 				);
-
-				if (!isCalendarDate(weekStart)) {
-					refuse('week_start must be a calendar date (YYYY-MM-DD).');
-				}
-
-				const weekEnd = shiftCalendarDate(weekStart, 6);
-				const invalidDates = [
-					...new Set(
-						rows.filter((row) => !isCalendarDate(row.scheduled_for)).map((row) => row.scheduled_for)
-					)
-				];
-				if (invalidDates.length > 0) {
-					refuse(
-						`These scheduled_for values are not valid calendar days (YYYY-MM-DD):\n${formatNamedList(invalidDates)}`
-					);
-				}
-
-				const outsideWeek = rows
-					.filter((row) => row.scheduled_for < weekStart || row.scheduled_for > weekEnd)
-					.map((row, index) => rowLabel(row, index));
-				if (outsideWeek.length > 0) {
-					refuse(
-						`Every scheduled_for must fall within the week starting ${weekStart}:\n${formatNamedList(outsideWeek)}`
-					);
-				}
-
-				const scheduledDates = [...new Set(rows.map((row) => row.scheduled_for))];
-				const [sites, existing] = yield* Effect.all(
+				const refs = rows.flatMap((row) =>
+					blank(row.external_ref) ? [] : [row.external_ref!.trim()]
+				);
+				const [sites, taken] = yield* Effect.all(
 					[
 						api.db.sites.findMany({
-							columns: { id: true, name: true },
+							columns: { id: true, name: true, site_code: true },
 							limit: QUERY_LIMIT
 						}),
-						api.db.job_assignments.findMany({
-							where: { scheduled_for: { in: scheduledDates } },
-							columns: {
-								id: true,
-								site_id: true,
-								title: true,
-								scheduled_for: true,
-								status: true
-							},
-							limit: QUERY_LIMIT
-						})
+						refs.length === 0
+							? Effect.succeed([])
+							: api.db.job_assignments.findMany({
+									where: { external_ref: { in: refs } },
+									columns: { external_ref: true },
+									limit: QUERY_LIMIT
+								})
 					],
 					{ concurrency: 'unbounded' }
 				);
-
-				const siteByName = new Map(sites.map((site) => [normalizeKey(site.name), site]));
-				const assignmentByMatchKey = new Map(
-					existing.map((assignment) => [
-						`${assignment.site_id}\t${assignment.scheduled_for}\t${normalizeKey(assignment.title)}`,
-						assignment
-					])
-				);
+				const siteIdByKey = new Map<string, string>();
+				for (const site of sites) {
+					siteIdByKey.set(key(site.name), site.id);
+					if (site.site_code != null) siteIdByKey.set(key(site.site_code), site.id);
+				}
+				const takenRefs = new Set(taken.map((row) => row.external_ref));
 
 				const problems: string[] = [];
-				const resolvedRows: Array<{
-					row: RosterRow;
-					siteId: string;
-				}> = [];
-				const seenMatchKeys = new Set<string>();
-
+				const seenRefs = new Set<string>();
 				for (const [index, row] of rows.entries()) {
-					const label = rowLabel(row, index);
-					const site = siteByName.get(normalizeKey(row.site_name));
-					if (site == null) {
-						problems.push(`${label}: unknown site "${row.site_name}".`);
-						continue;
+					const where = label(row, index);
+					if (!isCalendarDate(row.scheduled_for.trim()))
+						problems.push(`${where}: scheduled_for must be a calendar day (YYYY-MM-DD).`);
+					if (!blank(row.assignee_user_id) && !UUID.test(row.assignee_user_id!.trim()))
+						problems.push(`${where}: assignee_user_id must be a user id.`);
+					if (!blank(row.external_ref)) {
+						const ref = row.external_ref!.trim();
+						if (takenRefs.has(ref) || seenRefs.has(ref))
+							problems.push(`${where}: external_ref ${ref} is already filed.`);
+						seenRefs.add(ref);
 					}
+				}
+				if (problems.length > 0)
+					refuse(
+						`The sheet could not be imported:\n${problems.map((problem) => `• ${problem}`).join('\n')}`
+					);
 
-					const matchKey = `${site.id}\t${row.scheduled_for}\t${normalizeKey(row.job_title)}`;
-					if (seenMatchKeys.has(matchKey)) {
-						problems.push(`${label}: this work appears more than once in the import.`);
-						continue;
-					}
-					if (assignmentByMatchKey.has(matchKey)) {
-						// A work order is the assignment row now, and an import only creates. A row that
-						// already exists is dispatched on the board, where the assignee is editable.
-						problems.push(
-							`${label}: this work is already filed for that site and day. Assign it on the dispatch board instead.`
-						);
-						continue;
-					}
-					seenMatchKeys.add(matchKey);
-					resolvedRows.push({ row, siteId: site.id });
+				const newSiteNames = [
+					...new Map(
+						rows
+							.filter((row) => !siteIdByKey.has(key(row.site)))
+							.map((row) => [key(row.site), row.site.trim()])
+					).values()
+				];
+				if (newSiteNames.length > 0) {
+					const created = yield* api.collection.sites.createMany(
+						newSiteNames.map((name) => ({ name }))
+					);
+					for (const site of created) siteIdByKey.set(key(site.name), site.id);
 				}
 
-				if (problems.length > 0) {
-					refuse(`The roster could not be imported:\n${formatNamedList(problems)}`);
-				}
-
-				return resolvedRows.map((entry) => ({
-					site_id: entry.siteId,
-					title: entry.row.job_title,
-					nature: entry.row.job_title,
-					scheduled_for: `${entry.row.scheduled_for}T00:00:00.000Z`,
-					description: '',
-					assignee_user_id: entry.row.assignee_user_id,
-					status: 'assigned' as const,
-					summary: entry.row.summary
+				return rows.map((row) => ({
+					site_id: siteIdByKey.get(key(row.site))!,
+					title: row.title.trim(),
+					nature: blank(row.nature) ? null : row.nature!.trim(),
+					scheduled_for: `${row.scheduled_for.trim()}T00:00:00.000Z`,
+					description: row.description?.trim() ?? '',
+					...(blank(row.assignee_user_id)
+						? {}
+						: { assignee_user_id: row.assignee_user_id!.trim() }),
+					...(blank(row.external_ref) ? {} : { external_ref: row.external_ref!.trim() })
 				}));
 			})
 	}

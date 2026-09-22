@@ -96,7 +96,9 @@ selection weighted by signal, capped at 4 MiB) plus a text context to a provider
 verdict, the model and the reason — lands in `suspicion_reviews`, so clear decisions are auditable
 too; a `suspicious` verdict appends an idempotent `suspicious_activity_logs` row (unique on
 `origin:job_assignment_id:md5(basis)`). The assignment's `suspicion_checked_at` is stamped only
-after inference and durable review persistence succeed. Failures remain unchecked for retry, and
+after inference and durable review persistence succeed, and any other change to the assignment —
+a status move, a photo or message filed through it, a controller's edit — clears it again, so the
+next run judges the new evidence. Failures remain unchecked for retry, and
 the run output reports selected assignments, actual inference invocations, failure count, and up
 to 100 assignment/stage failure details. A fact-loading failure necessarily happens before an
 inference can be invoked and is reported separately instead of claiming an inference occurred.
@@ -129,7 +131,7 @@ first (learnings-matrix row 179).
 
 | App                    | Audience                                                   | What it provides                                                                                                                                                                                       |
 | ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, weekly roster CSV import, and a sites tab.                                                                 |
+| `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, a job-assignment CSV import, and a sites tab.                                                              |
 | `field_ops_contractor` | Field contractor                                           | One table of its own assignments: job · site · date, dispatch time, progress, reported location, and summary. Opening a row shows the job scope, assignment activity, variations, and evidence photos. |
 
 Flag visibility is reserved for the controller dashboard: photo integrity flags, the review
@@ -142,25 +144,30 @@ assignment's progress and their evidence photos — never the integrity results.
 workspace account. An administrator verifies the contractor's WhatsApp number on that account; an
 unknown number receives a registration prompt and no model run.
 
+The envoy's whole job is to bring a contractor's **existing** assignments up to date from what
+they send. One report is one `write_collection` update on the assignment it is about, carrying:
+
+- the progress it reports — `status`, `completed_at`, `summary`;
+- `job_assignment_photo_evidence.create` — one row per photo sent, its file and the channel
+  `source` (conversation, message, attachment, sender, time) that delivered it;
+- `job_assignment_communications.create` — the messages with text that are this assignment's slice
+  of the conversation, keyed by the WhatsApp message id so each change traces to its message.
+
+The assignment transform stamps the filed photos uninspected (as a direct upload is) and clears
+`suspicion_checked_at`, so the review picks the assignment up on its next run.
+
 The envoy runs under the strict capability lock:
 
-- **The ceiling is `field_ops_whatsapp`, not the contractor policy.** The envoy names that policy
-  directly, and it is the complete answer to what any turn may reach — for a linked contractor
-  exactly as for anyone. It has one grant: `job_assignments.mutate.existing`, limited to approved
-  progress fields. It has no read, search, new-record mutation, delete, evidence, communication-log,
-  review, suspicion-log, or app authority.
+- **The ceiling is `field_ops_whatsapp`, not the contractor policy.** It reads assignments, updates
+  `status`, `completed_at` and `summary` on one the sender holds, and files new photo and message
+  rows only under such an assignment. It cannot create, delete or reassign an assignment, change the
+  work order, read back evidence or logs, or reach reviews, suspicion data or apps.
 - **The linked account is the requestor, which only authorizes the target.** `${requestor.id}` must
   match `job_assignments.assignee_user_id` on the existing row. It confers nothing: a contractor who
   administers the web app reaches no more here than an ordinary one, and their `admin` flag is
   dropped at the boundary.
 - **DMs are private; groups are shared.** Every assigned member sees profile group transcripts in
   Agent UI, while only the DM owner and administrators see a private transcript.
-- Without an exact assignment reference already supplied by trusted context, the task directs the
-  contractor to the app or a controller. It cannot discover a target itself.
-
-Policy grants remain row-level rather than column-level, so the task still explicitly forbids
-controller-only integrity fields even though the contractor can mutate approved fields on their own
-assignment row.
 
 ### Automations, policies, seed
 
@@ -169,10 +176,10 @@ assignment row.
 | Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): inspects every photo still awaiting its integrity facts, then pages through all unchecked assignments, reviews each against a bounded visual + communication context, and writes one idempotent suspicion log only when the model judges the evidence suspicious. |
 | Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                                                                     |
 | Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).                                                       |
-| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: `mutate.existing` for approved progress fields on an exact assignment owned by the linked contractor. No reads, searches, new-record mutations, deletes, evidence, logs, reviews, suspicion data or apps.                                                               |
+| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read assignments; update status, completion and summary on one the linked contractor holds; file new photo and message rows under it. No other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                 |
 | Policy     | `suspicion_review_automation`     | The review automation's authority: the photo corpus it inspects (facts written once, while the hash is empty), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                                       |
 | Policy     | `dispatch_integration`            | The dispatch import's authority: read, create and update `job_assignments`, plus the site-code read it resolves authored site references against.                                                                                                                                                                       |
-| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README.                                                                                |
+| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its photo-to-assignment map is reviewed photo by photo; the job-assignment import CSV template lives in `assets/` with its own README.                                                                     |
 
 The controller reads assignments, people, sites, and open suspicion logs directly from the
 sync-backed collections. Its board cards and map points are local projections of those rows, so they
@@ -237,8 +244,8 @@ The host holds the transport credential and delivers an already-authenticated in
 binds the conversation to a transcript, claims the message exactly once, and matches its sender to a
 verified WhatsApp identity. Runtime mints `envoy:field_ops_whatsapp` with the declaration's policies;
 the linked contractor supplies only `userId` for requestor predicates, never team authority or admin.
-The transport retains its own conversation transcript, but the envoy has no authority to write a
-domain `communication_logs` row. The reply goes back over the same transport.
+The model sees each message's time, sender and id, and each attachment's stored file, which is
+what it files on the assignment. The reply goes back over the same transport.
 
 ## 5. Verification
 
