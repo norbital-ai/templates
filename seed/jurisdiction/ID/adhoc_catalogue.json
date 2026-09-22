@@ -528,7 +528,7 @@
 		"id": "7a9279fd-7afa-5917-ad54-bbdf9e630950",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "THR",
-		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || ((employee.religion == \"CHRISTIAN\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"CATHOLIC\" ? (employment.exit_date >= \"2026-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-11-25\")) : (employee.religion == \"HINDU\" ? (employment.exit_date >= \"2026-03-19\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-17\")) : (employee.religion == \"BUDDHIST\" ? (employment.exit_date >= \"2026-05-31\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-05-01\")) : (employee.religion == \"CONFUCIAN\" ? (employment.exit_date >= \"2026-02-17\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-01-18\")) : (employment.exit_date >= \"2026-03-21\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\")))))))))",
+		"eligibility": "employment.service_months >= 1 && (employment.exit_date == \"\" || ((employee.religion == \"CHRISTIAN\" ? (employment.exit_date >= \"2025-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2025-11-25\")) : (employee.religion == \"CATHOLIC\" ? (employment.exit_date >= \"2025-12-25\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2025-11-25\")) : (employee.religion == \"HINDU\" ? (employment.exit_date >= \"2026-03-19\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-17\")) : (employee.religion == \"BUDDHIST\" ? (employment.exit_date >= \"2026-05-31\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-05-01\")) : (employee.religion == \"CONFUCIAN\" ? (employment.exit_date >= \"2026-02-17\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-01-18\")) : (employment.exit_date >= \"2026-03-21\" || (employment.type == \"PERMANENT\" && employment.exit_date >= \"2026-02-19\")))))))))",
 		"evidence": "NONE",
 		"destination": "NET",
 		"direction": "ADD",
@@ -539,7 +539,7 @@
 				"limit": null
 			}
 		],
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before).",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). The 2027 window belongs to the version sealed for it. Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Corrected 2026-09-23: the version in force in December 2025 measures a Christian or Catholic leaver against Christmas 2025 (25 December 2025; a PKWTT leaver from 25 November), not Christmas 2026.",
 		"name": "THR (religious holiday allowance)",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"raised_by": "SEPARATION"
@@ -769,7 +769,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. PPh 21 and PPh 26 treat it as ordinary remuneration: PP 68/2009 art.2’s final rates cover only uang pesangon, uang penghargaan masa kerja and uang penggantian hak, so uang pisah enters the TER base (PMK 168/2023 art.15) and the PPh 26 withholding.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 1 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -781,7 +781,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -809,7 +809,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. PPh 21 and PPh 26 treat it as ordinary remuneration: PP 68/2009 art.2’s final rates cover only uang pesangon, uang penghargaan masa kerja and uang penggantian hak, so uang pisah enters the TER base (PMK 168/2023 art.15) and the PPh 26 withholding.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 1 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -821,7 +821,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -849,7 +849,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "UANG_PISAH",
 		"name": "Uang pisah (contract-defined separation pay)",
-		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. PPh 21 and PPh 26 treat it as ordinary remuneration: PP 68/2009 art.2’s final rates cover only uang pesangon, uang penghargaan masa kerja and uang penggantian hak, so uang pisah enters the TER base (PMK 168/2023 art.15) and the PPh 26 withholding.",
+		"authority": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. Corrected 2026-09-23: PP 68/2009 art.1 angka 1 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -861,7 +861,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
