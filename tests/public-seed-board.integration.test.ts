@@ -89,7 +89,7 @@ test(
 			const searched = pageOf(
 				await sessionFindMany(guest.baseUrl, guest.credential, {
 					collection: 'job_assignments',
-					search: { mode: 'lexical', term: DISTINCTIVE_SITE_TOKEN },
+					search: DISTINCTIVE_SITE_TOKEN,
 					limit: CONTRACTOR_TABLE_PAGE_SIZE
 				}),
 				'job_assignments lexical search'
