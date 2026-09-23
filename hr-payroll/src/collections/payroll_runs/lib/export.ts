@@ -6,7 +6,7 @@
 
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import type ExcelJS from 'exceljs';
-import { Effect, Number as EffectNumber, Schema } from 'effect';
+import { Effect, Number as EffectNumber } from 'effect';
 import { bySchemeListing, schemeLabel } from '../../../lib/payroll/scheme-label.js';
 import {
 	IDENTITY_OUTPUT_IDS,
@@ -523,21 +523,21 @@ function fill(argb: string): ExcelJS.FillPattern {
 	return { type: 'pattern', pattern: 'solid', fgColor: { argb } };
 }
 
-const BankAccountSchema = Schema.Struct({
-	account_name: Schema.String,
-	bank_code: Schema.String,
-	bank_name: Schema.String,
-	account_number: Schema.String
-});
-const BankPaymentSchema = Schema.Struct({
-	payrollRunId: Schema.String,
-	paymentDate: Schema.String,
-	employeeNumber: Schema.String,
-	currency: Schema.String,
-	net: Schema.Number,
-	bank: BankAccountSchema
-});
-type BankPayment = Schema.Schema.Type<typeof BankPaymentSchema>;
+type BankAccount = {
+	readonly account_name: string;
+	readonly bank_code: string;
+	readonly bank_name: string;
+	readonly account_number: string;
+};
+
+type BankPayment = {
+	readonly payrollRunId: string;
+	readonly paymentDate: string;
+	readonly employeeNumber: string;
+	readonly currency: string;
+	readonly net: number;
+	readonly bank: BankAccount;
+};
 
 /** The bank file: one payment row per payslip that has a destination. */
 export function bankFileRows(payments: readonly BankPayment[]): (string | number)[][] {

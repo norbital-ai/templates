@@ -51,7 +51,7 @@ export const payslipStatutoryValueSchema = Schema.Struct({
 });
 
 /** Strict standard view: a key the struct does not declare is refused rather than stripped. */
-export const payslipStatutorySchema = Schema.toStandardSchemaV1(payslipStatutoryValueSchema, {
+const payslipStatutorySchema = Schema.toStandardSchemaV1(payslipStatutoryValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }
 });
 

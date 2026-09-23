@@ -1,15 +1,13 @@
-import { Schema } from 'effect';
 import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expressions/evaluate.js';
 
 /** The CEL break rule one settings version carries. */
-const workBreakLikeSchema = Schema.Struct({
-	when: Schema.String,
-	owed_minutes: Schema.String,
-	counts_as_worked_time: Schema.NullOr(Schema.Boolean)
-});
-export type BreakRuleLike = Schema.Schema.Type<typeof workBreakLikeSchema>;
+export type BreakRuleLike = {
+	readonly when: string;
+	readonly owed_minutes: string;
+	readonly counts_as_worked_time: boolean | null;
+};
 
 /** The rule that governed one day, with its obligation evaluated. */
 type SelectedBreakRule = {
@@ -48,18 +46,17 @@ const MINUTE_MS = 60_000;
  * One worked interval in the authored record shape. Workbook dates are normalized before they reach
  * this rule, so all callers supply the same ISO-string boundaries.
  */
-const workedIntervalLikeSchema = Schema.Struct({
-	start: Schema.String,
-	end: Schema.NullOr(Schema.String)
-});
-type WorkedIntervalLike = Schema.Schema.Type<typeof workedIntervalLikeSchema>;
+type WorkedIntervalLike = {
+	readonly start: string;
+	readonly end: string | null;
+};
 
-const restBreakInputSchema = Schema.Struct({
-	intervals: Schema.optional(Schema.NullOr(Schema.Array(workedIntervalLikeSchema))),
+type RestBreakInput = {
+	readonly intervals?: ReadonlyArray<WorkedIntervalLike> | null | undefined;
 	/** How long the day's break was (see `derivedBreakMinutes`), never when it was owed. */
-	breakMinutes: Schema.optional(Schema.NullOr(Schema.Number)),
+	readonly breakMinutes?: number | null | undefined;
 	/** The version's CEL obligations, absent on every lineage that declares none. */
-	breaks: Schema.optional(Schema.NullOr(Schema.Array(workBreakLikeSchema))),
+	readonly breaks?: ReadonlyArray<BreakRuleLike> | null | undefined;
 	/**
 	 * Whether this day's work is of the kind that "must be carried on continuously and which
 	 * requires [the employee's] continual attendance" — EA 1955 s.60A(1) proviso (ii), EA 1968
@@ -67,50 +64,48 @@ const restBreakInputSchema = Schema.Struct({
 	 * it is passed in and defaults to false: claiming the proviso is claiming an exception, and an
 	 * exception nobody asserted is not available.
 	 */
-	continuousAttendance: Schema.optional(Schema.Boolean),
+	readonly continuousAttendance?: boolean | undefined;
 	/** Hours inside the night window, for a rule that owes a longer break at night (VN art.109(1)). */
-	nightHours: Schema.optional(Schema.Number),
+	readonly nightHours?: number | undefined;
 	/** The person, for a rule that turns on an entity fact (TW §35 proviso); absent reads no facts. */
-	person: Schema.optional(Schema.Any),
+	readonly person?: PersonContext | null | undefined;
 	/** The day's derived overtime hours, which a rule's obligation may read. */
-	overtimeHours: Schema.optional(Schema.NullOr(Schema.Number))
-});
-type RestBreakInput = Schema.Schema.Type<typeof restBreakInputSchema>;
+	readonly overtimeHours?: number | null | undefined;
+};
 
-const restBreakAssessmentSchema = Schema.Struct({
+export type RestBreakAssessment = {
 	/** The rule that governs this day, or null when the jurisdiction declares none. */
-	rule: Schema.NullOr(
-		Schema.Struct({
-			when: Schema.String,
-			minimum_minutes: Schema.NullOr(Schema.Number),
-			counts_as_worked_time: Schema.NullOr(Schema.Boolean)
-		})
-	),
+	readonly rule: {
+		readonly when: string;
+		readonly minimum_minutes: number | null;
+		readonly counts_as_worked_time: boolean | null;
+	} | null;
 	/**
 	 * An interval has no end. The day is still being worked, so the figures below describe only what
 	 * has happened so far and `shortfallMinutes` is withheld — a person mid-shift is not short of a
 	 * break they may still be about to take.
 	 */
-	open: Schema.Boolean,
+	readonly open: boolean;
 	/** Whether the rule's trigger was crossed. A rule with no trigger is owed on any worked day. */
-	triggered: Schema.Boolean,
+	readonly triggered: boolean;
 	/** The longest stretch of work no qualifying period of leisure interrupted. */
-	longestRunHours: Schema.Number,
+	readonly longestRunHours: number;
 	/**
 	 * What the rule requires: its minimum when triggered, 0 when it is not, and **null when the
 	 * statute states a trigger but no duration** (Singapore EA 1968 s.38(1)(a)). Null is not zero:
 	 * zero would claim the Act demands nothing, which is the opposite of what it says.
 	 */
-	requiredMinutes: Schema.NullOr(Schema.Number),
+	readonly requiredMinutes: number | null;
 	/** Break actually recorded: the qualifying gaps, topped up to the flat column where it is larger. */
-	takenMinutes: Schema.Number,
+	readonly takenMinutes: number;
 	/** `required − taken`, floored at zero; null wherever the question cannot be answered. */
-	shortfallMinutes: Schema.NullOr(Schema.Number)
-});
-export type RestBreakAssessment = Schema.Schema.Type<typeof restBreakAssessmentSchema>;
+	readonly shortfallMinutes: number | null;
+};
 
-const spanSchema = Schema.Struct({ start: Schema.Number, end: Schema.Number });
-type Span = Schema.Schema.Type<typeof spanSchema>;
+type Span = {
+	readonly start: number;
+	readonly end: number;
+};
 
 function instant(value: string): number {
 	return Date.parse(value);

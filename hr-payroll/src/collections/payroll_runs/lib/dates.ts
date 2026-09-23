@@ -8,7 +8,7 @@
  */
 
 import { Number as EffectNumber, Schema } from 'effect';
-import { calendarDay, dateKey as calendarDateKey } from '../../../lib/iso-day.js';
+import { calendarDay, dateKey } from '../../../lib/iso-day.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 /** A calendar day, `YYYY-MM-DD`. */
@@ -16,16 +16,10 @@ export type IsoDate = Schema.Schema.Type<typeof calendarDay>;
 
 const DAY_MS = 86_400_000;
 
-/** Resolve a stored instant or fixed date to its payroll calendar day. */
-export function dateKey(value: string | null | undefined): IsoDate | null {
-	const key = calendarDateKey(value);
-	return key === '' ? null : key;
-}
-
-/** Same as `dateKey`, for a value that must be present. */
+/** `dateKey` (`lib/iso-day.ts`), for a value that must be present. */
 export function requiredDateKey(value: string, what: string): IsoDate {
 	const key = dateKey(value);
-	if (key == null || key.length !== 10) throw new Error(`${what} is not a calendar date.`);
+	if (key.length !== 10) throw new Error(`${what} is not a calendar date.`);
 	return key;
 }
 

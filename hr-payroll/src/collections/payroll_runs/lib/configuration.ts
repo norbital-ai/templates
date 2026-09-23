@@ -12,12 +12,11 @@ import { sha256Json } from '@norbital-ai/std/reckon';
 import type { WorkspaceRow } from '../$types.js';
 import { prepareFamilyCatalogues } from '../../../lib/payroll/families.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
-import { daysBetween, monthBounds, monthKey, type IsoDate } from './dates.js';
+import { daysBetween, monthBounds, monthKey, type IsoDate, addDays } from './dates.js';
 import { resolveHolidayInputs, type PreparedHolidayInput } from '../../../lib/holiday-inputs.js';
 import { effectiveOn, live } from './effective.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
-import { addDays } from '../../../lib/period.js';
 import { dayInstant } from '../../../lib/iso-day.js';
 
 import type { FamilyPayItem } from '../../../lib/payroll/family.js';

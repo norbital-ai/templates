@@ -25,7 +25,7 @@ export const entitlementValueSchema = Schema.Struct({
 
 export type Entitlement = Schema.Schema.Type<typeof entitlementValueSchema>;
 
-export const entitlementSchema = Schema.toStandardSchemaV1(entitlementValueSchema, {
+const entitlementSchema = Schema.toStandardSchemaV1(entitlementValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }
 }).check(
 	Schema.makeFilter((entitlement) => {

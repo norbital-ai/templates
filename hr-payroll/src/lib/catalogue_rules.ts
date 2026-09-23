@@ -17,7 +17,7 @@
 import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { compileEligibility } from '../collections/payroll_runs/lib/eligibility.js';
-import { refuseUnlessDraftOnBoth, type SealedVersion } from './settings_seal.js';
+import { refuseUnlessDraftOnBoth, versionsById, type SealedVersion } from './settings_seal.js';
 import { assessedOnMentions, compileExpression, type DeclaredKey } from './expressions/compile.js';
 import { openKeyMentions } from './expressions/contexts.js';
 import { WAGES } from './expressions/person-functions.js';
@@ -325,7 +325,7 @@ export function refuseUnknownMemberships(
 }
 
 /** scheme code → declared parts, per settings version, in one read. */
-export function schemePartsByVersion(
+function schemePartsByVersion(
 	db: Pick<CollectionTransformDatabase, 'statutory_contributions'>,
 	settingsIds: ReadonlyArray<unknown>
 ): Effect.Effect<ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>> {
@@ -348,3 +348,42 @@ export function schemePartsByVersion(
 		}
 	);
 }
+
+/**
+ * The transform of a money catalogue that counts toward schemes (allowances, ad hoc, claims): the
+ * versions and their schemes read in one wave, then each row admitted and its `counts_toward`
+ * checked against its own version. `noun` names the row in a refusal.
+ */
+export const catalogueTransform =
+	(noun: string) =>
+	<TInput extends CatalogueRowLike & { readonly counts_toward?: readonly string[] | null }>(
+		inputs: ReadonlyArray<TInput>,
+		{
+			existing,
+			db
+		}: Readonly<{
+			existing: ReadonlyArray<CatalogueRowLike | undefined>;
+			db: CollectionTransformDatabase;
+		}>
+	): Effect.Effect<TInput[]> => {
+		const settingsIds = [
+			...inputs.map((input) => input.settings_id),
+			...existing.map((row) => row?.settings_id)
+		];
+		return Effect.map(
+			Effect.all([versionsById(db, settingsIds), schemePartsByVersion(db, settingsIds)], {
+				concurrency: 'unbounded'
+			}),
+			([versions, schemes]) =>
+				inputs.map((input, index) => {
+					const row = { ...existing[index], ...input };
+					if (input.counts_toward !== undefined)
+						refuseUnknownMemberships(
+							row.settings_id == null ? undefined : schemes.get(String(row.settings_id)),
+							input.counts_toward,
+							`${noun} ${String(row.code ?? '')}`
+						);
+					return admitCatalogueRow(versions, input, existing[index], noun);
+				})
+		);
+	};

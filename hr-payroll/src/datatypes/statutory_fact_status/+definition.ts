@@ -29,7 +29,7 @@ export const statutoryFactInstalmentSchema = Schema.Struct({
  * `scheme.year_to_date` and `year.months_employed` for that year; nothing else in the tenant can
  * see a previous employer.
  */
-export const statutoryFactOpeningSchema = Schema.Struct({
+const statutoryFactOpeningSchema = Schema.Struct({
 	/** The tax year the figures belong to, as the version's `tax_year_start_month` labels it (`YYYY`). */
 	year: Schema.String.check(Schema.isMinLength(4)),
 	/** The base the earlier employer charged this scheme on in that year to the join date. */
@@ -56,7 +56,7 @@ export const statutoryFactOpeningSchema = Schema.Struct({
 });
 
 /** Tax-year child-relief declarations; family records alone do not establish a tax claim. */
-export const statutoryChildClaimSchema = Schema.Struct({
+const statutoryChildClaimSchema = Schema.Struct({
 	year: Schema.String,
 	relief_class: Schema.String,
 	full_count: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
@@ -65,7 +65,7 @@ export const statutoryChildClaimSchema = Schema.Struct({
 });
 
 /** Employer-accepted deductions, including prior-employer declarations and signed corrections. */
-export const statutoryDeductionClaimSchema = Schema.Struct({
+const statutoryDeductionClaimSchema = Schema.Struct({
 	period: Schema.String,
 	category: Schema.String,
 	amount: Schema.Finite,
@@ -76,7 +76,7 @@ export const statutoryDeductionClaimSchema = Schema.Struct({
 });
 export type StatutoryDeductionClaim = Schema.Schema.Type<typeof statutoryDeductionClaimSchema>;
 
-export const statutoryFactStatusValueSchema = Schema.Union([
+const statutoryFactStatusValueSchema = Schema.Union([
 	Schema.Struct({
 		kind: Schema.Literal('REGISTERED'),
 		reference_number: Schema.String.check(Schema.isMinLength(1)),

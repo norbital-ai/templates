@@ -3,24 +3,21 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { formatDateISO } from '@norbital-ai/std/date';
 import {
-	calendarDayAsPickerInstant,
 	calendarDayFromPickerInstant,
-	calendarDateInTimeZone,
 	dayWindowInstantBounds,
 	endOfDayInstant,
 	monthWorkDateInstantBounds,
 	periodInCompanyGrammar,
 	periodWindow,
-	startOfDayInstant,
-	workDateCalendarKey
+	startOfDayInstant
 } from '../src/lib/ui/calendar.js';
-import { dayInstant } from '../src/lib/iso-day.js';
+import { dayInstant, calendarDateInTimeZone, dateKey } from '../src/lib/iso-day.js';
 
 describe('calendar-day picker adapters', () => {
 	it('round-trips the same day through viewer-local instants on both sides of UTC', () => {
 		const day = '2026-08-26';
 		for (const timeZone of ['America/Los_Angeles', 'Asia/Singapore', 'Pacific/Kiritimati']) {
-			const pickerValue = calendarDayAsPickerInstant(day, timeZone);
+			const pickerValue = startOfDayInstant(day, timeZone);
 			assert.equal(calendarDayFromPickerInstant(pickerValue, timeZone), day);
 		}
 	});
@@ -28,7 +25,7 @@ describe('calendar-day picker adapters', () => {
 	it('round-trips a day whose local midnight sits on a daylight-saving boundary', () => {
 		const day = '2026-03-08';
 		const timeZone = 'America/New_York';
-		const pickerValue = calendarDayAsPickerInstant(day, timeZone);
+		const pickerValue = startOfDayInstant(day, timeZone);
 
 		assert.equal(pickerValue, '2026-03-08T05:00:00.000Z');
 		assert.equal(calendarDayFromPickerInstant(pickerValue, timeZone), day);
@@ -39,7 +36,7 @@ describe('calendar-day picker adapters', () => {
 		const payrollTimeZone = 'Asia/Kuala_Lumpur';
 		const pickerTimeZone = 'America/Los_Angeles';
 		const payrollDay = calendarDateInTimeZone(new Date(stored), payrollTimeZone);
-		const pickerValue = calendarDayAsPickerInstant(payrollDay, pickerTimeZone);
+		const pickerValue = startOfDayInstant(payrollDay, pickerTimeZone);
 		const selectedDay = calendarDayFromPickerInstant(pickerValue, pickerTimeZone);
 
 		assert.equal(selectedDay, '2026-08-26');
@@ -52,9 +49,8 @@ describe('calendar-day picker adapters', () => {
 		assert.equal(startOfDayInstant('2026-02-01', payrollTimeZone), stored);
 		assert.equal(formatDateISO(stored), '2026-01-31');
 		assert.equal(formatDateISO(new Date(stored)), '2026-01-31');
-		assert.equal(workDateCalendarKey(stored), '2026-02-01');
-		assert.equal(workDateCalendarKey(new Date(stored)), '2026-02-01');
-		assert.equal(workDateCalendarKey('2026-02-01'), '2026-02-01');
+		assert.equal(dateKey(stored), '2026-02-01');
+		assert.equal(dateKey('2026-02-01'), '2026-02-01');
 	});
 
 	it("A1: a February work-date query bound is the stored UTC day, not the zone's midnight", () => {
@@ -78,7 +74,7 @@ describe('calendar-day picker adapters', () => {
 
 	it('refuses invalid day and instant spellings instead of rolling them forward', () => {
 		assert.throws(
-			() => calendarDayAsPickerInstant('2026-02-30', 'Asia/Singapore'),
+			() => startOfDayInstant('2026-02-30', 'Asia/Singapore'),
 			/not a YYYY-MM-DD calendar date/
 		);
 		assert.throws(

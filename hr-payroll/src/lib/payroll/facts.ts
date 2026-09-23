@@ -12,7 +12,7 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import { resolveFactValues } from '../declared-facts.js';
 import { stableJson } from '../jurisdiction_settings.js';
 import { factScopeFault, type FactKey } from '../../datatypes/fact_keys/+definition.js';
-import { dateKey } from '../../collections/payroll_runs/lib/dates.js';
+import { dateKey } from '../iso-day.js';
 
 type FactRow = Pick<
 	EmploymentBundle['statutoryFacts'][number],
@@ -58,7 +58,7 @@ function deferredElections(options: {
 				if (!Object.hasOwn(elections, field.key)) return [];
 				return [
 					{
-						start: dateKey(row.effective_range == null ? null : row.effective_range.start),
+						start: dateKey(row.effective_range == null ? null : row.effective_range.start) || null,
 						value: elections[field.key]
 					}
 				];

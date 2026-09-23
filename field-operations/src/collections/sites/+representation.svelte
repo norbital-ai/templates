@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	import { client } from '../../lib/workspace-client.js';
+	import { client } from '$bolt/client';
 	import { collectionClient } from '../../lib/collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';

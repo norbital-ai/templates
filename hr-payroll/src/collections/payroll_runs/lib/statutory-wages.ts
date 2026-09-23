@@ -7,7 +7,6 @@
  * statute names rather than a convenient salary column.
  */
 
-import { Schema } from 'effect';
 import type { MoneyValue } from '@norbital-ai/std/finance';
 
 /**
@@ -35,16 +34,16 @@ import type { MoneyValue } from '@norbital-ai/std/finance';
  * company that adds one must know the comparand will overstate until the model carries the
  * distinction.
  */
-const WageComparandCategorySchema = Schema.Literals(['BASIC_WAGES', 'CASH_FOR_WORK', 'NOT_WAGES']);
-type WageComparandCategory = Schema.Schema.Type<typeof WageComparandCategorySchema>;
+type WageComparandCategory = 'BASIC_WAGES' | 'CASH_FOR_WORK' | 'NOT_WAGES';
 
-const WageComparandComponentSchema = Schema.Struct({
-	destination: Schema.NullOr(Schema.String),
-	direction: Schema.NullOr(Schema.String),
-	definition: Schema.NullOr(Schema.Struct({ source: Schema.String })),
-	fixed: Schema.optional(Schema.NullOr(Schema.Boolean))
-});
-type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSchema>;
+type WageComparandComponent = {
+	readonly destination: string | null;
+	readonly direction: string | null;
+	readonly definition: {
+		readonly source: string;
+	} | null;
+	readonly fixed?: boolean | null | undefined;
+};
 
 /** Classify one component for the wage comparand. See `WageComparandCategory`. */
 export function classifyWageComparand(component: WageComparandComponent): WageComparandCategory {

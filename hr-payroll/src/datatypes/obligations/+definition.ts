@@ -23,8 +23,7 @@ const obligationSchema = Schema.Struct({
 	status: Schema.Literals(['EXTERNAL', 'PARTIAL', 'UNVERIFIED'])
 });
 
-export const obligationsValueSchema = Schema.Array(obligationSchema);
-export type Obligation = Schema.Schema.Type<typeof obligationSchema>;
+const obligationsValueSchema = Schema.Array(obligationSchema);
 
 export default defineCustomType({
 	name: 'obligations',

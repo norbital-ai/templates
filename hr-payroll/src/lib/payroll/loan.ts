@@ -20,7 +20,7 @@ type LoanComponent = CatalogueComponent &
 export type PreparedLoan = Loan & { readonly catalogueComponent: LoanComponent };
 export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
 import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
-import { dateKey } from '../../collections/payroll_runs/lib/dates.js';
+import { dateKey } from '../iso-day.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';

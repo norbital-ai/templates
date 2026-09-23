@@ -14,7 +14,7 @@ import type { EmploymentBundle } from './gather.js';
 import type { PayrollWindow } from './period.js';
 import { termPattern } from '../../../lib/scheduling/work-pattern.js';
 import { dateKey } from '../../../lib/iso-day.js';
-import { addDays } from '../../../lib/period.js';
+import { addDays } from './dates.js';
 import {
 	blockers,
 	rosteredWorkCodeMaps,

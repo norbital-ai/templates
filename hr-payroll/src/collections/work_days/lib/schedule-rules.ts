@@ -6,7 +6,7 @@
  */
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { coversDate } from '../../payroll_runs/lib/effective.js';
-import { addDays, monthBounds } from '../../../lib/period.js';
+import { addDays, monthBounds } from '../../payroll_runs/lib/dates.js';
 import {
 	patternAnchor,
 	patternRosterCodeId,
@@ -79,7 +79,7 @@ export function assertMonthConformsToPattern(options: {
 				actualMinutes += paidMinutesById.get(actualId!) ?? 0;
 			}
 		}
-		date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10);
+		date = addDays(date, 1);
 	}
 	if (!patterned) return;
 	if (actualDays === expectedDays && actualMinutes === expectedMinutes) return;

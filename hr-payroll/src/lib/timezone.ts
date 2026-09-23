@@ -6,22 +6,17 @@
  * jurisdiction observes daylight saving. The zone name is the fact; the offset is derived.
  */
 
-/** Minutes east of UTC `timezone` was at midday on `date` (a `YYYY-MM-DD` day). */
 // A formatter is expensive to build and a payroll asks the same zone for thousands of days.
 const formatters = new Map<string, Intl.DateTimeFormat>();
 const offsets = new Map<string, number>();
 
-export function offsetMinutesFor(timezone: string, date: string): number {
+/** Minutes east of UTC `timezone` is at the instant `at`. */
+export function offsetMinutesAt(timezone: string, at: Date): number {
 	if (typeof timezone !== 'string' || timezone.trim() === '')
 		throw new TypeError(
 			'A jurisdiction timezone is required to price a day; an absent zone must not fall back ' +
 				'to the host clock.'
 		);
-	const key = `${timezone}\n${date}`;
-	const known = offsets.get(key);
-	if (known !== undefined) return known;
-	const at = new Date(`${date}T12:00:00.000Z`);
-	if (Number.isNaN(at.getTime())) throw new TypeError(`Not a calendar day: ${date}.`);
 	let parts: Intl.DateTimeFormatPart[];
 	try {
 		let formatter = formatters.get(timezone);
@@ -52,14 +47,23 @@ export function offsetMinutesFor(timezone: string, date: string): number {
 		part('minute'),
 		part('second')
 	);
-	const offset = Math.round((asUtc - at.getTime()) / 60_000);
+	return Math.round((asUtc - at.getTime()) / 60_000);
+}
+
+/** Minutes east of UTC `timezone` was at midday on `date` (a `YYYY-MM-DD` day). */
+export function offsetMinutesFor(timezone: string, date: string): number {
+	const key = `${timezone}\n${date}`;
+	const known = offsets.get(key);
+	if (known !== undefined) return known;
+	const at = new Date(`${date}T12:00:00.000Z`);
+	if (Number.isNaN(at.getTime())) throw new TypeError(`Not a calendar day: ${date}.`);
+	const offset = offsetMinutesAt(timezone, at);
 	if (offsets.size >= 65_536) offsets.clear();
 	offsets.set(key, offset);
 	return offset;
 }
 
-/** Every IANA zone this runtime knows, for a picker. Stable order, no duplicates. */
+/** Every IANA zone this runtime knows, for a picker, in a stable order. */
 export function timezoneNames(): readonly string[] {
-	const supported = Intl.supportedValuesOf?.('timeZone') ?? [];
-	return [...new Set(supported)].toSorted();
+	return Intl.supportedValuesOf('timeZone').toSorted();
 }

@@ -4,7 +4,7 @@ import { calendarDay } from '../../lib/iso-day.js';
 import { leaveWindowSchema } from '../../lib/leave/entitlement.js';
 
 /** Immutable approval evidence: positive quantities create credits, negatives consume them. */
-export const leaveAllocationSchema = Schema.Struct({
+const leaveAllocationSchema = Schema.Struct({
 	window: leaveWindowSchema,
 	date: calendarDay,
 	days: Schema.Finite.check(

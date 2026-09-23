@@ -5,21 +5,21 @@ import type { CreateInput, UpdateInput } from './$types.js';
 import {
 	assertExactlyOnePhotoParent,
 	assertPhotoEvidenceProvenanceUnchanged,
-	PDQ_DIMENSIONS,
-	photoSourceKey
+	photoSourceKey,
+	uninspectedPhotoFacts
 } from './photo-integrity.js';
 
 const PARENT_BATCH_LIMIT = 5_000;
 
 /**
  * A photo is filed against exactly one assignment or variation. Every create through this
- * surface is a workspace upload: `source` is `notNull` with no default, so selecting it would make
- * every caller state it, and no channel ingests photos through the API today — the seed loader
- * writes channel-sourced rows directly. The integrity facts — hash, perceptual embedding, flags, duplicates — need the bytes, which a
- * transform cannot read, so the row is born uninspected (empty hash, zero vector) and the
- * suspicion review fills them in before it judges anything. Provenance is immutable once filed;
- * the facts may change, which is what the update selection carries alongside the columns the
- * read-only record panel shows.
+ * surface is a workspace upload: `source` is not selectable, so it is stamped here. Channel photos
+ * (the WhatsApp envoy) are filed through their assignment's nested create instead, which states
+ * the channel `source` and gets its key and facts stamped in `job_assignments`. The integrity
+ * facts — hash, perceptual embedding, flags, duplicates — need the bytes, which a transform cannot
+ * read, so the row is born uninspected and the suspicion review fills them in before it judges
+ * anything. Provenance is immutable once filed; the facts may change, which is what the update
+ * selection carries alongside the columns the read-only record panel shows.
  */
 export default defineCollection({
 	model,
@@ -105,13 +105,9 @@ export default defineCollection({
 					photo: filed.photo,
 					source,
 					source_key: photoSourceKey(source, filed.photo.storage_key),
-					// ponytail: born uninspected — an empty hash and a zero vector until the created-event
-					// automation reads the bytes. Nullable fact columns would say this honestly; that is a
-					// schema migration, not this step.
-					sha256: '',
-					perceptual_embedding: new Array<number>(PDQ_DIMENSIONS).fill(0),
-					flags: [],
-					matched_evidence_ids: []
+					// ponytail: born uninspected until the suspicion review reads the bytes. Nullable fact
+					// columns would say this honestly; that is a schema migration, not this step.
+					...uninspectedPhotoFacts()
 				};
 			});
 		})

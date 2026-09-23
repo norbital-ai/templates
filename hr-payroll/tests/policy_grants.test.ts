@@ -630,12 +630,25 @@ test('the kiosk sees one app and may only key time entries and face enrollments'
 		'payroll_runs',
 		'leave_catalogue',
 		'leave_entitlements',
-		'leave_entries',
-		'jurisdiction_settings'
+		'leave_entries'
 	]) {
 		assert.equal(may(kiosk, collection, 'read'), false, `kiosk reads ${collection}`);
 		assert.equal(may(kiosk, collection, 'mutate.new'), false, `kiosk writes ${collection}`);
 	}
+	// A punch is filed on the entity's own wall clock, so the kiosk reads which settings version is
+	// in force and its `payroll` facts — never the wage rules, facts or sources beside them.
+	const [settingsRead] = grantsFor(kiosk, 'jurisdiction_settings', 'read');
+	assert.deepEqual([...(settingsRead?.fields ?? [])].sort(), [
+		'approval_id',
+		'code',
+		'effective_range',
+		'id',
+		'name',
+		'payroll',
+		'sealed_at',
+		'voided_at'
+	]);
+	assert.equal(may(kiosk, 'jurisdiction_settings', 'mutate.new'), false);
 });
 
 test('kiosk-created persons always land pending, and only HR approves', () => {

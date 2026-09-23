@@ -51,7 +51,11 @@ it(
 					employment_id: EMPLOYMENT_ID,
 					work_date: '2026-02-03',
 					// Instants are UTC: 07:30 to 21:30 in Kuala Lumpur on 3 February.
-					worked_intervals: [{ start: '2026-02-02T23:30:00.000Z', end: '2026-02-03T13:30:00.000Z' }]
+					worked_intervals: [
+						{ start: '2026-02-02T23:30:00.000Z', end: '2026-02-03T13:30:00.000Z' }
+					],
+					// Overtime pays only what the employer approved: the five hours after the shift.
+					approved_overtime_hours: 5
 				},
 				founder
 			);

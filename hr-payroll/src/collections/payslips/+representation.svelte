@@ -263,7 +263,6 @@
 		statutory.reduce((total, charge) => total + (decodeNumber(charge.employer_amount) || 0), 0)
 	);
 	const deductionsTotal = $derived(sumOf(bucketRows('DEDUCTION')));
-	const paymentsTotal = $derived(sumOf(bucketRows('NON_WAGE_PAYMENT')));
 	const employerOtherTotal = $derived(sumOf(bucketRows('EMPLOYER_COST')));
 	const employerCostTotal = $derived(
 		employerStatutoryTotal + employerOtherTotal || decodeNumber(record?.employer_cost)

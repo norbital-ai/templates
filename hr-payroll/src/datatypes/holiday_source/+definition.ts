@@ -11,7 +11,7 @@ const validTimeZone = (zone: string) => {
 };
 
 /** The Google holiday calendar and IANA time zone one jurisdiction's annual drafts are read from. */
-export const holidaySourceValueSchema = Schema.Struct({
+const holidaySourceValueSchema = Schema.Struct({
 	calendar_id: Schema.String,
 	time_zone: Schema.String,
 	/** Whether the yearly 1 October job prepares next year's draft; a manual run ignores it. */

@@ -10,7 +10,7 @@ import {
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 import { markRunPaid } from './helpers/mark-paid.ts';
-import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
+import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/iso-day.ts';
 
 /** A stored day-precision instant, read back as the payroll calendar day it began. */
 const dayOf = (value: unknown): string =>

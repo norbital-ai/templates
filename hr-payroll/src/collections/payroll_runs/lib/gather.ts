@@ -43,12 +43,12 @@ import {
 import {
 	completedMonths,
 	completedYears,
-	dateKey,
 	monthBounds,
 	monthKey,
 	periodMonth,
 	type IsoDate
 } from './dates.js';
+import { dateKey } from '../../../lib/iso-day.js';
 import { requestIsDue, type PreparedPayRequest } from '../../../lib/payroll/money.js';
 import type { PreparedLoan, LoanRepayment } from '../../../lib/payroll/loan.js';
 import { coversDate, effectiveWithin, live, overlapsRange } from './effective.js';
@@ -437,9 +437,9 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				refuse(`Employment ${employment.employee_number} was gathered without a settlement.`);
 			const paid = cadence.window.salary;
 			const start = employment.effective_range?.start;
-			const hire = start == null ? null : dateKey(start);
-			if (hire == null) refuse(`Employment ${employment.employee_number} has no service start.`);
-			const dob = dateKey(employee.date_of_birth);
+			const hire = dateKey(start);
+			if (hire === '') refuse(`Employment ${employment.employee_number} has no service start.`);
+			const dob = dateKey(employee.date_of_birth) || null;
 			const statutoryFacts = (factsByEmployee.get(employment.employee_id) ?? []).filter(
 				(fact) => fact.employment_id == null || fact.employment_id === employment.id
 			);

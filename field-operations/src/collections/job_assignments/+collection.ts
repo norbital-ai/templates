@@ -1,7 +1,7 @@
 import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { currentDate } from '../../lib/clock.js';
-import { PDQ_DIMENSIONS, photoSourceKey } from '../photo_evidence/photo-integrity.js';
+import { photoSourceKey, uninspectedPhotoFacts } from '../photo_evidence/photo-integrity.js';
 import type { Row as PhotoEvidenceRow } from '../photo_evidence/$types.js';
 import model from './+model.js';
 import type { CreateInput, Row, UpdateInput } from './$types.js';
@@ -53,10 +53,7 @@ function filedPhoto(photo: FiledPhoto) {
 	return {
 		...photo,
 		source_key: photoSourceKey(photo.source, photo.photo.storage_key),
-		sha256: '',
-		perceptual_embedding: new Array<number>(PDQ_DIMENSIONS).fill(0),
-		flags: [],
-		matched_evidence_ids: []
+		...uninspectedPhotoFacts()
 	};
 }
 

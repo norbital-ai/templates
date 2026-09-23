@@ -1,7 +1,6 @@
 import { defineCommandHandler, refuse } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
-import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../lib/ui/calendar.js';
-import { dayInstant } from '../lib/iso-day.js';
+import { dayInstant, calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../lib/iso-day.js';
 import { KIOSK_EMBEDDING_DIMENSIONS } from '../lib/kiosk/embed.js';
 import type { Api } from './$types.js';
 

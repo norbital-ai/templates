@@ -41,10 +41,8 @@ import type { ResolvedEmployment } from '../../../lib/employment-contract.js';
  * settles in the run whose attendance window contains it, prorated by the jurisdiction's basis.
  */
 
-import { Schema } from 'effect';
 import {
 	addDays,
-	dateKey,
 	dayOfMonth,
 	monthBounds,
 	monthDay,
@@ -52,38 +50,40 @@ import {
 	shiftPeriod,
 	type IsoDate
 } from './dates.js';
+import { dateKey } from '../../../lib/iso-day.js';
 import { attendanceWindow, type PayrollWindow } from './period.js';
 import type { WorkspaceRow } from '../$types.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-const EmploymentDatesSchema = Schema.Struct({
-	hire: Schema.String,
-	exit: Schema.NullOr(Schema.String)
-});
-export type EmploymentDates = Schema.Schema.Type<typeof EmploymentDatesSchema>;
+export type EmploymentDates = {
+	readonly hire: string;
+	readonly exit: string | null;
+};
 
-const dayRangeSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
-const EmploymentSettlementSchema = Schema.Struct({
+type DayRange = {
+	readonly start: string;
+	readonly end: string;
+};
+
+export type EmploymentSettlement = {
 	/** Whether this run produces a payslip for the employment at all. */
-	runs: Schema.Boolean,
+	readonly runs: boolean;
 	/** The days of the pay period the employment covers, or `null` when it covers none. */
-	employedDays: Schema.NullOr(dayRangeSchema),
+	readonly employedDays: DayRange | null;
 	/** The days recurring wages cover; may extend past a leaver's exit by company policy. */
-	wageDays: Schema.NullOr(dayRangeSchema),
+	readonly wageDays: DayRange | null;
 	/** The attendance days this run reads for this employment — the tail of a leaver included. */
-	attendance: dayRangeSchema,
+	readonly attendance: DayRange;
 	/**
 	 * Set when the employment's own period is being skipped. `runs` is false whenever this is set,
 	 * and its wages are not paid in this period. Statutory coverage is still measured where the
 	 * jurisdiction requires a joining-month assessment.
 	 */
-	deferral: Schema.NullOr(
-		Schema.Struct({
-			coversPeriod: Schema.String,
-			paidInPeriod: Schema.String,
-			days: dayRangeSchema
-		})
-	),
+	readonly deferral: {
+		readonly coversPeriod: string;
+		readonly paidInPeriod: string;
+		readonly days: DayRange;
+	} | null;
 	/**
 	 * Set when this run is paying a period an earlier one skipped.
 	 *
@@ -93,16 +93,13 @@ const EmploymentSettlementSchema = Schema.Struct({
 	 * January days, and a system that answered "nothing was carried forward, so nothing is owed"
 	 * would underpay in silence. Every input needed is on this run's own bundle.
 	 */
-	arrearsFor: Schema.NullOr(
-		Schema.Struct({
-			period: Schema.String,
-			salary: dayRangeSchema,
-			attendance: dayRangeSchema,
-			days: dayRangeSchema
-		})
-	)
-});
-export type EmploymentSettlement = Schema.Schema.Type<typeof EmploymentSettlementSchema>;
+	readonly arrearsFor: {
+		readonly period: string;
+		readonly salary: DayRange;
+		readonly attendance: DayRange;
+		readonly days: DayRange;
+	} | null;
+};
 
 /** The days of `period` an employment covers, or `null` when it covers none. */
 function employedWithin(
@@ -215,11 +212,11 @@ export function employmentDates(
 	employment: Pick<ResolvedEmployment, 'employee_number' | 'id' | 'effective_range'>
 ): EmploymentDates {
 	const start = employment.effective_range?.start;
-	const hire = start == null ? null : dateKey(start);
-	if (hire == null)
+	const hire = dateKey(start);
+	if (hire === '')
 		throw new Error(
 			`Employment ${employment.employee_number ?? employment.id ?? '(unknown)'} has no service start.`
 		);
 	const end = employment.effective_range?.end;
-	return { hire, exit: end == null ? null : dateKey(end) };
+	return { hire, exit: dateKey(end) || null };
 }

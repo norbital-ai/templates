@@ -40,7 +40,14 @@ const HEADED_SYNC_TIMEOUT_MILLIS = 180_000;
 const FIRST_APPLY_BUDGET_MILLIS = 10_000;
 const HEADED_RUN = isHeadedRun();
 const MUTATED_NAME = 'S2-MUTATED-AMBER';
-const CONTROLLER_SHELL = 'Assign contractor';
+const CONTROLLER_SHELL = 'Dispatch schedule';
+/** The suspicion review is a bulk pipeline behind the board toolbar's operations menu. */
+const RUN_REVIEW = 'button[aria-label="Run Suspicion review"]';
+const runReviewDisabled = `document.querySelector('${RUN_REVIEW}')?.disabled`;
+async function runSuspicionReview(page: HeadedPage): Promise<void> {
+	await page.click('button[aria-label="Open collection actions"]');
+	await page.click(RUN_REVIEW);
+}
 const seededSitePattern = DISTINCTIVE_SITE_NAME.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const isBoltDocument = (pathname: string): boolean =>
@@ -414,7 +421,7 @@ it('field-ops workspace search opens an application and the matching site record
 		browser = await launchChromiumOrSkip();
 		assert.ok(browser, 'Chromium is required to prove workspace search navigation.');
 		const page = await browser.openPage(controllerUrl(gateway.address.port));
-		await waitForBody(page, /Assign contractor/, 'finder-mounted');
+		await waitForBody(page, /Dispatch schedule/, 'finder-mounted');
 		await page.click('[data-testid="workspace-omni-trigger"]');
 		await page.click('input[data-command-input]');
 		const enterQuery = async (query: string) => {
@@ -787,10 +794,10 @@ it(
 );
 
 /**
- * B6 UI: Run now exists and a second start is blocked while running.
+ * B6 UI: the suspicion review pipeline exists and a second start is blocked while running.
  */
 it(
-	'field-ops self-host Run now disables while a suspicion review is running',
+	'field-ops self-host suspicion review disables while a suspicion review is running',
 	{ timeout: HEADED_SYNC_TIMEOUT_MILLIS },
 	async () => {
 		const gate = Promise.withResolvers<void>();
@@ -840,25 +847,25 @@ it(
 			await page.evaluate(
 				`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 			);
-			const painted = await waitForBody(page, /Assign contractor/, 'b6-chrome');
-			assert.match(painted, /Assign contractor/);
-			await page.click('button:has-text("Run now")');
+			await waitForBody(page, /Dispatch schedule/, 'b6-chrome');
+			await runSuspicionReview(page);
 			await waitForBody(page, /Review running/, 'b6-running');
 			assert.equal(
-				await page.evaluate(`(() => {
-					const button = [...document.querySelectorAll('button')].find((node) => /Review running/.test(node.textContent ?? ''));
-				return button?.disabled === true;
-			})()`),
+				await page.evaluate(runReviewDisabled),
 				true,
 				'A second start must be disabled while the run is active.'
 			);
 			const generatingDeadline = Date.now() + 10_000;
 			while (inferenceCount === 0 && Date.now() < generatingDeadline)
 				await new Promise((resolve) => setTimeout(resolve, 100));
-			assert.ok(inferenceCount > 0, 'Run now must reach the configured AI provider.');
+			assert.ok(inferenceCount > 0, 'The suspicion review must reach the configured AI provider.');
 			gate.resolve();
 			try {
-				await waitForBody(page, /Run now/, 'b6-finished');
+				const finishedDeadline = Date.now() + 30_000;
+				while ((await page.evaluate(runReviewDisabled)) !== false) {
+					if (Date.now() > finishedDeadline) throw new Error('b6-finished: review never settled');
+					await new Promise((resolve) => setTimeout(resolve, 100));
+				}
 			} catch (error) {
 				const runs = await postGuestCommand(
 					session.baseUrl,
@@ -980,7 +987,7 @@ it('field-ops agent selects models and completes a built-in tool round trip in t
 		browser = await launchChromiumOrSkip(EV_SOURCE_PROBE);
 		assert.ok(browser, 'Chromium is required for agent interaction proof.');
 		const page = await browser.openPage(controllerUrl(gateway.address.port));
-		await waitForBody(page, /Assign contractor/, 'agent-controller');
+		await waitForBody(page, /Dispatch schedule/, 'agent-controller');
 		await page.click('[data-testid="workspace-agent-trigger"]');
 		await waitForBody(page, /provider\/first/, 'agent-model-catalogue');
 		for (const model of [secondModel, firstModel]) {
@@ -1169,7 +1176,7 @@ it('workspace goals show durable progress and survive reconnect and compaction',
 	}
 });
 
-it('field-ops self-host Run now reports provider failure and allows retry', async () => {
+it('field-ops self-host suspicion review reports provider failure and allows retry', async () => {
 	const ai = makeAiBinding({
 		call: async (_metadata, request) => {
 			if (request._tag === 'Catalog')
@@ -1191,24 +1198,13 @@ it('field-ops self-host Run now reports provider failure and allows retry', asyn
 		browser = await launchChromiumOrSkip(EV_SOURCE_PROBE);
 		if (browser === undefined) return;
 		const page = await browser.openPage(controllerUrl(gateway.address.port));
-		await waitForBody(page, /Assign contractor/, 'review-failure-ready');
+		await waitForBody(page, /Dispatch schedule/, 'review-failure-ready');
 		await page.evaluate(
 			`window.__reviewUnhandled = []; window.addEventListener('unhandledrejection', event => window.__reviewUnhandled.push(String(event.reason)))`
 		);
-		await page.click('button:has-text("Run now")');
+		await runSuspicionReview(page);
 		await waitForBody(page, /AI provider operation failed/, 'review-failure-visible');
-		assert.equal(
-			await page.evaluate(
-				`document.querySelector('[role="alert"]')?.textContent.includes('AI provider operation failed')`
-			),
-			true
-		);
-		assert.equal(
-			await page.evaluate(
-				`[...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'Run now')?.disabled`
-			),
-			false
-		);
+		assert.equal(await page.evaluate(runReviewDisabled), false);
 		assert.deepEqual(await page.evaluate('window.__reviewUnhandled'), []);
 		const response = await postGuestCommand(
 			session.baseUrl,

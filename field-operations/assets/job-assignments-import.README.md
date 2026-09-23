@@ -1,6 +1,6 @@
 # Job assignments import CSV
 
-The controller dashboard's **Import** button (beside **Assign contractor**) reads a CSV in this
+The dispatch board's **Import** pipeline (the toolbar's operations menu) reads a CSV in this
 shape and creates one job assignment per row. The first row is the header; column order does not
 matter and blank cells are ignored.
 

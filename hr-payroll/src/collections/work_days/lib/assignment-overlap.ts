@@ -27,7 +27,7 @@ import {
 	type ValidationDay
 } from '../../../lib/scheduling/workforce-validation.js';
 import type { WorkspaceRow } from '../$types.js';
-import { addDays } from '../../../lib/period.js';
+import { addDays } from '../../payroll_runs/lib/dates.js';
 
 type ExplicitEntry = Pick<
 	WorkspaceRow<'work_days'>,

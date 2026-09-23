@@ -14,7 +14,7 @@ import { entitlementValueSchema } from '../entitlement/+definition.js';
  * Every expression is compiled against the `entry` context at write time, so a misspelt member or
  * a string where money belongs is refused before a payroll reads it.
  */
-export const catalogueBandValueSchema = Schema.Struct({
+const catalogueBandValueSchema = Schema.Struct({
 	/** CEL over the entry context; `''` is every entry. */
 	when: Schema.String,
 	/** Money over the entry context; a plain figure is a valid expression. */
@@ -24,7 +24,7 @@ export const catalogueBandValueSchema = Schema.Struct({
 
 export type CatalogueBand = Schema.Schema.Type<typeof catalogueBandValueSchema>;
 
-export const catalogueBandsValueSchema = Schema.Array(catalogueBandValueSchema).check(
+const catalogueBandsValueSchema = Schema.Array(catalogueBandValueSchema).check(
 	Schema.makeFilter((bands) => {
 		for (const band of bands) {
 			const when = compileExpression({ expression: band.when, site: 'entry', type: 'boolean' });

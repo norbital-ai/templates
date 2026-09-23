@@ -1,5 +1,4 @@
 import { resolveEmployment } from '../../../lib/employment-contract.js';
-import { addDays } from '../../../lib/period.js';
 import { dayInstant } from '../../../lib/iso-day.js';
 /**
  * Loading a settled run back out for export.
@@ -27,7 +26,7 @@ import {
 } from '../../../lib/payroll/family.js';
 import { encashmentCode } from '../../../lib/leave/payroll.js';
 import { PAGE_LIMIT, withReadLog } from './api.js';
-import { daysBetween, requiredDateKey } from './dates.js';
+import { daysBetween, requiredDateKey, addDays } from './dates.js';
 import { effectiveOn } from './effective.js';
 import type { ReportContribution, ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
@@ -58,20 +57,20 @@ type RunExport = {
 	readonly skippedEmploymentIds: readonly string[];
 };
 
-const BankAccountSchema = Schema.Struct({
-	account_name: Schema.String,
-	bank_code: Schema.String,
-	bank_name: Schema.String,
-	account_number: Schema.String
-});
-const BankDestinationSchema = Schema.Struct({
-	employmentId: Schema.String,
-	employeeNumber: Schema.String,
-	currency: Schema.String,
-	net: Schema.Number,
-	bank: BankAccountSchema
-});
-type BankDestination = Schema.Schema.Type<typeof BankDestinationSchema>;
+type BankAccount = {
+	readonly account_name: string;
+	readonly bank_code: string;
+	readonly bank_name: string;
+	readonly account_number: string;
+};
+
+type BankDestination = {
+	readonly employmentId: string;
+	readonly employeeNumber: string;
+	readonly currency: string;
+	readonly net: number;
+	readonly bank: BankAccount;
+};
 
 type RunRow = Pick<
 	WorkspaceRow<'payroll_runs'>,
@@ -150,7 +149,6 @@ export function loadRunExports(
 				skippedEmploymentIds: []
 			}));
 
-		const payslipIds = payslips.map((row) => row.id);
 		const employmentIds = [...new Set(payslips.map((row) => row.employment_id))];
 		const shortfalls = yield* readApi.db.payslips.findMany({
 			where: { employment_id: { in: employmentIds }, unfunded_contributions: { gt: 0 } },

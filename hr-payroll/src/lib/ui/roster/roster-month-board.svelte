@@ -179,9 +179,6 @@
 	/** The ladder in climbing order, so the legend and the rail cannot fall out of step. */
 	const lockRungs: readonly LockRung[] = ['OPEN', 'IN_DRAFT_RUN', 'CONSUMED', 'PAID'];
 
-	/** Whether the glyph key under the legend is expanded. Collapsed is the resting state. */
-	let marksOpen = $state(false);
-
 	/**
 	 * A past day is loud only when something is wrong with it. Days that already ended with their
 	 * plan fulfilled, their leave granted, or their conflict flagged stay fully legible; only a
@@ -252,12 +249,6 @@
 		swapSource = null;
 		onSwapDays?.(from, target);
 	}
-
-	const swapPerson = $derived(
-		swapSource == null
-			? null
-			: (people.find((person) => person.id === swapSource?.employmentId) ?? null)
-	);
 
 	const activeCellKey = $derived.by(() => {
 		if (requestedCellKey) {

@@ -1,4 +1,4 @@
-import { Effect, Exit, Schema } from 'effect';
+import { Effect } from 'effect';
 
 /**
  * Sealed-artifact path written by `vite.config.ts` `serverAssets`. The isolate host copies that
@@ -18,17 +18,15 @@ const PDQ_EXPORT = {
 	free: 'l'
 } as const;
 
-type ArtifactReadCopyOptions = {
-	readonly arguments: { readonly copy: true };
-	readonly result: { readonly copy: true };
-};
-
 type ArtifactReadBytes = {
 	applySync(
-		receiver: unknown | undefined,
+		receiver: undefined,
 		args: readonly [string],
-		options: ArtifactReadCopyOptions
-	): Uint8Array | ArrayBuffer | null;
+		options: {
+			readonly arguments: { readonly copy: true };
+			readonly result: { readonly copy: true };
+		}
+	): Uint8Array<ArrayBuffer> | ArrayBuffer | null;
 };
 
 type PdqWasmExports = {
@@ -45,76 +43,48 @@ type PdqWasmExports = {
 	readonly [PDQ_EXPORT.free]: (ptr: number) => void;
 };
 
-const pdqHashInputSchema = Schema.Struct({
-	data: Schema.Uint8Array,
-	width: Schema.Int,
-	height: Schema.Int,
-	channels: Schema.Literal(3)
-});
-
-type PdqHashInput = Schema.Schema.Type<typeof pdqHashInputSchema>;
-
-const pdqHashResultSchema = Schema.Struct({
-	hash: Schema.Uint8Array,
-	quality: Schema.Int
-});
-
-/** Built once: a decoder constructed at the call site is rebuilt on every hash. */
-const decodePdqHashResult = Schema.decodeUnknownEffect(pdqHashResultSchema);
-
-const decodeWasmMemory = Schema.decodeUnknownSync(Schema.instanceOf(WebAssembly.Memory));
-const decodeWasmFunction = Schema.decodeUnknownSync(Schema.instanceOf(Function));
-const decodeWasmNumber = Schema.decodeUnknownSync(Schema.Number);
-
-function artifactReader(): ArtifactReadBytes | null {
-	const reader = (globalThis as typeof globalThis & { __artifactReadBytes?: ArtifactReadBytes })
-		.__artifactReadBytes;
-	return reader ?? null;
-}
+/** A decoded raster: RGB, or RGBA whose alpha is dropped on its way into the WASM heap. */
+type PdqHashInput = {
+	readonly data: Uint8Array;
+	readonly width: number;
+	readonly height: number;
+	readonly channels: 3 | 4;
+};
 
 /** Load the 0.3.9 WASM sidecar from the sealed artifact reader supplied by the host. */
-function readPdqWasmBytes() {
-	const reader = artifactReader();
-	return Effect.try(() => {
-		if (!reader) {
-			throw new Error('Sealed runtime artifact reader is unavailable');
-		}
-		const bytes = reader.applySync(undefined, [PDQ_WASM_ASSET], {
-			arguments: { copy: true },
-			result: { copy: true }
-		});
-		if (bytes == null) {
-			throw new Error(`Sealed runtime is missing ${PDQ_WASM_ASSET}`);
-		}
-		return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+function readPdqWasmBytes(): Uint8Array<ArrayBuffer> {
+	const reader = (globalThis as typeof globalThis & { __artifactReadBytes?: ArtifactReadBytes })
+		.__artifactReadBytes;
+	if (!reader) throw new Error('Sealed runtime artifact reader is unavailable');
+	const bytes = reader.applySync(undefined, [PDQ_WASM_ASSET], {
+		arguments: { copy: true },
+		result: { copy: true }
 	});
+	if (bytes == null) throw new Error(`Sealed runtime is missing ${PDQ_WASM_ASSET}`);
+	return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
 }
 
 /**
  * Wasm-side memory growth helper. Called from the emscripten import `c`, which the WASM runtime
- * invokes synchronously, so it must stay a plain function; a failed grow is reported back in the
- * return value rather than as an exception.
+ * invokes synchronously; a failed grow is reported back in the return value, not as an exception.
  */
 function growMemory(memory: WebAssembly.Memory, requestedSize: number): number {
 	const oldSize = memory.buffer.byteLength;
 	const needed = requestedSize >>> 0;
 	if (needed <= oldSize) return 1;
-	const grown = Effect.runSyncExit(
-		Effect.try(() => memory.grow(Math.max(Math.ceil((needed - oldSize) / 65536), 1)))
-	);
-	return Exit.isSuccess(grown) ? 1 : 0;
+	try {
+		memory.grow(Math.max(Math.ceil((needed - oldSize) / 65536), 1));
+		return 1;
+	} catch {
+		return 0;
+	}
 }
 
 /**
- * The emscripten import table.
- *
- * Called synchronously by the WASM runtime rather than by the workflow that instantiates it — the
- * same reason `growMemory` above is a plain function. A trap has to unwind through the WASM frame,
- * so `getentropy` and `abort` throw, and the `Effect.try`/`Effect.tryPromise` wrapping every entry
- * into this module is what turns that back into a typed failure.
- *
- * `boundMemory` is read per call because the memory is only known once the instance exists, which
- * is after these imports have been handed to `WebAssembly.instantiate`.
+ * The emscripten import table, called synchronously by the WASM runtime. A trap has to unwind
+ * through the WASM frame, so `abort` throws and the `Effect.try` around every entry into this
+ * module turns that back into a typed failure. `boundMemory` is read per call because the memory
+ * only exists once the instance does.
  */
 function pdqImports(boundMemory: () => WebAssembly.Memory | undefined) {
 	return {
@@ -135,101 +105,128 @@ function pdqImports(boundMemory: () => WebAssembly.Memory | undefined) {
 	};
 }
 
-function assertPdqExports(exports: WebAssembly.Exports): PdqWasmExports {
-	const memory = decodeWasmMemory(exports[PDQ_EXPORT.memory]);
-	const init = decodeWasmFunction(exports[PDQ_EXPORT.init]);
-	const hashFromRgb = decodeWasmFunction(exports[PDQ_EXPORT.hashFromRgb]);
-	const malloc = decodeWasmFunction(exports[PDQ_EXPORT.malloc]);
-	const free = decodeWasmFunction(exports[PDQ_EXPORT.free]);
-	return {
-		[PDQ_EXPORT.memory]: memory,
-		[PDQ_EXPORT.init]: () => {
-			Reflect.apply(init, undefined, []);
-		},
-		[PDQ_EXPORT.hashFromRgb]: (imagePtr, width, height, hashPtr, qualityPtr) =>
-			decodeWasmNumber(
-				Reflect.apply(hashFromRgb, undefined, [imagePtr, width, height, hashPtr, qualityPtr])
-			),
-		[PDQ_EXPORT.malloc]: (size) => decodeWasmNumber(Reflect.apply(malloc, undefined, [size])),
-		[PDQ_EXPORT.free]: (ptr) => {
-			Reflect.apply(free, undefined, [ptr]);
-		}
-	} satisfies PdqWasmExports;
-}
-
-/** Compile the sidecar once per isolate / Node process. */
+/**
+ * Compile the sidecar once per isolate / Node process.
+ *
+ * Synchronously: isolated-vm never settles `WebAssembly.compile`/`instantiate`'s promises, so the
+ * async API hangs the guest invocation until its deadline. The module is 25 KB.
+ */
 const loadPdq = Effect.runSync(
 	Effect.cached(
-		Effect.gen(function* () {
-			const bytes = yield* readPdqWasmBytes();
-			const wasm = new Uint8Array(bytes.byteLength);
-			wasm.set(bytes);
+		Effect.try(() => {
 			let memory: WebAssembly.Memory | undefined;
-			const compiled = yield* Effect.tryPromise(() => WebAssembly.compile(wasm.buffer));
-			const instance = yield* Effect.tryPromise(() =>
-				WebAssembly.instantiate(compiled, { a: pdqImports(() => memory) })
-			);
-			const loaded = yield* Effect.try(() => assertPdqExports(instance.exports));
-			memory = loaded[PDQ_EXPORT.memory];
-			yield* Effect.try(() => loaded[PDQ_EXPORT.init]());
-			return loaded;
+			const instance = new WebAssembly.Instance(new WebAssembly.Module(readPdqWasmBytes()), {
+				a: pdqImports(() => memory)
+			});
+			const exports = instance.exports as PdqWasmExports;
+			memory = exports[PDQ_EXPORT.memory];
+			exports[PDQ_EXPORT.init]();
+			return exports;
 		})
 	)
 );
 
-/** Hash an RGB raster with Meta PDQ and return the 32-byte digest plus quality. */
+/**
+ * The longest side PDQ is handed. PDQ reduces every image to 64×64 itself, so a 12 MP raster only
+ * buys CPU: at full resolution the hash alone cost ~500 ms of the guest's 2 s budget. Larger
+ * rasters are box-averaged by an integer factor on their way into the WASM heap.
+ */
+const PDQ_MAX_SIDE = 512;
+
+/**
+ * Write `image` into `heap` as RGB, box-averaging `factor`×`factor` blocks (trailing partial
+ * blocks are dropped). One pass over the source, and no intermediate full-resolution copy.
+ */
+function writeRgb(image: PdqHashInput, factor: number, heap: Uint8Array, width: number): void {
+	const { data, channels } = image;
+	if (factor === 1) {
+		if (channels === 3) heap.set(data);
+		else
+			for (let i = 0, j = 0; j < heap.length; i += 4, j += 3) {
+				heap[j] = data[i]!;
+				heap[j + 1] = data[i + 1]!;
+				heap[j + 2] = data[i + 2]!;
+			}
+		return;
+	}
+	const sums = new Uint32Array(width * 3);
+	const rowStride = image.width * channels;
+	const area = factor * factor;
+	for (let outY = 0, y = 0; y + factor <= image.height; outY += 1) {
+		sums.fill(0);
+		for (let row = 0; row < factor; row += 1, y += 1) {
+			let i = y * rowStride;
+			for (let s = 0; s < sums.length; s += 3) {
+				for (let k = 0; k < factor; k += 1, i += channels) {
+					sums[s] += data[i]!;
+					sums[s + 1] += data[i + 1]!;
+					sums[s + 2] += data[i + 2]!;
+				}
+			}
+		}
+		const offset = outY * width * 3;
+		for (let s = 0; s < sums.length; s += 1) heap[offset + s] = Math.round(sums[s]! / area);
+	}
+}
+
+/** Hash a raster with Meta PDQ and return the 32-byte digest plus quality. */
 export const hashPdq = (image: PdqHashInput) =>
 	Effect.gen(function* () {
 		const loaded = yield* loadPdq;
-		const expected = image.width * image.height * image.channels;
-		if (image.data.length !== expected) {
+		if (image.data.length !== image.width * image.height * image.channels) {
 			return yield* Effect.fail(
-				new Error(`Invalid image data size. Expected ${expected} bytes, got ${image.data.length}`)
+				new Error(
+					`Invalid image data size. Expected ${image.width * image.height * image.channels} bytes, got ${image.data.length}`
+				)
 			);
 		}
+		const factor = Math.max(1, Math.ceil(Math.max(image.width, image.height) / PDQ_MAX_SIDE));
+		const width = Math.floor(image.width / factor);
+		const height = Math.floor(image.height / factor);
 		const malloc = loaded[PDQ_EXPORT.malloc];
 		const free = loaded[PDQ_EXPORT.free];
-		const imagePtr = malloc(image.data.length);
-		const hashPtr = malloc(32);
-		const qualityPtr = malloc(4);
 		return yield* Effect.acquireUseRelease(
-			Effect.succeed({ imagePtr, hashPtr, qualityPtr }),
-			() =>
+			Effect.try(() => ({
+				imagePtr: malloc(width * height * 3),
+				hashPtr: malloc(32),
+				qualityPtr: malloc(4)
+			})),
+			({ imagePtr, hashPtr, qualityPtr }) =>
 				Effect.try(() => {
-					new Uint8Array(loaded[PDQ_EXPORT.memory].buffer).set(image.data, imagePtr);
+					writeRgb(
+						image,
+						factor,
+						new Uint8Array(loaded[PDQ_EXPORT.memory].buffer, imagePtr, width * height * 3),
+						width
+					);
 					const status = loaded[PDQ_EXPORT.hashFromRgb](
 						imagePtr,
-						image.width,
-						image.height,
+						width,
+						height,
 						hashPtr,
 						qualityPtr
 					);
-					const heap = new Uint8Array(loaded[PDQ_EXPORT.memory].buffer);
+					if (status !== 0) throw new Error(`PDQ hashing failed with code: ${status}`);
+					// Re-read the buffer: hashing may have grown (and so detached) the memory.
+					const buffer = loaded[PDQ_EXPORT.memory].buffer;
 					return {
-						status,
-						hash: heap.slice(hashPtr, hashPtr + 32),
-						quality: new Int32Array(loaded[PDQ_EXPORT.memory].buffer)[qualityPtr >> 2]
+						hash: new Uint8Array(buffer).slice(hashPtr, hashPtr + 32),
+						quality: new Int32Array(buffer)[qualityPtr >> 2]!
 					};
-				}).pipe(
-					Effect.flatMap(({ status, hash, quality }) =>
-						status === 0
-							? decodePdqHashResult({ hash, quality })
-							: Effect.fail(new Error(`PDQ hashing failed with code: ${status}`))
-					)
-				),
-			(ptrs) =>
-				Effect.try(() => {
-					free(ptrs.imagePtr);
-					free(ptrs.hashPtr);
-					free(ptrs.qualityPtr);
+				}),
+			({ imagePtr, hashPtr, qualityPtr }) =>
+				Effect.sync(() => {
+					free(imagePtr);
+					free(hashPtr);
+					free(qualityPtr);
 				})
 		);
 	});
 
-/** Encode a 32-byte PDQ digest as the 64-char hex stored on `photo_evidence`. */
-export function pdqHashToHex(hash: Uint8Array): string {
+/** Encode a 32-byte digest (PDQ or SHA-256) as the 64-char hex stored on `photo_evidence`. */
+export function digestToHex(hash: Uint8Array): string {
 	if (hash.length !== 32) {
-		throw new Error(`PDQ hashes must be 32 bytes (got ${hash.length})`);
+		throw new Error(`Digests must be 32 bytes (got ${hash.length})`);
 	}
 	return [...hash].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }

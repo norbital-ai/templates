@@ -7,7 +7,7 @@ import { Schema } from 'effect';
  * grammar, upper-case with digits and underscores; the version seal checks that a scheme named
  * here exists in the same version, the type only checks the spelling.
  */
-export const codeSchema = Schema.String.check(Schema.isPattern(/^[A-Z0-9_]+(?:\.[A-Z0-9_]+)?$/));
+const codeSchema = Schema.String.check(Schema.isPattern(/^[A-Z0-9_]+(?:\.[A-Z0-9_]+)?$/));
 export const codeListValueSchema = Schema.Array(codeSchema);
 
 export default defineCustomType({

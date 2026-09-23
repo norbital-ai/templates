@@ -21,7 +21,6 @@
  * less than a month, on any basis and at any pay frequency.
  */
 
-import { Schema } from 'effect';
 import type { Work } from './configuration.js';
 import { isEligible, type PersonContext } from './eligibility.js';
 import {
@@ -34,8 +33,10 @@ import {
 } from './dates.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-const DayWindowSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
-type DayWindow = Schema.Schema.Type<typeof DayWindowSchema>;
+type DayWindow = {
+	readonly start: string;
+	readonly end: string;
+};
 
 /**
  * The basis this person prorates on: the first `proration_by` arm whose predicate holds over

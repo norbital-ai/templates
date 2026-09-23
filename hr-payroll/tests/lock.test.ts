@@ -20,10 +20,8 @@ import {
 	lockMap,
 	assertNotSettled,
 	sourceLock,
-	sourceLockSystemLocked,
 	sourceLockApplicationLocked,
-	sourceLockRecordMetadata,
-	sourceLockBlocksWrite
+	sourceLockRecordMetadata
 } from '../src/lib/scheduling/lock.ts';
 
 /**
@@ -217,11 +215,8 @@ test('approval and application locks stay explicitly classified', () => {
 	const settled = { kind: 'SETTLED', period: '2026-07' } as const;
 	const unlocked = { kind: 'NONE' } as const;
 
-	assert.equal(sourceLockSystemLocked(pendingApproval), true);
 	assert.equal(sourceLockApplicationLocked(pendingApproval), false);
-	assert.equal(sourceLockSystemLocked(settled), false);
 	assert.equal(sourceLockApplicationLocked(settled), true);
-	assert.equal(sourceLockSystemLocked(unlocked), false);
 	assert.equal(sourceLockApplicationLocked(unlocked), false);
 });
 
@@ -302,7 +297,7 @@ test('a claim refuses whatever the run’s lifecycle, and whatever the windows s
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 		assert.deepEqual(lock, { kind: 'SETTLED', period: settledBy.period });
-		assert.equal(sourceLockBlocksWrite(lock), true);
+		assert.equal(sourceLockApplicationLocked(lock), true);
 	}
 });
 

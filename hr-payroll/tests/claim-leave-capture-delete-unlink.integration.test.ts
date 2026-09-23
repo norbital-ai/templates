@@ -8,7 +8,7 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import { createdIds, observedVersion, writeRows } from './helpers/write.ts';
-import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
+import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/iso-day.ts';
 import {
 	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,

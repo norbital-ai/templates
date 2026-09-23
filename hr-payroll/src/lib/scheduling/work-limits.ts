@@ -28,7 +28,7 @@ import {
 	type WorkLimit as AnyWorkLimit,
 	type WorkRateBand
 } from '../../datatypes/work_rules/+definition.js';
-import { weekStart } from '../../collections/payroll_runs/lib/dates.js';
+import { addDays, monthBounds, weekStart } from '../../collections/payroll_runs/lib/dates.js';
 import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 
 /**
@@ -82,8 +82,6 @@ export function funnelledLimitKeys(
 				keys.add(key!);
 	return keys;
 }
-
-const DAY_MS = 86_400_000;
 
 type SchedulePlanKind = 'WORK' | 'REST' | 'OFF';
 
@@ -141,18 +139,6 @@ const MEASURE_LABEL: Readonly<Record<WorkLimit['measure'], string>> = {
 	SPREAD_HOURS: 'spread-over hours'
 };
 
-function dateMs(date: string): number {
-	return Date.parse(`${date}T00:00:00.000Z`);
-}
-
-function addDays(date: string, days: number): string {
-	return new Date(dateMs(date) + days * DAY_MS).toISOString().slice(0, 10);
-}
-
-function daysInMonth(year: number, month: number): number {
-	return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
 function quarterKey(date: string): string {
 	const [year, month] = date.split('-').map(Number);
 	return `${year}-Q${Math.ceil((month ?? 1) / 3)}`;
@@ -164,7 +150,7 @@ function quarterBounds(date: string): { readonly start: string; readonly end: st
 	const firstMonth = (quarter - 1) * 3 + 1;
 	return {
 		start: `${year}-${String(firstMonth).padStart(2, '0')}-01`,
-		end: `${year}-${String(firstMonth + 2).padStart(2, '0')}-${daysInMonth(year!, firstMonth + 2)}`
+		end: monthBounds(`${year}-${String(firstMonth + 2).padStart(2, '0')}`).end
 	};
 }
 
@@ -188,7 +174,7 @@ export function projectionBounds(
 	if (width === 2)
 		return {
 			start: `${first.slice(0, 7)}-01`,
-			end: `${last.slice(0, 7)}-${daysInMonth(Number(last.slice(0, 4)), Number(last.slice(5, 7)))}`
+			end: monthBounds(last.slice(0, 7)).end
 		};
 	if (width === 1) return { start: weekStart(first), end: addDays(weekStart(last), 6) };
 	return { start: first, end: last };

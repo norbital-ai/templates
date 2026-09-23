@@ -29,7 +29,8 @@
 	import FormSection from '../../lib/ui/form-section.svelte';
 	import { readRange, coversDate } from '../payroll_runs/lib/effective.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
-	import { calendarDateInTimeZone, PAYROLL_TIME_ZONE, todayKey } from '../../lib/ui/calendar.js';
+	import { todayKey } from '../../lib/ui/calendar.js';
+	import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../../lib/iso-day.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import Icon from '@iconify/svelte';

@@ -20,11 +20,6 @@
 import { Schema } from 'effect';
 import { isCalendarDate, isClockTime } from '@norbital-ai/std/date';
 import { decodeNumber } from '@norbital-ai/std/json';
-
-/** A cell after the file format's own wrappers are stripped off. */
-const sheetCellSchema = Schema.NullOr(
-	Schema.Union([Schema.String, Schema.Number, Schema.Boolean, Schema.Date])
-);
 const cellErrorValueSchema = Schema.Struct({ error: Schema.Unknown });
 const cellFormulaResultSchema = Schema.Struct({ result: Schema.Unknown });
 const cellRichTextValueSchema = Schema.Struct({
@@ -40,7 +35,9 @@ const isCellFormulaResult = Schema.is(cellFormulaResultSchema);
 const isCellRichTextValue = Schema.is(cellRichTextValueSchema);
 const isCellTextValue = Schema.is(cellTextValueSchema);
 const isCellFormula = Schema.is(cellFormulaSchema);
-export type SheetCell = Schema.Schema.Type<typeof sheetCellSchema>;
+
+/** A cell after the file format's own wrappers are stripped off. */
+export type SheetCell = string | number | boolean | Date | null;
 /** One sheet as rows of cells, header row included. */
 type SheetGrid = readonly (readonly SheetCell[])[];
 /** Every sheet in the chosen file, keyed by its name. */
@@ -255,18 +252,16 @@ function requireSheet(grids: WorkbookGrids, name: string): SheetGrid {
 }
 
 /** One data row, with the spreadsheet row number it came from so a refusal can name it. */
-const sheetRowSchema = Schema.Struct({
-	rowNumber: Schema.Number,
-	cells: Schema.ReadonlyMap(Schema.String, sheetCellSchema)
-});
-type SheetRow = Schema.Schema.Type<typeof sheetRowSchema>;
+type SheetRow = {
+	readonly rowNumber: number;
+	readonly cells: ReadonlyMap<string, SheetCell>;
+};
 
-const sheetTableSchema = Schema.Struct({
-	sheetName: Schema.String,
-	headers: Schema.Array(Schema.String),
-	rows: Schema.Array(sheetRowSchema)
-});
-export type SheetTable = Schema.Schema.Type<typeof sheetTableSchema>;
+export type SheetTable = {
+	readonly sheetName: string;
+	readonly headers: ReadonlyArray<string>;
+	readonly rows: ReadonlyArray<SheetRow>;
+};
 
 /**
  * The sheet as a header-keyed table.

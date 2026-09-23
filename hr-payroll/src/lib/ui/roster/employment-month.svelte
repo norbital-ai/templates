@@ -26,7 +26,7 @@
 	records why a fixed viewport-derived height is not the way to do that.
 -->
 <script lang="ts">
-	import { isSettledId } from '../../iso-day.js';
+	import { isSettledId, PAYROLL_TIME_ZONE, dateKey } from '../../iso-day.js';
 	import { resolveEmployment } from '../../employment-contract.js';
 	import { settingsInForce } from '../../jurisdiction_settings.js';
 	import { PATTERN_WITH } from '../../scheduling/work-pattern.js';
@@ -54,14 +54,12 @@
 	import RosterMonthCalendar from './roster-month-calendar.svelte';
 	import { employeeMissingPunchReportable } from './employee-reportability.js';
 	import { formatCalendarDate, formatDurationHours } from '../display-formatters.js';
+	import { monthWorkDateInstantBounds, todayKey } from '../calendar.js';
 	import {
-		PAYROLL_TIME_ZONE,
-		monthWorkDateInstantBounds,
-		shiftMonthKey,
-		todayKey,
-		workDateCalendarKey
-	} from '../calendar.js';
-	import { formatDateISO } from '@norbital-ai/std/date';
+		addDays,
+		monthBounds,
+		shiftPeriod
+	} from '../../../collections/payroll_runs/lib/dates.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
@@ -174,11 +172,7 @@
 
 	let scheduleMonth = $state(todayKey().slice(0, 7));
 	const scheduleMonthStart = $derived(`${scheduleMonth}-01`);
-	const scheduleMonthEnd = $derived(
-		formatDateISO(
-			new Date(Date.parse(`${shiftMonthKey(scheduleMonth, 1)}-01T00:00:00.000Z`) - 86_400_000)
-		)
-	);
+	const scheduleMonthEnd = $derived(monthBounds(scheduleMonth).end);
 	const scheduleWorkDateBounds = $derived(monthWorkDateInstantBounds(scheduleMonth));
 
 	function selectScheduleMonth(nextMonth: string): void {
@@ -344,9 +338,7 @@
 	);
 	const schedulePendingDates = $derived(
 		new Set(
-			scheduleWorkDays
-				.filter((row) => row.approval_id != null)
-				.map((row) => workDateCalendarKey(row.work_date))
+			scheduleWorkDays.filter((row) => row.approval_id != null).map((row) => dateKey(row.work_date))
 		)
 	);
 
@@ -395,8 +387,8 @@
 			EffectNumber.clamp({ minimum: 1, maximum: 28 })(decodeNumber(cutoffDay))
 		).padStart(2, '0');
 		return {
-			start: `${shiftMonthKey(scheduleMonth, -1)}-${day}`,
-			end: formatDateISO(new Date(Date.parse(`${scheduleMonth}-${day}T00:00:00.000Z`) - 86_400_000))
+			start: `${shiftPeriod(scheduleMonth, -1)}-${day}`,
+			end: addDays(`${scheduleMonth}-${day}`, -1)
 		};
 	});
 
@@ -468,9 +460,7 @@
 	/** The record axis of the lock rail: one `SourceLock` per date that carries an entry at all. */
 	const scheduleEntryLocks = $derived(
 		new Map(
-			scheduleWorkDays.map(
-				(row) => [workDateCalendarKey(row.work_date), attendanceRowLock(row)] as const
-			)
+			scheduleWorkDays.map((row) => [dateKey(row.work_date), attendanceRowLock(row)] as const)
 		)
 	);
 
@@ -485,7 +475,7 @@
 	const schedulePunchWindows = $derived.by(() => {
 		const windows = new Map<string, { first: string | null; last: string | null }>();
 		for (const row of scheduleWorkDays) {
-			const date = workDateCalendarKey(row.work_date);
+			const date = dateKey(row.work_date);
 			const intervals = row.worked_intervals ?? [];
 			const first = attendanceBoundary(intervals, 'FIRST');
 			const last = attendanceBoundary(intervals, 'LAST');
@@ -590,7 +580,7 @@
 	 * the one write an employee has there, and it creates the row through its own dialog.
 	 */
 	function openDaySheet(_employmentId: string, date: string): void {
-		const stored = scheduleFactWorkDays.find((row) => workDateCalendarKey(row.work_date) === date);
+		const stored = scheduleFactWorkDays.find((row) => dateKey(row.work_date) === date);
 		const recordId = stored?.id;
 		if (recordId == null || !isSettledId(recordId)) return;
 		detailNavigation?.open({

@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decode as decodeJpeg } from 'jpeg-js';
 import { Effect } from 'effect';
-import { hashPdq, pdqHashToHex } from '../src/collections/photo_evidence/pdq.js';
+import { hashPdq, digestToHex } from '../src/collections/photo_evidence/pdq.js';
 
 const PUBLIC_SEED_ASSETS = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/seed/assets');
 
@@ -68,7 +68,7 @@ async function hashPublicJpeg(fileName: string) {
 	return {
 		bytes,
 		hash: pdq.hash,
-		hex: pdqHashToHex(pdq.hash)
+		hex: digestToHex(pdq.hash)
 	};
 }
 

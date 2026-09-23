@@ -47,7 +47,7 @@ export const payslipProrationValueSchema = Schema.Struct({
 export type PayslipProration = Schema.Schema.Type<typeof payslipProrationValueSchema>;
 
 /** Strict standard view: a key the struct does not declare is refused rather than stripped. */
-export const payslipProrationSchema = Schema.toStandardSchemaV1(payslipProrationValueSchema, {
+const payslipProrationSchema = Schema.toStandardSchemaV1(payslipProrationValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }
 });
 

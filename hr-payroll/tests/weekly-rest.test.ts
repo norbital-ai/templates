@@ -15,7 +15,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertRunHasRestDay } from '../src/collections/work_days/lib/schedule-rules.ts';
-import { addDays } from '../src/lib/period.ts';
+import { addDays } from '../src/collections/payroll_runs/lib/dates.ts';
 
 const WORK = 'code-work';
 const REST = 'code-rest';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { client } from '../../lib/workspace-client.js';
+	import { client } from '$bolt/client';
 	import { collectionClient } from '../../lib/collection-client.js';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -18,6 +18,8 @@
 	import Icon from '@iconify/svelte';
 	import { Option, Schema } from 'effect';
 	import { formatSingaporeInstant } from '../../lib/format-singapore-instant.js';
+	import { calendarDateInTimeZone } from '../../lib/calendar-date.js';
+	import { photoSourceValueSchema } from '../../datatypes/photo_source/+definition.js';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
 	import { watch } from 'runed';
 
@@ -185,34 +187,11 @@
 		)
 	);
 
-	type ChannelPhotoSource = {
-		readonly provider: string;
-		readonly messageId: string;
-		readonly senderId: string;
-		readonly sentAt: string | null;
-	};
+	const decodePhotoSource = Schema.decodeUnknownOption(photoSourceValueSchema);
 
-	function channelPhotoSource(source: unknown): ChannelPhotoSource | null {
-		if (source == null || typeof source !== 'object' || Reflect.get(source, 'kind') !== 'channel') {
-			return null;
-		}
-		const provider = Reflect.get(source, 'provider');
-		const messageId = Reflect.get(source, 'message_id');
-		const senderId = Reflect.get(source, 'sender_id');
-		const sentAt = Reflect.get(source, 'sent_at');
-		if (
-			typeof provider !== 'string' ||
-			typeof messageId !== 'string' ||
-			typeof senderId !== 'string'
-		) {
-			return null;
-		}
-		return {
-			provider,
-			messageId,
-			senderId,
-			sentAt: typeof sentAt === 'string' ? sentAt : null
-		};
+	function channelPhotoSource(source: unknown) {
+		const decoded = decodePhotoSource(source);
+		return Option.isSome(decoded) && decoded.value.kind === 'channel' ? decoded.value : null;
 	}
 	/**
 	 * The photos, composed from the evidence rows and nothing else.
@@ -229,7 +208,7 @@
 			const file = parsed.value;
 			const channelSource = channelPhotoSource(evidence.source);
 			const source = evidenceSource(evidence.source);
-			const sentAt = channelSource?.sentAt ?? evidence.created_at;
+			const sentAt = channelSource?.sent_at ?? evidence.created_at;
 			return [
 				{
 					id: evidence.id,
@@ -237,8 +216,8 @@
 					fileSize: file.file_size,
 					url: dataRendererRuntime.fileUrl(file.storage_key),
 					flags: (evidence.flags ?? []).filter((flag) => flag != null),
-					sender: channelSource?.senderId ?? source,
-					messageId: channelSource?.messageId ?? null,
+					sender: channelSource?.sender_id ?? source,
+					messageId: channelSource?.message_id ?? null,
 					sentAt,
 					system: channelSource == null
 				}
@@ -414,13 +393,7 @@
 
 	function timelineDayKey(value: string | null | undefined): string {
 		const timestamp = timelineTimestamp(value);
-		if (timestamp === 0) return 'unknown';
-		return new Intl.DateTimeFormat('en-CA', {
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit',
-			timeZone: 'Asia/Singapore'
-		}).format(new Date(timestamp));
+		return timestamp === 0 ? 'unknown' : calendarDateInTimeZone(new Date(timestamp));
 	}
 
 	function formatTimelineDay(value: string | null | undefined): string {

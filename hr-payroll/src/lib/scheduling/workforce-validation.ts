@@ -1,33 +1,29 @@
 /** Clock-overlap checks for explicit assignments. */
 
-import { Schema } from 'effect';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { clockMinutes } from './roster-code.js';
 
-const designationSchema = Schema.Literals(['WORK', 'REST', 'OFF']);
-type Designation = Schema.Schema.Type<typeof designationSchema>;
+type Designation = 'WORK' | 'REST' | 'OFF';
 
-const validationShiftSchema = Schema.Struct({
-	code: Schema.String,
-	start_time: Schema.String,
-	end_time: Schema.String,
-	break_minutes: Schema.Number
-});
+type ValidationShift = {
+	readonly code: string;
+	readonly start_time: string;
+	readonly end_time: string;
+	readonly break_minutes: number;
+};
 
-const validationDaySchema = Schema.Struct({
-	employment_id: Schema.String,
-	work_date: Schema.String,
-	designation: Schema.NullOr(designationSchema),
-	shift: Schema.NullOr(validationShiftSchema)
-});
-export type ValidationDay = Schema.Schema.Type<typeof validationDaySchema>;
+export type ValidationDay = {
+	readonly employment_id: string;
+	readonly work_date: string;
+	readonly designation: Designation | null;
+	readonly shift: ValidationShift | null;
+};
 
-const workShiftOverlapSchema = Schema.Struct({
-	employment_id: Schema.String,
-	first: validationDaySchema,
-	second: validationDaySchema
-});
-type WorkShiftOverlap = Schema.Schema.Type<typeof workShiftOverlapSchema>;
+type WorkShiftOverlap = {
+	readonly employment_id: string;
+	readonly first: ValidationDay;
+	readonly second: ValidationDay;
+};
 
 function dayMinutes(date: string): number {
 	const parsed = Date.parse(`${date}T00:00:00.000Z`);

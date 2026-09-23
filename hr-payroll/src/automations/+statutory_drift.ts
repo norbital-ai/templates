@@ -31,7 +31,7 @@ import {
 } from '../lib/statutory_research.js';
 import { prefilterStatutorySources, researchOrigins } from '../lib/statutory_sources.js';
 import { todayKey } from '../lib/ui/calendar.js';
-import { dateKey } from '../collections/payroll_runs/lib/dates.js';
+import { dateKey } from '../lib/iso-day.js';
 import { readRange } from '../collections/payroll_runs/lib/effective.js';
 
 /**
@@ -184,7 +184,7 @@ const describeCause = (cause: Cause.Cause<unknown>): string => {
 function sealedStatutoryFacts(tree: SettingsVersionTree): SealedStatutoryFacts {
 	const payroll = tree.source.payroll;
 	return {
-		effective_from: dateKey(readRange(tree.source.effective_range)?.start),
+		effective_from: dateKey(readRange(tree.source.effective_range)?.start) || null,
 		obligations: tree.source.obligations ?? [],
 		payroll: {
 			final_pay_deadlines: payroll?.final_pay_deadlines ?? [],
@@ -583,8 +583,8 @@ const researchLineage = (
 		const dates = [...new Set(diff.changes.map((change) => change.effective_from))];
 		const startsOn = dates[0];
 		const range = readRange(tree.source.effective_range);
-		const sourceStart = dateKey(range?.start);
-		const sourceEnd = dateKey(range?.end);
+		const sourceStart = dateKey(range?.start) || null;
+		const sourceEnd = dateKey(range?.end) || null;
 		if (
 			dates.length !== 1 ||
 			startsOn == null ||
@@ -636,7 +636,7 @@ const researchLineage = (
 	});
 
 /** Exported so a test can drive the handler with the same api the runtime gives it. */
-export const runStatutoryDrift = (api: AutomationApi, onlyCode?: string) =>
+const runStatutoryDrift = (api: AutomationApi, onlyCode?: string) =>
 	Effect.gen(function* () {
 		const today = todayKey();
 		yield* api.progress({ progress: 0.05, text: 'Reading jurisdiction settings versions' });
@@ -713,9 +713,9 @@ export const runStatutoryDrift = (api: AutomationApi, onlyCode?: string) =>
 								version.code === code &&
 								version.sealed_at != null &&
 								version.voided_at == null &&
-								(dateKey(readRange(version.effective_range)?.start) ?? '') > today
+								dateKey(readRange(version.effective_range)?.start) > today
 						)
-						.map((version) => dateKey(readRange(version.effective_range)?.start) ?? '')
+						.map((version) => dateKey(readRange(version.effective_range)?.start))
 						.toSorted();
 					return yield* researchLineage(api, code, inForce.id, today, sealedAhead);
 				})

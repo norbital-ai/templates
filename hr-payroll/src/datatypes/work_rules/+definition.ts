@@ -31,7 +31,7 @@ import { wagesValueSchema } from '../wages/+definition.js';
 
 const cel = Schema.String.check(Schema.isMinLength(1));
 
-export const workLimitValueSchema = Schema.Struct({
+const workLimitValueSchema = Schema.Struct({
 	/** Read in expressions as `limits.<key>`. */
 	key: Schema.String.check(Schema.isMinLength(1)),
 	period: Schema.Literals(['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR']),
@@ -84,7 +84,7 @@ export type WorkHoursLimit = Schema.Schema.Type<typeof workLimitValueSchema>;
  * a rest day (REST) or by a rest day or an unrostered day (REST_OR_OFF). Judged at the roster
  * gate, not read as `limits.<key>` by a band.
  */
-export const workRestLimitValueSchema = Schema.Struct({
+const workRestLimitValueSchema = Schema.Struct({
 	key: Schema.String.check(Schema.isMinLength(1)),
 	measure: Schema.Literal('CONSECUTIVE_WORK_DAYS'),
 	max_days: Schema.Int.check(Schema.isGreaterThan(0)),
@@ -118,7 +118,7 @@ export type WorkLimit = WorkHoursLimit | WorkRestLimit;
 export const isRestLimit = (limit: WorkLimit): limit is WorkRestLimit =>
 	limit.measure === 'CONSECUTIVE_WORK_DAYS';
 
-export const workBreakValueSchema = Schema.Struct({
+const workBreakValueSchema = Schema.Struct({
 	/** Boolean over the work day: the consecutive-hours or OT-length condition. */
 	when: cel,
 	/** Minutes over the work day, owed once `when` holds; a plain figure is a valid expression. */
@@ -127,7 +127,7 @@ export const workBreakValueSchema = Schema.Struct({
 });
 export type WorkBreak = Schema.Schema.Type<typeof workBreakValueSchema>;
 
-export const workRateBandValueSchema = Schema.Struct({
+const workRateBandValueSchema = Schema.Struct({
 	/** The label printed on the payslip line, e.g. the OT class "OT-1.5X". */
 	label: Schema.String.check(Schema.isMinLength(1)),
 	/** Boolean over the work day. */

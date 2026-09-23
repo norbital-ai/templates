@@ -18,71 +18,64 @@ export const unreachableSourceSchema = Schema.Struct({
 type UnreachableSource = Schema.Schema.Type<typeof unreachableSourceSchema>;
 
 /** One row the drift check found changed, and the page it stands on. */
-const statutoryProposalChangeSchema = Schema.Struct({
-	collection: Schema.Literals([
-		'jurisdiction_settings',
-		'statutory_contributions',
-		'leave_catalogue'
-	]),
-	code: Schema.NonEmptyString,
-	field: Schema.Literals([
-		'facts',
-		'exit_facts',
-		'proration',
-		'proration_by',
-		'ordinary_divisor_days',
-		'encashment',
-		'overtime_when',
-		'normal_hours',
-		'rate_week_hours',
-		'bands',
-		'limits',
-		'breaks',
-		'wages',
-		'authority',
-		'night_premium',
-		'holiday_rest_precedence',
-		'rules',
-		'assessment_period',
-		'assessment_scope',
-		'elections',
-		'employee_share_annual_cap',
-		'shared_cap_group',
-		'project_relief_annually',
-		'assessed_on',
-		'parts',
-		'ordinary_on',
-		'entitlement',
-		'eligibility',
-		'is_npl',
-		'pay_fraction',
-		'paid_by',
-		'consumes_code',
-		'unit',
-		'can_encash',
-		'encash_on_exit'
-	]),
-	previous: Schema.Unknown,
-	proposed: Schema.Unknown,
-	source_url: Schema.NonEmptyString,
-	quote: Schema.NonEmptyString,
-	retrieved_at: Schema.String,
-	sha256: Schema.String,
-	effective_from: Schema.String
-});
-export type StatutoryProposalChange = Schema.Schema.Type<typeof statutoryProposalChangeSchema>;
+export type StatutoryProposalChange = {
+	readonly collection: 'jurisdiction_settings' | 'statutory_contributions' | 'leave_catalogue';
+	readonly code: string;
+	readonly field:
+		| 'facts'
+		| 'exit_facts'
+		| 'proration'
+		| 'proration_by'
+		| 'ordinary_divisor_days'
+		| 'encashment'
+		| 'overtime_when'
+		| 'normal_hours'
+		| 'rate_week_hours'
+		| 'bands'
+		| 'limits'
+		| 'breaks'
+		| 'wages'
+		| 'authority'
+		| 'night_premium'
+		| 'holiday_rest_precedence'
+		| 'rules'
+		| 'assessment_period'
+		| 'assessment_scope'
+		| 'elections'
+		| 'employee_share_annual_cap'
+		| 'shared_cap_group'
+		| 'project_relief_annually'
+		| 'assessed_on'
+		| 'parts'
+		| 'ordinary_on'
+		| 'entitlement'
+		| 'eligibility'
+		| 'is_npl'
+		| 'pay_fraction'
+		| 'paid_by'
+		| 'consumes_code'
+		| 'unit'
+		| 'can_encash'
+		| 'encash_on_exit';
+	readonly previous: unknown;
+	readonly proposed: unknown;
+	readonly source_url: string;
+	readonly quote: string;
+	readonly retrieved_at: string;
+	readonly sha256: string;
+	readonly effective_from: string;
+};
 
 /** The review sheet the drill automation keeps beside a proposed draft. */
-const statutoryProposalValueSchema = Schema.Struct({
-	proposed_by: Schema.Literal('statutory_drift'),
-	run_id: Schema.String,
-	proposed_at: Schema.String,
-	source_version_id: Schema.String,
-	changes: Schema.Array(statutoryProposalChangeSchema),
-	notes: Schema.Array(Schema.String),
-	unreachable: Schema.Array(unreachableSourceSchema)
-});
-export type StatutoryProposal = Schema.Schema.Type<typeof statutoryProposalValueSchema>;
+export type StatutoryProposal = {
+	readonly proposed_by: 'statutory_drift';
+	readonly run_id: string;
+	readonly proposed_at: string;
+	readonly source_version_id: string;
+	readonly changes: ReadonlyArray<StatutoryProposalChange>;
+	readonly notes: ReadonlyArray<string>;
+	readonly unreachable: ReadonlyArray<Schema.Schema.Type<typeof unreachableSourceSchema>>;
+};
 
 /**
  * Statutory research: reading the official pages a settings version names, and comparing what

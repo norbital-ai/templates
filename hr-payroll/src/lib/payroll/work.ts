@@ -23,7 +23,6 @@ import {
 	deriveStatutoryWages
 } from '../../collections/payroll_runs/lib/statutory-wages.js';
 import {
-	dateKey,
 	daysBetween,
 	inclusiveDays,
 	intersectDays,
@@ -31,14 +30,15 @@ import {
 	monthDay,
 	monthKey,
 	requiredDateKey,
-	type IsoDate
+	type IsoDate,
+	addDays,
+	weekStart
 } from '../../collections/payroll_runs/lib/dates.js';
 import type { InLieuSlice } from '../../datatypes/payroll_trace/+definition.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import { leaveWindowOf } from '../leave/entitlement.js';
 import { coversDate, live, readRange } from '../../collections/payroll_runs/lib/effective.js';
-import { addDays, weekStart } from '../period.js';
-import { dayInstant } from '../iso-day.js';
+import { dayInstant, dateKey } from '../iso-day.js';
 import {
 	evaluatePersonNumber,
 	isEligible,
@@ -426,7 +426,7 @@ function baseSalaryOf(terms: EmploymentBundle['terms'][number]) {
  * not a relationship.
  */
 function termsSnapshotKey(terms: EmploymentBundle['terms'][number]): string {
-	const start = dateKey(terms.effective_range?.start) ?? '';
+	const start = dateKey(terms.effective_range?.start);
 	const title =
 		terms.job_title == null || terms.job_title === '' ? terms.employment_type : terms.job_title;
 	return `${title} @ ${start} · ${decodeNumber(terms.base_salary?.value ?? 0).toFixed(2)}`;

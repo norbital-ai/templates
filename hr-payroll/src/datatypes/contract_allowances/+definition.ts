@@ -8,7 +8,7 @@ import { Schema } from 'effect';
  * amount is a positive magnitude in the contract's currency, prorated like basic salary. A class
  * appears once: to change its figure is a terms change from a date.
  */
-export const contractAllowanceValueSchema = Schema.Struct({
+const contractAllowanceValueSchema = Schema.Struct({
 	catalogue_id: Schema.String.check(Schema.isUUID()),
 	amount: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 });

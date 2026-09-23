@@ -15,7 +15,7 @@ export const ADJUSTMENT_FAMILIES = [
  * `label`, `bucket` and `amount` are frozen facts; a later catalogue rename cannot rewrite them.
  * The statutory rule key is work-day provenance and nothing else.
  */
-export const payslipAdjustmentSchema = Schema.Struct({
+const payslipAdjustmentSchema = Schema.Struct({
 	family: Schema.Literals(ADJUSTMENT_FAMILIES),
 	source_id: Schema.String.check(Schema.isUUID()),
 	/**

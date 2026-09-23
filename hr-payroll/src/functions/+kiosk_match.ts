@@ -1,9 +1,9 @@
 import { resolveEmployment } from '../lib/employment-contract.js';
 import { defineQueryHandler, refuse } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
-import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../lib/ui/calendar.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { dateKey } from '../lib/iso-day.js';
+import { entityDay } from '../lib/kiosk/entity-day.js';
 import type { Api } from './$types.js';
 import {
 	KIOSK_MATCH_THRESHOLD,
@@ -63,10 +63,7 @@ export default defineQueryHandler({
 			});
 			if (employments.length >= 1_000)
 				refuse('Kiosk matching exceeded its employment contract read limit.');
-			const today = calendarDateInTimeZone(
-				new Date(yield* Clock.currentTimeMillis),
-				PAYROLL_TIME_ZONE
-			);
+			const today = yield* entityDay(api, company_id, new Date(yield* Clock.currentTimeMillis));
 			const active = employments
 				.map(resolveEmployment)
 				.filter(

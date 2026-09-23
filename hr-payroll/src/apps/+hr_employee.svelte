@@ -21,13 +21,8 @@
 	} from '../lib/ui/display-formatters.js';
 	import type { RemoteQuery } from '@norbital-ai/std/collection';
 	import type { LeaveBalanceSummaries } from '../lib/leave/summary.js';
-	import {
-		daysBetweenKeys,
-		inForceTodayFilter,
-		payDateFor,
-		shiftMonthKey,
-		todayKey
-	} from '../lib/ui/calendar.js';
+	import { inForceTodayFilter, payDateFor, todayKey } from '../lib/ui/calendar.js';
+	import { inclusiveDays, shiftPeriod } from '../collections/payroll_runs/lib/dates.js';
 	import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 	import { payRequestRecordMetadata } from '../lib/scheduling/lock.js';
 	import { setContext } from 'svelte';
@@ -159,10 +154,10 @@
 	const nextPayDate = $derived.by(() => {
 		if (!company) return null;
 		const thisMonth = payDateFor(today.slice(0, 7));
-		return thisMonth >= today ? thisMonth : payDateFor(shiftMonthKey(today.slice(0, 7), 1));
+		return thisMonth >= today ? thisMonth : payDateFor(shiftPeriod(today.slice(0, 7), 1));
 	});
 	const daysToPayday = $derived(
-		nextPayDate ? Math.max(0, daysBetweenKeys(today, nextPayDate)) : null
+		nextPayDate ? Math.max(0, inclusiveDays(today, nextPayDate) - 1) : null
 	);
 
 	function payrollRunPeriod(row: PayslipRow): string {

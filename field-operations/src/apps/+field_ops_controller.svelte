@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { client } from '../lib/workspace-client.js';
+	import { client } from '$bolt/client';
 	import { getErrorMessage } from '@norbital-ai/std';
 	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { Button } from '@norbital-ai/ui/button';
@@ -8,10 +8,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { CollectionForm, type CollectionFormSemantic } from '@norbital-ai/ui/collection-form';
 	import { DataRenderer } from '@norbital-ai/ui/data-renderer';
-	import { Bound, Cover, Inline, Split, Stack } from '@norbital-ai/ui/layout';
-	import * as Sheet from '@norbital-ai/ui/sheet';
+	import { Bound, Inline, Split, Stack } from '@norbital-ai/ui/layout';
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import Icon from '@iconify/svelte';
@@ -35,7 +33,6 @@
 	 * conversion twice, which showed the previous day to every viewer east of Greenwich.
 	 */
 	const dispatchQueryInstant = $derived(`${dispatchDay}T00:00:00.000Z`);
-	let assignContractorOpen = $state(false);
 	/**
 	 * The day's work, read once. The work order is the assignment row now — title, nature and site
 	 * are its own columns — so a card needs no second query, and the map groups the same rows by
@@ -112,7 +109,6 @@
 		new Set((openSuspicionQuery?.current ?? []).map((log) => log.job_assignment_id))
 	);
 
-	// Assign-contractor sheet — files a work order for the day and names the person who holds it.
 	const sitesQuery = $derived(
 		client.db.sites.findMany({
 			columns: { id: true, name: true, location: true },
@@ -123,14 +119,6 @@
 	const siteNameById = $derived(
 		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
 	);
-	/** The contractor is required; the work-order columns are non-nullable, so the form refuses an
-	 * empty site, title or day by itself and this names the one pick that could be cleared. */
-	const assignmentSemantic: CollectionFormSemantic = (values) =>
-		Effect.succeed(
-			typeof values.assignee_user_id === 'string' && values.assignee_user_id !== ''
-				? []
-				: [{ message: t('component.assignment_picks_required'), path: [] }]
-		);
 	function setDispatchDay(next: string): void {
 		dispatchDay = next;
 	}
@@ -141,7 +129,6 @@
 	}
 
 	const suspicionReview = $derived(client.automations.review_job_assignment_suspicion);
-	let suspicionReviewError = $state<string | null>(null);
 	const suspicionReviewPending = $derived(suspicionReview.pending);
 	const suspicionReviewSnapshot = $derived(suspicionReview.latest?.current);
 	const suspicionReviewActive = $derived(
@@ -158,41 +145,76 @@
 			? null
 			: Math.round(suspicionReviewSnapshot.progress.progress * 100)
 	);
+	/** The review reads the whole board, so it asks for no selection; the toolbar reports a refusal. */
+	const bulkPipelines = $derived([
+		{
+			id: 'suspicion-review',
+			label: t('app.field_ops_controller.run_suspicion_review'),
+			description: t('app.field_ops_controller.suspicion_review_description'),
+			icon: 'lucide:shield-alert',
+			getDisabledReason: () =>
+				suspicionReviewRunning ? t('app.field_ops_controller.suspicion_review_running') : null,
+			run: () =>
+				Effect.tryPromise({
+					try: () => suspicionReview.run({}),
+					catch: (error) => new Error(getErrorMessage(error))
+				})
+		}
+	]);
 
 	/**
 	 * A CSV of work orders — `site, scheduled_for, title`, optionally `nature, description,
 	 * assignee_user_id, external_ref` — through the assignment import pipeline, which checks the whole
-	 * sheet and files any site it does not know before it creates a row.
+	 * sheet and files any site it does not know before it creates a row. A failure is the toolbar's
+	 * to report; only the count is ours.
 	 */
-	let importRunning = $state(false);
-	let importMessage = $state<{ tone: 'ok' | 'error'; text: string } | null>(null);
-	async function importAssignments(file: File | undefined): Promise<void> {
-		if (file === undefined) return;
-		importRunning = true;
-		importMessage = null;
-		try {
-			const rows = csvRecords(await file.text());
-			if (rows.length === 0) {
-				importMessage = {
-					tone: 'error',
-					text: t('app.field_ops_controller.import_empty', { file: file.name })
-				};
-				return;
-			}
-			const count = await importCollectionRecords({
-				records: [{ collection: 'job_assignments', id: crypto.randomUUID(), values: { rows } }]
-			});
-			importMessage = {
-				tone: 'ok',
-				text: t('app.field_ops_controller.import_done', { count, file: file.name })
+	let importMessage = $state<string | null>(null);
+	function pickCsv(): Effect.Effect<File | null> {
+		return Effect.callback((resume) => {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.accept = '.csv,text/csv';
+			let settled = false;
+			const finish = (file: File | null): void => {
+				if (settled) return;
+				settled = true;
+				resume(Effect.succeed(file));
 			};
-		} catch (error) {
-			importMessage = { tone: 'error', text: getErrorMessage(error) };
-		} finally {
-			importRunning = false;
-		}
+			input.addEventListener('change', () => finish(input.files?.[0] ?? null), { once: true });
+			// Dismissing the dialog fires `cancel`; without it the pipeline would spin forever.
+			input.addEventListener('cancel', () => finish(null), { once: true });
+			input.click();
+		});
 	}
-	let importInput = $state<HTMLInputElement | null>(null);
+	const importPipelines = $derived([
+		{
+			id: 'job-assignments-csv',
+			label: t('app.field_ops_controller.import_assignments'),
+			icon: 'lucide:upload',
+			run: () =>
+				Effect.gen(function* () {
+					importMessage = null;
+					const file = yield* pickCsv();
+					if (file == null) return;
+					const rows = csvRecords(yield* Effect.promise(() => file.text()));
+					if (rows.length === 0) {
+						return yield* Effect.fail(
+							new Error(t('app.field_ops_controller.import_empty', { file: file.name }))
+						);
+					}
+					const count = yield* Effect.tryPromise({
+						try: () =>
+							importCollectionRecords({
+								records: [
+									{ collection: 'job_assignments', id: crypto.randomUUID(), values: { rows } }
+								]
+							}),
+						catch: (error) => new Error(getErrorMessage(error))
+					});
+					importMessage = t('app.field_ops_controller.import_done', { count, file: file.name });
+				})
+		}
+	]);
 
 	function assignmentStatusLabel(status: string): string {
 		if (status !== 'unassigned' && status !== 'assigned' && status !== 'completed') {
@@ -295,111 +317,31 @@
 	{/if}
 {/snippet}
 
-{#snippet dispatchControls()}
-	<!--
-		One row, above the board it controls.
-
-		This was a full-width `Split` stacking a label over the picker, and it spent a banded strip
-		across the whole dashboard on one date and one button. Collapsed to a single line it sits
-		inside the board column, which is what leaves the map a real column of its own rather than
-		the leftover third of the page.
-	-->
-	<Inline justify="between" align="center" gap="sm" class="rounded-lg border bg-card px-3 py-2">
-		<Inline align="center" gap="sm" class="min-w-0">
-			<span class="shrink-0 text-xs font-medium text-muted-foreground">
-				{t('app.field_ops_controller.dispatch_date')}
-			</span>
-			<div class="min-w-0">
-				<DataRenderer
-					field={{
-						name: 'dispatch_date',
-						kind: 'instant',
-						nullable: false,
-						precision: 'day'
-					}}
-					value={dispatchQueryInstant}
-					mode="edit"
-					placeholder={t('app.field_ops_controller.select_dispatch_date')}
-					onValueChange={updateDispatchDate}
-				/>
-			</div>
-			<Button
-				variant="ghost"
-				size="sm"
-				class="h-6 shrink-0 px-2 text-xs"
-				onclick={() => setDispatchDay(today)}
-			>
-				{t('app.field_ops_controller.today')}
-			</Button>
-		</Inline>
-		<Inline align="center" gap="sm" class="shrink-0">
-			{#if suspicionReviewRunning && suspicionReviewPercent != null}
-				<span class="text-xs tabular-nums text-muted-foreground" role="status">
-					{t('app.field_ops_controller.suspicion_review_progress', {
-						percent: suspicionReviewPercent,
-						text: suspicionReviewSnapshot?.progress?.text ?? ''
-					})}
-				</span>
-			{/if}
-			<Button
-				variant="outline"
-				size="sm"
-				disabled={suspicionReviewRunning}
-				onclick={async () => {
-					if (suspicionReviewRunning) return;
-					suspicionReviewError = null;
-					try {
-						await suspicionReview.run({});
-					} catch (error) {
-						suspicionReviewError = getErrorMessage(error);
-					}
+{#snippet dispatchNavigation()}
+	<Inline align="center" gap="sm" class="min-w-0">
+		<div class="min-w-0">
+			<DataRenderer
+				field={{
+					name: 'dispatch_date',
+					kind: 'instant',
+					nullable: false,
+					precision: 'day'
 				}}
-			>
-				<Icon icon="lucide:play" class="size-4 shrink-0" />
-				{suspicionReviewRunning
-					? t('app.field_ops_controller.suspicion_review_running')
-					: t('app.field_ops_controller.run_suspicion_review')}
-			</Button>
-			<input
-				bind:this={importInput}
-				type="file"
-				accept=".csv,text/csv"
-				class="hidden"
-				onchange={(event) => {
-					const input = event.currentTarget;
-					void importAssignments(input.files?.[0]).finally(() => (input.value = ''));
-				}}
+				value={dispatchQueryInstant}
+				mode="edit"
+				placeholder={t('app.field_ops_controller.select_dispatch_date')}
+				onValueChange={updateDispatchDate}
 			/>
-			<Button
-				variant="outline"
-				size="sm"
-				disabled={importRunning}
-				onclick={() => importInput?.click()}
-			>
-				<Icon icon="lucide:upload" class="size-4 shrink-0" />
-				{importRunning
-					? t('app.field_ops_controller.import_running')
-					: t('app.field_ops_controller.import_assignments')}
-			</Button>
-			<Button variant="secondary" size="sm" onclick={() => (assignContractorOpen = true)}>
-				<Icon icon="lucide:user-round-check" class="size-4 shrink-0" />
-				{t('app.field_ops_controller.assign_contractor')}
-			</Button>
-		</Inline>
-	</Inline>
-	{#if suspicionReviewError}
-		<p role="alert" class="text-sm text-destructive">{suspicionReviewError}</p>
-	{/if}
-	{#if importMessage}
-		<p
-			role={importMessage.tone === 'error' ? 'alert' : 'status'}
-			class="whitespace-pre-line text-sm {importMessage.tone === 'error'
-				? 'text-destructive'
-				: 'text-muted-foreground'}"
+		</div>
+		<Button
+			variant="ghost"
+			size="sm"
+			class="h-6 shrink-0 px-2 text-xs"
+			onclick={() => setDispatchDay(today)}
 		>
-			{importMessage.text}
-		</p>
-	{/if}
+			{t('app.field_ops_controller.today')}
+		</Button>
+	</Inline>
 {/snippet}
 
 {#snippet dispatchSchedule()}
@@ -407,6 +349,19 @@
 		{#if openSuspicionQuery?.error}
 			<p class="px-1 text-sm text-destructive" role="alert">
 				{t('app.field_ops_controller.review_status_failed')}
+			</p>
+		{/if}
+		{#if suspicionReviewRunning && suspicionReviewPercent != null}
+			<p role="status" class="px-1 text-sm tabular-nums text-muted-foreground">
+				{t('app.field_ops_controller.suspicion_review_progress', {
+					percent: suspicionReviewPercent,
+					text: suspicionReviewSnapshot?.progress?.text ?? ''
+				})}
+			</p>
+		{/if}
+		{#if importMessage}
+			<p role="status" class="px-1 whitespace-pre-line text-sm text-muted-foreground">
+				{importMessage}
 			</p>
 		{/if}
 		<Split
@@ -417,53 +372,54 @@
 			class="h-full"
 		>
 			{#snippet start()}
-				<Cover gap="sm" top={dispatchControls}>
-					<Bound
-						size="full"
-						pad="md"
-						class="rounded-lg border bg-card [&_.kanban-lane]:gap-4 [&_.kanban-lane]:p-4"
+				<Bound
+					size="full"
+					pad="md"
+					class="rounded-lg border bg-card [&_.kanban-lane]:gap-4 [&_.kanban-lane]:p-4"
+				>
+					<CollectionKanban
+						client={collectionClient}
+						collection="job_assignments"
+						navigation={dispatchNavigation}
+						{importPipelines}
+						{bulkPipelines}
+						groupBy="status"
+						lanes={dispatchLanes}
+						rows={2}
+						query={boardQuery}
+						recordMetadata={(assignment) =>
+							typeof assignment.id === 'string' && suspiciousAssignmentIds.has(assignment.id)
+								? [
+										{
+											kind: 'flag',
+											tone: 'warning',
+											label: t('component.suspicion_open')
+										}
+									]
+								: []}
 					>
-						<CollectionKanban
-							client={collectionClient}
-							collection="job_assignments"
-							groupBy="status"
-							lanes={dispatchLanes}
-							rows={2}
-							query={boardQuery}
-							recordMetadata={(assignment) =>
-								typeof assignment.id === 'string' && suspiciousAssignmentIds.has(assignment.id)
-									? [
-											{
-												kind: 'flag',
-												tone: 'warning',
-												label: t('component.suspicion_open')
-											}
-										]
-									: []}
-						>
-							{#snippet fields({ Field })}
-								<Field name="title" card="title" />
-								<Field name="assignee_user_id" card="subtitle" />
-							{/snippet}
-							{#snippet Card(assignment)}
-								<Stack gap="xs">
-									<!--
+						{#snippet fields({ Field })}
+							<Field name="title" card="title" />
+							<Field name="assignee_user_id" card="subtitle" />
+						{/snippet}
+						{#snippet Card(assignment)}
+							<Stack gap="xs">
+								<!--
 										`nature`, not `title`. A title is composed as "<nature> — <site name>",
 										so pairing it with the site underneath printed the same address twice
 										and pushed the card past its own height. The nature is the half a
 										dispatcher cannot infer from the address.
 									-->
-									<p class="line-clamp-2 text-sm leading-snug font-medium">
-										{assignment.nature ?? '—'}
-									</p>
-									<p class="line-clamp-2 text-meta leading-snug">
-										{siteNameById.get(String(assignment.site_id)) ?? '—'}
-									</p>
-								</Stack>
-							{/snippet}
-						</CollectionKanban>
-					</Bound>
-				</Cover>
+								<p class="line-clamp-2 text-sm leading-snug font-medium">
+									{assignment.nature ?? '—'}
+								</p>
+								<p class="line-clamp-2 text-meta leading-snug">
+									{siteNameById.get(String(assignment.site_id)) ?? '—'}
+								</p>
+							</Stack>
+						{/snippet}
+					</CollectionKanban>
+				</Bound>
 			{/snippet}
 			{#snippet end()}
 				<Bound size="full" clip class="rounded-lg">
@@ -527,79 +483,4 @@
 			}
 		] satisfies TabConfig[]}
 	/>
-
-	<Sheet.Root
-		open={assignContractorOpen}
-		onOpenChange={(open) => {
-			assignContractorOpen = open;
-		}}
-	>
-		<Sheet.Content flush class="sm:max-w-lg">
-			<Sheet.Header class="border-b border-border px-5 py-4">
-				<Sheet.Title>{t('app.field_ops_controller.sheet_title')}</Sheet.Title>
-				<Sheet.Description>
-					{t('app.field_ops_controller.sheet_description', { date: dispatchDay })}
-				</Sheet.Description>
-			</Sheet.Header>
-			<div class="p-5">
-				<CollectionForm
-					client={collectionClient}
-					collection="job_assignments"
-					// Filed on the day the board is showing, already dispatched to the person named.
-					defaultValues={{ status: 'assigned', scheduled_for: dispatchQueryInstant }}
-					semantic={assignmentSemantic}
-					success_message={t('component.assignment_created')}
-					failure_message={t('component.assignment_create_failed')}
-					submitLabel={t('app.field_ops_controller.assign_contractor')}
-					onAfterSubmit={() => {
-						assignContractorOpen = false;
-					}}
-				>
-					{#snippet children({ Field })}
-						<Field name="dispatched_at" hidden />
-						<!-- Dispatched by this sheet; the collection stamps the time. -->
-						<Field name="status" hidden />
-						<Field name="completed_at" hidden />
-						<Field name="amount_charged" hidden />
-						<Field name="location" hidden />
-						<Field name="summary" hidden />
-						<Field name="source_message_id" hidden />
-						<Field name="external_ref" hidden />
-						<Stack gap="md">
-							<Field
-								name="site_id"
-								label={t('component.site')}
-								relationOptions={{
-									label: (record) => String(record.name || '—'),
-									orderBy: { name: 'asc' },
-									limit: 500
-								}}
-							/>
-							<Field name="title" label={t('component.job_title')} />
-							<Field name="nature" label={t('component.job_nature')} />
-							<Field name="scheduled_for" label={t('component.scheduled_date')} />
-							<Field name="description" label={t('component.job_description_scope')} />
-							<!--
-							The assignee is a person, so the picker reads the identity directory directly.
-							Authored workspace code declares which relation it is editing, but never
-							receives a query handle for the platform-owned user table.
-						-->
-							<Field
-								name="assignee_user_id"
-								label={t('component.contractor')}
-								relationOptions={{
-									label: (record) => {
-										const v = record.name;
-										return v != null && v !== '' ? String(v) : '—';
-									},
-									orderBy: { name: 'asc' },
-									limit: 500
-								}}
-							/>
-						</Stack>
-					{/snippet}
-				</CollectionForm>
-			</div>
-		</Sheet.Content>
-	</Sheet.Root>
 </AppShell>

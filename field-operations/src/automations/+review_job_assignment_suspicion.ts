@@ -2,7 +2,9 @@ import { defineAutomation } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema, Semaphore } from 'effect';
 import { currentDate } from '../lib/clock.js';
 import {
+	clipText,
 	embedFiledPhotos,
+	AwaitingInspection,
 	inspectFiledPhotos,
 	loadUncheckedAssignments,
 	reviewAssignmentSuspicion
@@ -30,23 +32,15 @@ const MAX_FAILURE_SUMMARY_CHARS = 500;
 /** Bound provider concurrency while independent assignment reviews make progress. */
 export const SUSPICION_REVIEW_CONCURRENCY = 4;
 
-const failureSummary = (error: unknown): string => {
-	const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-	const oneLine = message.replace(/\s+/g, ' ').trim();
-	return oneLine.length <= MAX_FAILURE_SUMMARY_CHARS
-		? oneLine
-		: `${oneLine.slice(0, MAX_FAILURE_SUMMARY_CHARS - 12)}…[clipped]`;
-};
+const failureSummary = (error: unknown): string =>
+	clipText(
+		(error instanceof Error ? `${error.name}: ${error.message}` : String(error))
+			.replace(/\s+/g, ' ')
+			.trim(),
+		MAX_FAILURE_SUMMARY_CHARS
+	);
 
-export type SuspicionReviewAutomationResult = Readonly<{
-	reviewed_at: string;
-	assignment_count: number;
-	inference_count: number;
-	failure_count: number;
-	failure_details: ReadonlyArray<Readonly<{ assignment_id: string; stage: string }>>;
-	failure_details_truncated: boolean;
-	counts: Readonly<Record<string, number>>;
-}>;
+type SuspicionReviewAutomationResult = Schema.Schema.Type<typeof OutputSchema>;
 
 /** Keeps the complete bounded audit summary on a failed run while making its task status truthful. */
 export class SuspicionReviewIncompleteError extends Error {
@@ -86,6 +80,7 @@ export default defineAutomation(
 				}
 				yield* api.progress({ progress: 0.04, text: 'Inspecting filed photos' });
 				const inspection = yield* inspectFiledPhotos(api);
+				const failedInspections = new Set(inspection.failures.map(({ photo_id }) => photo_id));
 				yield* api.progress({ progress: 0.05, text: 'Loading unchecked assignments' });
 				const assignments = yield* loadUncheckedAssignments(api, args.assignment_id);
 				const progressLock = yield* Semaphore.make(1);
@@ -141,36 +136,29 @@ export default defineAutomation(
 					assignments,
 					(assignment) =>
 						Effect.gen(function* () {
-							let inferenceStarted = false;
-							let inferenceSucceeded = false;
-							let reviewPersisted = false;
-							const review = yield* reviewAssignmentSuspicion(api, assignment, {
-								inferenceStarted: () => {
-									inferenceStarted = true;
-									inferenceCount += 1;
-								},
-								inferenceSucceeded: () => {
-									inferenceSucceeded = true;
-								},
-								reviewPersisted: () => {
-									reviewPersisted = true;
-								}
-							}).pipe(
+							const review = yield* reviewAssignmentSuspicion(api, assignment).pipe(
 								Effect.map((result) => ({ success: true as const, result })),
-								Effect.catch((error: unknown) => Effect.succeed({ success: false as const, error }))
+								Effect.catch((error) => Effect.succeed({ success: false as const, error }))
 							);
+							// Every outcome past fact loading asked the model, whether or not it answered.
+							if (
+								review.success
+									? review.result.status !== 'skipped_checked'
+									: review.error.stage !== 'fact_loading'
+							)
+								inferenceCount += 1;
+							// Queued behind this run's single inspection: waiting, not failed.
+							if (
+								!review.success &&
+								review.error.cause instanceof AwaitingInspection &&
+								!failedInspections.has(review.error.cause.photoId)
+							) {
+								counts.awaiting_inspection = (counts.awaiting_inspection ?? 0) + 1;
+								yield* publishCompletion();
+								return;
+							}
 							if (!review.success) {
-								yield* recordFailure(
-									assignment.id,
-									!inferenceStarted
-										? 'fact_loading'
-										: !inferenceSucceeded
-											? 'inference'
-											: !reviewPersisted
-												? 'review_persistence'
-												: 'suspicion_log_persistence',
-									review.error
-								);
+								yield* recordFailure(assignment.id, review.error.stage, review.error.cause);
 								yield* publishCompletion();
 								return;
 							}

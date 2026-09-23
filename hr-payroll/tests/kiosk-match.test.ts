@@ -6,6 +6,8 @@ import enroll from '../src/functions/+kiosk_enroll.ts';
 
 const probe = Array.from({ length: 1024 }, (_, i) => (i === 0 ? 1 : 0));
 const companyId = '00000000-0000-4000-8000-000000000001';
+/** An entity with no settings version in force: today falls back to the default wall clock. */
+const companies = { findFirst: () => Effect.succeed(undefined) };
 const otherCompanyId = '00000000-0000-4000-8000-000000000002';
 
 test('the actual matcher rejects weak and ambiguous neighbours, including a runner-up beyond the cutoff', async () => {
@@ -31,6 +33,7 @@ test('the actual matcher rejects weak and ambiguous neighbours, including a runn
 						);
 					}
 				},
+				companies,
 				employments: {
 					findMany: () => {
 						employmentReads++;
@@ -82,6 +85,7 @@ const matchingApi = (
 			employees: {
 				findNearest: () => Effect.succeed([{ id: 'person', name: 'Fixture person', distance: 0.1 }])
 			},
+			companies,
 			employments: {
 				findMany: (query: { where: { company_id: { eq: string } } }) => {
 					assert.equal(query.where.company_id.eq, expectedCompanyId);

@@ -14,9 +14,8 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { MemoryRow, MemoryWorld } from '../../../lib/memory-reads.js';
 import { PAGE_LIMIT, type PayrollReadApi } from './api.js';
-import { monthBounds, monthKey, shiftPeriod } from './dates.js';
+import { monthBounds, monthKey, shiftPeriod, addDays } from './dates.js';
 import { periodGrammarFault, resolveWindow } from './period.js';
-import { addDays } from '../../../lib/period.js';
 import { dayInstant } from '../../../lib/iso-day.js';
 
 const APPROVED = { approval_id: { isNull: true } } as const;

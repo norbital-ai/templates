@@ -6,7 +6,6 @@ import { gunzipSync } from 'node:zlib';
 import { Effect } from 'effect';
 import {
 	assertPhotoEvidenceProvenanceUnchanged,
-	decodePhotoInspection,
 	evaluateCaptureGeolocation,
 	inspectPhoto
 } from '../src/collections/photo_evidence/photo-integrity.js';
@@ -177,16 +176,20 @@ test('inspects the canonical 12 MP phone-photo envelope deterministically', asyn
 	assert.deepEqual(
 		{
 			sha256: inspection.sha256,
+			mimeType: inspection.mimeType,
 			perceptualHash: inspection.perceptualHash,
 			width: inspection.width,
 			height: inspection.height,
+			captureLocation: inspection.captureLocation,
 			flags: inspection.flags
 		},
 		{
 			sha256: 'fd41dba0ff371735328979ec3b80992623b513173986e79c18b6323861e229d4',
-			perceptualHash: '13a0113411341134000082001134000011341134554b2c4b2c4b11342c4b0000',
+			mimeType: 'image/jpeg',
+			perceptualHash: '585e2c4b554b11341134000000001134113400002c4b11342c4b000011340000',
 			width: 3024,
 			height: 4032,
+			captureLocation: null,
 			flags: ['low_quality']
 		}
 	);
@@ -242,37 +245,6 @@ test('hashes a HEIC upload as the same photo as its JPEG export', async () => {
 	assert.deepEqual(jpeg.flags, []);
 	assert.ok(hammingDistance(heic.perceptualHash, jpeg.perceptualHash) <= 31);
 	assert.notEqual(heic.sha256, jpeg.sha256);
-});
-
-test('accepts only the immutable fact shape supplied by the host inspection cache', () => {
-	assert.deepEqual(
-		decodePhotoInspection({
-			sha256: 'a'.repeat(64),
-			perceptualHash: 'b'.repeat(64),
-			width: 1440,
-			height: 1920,
-			captureLocation: null,
-			flags: []
-		}),
-		{
-			sha256: 'a'.repeat(64),
-			perceptualHash: 'b'.repeat(64),
-			width: 1440,
-			height: 1920,
-			captureLocation: null,
-			flags: []
-		}
-	);
-	assert.throws(() =>
-		decodePhotoInspection({
-			sha256: 'not-a-digest',
-			perceptualHash: 'b'.repeat(64),
-			width: 0,
-			height: 1920,
-			captureLocation: null,
-			flags: ['invented-policy']
-		})
-	);
 });
 
 test('records missing and contradictory GPS as evidence without inventing a verdict', () => {

@@ -11,7 +11,7 @@ export const HOLIDAY_KINDS = [
 ] as const;
 
 /** One holiday exactly as a payroll run read it: values as well as the id, so a replay needs no live read. */
-export const holidaySnapshotSchema = Schema.Struct({
+const holidaySnapshotSchema = Schema.Struct({
 	id: Schema.String.check(Schema.isUUID()),
 	company_id: Schema.String.check(Schema.isUUID()),
 	date: calendarDay,
