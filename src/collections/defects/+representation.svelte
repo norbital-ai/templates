@@ -20,7 +20,7 @@
 	);
 </script>
 
-<RecordShell title={record?.title ?? 'New defect'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="defects"

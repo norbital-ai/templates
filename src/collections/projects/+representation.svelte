@@ -22,7 +22,7 @@
 	/>
 </svelte:head>
 
-<RecordShell title={record?.project_name ?? 'New project'} {subtitle}>
+<RecordShell {subtitle}>
 	{#if record}
 		<ProjectRepresentation {record} />
 	{:else}

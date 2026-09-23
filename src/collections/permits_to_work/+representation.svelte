@@ -20,7 +20,7 @@
 	);
 </script>
 
-<RecordShell title={record?.permit_number ?? 'New permit'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="permits_to_work"

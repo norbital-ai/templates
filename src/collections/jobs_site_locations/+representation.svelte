@@ -20,7 +20,7 @@
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
 
-<RecordShell title={record ? 'Job location' : 'New job location'}>
+<RecordShell kind="Job location">
 	<CollectionForm
 		client={workspaceClient}
 		collection="jobs_site_locations"

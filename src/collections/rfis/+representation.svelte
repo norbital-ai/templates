@@ -20,7 +20,7 @@
 	);
 </script>
 
-<RecordShell title={record?.title ?? 'New RFI'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="rfis"

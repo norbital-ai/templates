@@ -24,7 +24,7 @@
 	);
 </script>
 
-<RecordShell title={record?.title ?? 'New document'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="asset_documents"
