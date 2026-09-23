@@ -327,6 +327,8 @@
 	 * checking the photograph against, which is the one thing they need beside it. An overlay keeps
 	 * both and closes on Escape or a click outside.
 	 */
+	/** Create only: a site the picker does not list yet, entered by its address first. */
+	let addingSite = $state(false);
 	let openedPhoto = $state<{ readonly name: string; readonly url: string } | undefined>(undefined);
 	let conversationPort = $state<HTMLElement | null>(null);
 	let conversationPinnedToLatest = $state(true);
@@ -1124,59 +1126,98 @@
 		: undefined}
 >
 	{#if record == null}
-		<CollectionForm
-			client={collectionClient}
-			collection="job_assignments"
-			submitLabel={t('component.create_assignment')}
-			onAfterSubmit={close}
-		>
-			{#snippet children({ Field })}
-				<Field name="dispatched_at" hidden />
-				<Field name="status" hidden />
-				<Field name="completed_at" hidden />
-				<Field name="amount_charged" hidden />
-				<Field name="location" hidden />
-				<Field name="summary" hidden />
-				<Field name="source_message_id" hidden />
-				<Field name="external_ref" hidden />
-				<Grid minimum="panel">
-					<Field
-						name="site_id"
-						label={t('component.site')}
-						relationOptions={{
-							label: (record) => String(record.name || '—'),
-							orderBy: { name: 'asc' },
-							limit: 500
-						}}
-					/>
-					<Field name="title" label={t('component.job_title')} />
-					<Field name="nature" label={t('component.job_nature')} />
-					<Field name="scheduled_for" label={t('component.scheduled_date')} />
-					<!--
+		<!--
+			A site is identified by its address, so adding one here is an upsert in all but name: the
+			sites transform refuses an address already filed and names the site that carries it, which
+			the picker below then offers. The job form stays the one job form.
+		-->
+		<Stack gap="md">
+			<Inline>
+				<Button
+					variant="outline"
+					size="sm"
+					aria-expanded={addingSite}
+					onclick={() => (addingSite = !addingSite)}
+				>
+					<Icon icon="lucide:map-pin-plus" class="size-4" aria-hidden="true" />
+					{t('component.new_site_by_address')}
+				</Button>
+			</Inline>
+			{#if addingSite}
+				<CollectionForm
+					client={collectionClient}
+					collection="sites"
+					submitLabel={t('component.add_site')}
+					onAfterSubmit={() => {
+						addingSite = false;
+					}}
+				>
+					{#snippet children({ Field })}
+						<Field name="site_code" hidden />
+						<Field name="client_name" hidden />
+						<Field name="house_type" hidden />
+						<Field name="floor_area_sqm" hidden />
+						<Grid minimum="panel">
+							<Field name="name" label={t('component.site_address')} />
+							<Field name="location" />
+						</Grid>
+					{/snippet}
+				</CollectionForm>
+			{/if}
+			<CollectionForm
+				client={collectionClient}
+				collection="job_assignments"
+				submitLabel={t('component.create_assignment')}
+				onAfterSubmit={close}
+			>
+				{#snippet children({ Field })}
+					<Field name="dispatched_at" hidden />
+					<Field name="status" hidden />
+					<Field name="completed_at" hidden />
+					<Field name="amount_charged" hidden />
+					<Field name="location" hidden />
+					<Field name="summary" hidden />
+					<Field name="source_message_id" hidden />
+					<Field name="external_ref" hidden />
+					<Grid minimum="panel">
+						<Field
+							name="site_id"
+							label={t('component.site')}
+							relationOptions={{
+								label: (record) => String(record.name || '—'),
+								orderBy: { name: 'asc' },
+								limit: 500
+							}}
+						/>
+						<Field name="title" label={t('component.job_title')} />
+						<Field name="nature" label={t('component.job_nature')} />
+						<Field name="scheduled_for" label={t('component.scheduled_date')} />
+						<!--
 					The assignee is a person, so the picker reads the identity directory directly.
 
 					`user` is granted to any authenticated subject masked to `id` and
 					`name`; there is no workspace collection describing a contractor to point at, and the one
 					that used to be here carried nothing this row does not.
 				-->
-					<Field
-						name="assignee_user_id"
-						label={t('component.contractor')}
-						relationOptions={{
-							label: (record) => {
-								const v = record.name;
-								return v != null && v !== '' ? String(v) : '—';
-							},
-							orderBy: { name: 'asc' },
-							limit: 500
-						}}
-					/>
-					<Column span="all">
-						<Field name="description" label={t('component.job_description_scope')} />
-					</Column>
-				</Grid>
-			{/snippet}
-		</CollectionForm>
+						<Field
+							name="assignee_user_id"
+							label={t('component.contractor')}
+							relationOptions={{
+								label: (record) => {
+									const v = record.name;
+									return v != null && v !== '' ? String(v) : '—';
+								},
+								orderBy: { name: 'asc' },
+								limit: 500
+							}}
+						/>
+						<Column span="all">
+							<Field name="description" label={t('component.job_description_scope')} />
+						</Column>
+					</Grid>
+				{/snippet}
+			</CollectionForm>
+		</Stack>
 	{/if}
 </RecordShell>
 

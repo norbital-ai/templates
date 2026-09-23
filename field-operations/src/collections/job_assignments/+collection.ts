@@ -4,6 +4,7 @@ import { currentDate } from '../../lib/clock.js';
 import { photoSourceKey, uninspectedPhotoFacts } from '../photo_evidence/photo-integrity.js';
 import type { Row as PhotoEvidenceRow } from '../photo_evidence/$types.js';
 import model from './+model.js';
+import { dispatchFacts, searchTextFor } from './dispatch.js';
 import type { CreateInput, Row, UpdateInput } from './$types.js';
 
 const SITE_BATCH_LIMIT = 5_000;
@@ -155,12 +156,6 @@ export default defineCollection({
 			]);
 			const now = (yield* currentDate).toISOString();
 
-			/** The searchable copy: the work's own words plus the site's name and code. */
-			const searchTextFor = (title: string, siteId: string): string => {
-				const site = siteById.get(siteId);
-				return [title, site?.name, site?.site_code].filter((part) => part != null).join(', ');
-			};
-
 			/** A filed work order: unassigned until a contractor is named, dispatched the moment one is. */
 			const fileDispatch = (create: CreateInput) => {
 				if (create.site_id === undefined || !knownSites.has(create.site_id)) {
@@ -169,14 +164,7 @@ export default defineCollection({
 				if (create.source_message_id && takenSourceMessageIds.has(create.source_message_id)) {
 					refuse('A job assignment with this source_message_id already exists.');
 				}
-				const assignee = create.assignee_user_id ?? null;
-				return {
-					...create,
-					status: create.status ?? (assignee === null ? 'unassigned' : 'assigned'),
-					dispatched_at: create.dispatched_at ?? (assignee === null ? null : now),
-					// Derived last so a caller cannot forge or stale the board's search copy.
-					search_text: searchTextFor(create.title, create.site_id)
-				};
+				return { ...create, ...dispatchFacts(create, siteById.get(create.site_id), now) };
 			};
 
 			/**
@@ -206,7 +194,10 @@ export default defineCollection({
 				// The search copy follows the words it copies: a corrected title or a moved site.
 				const searchText =
 					input.title !== undefined || input.site_id !== undefined
-						? searchTextFor(input.title ?? stored.title, input.site_id ?? stored.site_id)
+						? searchTextFor(
+								input.title ?? stored.title,
+								siteById.get(input.site_id ?? stored.site_id)
+							)
 						: undefined;
 				return {
 					...input,
