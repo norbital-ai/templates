@@ -1,7 +1,7 @@
 import type { Envoy } from './$types.js';
 
 /**
- * The sales desk, reached over Telegram by anyone who can message it.
+ * The sales desk, reached on the `sales_desk` Telegram channel by anyone who can message it.
  *
  * It answers under the same complete policy set as the human sales team, so a customer's question
  * can reach quote and account data without this surface becoming a way around the permission model.
@@ -15,7 +15,7 @@ import type { Envoy } from './$types.js';
  * its senders therefore share one bucket by construction.
  */
 export default {
-	transport: 'telegram',
+	channel: 'sales_desk',
 	audience: 'public',
 	policies: ['accounts_read', 'products_read', 'commercial_shared', 'sales_rep'],
 	groupMessages: 'disabled',

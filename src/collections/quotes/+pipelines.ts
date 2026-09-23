@@ -6,10 +6,9 @@ import type { Pipelines } from './$types.js';
 /**
  * The JSON attachment body of one confirmed quote export.
  *
- * The host hands the attachment to the binding's `transform` for the outbound request, so its shape
- * is the wire contract: schema name, the header facts as they were confirmed, and the lines in the
- * quote's own currency. The schema owns the keys and types once; the export below only projects the
- * row into it.
+ * Its shape is the contract a downstream system reads: schema name, the header facts as they were
+ * confirmed, and the lines in the quote's own currency. The schema owns the keys and types once;
+ * the export below only projects the row into it.
  */
 const quoteExportSchema = Schema.Struct({
 	schema: Schema.Literal('norbital.crm.confirmed_quote.v1'),
@@ -42,11 +41,8 @@ const quoteExportSchema = Schema.Struct({
 const decodeQuoteExport = Schema.decodeUnknownEffect(quoteExportSchema);
 
 /**
- * The push payload the outbound integration binding delivers.
- *
- * The host runs this export against the outboxed records — a confirmed quote and its lines — and
- * the binding's `transform` takes the JSON attachment as the request body. The schema above is the
- * handoff contract: document number, header facts, and the lines exactly as they were confirmed.
+ * The export a downstream system receives: the confirmed document and its lines, exactly as they
+ * were confirmed, under one versioned schema.
  */
 export default {
 	export: {

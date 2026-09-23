@@ -15,7 +15,7 @@ const columns = {
 	active: true
 } as const;
 
-/** The catalogue mirror: the form, the ERP item pull and the import pipeline all write it as is. */
+/** The catalogue: the form and the ERP item import pipeline write it as is. */
 export default defineCollection({
 	model,
 	create: { input: { columns } },
