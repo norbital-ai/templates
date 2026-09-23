@@ -37,7 +37,7 @@ const createColumns = {
 	source_message_id: true
 } as const;
 
-type FiledPhoto = Pick<PhotoEvidenceRow, 'photo' | 'source'>;
+type FiledPhoto = Pick<PhotoEvidenceRow, 'photo'> & Partial<Pick<PhotoEvidenceRow, 'source'>>;
 type FiledMessage = {
 	readonly message: string;
 	readonly sender: string;
@@ -50,9 +50,11 @@ type FiledMessage = {
  * `photo_evidence`'s own transform, so the facts it would stamp are stamped here.
  */
 function filedPhoto(photo: FiledPhoto) {
+	const source = photo.source ?? { kind: 'workspace_upload' as const };
 	return {
 		...photo,
-		source_key: photoSourceKey(photo.source, photo.photo.storage_key),
+		source,
+		source_key: photoSourceKey(source, photo.photo.storage_key),
 		...uninspectedPhotoFacts()
 	};
 }

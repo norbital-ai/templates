@@ -15,7 +15,8 @@ export default defineModel(
 		variation_request_id: uuid(),
 		photo: file({ mimeTypes: ['image/jpeg', 'image/png', 'image/heic', 'image/heif'] }).notNull(),
 		source_key: text().notNull(),
-		source: custom('photo_source').notNull(),
+		/** A photo filed without provenance is a workspace upload, whichever path filed it. */
+		source: custom('photo_source').notNull().default({ kind: 'workspace_upload' }),
 		sha256: text().notNull(),
 		/** Meta PDQ as a 256-dim 0/1 embedding — same `vector` + `findNearest` path as omni embeds. */
 		perceptual_embedding: vector({ dimensions: 256 }).notNull(),
