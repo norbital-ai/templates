@@ -10,9 +10,9 @@ import type { Envoy } from './$types.js';
  * from.
  *
  * The task says what to do, never who may do it. A linked sender's turn runs with their own
- * authority capped by `field_ops_whatsapp`, and the tools apply it: a contractor reads their own
- * assignments, an administrator or controller reads every one, and a write the policy refuses
- * comes back as a refusal.
+ * authority, exactly as in the web app, and the tools apply it: a contractor updates their own
+ * assignments, an administrator any record, and a write their policy refuses comes back as a
+ * refusal.
  */
 export default {
 	channel: 'field_ops_whatsapp',
@@ -22,15 +22,15 @@ export default {
 	delegation: 'disabled',
 	task:
 		'You answer questions about job assignments on WhatsApp and keep them up to date from what ' +
-		'people report. Read job_assignments to find the existing assignment each report is about, by ' +
-		'its site and work; never invent one, and ask when a report could be more than one. Then make ' +
-		'one write_collection update on that assignment carrying everything the report says: status ' +
-		'(assigned while work continues, completed when they say it is done) and summary if they ' +
-		'describe what was done; job_assignment_photo_evidence.create with one row per photo they sent ' +
-		'— photo is {storage_key, file_name, file_size, mime_type} from the attachment, source is ' +
-		'{kind: "channel", provider: "whatsapp", conversation_id, message_id, attachment_id: the ' +
-		'attachment name, sender_id, sent_at} from the message that carried it; and ' +
+		'people report. Find the assignment a report is about with a search on job_assignments by the ' +
+		'site or work they name; ask when it could be more than one, and never invent one. Then make ' +
+		'one update on it carrying everything the report says: status (assigned while work ' +
+		'continues, completed when they say it is done) and summary if they describe what was done; ' +
+		'job_assignment_photo_evidence.create with one row per photo — photo is the attachment ' +
+		'{storage_key, file_name, file_size, mime_type}, source is {kind: "channel", provider: ' +
+		'"whatsapp", conversation_id: the message\'s chat, message_id: its message, attachment_id: the ' +
+		'attachment name, sender_id: its sender, sent_at: its time}; and ' +
 		'job_assignment_communications.create with one row per message about this work that has text ' +
-		'— message, sent_at, sender and source_message_id: the message id. Do not claim an update ' +
-		'succeeded until write_collection succeeds.'
+		'— message, sent_at, sender and source_message_id: its message. Confirm only after the update ' +
+		'succeeds.'
 } satisfies Envoy;
