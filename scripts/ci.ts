@@ -93,15 +93,18 @@ const run = (
 			env: options.env ?? process.env
 		}).trim();
 	} catch (error: unknown) {
-		const detail =
-			error !== null &&
-			typeof error === 'object' &&
-			'stderr' in error &&
-			typeof error.stderr === 'string'
-				? error.stderr.trim()
-				: error instanceof Error
-					? error.message
-					: String(error);
+		// Node's test runner reports failures on stdout, so the tail of both is the diagnosis.
+		const stream = (name: 'stdout' | 'stderr') =>
+			error !== null && typeof error === 'object' && name in error
+				? String(Reflect.get(error, name) ?? '').trim()
+				: '';
+		const tail = [stream('stdout'), stream('stderr')]
+			.filter(Boolean)
+			.join('\n')
+			.split('\n')
+			.slice(-80)
+			.join('\n');
+		const detail = tail || (error instanceof Error ? error.message : String(error));
 		fail(`${command} ${args.join(' ')} failed${detail ? `:\n${detail}` : ''}`);
 	}
 };
