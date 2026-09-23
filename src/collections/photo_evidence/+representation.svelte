@@ -41,7 +41,7 @@
 	/>
 </svelte:head>
 
-<RecordShell title={record?.summary ?? 'New photo evidence'} {subtitle}>
+<RecordShell {subtitle}>
 	{#if record}
 		<CollectionForm
 			client={collectionClient}

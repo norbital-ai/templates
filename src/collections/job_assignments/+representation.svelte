@@ -1081,7 +1081,6 @@
 	{@render suspicionHeader()}
 {/if}
 <RecordShell
-	title={record?.title ?? 'New assignment'}
 	{subtitle}
 	tabs={record
 		? ([

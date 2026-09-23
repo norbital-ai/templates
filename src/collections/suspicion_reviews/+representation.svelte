@@ -18,7 +18,7 @@
 	const subtitle = $derived(record == null ? undefined : `${record.model} · ${record.reviewed_at}`);
 </script>
 
-<RecordShell title={record?.reason ?? 'New suspicion review'} {subtitle}>
+<RecordShell {subtitle}>
 	{#if record}
 		<CollectionForm
 			client={collectionClient}
