@@ -4,22 +4,20 @@ import { rosterCodeVariantValueSchema } from '../../datatypes/roster_code_varian
 
 const MINUTES_PER_DAY = 24 * 60;
 
-const rosterCodeLikeSchema = Schema.Struct({
-	id: Schema.optional(Schema.String),
-	code: Schema.String,
-	variant: rosterCodeVariantValueSchema
-});
-export type RosterCodeLike = Schema.Schema.Type<typeof rosterCodeLikeSchema>;
+export type RosterCodeLike = {
+	readonly id?: string | undefined;
+	readonly code: string;
+	readonly variant: Schema.Schema.Type<typeof rosterCodeVariantValueSchema>;
+};
 
-const workWindowSchema = Schema.Struct({
-	start_time: Schema.String,
-	end_time: Schema.String,
-	break_minutes: Schema.Number,
-	crosses_midnight: Schema.Boolean,
-	elapsed_minutes: Schema.Number,
-	paid_minutes: Schema.Number
-});
-export type WorkWindow = Schema.Schema.Type<typeof workWindowSchema>;
+export type WorkWindow = {
+	readonly start_time: string;
+	readonly end_time: string;
+	readonly break_minutes: number;
+	readonly crosses_midnight: boolean;
+	readonly elapsed_minutes: number;
+	readonly paid_minutes: number;
+};
 
 /** Minutes since midnight of a `HH:mm[:ss]` wall-clock time; anything else is refused. */
 export function clockMinutes(value: string): number {

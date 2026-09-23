@@ -1,4 +1,3 @@
-import { Schema } from 'effect';
 import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 import { dateKey } from '../iso-day.js';
 import { readRange } from '../../collections/payroll_runs/lib/effective.js';
@@ -106,13 +105,12 @@ export function patternRosterCodeId(
 	return pattern.days[index]!.roster_code_id;
 }
 
-const patternWorkloadSchema = Schema.Struct({
-	work_days: Schema.Number,
-	paid_minutes: Schema.Number,
-	reference_days: Schema.Number,
-	average_weekly_paid_minutes: Schema.Number
-});
-export type PatternWorkload = Schema.Schema.Type<typeof patternWorkloadSchema>;
+export type PatternWorkload = {
+	readonly work_days: number;
+	readonly paid_minutes: number;
+	readonly reference_days: number;
+	readonly average_weekly_paid_minutes: number;
+};
 
 /**
  * Derive the amount promised by a pattern: the expectation's own statement where there is no

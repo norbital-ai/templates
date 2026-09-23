@@ -1,8 +1,9 @@
 import { defineAutomation, refuse, type AutomationApi } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
 import { calendarDateInTimeZone, dateKey, dayInstant } from '../lib/iso-day.js';
-import { addDays } from '../lib/period.js';
+import { addDays } from '../collections/payroll_runs/lib/dates.js';
 import { settingsInForce } from '../lib/jurisdiction_settings.js';
+import { offsetMinutesAt } from '../lib/timezone.js';
 import { clockMinutes, rosterCodeKind, workWindow } from '../lib/scheduling/roster-code.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { leaveActivityOf } from '../lib/leave/activity-fields.js';
@@ -38,15 +39,8 @@ const outputSchema = Schema.Struct({
 
 /** The wall-clock minutes since local midnight in the entity's zone. */
 function wallMinutes(instant: Date, timeZone: string): number {
-	const parts = new Intl.DateTimeFormat('en-US', {
-		timeZone,
-		hour: '2-digit',
-		minute: '2-digit',
-		hour12: false
-	}).formatToParts(instant);
-	const read = (type: Intl.DateTimeFormatPartTypes) =>
-		Number(parts.find((part) => part.type === type)?.value ?? '0');
-	return (read('hour') % 24) * 60 + read('minute');
+	const local = new Date(instant.getTime() + offsetMinutesAt(timeZone, instant) * 60_000);
+	return local.getUTCHours() * 60 + local.getUTCMinutes();
 }
 
 export const runLateArrivalNotice = (api: AutomationApi, options: { readonly now?: Date } = {}) =>

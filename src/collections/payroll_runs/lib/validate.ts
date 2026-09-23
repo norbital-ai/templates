@@ -20,11 +20,11 @@
 import { decodeNumber } from '@norbital-ai/std/json';
 import { INCENTIVE_LINE, OVERTIME_LINE } from '../../../lib/payroll/work-bands.js';
 
-import { Schema } from 'effect';
 import type { Configuration } from './configuration.js';
 import { orderSchemes } from './mentions.js';
 import type { FamilyPayItem } from '../../../lib/payroll/family.js';
-import { dateKey, requiredDateKey } from './dates.js';
+import { daysBetween, requiredDateKey } from './dates.js';
+import { dateKey } from '../../../lib/iso-day.js';
 import type { DailyOvertime } from './overtime.js';
 import { ruleDayType } from './schedule.js';
 import { coversDate } from './effective.js';
@@ -32,17 +32,15 @@ import { paysOn } from './period.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
 
-const IssueSeveritySchema = Schema.Literals(['BLOCKER', 'WARNING']);
-type IssueSeverity = Schema.Schema.Type<typeof IssueSeveritySchema>;
+type IssueSeverity = 'BLOCKER' | 'WARNING';
 
-const RunIssueSchema = Schema.Struct({
-	code: Schema.String,
-	message: Schema.String,
-	severity: Schema.optionalKey(IssueSeveritySchema),
-	collection: Schema.optionalKey(Schema.String),
-	recordId: Schema.optionalKey(Schema.String)
-});
-export type RunIssue = Schema.Schema.Type<typeof RunIssueSchema>;
+export type RunIssue = {
+	readonly code: string;
+	readonly message: string;
+	readonly severity?: IssueSeverity;
+	readonly collection?: string;
+	readonly recordId?: string;
+};
 
 export function blockers(issues: readonly RunIssue[]): RunIssue[] {
 	return issues.filter((issue) => issue.severity !== 'WARNING');
@@ -480,17 +478,6 @@ export function validateRosteredExpectations(options: {
 }): RunIssue[] {
 	const issues: RunIssue[] = [];
 	const offCodeIds = options.offCodeIds ?? new Set<string>();
-	const datesOf = (window: { readonly start: string; readonly end: string }): string[] => {
-		const dates: string[] = [];
-		for (
-			let date = window.start;
-			date <= window.end;
-			date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10)
-		) {
-			dates.push(date);
-		}
-		return dates;
-	};
 	for (const employment of options.employments) {
 		// Bounds may arrive as instants (a run's stored window) or as calendar days; the row filter
 		// below is a string comparison, so both sides are reduced to the day they name in the
@@ -500,7 +487,7 @@ export function validateRosteredExpectations(options: {
 			start: dateKey(raw.start) || String(raw.start).slice(0, 10),
 			end: dateKey(raw.end) || String(raw.end).slice(0, 10)
 		};
-		const windowDates = datesOf(window);
+		const windowDates = daysBetween(window.start, window.end);
 		const touching = employment.terms.filter((term) =>
 			windowDates.some((date) => coversDate(term.effective_range, date))
 		);
@@ -509,7 +496,7 @@ export function validateRosteredExpectations(options: {
 		for (const day of employment.workDays) {
 			const date = dateKey(day.work_date);
 			if (
-				date == null ||
+				date === '' ||
 				date < window.start ||
 				date > window.end ||
 				day.shift_definition_id == null

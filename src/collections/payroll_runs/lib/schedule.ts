@@ -24,12 +24,10 @@ import type { HolidaySnapshot } from '../../../datatypes/holiday_snapshots/+defi
 import type { PayrollWindow } from './period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-const DayTypeSchema = Schema.Literals([...RULE_DAY_TYPES, 'OFF_DAY']);
-export type DayType = Schema.Schema.Type<typeof DayTypeSchema>;
+export type DayType = (typeof RULE_DAY_TYPES)[number] | 'OFF_DAY';
 
 /** The overtime rules are stated for four day types; an off day is priced as an ordinary one. */
-const RuleDayTypeSchema = Schema.Literals(RULE_DAY_TYPES);
-type RuleDayType = Schema.Schema.Type<typeof RuleDayTypeSchema>;
+type RuleDayType = (typeof RULE_DAY_TYPES)[number];
 
 export function ruleDayType(dayType: DayType): RuleDayType {
 	return dayType === 'OFF_DAY' ? 'ORDINARY' : dayType;
@@ -66,11 +64,10 @@ export type ScheduledDay = {
 	readonly offDay: boolean;
 };
 
-const WeeklyHoursTermsSchema = Schema.Struct({
-	ordinary_hours_per_week: Schema.Number,
-	working_days_per_week: Schema.Number
-});
-type WeeklyHoursTerms = Schema.Schema.Type<typeof WeeklyHoursTermsSchema>;
+type WeeklyHoursTerms = {
+	readonly ordinary_hours_per_week: number;
+	readonly working_days_per_week: number;
+};
 
 /** Kept as a derived payroll-rate shape; these are no longer independent employment fields. */
 export function normalDailyHours(terms: WeeklyHoursTerms): number {
@@ -79,20 +76,19 @@ export function normalDailyHours(terms: WeeklyHoursTerms): number {
 	return decodeNumber(terms.ordinary_hours_per_week) / days;
 }
 
-const ScheduleTermsSchema = Schema.Struct({
-	work_pattern: Schema.NullOr(workPatternValueSchema),
+type ScheduleTerms = {
+	readonly work_pattern: Schema.Schema.Type<typeof workPatternValueSchema> | null;
 	/** The pattern row's effective start, the day its cycle counts from. */
-	pattern_anchor: Schema.NullOr(Schema.String),
-	normal_daily_hours: Schema.Number,
+	readonly pattern_anchor: string | null;
+	readonly normal_daily_hours: number;
 	/**
 	 * The most a rostered shift's own length counts as the normal day: the statute's normal day
 	 * (MY s.60A(1): 8, or 9 under the 45-hour proviso), and the contract's stated day where it
 	 * states one. A shift longer than it is a normal day plus overtime; a shorter one is its own
 	 * normal day. Absent is `normal_daily_hours`.
 	 */
-	shift_day_hours: Schema.optionalKey(Schema.Number)
-});
-type ScheduleTerms = Schema.Schema.Type<typeof ScheduleTermsSchema>;
+	readonly shift_day_hours?: number;
+};
 
 /**
  * The planned half of a `work_days` row, which is the only half a schedule reads.
@@ -101,11 +97,10 @@ type ScheduleTerms = Schema.Schema.Type<typeof ScheduleTermsSchema>;
  * attendance names no roster code, and falls back to whatever the employment's work pattern
  * projects for it exactly as a day with no row at all does.
  */
-const PlannedDaySchema = Schema.Struct({
-	work_date: Schema.String,
-	shift_definition_id: Schema.NullOr(Schema.String)
-});
-type PlannedDay = Schema.Schema.Type<typeof PlannedDaySchema>;
+type PlannedDay = {
+	readonly work_date: string;
+	readonly shift_definition_id: string | null;
+};
 
 function scheduledCode(
 	code: ShiftDefinition,

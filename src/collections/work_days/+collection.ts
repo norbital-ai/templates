@@ -5,7 +5,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
 import model from './+model.js';
 import { boundToContract } from '../../lib/employment-contract.js';
 import { canonicalDays, dateKey, dayInstant } from '../../lib/iso-day.js';
-import { addDays, monthBounds } from '../../lib/period.js';
+import { addDays, monthBounds } from '../payroll_runs/lib/dates.js';
 import { settingsInForce } from '../../lib/jurisdiction_settings.js';
 import { selectBreakRule } from '../../lib/scheduling/rest-break.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';

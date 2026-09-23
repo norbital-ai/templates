@@ -2,7 +2,7 @@
 	import { MonthPicker } from '@norbital-ai/ui/month-picker';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { periodHalfOf, periodMonthOf } from './calendar.js';
+	import { periodHalf, periodMonth } from '../../collections/payroll_runs/lib/dates.js';
 	import { weeklyInstalments } from '../../collections/payroll_runs/lib/period.js';
 
 	let {
@@ -28,15 +28,15 @@
 	} = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
-	const half = $derived(periodHalfOf(month) ?? 1);
-	const monthWeeks = $derived(weeks ? weeklyInstalments(periodMonthOf(month)) : []);
+	const half = $derived(periodHalf(month) ?? 1);
+	const monthWeeks = $derived(weeks ? weeklyInstalments(periodMonth(month)) : []);
 	const halfClass = (active: boolean) =>
 		`rounded-md border px-2 py-1 text-xs ${active ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground hover:bg-muted'}`;
 </script>
 
 <div data-month-picker class="flex items-center gap-2">
 	<MonthPicker
-		value={periodMonthOf(month)}
+		value={periodMonth(month)}
 		onValueChange={(next) =>
 			onMonthChange(
 				halves
@@ -63,7 +63,7 @@
 					aria-pressed={half === week.sequence}
 					title={`${week.salary.start} – ${week.salary.end}`}
 					{disabled}
-					onclick={() => onMonthChange(`${periodMonthOf(month)}-${week.sequence}`)}
+					onclick={() => onMonthChange(`${periodMonth(month)}-${week.sequence}`)}
 				>
 					{t('app.scheduling.week_n', { n: week.sequence })}
 				</button>
@@ -81,7 +81,7 @@
 				class={halfClass(half === 1)}
 				aria-pressed={half === 1}
 				{disabled}
-				onclick={() => onMonthChange(`${periodMonthOf(month)}-1`)}
+				onclick={() => onMonthChange(`${periodMonth(month)}-1`)}
 			>
 				{t('app.scheduling.first_half')}
 			</button>
@@ -90,7 +90,7 @@
 				class={halfClass(half === 2)}
 				aria-pressed={half === 2}
 				{disabled}
-				onclick={() => onMonthChange(`${periodMonthOf(month)}-2`)}
+				onclick={() => onMonthChange(`${periodMonth(month)}-2`)}
 			>
 				{t('app.scheduling.second_half')}
 			</button>

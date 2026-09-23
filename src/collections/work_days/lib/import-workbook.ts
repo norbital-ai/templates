@@ -37,7 +37,6 @@ import {
 	parseOvertimeHours,
 	RETIRED_OVERTIME_COLUMNS
 } from '../import-month-grid.js';
-import { Schema } from 'effect';
 import { readWorkbookSettings, SETTINGS_SHEET_NAME } from '../../../lib/workbook-settings.js';
 
 const ROSTER_SHEET_NAME = 'Roster';
@@ -47,27 +46,24 @@ const OVERTIME_SHEET_NAME = 'Overtime';
 export { ROSTER_SHEET_NAME, ATTENDANCE_SHEET_NAME, OVERTIME_SHEET_NAME };
 
 /** `shift_code` is one of the entity's roster codes: a shift, REST or OFF. */
-const rosterImportRowSchema = Schema.Struct({
-	employee_number: Schema.String,
-	work_date: Schema.String,
-	shift_code: Schema.String
-});
-type RosterImportRow = Schema.Schema.Type<typeof rosterImportRowSchema>;
+type RosterImportRow = {
+	readonly employee_number: string;
+	readonly work_date: string;
+	readonly shift_code: string;
+};
 
-const attendanceImportRowSchema = Schema.Struct({
-	employee_number: Schema.String,
-	work_date: Schema.String,
-	clock_in: Schema.optional(Schema.String),
-	clock_out: Schema.optional(Schema.String)
-});
-type AttendanceImportRow = Schema.Schema.Type<typeof attendanceImportRowSchema>;
+type AttendanceImportRow = {
+	readonly employee_number: string;
+	readonly work_date: string;
+	readonly clock_in?: string | undefined;
+	readonly clock_out?: string | undefined;
+};
 
-const overtimeImportRowSchema = Schema.Struct({
-	employee_number: Schema.String,
-	work_date: Schema.String,
-	overtime_hours: Schema.Number
-});
-type OvertimeImportRow = Schema.Schema.Type<typeof overtimeImportRowSchema>;
+type OvertimeImportRow = {
+	readonly employee_number: string;
+	readonly work_date: string;
+	readonly overtime_hours: number;
+};
 
 /** The whole workbook. A sheet the file does not carry is absent; an empty sheet is `[]`. */
 type SchedulingImportPayload = {

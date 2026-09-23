@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 import { calendarDay } from '../../lib/iso-day.js';
 
 /** Exact settled Leave outputs, frozen so a later reversal negates them without repricing. */
-export const leavePayItemSchema = Schema.Struct({
+const leavePayItemSchema = Schema.Struct({
 	catalogue_id: Schema.String.check(Schema.isUUID()),
 	settings_id: Schema.String.check(Schema.isUUID()),
 	code: Schema.NonEmptyString,

@@ -4,13 +4,10 @@
  * `controller-surfaces.md` §1 tells app and representation authors to inline duplicated one-liners
  * rather than grow the import graph. It scopes that to controller UI; these are transforms and
  * `+pipelines.ts` code, where a copy that drifts changes what the server *accepts*, not how a cell
- * reads. The month arithmetic itself lives in the engine's `dates.ts`; re-exported here so the
- * roles keep one import.
+ * reads. The month arithmetic itself lives in the engine's `dates.ts`.
  */
 
-import { addDays, monthBounds, weekStart } from '../collections/payroll_runs/lib/dates.js';
-
-export { addDays, monthBounds, weekStart };
+import { daysBetween, monthBounds } from '../collections/payroll_runs/lib/dates.js';
 
 /** `YYYY-MM` for a payroll month. */
 export function isYearMonth(value: string): boolean {
@@ -20,13 +17,7 @@ export function isYearMonth(value: string): boolean {
 /** Every calendar day of a `YYYY-MM` month, in order. */
 export function calendarDaysInMonth(month: string): readonly string[] {
 	const { start, end } = monthBounds(month);
-	const days: string[] = [];
-	for (let cursor = start; cursor <= end;) {
-		days.push(cursor);
-		const utc = Date.parse(`${cursor}T00:00:00.000Z`) + 86_400_000;
-		cursor = new Date(utc).toISOString().slice(0, 10);
-	}
-	return days;
+	return daysBetween(start, end);
 }
 
 /**

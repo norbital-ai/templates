@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 
 const trimmedNonEmpty = Schema.Trimmed.check(Schema.isMinLength(1));
 
-export const bankAccountValueSchema = Schema.Struct({
+const bankAccountValueSchema = Schema.Struct({
 	bank_name: trimmedNonEmpty,
 	bank_code: trimmedNonEmpty,
 	bank_account_number: trimmedNonEmpty,
@@ -13,7 +13,7 @@ export const bankAccountValueSchema = Schema.Struct({
 export type BankAccount = Schema.Schema.Type<typeof bankAccountValueSchema>;
 
 /** An in-progress bank account: any subset of the fields, or nothing at all. */
-export const bankAccountDraftValueSchema = Schema.NullOr(
+const bankAccountDraftValueSchema = Schema.NullOr(
 	Schema.Struct({
 		bank_name: Schema.optional(trimmedNonEmpty),
 		bank_code: Schema.optional(trimmedNonEmpty),

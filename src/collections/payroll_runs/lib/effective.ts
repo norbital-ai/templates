@@ -7,7 +7,6 @@
  * make that fact usable, not to resolve ambiguity that cannot arise.
  */
 
-import { Schema } from 'effect';
 import type { IsoDate } from './dates.js';
 
 import { dateKey as rangeBoundDay } from '../../../lib/iso-day.js';
@@ -67,8 +66,9 @@ export function overlapsRange(range: unknown, start: IsoDate, end: IsoDate): boo
 }
 
 /** The one member `effectiveOn` and `effectiveWithin` depend on: a row with an effective range. */
-const DatedSchema = Schema.Struct({ effective_range: Schema.optionalKey(Schema.Unknown) });
-type Dated = Schema.Schema.Type<typeof DatedSchema>;
+type Dated = {
+	readonly effective_range?: unknown;
+};
 
 /** The single row effective on a day, or `undefined`. */
 export function effectiveOn<T extends Dated>(rows: readonly T[], date: IsoDate): T | undefined {
@@ -91,10 +91,9 @@ export function effectiveWithin<T extends Dated>(
 }
 
 /** Only rows the platform has approved. A null approval stamp means approved on this platform. */
-const ApprovableSchema = Schema.Struct({
-	approval_id: Schema.optionalKey(Schema.NullOr(Schema.String))
-});
-type Approvable = Schema.Schema.Type<typeof ApprovableSchema>;
+type Approvable = {
+	readonly approval_id?: string | null;
+};
 
 export function live<T extends Approvable>(rows: readonly T[]): T[] {
 	return rows.filter((row) => row.approval_id == null);

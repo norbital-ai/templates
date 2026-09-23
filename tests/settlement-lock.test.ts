@@ -33,7 +33,7 @@ import { payrollRunGrants } from '../src/lib/policy_grants.ts';
 import relationships from '../src/collections/+relationship.ts';
 import {
 	sourceLock,
-	sourceLockBlocksWrite,
+	sourceLockApplicationLocked,
 	sourceLockMessage,
 	sourceLockI18nKey
 } from '../src/lib/scheduling/lock.ts';
@@ -436,7 +436,7 @@ test('a settled work day refuses mutation, and the refusal names the adjustment 
 	});
 	assert.equal(lock.kind, 'SETTLED');
 	assert.equal(lock.period, '2026-03');
-	assert.equal(sourceLockBlocksWrite(lock), true);
+	assert.equal(sourceLockApplicationLocked(lock), true);
 	assert.equal(sourceLockI18nKey(lock), 'component.lock_settled_by_run');
 
 	const message = sourceLockMessage(lock, 'Changing attendance');
@@ -475,7 +475,7 @@ test('a pending approval still answers first, because it is the platform\u2019s 
 	});
 	assert.equal(lock.kind, 'PENDING_APPROVAL');
 	// And the transforms leave it alone: a held row is the platform's hold, not a refusal.
-	assert.equal(sourceLockBlocksWrite(lock), false);
+	assert.equal(sourceLockApplicationLocked(lock), false);
 });
 
 // ── 4. the refusal that makes a paid run's captures permanent ───────────────────────────────────

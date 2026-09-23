@@ -1,4 +1,3 @@
-import { Schema } from 'effect';
 import { dateKey } from '../iso-day.js';
 
 /**
@@ -9,20 +8,20 @@ import { dateKey } from '../iso-day.js';
  * stored half-day steps: a date is fully covered unless it is one of the request's half-day
  * boundary dates — the morning-free start day or the afternoon-free end day.
  */
-
 /** A leave request as every reader holds it: authored instants are ISO strings on every path. */
-const leaveRequestLikeSchema = Schema.Struct({
-	from_date: Schema.optional(Schema.NullOr(Schema.String)),
-	to_date: Schema.optional(Schema.NullOr(Schema.String)),
-	half_day_start: Schema.optional(Schema.NullOr(Schema.Boolean)),
-	half_day_end: Schema.optional(Schema.NullOr(Schema.Boolean))
-});
-type LeaveRequestLike = Schema.Schema.Type<typeof leaveRequestLikeSchema>;
+type LeaveRequestLike = {
+	readonly from_date?: string | null | undefined;
+	readonly to_date?: string | null | undefined;
+	readonly half_day_start?: boolean | null | undefined;
+	readonly half_day_end?: boolean | null | undefined;
+};
 export type { LeaveRequestLike };
 
 /** One request's answer for one date, as the writers and the board read it. */
-const leaveCoverageSchema = Schema.Struct({ covered: Schema.Boolean, fullDay: Schema.Boolean });
-type LeaveCoverage = Schema.Schema.Type<typeof leaveCoverageSchema>;
+type LeaveCoverage = {
+	readonly covered: boolean;
+	readonly fullDay: boolean;
+};
 
 /** How one request covers one date. */
 export function leaveCoverage(request: LeaveRequestLike, date: string): LeaveCoverage {

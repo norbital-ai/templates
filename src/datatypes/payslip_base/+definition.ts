@@ -22,7 +22,7 @@ export const payslipBaseValueSchema = Schema.Struct({
 export type PayslipBase = Schema.Schema.Type<typeof payslipBaseValueSchema>;
 
 /** Strict standard view: a key the struct does not declare is refused rather than stripped. */
-export const payslipBaseSchema = Schema.toStandardSchemaV1(payslipBaseValueSchema, {
+const payslipBaseSchema = Schema.toStandardSchemaV1(payslipBaseValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }
 });
 

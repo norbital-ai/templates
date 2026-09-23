@@ -33,13 +33,13 @@ import { prorationBasisFor } from './proration.js';
 import { evaluateNumber, expressionEngine } from '../../../lib/expressions/evaluate.js';
 
 const payFrequencies = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
-const RateTermsSchema = Schema.Struct({
-	base_salary: MoneyValueSchema,
-	pay_frequency: Schema.Literals(payFrequencies),
-	ordinary_hours_per_week: Schema.Number,
-	working_days_per_week: Schema.Number
-});
-export type RateTerms = Schema.Schema.Type<typeof RateTermsSchema>;
+
+export type RateTerms = {
+	readonly base_salary: Schema.Schema.Type<typeof MoneyValueSchema>;
+	readonly pay_frequency: (typeof payFrequencies)[number];
+	readonly ordinary_hours_per_week: number;
+	readonly working_days_per_week: number;
+};
 
 /**
  * The version's divisor for this person, in days per month. A divisor that is not a positive

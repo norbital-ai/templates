@@ -65,7 +65,6 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
-import { Schema } from 'effect';
 import type { NightPremium } from '../../../lib/payroll/work-rules-values.js';
 import type { PersonContext } from './eligibility.js';
 import {
@@ -111,30 +110,27 @@ const ATTENDANCE_UTC_OFFSET_MINUTES = 8 * 60;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 
-const WorkDayLikeSchema = Schema.Struct({
-	id: Schema.String,
-	work_date: Schema.String,
-	worked_intervals: Schema.NullOr(
-		Schema.Array(
-			Schema.Struct({
-				start: Schema.String,
-				end: Schema.NullOr(Schema.String)
-			})
-		)
-	),
+export type WorkDayLike = {
+	readonly id: string;
+	readonly work_date: string;
+	readonly worked_intervals: ReadonlyArray<{
+		readonly start: string;
+		readonly end: string | null;
+	}> | null;
 	/** The day's break, derived by the caller (`derivedBreakMinutes`); absent reads as none. */
-	break_minutes: Schema.optional(Schema.Number),
+	readonly break_minutes?: number | undefined;
 	/** The employer's approved overtime for the day, breaks included; absent reads as none. */
-	approved_overtime_hours: Schema.optional(Schema.NullOr(Schema.Number))
-});
-export type WorkDayLike = Schema.Schema.Type<typeof WorkDayLikeSchema>;
+	readonly approved_overtime_hours?: number | null | undefined;
+};
 
 function instant(value: string): number {
 	return Date.parse(value);
 }
 
-const IntervalSchema = Schema.Struct({ start: Schema.Number, end: Schema.Number });
-type Interval = Schema.Schema.Type<typeof IntervalSchema>;
+type Interval = {
+	readonly start: number;
+	readonly end: number;
+};
 
 /**
  * Parse and union the observed intervals. Overlap is refused by the work day transform, but unioning here

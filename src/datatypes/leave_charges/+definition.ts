@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 import { calendarDay } from '../../lib/iso-day.js';
 
 const id = Schema.String.check(Schema.isUUID());
-export const leaveChargeSchema = Schema.Struct({
+const leaveChargeSchema = Schema.Struct({
 	date: calendarDay,
 	/** A whole or half day, or an eighth for a row taken by the hour (an hour of an eight-hour day). */
 	days: Schema.Finite.check(

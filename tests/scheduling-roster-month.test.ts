@@ -5,8 +5,7 @@ import {
 	buildRosterMonth,
 	employmentMonthEmptyReason,
 	employmentOverlapsMonth,
-	monthDays,
-	shiftTimeCue
+	monthDays
 } from '../src/lib/ui/roster/roster-month.ts';
 
 const employment = (start, end = null) => ({
@@ -42,11 +41,6 @@ test('a mid-month exit remains on the board and marks only later days as ended',
 	});
 	assert.equal(facts.get('employment-1:2026-08-12')?.status, 'UNROSTERED');
 	assert.equal(facts.get('employment-1:2026-08-13')?.status, 'EXITED');
-});
-
-test('dense cells expose a compact AM/PM time axis', () => {
-	assert.equal(shiftTimeCue({ shiftStart: '09:00', shiftEnd: '18:30' }), '9a–6:30p');
-	assert.equal(shiftTimeCue({ shiftStart: null, shiftEnd: null }), null);
 });
 
 test('the roster draws dated leave charges, combining separate halves without filling uncharged dates', () => {

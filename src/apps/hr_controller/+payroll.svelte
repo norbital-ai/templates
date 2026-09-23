@@ -2,7 +2,7 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
-	import { Effect, Schema } from 'effect';
+	import { Effect } from 'effect';
 	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
@@ -21,13 +21,8 @@
 	import { PAYROLL_RUN_LIST_COLUMNS } from '../../collections/payroll_runs/list-columns.js';
 	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
 	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
-	import {
-		companyPeriods,
-		daysBetweenKeys,
-		payDateFor,
-		periodWindow,
-		todayKey
-	} from '../../lib/ui/calendar.js';
+	import { companyPeriods, payDateFor, periodWindow, todayKey } from '../../lib/ui/calendar.js';
+	import { inclusiveDays } from '../../collections/payroll_runs/lib/dates.js';
 
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 
@@ -74,14 +69,13 @@
 				})
 	);
 
-	const CycleRowSchema = Schema.Struct({
-		period: Schema.String,
-		payDate: Schema.String,
-		status: Schema.Literals(['late', 'current', 'next']),
-		runState: Schema.NullOr(Schema.String),
-		attendance: Schema.NullOr(Schema.String)
-	});
-	type CycleRow = Schema.Schema.Type<typeof CycleRowSchema>;
+	type CycleRow = {
+		readonly period: string;
+		readonly payDate: string;
+		readonly status: 'late' | 'current' | 'next';
+		readonly runState: string | null;
+		readonly attendance: string | null;
+	};
 
 	/**
 	 * Three months back, the current month and three ahead for the selected company, in its own
@@ -118,7 +112,7 @@
 			.length
 	);
 	function timingLabel(row: CycleRow): string {
-		const days = daysBetweenKeys(today, row.payDate);
+		const days = inclusiveDays(today, row.payDate) - 1;
 		if (row.status === 'late') {
 			return days === 0
 				? t('app.payroll.due_today')

@@ -1,7 +1,6 @@
 import { resolveEmployment } from '../lib/employment-contract.js';
 import { defineCommandHandler, refuse } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
-import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../lib/ui/calendar.js';
 import {
 	KIOSK_PUNCH_COOLDOWN_MS,
 	nextPunch,
@@ -10,6 +9,7 @@ import {
 } from '../lib/kiosk/punch.js';
 import type { Api } from './$types.js';
 import { dateKey, dayInstant } from '../lib/iso-day.js';
+import { entityDay } from '../lib/kiosk/entity-day.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { patternAnchor, patternRosterCodeId } from '../lib/scheduling/work-pattern.js';
 import { rosterCodeKind } from '../lib/scheduling/roster-code.js';
@@ -29,12 +29,13 @@ export default defineCommandHandler({
 				columns: {
 					id: true,
 					employee_id: true,
+					company_id: true,
 					effective_range: true
 				}
 			});
 			if (contract === undefined) refuse('Employment does not exist.');
 			const employment = resolveEmployment(contract);
-			const dayKey = calendarDateInTimeZone(new Date(now), PAYROLL_TIME_ZONE);
+			const dayKey = yield* entityDay(api, contract.company_id, new Date(now));
 			if (!coversDate(employment.effective_range, dayKey))
 				refuse('This employment is not active today.');
 			const employee = yield* api.db.employees.findFirst({

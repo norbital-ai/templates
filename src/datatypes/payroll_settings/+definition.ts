@@ -6,7 +6,7 @@ import { Schema } from 'effect';
  * stated in, the IANA zone the jurisdiction's wall clock sits at, the month its tax year opens and
  * whether unpaid leave prorates a standing allowance.
  */
-export const payrollSettingsValueSchema = Schema.Struct({
+const payrollSettingsValueSchema = Schema.Struct({
 	currency: Schema.String.check(Schema.isMinLength(1)),
 	/**
 	 * The IANA zone the jurisdiction's wall clock sits at. A shift start is a wall-clock time and a

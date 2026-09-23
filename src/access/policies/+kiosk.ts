@@ -74,7 +74,21 @@ export default {
 		grantOn('employments', 'mutate.new', {
 			fields: ['employee_id', 'company_id', 'employee_number', 'effective_range']
 		}),
-		grantOn('companies', 'read', { fields: ['id', 'name'] }),
+		grantOn('companies', 'read', { fields: ['id', 'name', 'settings_code'] }),
+		// Only the columns that pick the version in force and read its wall clock: `payroll` is the
+		// currency, timezone and tax-year start. Wage rules, facts and sources stay out of reach.
+		grantOn('jurisdiction_settings', 'read', {
+			fields: [
+				'id',
+				'code',
+				'name',
+				'sealed_at',
+				'voided_at',
+				'approval_id',
+				'effective_range',
+				'payroll'
+			]
+		}),
 		grantOn('employment_terms', 'read', {
 			fields: ['employment_id', 'shift_pattern_id', 'effective_range']
 		}),

@@ -11,7 +11,7 @@ import { Schema } from 'effect';
  * 2 MB, scanned, behind a browser challenge) and where the same figures stand in HTML. It is put
  * in the agent's prompt verbatim, so it is written to the agent, not about the version.
  */
-export const sourcesValueSchema = Schema.Struct({
+const sourcesValueSchema = Schema.Struct({
 	urls: Schema.Array(
 		Schema.String.check(
 			Schema.isPattern(/^https?:\/\//, {

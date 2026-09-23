@@ -28,6 +28,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { pointAt, pointNumber, type DayHalf, type HalfDayPoint } from '../../../lib/half-day.js';
+	import { daysBetween } from '../../../collections/payroll_runs/lib/dates.js';
 	import { leaveCalendarGrid } from '../../leave/calendar-grid.js';
 	import { todayKey } from '../calendar.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
@@ -57,7 +58,6 @@
 	}: Props = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const DAY_MS = 86_400_000;
 	let open = $state(false);
 	let anchor = $state<HalfDayPoint | null>(null);
 	let dragging = $state(false);
@@ -82,10 +82,6 @@
 		t('component.weekday_sat_short'),
 		t('component.weekday_sun_short')
 	]);
-
-	function dayNumber(date: string): number {
-		return Math.floor(Date.parse(`${date}T00:00:00.000Z`) / DAY_MS);
-	}
 
 	function ordered(a: HalfDayPoint, b: HalfDayPoint): HalfDayRange {
 		return pointNumber(a) <= pointNumber(b) ? { start: a, end: b } : { start: b, end: a };
@@ -187,15 +183,13 @@
 	const chargeableDays = $derived(persistedChargeableDays ?? chargeableHalves / 2);
 	const remainingDays = $derived(maximumHalfDays == null ? null : maximumHalfDays / 2);
 	const overLimit = $derived(maximumHalfDays != null && chargeableHalves > maximumHalfDays);
-	const excludedInside = $derived.by(() => {
-		if (value == null) return 0;
-		let count = 0;
-		for (let day = dayNumber(value.start.date); day <= dayNumber(value.end.date); day += 1) {
-			const date = new Date(day * DAY_MS).toISOString().slice(0, 10);
-			if (availabilityFor(date).eligible === false) count += 1;
-		}
-		return count;
-	});
+	const excludedInside = $derived(
+		value == null
+			? 0
+			: daysBetween(value.start.date, value.end.date).filter(
+					(date) => availabilityFor(date).eligible === false
+				).length
+	);
 
 	function halfLabel(half: DayHalf): string {
 		return half === 'FIRST' ? t('component.first_half') : t('component.second_half');

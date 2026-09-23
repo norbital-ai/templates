@@ -2,7 +2,7 @@
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { resolveEmployment } from '../../../lib/employment-contract.js';
-	import { isSettledId } from '../../../lib/iso-day.js';
+	import { isSettledId, PAYROLL_TIME_ZONE } from '../../../lib/iso-day.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../../../lib/ui/holiday-calendar.js';
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 	import { client } from '../../../lib/workspace-client.js';
@@ -45,13 +45,11 @@
 	} from '../../../collections/work_days/lib/import-template.js';
 	import { saveBlob } from '../../../lib/ui/export-download.js';
 	import {
-		PAYROLL_TIME_ZONE,
 		monthWorkDateInstantBounds,
 		periodInCompanyGrammar,
-		periodMonthOf,
-		shiftMonthKey,
 		todayKey
 	} from '../../../lib/ui/calendar.js';
+	import { monthBounds, periodMonth } from '../../../collections/payroll_runs/lib/dates.js';
 	import { getErrorMessage, toError } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import { decodeNumber } from '@norbital-ai/std/json';
@@ -112,7 +110,7 @@
 	const period = $derived(
 		periodInCompanyGrammar(month, selectedCompany?.pay_frequency, todayKey())
 	);
-	const calendarMonth = $derived(periodMonthOf(period));
+	const calendarMonth = $derived(periodMonth(period));
 	/**
 	 * The cell the operator is looking at, if it has no stored person-day yet.
 	 *
@@ -154,11 +152,7 @@
 
 	/** The month's calendar bounds, which every dated query below is narrowed to. */
 	const monthStart = $derived(`${calendarMonth}-01`);
-	const monthEnd = $derived(
-		formatDateISO(
-			new Date(Date.parse(`${shiftMonthKey(calendarMonth, 1)}-01T00:00:00.000Z`) - 86_400_000)
-		)
-	);
+	const monthEnd = $derived(monthBounds(calendarMonth).end);
 	/** Day-precision instants, as stored: a bare calendar day is read at the replica's own zone. */
 	const monthWorkDateBounds = $derived(monthWorkDateInstantBounds(calendarMonth));
 	const monthDateKeys = $derived(monthDays(period));

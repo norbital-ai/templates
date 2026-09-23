@@ -1,11 +1,11 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { dateKey } from '../../iso-day.js';
-import { shiftDayKey } from '../calendar.js';
+import { addDays } from '../../../collections/payroll_runs/lib/dates.js';
 import type { ContractAllowance } from '../../../datatypes/contract_allowances/+definition.js';
 
 /** The day before: a successor starting `start` closes its predecessor on this day. */
 export function previousDay(start: string): string {
-	return shiftDayKey(start, -1);
+	return addDays(start, -1);
 }
 
 export type ChangeTermsFacts = {

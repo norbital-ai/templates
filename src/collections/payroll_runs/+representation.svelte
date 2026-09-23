@@ -44,14 +44,8 @@
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
-	import {
-		companyPeriods,
-		periodDayRange,
-		periodHalfOf,
-		weekOf,
-		periodMonthOf,
-		periodWindow
-	} from '../../lib/ui/calendar.js';
+	import { companyPeriods, periodDayRange, weekOf, periodWindow } from '../../lib/ui/calendar.js';
+	import { periodHalf, periodMonth } from './lib/dates.js';
 	import {
 		payrollRunPayslipsQuery,
 		payslipAmount,
@@ -184,14 +178,14 @@
 		const week = weekOf(candidate, selectedCompany?.pay_frequency);
 		if (week != null)
 			return t('component.period_week', {
-				month: monthLabel(intlLocale, periodMonthOf(candidate), 'short'),
-				n: periodHalfOf(candidate) ?? 1,
+				month: monthLabel(intlLocale, periodMonth(candidate), 'short'),
+				n: periodHalf(candidate) ?? 1,
 				from: week.start,
 				to: week.end
 			});
 		const range = periodDayRange(candidate);
 		return t('component.period_half', {
-			month: monthLabel(intlLocale, periodMonthOf(candidate), 'short'),
+			month: monthLabel(intlLocale, periodMonth(candidate), 'short'),
 			from: range.from,
 			to: range.to
 		});

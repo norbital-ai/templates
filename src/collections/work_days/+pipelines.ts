@@ -24,16 +24,17 @@
 import { resolveEmployment } from '../../lib/employment-contract.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate, isClockTime, isUtcIsoInstant } from '@norbital-ai/std/date';
-import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect, Schema } from 'effect';
 import { dateKey } from '../../lib/iso-day.js';
-import { addDays, formatNamedList, isYearMonth, monthBounds } from '../../lib/period.js';
+import { formatNamedList, isYearMonth } from '../../lib/period.js';
+import { addDays, monthBounds } from '../payroll_runs/lib/dates.js';
 import { leaveCoverage } from '../../lib/scheduling/leave-coverage.js';
 import { leaveActivityOf } from '../../lib/leave/activity-fields.js';
 import { rosterCodeVariantSchema } from '../../datatypes/roster_code_variant/+definition.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import type { Api, Pipelines, WorkspaceRow } from './$types.js';
 import { clockMinutes } from '../../lib/scheduling/roster-code.js';
+import { offsetMinutesAt } from '../../lib/timezone.js';
 
 const QUERY_LIMIT = 20_000;
 const PH_TOKENS = new Set(['PH', 'PUBLIC_HOLIDAY']);
@@ -210,39 +211,14 @@ function assertValidTimeZone(timeZone: string): Effect.Effect<void, never, never
 
 /** An equal or earlier wall-clock close is the following calendar day. */
 function endCalendarDate(workDate: string, started: string, ended: string): string {
-	return clockMinutes(ended) <= clockMinutes(started)
-		? new Date(Date.parse(`${workDate}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10)
-		: workDate;
+	return clockMinutes(ended) <= clockMinutes(started) ? addDays(workDate, 1) : workDate;
 }
 
 function localWallTimeToUtcIso(calendarDate: string, clockTime: string, timeZone: string): string {
 	const [year, month, day] = calendarDate.split('-').map(Number) as [number, number, number];
 	const [hour, minute] = clockTime.split(':').map(Number) as [number, number];
-	const formatter = new Intl.DateTimeFormat('en-US', {
-		timeZone,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit',
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit',
-		hour12: false
-	});
-	const shownMilliseconds = (instant: Date): number => {
-		const parts = formatter.formatToParts(instant);
-		const part = (type: Intl.DateTimeFormatPartTypes) =>
-			parts.find((candidate) => candidate.type === type)?.value ?? '';
-		let shownHour = decodeNumber(part('hour'));
-		if (shownHour === 24) shownHour = 0;
-		return Date.UTC(
-			decodeNumber(part('year')),
-			decodeNumber(part('month')) - 1,
-			decodeNumber(part('day')),
-			shownHour,
-			decodeNumber(part('minute')),
-			decodeNumber(part('second'))
-		);
-	};
+	const shownMilliseconds = (instant: Date): number =>
+		instant.getTime() + offsetMinutesAt(timeZone, instant) * 60_000;
 
 	const desired = Date.UTC(year, month - 1, day, hour, minute);
 	let resolved = desired;

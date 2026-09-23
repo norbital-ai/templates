@@ -9,7 +9,7 @@ import { Schema } from 'effect';
  * `person.company.facts.<key>`. Keys and types are declared by the settings version; the entity
  * carries only the values.
  */
-export const entityFactsValueSchema = Schema.Record(
+const entityFactsValueSchema = Schema.Record(
 	Schema.String,
 	Schema.Union([Schema.Boolean, Schema.Finite, Schema.String])
 );

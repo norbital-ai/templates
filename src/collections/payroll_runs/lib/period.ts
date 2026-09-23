@@ -45,7 +45,7 @@ import { refuse } from '@norbital-ai/bolt/authoring';
  * Every period pays on its last calendar day: the compliance month is the cutoff month.
  */
 
-import { Number as EffectNumber, Schema } from 'effect';
+import { Number as EffectNumber } from 'effect';
 import {
 	addDays,
 	dayOfMonth,
@@ -110,31 +110,32 @@ export function employmentPayFrequency(
 	return stated ?? 'MONTHLY';
 }
 
-const DayRangeSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
-type DayRange = Schema.Schema.Type<typeof DayRangeSchema>;
+type DayRange = {
+	readonly start: string;
+	readonly end: string;
+};
 
 /** One pay event of a period: what it pays for, what it reads, and when it pays. */
-const PayInstalmentSchema = Schema.Struct({
+type PayInstalment = {
 	/** 1-based position in the month. A monthly cadence has exactly one. */
-	sequence: Schema.Number,
+	readonly sequence: number;
 	/** The days the wages belong to; the proration denominator lives here. */
-	salary: DayRangeSchema,
+	readonly salary: DayRange;
 	/** The work days those wages cover. */
-	attendance: DayRangeSchema,
-	payDate: Schema.String
-});
-type PayInstalment = Schema.Schema.Type<typeof PayInstalmentSchema>;
+	readonly attendance: DayRange;
+	readonly payDate: string;
+};
 
-const PayrollWindowSchema = Schema.Struct({
+export type PayrollWindow = {
 	/** The run period, in the company's grammar: `YYYY-MM`, or `YYYY-MM-1` / `YYYY-MM-2`. */
-	period: Schema.String,
+	readonly period: string;
 	/** The cadence this window was resolved for; the company's own for a run window. */
-	payFrequency: Schema.Literals(PAY_FREQUENCIES),
+	readonly payFrequency: (typeof PAY_FREQUENCIES)[number];
 	/** The days the wages belong to; the proration denominator lives here. */
-	salary: DayRangeSchema,
+	readonly salary: DayRange;
 	/** The work days the wages cover; time entries and leave days are selected by this. */
-	attendance: DayRangeSchema,
-	payDate: Schema.String,
+	readonly attendance: DayRange;
+	readonly payDate: string;
 	/**
 	 * Every pay event this window settles, in order. One for a cadence window, and then `salary`,
 	 * `attendance` and `payDate` above are exactly that instalment. A run window at a semi-monthly
@@ -142,16 +143,14 @@ const PayrollWindowSchema = Schema.Struct({
 	 * envelope: the second half of a month settles the semi-monthly 16th-to-end instalment and the
 	 * monthly cutoff window together.
 	 */
-	instalments: Schema.Array(PayInstalmentSchema)
-});
-export type PayrollWindow = Schema.Schema.Type<typeof PayrollWindowSchema>;
+	readonly instalments: ReadonlyArray<PayInstalment>;
+};
 
 /** What the window reads off a company: the cutoff day and whether it pays twice a month. */
-const PayCalendarCompanySchema = Schema.Struct({
-	pay_cutoff_day: Schema.Number,
-	pay_frequency: Schema.String
-});
-type PayCalendarCompany = Schema.Schema.Type<typeof PayCalendarCompanySchema>;
+type PayCalendarCompany = {
+	readonly pay_cutoff_day: number;
+	readonly pay_frequency: string;
+};
 
 function monthParts(period: string): { year: number; monthIndex: number } {
 	const month = periodMonth(period);
@@ -484,18 +483,17 @@ export function payPeriodsRemaining(
 }
 
 /** How the withholding projection sees one payslip. */
-const PayProjectionSchema = Schema.Struct({
+export type PayProjection = {
 	/** Payslips left in the tax year to this cadence, this one included; the tax is spread over it. */
-	payslipsRemaining: Schema.Number,
+	readonly payslipsRemaining: number;
 	/**
 	 * How many payslips the size of this one the rest of the tax year holds after it. Twelve minus
 	 * the months elapsed, less one, for a monthly payslip. A half-month payslip is smaller than a
 	 * month, so the year after it holds more of them than there are runs: the remaining months plus
 	 * the unpaid rest of this month, divided by this payslip's share of a month.
 	 */
-	futurePayslipEquivalents: Schema.Number
-});
-export type PayProjection = Schema.Schema.Type<typeof PayProjectionSchema>;
+	readonly futurePayslipEquivalents: number;
+};
 
 /**
  * The projection horizon of one payslip, so that a year of twenty-four half-month payslips lands

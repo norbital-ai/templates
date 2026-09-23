@@ -14,8 +14,9 @@ import { isCalendarDate, isClockTime } from '@norbital-ai/std/date';
 import { getErrorMessage } from '@norbital-ai/std/error';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-import { Result, Schema } from 'effect';
-import { calendarDaysInMonth, monthBounds } from '../../lib/period.js';
+import { Result } from 'effect';
+import { calendarDaysInMonth } from '../../lib/period.js';
+import { monthBounds } from '../payroll_runs/lib/dates.js';
 import { WorkbookImportError, type SheetCell, type SheetTable } from '../../lib/workbook-rows.js';
 
 const LONG_FORM_COLUMNS = new Set([
@@ -105,27 +106,24 @@ function requireMonth(month: string | undefined): string {
 	return month;
 }
 
-const expandedRosterCellSchema = Schema.Struct({
-	employee_number: Schema.String,
-	work_date: Schema.String,
-	shift_code: Schema.String
-});
-type ExpandedRosterCell = Schema.Schema.Type<typeof expandedRosterCellSchema>;
+type ExpandedRosterCell = {
+	readonly employee_number: string;
+	readonly work_date: string;
+	readonly shift_code: string;
+};
 
-const expandedTimeCellSchema = Schema.Struct({
-	employee_number: Schema.String,
-	work_date: Schema.String,
-	clock_in: Schema.String,
-	clock_out: Schema.optional(Schema.String)
-});
-type ExpandedTimeCell = Schema.Schema.Type<typeof expandedTimeCellSchema>;
+type ExpandedTimeCell = {
+	readonly employee_number: string;
+	readonly work_date: string;
+	readonly clock_in: string;
+	readonly clock_out?: string | undefined;
+};
 
-const expandedOvertimeCellSchema = Schema.Struct({
-	employee_number: Schema.String,
-	work_date: Schema.String,
-	overtime_hours: Schema.Number
-});
-type ExpandedOvertimeCell = Schema.Schema.Type<typeof expandedOvertimeCellSchema>;
+type ExpandedOvertimeCell = {
+	readonly employee_number: string;
+	readonly work_date: string;
+	readonly overtime_hours: number;
+};
 
 const RANGE_SPLIT = /\s*[-–—/]\s*/;
 

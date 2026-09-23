@@ -3,7 +3,7 @@ import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import model from './+model.js';
 import { readRange } from '../payroll_runs/lib/effective.js';
 import { dateKey } from '../../lib/iso-day.js';
-import { addDays } from '../../lib/period.js';
+import { addDays } from '../payroll_runs/lib/dates.js';
 import { settingsInForce } from '../../lib/jurisdiction_settings.js';
 import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';

@@ -10,14 +10,19 @@
 
 import { Number as EffectNumber, Result } from 'effect';
 import { formatDateISO, isCalendarDate } from '@norbital-ai/std/date';
-import { decodeNumber } from '@norbital-ai/std/json';
-import { addDays, monthDays, shiftPeriod } from '../../collections/payroll_runs/lib/dates.js';
+import {
+	addDays,
+	monthDays,
+	periodHalf,
+	periodMonth,
+	shiftPeriod
+} from '../../collections/payroll_runs/lib/dates.js';
 import { weeklyInstalments } from '../../collections/payroll_runs/lib/period.js';
 
 import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
 
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone, dayInstant } from '../iso-day.js';
-export { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../iso-day.js';
+import { offsetMinutesAt } from '../timezone.js';
 
 /**
  * Calendar day of "now" in the payroll timezone — the reference every board on these pages is drawn
@@ -70,31 +75,6 @@ export function employedTodayFilter(): readonly CollectionInitialFilter[] {
 	];
 }
 
-/** How far `timeZone` is ahead of UTC at `at`, in milliseconds. */
-function timeZoneOffsetMs(at: Date, timeZone: string): number {
-	const parts = new Intl.DateTimeFormat('en-US', {
-		timeZone,
-		hourCycle: 'h23',
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit',
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit'
-	}).formatToParts(at);
-	const field = (type: Intl.DateTimeFormatPartTypes) =>
-		decodeNumber(parts.find((part) => part.type === type)?.value ?? '0');
-	const wallClockAsUtc = Date.UTC(
-		field('year'),
-		field('month') - 1,
-		field('day'),
-		field('hour'),
-		field('minute'),
-		field('second')
-	);
-	return wallClockAsUtc - at.getTime();
-}
-
 /**
  * The instant at which `calendarDate` begins in `timeZone`.
  *
@@ -111,8 +91,9 @@ export function startOfDayInstant(calendarDate: string, timeZone: string): strin
 		throw new Error(`"${calendarDate}" is not a YYYY-MM-DD calendar date.`);
 	}
 	const utcMidnight = new Date(`${calendarDate}T00:00:00.000Z`);
-	const firstPass = new Date(utcMidnight.getTime() - timeZoneOffsetMs(utcMidnight, timeZone));
-	return new Date(utcMidnight.getTime() - timeZoneOffsetMs(firstPass, timeZone)).toISOString();
+	const offsetMs = (at: Date) => offsetMinutesAt(timeZone, at) * 60_000;
+	const firstPass = new Date(utcMidnight.getTime() - offsetMs(utcMidnight));
+	return new Date(utcMidnight.getTime() - offsetMs(firstPass)).toISOString();
 }
 
 /**
@@ -129,18 +110,6 @@ export function endOfDayInstant(calendarDate: string): string {
 	).toISOString();
 }
 
-/**
- * Represent a calendar-day key as the instant the platform day picker expects.
- *
- * A nested custom datatype can deliberately store `YYYY-MM-DD` rather than an instant. The
- * platform's canonical day picker still edits an `instant`, so its adapter must place that day at
- * midnight in the viewer's timezone. UTC midnight would show the previous day for viewers west of
- * Greenwich.
- */
-export function calendarDayAsPickerInstant(calendarDate: string, pickerTimeZone: string): string {
-	return startOfDayInstant(calendarDate, pickerTimeZone);
-}
-
 /** Recover the calendar-day key selected by a platform day picker in the viewer's timezone. */
 export function calendarDayFromPickerInstant(value: string, pickerTimeZone: string): string {
 	const instant = new Date(value);
@@ -154,39 +123,15 @@ interface DayPickerInstantRange {
 	readonly end?: string;
 }
 
-/** A calendar day shifted by whole days without involving the browser's local timezone. */
-export function shiftDayKey(day: string, days: number): string {
-	return addDays(day, Math.trunc(days));
-}
-
-/** `YYYY-MM` offset by whole months. */
-export function shiftMonthKey(period: string, months: number): string {
-	return shiftPeriod(period, months);
-}
-
 /** Number of days in the `YYYY-MM` month. */
 export function daysInMonth(period: string): number {
 	return monthDays(`${period}-01`);
 }
 
-/**
- * A run period in the company's grammar: `YYYY-MM` at a monthly company, `YYYY-MM-1` (the 1st to
- * the 15th) or `YYYY-MM-2` (the 16th to the month end) at a semi-monthly one. The engine's
- * `periodMonth` / `periodHalf` are the same grammar; these read it for the screens.
- */
-export function periodMonthOf(period: string): string {
-	return period.slice(0, 7);
-}
-
-/** The instalment a period names — a half (1, 2) or a week (1–5) — or `null` for a whole month. */
-export function periodHalfOf(period: string): number | null {
-	return period.length === 7 ? null : Number(period.slice(8));
-}
-
 /** The first and last day of the month a period pays for: `1–15`, `16–28`, or the whole month. */
 export function periodDayRange(period: string): { readonly from: number; readonly to: number } {
-	const last = daysInMonth(periodMonthOf(period));
-	switch (periodHalfOf(period)) {
+	const last = daysInMonth(periodMonth(period));
+	switch (periodHalf(period)) {
 		case 1:
 			return { from: 1, to: 15 };
 		case 2:
@@ -206,10 +151,10 @@ export function periodInCompanyGrammar(
 	payFrequency: string | undefined,
 	today: string
 ): string {
-	const month = periodMonthOf(period);
+	const month = periodMonth(period);
 	if (payFrequency === 'WEEKLY') {
 		const weeks = weeklyInstalments(month);
-		const named = periodHalfOf(period);
+		const named = periodHalf(period);
 		if (named != null && named <= weeks.length) return period;
 		// The week today falls in, where today is in the month; else the month's first week.
 		const current = weeks.findIndex(
@@ -218,7 +163,7 @@ export function periodInCompanyGrammar(
 		return `${month}-${current >= 0 ? current + 1 : 1}`;
 	}
 	if (payFrequency !== 'SEMI_MONTHLY') return month;
-	if (periodHalfOf(period) != null && (periodHalfOf(period) ?? 0) <= 2) return period;
+	if (periodHalf(period) != null && (periodHalf(period) ?? 0) <= 2) return period;
 	return `${month}-${Number(today.slice(8, 10)) <= 15 ? 1 : 2}`;
 }
 
@@ -255,9 +200,9 @@ export function companyPeriods(months: readonly string[], payFrequency: string):
  * day. The compliance month is the cutoff month.
  */
 export function payDateFor(period: string, payFrequency?: string): string {
-	const month = periodMonthOf(period);
+	const month = periodMonth(period);
 	if (payFrequency === 'WEEKLY') {
-		const week = weeklyInstalments(month)[(periodHalfOf(period) ?? 1) - 1];
+		const week = weeklyInstalments(month)[(periodHalf(period) ?? 1) - 1];
 		if (week != null) return week.payDate;
 	}
 	return `${month}-${String(periodDayRange(period).to).padStart(2, '0')}`;
@@ -269,21 +214,14 @@ export function weekOf(
 	payFrequency: string | undefined
 ): { readonly start: string; readonly end: string } | null {
 	if (payFrequency !== 'WEEKLY') return null;
-	return weeklyInstalments(periodMonthOf(period))[(periodHalfOf(period) ?? 1) - 1]?.salary ?? null;
-}
-
-/** Whole days from `from` to `to`, negative when `to` is in the past. */
-export function daysBetweenKeys(from: string, to: string): number {
-	return Math.ceil(
-		(Date.parse(`${to}T00:00:00.000Z`) - Date.parse(`${from}T00:00:00.000Z`)) / 86_400_000
-	);
+	return weeklyInstalments(periodMonth(period))[(periodHalf(period) ?? 1) - 1]?.salary ?? null;
 }
 
 /** The `YYYY-MM` periods spanning `count` months, ending `ahead` months after the current month. */
 export function periodWindow(count: number, ahead: number): string[] {
 	const current = todayKey().slice(0, 7);
 	return Array.from({ length: count }, (_value, index) =>
-		shiftMonthKey(current, ahead - count + 1 + index)
+		shiftPeriod(current, ahead - count + 1 + index)
 	);
 }
 
@@ -294,24 +232,6 @@ export function periodWindow(count: number, ahead: number): string[] {
  */
 export function todayInstant(): string {
 	return dayInstant(todayKey());
-}
-
-/**
- * Calendar `YYYY-MM-DD` for a stored person-day `work_date`.
- *
- * The column is `instant({ precision: 'day' })`. Live rows arrive as the instant that day begins in
- * the payroll zone (`2026-02-01` → `2026-01-31T16:00:00.000Z` in Asia/Kuala_Lumpur), not as a
- * calendar string. `formatDateISO` takes the UTC day of that instant, which is the previous
- * calendar day for the whole morning in MY/SG — so a board cell on 1 Feb cannot find the row and
- * Save inserts a second person-day against `unique(employment_id, work_date)`.
- */
-export function workDateCalendarKey(value: string | Date): string {
-	if (typeof value === 'string' && isCalendarDate(value)) return value;
-	const instant = typeof value === 'string' ? new Date(value) : value;
-	if (Number.isNaN(instant.getTime())) {
-		throw new Error(`"${String(value)}" is not a work date.`);
-	}
-	return calendarDateInTimeZone(instant, PAYROLL_TIME_ZONE);
 }
 
 /** Inclusive stored instants of a `YYYY-MM` month's first and last day, for a day-column query. */

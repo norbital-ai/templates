@@ -22,7 +22,6 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
-import { Schema } from 'effect';
 import {
 	bySchemeListing,
 	schemeGroup,
@@ -30,24 +29,23 @@ import {
 	type SchemeListing
 } from '../../../lib/payroll/scheme-label.js';
 
-const ReportLineSchema = Schema.Struct({
-	componentCode: Schema.String,
-	componentName: Schema.String,
+export type ReportLine = {
+	readonly componentCode: string;
+	readonly componentName: string;
 	/** The frozen label: for a derived overtime row, the band it was priced on (`OT-1.5X`). */
-	label: Schema.optionalKey(Schema.String),
-	bucket: Schema.String,
+	readonly label?: string;
+	readonly bucket: string;
 	/** The input family that caused the line: BASE for the contracted amount, else the payslip adjustment's. */
-	family: Schema.String,
-	calculationSource: Schema.String,
-	amount: Schema.Number,
-	quantity: Schema.NullOr(Schema.Number),
+	readonly family: string;
+	readonly calculationSource: string;
+	readonly amount: number;
+	readonly quantity: number | null;
 	/** An audited company expense whose cash never passes through the employee. */
-	isCompanyDirect: Schema.Boolean,
+	readonly isCompanyDirect: boolean;
 	/** A capped employee reimbursement, excluding unrelated non-wage payments such as tax refunds. */
-	isClaim: Schema.Boolean,
-	isLoanInstalment: Schema.Boolean
-});
-export type ReportLine = Schema.Schema.Type<typeof ReportLineSchema>;
+	readonly isClaim: boolean;
+	readonly isLoanInstalment: boolean;
+};
 
 export type ReportPayslip = {
 	readonly employmentId: string;
@@ -81,12 +79,11 @@ export type ReportContribution = SchemeListing & {
 	readonly employer: number;
 };
 
-const OutputSectionSchema = Schema.Struct({
-	name: Schema.String,
-	unit: Schema.Literals(['MONEY', 'HOURS']),
-	outputIds: Schema.Array(Schema.String)
-});
-type OutputSection = Schema.Schema.Type<typeof OutputSectionSchema>;
+type OutputSection = {
+	readonly name: string;
+	readonly unit: 'MONEY' | 'HOURS';
+	readonly outputIds: ReadonlyArray<string>;
+};
 
 /**
  * The salary listing's identity block: who the row is, before any money.

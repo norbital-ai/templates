@@ -48,8 +48,8 @@
 	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
 	import FormSection from '../../lib/ui/form-section.svelte';
-	import { PAYROLL_TIME_ZONE, todayKey } from '../../lib/ui/calendar.js';
-	import { dayInstant, dateKey, isSettledId } from '../../lib/iso-day.js';
+	import { todayKey } from '../../lib/ui/calendar.js';
+	import { dayInstant, dateKey, isSettledId, PAYROLL_TIME_ZONE } from '../../lib/iso-day.js';
 	import { settingsInForce } from '../../lib/jurisdiction_settings.js';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 	import { formatDurationHours } from '../../lib/ui/display-formatters.js';
@@ -637,6 +637,7 @@
 						<Field name="work_date" hidden={identityFixed} label={t('component.day')} />
 						<Field name="shift_definition_id" hidden />
 						<Field name="worked_intervals" hidden />
+						<Field name="approved_overtime_hours" hidden />
 
 						<Stack gap="lg">
 							{#if identityFixed}

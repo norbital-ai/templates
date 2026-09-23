@@ -41,7 +41,7 @@ export const contributionRuleSchema = Schema.Struct({
 });
 export type ContributionRule = Schema.Schema.Type<typeof contributionRuleSchema>;
 
-export const contributionRulesValueSchema = Schema.Array(contributionRuleSchema).check(
+const contributionRulesValueSchema = Schema.Array(contributionRuleSchema).check(
 	Schema.makeFilter((rules) => {
 		for (const rule of rules) {
 			for (const expression of [rule.when, rule.deduction ?? '0.0'])

@@ -10,7 +10,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
+import { PAYROLL_TIME_ZONE } from '../src/lib/iso-day.ts';
 import {
 	assessAttendanceDraft,
 	beyondScheduleMinutes,

@@ -1,7 +1,7 @@
 import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
-import { dateKey } from '../payroll_runs/lib/dates.js';
+import { dateKey } from '../../lib/iso-day.js';
 import { cents } from '../payroll_runs/lib/rounding.js';
 import { settingsInForce } from '../../lib/jurisdiction_settings.js';
 import model from './+model.js';
@@ -76,8 +76,8 @@ export default defineCollection({
 				if (!String(row.directive_reference ?? '').trim())
 					refuse('A payment hold requires the directive reference.');
 				const held = dateKey(row.held_on);
-				if (held == null) refuse('A payment hold requires the day it was placed.');
-				const released = row.released_on == null ? null : dateKey(row.released_on);
+				if (held === '') refuse('A payment hold requires the day it was placed.');
+				const released = row.released_on == null ? null : dateKey(row.released_on) || null;
 				if (row.released_on != null && released == null)
 					refuse('A hold release requires a calendar day.');
 				if (released != null && released < held)

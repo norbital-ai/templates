@@ -9,8 +9,9 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
-	import TimezonePicker from '../../collections/jurisdiction_settings/TimezonePicker.svelte';
+	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
+	import { timezoneNames } from '../../lib/timezone.js';
 	import type { RendererProps, Value } from './$types.js';
 
 	let props: RendererProps = $props();
@@ -22,6 +23,12 @@
 		new Intl.DateTimeFormat(i18n.intlLocale, { month: 'long' }).format(
 			new Date(2000, Math.min(Math.max(month, 1), 12) - 1, 1)
 		);
+
+	/**
+	 * The jurisdiction's wall clock, chosen by name. A free integer cannot express a zone that
+	 * observes daylight saving; the engine derives the offset from the name for the date it prices.
+	 */
+	const timezoneOptions = timezoneNames().map((zone) => ({ value: zone, label: zone }));
 
 	function emit(next: Value): void {
 		if (props.mode === 'edit') props.onValueChange(next);
@@ -83,12 +90,19 @@
 		<label class="text-xs">
 			<Stack gap="xs">
 				<span class="text-muted-foreground">{t('component.timezone')}</span>
-				<TimezonePicker
-					value={current.timezone}
-					onValueChange={(timezone) => {
-						if (typeof timezone === 'string') emit({ ...current, timezone });
-					}}
-				/>
+				<div data-timezone-picker>
+					<Combobox
+						options={timezoneOptions}
+						value={current.timezone.length > 0 ? current.timezone : null}
+						onValueChange={(timezone) => {
+							if (typeof timezone === 'string') emit({ ...current, timezone });
+						}}
+						allowClear={false}
+						ariaLabel={t('component.timezone')}
+						searchPlaceholder={t('component.search_timezones')}
+						emptyPlaceholder={t('component.choose_timezone')}
+					/>
+				</div>
 			</Stack>
 		</label>
 		<label class="text-xs">

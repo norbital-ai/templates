@@ -1,11 +1,11 @@
 import { decodeNumber } from '@norbital-ai/std/json';
 import type { MoneyValue } from '@norbital-ai/std/finance';
-import { addDays } from '../period.js';
 import {
 	monthBounds,
 	monthKey,
 	requiredDateKey,
-	type IsoDate
+	type IsoDate,
+	addDays
 } from '../../collections/payroll_runs/lib/dates.js';
 import { readRange } from '../../collections/payroll_runs/lib/effective.js';
 
