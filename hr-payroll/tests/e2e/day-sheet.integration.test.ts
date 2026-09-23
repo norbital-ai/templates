@@ -184,13 +184,17 @@ it('a board cell opens the record sheet for a stored day and the create sheet fo
 		assert.match(recordBody, /Save assignment/);
 		// The plan the row names is the plan the sheet shows.
 		assert.match(recordBody, /7\.5AM/);
-		// Planned overtime is keyed in the Planned section, beside the shift, not under attendance.
-		assert.match(recordBody, /Planned[\s\S]*Planned overtime \(hours\)[\s\S]*Actual/);
-		assert.doesNotMatch(recordBody, /beyond schedule/i);
-		// The total is previewed as the split the write path stores: overtime to the limit, the rest incentive.
+		// Planned overtime is keyed in the Planned section, beside the shift, not under attendance:
+		// approved overtime and incentive hours as two figures, never split by the sheet.
 		assert.match(
 			recordBody,
-			/No overtime limit stated|Up to .+ of overtime this day: .+ overtime · .+ incentive hours/
+			/Planned[\s\S]*Approved overtime \(hours\)[\s\S]*Incentive hours[\s\S]*Actual/
+		);
+		assert.doesNotMatch(recordBody, /beyond schedule/i);
+		// The day's statutory maximum is stated beside the approved figure.
+		assert.match(
+			recordBody,
+			/No overtime limit stated for this day|At most .+ of approved overtime this day \(limit .+\)/
 		);
 
 		// The sheet's write is the collection's own: an interval added and saved lands on the row

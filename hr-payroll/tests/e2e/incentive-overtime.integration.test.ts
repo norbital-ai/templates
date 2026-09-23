@@ -27,11 +27,11 @@ const create = async (
 };
 
 /**
- * Planned incentive hours, end to end on a real host. The public lineage's 1.5 band names
- * `limits.daily_total` — twelve clock hours, eleven net of a one-hour break — so that daily limit
- * splits planned overtime. The day plans a total of five overtime hours on its 07:30–16:30 base
- * shift (eight net): the write stores three within the limit as `approved_overtime_hours` and two
- * beyond it as `incentive_hours`, and payroll settles them as OVERTIME and INCENTIVE, both at 1.5×.
+ * Planned incentive hours, end to end on a real host. The public lineage's twelve clock-hour day,
+ * eleven net of a one-hour break, leaves a 07:30–16:30 base shift (eight net) three hours of
+ * approved overtime. The day keys those three as `approved_overtime_hours` and two more as
+ * `incentive_hours`, as an operator does (only an import splits a total), and payroll settles them
+ * as OVERTIME and INCENTIVE, both at 1.5×.
  * The punch of 07:30 to 21:30 only confirms the day was worked. The row carries no plan code, so it
  * is evidence on a base day, never a roster override.
  */
@@ -54,8 +54,10 @@ it(
 					worked_intervals: [
 						{ start: '2026-02-02T23:30:00.000Z', end: '2026-02-03T13:30:00.000Z' }
 					],
-					// The day's TOTAL planned overtime: the write splits it at the daily limit.
-					approved_overtime_hours: 5
+					// Keyed as the operator keys it: approved overtime up to the 12-hour day's three
+					// hours, the other two as incentive. A direct write never splits.
+					approved_overtime_hours: 3,
+					incentive_hours: 2
 				},
 				founder
 			);

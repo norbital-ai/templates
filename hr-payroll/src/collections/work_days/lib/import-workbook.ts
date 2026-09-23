@@ -195,6 +195,39 @@ export const schedulingImportDays = (payload: SchedulingImportPayload): number =
 	).size;
 
 /**
+ * The rows a scheduling file records work on — a punch, or planned extra hours — that fall on a
+ * company holiday the person observes (`observed`, payroll's own calendar) while the overtime rule
+ * does not cover them (`entitled`): no overtime is paid for them, so HR grants an off-in-lieu day.
+ * The import writes them; this is the warning, never a refusal.
+ */
+export function holidayWorkedRows(
+	payload: SchedulingImportPayload,
+	observed: (employeeNumber: string) => ReadonlySet<string>,
+	entitled: (employeeNumber: string, date: string) => boolean
+): readonly { readonly employee_number: string; readonly work_date: string }[] {
+	const worked = new Map<string, { employee_number: string; work_date: string }>();
+	for (const row of [
+		...(payload.attendance ?? []).filter((row) => row.clock_in != null),
+		...(payload.overtime ?? []).filter((row) => row.overtime_hours > 0)
+	])
+		worked.set(`${row.employee_number}\t${row.work_date}`, {
+			employee_number: row.employee_number,
+			work_date: row.work_date
+		});
+	return [...worked.values()]
+		.filter(
+			(row) =>
+				observed(row.employee_number).has(row.work_date) &&
+				!entitled(row.employee_number, row.work_date)
+		)
+		.toSorted(
+			(left, right) =>
+				left.employee_number.localeCompare(right.employee_number) ||
+				left.work_date.localeCompare(right.work_date)
+		);
+}
+
+/**
  * The whole scheduling workbook: one legal entity and one month from the Settings sheet, the
  * Roster sheet as the plan and the Time entries sheet as the attendance. A sheet the file does
  * not carry stays absent, so the pipeline leaves that half of every day alone; a sheet it carries

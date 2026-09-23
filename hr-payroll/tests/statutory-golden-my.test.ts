@@ -709,7 +709,7 @@ const workLines = (slip: BuiltPayslip) =>
 		.toSorted((left, right) => left[0].localeCompare(right[0]) || left[1].localeCompare(right[1]));
 
 test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rate', () => {
-	const { slips } = buildStatutory(
+	const { slips, warnings } = buildStatutory(
 		{
 			code: 'MY',
 			period: '2026-01',
@@ -798,6 +798,20 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 
 	// Over RM4,000 and outside para 2: the same six days produce no Part XII line at all.
 	assert.deepEqual(workLines(slips.get('MY-OVER')!), []);
+	// Both company holidays MY-OVER came in on are stated for HR to grant off-in-lieu, never
+	// created; the two people the ladder covers were paid for theirs and are not named.
+	const holidayNotes = warnings.filter((row) => row.startsWith('HOLIDAY_WORKED_NO_OVERTIME'));
+	assert.equal(holidayNotes.length, 2);
+	for (const date of ['2026-01-01', '2026-01-14'])
+		assert.ok(
+			holidayNotes.some(
+				(row) =>
+					row.includes('MY-OVER') &&
+					row.includes(`worked the company holiday ${date} but is not entitled to overtime pay`) &&
+					row.includes('off-in-lieu (OIL) leave day')
+			),
+			date
+		);
 	assert.equal(slips.get('MY-OVER')!.gross, 5200);
 
 	// Manual labour at the same wage: the ladder applies at 200.00 a day and 25.00 an hour.

@@ -3,8 +3,9 @@
  *
  * Overtime is **preplanned, never derived** (owner's rule, 2026-09-23): a work day carries two
  * entries, `approved_overtime_hours` — the planned overtime within the statutory limits — and
- * `incentive_hours` — the planned excess beyond them. The split between them is made when the day
- * is written (`splitPlannedOvertime`, the `work_days` transform); payroll funnels nothing. It
+ * `incentive_hours` — the planned excess beyond them. The two are keyed on the day — split only by
+ * the import (`splitPlannedOvertime`), bounded by the `work_days` transform's headroom check
+ * (`overtimeHeadroom`); payroll funnels nothing. It
  * prices the approved hours on the day type's OVERTIME band and the incentive hours on that
  * band's INCENTIVE line, and nothing else beyond the shift.
  *

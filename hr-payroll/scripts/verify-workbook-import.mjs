@@ -219,7 +219,34 @@ function api(overrides = {}) {
 		],
 		work_days: overrides.existingDays ?? [],
 		rosters: overrides.rosters ?? [],
-		leave_entries: overrides.leaveEntries ?? []
+		leave_entries: overrides.leaveEntries ?? [],
+		// The import splits each day's total at the governing version's overtime limits.
+		jurisdiction_settings: [
+			{
+				id: 'settings:test',
+				code: 'TEST',
+				name: 'TEST',
+				jurisdiction_code: 'MY',
+				sealed_at: '2020-01-01T00:00:00.000Z',
+				voided_at: null,
+				approval_id: null,
+				effective_range: { start: '2020-01-01', end: null },
+				work_rules: {
+					limits: [
+						{
+							key: 'daily_total',
+							period: 'DAY',
+							measure: 'TOTAL_WORK_HOURS',
+							max_hours: 12,
+							unit: 'WORKED_HOURS'
+						}
+					]
+				}
+			}
+		],
+		employment_terms: [],
+		shift_patterns: [],
+		jurisdiction_holidays: []
 	});
 }
 
@@ -595,15 +622,28 @@ const program = Effect.gen(function* () {
 		assert.deepEqual(overtimeOnly.rows, [
 			{
 				approved_overtime_hours: 2.5,
+				incentive_hours: 0,
 				employment_id: 'employment:2',
 				work_date: '2026-05-04'
 			},
 			{
 				approved_overtime_hours: 1,
+				incentive_hours: 0,
 				employment_id: 'employment:23',
 				work_date: '2026-05-04'
 			}
 		]);
+
+		// The import splits a day's total at the statutory limits: a 7.5-hour shift leaves 4.5 hours
+		// under the 12-hour day, so six planned hours are 4.5 overtime and 1.5 incentive.
+		const overLimit = yield* importOf(
+			workbook(ROSTER_ROWS, TIME_ENTRY_ROWS, SETTINGS, [['PUBEM0002', '2026-05-04', 6]])
+		);
+		const splitDay = overLimit.rows.find(
+			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-04'
+		);
+		assert.equal(splitDay.approved_overtime_hours, 4.5, 'overtime stops at the 12-hour day');
+		assert.equal(splitDay.incentive_hours, 1.5, 'the rest of the total is incentive');
 		const badOvertime = yield* refusal(() =>
 			payloadOf(workbook(undefined, undefined, SETTINGS, [['PUBEM0002', '2026-05-04', 2.3]]))
 		);

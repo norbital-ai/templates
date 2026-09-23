@@ -77,7 +77,8 @@
 	import {
 		applicableLimits,
 		assessmentWindow,
-		splitsOvertime,
+		observedHolidayDates,
+		overtimeEntitled,
 		type RosterCodeFacts
 	} from '../../lib/scheduling/work-limits.js';
 	import {
@@ -86,7 +87,7 @@
 		patternRosterCodeId,
 		termPatternRow
 	} from '../../lib/scheduling/work-pattern.js';
-	import { windowOvertime, type WindowDay } from '../../lib/ui/roster/day-overtime.js';
+	import { windowOvertime } from '../../lib/ui/roster/day-overtime.js';
 	import { coversDate } from '../payroll_runs/lib/effective.js';
 	import { personContext } from '../payroll_runs/lib/eligibility.js';
 
@@ -179,35 +180,35 @@
 
 	/* ── THE ROSTER VOCABULARY ────────────────────────────────────────────────────────────────── */
 
-	/** The entity's roster codes, effective on this day; the picker's options. */
+	/**
+	 * The entity's roster codes. The picker offers those effective on this day; the headroom
+	 * resolves the whole window's plan, which may name a code this day does not.
+	 */
 	const shiftsQuery = $derived(
 		companyId == null
 			? null
 			: client.db.shift_definitions.findMany({
-					where: {
-						company_id: { eq: companyId },
-						...(workDateInstant == null
-							? {}
-							: { effective_range: { contains_date: workDateInstant } })
-					},
+					where: { company_id: { eq: companyId } },
 					orderBy: { code: 'asc' },
 					limit: 500
 				})
 	);
 	const shiftsById = $derived(new Map((shiftsQuery?.current ?? []).map((code) => [code.id, code])));
 	const rosterCodeOptions = $derived(
-		(shiftsQuery?.current ?? []).map((code) => {
-			const kind = rosterCodeKind(code.variant);
-			const window = kind === 'WORK' ? workWindow(code.variant) : null;
-			return {
-				value: code.id,
-				label:
-					window == null
-						? `${code.code} · ${kind}`
-						: `${code.code} · ${window.start_time}–${window.end_time}`,
-				search_term: `${code.code} ${code.name} ${window?.start_time ?? ''} ${window?.end_time ?? ''}`
-			};
-		})
+		(shiftsQuery?.current ?? [])
+			.filter((code) => workDate == null || coversDate(code.effective_range, workDate))
+			.map((code) => {
+				const kind = rosterCodeKind(code.variant);
+				const window = kind === 'WORK' ? workWindow(code.variant) : null;
+				return {
+					value: code.id,
+					label:
+						window == null
+							? `${code.code} · ${kind}`
+							: `${code.code} · ${window.start_time}–${window.end_time}`,
+					search_term: `${code.code} ${code.name} ${window?.start_time ?? ''} ${window?.end_time ?? ''}`
+				};
+			})
 	);
 
 	/* ── THE PLAN ─────────────────────────────────────────────────────────────────────────────── */
@@ -265,31 +266,24 @@
 	let draftAttendanceRecorded = $state(false);
 	let baselineAttendance = $state<AttendanceValue>({ intervals: null });
 	/**
-	 * The day's TOTAL planned overtime, in hours after the shift; null is none planned. The write
-	 * path splits it: up to the version's limit is overtime, the rest incentive hours.
+	 * The day's planned overtime, keyed as two figures: the approved overtime, up to the statutory
+	 * headroom the sheet shows, and the incentive hours beyond it. Null is none planned.
 	 */
-	let draftOvertime = $state<number | null>(null);
-	let baselineOvertime = $state<number | null>(null);
+	let draftApproved = $state<number | null>(null);
+	let draftIncentive = $state<number | null>(null);
 	/** Self-service only: the operator has asked to report a punch on a day that has none. */
 	let reporting = $state(false);
 
 	/** The identity of the sheet, so a new person-day re-seeds the editors. */
 	const sheetKey = $derived(`${employmentId ?? ''}:${workDate ?? ''}`);
 
-	/** The stored day's total planned overtime, approved plus incentive; null when none is keyed. */
-	const baselineTotal = $derived.by(() => {
-		const approved = storedHours(record?.approved_overtime_hours);
-		const incentive = storedHours(record?.incentive_hours);
-		return approved == null && incentive == null ? null : (approved ?? 0) + (incentive ?? 0);
-	});
-
 	/** Seed the editors from the record. Runs on mount, and again whenever the keyed block remounts. */
 	function seedSheet(): void {
 		reporting = false;
 		draftCodeId = record?.shift_definition_id ?? null;
 		baselineCodeId = record?.shift_definition_id ?? null;
-		draftOvertime = baselineTotal;
-		baselineOvertime = draftOvertime;
+		draftApproved = storedHours(record?.approved_overtime_hours);
+		draftIncentive = storedHours(record?.incentive_hours);
 		draftAttendanceRecorded = record?.worked_intervals != null;
 		baselineAttendance = {
 			intervals:
@@ -340,7 +334,9 @@
 	);
 	/** Null and zero are one statement to payroll: no approved hours. */
 	const overtimeTouched = $derived(
-		planWritable && (draftOvertime ?? 0) !== (baselineOvertime ?? 0)
+		planWritable &&
+			((draftApproved ?? 0) !== (storedHours(record?.approved_overtime_hours) ?? 0) ||
+				(draftIncentive ?? 0) !== (storedHours(record?.incentive_hours) ?? 0))
 	);
 
 	/**
@@ -363,8 +359,8 @@
 
 	/**
 	 * The pay's assessment window around this day (the entity's `pay_cutoff_day`: Nihon's 21st to
-	 * 20th) and what the split reads inside it: the employment's stored days, its terms and their
-	 * pattern, and the published holidays. Read for the plan's writer only.
+	 * 20th) and what the headroom reads inside it: the employment's stored days, its terms and their
+	 * pattern, its rosters of record, and the published holidays. Read for the plan's writer only.
 	 */
 	const overtimeWindow = $derived(
 		!planWritable || workDate == null || employment == null
@@ -383,15 +379,28 @@
 						}
 					},
 					columns: {
-						id: true,
 						work_date: true,
 						shift_definition_id: true,
 						approved_overtime_hours: true,
-						incentive_hours: true,
-						emergency_cause: true,
-						payslip_id: true
+						emergency_cause: true
 					},
 					limit: 62
+				})
+	);
+	const rostersQuery = $derived(
+		overtimeWindow == null || employmentId == null
+			? null
+			: client.db.rosters.findMany({
+					where: {
+						employment_id: { eq: employmentId },
+						period: {
+							in: [...new Set([overtimeWindow.start, overtimeWindow.end])].map((date) =>
+								date.slice(0, 7)
+							)
+						}
+					},
+					columns: { period: true },
+					limit: 12
 				})
 	);
 	const termsQuery = $derived(
@@ -403,7 +412,10 @@
 						effective_range: true,
 						shift_pattern_id: true,
 						employment_type: true,
-						work_classification: true
+						work_classification: true,
+						base_salary: true,
+						statutory_work_category: true,
+						pay_frequency: true
 					},
 					with: { term_shift_pattern: PATTERN_WITH },
 					limit: 100
@@ -422,33 +434,40 @@
 						published_at: { isNotNull: true },
 						approval_id: { isNull: true }
 					},
-					columns: { date: true },
+					columns: {
+						id: true,
+						company_id: true,
+						date: true,
+						name: true,
+						kind: true,
+						replaces: true,
+						given_to: true,
+						published_at: true
+					},
 					limit: 62
 				})
 	);
 
 	/**
-	 * How the write path will split the planned total, stated before the save: the transform's own
-	 * arithmetic over the assessment window and the person's applicable limits (`windowOvertime`).
-	 * The limit is what this day can hold as overtime — the split of the largest total the input
-	 * allows. `moved` are the open days the save restates beside it; `sealed` the ones it cannot.
+	 * The most approved overtime this day can hold, and whether the person is owed overtime pay for
+	 * it: the transform's own headroom over the assessment window and the person's applicable
+	 * limits (`windowOvertime`), on the holidays payroll observes (`observedHolidayDates`).
 	 */
-	const overtimeSplit = $derived.by(() => {
+	const overtimeHeadroom = $derived.by(() => {
 		const rules = settingsVersion?.work_rules;
 		const terms = termsQuery?.current ?? [];
 		const termOn = (date: string) => terms.find((term) => coversDate(term.effective_range, date));
 		const entity = employment?.employment_company;
+		const person = (date: string) => ({
+			employee: null,
+			employment: { service_start: '' },
+			terms: termOn(date) ?? null,
+			company: entity == null ? null : { region: entity.region, facts: entity.facts },
+			asOf: date
+		});
 		const limits = applicableLimits(
 			rules?.limits ?? [],
-			workDate == null
-				? null
-				: personContext({
-						employee: null,
-						employment: { service_start: '' },
-						terms: termOn(workDate) ?? null,
-						company: entity == null ? null : { region: entity.region, facts: entity.facts },
-						asOf: workDate
-					})
+			workDate == null ? null : personContext(person(workDate))
 		);
 		const codeById = new Map<string, RosterCodeFacts>();
 		for (const code of shiftsById.values()) {
@@ -470,46 +489,82 @@
 					spread_hours: window.elapsed_minutes / 60
 				});
 		}
-		const stored: WindowDay[] = (windowDaysQuery?.current ?? []).map((row) => ({
-			id: row.id,
+		const stored = (windowDaysQuery?.current ?? []).map((row) => ({
 			date: dateKey(row.work_date),
 			shift_definition_id: row.shift_definition_id ?? null,
-			total:
-				(storedHours(row.approved_overtime_hours) ?? 0) + (storedHours(row.incentive_hours) ?? 0),
-			emergency: row.emergency_cause === true,
-			sealed: row.payslip_id != null
+			approved: storedHours(row.approved_overtime_hours) ?? 0,
+			emergency: row.emergency_cause === true
 		}));
 		const date = workDate ?? '';
-		const split = (total: number) =>
-			windowOvertime({
-				window: overtimeWindow ?? { start: date, end: date },
+		const window = overtimeWindow ?? { start: date, end: date };
+		const cutoffDay = employment?.employment_company?.pay_cutoff_day ?? 1;
+		const patternOn = (day: string) => {
+			const term = termOn(day);
+			const row = term == null ? null : termPatternRow(term);
+			return row == null ? null : { pattern: row.pattern, anchor: patternAnchor(row) };
+		};
+		let holidays: ReadonlySet<string> = new Set();
+		try {
+			holidays = observedHolidayDates({
+				dates: [date],
+				cutoffDay,
+				companyId: companyId ?? '',
+				holidays: holidaysQuery?.current ?? [],
+				codes: [...shiftsById.values()],
+				precedence: rules?.holiday_rest_precedence,
+				plans: [
+					...stored
+						.filter((day) => day.date !== date)
+						.map((day) => ({ work_date: day.date, shift_definition_id: day.shift_definition_id })),
+					{ work_date: date, shift_definition_id: draftCodeId }
+				],
+				rosterPeriods: (rostersQuery?.current ?? []).map((row) => row.period),
+				patternOn
+			});
+		} catch {
+			// A plan the schedule cannot resolve (a code not in force on a date) observes nothing
+			// here; the save is judged by the transform, and a run refuses it by name.
+		}
+		return {
+			maximum: windowOvertime({
+				window,
 				date,
-				draft: { codeId: draftCodeId, total, emergency: record?.emergency_cause === true },
+				draft: { codeId: draftCodeId, emergency: record?.emergency_cause === true },
 				stored,
 				projected: (day) => {
-					const term = termOn(day);
-					const row = term == null ? null : termPatternRow(term);
-					return row == null ? null : patternRosterCodeId(row.pattern, day, patternAnchor(row));
+					const row = patternOn(day);
+					return row == null ? null : patternRosterCodeId(row.pattern, day, row.anchor);
 				},
 				codeById,
-				holidays: new Set((holidaysQuery?.current ?? []).map((row) => dateKey(row.date))),
+				holidays,
 				limits,
-				cutoffDay: employment?.employment_company?.pay_cutoff_day ?? 1
-			});
-		const current = split(draftOvertime ?? 0);
-		return {
-			overtime: current.split?.approved_overtime_hours ?? 0,
-			incentive: current.split?.incentive_hours ?? 0,
-			limit: limits.some(splitsOvertime)
-				? (split(24).split?.approved_overtime_hours ?? null)
-				: null,
-			moved: current.moved,
-			sealed: current.sealed
+				cutoffDay
+			}),
+			holiday: holidays.has(date),
+			entitled: workDate == null || overtimeEntitled(rules?.overtime_when, person(workDate))
 		};
 	});
+	/** The approved hours keyed above the day's headroom: the save is blocked. */
+	const overHeadroom = $derived(
+		overtimeHeadroom.maximum != null && (draftApproved ?? 0) > overtimeHeadroom.maximum.hours
+	);
+	/**
+	 * The company holiday worked by a person the overtime rule does not cover: no overtime is paid,
+	 * so HR grants an off-in-lieu day. Never created here.
+	 */
+	const holidayWithoutOvertime = $derived(
+		overtimeHeadroom.holiday &&
+			!overtimeHeadroom.entitled &&
+			((draftApproved ?? 0) + (draftIncentive ?? 0) > 0 ||
+				draftIntervals.some((interval) => interval.startMinutes != null))
+	);
 	/** The plan the clock is checked against: the shift plus the overtime planned on the day. */
 	const planned = $derived(
-		plannedMinutes({ ...plannedShift, approvedOvertimeHours: draftOvertime, incentiveHours: null })
+		plannedMinutes({
+			...plannedShift,
+			approvedOvertimeHours: draftApproved,
+			incentiveHours: draftIncentive
+		})
 	);
 	/** Clock time past that plan: unplanned, and not paid. */
 	const unplanned = $derived(
@@ -517,8 +572,8 @@
 			0,
 			beyondPlanMinutes({
 				...plannedShift,
-				approvedOvertimeHours: draftOvertime,
-				incentiveHours: null,
+				approvedOvertimeHours: draftApproved,
+				incentiveHours: draftIncentive,
 				workedMinutes: assessment.workedMinutes
 			}) ?? 0
 		)
@@ -573,43 +628,10 @@
 	 * unique person-day key cannot be missed by a day-precision instant read in the host's zone.
 	 */
 	const formDefaults = $derived.by(() => {
-		// The column states the day's TOTAL: a save that did not touch the overtime restates the
-		// stored approved plus incentive hours, never the approved half alone.
-		if (record != null) return { ...record, approved_overtime_hours: baselineTotal };
+		if (record != null) return record;
 		if (employmentId == null || workDateInstant == null) return undefined;
 		return { employment_id: employmentId, work_date: workDateInstant };
 	});
-	/**
-	 * The form's write surface: the collection's own, except that saving a stored day whose draft
-	 * moves the split of other open days in the window restates them in the same write, at their
-	 * unchanged totals, so the transform re-splits them together (`windowOvertime`).
-	 */
-	const writes = client.collection.work_days;
-	const formClient = {
-		db: client.db,
-		collection: {
-			work_days: {
-				create: writes.create,
-				createMany: writes.createMany,
-				update: (id: string, input: Parameters<typeof writes.update>[1]) =>
-					overtimeSplit.moved.length === 0
-						? writes.update(id, input)
-						: writes.updateMany([
-								{ ...input, id },
-								...overtimeSplit.moved.map((day) => ({
-									id: day.id,
-									approved_overtime_hours: day.total
-								}))
-							]),
-				updateMany: writes.updateMany,
-				delete: writes.delete,
-				deleteMany: writes.deleteMany,
-				get pending() {
-					return writes.pending;
-				}
-			}
-		}
-	};
 
 	/** The identity is a fact of the cell, not a field: shown, never edited. */
 	const identityFixed = $derived(employmentId != null);
@@ -626,6 +648,14 @@
 		Effect.sync(() => {
 			if (!planTouched && !attendanceTouched && !overtimeTouched)
 				return [{ message: t('roster.day_sheet_cannot_save') }];
+			if (overtimeTouched && overHeadroom && overtimeHeadroom.maximum != null)
+				return [
+					{
+						message: t('roster.day_sheet_overtime_over_max', {
+							max: formatDurationHours(overtimeHeadroom.maximum.hours * 60, t)
+						})
+					}
+				];
 			if (!attendanceTouched) return;
 			if (missingIntervalStart) return [{ message: t('roster.day_sheet_problem_missing_start') }];
 			if (draftIntervals.length === 0) return;
@@ -648,21 +678,17 @@
 	}
 
 	/**
-	 * Mirror the planned total into the form. Null clears it; the input offers the half-hour step,
-	 * and the write path splits it at the version's limit and enforces the day's own bound.
+	 * Mirror the two planned figures into the form. Null clears one; the inputs offer the half-hour
+	 * step, and the write path enforces the headroom and the day's own bound.
 	 */
 	function pushOvertime(form: CollectionFormController): void {
-		form.setValues({ approved_overtime_hours: draftOvertime });
+		form.setValues({ approved_overtime_hours: draftApproved, incentive_hours: draftIncentive });
 	}
 
-	function setOvertime(value: string): void {
-		if (value.trim() === '') {
-			draftOvertime = null;
-			return;
-		}
+	function hoursValue(value: string): number | null | undefined {
+		if (value.trim() === '') return null;
 		const parsed = Number(value);
-		if (!Number.isFinite(parsed)) return;
-		draftOvertime = parsed;
+		return Number.isFinite(parsed) ? parsed : undefined;
 	}
 
 	function clockValue(minutes: number | null): string {
@@ -837,7 +863,7 @@
 		{#key sheetKey}
 			<div style="display: contents;" {@attach seedSheet}>
 				<CollectionForm
-					client={formClient}
+					{client}
 					collection="work_days"
 					notice="header"
 					{recordMetadata}
@@ -863,6 +889,7 @@
 						<Field name="shift_definition_id" hidden />
 						<Field name="worked_intervals" hidden />
 						<Field name="approved_overtime_hours" hidden />
+						<Field name="incentive_hours" hidden />
 
 						<Stack gap="lg">
 							{#if identityFixed}
@@ -929,45 +956,70 @@
 											<Input
 												type="number"
 												min="0"
-												max="24"
+												max={overtimeHeadroom.maximum?.hours ?? 24}
 												step="0.5"
 												class="w-28"
 												aria-label={t('roster.day_sheet_approved_overtime')}
-												value={draftOvertime ?? ''}
+												aria-invalid={overHeadroom}
+												value={draftApproved ?? ''}
 												oninput={(event) => {
-													setOvertime(event.currentTarget.value);
+													const next = hoursValue(event.currentTarget.value);
+													if (next === undefined) return;
+													draftApproved = next;
 													pushOvertime(form);
 												}}
 											/>
 										</Inline>
-										<!-- The split the write path will store, stated before the save. -->
-										<p class="text-xs" role="status" data-overtime-split>
-											{overtimeSplit.limit == null
-												? t('roster.day_sheet_overtime_split_no_limit')
-												: t('roster.day_sheet_overtime_split', {
-														limit: formatDurationHours(overtimeSplit.limit * 60, t),
-														overtime: formatDurationHours(overtimeSplit.overtime * 60, t),
-														incentive: formatDurationHours(overtimeSplit.incentive * 60, t)
-													})}
+										<!-- The day's statutory headroom: approved overtime is keyed up to it. -->
+										<p
+											class={cn('text-xs', overHeadroom && 'text-destructive')}
+											role="status"
+											data-overtime-max
+										>
+											{overtimeHeadroom.maximum == null
+												? t('roster.day_sheet_overtime_no_limit')
+												: overHeadroom
+													? t('roster.day_sheet_overtime_over_max', {
+															max: formatDurationHours(overtimeHeadroom.maximum.hours * 60, t)
+														})
+													: t('roster.day_sheet_overtime_max', {
+															max: formatDurationHours(overtimeHeadroom.maximum.hours * 60, t),
+															limit: overtimeHeadroom.maximum.limit.key
+														})}
 										</p>
-										{#if overtimeSplit.sealed.length > 0}
-											<Alert variant="destructive">
-												<AlertDescription>
-													{t('roster.day_sheet_overtime_moves_sealed', {
-														dates: overtimeSplit.sealed.map((day) => day.date).join(', ')
-													})}
-												</AlertDescription>
-											</Alert>
-										{:else if overtimeSplit.moved.length > 0}
-											<p class="text-xs text-muted-foreground" data-overtime-restates>
-												{t('roster.day_sheet_overtime_restates', {
-													dates: overtimeSplit.moved.map((day) => day.date).join(', ')
-												})}
-											</p>
-										{/if}
+										<Inline gap="xs" align="center">
+											<span class="min-w-16 shrink-0 text-xs text-muted-foreground">
+												{t('roster.day_sheet_incentive_hours')}
+											</span>
+											<Input
+												type="number"
+												min="0"
+												max="24"
+												step="0.5"
+												class="w-28"
+												aria-label={t('roster.day_sheet_incentive_hours')}
+												value={draftIncentive ?? ''}
+												oninput={(event) => {
+													const next = hoursValue(event.currentTarget.value);
+													if (next === undefined) return;
+													draftIncentive = next;
+													pushOvertime(form);
+												}}
+											/>
+										</Inline>
 										<p class="text-xs text-muted-foreground">
 											{t('roster.day_sheet_approved_overtime_description')}
 										</p>
+										{#if holidayWithoutOvertime}
+											<Alert data-holiday-without-overtime>
+												<AlertDescription>
+													{t('roster.day_sheet_holiday_without_overtime', {
+														person: personLabel,
+														date: workDate ?? ''
+													})}
+												</AlertDescription>
+											</Alert>
+										{/if}
 									</Stack>
 								{:else}
 									{@render fieldRow(

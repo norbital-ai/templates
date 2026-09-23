@@ -20,11 +20,11 @@ import {
 	applicableLimits,
 	assessmentWindow,
 	plannedDay,
+	breachSentence,
+	observedHolidayDates,
+	overtimeHeadroom,
 	projectedLimitBreaches,
 	projectionBounds,
-	splitPlannedOvertime,
-	type OvertimeSplit,
-	type OvertimeSplitDay,
 	type RosterCodeFacts,
 	type SchedulePlanDay
 } from '../../lib/scheduling/work-limits.js';
@@ -56,6 +56,7 @@ const columns = {
 	shift_definition_id: true,
 	worked_intervals: true,
 	approved_overtime_hours: true,
+	incentive_hours: true,
 	requested_by: true,
 	emergency_cause: true,
 	time_off_in_lieu: true
@@ -83,6 +84,7 @@ type SettingsVersionRow = {
 		readonly limits: WorkRules['limits'];
 		readonly bands?: WorkRules['bands'];
 		readonly authority?: string | null;
+		readonly holiday_rest_precedence?: WorkRules['holiday_rest_precedence'];
 		readonly breaks?: readonly {
 			readonly when: string;
 			readonly owed_minutes: string;
@@ -140,20 +142,31 @@ function assertWorkedIntervals(value: readonly WorkedInterval[] | null | undefin
 }
 
 /**
- * The day's total planned overtime is keyed in half-hour steps — the unit the scheduler works in
- * and the unit the payroll input is read in — and a day cannot hold more of it than a day has
- * hours. It is not judged against the clock: the plan is the record, and attendance only confirms
- * the day was worked.
+ * Approved overtime and incentive hours are each keyed in half-hour steps — the unit the scheduler
+ * works in and the unit the payroll input is read in — and a day cannot hold more of them together
+ * than a day has hours. They are not judged against the clock: the plan is the record, and
+ * attendance only confirms the day was worked.
  */
-function assertApprovedOvertimeHours(stated: number | string | null | undefined): void {
-	if (stated == null) return;
-	// A numeric column reads back as a string; the stated figure may be either.
-	const value = Number(stated);
-	if (!Number.isFinite(value) || value < 0)
-		refuse('Approved overtime hours must be zero or a positive number of hours.');
-	if (Math.round(value * 2) !== value * 2)
-		refuse('Approved overtime is keyed in half-hour steps — 0.5, 1, 1.5, and so on.');
-	if (value > 24) refuse('Approved overtime cannot exceed the 24 hours a day has.');
+function assertPlannedHours(
+	approved: number | string | null | undefined,
+	incentive: number | string | null | undefined
+): void {
+	let sum = 0;
+	for (const [label, stated] of [
+		['Approved overtime', approved],
+		['Incentive hours', incentive]
+	] as const) {
+		if (stated == null) continue;
+		// A numeric column reads back as a string; the stated figure may be either.
+		const value = Number(stated);
+		if (!Number.isFinite(value) || value < 0)
+			refuse(`${label} must be zero or a positive number of hours.`);
+		if (Math.round(value * 2) !== value * 2)
+			refuse(`${label} is keyed in half-hour steps — 0.5, 1, 1.5, and so on.`);
+		sum += value;
+	}
+	if (sum > 24)
+		refuse('Approved overtime and incentive hours cannot exceed the 24 hours a day has.');
 }
 
 /**
@@ -174,12 +187,11 @@ function assertApprovedOvertimeHours(stated: number | string | null | undefined)
  * or not; planned overtime never does. Deleting a day a run took into account is refused by the
  * delete grant (`lib/policy_grants.ts`).
  *
- * Overtime: a write states the day's TOTAL planned overtime in `approved_overtime_hours`, and the
- * transform stores it split (`splitPlannedOvertime`): within every statutory overtime limit, and
- * the excess as `incentive_hours`. The split runs in date order over the employment's ceiling
- * periods; a day outside the write whose stored split the change would move refuses — sealed, or
- * to be restated in the same write (a transform returns one payload per input and writes no other
- * row).
+ * Overtime: a write keys `approved_overtime_hours` and `incentive_hours` apart, and the transform
+ * stores them as keyed — it never moves hours between the two. A write that changes a plan or the
+ * approved hours is refused where any day of the employment's ceiling periods would then hold more
+ * approved overtime than its statutory headroom (`overtimeHeadroom`), a later stored day included;
+ * the refusal names the days, the limit and the most each may hold. Incentive hours need no limit.
  *
  * Two waves: the people, their terms, the months around the write, the leave and payslips over
  * them, the rosters of record and every settings version; then the entities' runs, roster codes
@@ -194,11 +206,9 @@ export default defineCollection({
 		Effect.gen(function* () {
 			const coordinates: WorkDayCoordinate[] = [];
 			const changes: PlanChange[] = [];
-			// The total planned overtime the write keys, by person-day: it moves the split, so a write
-			// that changes it is judged like a plan change.
-			const ownOvertimeByKey = new Map<string, number>();
-			// The split every changed person-day stores (`splitPlannedOvertime`), by person-day.
-			const splitByKey = new Map<string, OvertimeSplit>();
+			// The approved overtime the write keys, by person-day: it spends the limits' headroom, so
+			// a write that changes it is judged like a plan change.
+			const ownApprovedByKey = new Map<string, number>();
 			// The emergency flag each written person-day will carry: its hours sit outside the ceilings.
 			const ownEmergencyByKey = new Map<string, boolean>();
 			for (const [index, input] of inputs.entries()) {
@@ -218,7 +228,7 @@ export default defineCollection({
 				};
 				coordinates.push(coordinate);
 				if (input.approved_overtime_hours !== undefined)
-					ownOvertimeByKey.set(
+					ownApprovedByKey.set(
 						`${employmentId}:${workDate}`,
 						decodeNumber(input.approved_overtime_hours ?? 0)
 					);
@@ -332,7 +342,16 @@ export default defineCollection({
 						none
 							? Effect.succeed([])
 							: db.rosters.findMany({
-									where: { employment_id: { in: employmentIds }, period: { in: months } },
+									// The read span's months: the touched months decide conformance, and the
+									// months around them which days a roster of record states (`resolveSchedule`).
+									where: {
+										employment_id: { in: employmentIds },
+										period: {
+											in: [
+												...new Set([spanStart, ...months.map((month) => `${month}-01`), spanEnd])
+											].map((date) => date.slice(0, 7))
+										}
+									},
 									columns: { employment_id: true, period: true },
 									limit: QUERY_LIMIT
 								}),
@@ -419,7 +438,7 @@ export default defineCollection({
 						? Effect.succeed([])
 						: db.shift_definitions.findMany({
 								where: { company_id: { in: companyIds } },
-								columns: { id: true, code: true, variant: true },
+								columns: { id: true, code: true, variant: true, effective_range: true },
 								limit: QUERY_LIMIT
 							}),
 					companyIds.length === 0
@@ -451,17 +470,31 @@ export default defineCollection({
 								},
 								limit: QUERY_LIMIT
 							}),
-					// The calendar's holidays over the same span: a day cap splits no holiday's hours.
+					// The calendar's published holidays over the same span, replacement days included,
+					// padded to whole assessment windows: payroll's own schedule resolves which of them
+					// each person observes (`observedHolidayDates`).
 					companyIds.length === 0 || changes.length === 0
 						? Effect.succeed([])
 						: db.jurisdiction_holidays.findMany({
 								where: {
 									company_id: { in: companyIds },
-									date: { gte: dayInstant(calendarStart), lte: dayInstant(calendarEnd) },
+									date: {
+										gte: dayInstant(addDays(calendarStart, -REST_RUN_PAD_DAYS)),
+										lte: dayInstant(addDays(calendarEnd, REST_RUN_PAD_DAYS))
+									},
 									published_at: { isNotNull: true },
 									approval_id: { isNull: true }
 								},
-								columns: { company_id: true, date: true },
+								columns: {
+									id: true,
+									company_id: true,
+									date: true,
+									name: true,
+									kind: true,
+									replaces: true,
+									given_to: true,
+									published_at: true
+								},
 								limit: QUERY_LIMIT
 							})
 				],
@@ -469,7 +502,6 @@ export default defineCollection({
 			);
 			if (holidays.length === QUERY_LIMIT)
 				refuse('This legal entity has too many holidays to validate safely.');
-			const holidayKeys = new Set(holidays.map((row) => `${row.company_id}:${dateKey(row.date)}`));
 			if (codes.length === QUERY_LIMIT || patterns.length === QUERY_LIMIT)
 				refuse('This legal entity has too many roster codes or shift patterns to validate safely.');
 			if (projectionRows.length === QUERY_LIMIT)
@@ -532,7 +564,7 @@ export default defineCollection({
 					}
 				}
 				const storedByKey = new Map<string, string | null>();
-				const storedSplitByKey = new Map<string, OvertimeSplit>();
+				const storedApprovedByKey = new Map<string, number>();
 				const sealedKeys = new Set<string>();
 				const emergencyKeys = new Set<string>();
 				for (const row of [...monthRows, ...projectionRows]) {
@@ -540,17 +572,10 @@ export default defineCollection({
 					if (storedDate == null) continue;
 					const key = `${row.employment_id}:${storedDate}`;
 					storedByKey.set(key, row.shift_definition_id);
-					storedSplitByKey.set(key, {
-						approved_overtime_hours: decodeNumber(row.approved_overtime_hours ?? 0),
-						incentive_hours: decodeNumber(row.incentive_hours ?? 0)
-					});
+					storedApprovedByKey.set(key, decodeNumber(row.approved_overtime_hours ?? 0));
 					if (row.payslip_id != null) sealedKeys.add(key);
 					if (row.emergency_cause === true) emergencyKeys.add(key);
 				}
-				const storedTotal = (key: string): number => {
-					const split = storedSplitByKey.get(key);
-					return split == null ? 0 : split.approved_overtime_hours + split.incentive_hours;
-				};
 				const termsByEmployment = Map.groupBy(terms, (term) => term.employment_id);
 				const changesByGroup = Map.groupBy(
 					changes,
@@ -596,9 +621,9 @@ export default defineCollection({
 					const version = settingsInForce(settingsVersions, settingsCode, firstChange.work_date);
 					if (version == null) continue;
 					const employeeNumber = employmentById.get(employmentId)?.employee_number ?? employmentId;
-					// Every overtime limit splits: the planned overtime beyond it is stored as the
-					// day's incentive hours, never refused. The roster plan itself is still a gate:
-					// a shift whose own hours or spread-over breach a limit is refused here.
+					// Every overtime limit bounds the approved hours; what lies beyond it is keyed as
+					// incentive hours. The roster plan itself is a gate too: a shift whose own hours
+					// or spread-over breach a limit is refused here.
 					// A conditional limit is judged over what the gate knows of the person: the
 					// contract's type and classification and the entity's facts.
 					const judged = termsByEmployment
@@ -616,7 +641,7 @@ export default defineCollection({
 						})
 					);
 					const ownDates = own.map((change) => change.work_date).toSorted();
-					// A month that splits is the assessment month (the entity's cutoff window), which
+					// A month limit is the assessment month (the entity's cutoff window), which
 					// the read span's month-and-31-days pad already holds.
 					const cutoffDay = entity?.pay_cutoff_day ?? 1;
 					const bounds = projectionBounds(ownDates, applicable);
@@ -636,87 +661,103 @@ export default defineCollection({
 					// not from the row it replaces, or a day moved to rest would be refused for the
 					// hours it no longer plans.
 					const ownByDate = new Map(own.map((change) => [change.work_date, change]));
-					const planByDate = new Map<string, SchedulePlanDay>();
-					const totalOn = (date: string): number => {
-						const key = `${employmentId}:${date}`;
-						return ownOvertimeByKey.get(key) ?? storedTotal(key);
-					};
-					for (let date = window.start; date <= window.end; date = addDays(date, 1)) {
+					/** The roster code a date resolves to: this write's, the stored row's, else the pattern's. */
+					const codeIdOn = (date: string): string | null => {
+						const explicitId = ownByDate.has(date)
+							? ownByDate.get(date)?.shift_definition_id
+							: storedByKey.get(`${employmentId}:${date}`);
+						if (explicitId != null) return explicitId;
 						const term = termsByEmployment
 							.get(employmentId)
 							?.find((candidate) => coversDate(candidate.effective_range, date));
 						const patternRow = term == null ? null : termPatternRow(term, patternById);
-						let projectedId: string | null = null;
-						if (patternRow != null && 'days' in patternRow.pattern) {
-							try {
-								projectedId = patternRosterCodeId(
-									patternRow.pattern,
-									date,
-									patternAnchor(patternRow)
-								);
-							} catch {
-								projectedId = null;
-							}
+						if (patternRow == null || !('days' in patternRow.pattern)) return null;
+						try {
+							return patternRosterCodeId(patternRow.pattern, date, patternAnchor(patternRow));
+						} catch {
+							return null;
 						}
-						const explicitId = ownByDate.has(date)
-							? ownByDate.get(date)?.shift_definition_id
-							: storedByKey.get(`${employmentId}:${date}`);
+					};
+					const planByDate = new Map<string, SchedulePlanDay>();
+					for (let date = window.start; date <= window.end; date = addDays(date, 1))
 						planByDate.set(
 							date,
-							plannedDay({
-								date,
-								rosterCodeId: explicitId ?? projectedId,
-								codeById: codeFactsById
-							})
+							plannedDay({ date, rosterCodeId: codeIdOn(date), codeById: codeFactsById })
 						);
-					}
-					// The split, chronological over the window: once with this write's totals and once
-					// with the stored ones. A day outside the write whose split the two disagree on is
-					// one this change moves; a sealed day never moves, and an open one must be restated
-					// in the same write, since a transform writes only the rows it was given.
-					const splitWith = (total: (date: string) => number) =>
-						splitPlannedOvertime({
-							days: [...planByDate.values()].map((plan): OvertimeSplitDay => {
+					// The approved hours every day of the window would hold once this write lands, each
+					// judged against the headroom its limits leave: a later stored day an earlier edit
+					// pushes over is refused by name, like the day written.
+					const holidayDates = observedHolidayDates({
+						dates: [...planByDate.keys()],
+						cutoffDay,
+						companyId: companyId ?? '',
+						holidays,
+						codes,
+						precedence: version.work_rules?.holiday_rest_precedence,
+						plans: [...storedByKey]
+							.filter(([key]) => key.startsWith(`${employmentId}:`))
+							.map(([key, shiftId]) => ({
+								work_date: key.slice(employmentId.length + 1),
+								shift_definition_id: ownByDate.has(key.slice(employmentId.length + 1))
+									? (ownByDate.get(key.slice(employmentId.length + 1))?.shift_definition_id ?? null)
+									: shiftId
+							}))
+							.concat(
+								own
+									.filter((change) => !storedByKey.has(`${employmentId}:${change.work_date}`))
+									.map((change) => ({
+										work_date: change.work_date,
+										shift_definition_id: change.shift_definition_id
+									}))
+							),
+						rosterPeriods: rosterRows
+							.filter((row) => row.employment_id === employmentId)
+							.map((row) => row.period),
+						patternOn: (date) => {
+							const term = termsByEmployment
+								.get(employmentId)
+								?.find((candidate) => coversDate(candidate.effective_range, date));
+							const row = term == null ? null : termPatternRow(term, patternById);
+							return row == null ? null : { pattern: row.pattern, anchor: patternAnchor(row) };
+						}
+					});
+					const headroomOf = (written: boolean) =>
+						overtimeHeadroom({
+							days: [...planByDate.values()].map((plan) => {
 								const key = `${employmentId}:${plan.date}`;
 								return {
 									...plan,
-									total_overtime_hours: total(plan.date),
-									emergency: ownEmergencyByKey.get(key) ?? emergencyKeys.has(key),
-									holiday: holidayKeys.has(`${companyId}:${plan.date}`)
+									approved_overtime_hours:
+										(written ? ownApprovedByKey.get(key) : undefined) ??
+										storedApprovedByKey.get(key) ??
+										0,
+									emergency:
+										(written ? ownEmergencyByKey.get(key) : undefined) ?? emergencyKeys.has(key),
+									holiday: holidayDates.has(plan.date)
 								};
 							}),
 							limits: applicable,
 							cutoffDay
-						});
-					const split = splitWith(totalOn);
-					const before = splitWith((date) => storedTotal(`${employmentId}:${date}`));
-					const moved: string[] = [];
-					const sealedMoved: string[] = [];
-					for (const [date, result] of split) {
+						}).breaches;
+					// Only what this write puts over a limit refuses it: a day whose approved hours it
+					// changes, or a stored day it pushes over. A day already over before the write, left at
+					// the same figure (an attendance edit, say), is not this write's to answer.
+					const before = new Set(headroomOf(false).map((breach) => breach.date));
+					const changed = (date: string) => {
 						const key = `${employmentId}:${date}`;
-						if (ownByDate.has(date)) {
-							splitByKey.set(key, result);
-							continue;
-						}
-						const was = before.get(date);
-						if (
-							was?.approved_overtime_hours === result.approved_overtime_hours &&
-							was.incentive_hours === result.incentive_hours
-						)
-							continue;
-						(sealedKeys.has(key) ? sealedMoved : moved).push(date);
-					}
-					if (sealedMoved.length > 0)
-						refuse(
-							`Overtime change for ${employeeNumber} is refused: the limits split overtime in ` +
-								`date order, and this change would move the overtime and incentive split of ` +
-								`${sealedMoved.join(', ')}, which a payslip has already taken into account.`
+						return (
+							ownApprovedByKey.has(key) &&
+							ownApprovedByKey.get(key) !== (storedApprovedByKey.get(key) ?? 0)
 						);
-					if (moved.length > 0)
+					};
+					const breaches = headroomOf(true).filter(
+						(breach) => !before.has(breach.date) || changed(breach.date)
+					);
+					if (breaches.length > 0)
 						refuse(
-							`Overtime change for ${employeeNumber} is refused: the limits split overtime in ` +
-								`date order, so this change moves the overtime and incentive split of ` +
-								`${moved.join(', ')}. Save those days in the same write.`
+							`Overtime for ${employeeNumber} is refused: ${breaches.map(breachSentence).join('; ')}. ` +
+								'Approved overtime may not exceed the statutory limit: lower it to the hours ' +
+								'left and key the rest as incentive hours.'
 						);
 					if (applicable.length > 0) {
 						const breach = projectedLimitBreaches({
@@ -821,10 +862,11 @@ export default defineCollection({
 				assertWorkedIntervals(
 					input.worked_intervals !== undefined ? input.worked_intervals : stored?.worked_intervals
 				);
-				assertApprovedOvertimeHours(
+				assertPlannedHours(
 					input.approved_overtime_hours !== undefined
 						? input.approved_overtime_hours
-						: stored?.approved_overtime_hours
+						: stored?.approved_overtime_hours,
+					input.incentive_hours !== undefined ? input.incentive_hours : stored?.incentive_hours
 				);
 				const companyId = employmentById.get(employmentId)?.company_id ?? null;
 				const windows = (companyId == null ? undefined : windowsByCompany.get(companyId)) ?? [];
@@ -873,20 +915,7 @@ export default defineCollection({
 					shift_definition_id: shiftDefinitionId,
 					...(stored === undefined ? {} : { existing_id: stored.id })
 				});
-				// The stated total is stored split: within the limits, and the incentive beyond them.
-				const split = splitByKey.get(`${employmentId}:${dateKey(workDate)}`);
-				const moved =
-					split != null &&
-					(split.approved_overtime_hours !== decodeNumber(stored?.approved_overtime_hours ?? 0) ||
-						split.incentive_hours !== decodeNumber(stored?.incentive_hours ?? 0));
-				const overtime =
-					input.approved_overtime_hours === undefined && !moved
-						? {}
-						: (split ?? {
-								approved_overtime_hours: input.approved_overtime_hours ?? null,
-								incentive_hours: input.approved_overtime_hours == null ? null : 0
-							});
-				return { ...boundToContract(canonicalDays(input, ['work_date']), stored), ...overtime };
+				return boundToContract(canonicalDays(input, ['work_date']), stored);
 			});
 			// Judged over the whole batch: an import writes a month's days in one batch, and two new
 			// adjacent days overlap each other, not anything stored.

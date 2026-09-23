@@ -10,9 +10,9 @@
  * `clock_in` and a `clock_out` column, each a local wall time `HH:mm`; a blank `clock_out` is still
  * open. Blank cells are omitted — they are not inferred rest days and not punchless leave. The two
  * clock columns are imported as the one timestamp interval the day worked. The timezone, legal
- * entity and month are declared once on the `Settings` sheet. The Overtime sheet is the approved
- * overtime as a month grid, each cell a number of hours in half-hour steps; a blank cell is no
- * approval.
+ * entity and month are declared once on the `Settings` sheet. The Overtime sheet is each day's
+ * total extra hours as a month grid, each cell a number of hours in half-hour steps, which the
+ * import splits into approved overtime and incentive hours; a blank cell is none.
  *
  * A long-form Roster sheet (`employee_number`, `work_date`, `shift_code`) and a month-grid Time
  * entries sheet (`HH:mm-HH:mm` per day cell) still import, including the files operators already
@@ -121,8 +121,8 @@ const SCHEDULING_README = [
 	'',
 	'"Roster" is the planned assignment: who is scheduled where, one person per row and one',
 	'calendar day per column. "Time entries" is what actually happened on the clock, one person-day',
-	'per row with a clock_in and a clock_out column. "Overtime" is the approved overtime, one person',
-	'per row and one calendar day per column, each cell the hours approved. Do not rename the sheets',
+	'per row with a clock_in and a clock_out column. "Overtime" is the extra hours, one person per',
+	'row and one calendar day per column, each cell the day’s total. Do not rename the sheets',
 	'or the column headers. Set legal_entity, month and timezone once, on the "Settings" sheet.',
 	'',
 	'The file is the state of the month it names, for every employee of the entity. Import it again',
@@ -163,13 +163,19 @@ const SCHEDULING_README = [
 	'• A cell is the TOTAL overtime planned on that day, in hours after the shift: 0.5, 1, 1.5 and so',
 	'  on, at most 24. A blank cell is none. Overtime is never derived from the clock.',
 	'',
-	'• Overtime never refuses the file. Every statutory overtime ceiling splits each day’s total in',
-	'  date order: the hours within all of them are stored as overtime, the rest as incentive hours,',
-	'  which payroll pays on the INCENTIVE line at the rate and multiple of the band they fall in.',
-	'  The ceilings are the daily total (e.g. 12 worked hours, shift included) and daily overtime',
-	'  (e.g. 4 hours on an ordinary day), and the weekly, monthly, quarterly and yearly overtime',
-	'  (e.g. 18 a week, 104 or 72 a month, 138 a quarter, 200 a year); overtime on a rest day, off',
-	'  day or holiday counts toward the weekly and longer ones.',
+	'• A cell is the day’s shift (on the Roster sheet) plus its TOTAL extra hours here. The import',
+	'  splits each total at the statutory overtime ceilings, in date order and around the days of',
+	'  the same periods already on file: the hours within all of them are written as approved',
+	'  overtime, the rest as incentive hours, which payroll pays on the INCENTIVE line at the rate',
+	'  and multiple of the band they fall in. The split never refuses the file. The ceilings are the',
+	'  daily total (e.g. 12 worked hours, shift included) and daily overtime (e.g. 4 hours on an',
+	'  ordinary day), and the weekly, monthly, quarterly and yearly overtime (e.g. 18 a week, 104 or',
+	'  72 a month, 138 a quarter, 200 a year); overtime on a rest day, off day or holiday counts',
+	'  toward the weekly and longer ones. The split happens only here: on the day sheet the two',
+	'  figures are keyed apart, approved overtime up to the maximum the sheet shows.',
+	'',
+	'• A company holiday worked by someone the overtime rule does not cover is imported, and the',
+	'  import warns: no overtime is paid for it, so grant an off-in-lieu (OIL) leave day.',
 	'',
 	'What is refused — hard requirements',
 	'',
@@ -193,7 +199,7 @@ const SCHEDULING_README = [
 	'                  PM2030 · PM2230 · REST · OFF',
 	'Time entries row  employee_number, work_date as YYYY-MM-DD, clock_in, and clock_out once the',
 	'                  shift is closed — each clock time HH:mm, 24-hour',
-	'Overtime cell     the day’s total planned hours in half-hour steps, 0.5–24; blank is none',
+	'Overtime cell     the day’s total extra hours in half-hour steps, 0.5–24; blank is none',
 	'',
 	'A Roster sheet as a long-form table (employee_number, work_date, shift_code) still imports, and',
 	'so does a month-grid Time entries sheet with HH:mm-HH:mm cells and a long-form Overtime sheet',

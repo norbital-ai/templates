@@ -46,16 +46,18 @@ export default defineModel(
 		 * in half-hour steps. Payroll prices it at the day type's overtime band; attendance only
 		 * confirms the day was worked. Null is none.
 		 *
-		 * WRITE CONTRACT: a create or update states the day's TOTAL planned overtime here. The
-		 * transform splits it (`splitPlannedOvertime`): the part every statutory overtime limit
-		 * allows stays here, the excess is stored in `incentive_hours`. A read always sees the split.
+		 * WRITE CONTRACT: a create or update keys it directly, beside `incentive_hours`. The
+		 * transform refuses a write that leaves any day of the employment's ceiling periods — a later
+		 * stored day included — with more approved overtime than the headroom its statutory limits
+		 * leave (`overtimeHeadroom`); it never moves hours between the two columns. Only the import
+		 * splits a stated total (`splitPlannedOvertime`) before it writes both.
 		 */
 		approved_overtime_hours: numeric(),
 		/**
-		 * The planned overtime beyond any statutory overtime limit (daily, weekly, monthly,
-		 * quarterly or yearly), in half-hour steps. Written only by the transform's split, never by
-		 * a caller; priced on the INCENTIVE line at the band and multiple its hours fall in. Null is
-		 * none.
+		 * The planned overtime beyond the statutory overtime limits (daily, weekly, monthly,
+		 * quarterly or yearly), in half-hour steps. Keyed by hand beside the approved hours, or
+		 * written by the import's split; no limit bounds it. Priced on the INCENTIVE line at the band
+		 * and multiple its hours fall in. Null is none.
 		 */
 		incentive_hours: numeric(),
 		/** Who asked for rest-day work, where the statute prices the two differently (SG s.37(2)/(3)); null is the employer. */
