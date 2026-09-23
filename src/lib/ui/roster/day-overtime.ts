@@ -1,60 +1,47 @@
 /**
- * The day sheet's overtime split, read the way the `work_days` transform splits it: over the
- * employment's assessment window (`assessmentWindow`), every stored day at its stored total and this
- * day at its draft plan and total, each date resolved to its explicit roster code or the pattern's.
+ * The day sheet's overtime headroom, read the way the `work_days` transform judges a write: over the
+ * employment's assessment window (`assessmentWindow`), every other stored day at its stored approved
+ * hours and this day at its draft plan, each date resolved to its explicit roster code or the
+ * pattern's (`overtimeHeadroom`).
  *
- * The limits split in date order, so a change to one day can move the split of a later one. The
- * transform refuses a write that moves a day it was not given; the sheet therefore restates the open
- * days this draft moves in the same write, at their unchanged totals, and the transform re-splits
- * them together. A sealed day cannot be restated: it is returned so the sheet can say so.
+ * The sheet never splits: the operator keys approved overtime up to this maximum and any incentive
+ * hours by hand, and the transform refuses an approved figure above it.
  */
 
 import { addDays } from '../../../collections/payroll_runs/lib/dates.js';
 import {
+	overtimeHeadroom,
 	plannedDay,
-	splitPlannedOvertime,
-	type OvertimeSplit,
+	type OvertimeMaximum,
 	type RosterCodeFacts
 } from '../../scheduling/work-limits.js';
 
-/** One stored day of the window, as the split reads it. */
-export type WindowDay = {
-	readonly id: string;
+/** One stored day of the window, as the headroom reads it. */
+type WindowDay = {
 	readonly date: string;
 	readonly shift_definition_id: string | null;
-	/** The day's stored total: approved plus incentive hours. */
-	readonly total: number;
+	readonly approved: number;
 	readonly emergency: boolean;
-	/** A payslip has taken the day into account. */
-	readonly sealed: boolean;
 };
 
-type SplitOptions = Parameters<typeof splitPlannedOvertime>[0];
+type HeadroomOptions = Parameters<typeof overtimeHeadroom>[0];
 
+/** The most approved overtime the day can hold, and the limit that binds; null is unbounded. */
 export function windowOvertime(options: {
 	readonly window: { readonly start: string; readonly end: string };
 	readonly date: string;
-	readonly draft: {
-		readonly codeId: string | null;
-		readonly total: number;
-		readonly emergency: boolean;
-	};
+	readonly draft: { readonly codeId: string | null; readonly emergency: boolean };
 	readonly stored: readonly WindowDay[];
 	/** The roster code the pattern projects on a date with no explicit one. */
 	readonly projected: (date: string) => string | null;
 	readonly codeById: ReadonlyMap<string, RosterCodeFacts>;
+	/** The dates the person observes a company holiday on (`observedHolidayDates`). */
 	readonly holidays: ReadonlySet<string>;
-	readonly limits: SplitOptions['limits'];
+	readonly limits: HeadroomOptions['limits'];
 	readonly cutoffDay: number;
-}): {
-	readonly split: OvertimeSplit | undefined;
-	/** Open days the draft moves: the save restates them. */
-	readonly moved: readonly WindowDay[];
-	/** Sealed days the draft moves: the save is refused. */
-	readonly sealed: readonly WindowDay[];
-} {
+}): OvertimeMaximum | null {
 	const byDate = new Map(options.stored.map((day) => [day.date, day]));
-	const days: (SplitOptions['days'][number] & { readonly before: number })[] = [];
+	const days: HeadroomOptions['days'][number][] = [];
 	for (let date = options.window.start; date <= options.window.end; date = addDays(date, 1)) {
 		const stored = byDate.get(date);
 		const own = date === options.date;
@@ -67,30 +54,13 @@ export function windowOvertime(options: {
 			}),
 			holiday: options.holidays.has(date),
 			emergency: own ? options.draft.emergency : stored?.emergency === true,
-			total_overtime_hours: own ? options.draft.total : (stored?.total ?? 0),
-			before: stored?.total ?? 0
+			// The day's own figure does not enter its maximum: every other day's does.
+			approved_overtime_hours: own ? 0 : (stored?.approved ?? 0)
 		});
 	}
-	const splitWith = (total: (day: (typeof days)[number]) => number) =>
-		splitPlannedOvertime({
-			days: days.map((day) => ({ ...day, total_overtime_hours: total(day) })),
-			limits: options.limits,
-			cutoffDay: options.cutoffDay
-		});
-	const after = splitWith((day) => day.total_overtime_hours);
-	const before = splitWith((day) => day.before);
-	const changed = options.stored.filter((day) => {
-		if (day.date === options.date) return false;
-		const was = before.get(day.date);
-		const is = after.get(day.date);
-		return (
-			was?.approved_overtime_hours !== is?.approved_overtime_hours ||
-			was?.incentive_hours !== is?.incentive_hours
-		);
-	});
-	return {
-		split: after.get(options.date),
-		moved: changed.filter((day) => !day.sealed),
-		sealed: changed.filter((day) => day.sealed)
-	};
+	return (
+		overtimeHeadroom({ days, limits: options.limits, cutoffDay: options.cutoffDay }).maximum.get(
+			options.date
+		) ?? null
+	);
 }

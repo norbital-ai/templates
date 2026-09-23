@@ -14,13 +14,16 @@
  * has already taken into account is sealed: the file may restate it unchanged, but a sealed day
  * it changes or omits is a conflict, and the whole file is refused naming those days.
  *
- * An Overtime row states the day's TOTAL planned overtime. The `work_days` transform the writes
- * run through splits it (`splitPlannedOvertime`): the hours within every statutory overtime limit
- * stay approved overtime, the excess is stored as incentive hours; no overtime limit refuses. A
- * sealed day compares on that total, so restating it unchanged still passes. The other statutory
- * rules — the weekly rest ceiling, a shift's own hours or spread-over above a limit, granted
- * breaks, adjacent-shift overlap — are the transform's, and refuse the write with person, day and
- * rule.
+ * An Overtime row states the day's shift (on the Roster sheet) and its TOTAL extra hours. The import
+ * is the one writer that splits a total (`splitPlannedOvertime`, over each person's ceiling
+ * periods, around the stored days it does not restate): the hours within every statutory overtime
+ * limit are written as approved overtime, the excess as incentive hours, and the `work_days`
+ * transform then judges the approved hours against the same headroom. A sealed day compares on
+ * that total, so restating it unchanged still passes. The other statutory rules — the weekly rest
+ * ceiling, a shift's own hours or spread-over above a limit, granted breaks, adjacent-shift
+ * overlap — are the transform's, and refuse the write with person, day and rule. A company holiday
+ * worked by someone the overtime rule does not cover is not refused: the board warns after the
+ * import (`holidayWorkedWarnings`), and a run states it again.
  * Holidays are never stored on a day; they are overlaid from the entity's calendar, so PH is not
  * a roster code: the cell names the shift the person would have worked.
  */
@@ -38,6 +41,25 @@ import { rosterCodeVariantSchema } from '../../datatypes/roster_code_variant/+de
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import type { Api, Pipelines, WorkspaceRow } from './$types.js';
 import { clockMinutes } from '../../lib/scheduling/roster-code.js';
+import { settingsInForce } from '../../lib/jurisdiction_settings.js';
+import {
+	patternAnchor,
+	patternRosterCodeId,
+	termPatternRow
+} from '../../lib/scheduling/work-pattern.js';
+import {
+	applicableLimits,
+	assessmentWindow,
+	observedHolidayDates,
+	plannedDay,
+	projectionBounds,
+	rosterCodeFacts,
+	splitPlannedOvertime,
+	type OvertimeSplit,
+	type RosterCodeFacts
+} from '../../lib/scheduling/work-limits.js';
+import { personContext } from '../payroll_runs/lib/eligibility.js';
+import type { WorkRules } from '../../datatypes/work_rules/+definition.js';
 import { offsetMinutesAt } from '../../lib/timezone.js';
 
 const QUERY_LIMIT = 20_000;
@@ -47,6 +69,8 @@ type CompanyIdentity = Pick<
 	WorkspaceRow<'companies'>,
 	'id' | 'name' | 'registration_number' | 'settings_code'
 >;
+type ImportCompany = CompanyIdentity &
+	Pick<WorkspaceRow<'companies'>, 'region' | 'facts' | 'pay_cutoff_day'>;
 
 function resolveLegalEntity<Company extends CompanyIdentity>(
 	companies: readonly Company[],
@@ -275,7 +299,266 @@ type PlanHalf = { readonly shift_definition_id: string | null };
 type ClockHalf = {
 	readonly worked_intervals: readonly { start: string; end: string | null }[] | null;
 };
-type OvertimeHalf = { readonly approved_overtime_hours: number };
+type OvertimeHalf = {
+	readonly approved_overtime_hours: number;
+	readonly incentive_hours: number;
+};
+
+/** One month day of one person as the import will leave it: its total, and its plan when the file sets it. */
+type ImportedDay = {
+	readonly total: number;
+	/** The roster code the file writes; `undefined` keeps the stored one. */
+	readonly plan?: string | null;
+	/** A sealed day restated unchanged: its stored approved hours stand. */
+	readonly fixed?: boolean;
+};
+
+/**
+ * The Overtime sheet's totals, split at the statutory limits (`splitPlannedOvertime`) the way the
+ * transform will judge them: per person over the ceiling periods every month day falls in, the
+ * month at the file's plan and totals, and every stored day around it — outside the month, or a
+ * sealed day restated — at its stored approved hours. The holidays are the ones payroll observes
+ * (`observedHolidayDates`). Returns each month day's split, by person-day.
+ */
+function splitImportOvertime(
+	api: Api,
+	options: {
+		readonly company: ImportCompany;
+		readonly month: string;
+		readonly days: ReadonlyMap<string, ReadonlyMap<string, ImportedDay>>;
+		/** The people whose month the file names a roster of record for. */
+		readonly rostered: ReadonlySet<string>;
+		readonly carriesPlan: boolean;
+	}
+) {
+	return Effect.gen(function* () {
+		const splits = new Map<string, OvertimeSplit>();
+		const employmentIds = [...options.days]
+			.filter(([, days]) => [...days.values()].some((day) => day.total > 0))
+			.map(([employmentId]) => employmentId);
+		if (employmentIds.length === 0) return splits;
+		const bounds = monthBounds(options.month);
+		const { company } = options;
+		const [versions, terms, codes, patterns] = yield* Effect.all(
+			[
+				api.db.jurisdiction_settings.findMany({
+					columns: {
+						id: true,
+						code: true,
+						name: true,
+						jurisdiction_code: true,
+						sealed_at: true,
+						voided_at: true,
+						approval_id: true,
+						effective_range: true,
+						work_rules: true
+					},
+					limit: QUERY_LIMIT
+				}),
+				api.db.employment_terms.findMany({
+					where: { employment_id: { in: employmentIds }, approval_id: { isNull: true } },
+					columns: {
+						employment_id: true,
+						shift_pattern_id: true,
+						effective_range: true,
+						employment_type: true,
+						work_classification: true
+					},
+					limit: QUERY_LIMIT
+				}),
+				api.db.shift_definitions.findMany({
+					where: { company_id: { eq: company.id } },
+					columns: { id: true, code: true, variant: true, effective_range: true },
+					limit: QUERY_LIMIT
+				}),
+				api.db.shift_patterns.findMany({
+					where: { company_id: { eq: company.id } },
+					columns: { id: true, code: true, pattern: true, effective_range: true },
+					limit: QUERY_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		const version = settingsInForce(versions, company.settings_code ?? '', bounds.start);
+		if (version == null)
+			refuse(`No governing jurisdiction is configured for ${company.name} in ${options.month}.`);
+		const rules = version.work_rules as WorkRules | null;
+		const cutoffDay = company.pay_cutoff_day ?? 1;
+		const patternById = new Map(patterns.map((row) => [row.id, row]));
+		const codeById = new Map<string, RosterCodeFacts>();
+		for (const code of codes) {
+			const facts = rosterCodeFacts(code.variant);
+			if (facts != null) codeById.set(code.id, facts);
+		}
+		const monthDates: string[] = [];
+		for (let date = bounds.start; date <= bounds.end; date = addDays(date, 1))
+			monthDates.push(date);
+		const termOn = (employmentId: string, date: string) =>
+			terms.find(
+				(term) => term.employment_id === employmentId && coversDate(term.effective_range, date)
+			) ?? null;
+		const limitsOf = new Map(
+			employmentIds.map((employmentId) => [
+				employmentId,
+				applicableLimits(
+					rules?.limits ?? [],
+					personContext({
+						employee: null,
+						employment: { service_start: '' },
+						terms: termOn(employmentId, bounds.start),
+						company: { region: company.region, facts: company.facts },
+						asOf: bounds.start
+					})
+				)
+			])
+		);
+		// The ceiling periods every month day falls in, for the widest person: the transform judges
+		// each write over the periods of its own days, which this holds.
+		const windows = [...limitsOf.values()].flatMap((limits) => [
+			projectionBounds(monthDates, limits),
+			assessmentWindow(bounds.start, cutoffDay),
+			assessmentWindow(bounds.end, cutoffDay)
+		]);
+		const start = windows
+			.flatMap((window) => (window == null ? [] : [window.start]))
+			.toSorted()[0]!;
+		const end = windows
+			.flatMap((window) => (window == null ? [] : [window.end]))
+			.toSorted()
+			.at(-1)!;
+		const months = new Set<string>();
+		for (let date = start; date <= end; date = addDays(date, 28)) months.add(date.slice(0, 7));
+		months.add(end.slice(0, 7));
+		const [stored, holidays, rosters] = yield* Effect.all(
+			[
+				api.db.work_days.findMany({
+					where: {
+						employment_id: { in: employmentIds },
+						work_date: { gte: start, lt: addDays(end, 1) },
+						approval_id: { isNull: true }
+					},
+					columns: {
+						employment_id: true,
+						work_date: true,
+						shift_definition_id: true,
+						approved_overtime_hours: true,
+						incentive_hours: true,
+						emergency_cause: true
+					},
+					limit: QUERY_LIMIT
+				}),
+				api.db.jurisdiction_holidays.findMany({
+					where: {
+						company_id: { eq: company.id },
+						date: { gte: addDays(start, -31), lt: addDays(end, 32) },
+						published_at: { isNotNull: true },
+						approval_id: { isNull: true }
+					},
+					columns: {
+						id: true,
+						company_id: true,
+						date: true,
+						name: true,
+						kind: true,
+						replaces: true,
+						given_to: true,
+						published_at: true
+					},
+					limit: QUERY_LIMIT
+				}),
+				api.db.rosters.findMany({
+					where: {
+						employment_id: { in: employmentIds },
+						period: { in: [...months] },
+						approval_id: { isNull: true }
+					},
+					columns: { employment_id: true, period: true },
+					limit: QUERY_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		if (stored.length >= QUERY_LIMIT) refuse('Work day history is incomplete.');
+		for (const employmentId of employmentIds) {
+			const own = options.days.get(employmentId)!;
+			const storedOn = new Map(
+				stored
+					.filter((row) => row.employment_id === employmentId)
+					.map((row) => [dateKey(row.work_date), row] as const)
+			);
+			const explicitOn = (date: string): string | null => {
+				const planned = own.get(date)?.plan;
+				return planned !== undefined ? planned : (storedOn.get(date)?.shift_definition_id ?? null);
+			};
+			const patternOn = (date: string) => {
+				const term = termOn(employmentId, date);
+				const row = term == null ? null : termPatternRow(term, patternById);
+				return row == null ? null : { pattern: row.pattern, anchor: patternAnchor(row) };
+			};
+			const dates: string[] = [];
+			for (let date = start; date <= end; date = addDays(date, 1)) dates.push(date);
+			const holidayDates = observedHolidayDates({
+				dates,
+				cutoffDay,
+				companyId: company.id,
+				holidays,
+				codes,
+				precedence: rules?.holiday_rest_precedence,
+				plans: dates.map((date) => ({ work_date: date, shift_definition_id: explicitOn(date) })),
+				rosterPeriods: [
+					...rosters
+						.filter((row) => row.employment_id === employmentId && row.period !== options.month)
+						.map((row) => row.period),
+					...((
+						options.carriesPlan
+							? options.rostered.has(employmentId)
+							: rosters.some(
+									(row) => row.employment_id === employmentId && row.period === options.month
+								)
+					)
+						? [options.month]
+						: [])
+				],
+				patternOn
+			});
+			const approvedOf = (date: string) =>
+				decodeNumber(storedOn.get(date)?.approved_overtime_hours ?? 0);
+			const split = splitPlannedOvertime({
+				days: dates.map((date) => {
+					const inMonth = date >= bounds.start && date <= bounds.end;
+					const day = own.get(date);
+					const row = storedOn.get(date);
+					const explicit = explicitOn(date);
+					const patterned = patternOn(date);
+					return {
+						...plannedDay({
+							date,
+							rosterCodeId:
+								explicit ??
+								(patterned == null
+									? null
+									: patternRosterCodeId(patterned.pattern, date, patterned.anchor)),
+							codeById
+						}),
+						holiday: holidayDates.has(date),
+						emergency: row?.emergency_cause === true,
+						total_overtime_hours: inMonth
+							? (day?.total ?? 0)
+							: approvedOf(date) + decodeNumber(row?.incentive_hours ?? 0),
+						...(!inMonth || day?.fixed === true ? { fixed_overtime_hours: approvedOf(date) } : {})
+					};
+				}),
+				limits: limitsOf.get(employmentId)!,
+				cutoffDay
+			});
+			for (const date of monthDates) {
+				const result = split.get(date);
+				if (result != null) splits.set(personDayKey(employmentId, date), result);
+			}
+		}
+		return splits;
+	});
+}
 
 function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 	return Effect.gen(function* () {
@@ -294,7 +577,15 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 		const bounds = monthBounds(month);
 
 		const companies = yield* api.db.companies.findMany({
-			columns: { id: true, name: true, registration_number: true, settings_code: true },
+			columns: {
+				id: true,
+				name: true,
+				registration_number: true,
+				settings_code: true,
+				region: true,
+				facts: true,
+				pay_cutoff_day: true
+			},
 			limit: QUERY_LIMIT
 		});
 		const company = resolveLegalEntity(companies, legalEntity);
@@ -453,11 +744,15 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 		for (const row of roster ?? [])
 			dayOf(row).plan = { shift_definition_id: shiftByCode.get(row.shift_code)!.id };
 		for (const row of attendance ?? []) dayOf(row).clock = attendanceValues(row, timezone!);
-		for (const row of overtime ?? [])
-			dayOf(row).approved = { approved_overtime_hours: row.overtime_hours };
+		// The file's totals; split at the limits once the stored month is read.
+		const totalByKey = new Map<string, number>();
+		for (const row of overtime ?? []) {
+			const day = dayOf(row);
+			totalByKey.set(personDayKey(day.employmentId, day.workDate), row.overtime_hours);
+		}
 		const blankPlan: PlanHalf = { shift_definition_id: null };
 		const blankClock: ClockHalf = { worked_intervals: null };
-		const blankOvertime: OvertimeHalf = { approved_overtime_hours: 0 };
+		const blankOvertime: OvertimeHalf = { approved_overtime_hours: 0, incentive_hours: 0 };
 		const carriesPlan = roster !== undefined;
 		const carriesClock = attendance !== undefined;
 		const carriesOvertime = overtime !== undefined;
@@ -512,7 +807,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				sameIntervals((file.clock ?? blankClock).worked_intervals, day.worked_intervals);
 			const overtimeSame =
 				!carriesOvertime ||
-				(file.approved ?? blankOvertime).approved_overtime_hours ===
+				(totalByKey.get(key) ?? 0) ===
 					decodeNumber(day.approved_overtime_hours ?? 0) + decodeNumber(day.incentive_hours ?? 0);
 			if (planSame && clockSame && overtimeSame) untouched.add(key);
 			else conflicts.push(`${label} (the file changes it)`);
@@ -521,6 +816,41 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			refuse(
 				`These days are already taken into account by a payslip, and the file would change them:\n${formatNamedList(conflicts)}\nA sealed day may only be restated as it is. Delete that payroll run to release them, then import the month again.`
 			);
+
+		// ── the Overtime sheet's totals, split at the statutory limits around the stored days ──────
+		if (carriesOvertime) {
+			const days = new Map<string, Map<string, ImportedDay>>();
+			const dayMap = (employmentId: string) => {
+				const map = days.get(employmentId) ?? new Map<string, ImportedDay>();
+				days.set(employmentId, map);
+				return map;
+			};
+			for (const [key, day] of fileDays)
+				dayMap(day.employmentId).set(day.workDate, {
+					total: totalByKey.get(key) ?? 0,
+					...(carriesPlan ? { plan: (day.plan ?? blankPlan).shift_definition_id } : {}),
+					...(untouched.has(key) ? { fixed: true } : {})
+				});
+			// A stored day the file leaves out is cleared: no overtime, and no plan when the file
+			// carries the roster.
+			for (const [key, day] of existingByKey)
+				if (!fileDays.has(key))
+					dayMap(day.employment_id).set(dateKey(day.work_date), {
+						total: 0,
+						...(carriesPlan ? { plan: null } : {})
+					});
+			const splits = yield* splitImportOvertime(api, {
+				company,
+				month,
+				days,
+				rostered: new Set(
+					[...fileDays.values()].filter((day) => day.plan).map((day) => day.employmentId)
+				),
+				carriesPlan
+			});
+			for (const [key, day] of fileDays)
+				if (totalByKey.has(key)) day.approved = splits.get(key) ?? blankOvertime;
+		}
 
 		// ── the set: remove what the file does not name, write what it does ────────────────────────
 		const deletes: string[] = [];
@@ -579,8 +909,8 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				...(carriesOvertime ? (day.approved ?? blankOvertime) : {})
 			}));
 		const updates = [...restated, ...clears];
-		// In date order per person: the limits split overtime chronologically, and the host writes
-		// returned creates a hundred at a time, so a later batch must never hold an earlier day.
+		// In date order per person: the host writes returned creates a hundred at a time, and each
+		// batch then only adds to the days before it, never leaving an earlier day over its headroom.
 		const creates = [...fileDays.entries()]
 			.filter(([key]) => !existingByKey.has(key))
 			.map(([, day]) => day)
@@ -596,9 +926,10 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			employment_id: day.employmentId,
 			work_date: day.workDate
 		});
-		// A write moves only the days it carries. When the file both restates days and creates new
-		// ones, the new days are created without their overtime first, and every day's total then
-		// lands in one update, so the whole month is split in one pass.
+		// The transform judges each write's approved hours against the headroom the stored days leave.
+		// When the file both restates days and creates new ones, the new days are created without
+		// their overtime first, and every day's split then lands in one update, so no write is judged
+		// against a half-written month.
 		const onePass = carriesOvertime && creates.length > 0 && updates.length > 0;
 		if (onePass) {
 			const created = yield* api.collection.work_days.createMany(
@@ -626,7 +957,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 export default {
 	import: {
 		description:
-			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is the total planned overtime (hours after the shift, in half-hour steps, inclusive of breaks), which the write splits into overtime within the statutory limits and incentive hours beyond them. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, break and overlap rules, and a shift whose own hours or spread-over exceed a limit, refuse the write with person, day and rule; planned overtime never refuses — every statutory overtime limit splits it, the hours beyond stored as incentive hours. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
+			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is each day’s total extra hours (after the shift, in half-hour steps, inclusive of breaks), which the import splits at the statutory limits — over each person’s ceiling periods, around the stored days it does not restate — into approved overtime within them and incentive hours beyond them, and writes both. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, break and overlap rules, and a shift whose own hours or spread-over exceed a limit, refuse the write with person, day and rule; a stated total never refuses — the import splits it, the hours beyond every statutory overtime limit written as incentive hours. A company holiday worked by someone the overtime rule does not cover is imported and warned about, never refused. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {

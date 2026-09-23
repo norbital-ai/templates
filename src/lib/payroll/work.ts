@@ -924,6 +924,8 @@ export function calculateWorkAttendance(
 	/** Clocked dates with overtime or night-window hours: a meal allowance's de minimis days (PH RR 11-2018 (j)). */
 	const overtimeOrNightDates = new Set<IsoDate>();
 	const bandDays: WorkBandDay[] = [];
+	/** Observed company holidays the clock shows worked, in this run's overtime window. */
+	const holidaysWorked: IsoDate[] = [];
 	const clockedDays = attendedDays
 		.map((entry) => ({ entry, workDate: requiredDateKey(entry.work_date, 'work_days.work_date') }))
 		.filter(
@@ -956,6 +958,13 @@ export function calculateWorkAttendance(
 			subject
 		);
 		const worked = daily?.totalWorkHours ?? dailyWorkedHours(clocked, day, offset);
+		if (
+			worked > 0 &&
+			(day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY') &&
+			workDate >= overtimeAttendance.start &&
+			workDate <= overtimeAttendance.end
+		)
+			holidaysWorked.push(workDate);
 		// An unworked holiday the person's calendar recorded (a day read and found empty) is a
 		// band day of zero hours: the first band that holds prices it by amount — a regular
 		// holiday's day wage (PH art.94), a holiday on a non-working day (SG s.88).
@@ -1312,7 +1321,20 @@ export function calculateWorkAttendance(
 			options.work.currency
 		)
 	}));
+	// A company holiday worked by a person the overtime rule does not cover pays no overtime: HR
+	// grants an off-in-lieu day for it. Stated, never created.
+	const holidaysWithoutOvertime = holidaysWorked.filter((date) => !paymentEligibleOn(date));
 	const inLieuNotes: RunIssue[] = [
+		...holidaysWithoutOvertime.map((date) => ({
+			code: 'HOLIDAY_WORKED_NO_OVERTIME',
+			severity: 'WARNING' as const,
+			message:
+				`${[bundle.employment.employee_number, bundle.employee.name].filter(Boolean).join(' ')} ` +
+				`worked the company holiday ${date} but is not entitled to overtime pay — grant an ` +
+				'off-in-lieu (OIL) leave day.',
+			collection: 'employments',
+			recordId: bundle.employment.id
+		})),
 		...(inLieuDays.length === 0
 			? []
 			: [

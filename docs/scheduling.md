@@ -52,8 +52,11 @@ assignments remain visible and contractual workload checks prevent an unmet guar
 as a valid month.
 
 Overtime is planned, like a rostered shift: the month board and the person's calendar print it in
-the day's cell beside the shift code (`D` / `+2h OT · +1h inc`), and the day sheet keys the day's
-total in the Planned section and previews its split at the limit. Attendance is drawn only as a
+the day's cell beside the shift code (`D` / `+2h OT · +1h inc`), and the day sheet keys the two
+figures apart in the Planned section: approved overtime up to the maximum the day's statutory
+headroom allows (shown beside the field; entry above it is blocked), and incentive hours by hand.
+Nothing splits on the day sheet. A company holiday worked by someone the lineage's overtime rule
+does not cover shows an inline notice to grant an off-in-lieu (OIL) leave day. Attendance is drawn only as a
 presence check against shift plus planned overtime —
 present, partial or absent. Clock time beyond that plan is shown on the day sheet as unplanned and
 is never presented as overtime or paid.
@@ -110,14 +113,22 @@ planned code  → resolve WORK / REST / OFF assignment
 blank cell    → no explicit assignment
 PH token      → validate against the entity's published holidays
 punch columns → normalize worked intervals
-OT hours      → key the day's total planned overtime (split into overtime and incentive hours)
+OT hours      → the day's total extra hours, split by the import into overtime and incentive hours
 ```
 
 Import does not manufacture holiday rows or personal holiday scope, and it never derives overtime:
-the Overtime sheet's half-hour cells are the day's total planned overtime, breaks included. The
-write splits it at every statutory overtime limit — daily, weekly, monthly (over the pay's
-assessment window), quarterly and yearly; none refuses the file: the hours within all of them are
-stored as `work_days.approved_overtime_hours`, and only the excess as `work_days.incentive_hours`.
+the Overtime sheet's half-hour cells are the day's total extra hours, breaks included. The import
+— and only the import (and the one-off seed preparation) — splits it (`splitPlannedOvertime`) at
+every statutory overtime limit — daily, weekly, monthly (over the pay's assessment window),
+quarterly and yearly — in date order around the stored days of the same periods; none refuses the
+file: the hours within all of them are written as `work_days.approved_overtime_hours`, and only the
+excess as `work_days.incentive_hours`. A direct write (the day sheet, the API) keys both columns
+itself and is refused where a day's approved hours pass their statutory headroom
+(`overtimeHeadroom`), a later stored day included; incentive hours need no limit. Holidays are the
+ones payroll observes (`observedHolidayDates`: the published rows, replacement days included, and a
+SUBSTITUTE holiday carried off a rest day). A company holiday worked by someone the overtime rule
+does not cover is imported with a warning (toast), stated again by the run as
+`HOLIDAY_WORKED_NO_OVERTIME`; off-in-lieu leave is never created for it.
 A daily total-hours limit binds every day; a daily overtime-hours limit binds an ordinary or off
 day (ID art.26(2), VN art.107); rest, off and holiday hours count toward the longer periods. What
 the import still refuses is not overtime: the weekly rest rule, a shift whose own hours or

@@ -7,7 +7,7 @@
  * incentive hours (`work_days.incentive_hours`) are the top of its payable hours: the part of any
  * slice that falls in them settles on that band's INCENTIVE line at the same award, so an
  * incentive hour keeps the multiple of the band it lands in. Nothing here decides how many hours
- * are incentive: the split was made when the day was written (`splitPlannedOvertime`).
+ * are incentive: they are keyed on the day (split only by the import, `splitPlannedOvertime`).
  */
 
 import type { WorkLimit, WorkRateBand, WorkRules } from '../../datatypes/work_rules/+definition.js';

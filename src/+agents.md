@@ -11,7 +11,7 @@ corresponding tool result is present.** Keep final answers concise.
 - A **company** binds by `settings_code` to a **jurisdiction settings** lineage
   (`jurisdiction_settings`): sealed, shareable versions that own the payroll facts, the regional
   wages, the work rules (proration, ordinary rates, priced bands, limits — every overtime limit
-  splits planned OT, the excess recorded as incentive hours — and breaks), the schemes and their expression bands and the family catalogues; a seal
+  bounds approved OT, anything beyond keyed as incentive hours — and breaks), the schemes and their expression bands and the family catalogues; a seal
   freezes a version and its child catalogues, a change of law is a new version, a wrong seal is
   voided. Holidays are individual published rows, outside the version. Almost everything else is
   effective-dated against it.
@@ -24,11 +24,14 @@ corresponding tool result is present.** Keep final answers concise.
   the day was read and nothing was worked. **Overtime is the keyed approval
   (`approved_overtime_hours`, with the excess over the limits in `incentive_hours`), never a
   derivation from the clock:** overtime is preplanned like a rostered shift, and payroll pays the
-  two entries, when attendance confirms presence, and nothing else beyond the shift. The scheduler
-  keys the day's total in half-hour steps inclusive of breaks (imported with the roster or entered on
-  the day sheet) and the write splits it at every statutory overtime limit — the excess is
-  incentive, priced at the same band and multiple, and no overtime limit refuses; hours the clock shows past the plan earn
-  nothing. If asked to "add overtime", say that the approved hours are the record, and ask what the
+  two entries, when attendance confirms presence, and nothing else beyond the shift. On the day sheet
+  (and any direct write) the scheduler keys the two apart in half-hour steps inclusive of breaks:
+  approved overtime up to the day's statutory headroom — the transform refuses more, naming the day,
+  the limit and the maximum — and incentive hours by hand, priced at the same band and multiple.
+  Only the import splits a day's total at the limits (`splitPlannedOvertime`). A company holiday
+  worked by someone the lineage's overtime rule excludes pays no overtime: the run warns
+  `HOLIDAY_WORKED_NO_OVERTIME` (grant an off-in-lieu leave day; never created automatically); hours
+  the clock shows past the plan earn nothing. If asked to "add overtime", say that the approved hours are the record, and ask what the
   approval was.
 - A **claim request** is an expense reimbursement or recovery. An **ad hoc request** is a one-time
   bonus, back-pay item, separation payment or correction. `amount` is a positive magnitude;

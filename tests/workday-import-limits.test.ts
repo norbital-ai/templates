@@ -2,10 +2,12 @@
 /**
  * The workday import's refusals, through the `work_days` transform an import writes through.
  *
- * Every statutory overtime limit splits (owner's rule, 2026-09-23): the planned overtime beyond it
- * is stored as incentive hours and the write is accepted — none refuses. What still refuses is not
- * an overtime limit: the weekly rest rule, a shift whose own hours or spread-over breach a limit,
- * a granted break short of the rules, and overlapping shifts.
+ * Every statutory overtime limit splits (owner's rule, 2026-09-23), but only an import splits: it
+ * hands the write each day's total already divided at the limits (`splitPlannedOvertime`), and the
+ * write stores the two figures it is given. A direct write keys the two apart and is refused where
+ * its approved hours pass a limit. What also refuses is not overtime: the weekly rest rule, a
+ * shift whose own hours or spread-over breach a limit, a granted break short of the rules, and
+ * overlapping shifts.
  *
  * Every figure below is derived by hand from the codes and limits stated here — Nihon's (MY-nihon)
  * roster codes and work rules, a Vietnam and an Indonesia version — not read from the seed.
@@ -13,7 +15,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import workDays from '../src/collections/work_days/+collection.ts';
-import { applicableLimits, splitsOvertime } from '../src/lib/scheduling/work-limits.ts';
+import {
+	applicableLimits,
+	rosterCodeFacts,
+	splitPlannedOvertime,
+	splitsOvertime
+} from '../src/lib/scheduling/work-limits.ts';
 import { validateOvertimeLimits } from '../src/collections/payroll_runs/lib/validate.ts';
 import { transformSync } from './helpers/transform.ts';
 import { VERSION, workDayDb } from './helpers/work-day-db.ts';
@@ -133,6 +140,36 @@ const sixOnOneOff = (work) => (n) => (n % 7 === 0 ? ['c-rest'] : work);
 const write = (rules, inputs, days) => () =>
 	transformSync(workDays, inputs, { db: dbFor(rules, days) });
 
+/**
+ * An import of `inputs`, whose `approved_overtime_hours` carry each day's planned TOTAL: the
+ * import's own arithmetic divides it at the limits around the stored `days`, and the write stores
+ * the two figures.
+ */
+const imported = (rules, inputs, days = []) => {
+	const facts = new Map(CODES.map((code) => [code.id, rosterCodeFacts(code.variant)]));
+	const planOf = (date, code) => ({ date, ...facts.get(code) });
+	const split = splitPlannedOvertime({
+		limits: applicableLimits(rules.limits, null),
+		days: [
+			...days.map((day) => ({
+				...planOf(day.work_date, day.shift_definition_id),
+				total_overtime_hours: day.approved_overtime_hours,
+				fixed_overtime_hours: day.approved_overtime_hours
+			})),
+			...inputs.map((input) => ({
+				...planOf(input.work_date, input.shift_definition_id),
+				total_overtime_hours: input.approved_overtime_hours
+			}))
+		]
+	});
+	const keyed = inputs.map((input) => ({
+		...input,
+		approved_overtime_hours: split.get(input.work_date).approved_overtime_hours,
+		incentive_hours: split.get(input.work_date).incentive_hours
+	}));
+	return write(rules, keyed, days)();
+};
+
 /** The stored split of the days that carry incentive: [date, overtime, incentive]. */
 const incentiveDays = (out) =>
 	out.flatMap((row) =>
@@ -162,10 +199,15 @@ test('every overtime and total-hours limit splits; the normal day, the spread an
 	);
 });
 
-test('Nihon, accepted at write → the 27th day’s 4 hours are stored as incentive, and payroll reports the 108', () => {
+test('Nihon, imported → the 27th day’s 4 hours are stored as incentive, and payroll reports the 108', () => {
 	// 4 OT hours a day: the first 26 working days fill 104 hours, the 27th day's 4 are incentive.
-	const out = write(NIHON_RULES, julyWrite(sixOnOneOff(['c-8', 4])))();
+	const out = imported(NIHON_RULES, julyWrite(sixOnOneOff(['c-8', 4])));
 	assert.deepEqual(incentiveDays(out), [['2026-07-31', 0, 4]]);
+	// Keyed directly as overtime, the same month is refused on the day that passes 104.
+	assert.throws(
+		write(NIHON_RULES, julyWrite(sixOnOneOff(['c-8', 4]))),
+		/2026-07-31 would hold 4 h of approved overtime, above the 0 h left within the 104-hour limit "monthly_ot"/
+	);
 	// Payroll still reports the planned month against the ceiling: incentive pays the excess, it
 	// does not undo the breach.
 	const issues = (hours) =>
@@ -193,9 +235,10 @@ test('Nihon, refused: 7 consecutive WORK days breaks the weekly rest rule (6)', 
 	);
 });
 
-test('Nihon, accepted: 9h paid + 4h planned OT is 13 worked hours — 3 within daily_total 12, 1 incentive', () => {
+test('Nihon, imported: 9h paid + 4h planned OT is 13 worked hours — 3 within daily_total 12, 1 incentive', () => {
 	const inputs = julyWrite((n) => (n === 2 ? ['c-9', 4] : sixOnOneOff(['c-8'])(n)));
-	assert.deepEqual(incentiveDays(write(NIHON_RULES, inputs)()), [['2026-07-02', 3, 1]]);
+	assert.deepEqual(incentiveDays(imported(NIHON_RULES, inputs)), [['2026-07-02', 3, 1]]);
+	assert.throws(write(NIHON_RULES, inputs), /2026-07-02 would hold 4 h .* above the 3 h left/);
 });
 
 test('Nihon, refused: a 13-hour shift is above daily_total 12 by its own hours, which are not overtime', () => {
@@ -222,16 +265,16 @@ test('Nihon, refused: a 6-hour shift granting 15 minutes of break, where 30 are 
 	);
 });
 
-test('VN, accepted: 11 days × 4h is 44 hours, 40 within the monthly limit and 4 incentive', () => {
+test('VN, imported: 11 days × 4h is 44 hours, 40 within the monthly limit and 4 incentive', () => {
 	const inputs = julyWrite((n) => (n % 7 === 0 ? ['c-rest'] : ['c-8', n <= 12 ? 4 : 0]));
 	// Days 1–12 less the 7th: the tenth working day (the 11th) fills 40; the 12th is incentive.
-	assert.deepEqual(incentiveDays(write(VN_RULES, inputs)()), [['2026-07-12', 0, 4]]);
+	assert.deepEqual(incentiveDays(imported(VN_RULES, inputs)), [['2026-07-12', 0, 4]]);
 	// 6h on one ordinary day is 4 within daily_ot and 2 incentive.
 	const sixHours = julyWrite((n) => (n % 7 === 0 ? ['c-rest'] : ['c-8', n === 1 ? 6 : 0]));
-	assert.deepEqual(incentiveDays(write(VN_RULES, sixHours)()), [['2026-07-01', 4, 2]]);
+	assert.deepEqual(incentiveDays(imported(VN_RULES, sixHours)), [['2026-07-01', 4, 2]]);
 });
 
-test('VN, accepted: 160 stored OT hours this year plus July’s 44 splits at yearly_ot 200', () => {
+test('VN, imported: 160 stored OT hours this year plus July’s 44 splits at yearly_ot 200', () => {
 	// Ten Mon–Thu days in each of January to April, 4 approved hours each: 40 a month, 160.
 	const storedDay = (date) => ({
 		id: `s-${date}`,
@@ -247,10 +290,10 @@ test('VN, accepted: 160 stored OT hours this year plus July’s 44 splits at yea
 	const stored = [0, 1, 2, 3].flatMap((month) => monThu(month).slice(0, 10)).map(storedDay);
 	const inputs = julyWrite((n) => (n % 7 === 0 ? ['c-rest'] : ['c-8', n <= 12 ? 4 : 0]));
 	// The year has 40 left, exactly July's month: the 12th is incentive by the month alone.
-	assert.deepEqual(incentiveDays(write(VN_RULES, inputs, stored)()), [['2026-07-12', 0, 4]]);
+	assert.deepEqual(incentiveDays(imported(VN_RULES, inputs, stored)), [['2026-07-12', 0, 4]]);
 	// Four more in May leave the year 24: the sixth working day of July fills it.
 	const more = [...stored, ...monThu(4).slice(0, 4).map(storedDay)];
-	assert.deepEqual(incentiveDays(write(VN_RULES, inputs, more)()), [
+	assert.deepEqual(incentiveDays(imported(VN_RULES, inputs, more)), [
 		['2026-07-08', 0, 4],
 		['2026-07-09', 0, 4],
 		['2026-07-10', 0, 4],
@@ -259,10 +302,10 @@ test('VN, accepted: 160 stored OT hours this year plus July’s 44 splits at yea
 	]);
 });
 
-test('ID, accepted: five days × 4h in one week is 20, 18 within weekly_ot and 2 incentive', () => {
+test('ID, imported: five days × 4h in one week is 20, 18 within weekly_ot and 2 incentive', () => {
 	// Week of Monday 6 July (the 7th is its rest day): days 8–12 carry 4 hours each.
 	const inputs = julyWrite((n) => (n % 7 === 0 ? ['c-rest'] : ['c-8', n >= 8 && n <= 12 ? 4 : 0]));
-	assert.deepEqual(incentiveDays(write(ID_RULES, inputs)()), [['2026-07-12', 2, 2]]);
+	assert.deepEqual(incentiveDays(imported(ID_RULES, inputs)), [['2026-07-12', 2, 2]]);
 });
 
 test('Nihon, refused: PM2230 on the 9th runs to 08:30, overlapping 03 from 07:30 on the 10th', () => {

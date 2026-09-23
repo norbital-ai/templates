@@ -2,7 +2,7 @@
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { resolveEmployment } from '../../../lib/employment-contract.js';
-	import { isSettledId, PAYROLL_TIME_ZONE } from '../../../lib/iso-day.js';
+	import { dateKey, dayInstant, isSettledId, PAYROLL_TIME_ZONE } from '../../../lib/iso-day.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../../../lib/ui/holiday-calendar.js';
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 	import { client } from '../../../lib/workspace-client.js';
@@ -39,9 +39,11 @@
 	import { toast } from 'svelte-sonner';
 	import { runWorkbookImport } from '../../../lib/ui/workbook-import.js';
 	import {
+		holidayWorkedRows,
 		schedulingImportDays,
 		schedulingImportPayload
 	} from '../../../collections/work_days/lib/import-workbook.js';
+	import { observedHolidayDates, overtimeEntitled } from '../../../lib/scheduling/work-limits.js';
 	import {
 		schedulingTemplateWorkbook,
 		XLSX_MEDIA_TYPE
@@ -52,7 +54,11 @@
 		periodInCompanyGrammar,
 		todayKey
 	} from '../../../lib/ui/calendar.js';
-	import { monthBounds, periodMonth } from '../../../collections/payroll_runs/lib/dates.js';
+	import {
+		addDays,
+		monthBounds,
+		periodMonth
+	} from '../../../collections/payroll_runs/lib/dates.js';
 	import { getErrorMessage, toError } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import { decodeNumber } from '@norbital-ai/std/json';
@@ -278,7 +284,18 @@
 		if (!employmentsReady || monthEmploymentIds.length === 0) return null;
 		return client.db.employment_terms.findMany({
 			where: { ...approved, employment_id: { in: monthEmploymentIds } },
-			columns: { id: true, employment_id: true, shift_pattern_id: true, effective_range: true },
+			columns: {
+				id: true,
+				employment_id: true,
+				shift_pattern_id: true,
+				effective_range: true,
+				// The overtime rule's facts, for the import's holiday warning.
+				employment_type: true,
+				work_classification: true,
+				base_salary: true,
+				statutory_work_category: true,
+				pay_frequency: true
+			},
 			// The base rides the terms read (HR20: one live query per source, no `shift_patterns`
 			// query of its own): every term arrives with the named pattern it points at.
 			with: { term_shift_pattern: PATTERN_WITH },
@@ -479,7 +496,12 @@
 					where: {
 						...approved,
 						company_id: { eq: selectedCompanyId },
-						date: { gte: monthWorkDateBounds.start, lte: monthWorkDateBounds.end },
+						// A month either side: payroll resolves each assessment window whole, and a
+						// holiday before the month can carry into it (`observedHolidayDates`).
+						date: {
+							gte: dayInstant(addDays(monthStart, -31)),
+							lte: dayInstant(addDays(monthEnd, 31))
+						},
 						published_at: { isNotNull: true }
 					},
 					limit: HOLIDAY_QUERY_LIMIT
@@ -636,6 +658,93 @@
 	);
 	const boardHelp = $derived(t('app.scheduling.help_published'));
 
+	/**
+	 * The import writes a company holiday worked by someone the overtime rule does not cover, and
+	 * says so here: no overtime is paid for it, so HR grants an off-in-lieu day. Read on the board's
+	 * own data and payroll's own calendar (`observedHolidayDates`); a run states it again.
+	 */
+	function warnHolidaysWithoutOvertime(payload: ReturnType<typeof schedulingImportPayload>): void {
+		const company = selectedCompany;
+		if (company == null || selectedCompanyId == null || selectedSettingsCode == null) return;
+		const version = settingsInForce(
+			calendarSettingsQuery?.current ?? [],
+			selectedSettingsCode,
+			monthStart
+		);
+		const byNumber = new Map(people.map((person) => [person.number, person]));
+		const codeIdByCode = new Map((shiftsQuery?.current ?? []).map((code) => [code.code, code.id]));
+		const termOn = (employmentId: string, date: string) =>
+			(employmentTermsByEmploymentId.get(employmentId) ?? []).find((term) =>
+				termCovers(term, date)
+			) ?? null;
+		const rows = holidayWorkedRows(
+			payload,
+			(number) => {
+				const person = byNumber.get(number);
+				if (person == null) return new Set();
+				const filed = (payload.roster ?? []).filter((row) => row.employee_number === number);
+				try {
+					return observedHolidayDates({
+						dates: monthDays(calendarMonth),
+						cutoffDay: decodeNumber(company.pay_cutoff_day ?? 1),
+						companyId: selectedCompanyId,
+						holidays: holidaysQuery?.current ?? [],
+						codes: shiftsQuery?.current ?? [],
+						precedence: version?.work_rules?.holiday_rest_precedence,
+						plans:
+							payload.roster === undefined
+								? workDays
+										.filter((day) => day.employment_id === person.id)
+										.map((day) => ({
+											work_date: dateKey(day.work_date),
+											shift_definition_id: day.shift_definition_id ?? null
+										}))
+								: filed.map((row) => ({
+										work_date: row.work_date,
+										shift_definition_id: codeIdByCode.get(row.shift_code) ?? null
+									})),
+						rosterPeriods: filed.length > 0 ? [calendarMonth] : [],
+						patternOn: (date) => {
+							const term = termOn(person.id, date);
+							const row = term == null ? null : termPatternRow(term);
+							return row == null ? null : { pattern: row.pattern, anchor: patternAnchor(row) };
+						}
+					});
+				} catch {
+					return new Set();
+				}
+			},
+			(number, date) => {
+				const person = byNumber.get(number);
+				return (
+					person == null ||
+					overtimeEntitled(version?.work_rules?.overtime_when, {
+						employee: null,
+						employment: { service_start: '' },
+						terms: termOn(person.id, date),
+						company: { region: company.region, facts: company.facts },
+						asOf: date
+					})
+				);
+			}
+		);
+		if (rows.length === 0) return;
+		toast.warning(t('app.scheduling.import_holiday_without_overtime', { count: rows.length }), {
+			description: rows
+				.map((row) =>
+					t('roster.day_sheet_holiday_without_overtime', {
+						person: [row.employee_number, byNumber.get(row.employee_number)?.name]
+							.filter(Boolean)
+							.join(' '),
+						date: row.work_date
+					})
+				)
+				.join('\n'),
+			descriptionClass: 'whitespace-pre-line',
+			duration: Number.POSITIVE_INFINITY
+		});
+	}
+
 	function importWorkbook() {
 		// One file, two sheets: the roster and the time entries of one legal entity's month, stated on
 		// its Settings sheet. There is no draft roster to land in; the pipeline refuses a file that
@@ -645,7 +754,8 @@
 				collectionName: 'work_days',
 				recordLabel: t('component.work_days'),
 				buildPayload: schedulingImportPayload,
-				importedCount: schedulingImportDays
+				importedCount: schedulingImportDays,
+				afterImport: warnHolidaysWithoutOvertime
 			},
 			t
 		);

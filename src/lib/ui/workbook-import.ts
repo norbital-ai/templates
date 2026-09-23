@@ -130,6 +130,8 @@ interface WorkbookImportOptions<Payload extends object = object> {
 	 * days' restated month) states its count here instead.
 	 */
 	importedCount?(payload: Payload): number;
+	/** Runs once the import has landed: the place a caller warns about what it wrote. */
+	afterImport?(payload: Payload): void;
 }
 
 /**
@@ -188,6 +190,7 @@ export function runWorkbookImport<Payload extends object>(
 						file: file.name
 					})
 				);
+				options.afterImport?.(built);
 			}),
 			(error) =>
 				Effect.sync(() =>
