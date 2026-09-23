@@ -95,10 +95,10 @@ claims, project documents, and current permits to work). Site locations, asset d
 permits to work have no tab of their own anywhere and are reached only through a project — the only
 context in which any of them means much.
 
-Five files split one policy contract: `+construction_read.ts` owns the twelve unconditional read
-grants, the three app policies carry only `capabilities` — they open an application, and the
-application opens the grants — and `+reports_integration.ts` is the reports import's RFI write
-authority. The narrowing is `apps`, not `where`. That is deliberate rather
+Four files split one policy contract: `+construction_read.ts` owns the twelve unconditional read
+grants, and the three app policies carry only `capabilities` — they open an application, and the
+application opens the grants. RFIs are authored in the workspace, from the project record; no
+external system writes them. The narrowing is `apps`, not `where`. That is deliberate rather
 than lazy — construction carries no requestor-bearing column on any of these collections, so there
 is nothing for a `where` clause to scope to, and what actually separates a delivery user from a
 settings administrator is which application they can open. The shared grant list lives in one file
@@ -118,8 +118,8 @@ review; they do not send messages, escalate records, or mutate business state.
 
 All four share one shape: read at most 25 rows, report that number as the summary count, and export
 the same rows as the file body. The bounds hold a review a reviewer can read — the sweep is a
-morning digest, not a full table in a JSON blob. If a deployment needs alerts, an integration or
-delivery facility must be added explicitly; these read-only watches notify no one on their own.
+morning digest, not a full table in a JSON blob. If a deployment needs alerts, a delivery
+facility must be added explicitly; these read-only watches notify no one on their own.
 
 ## Under the hood
 
@@ -129,7 +129,7 @@ under `.norbital/`.
 
 ```text
 src/apps/                              the three applications (+<app>.svelte)
-src/access/policies/                   one shared read authority, one per application, and the reports integration (+<name>.ts)
+src/access/policies/                   one shared read authority and one per application (+<name>.ts)
 src/collections/                       models (+model.ts), write contracts (+collection.ts),
                                        relations (+relationship.ts), and form/detail representations
 src/automations/                       the four daily review watches (+<name>.ts)

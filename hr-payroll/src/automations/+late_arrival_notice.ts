@@ -201,7 +201,8 @@ export const runLateArrivalNotice = (api: AutomationApi, options: { readonly now
 				key: `late:${employment.id}:${workDate}`,
 				recipients: [{ team: MANAGER_TEAM }],
 				title: `Late for work — ${company.name}`,
-				body: `${who} (${employment.employee_number}) has not clocked in for the ${window.start_time} shift on ${workDate}.`
+				body: `${who} (${employment.employee_number}) has not clocked in for the ${window.start_time} shift on ${workDate}.`,
+				via: ['inbox']
 			});
 			reminded += 1;
 		}

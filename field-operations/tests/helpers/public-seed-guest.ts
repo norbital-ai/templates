@@ -34,6 +34,7 @@ export const bootPublicSeedGuest = async (options: {
 	readonly host?: string;
 	readonly ai?: WithSelfHostInput['ai'];
 	readonly communication?: WithSelfHostInput['communication'];
+	readonly mail?: WithSelfHostInput['mail'];
 	readonly files?: boolean;
 }) => {
 	const { bundlePath, schemaFingerprint } = requireReleaseBundle(artifactDirectory);
@@ -53,6 +54,7 @@ export const bootPublicSeedGuest = async (options: {
 		...(options.host !== undefined ? { host: options.host } : {}),
 		...(options.ai !== undefined ? { ai: options.ai } : {}),
 		...(options.communication !== undefined ? { communication: options.communication } : {}),
+		...(options.mail !== undefined ? { mail: options.mail } : {}),
 		...(options.files === true ? { files: true } : {}),
 		seed: {
 			stages: manifestSeedStages(templateManifestPath),

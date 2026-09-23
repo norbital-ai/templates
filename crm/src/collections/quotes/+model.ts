@@ -40,7 +40,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'Sales document — the CRM pipeline. Moves draft→sent→won, then confirmed once accepted and pushed out to the third-party ERP. Lost and cancelled are terminal. Sent documents can be reopened to draft for revision, incrementing the revision number.',
+			'Sales document — the CRM pipeline. Moves draft→sent→won, then confirmed once accepted. Lost and cancelled are terminal. Sent documents can be reopened to draft for revision, incrementing the revision number.',
 		recordLabel: 'doc_no',
 		icon: 'lucide:file-text',
 		indexes: [

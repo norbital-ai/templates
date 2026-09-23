@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import type {
 	CommunicationRequest,
 	CommunicationResponse,
-	FacilityBinding
+	FacilityBinding,
+	TransactionalMailRequest,
+	TransactionalMailResponse
 } from '@norbital-ai/bolt-protocol';
 import { cassetteAi, readCassetteFile } from '@norbital-ai/test-utilities';
 import {
@@ -18,8 +20,9 @@ import { PUBLIC_ASSIGNMENT_ID, bootPublicSeedGuest } from './helpers/public-seed
 
 /**
  * The WhatsApp envoy pipeline on the public seed, with WhatsApp itself stubbed at the two seams
- * the host owns: the inbound delivery (`envoys.receive`, what Colony posts after verifying a
- * webhook) and the outbound transport (the communication facility, recorded instead of sent).
+ * the host owns: the inbound history change (`channels.ingest`, what Colony posts after verifying
+ * a webhook) and the outbound transport (the communication facility, recorded instead of sent).
+ * Sign-in codes are transactional mail, a separate facility, recorded the same way.
  *
  * The agent turns replay from `tests/assets/envoy-completion.cassette.json` — recorded model
  * outputs, no key, no network. Everything between those seams is real: sender resolution
@@ -29,8 +32,8 @@ import { PUBLIC_ASSIGNMENT_ID, bootPublicSeedGuest } from './helpers/public-seed
  * and the reply on the contractor's conversation.
  */
 /** The runtime writes the registration link into the notice; the claim id is its `claim` query. */
-const claimIdOf = (payload: unknown): string | undefined => {
-	const text = (payload as { text?: unknown }).text;
+const claimIdOf = (message: unknown): string | undefined => {
+	const text = (message as { text?: unknown }).text;
 	if (typeof text !== 'string') return undefined;
 	const link = text.split('\n').find((line) => line.includes('claim='));
 	return link === undefined
@@ -40,6 +43,8 @@ const claimIdOf = (payload: unknown): string | undefined => {
 
 const LOCAL_DATABASE_TEST_TIMEOUT_MILLIS = 180_000;
 const ENVOY = 'field_ops_whatsapp';
+/** The envoy's channel, named after it. */
+const CHANNEL = 'field_ops_whatsapp';
 const SENDER_JID = '6591234567@s.whatsapp.net';
 const STRANGER_JID = '6598765432@s.whatsapp.net';
 const CONTRACTOR_EMAIL = 'contractor@example.test';
@@ -51,16 +56,48 @@ const envoyCassette = readCassetteFile(
  * observation against its own provider call id, which `cassetteAi` stamps live per request.
  */
 
-const delivery = (messageId: string, sender: string, text: string) => ({
-	conversationId: sender,
-	conversationKind: 'dm',
-	messageId,
-	sentAt: '2026-09-06T04:00:00.000Z',
-	invocation: 'direct',
-	text,
-	sender: { id: sender, displayName: 'Contractor' },
-	attachments: []
+const SENT_AT = '2026-09-06T04:00:00.000Z';
+/** One live inbound WhatsApp message as a `channels.ingest` input. */
+const inbound = (messageId: string, sender: string, text: string) => ({
+	channel: CHANNEL,
+	changes: [
+		{
+			_tag: 'Upsert',
+			envelope: {
+				_tag: 'chat',
+				conversationId: sender,
+				conversationKind: 'dm',
+				messageId,
+				sentAt: SENT_AT,
+				invocation: 'direct',
+				text,
+				sender: { id: sender, displayName: 'Contractor' },
+				attachments: []
+			},
+			version: SENT_AT,
+			origin: 'live',
+			direction: 'inbound'
+		}
+	]
 });
+
+type Send = Extract<CommunicationRequest, { readonly _tag: 'Send' }>;
+/** Who a chat send is addressed to. */
+const toOf = (send: Send): unknown => (send.message as { to?: unknown }).to;
+/** Whether the inbound message has been answered by the envoy's drain. */
+const answered = (
+	guest: { query: (sql: string, parameters?: ReadonlyArray<unknown>) => Promise<unknown> },
+	messageId: string
+) =>
+	guest
+		.query(
+			`select answered_at from channel_messages where channel = $1 and direction = 'inbound' and provider_message_id = $2`,
+			[CHANNEL, messageId]
+		)
+		.then((result) => {
+			const state = rows(result)[0];
+			return state?.answered_at != null ? state : undefined;
+		});
 
 const rows = (value: unknown): ReadonlyArray<Record<string, unknown>> =>
 	Array.isArray(value) ? (value as ReadonlyArray<Record<string, unknown>>) : [];
@@ -83,11 +120,11 @@ test(
 	'a linked contractor completes an assignment over WhatsApp; a stranger is asked to register',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
-		const sends: Array<Extract<CommunicationRequest, { readonly _tag: 'Send' }>> = [];
+		const sends: Array<Send> = [];
 		const communication: FacilityBinding<CommunicationRequest, CommunicationResponse> = {
 			call: async (_metadata, request) => {
 				if (request._tag === 'Send') sends.push(request);
-				return { _tag: 'Success', value: { receipt: { id: `wire-${sends.length}` } } };
+				return { _tag: 'Success', value: { providerMessageId: `wire-${sends.length}` } };
 			}
 		};
 		const guest = await bootPublicSeedGuest({
@@ -134,19 +171,18 @@ test(
 			// A stranger writes first: no account holds this number, so the pipeline answers with a
 			// registration claim on the same transport and executes nothing.
 			const stranger = requireOk(
-				await system('envoys.receive', {
-					envoy: ENVOY,
-					delivery: delivery('msg-stranger', STRANGER_JID, 'Job done.')
-				}),
-				'envoys.receive'
+				await system('channels.ingest', inbound('msg-stranger', STRANGER_JID, 'Job done.')),
+				'channels.ingest'
 			) as Record<string, unknown>;
-			assert.equal(stranger.status, 'registration_required');
+			assert.equal(stranger.admitted, 0);
+			const notice = await waitFor(
+				async () => sends.find((send) => toOf(send) === STRANGER_JID),
+				'the registration notice'
+			);
 			assert.equal(sends.length, 1);
-			const notice = sends[0];
-			assert.ok(notice !== undefined);
-			assert.equal(notice.channel, 'whatsapp');
-			assert.equal(notice.recipient, STRANGER_JID);
-			const registration = { claimId: claimIdOf(notice.payload) };
+			assert.equal(notice.channel, CHANNEL);
+			assert.equal(notice.transport, 'whatsapp');
+			const registration = { claimId: claimIdOf(notice.message) };
 			assert.ok(registration.claimId, 'the registration notice carries a claim');
 			const inspected = requireOk(
 				await system('envoys.registration.inspect', { claimId: registration.claimId }),
@@ -161,21 +197,22 @@ test(
 				JSON.stringify([{ type: 'whatsapp', address: '+65 9123 4567', verified: true }])
 			]);
 			const received = requireOk(
-				await system('envoys.receive', {
-					envoy: ENVOY,
-					delivery: delivery(
+				await system(
+					'channels.ingest',
+					inbound(
 						'msg-1',
 						SENDER_JID,
 						`Assignment ${PUBLIC_ASSIGNMENT_ID} is finished, please mark it completed.`
 					)
-				}),
-				'envoys.receive'
+				),
+				'channels.ingest'
 			) as Record<string, unknown>;
-			assert.equal(received.status, 'buffered');
+			assert.equal(received.admitted, 1);
 
 			const dump = async (): Promise<string> => {
 				const tables = [
-					'bolt_envoy_messages',
+					'channel_messages',
+					'bolt_channel_outbox',
 					'bolt_task',
 					'conversation',
 					'turn',
@@ -190,17 +227,12 @@ test(
 				}
 				return parts.join('\n');
 			};
-			const inbound = await waitFor(async () => {
-				const state = rows(
-					await guest.query(
-						`select status from bolt_envoy_messages where direction = 'inbound' and external_message_id = 'msg-1'`
-					)
-				)[0];
-				return state?.status === 'answered' ? state : undefined;
-			}, 'the envoy drain answering the inbound message').catch(async (error: unknown) => {
+			await waitFor(
+				() => answered(guest, 'msg-1'),
+				'the envoy drain answering the inbound message'
+			).catch(async (error: unknown) => {
 				throw new Error(`${String(error)}\n${await dump()}`);
 			});
-			assert.equal(inbound.status, 'answered');
 
 			const conversation = rows(
 				await guest.query(`select status, agent_id, audience from conversation`)
@@ -215,10 +247,12 @@ test(
 			assert.equal(after?.status, 'completed');
 			assert.ok(after?.completed_at, 'the update hook stamped completion');
 
-			const reply = sends.find((send) => send.recipient === SENDER_JID);
-			assert.ok(reply !== undefined, `reply sent: ${JSON.stringify(sends)}`);
-			assert.equal(reply.channel, 'whatsapp');
-			assert.match(String((reply.payload as { text?: string }).text), /completed/i);
+			const reply = await waitFor(
+				async () => sends.find((send) => toOf(send) === SENDER_JID),
+				`the reply (sent: ${JSON.stringify(sends)})`
+			);
+			assert.equal(reply.channel, CHANNEL);
+			assert.match(String((reply.message as { text?: string }).text), /completed/i);
 		} finally {
 			await guest.stop();
 		}
@@ -229,11 +263,18 @@ test(
 	'a stranger registers over WhatsApp and, once linked, completes an assignment',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
-		const sends: Array<Extract<CommunicationRequest, { readonly _tag: 'Send' }>> = [];
+		const sends: Array<Send> = [];
 		const communication: FacilityBinding<CommunicationRequest, CommunicationResponse> = {
 			call: async (_metadata, request) => {
 				if (request._tag === 'Send') sends.push(request);
-				return { _tag: 'Success', value: { receipt: { id: `wire-${sends.length}` } } };
+				return { _tag: 'Success', value: { providerMessageId: `wire-${sends.length}` } };
+			}
+		};
+		const mails: Array<TransactionalMailRequest> = [];
+		const mail: FacilityBinding<TransactionalMailRequest, TransactionalMailResponse> = {
+			call: async (_metadata, request) => {
+				mails.push(request);
+				return { _tag: 'Success', value: {} };
 			}
 		};
 		const guest = await bootPublicSeedGuest({
@@ -245,7 +286,8 @@ test(
 			secretsKey: 'field-ops-public-seed-envoy-register-secrets-key',
 			invocationTimeoutMillis: 120_000,
 			ai: cassetteAi(envoyCassette),
-			communication
+			communication,
+			mail
 		});
 		const system = (command: string, input: unknown) =>
 			postGuestCommand(
@@ -259,24 +301,22 @@ test(
 		try {
 			// An unknown number writes: registration claim, nothing executed.
 			const stranger = requireOk(
-				await system('envoys.receive', {
-					envoy: ENVOY,
-					delivery: delivery(
-						'msg-reg-1',
-						STRANGER_JID,
-						'Hi, I am a contractor, please register me.'
-					)
-				}),
-				'envoys.receive'
+				await system(
+					'channels.ingest',
+					inbound('msg-reg-1', STRANGER_JID, 'Hi, I am a contractor, please register me.')
+				),
+				'channels.ingest'
 			) as Record<string, unknown>;
-			assert.equal(stranger.status, 'registration_required');
-			const notice = sends.find((send) => send.recipient === STRANGER_JID);
-			assert.ok(notice !== undefined);
-			const claimId = claimIdOf(notice.payload);
+			assert.equal(stranger.admitted, 0);
+			const notice = await waitFor(
+				async () => sends.find((send) => toOf(send) === STRANGER_JID),
+				'the registration notice'
+			);
+			const claimId = claimIdOf(notice.message);
 			assert.ok(claimId, 'the registration notice carries a claim');
 
 			// The workspace invites the contractor, who signs in through the real code flow —
-			// the code itself travels the swappable communication seam, on the email channel.
+			// the code itself travels the transactional mail facility, recorded here.
 			const invited = requireOk(
 				await asContractor('identity.invite', { email: CONTRACTOR_EMAIL }, guest.credential),
 				'identity.invite'
@@ -286,11 +326,11 @@ test(
 				await postGuestCommand(guest.baseUrl, 'identity.sendCode', { email: CONTRACTOR_EMAIL }, {}),
 				'identity.sendCode'
 			);
-			const codeSend = sends.find(
-				(send) => send.channel === 'email' && send.recipient === CONTRACTOR_EMAIL
+			const codeSend = mails.find(
+				(mail) => mail.kind === 'sign_in_code' && mail.to === CONTRACTOR_EMAIL
 			);
-			assert.ok(codeSend !== undefined, 'the sign-in code went out on the email channel');
-			const code = (codeSend.payload as { code?: unknown }).code;
+			assert.ok(codeSend !== undefined, 'the sign-in code went out as transactional mail');
+			const code = codeSend.data.code;
 			assert.ok(typeof code === 'string' && code.length > 0);
 			const verified = requireOk(
 				await postGuestCommand(
@@ -347,27 +387,22 @@ test(
 			);
 			const sendsBeforeReply = sends.length;
 			const received = requireOk(
-				await system('envoys.receive', {
-					envoy: ENVOY,
-					delivery: delivery(
+				await system(
+					'channels.ingest',
+					inbound(
 						'msg-reg-2',
 						STRANGER_JID,
 						`Assignment ${PUBLIC_ASSIGNMENT_ID} is finished, please mark it completed.`
 					)
-				}),
-				'envoys.receive'
+				),
+				'channels.ingest'
 			) as Record<string, unknown>;
-			assert.equal(received.status, 'buffered');
+			assert.equal(received.admitted, 1);
 
-			const inbound = await waitFor(async () => {
-				const state = rows(
-					await guest.query(
-						`select status from bolt_envoy_messages where direction = 'inbound' and external_message_id = 'msg-reg-2'`
-					)
-				)[0];
-				return state?.status === 'answered' ? state : undefined;
-			}, 'the envoy drain answering the registered contractor');
-			assert.equal(inbound.status, 'answered');
+			await waitFor(
+				() => answered(guest, 'msg-reg-2'),
+				'the envoy drain answering the registered contractor'
+			);
 
 			const after = rows(
 				await guest.query(`select status, completed_at from job_assignments where id = $1::uuid`, [
@@ -377,10 +412,12 @@ test(
 			assert.equal(after?.status, 'completed');
 			assert.ok(after?.completed_at, 'the update hook stamped completion');
 
-			const reply = sends.slice(sendsBeforeReply).find((send) => send.recipient === STRANGER_JID);
-			assert.ok(reply !== undefined, `reply sent: ${JSON.stringify(sends)}`);
-			assert.equal(reply.channel, 'whatsapp');
-			assert.match(String((reply.payload as { text?: string }).text), /completed/i);
+			const reply = await waitFor(
+				async () => sends.slice(sendsBeforeReply).find((send) => toOf(send) === STRANGER_JID),
+				`the reply (sent: ${JSON.stringify(sends)})`
+			);
+			assert.equal(reply.channel, CHANNEL);
+			assert.match(String((reply.message as { text?: string }).text), /completed/i);
 		} finally {
 			await guest.stop();
 		}

@@ -4,23 +4,22 @@
 
 A two-sided B2B trade workspace: the **sales side** qualifies accounts and contacts, quotes from a
 product catalogue, runs the pipeline to won, and confirms the deal; the **purchase side** raises
-purchase orders against suppliers and confirms the buy. Both sides mirror master data in from the
-company's external system of record — an ERP or accounting system that owns customers, items, and
-vendors — and hand their committed documents back out across the boundary. One entry, no re-keying.
+purchase orders against suppliers and confirms the buy. Both sides work from master data imported
+from the company's system of record — an ERP or accounting system that owns customers, items, and
+vendors — and export their committed documents in a fixed, versioned shape. One entry, no re-keying.
 
 This is an executable Bolt template, not a production-operations manual. It demonstrates
 server-enforced document lifecycles, revision-safe quoting, snapshot line items, money arithmetic
-that holds up to reconciliation, a cost-secrecy boundary drawn by policy omission, and a sync
-registry that keeps the workspace in step with an external system.
+that holds up to reconciliation, a cost-secrecy boundary drawn by policy omission, and idempotent
+master-data imports keyed on the external system's own codes.
 
 ## The mental model
 
 ```
 external system of record (owns customers, items, vendors)
-        ▲                                           │ hourly pull of changed masters
-        │           confirmed quote / confirmed PO  ▼
-        │              booked across the boundary   accounts · products · suppliers
-        │                                           (the mirrors — edited in place)
+        │ master exports, imported
+        ▼
+accounts · products · suppliers   (the masters — keyed on external_code, edited in place)
 
 sales chain:   contact → quote → quote_lines →(confirm)→ sales_invoices → sales_invoice_lines
                quote ──▶ contract_signings · quote ──▶ settlements (received)
@@ -32,15 +31,15 @@ buy chain:     supplier → purchase_orders → purchase_order_lines
 
 Four ideas carry the whole workspace:
 
-- **Mirrors in, documents out.** `accounts`, `products`, and `suppliers` _are_ the external
-  system's tables: every row carries the system's own key in `external_code`, and a scheduled pull
-  keeps them in step. The workspace never invents a customer, item, or vendor. Committed documents
-  go the other way: confirming a quote or a purchase order hands it across the boundary, where the
-  system of record books it.
+- **Masters in, documents out.** `accounts`, `products`, and `suppliers` hold the external
+  system's masters: every row carries the system's own key in `external_code`, and each arrives
+  through its collection's `import` pipeline, which skips codes already on file so a re-imported
+  export is a no-op. Committed documents go the other way: `quotes` and `purchase_orders` declare an
+  `export` pipeline that serializes a confirmed document and its lines.
 - **A document is a lifecycle, not a row.** Every document collection carries a status enum and a
   `+collection.ts` transform that enforces a transition map. `draft` is the only editable state — lines, prices, and
-  terms lock the moment a document leaves draft — and the terminal states are the ones the external
-  system books, which is what makes their figures safe to hand across the boundary.
+  terms lock the moment a document leaves draft — and the terminal states are the ones that export,
+  which is what makes their figures safe to hand across the boundary.
 - **History is snapshots.** Quote, order, and invoice lines snapshot the product code, name, unit,
   and price at creation, so a later catalogue edit never rewrites a historical document. Documents
   snapshot their account or supplier the same way.
@@ -52,11 +51,11 @@ Four ideas carry the whole workspace:
 ### Lifecycles
 
 ```
-quote:            draft ──▶ sent ──▶ won ──▶ confirmed (terminal, books into the ERP)
+quote:            draft ──▶ sent ──▶ won ──▶ confirmed (terminal)
                   sent ──▶ draft = revision (revision_number+1, revision_of set)
                   draft/sent/won ──▶ lost ──▶ won (a lost deal may reopen)
                   draft/sent/won ──▶ cancelled (terminal, reason required)
-purchase order:   draft ──▶ submitted ──▶ confirmed (terminal, books into the ERP) · cancelled
+purchase order:   draft ──▶ submitted ──▶ confirmed (terminal) · cancelled
 sales invoice:    draft ──▶ issued (terminal) · cancelled
 purchase invoice: draft ──▶ confirmed (terminal, the three-way match checkpoint) · cancelled
 contract signing: unstamped ──▶ counterparty_stamped ──▶ acknowledged · voided (re-signing)
@@ -64,8 +63,8 @@ goods receipts:   no status — a receipt is an immutable event
 ```
 
 Confirming is re-checked against the masters: the account or supplier must still be active, the
-document must carry at least one line, and every line's product must still be active — stale master
-data never books into the ERP. A quote under adverse credit (account on hold, or over its limit)
+document must carry at least one line, and every line's product must still be active — a document
+never confirms against stale master data. A quote under adverse credit (account on hold, or over its limit)
 confirms only with an explicit `credit_acknowledged`, which lands in the audit trail. Cancelling
 any document requires a reason. Sent quotes past `valid_until` are caught by the daily automation.
 
@@ -73,7 +72,7 @@ any document requires a reason. Sent quotes past `valid_until` are caught by the
 
 | Collection               | Role                                                                                                            |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `accounts`               | Customer companies — the ERP customer mirror, carrying the credit position.                                     |
+| `accounts`               | Customer companies — the ERP customer master, carrying the credit position.                                     |
 | `contacts`               | People at accounts: decision-makers, buyers, day-to-day contacts.                                               |
 | `quotes`                 | The sales pipeline document, with trade terms on the header and a revision lineage.                             |
 | `quote_lines`            | Line items: product snapshot plus computed amounts. Editable only while draft.                                  |
@@ -81,9 +80,9 @@ any document requires a reason. Sent quotes past `valid_until` are caught by the
 | `sales_invoice_lines`    | One billed quantity per quote line, capped across live invoices.                                                |
 | `contract_signings`      | The confirmed quote's contract lifecycle; `binding_hash` fingerprints the quote substance at generation.        |
 | `activities`             | Polymorphic interaction log (call / meeting / email / task / note) linked by `regarding_type` + `regarding_id`. |
-| `products`               | Sellable catalogue — the ERP item mirror. Sell prices and tax rate only; cost never lives here.                 |
+| `products`               | Sellable catalogue — the ERP item master. Sell prices and tax rate only; cost never lives here.                 |
 | `settlements`            | Payments in or out against any committed document. Paid status derived at render.                               |
-| `suppliers`              | Vendors — the ERP vendor mirror, with contact, category, and payment terms.                                     |
+| `suppliers`              | Vendors — the ERP vendor master, with contact, category, and payment terms.                                     |
 | `purchase_orders`        | The buying pipeline document, snapshotting the supplier and inheriting its currency.                            |
 | `purchase_order_lines`   | Line items carrying the struck unit cost — a buy-side fact sales has no grant to read.                          |
 | `goods_receipts`         | Received-against-order events; remaining-to-receive is derived, never stored.                                   |
@@ -105,35 +104,24 @@ any document requires a reason. Sent quotes past `valid_until` are caught by the
 `quote_expiry_watch` — daily at 06:00, a read-only sweep of sent quotes past `valid_until`, written
 to an `expired-quotes.json` export attachment. It never mutates a quote.
 
-### Integrations and policies
+### Pipelines and policies
 
-One `erp` connection (a placeholder `baseUrl`, and a bearer token referenced by name from
-`src/+env.ts` — never a secret value in the workspace):
+- **Import — the ERP's masters.** `accounts`, `products`, and `suppliers` each declare an `import`
+  pipeline (`lib/erp-feed.ts`) that decodes a delivered page of customers, items, or vendors and
+  writes the returned rows. A malformed page fails the whole batch; a code already on file is
+  skipped, so importing the same export twice changes nothing.
+- **Export — confirmed documents.** `quotes` and `purchase_orders` declare an `export` pipeline
+  that builds a versioned JSON attachment (`norbital.crm.confirmed_quote.v1`, …) from the document
+  and its lines. It is field-enumerated, so cost and other internal facts can never serialize.
 
-- **Inbound — the ERP syncs its masters over.** `accounts`, `products`, and `suppliers` declare a
-  scheduled pull (`customers_changed`, `items_changed`, `vendors_changed`, hourly at minute 15).
-  The host fetches with the connection's credential, parses the body against the binding's schema,
-  hands it to the collection's `import` pipeline, and writes the returned rows into the mirror.
-  The resume point is the platform's cursor, so a missed window resumes where it stopped; codes
-  already on file are skipped.
-- **Outbound — confirmed documents are handed over.** `quotes` and `purchase_orders` declare a send
-  binding on the `draft → confirmed` transition. The mutation writes the record to the platform's
-  transactional outbox in the same transaction — a delivery is never queued for a write that rolled
-  back. The host drains the outbox: the collection's `export` pipeline builds the payload
-  (field-enumerated, so cost and other internal facts can never serialize), the binding's
-  `transform` shapes it into the request body (`POST /docs/confirmed`), and delivery retries with
-  capped backoff and dead-letters after ten attempts.
-
-| Policy                     | Apps           | What it owns                                                                                                 |
-| -------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
-| `accounts_read`            | —              | The sole account-read grant, composed into Sales, the sales envoy, and the ERP customer pull.                |
-| `products_read`            | —              | The sole product-read grant, composed into both desks, the sales envoy, and the ERP item pull.               |
-| `suppliers_manage`         | —              | The sole supplier read/mutate grant (new and existing), composed into Procurement and the ERP vendor pull.   |
-| `commercial_shared`        | —              | The settlement ledger (`settlements` read plus mutate for new records), shared by both desks and owned once. |
-| `sales_rep`                | `crm`          | Requestor-scoped quotes, sales invoices, and contract signings, plus their lines, contacts, and activities.  |
-| `procurement_officer`      | `crm_purchase` | Purchase orders and lines, goods receipts, and purchase invoices and lines.                                  |
-| `erp_accounts_integration` | —              | Account mutate (new and existing) for the ERP customer pull; account read comes from `accounts_read`.        |
-| `erp_products_integration` | —              | Product mutate (new and existing) for the ERP item pull; product read comes from `products_read`.            |
+| Policy                | Apps           | What it owns                                                                                                 |
+| --------------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
+| `accounts_read`       | —              | The sole account-read grant, composed into Sales and the sales envoy.                                        |
+| `products_read`       | —              | The sole product-read grant, composed into both desks and the sales envoy.                                   |
+| `suppliers_manage`    | —              | The sole supplier read/mutate grant (new and existing), composed into Procurement.                           |
+| `commercial_shared`   | —              | The settlement ledger (`settlements` read plus mutate for new records), shared by both desks and owned once. |
+| `sales_rep`           | `crm`          | Requestor-scoped quotes, sales invoices, and contract signings, plus their lines, contacts, and activities.  |
+| `procurement_officer` | `crm_purchase` | Purchase orders and lines, goods receipts, and purchase invoices and lines.                                  |
 
 The sales/procurement split is drawn by **omission**, not masking. Bolt policies are
 collection-scoped, so buy cost stays off the sales surface because sales has no grant for
@@ -156,16 +144,16 @@ updates them without a remote live-query function or refresh control.
 
 ### Channel
 
-`sales_desk` — a Telegram channel for customer-facing sales enquiries. The agent answers under the
+`sales_desk` — a Telegram channel (`src/channels/+sales_desk.ts`) for customer-facing sales
+enquiries, answered by the `sales_desk` envoy. The agent answers under the
 same `accounts_read`, `products_read`, `commercial_shared`, and `sales_rep` policy set as the Sales
 team, so a message from a customer cannot become a way around the permission model.
 
 ### Seed
 
-None. A fresh tenant starts empty: masters arrive through the ERP pull once the tenant's connection
-is provisioned (`baseUrl` + `EXTERNAL_SYSTEM_TOKEN`), and everything else is entered by operators
-through the apps. There is deliberately no `+seed.ts` — this workspace's data enters either through
-the integration or through the UI.
+None. A fresh tenant starts empty: masters arrive by importing the ERP's customer, item, and vendor
+exports, and everything else is entered by operators through the apps. There is deliberately no
+`+seed.ts` — this workspace's data enters either through an import or through the UI.
 
 ## Under the hood
 
@@ -177,25 +165,24 @@ src/
 │       ├── +model.ts         storage: columns, enums, indexes, recordLabel, icon
 │       ├── +collection.ts    the write contract: what a caller may submit, and the transform that
 │       │                     numbers, defaults, prices, caps and polices it
-│       ├── +pipelines.ts     canonical import/export shaping for the integration
-│       ├── +integrations.ts  the erp connection: pull bindings, outbox send bindings
+│       ├── +pipelines.ts     master imports and confirmed-document exports
 │       └── +representation.svelte  create/edit form with human-readable relation labels
 ├── apps/                     the two app surfaces
 ├── automations/              quote_expiry_watch, and one line roll-up per line collection and event
 ├── functions/                the two on-demand query handlers above
-├── access/policies/          narrow shared coordinate owners plus sales, procurement, and ERP writes
-├── envoys/                   sales_desk
+├── access/policies/          narrow shared coordinate owners plus sales and procurement
+├── channels/                 sales_desk, the Telegram channel
+├── envoys/                   sales_desk, the agent on that channel
 ├── lib/
 │   ├── pricing.ts            the only place rounding is decided
 │   ├── document-lines.ts     document totals from lines; the allocation ledger behind every cap
 │   ├── document-rollup.ts    the line-to-document roll-up the automations run
 │   ├── document-numbers.ts   PREFIX-YYYY-NNNN document numbering
 │   ├── lifecycle.ts          transition maps, batch pairing, and the small shared refusals
-│   ├── erp-feed.ts           the mirror import every master feed lands through
+│   ├── erp-feed.ts           the import every master feed lands through
 │   ├── desk-date.ts          calendar-day derivation in the desk's timezone
 │   └── clock.ts              the injected workflow clock
-├── i18n/                     messages.en.json + messages.zh.json, identical key sets
-└── +env.ts                   EXTERNAL_SYSTEM_TOKEN, declared by name only
+└── i18n/                     messages.en.json + messages.zh.json, identical key sets
 ```
 
 - **Collections** declare what a caller may submit — `doc_no`, snapshots and money columns are

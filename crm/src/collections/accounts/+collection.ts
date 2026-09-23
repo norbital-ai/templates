@@ -15,14 +15,7 @@ const columns = {
 	active: true
 } as const;
 
-/**
- * The customer mirror: the ERP pull and the import pipeline write it as is.
- *
- * `external_code` stays in the update selection because the pull restates it on every run — the
- * identity column rides along with the mapped row. That it never *changes* is a rule of the one
- * grant that edits accounts, `erp_accounts_integration`: who may move an identity is a question
- * of authority, so it is answered where authority is declared.
- */
+/** The customer master: the form and the ERP import pipeline write it as is. */
 export default defineCollection({
 	model,
 	create: { input: { columns } },
