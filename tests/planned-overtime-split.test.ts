@@ -17,6 +17,8 @@ import { memoryWorkspaceApi } from './fixtures/memory-payroll-api.ts';
 import {
 	applicableLimits,
 	observedHolidayDates,
+	observedHolidays,
+	overtimeEntitled,
 	splitPlannedOvertime
 } from '../src/lib/scheduling/work-limits.ts';
 import { settingsVersions } from './fixtures/statutory-world.ts';
@@ -452,12 +454,55 @@ test('the observed holiday is the one payroll prices: a Sunday holiday is carrie
 				patternOn: () => ({ pattern, anchor: '2026-06-29' })
 			})
 		].toSorted();
-	// Sunday the 5th is the rest day: under SUBSTITUTE the holiday is observed on Monday the 6th.
+	// Sunday the 5th is the rest day: under SUBSTITUTE the holiday is observed on Monday the 6th,
+	// under its own name and carried from the 5th.
 	assert.deepEqual(observed([row(dayOf(5))], 'SUBSTITUTE'), [dayOf(6)]);
+	const named = observedHolidays({
+		dates: [dayOf(1)],
+		cutoffDay: 1,
+		companyId: 'co',
+		holidays: [row(dayOf(5))],
+		codes,
+		precedence: 'SUBSTITUTE',
+		plans: [],
+		rosterPeriods: [],
+		patternOn: () => ({ pattern, anchor: '2026-06-29' })
+	});
+	assert.deepEqual(named.get(dayOf(6)), { name: 'Holiday', from: dayOf(5) });
 	// A calendar that publishes the replacement itself is read as published.
 	assert.deepEqual(observed([row(dayOf(5)), row(dayOf(7), dayOf(5))], 'SUBSTITUTE'), [dayOf(7)]);
 	// Under REST_DAY precedence the rest day wins and no weekday is a holiday.
 	assert.deepEqual(observed([row(dayOf(5))], 'REST_DAY'), []);
+});
+
+test('overtime entitlement reads the wage payroll derives: basic plus the allowances paid for work', () => {
+	// Malaysia's rule: the ladder stops at wages over RM4,000 (First Schedule para 1A).
+	const rule = settingsVersions('MY').at(-1).work_rules.overtime_when;
+	const classes = new Map([
+		['shift', { destination: 'PAY', direction: 'ADD' }],
+		['deduct', { destination: 'PAY', direction: 'SUBTRACT' }],
+		['employer', { destination: 'EMPLOYER', direction: null }]
+	]);
+	const person = (allowances) => ({
+		employee: null,
+		employment: { service_start: '', type: 'PERMANENT' },
+		terms: {
+			base_salary: { value: 3800, currency: 'MYR' },
+			statutory_work_category: 'GENERAL',
+			allowances
+		},
+		company: null,
+		asOf: dayOf(1)
+	});
+	const entitled = (allowances) =>
+		overtimeEntitled(rule, person(allowances), (id) => classes.get(id));
+	assert.equal(entitled([]), true, 'RM3,800 basic is within the ladder');
+	// A RM300 shift allowance is a cash payment for work: RM4,100 is over the ceiling.
+	assert.equal(entitled([{ catalogue_id: 'shift', amount: 300 }]), false);
+	// A deduction or an employer cost is not wages, and neither is a class it cannot resolve.
+	assert.equal(entitled([{ catalogue_id: 'deduct', amount: 300 }]), true);
+	assert.equal(entitled([{ catalogue_id: 'employer', amount: 300 }]), true);
+	assert.equal(entitled([{ catalogue_id: 'unknown', amount: 300 }]), true);
 });
 
 test('the normal day and the spread-over never cap: they are not overtime limits', () => {

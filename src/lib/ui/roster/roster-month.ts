@@ -140,8 +140,13 @@ export type DayFacts = {
 	readonly shiftStart: string | null;
 	readonly shiftEnd: string | null;
 	readonly shiftBreakMinutes: number | null;
-	/** Overlaid from the published `jurisdiction_holidays`, never stored on the entry. */
+	/**
+	 * The holiday this person observes on the day, as payroll prices it (`observedHolidays`): the
+	 * published row's name, or a rest-day holiday SUBSTITUTE carried here. Never stored on the entry.
+	 */
 	readonly holidayName: string | null;
+	/** Where the holiday was carried here from a rest day, the date it fell on; else null. */
+	readonly holidayFrom: string | null;
 	readonly leaveCode: string | null;
 	readonly halfDayLeave: boolean;
 	/** A leave request covering the day that has not been approved yet. */
@@ -458,6 +463,15 @@ type BuildRosterMonthOptions = {
 	readonly today: string;
 	/** The entity's business timezone (the version in force's `payroll.timezone`); clocks are read in it. */
 	readonly timeZone?: string;
+	/**
+	 * Each person's observed holidays, as payroll resolves them (`observedHolidays`). Where a person
+	 * has an entry, their cells read it — so a SUBSTITUTE carry and the rest-day precedence show as
+	 * payroll prices them; otherwise the published calendar is overlaid by date.
+	 */
+	readonly observedHolidays?: ReadonlyMap<
+		string,
+		ReadonlyMap<string, { readonly name: string; readonly from: string | null }>
+	>;
 };
 
 /** The month's per-day indexes `factsForDate` reads, built once per month. */
@@ -594,10 +608,14 @@ function factsForDate(
 				: ('ACTIVE' as const);
 	const breakTaken = recorded == null ? null : derivedBreakMinutes(recorded, window?.break_minutes);
 	const holiday = indexes.holidayByDate.get(date) ?? null;
+	const observed = options.observedHolidays?.get(employmentId);
+	const observedHoliday = observed?.get(date) ?? null;
 	const holidayName =
-		holiday != null && holidayAppliesTo(holiday, options, indexes, employmentId)
-			? holiday.name
-			: null;
+		observed != null
+			? (observedHoliday?.name ?? null)
+			: holiday != null && holidayAppliesTo(holiday, options, indexes, employmentId)
+				? holiday.name
+				: null;
 	const conflicts: ConflictKind[] = [];
 	if (pendingLeave && designation === 'WORK') conflicts.push('PENDING_LEAVE_OVERLAP');
 	if (leave != null && (designation === 'WORK' || intervals.length > 0)) {
@@ -621,6 +639,7 @@ function factsForDate(
 		shiftEnd: employmentState === 'ACTIVE' ? (window?.end_time ?? null) : null,
 		shiftBreakMinutes: employmentState === 'ACTIVE' ? (window?.break_minutes ?? null) : null,
 		holidayName,
+		holidayFrom: observedHoliday?.from ?? null,
 		leaveCode: leave?.code ?? null,
 		halfDayLeave: leave?.halfDay ?? false,
 		pendingLeave,
@@ -1294,7 +1313,12 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 		day.status === 'BEFORE_START' || day.status === 'EXITED'
 			? t(STATUS_PRESENTATION[day.status].labelKey)
 			: describePlanLayer(day, t),
-		day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,
+		day.holidayName == null
+			? null
+			: `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}` +
+				(day.holidayFrom == null
+					? ''
+					: ` (${t('roster.holiday_carried_from', { date: day.holidayFrom })})`),
 		day.leaveCode == null
 			? null
 			: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,

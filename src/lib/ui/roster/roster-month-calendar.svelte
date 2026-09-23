@@ -386,7 +386,8 @@
 								<div class="min-h-24 rounded-md bg-muted/20" aria-hidden="true"></div>
 							{:else}
 								{@const day = dayOf(date)}
-								{@const holiday = holidayNames.get(date)}
+								{@const holiday =
+									day != null ? day.holidayName : (holidayNames.get(date)?.name ?? null)}
 								{@const entryLock = entryLocks.get(date)}
 								{@const rung = day == null ? 'OPEN' : lockRung(entryLock)}
 								{@const rail = RUNG_PRESENTATION[rung]}

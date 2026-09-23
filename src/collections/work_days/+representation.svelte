@@ -415,9 +415,31 @@
 						work_classification: true,
 						base_salary: true,
 						statutory_work_category: true,
-						pay_frequency: true
+						pay_frequency: true,
+						allowances: true
 					},
 					with: { term_shift_pattern: PATTERN_WITH },
+					limit: 100
+				})
+	);
+	/** The classes of the allowances the terms list: each counts toward the overtime rule's wage as payroll counts it. */
+	const listedAllowanceIds = $derived([
+		...new Set(
+			(termsQuery?.current ?? []).flatMap((term) =>
+				Array.isArray(term.allowances)
+					? (term.allowances as readonly { readonly catalogue_id: string }[]).map(
+							(row) => row.catalogue_id
+						)
+					: []
+			)
+		)
+	]);
+	const allowanceClassesQuery = $derived(
+		listedAllowanceIds.length === 0
+			? null
+			: client.db.allowance_catalogue.findMany({
+					where: { id: { in: listedAllowanceIds } },
+					columns: { id: true, destination: true, direction: true },
 					limit: 100
 				})
 	);
@@ -541,7 +563,11 @@
 				cutoffDay
 			}),
 			holiday: holidays.has(date),
-			entitled: workDate == null || overtimeEntitled(rules?.overtime_when, person(workDate))
+			entitled:
+				workDate == null ||
+				overtimeEntitled(rules?.overtime_when, person(workDate), (id) =>
+					(allowanceClassesQuery?.current ?? []).find((row) => row.id === id)
+				)
 		};
 	});
 	/** The approved hours keyed above the day's headroom: the save is blocked. */

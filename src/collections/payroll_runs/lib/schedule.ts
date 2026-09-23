@@ -62,6 +62,12 @@ export type ScheduledDay = {
 	readonly statutoryRest: boolean;
 	/** Whether the roster left the day unassigned (OFF) before any holiday was overlaid on it. */
 	readonly offDay: boolean;
+	/**
+	 * The holiday the person observes on this date, where the day prices as one: the calendar row's
+	 * own name, or — under SUBSTITUTE — the rest-day holiday carried here and the date it fell on.
+	 * Null on every other day. Pricing reads `dayType`; this names the day for a surface.
+	 */
+	readonly observedHoliday: { readonly name: string; readonly from: IsoDate | null } | null;
 };
 
 type WeeklyHoursTerms = {
@@ -185,12 +191,13 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		restDay: boolean;
 		statutoryRest: boolean;
 		offDay: boolean;
+		observedHoliday: ScheduledDay['observedHoliday'];
 	}[] = [];
 	const precedence = options.configuration.holidayRestPrecedence;
 	if (precedence !== 'REST_DAY' && precedence !== 'PUBLIC_HOLIDAY' && precedence !== 'SUBSTITUTE')
 		throw new Error('The Work rules must specify public-holiday/rest-day precedence.');
 	/** Under SUBSTITUTE: holidays that fell on a rest day, waiting for the next working day. */
-	const carried: RuleDayType[] = [];
+	const carried: { dayType: RuleDayType; name: string; from: IsoDate }[] = [];
 	/**
 	 * The rest-day holidays the calendar already substitutes itself, by the date they came from.
 	 *
@@ -239,18 +246,29 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 				: holidayRow;
 		// Observed dates come only from the jurisdiction calendar. The pricing rule resolves overlap.
 		let dayType: DayType = holiday ? holidayDayType(holiday) : baseDayType;
+		let observedHoliday: ScheduledDay['observedHoliday'] = holiday
+			? { name: holiday.name, from: null }
+			: null;
 		if (holiday && baseDayType === 'REST_DAY') {
 			// SUBSTITUTE: the rest day stays a rest day and the holiday is observed on the next
 			// working day of the window; one that falls past the window is nobody's to observe here.
 			if (precedence === 'SUBSTITUTE') {
 				dayType = 'REST_DAY';
-				if (!substitutedFrom.has(date)) carried.push(holidayDayType(holiday));
+				observedHoliday = null;
+				if (!substitutedFrom.has(date))
+					carried.push({ dayType: holidayDayType(holiday), name: holiday.name, from: date });
+			} else if (precedence === 'REST_DAY') {
+				dayType = precedence;
+				observedHoliday = null;
 			} else
 				// The holiday's own kind wins over the rest day: a special day stays special (and
 				// `rest_day` says it was the rest day, for the compounded band).
-				dayType = precedence === 'PUBLIC_HOLIDAY' ? holidayDayType(holiday) : precedence;
-		} else if (!holiday && baseDayType === 'ORDINARY' && carried.length > 0)
-			dayType = carried.shift()!;
+				dayType = holidayDayType(holiday);
+		} else if (!holiday && baseDayType === 'ORDINARY' && carried.length > 0) {
+			const carry = carried.shift()!;
+			dayType = carry.dayType;
+			observedHoliday = { name: carry.name, from: carry.from };
+		}
 		if (clampStart == null && baseDayType === 'ORDINARY' && assignmentCode?.shift)
 			clampStart = assignmentCode.shift.start_time;
 		pending.push({
@@ -268,7 +286,8 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 					: terms.normal_daily_hours,
 			restDay: baseDayType === 'REST_DAY',
 			statutoryRest: baseDayType === 'REST_DAY' && dayCode?.statutoryRest === true,
-			offDay: baseDayType === 'OFF_DAY'
+			offDay: baseDayType === 'OFF_DAY',
+			observedHoliday
 		});
 	}
 
@@ -282,7 +301,8 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			normalHours: day.normalHours,
 			restDay: day.restDay,
 			statutoryRest: day.statutoryRest,
-			offDay: day.offDay
+			offDay: day.offDay,
+			observedHoliday: day.observedHoliday
 		});
 	}
 	return resolved;
