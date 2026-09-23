@@ -25,7 +25,7 @@ const referencesUncheckedAssignment = (
 /**
  * Minimal authority for the hourly static automation identity.
  *
- * The run's first pass inspects every photo still awaiting facts, and that is what the wider reads
+ * The run's first pass inspects a photo still awaiting facts, and that is what the wider reads
  * are for: the photo's own assignment and site (which may belong to an assignment already
  * reviewed), the variation a photo can hang off, and the whole photo corpus the duplicate match
  * probes. The worklist stays narrow in code — only unchecked assignments are judged, and only an
@@ -54,7 +54,9 @@ export default {
 			read: {},
 			mutate: {
 				existing: {
-					fields: ['sha256', 'perceptual_embedding', 'flags', 'matched_evidence_ids'],
+					// `photo` only to correct its declared mime type to the one the bytes are; the
+					// collection refuses any change to which file it names.
+					fields: ['sha256', 'perceptual_embedding', 'flags', 'matched_evidence_ids', 'photo'],
 					authorize: ({ previous }) => previous.sha256 === ''
 				}
 			}

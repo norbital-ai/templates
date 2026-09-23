@@ -4,10 +4,11 @@ import createLibheif from 'libheif-js/libheif-wasm/libheif-bundle.mjs';
 import { deepDiff } from '@norbital-ai/std/json';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect, Option, Schema } from 'effect';
-import { hashPdq, pdqHashToHex } from './pdq.js';
+import type { Row as PhotoEvidenceRow } from './$types.js';
+import { digestToHex, hashPdq } from './pdq.js';
 import { currentDate } from '../../lib/clock.js';
 import { parse as parseExif } from '../../lib/exif-parser.mjs';
-import { exceedsSiteTolerance, SITE_LOCATION_TOLERANCE_M } from '../../lib/geo.js';
+import { exceedsSiteTolerance } from '../../lib/geo.js';
 
 const exifSchema = Schema.Struct({
 	DateTimeOriginal: Schema.optional(Schema.Union([Schema.Date, Schema.String])),
@@ -22,22 +23,7 @@ type Exif = Schema.Schema.Type<typeof exifSchema>;
 /** EXIF blocks are third-party and frequently malformed; a rejected block is simply absent. */
 const decodeExif = Schema.decodeUnknownOption(exifSchema);
 
-/** Keep in sync with `photo_evidence` model `flags` enum. */
-const photoIntegrityFlags = [
-	'visual_duplicate',
-	'metadata_anomaly',
-	'edited_metadata',
-	'low_quality',
-	'missing_geolocation',
-	'location_mismatch'
-] as const;
-
-type PhotoIntegrityFlag = (typeof photoIntegrityFlags)[number];
-
-const photoIntegrityFlagNames = new Set<string>(photoIntegrityFlags);
-
-const hexDigest = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/));
-const positiveInt = Schema.Int.check(Schema.isGreaterThan(0));
+type PhotoIntegrityFlag = PhotoEvidenceRow['flags'][number];
 
 /**
  * Whether a claimed capture time sits more than a day ahead of the moment being inspected.
@@ -54,27 +40,8 @@ function sha256Hex(bytes: Uint8Array) {
 	return Effect.tryPromise(() => {
 		const copy = Uint8Array.from(bytes);
 		return crypto.subtle.digest('SHA-256', copy.buffer);
-	}).pipe(
-		Effect.map((digest) =>
-			[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
-		)
-	);
+	}).pipe(Effect.map((digest) => digestToHex(new Uint8Array(digest))));
 }
-
-const photoInspectionSchema = Schema.Struct({
-	sha256: hexDigest,
-	/** Meta PDQ hash as 64-char hex (256-bit). */
-	perceptualHash: hexDigest,
-	/** PDQ quality score 0–100; Meta recommends discarding ≤49. */
-	pdqQuality: Schema.optional(Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 100 }))),
-	width: positiveInt,
-	height: positiveInt,
-	captureLocation: Schema.NullOr(Schema.Struct({ lat: Schema.Number, lon: Schema.Number })),
-	flags: Schema.Array(Schema.Literals(photoIntegrityFlags))
-});
-
-/** Throws on any fact shape the host inspection cache was not supposed to be able to produce. */
-export const decodePhotoInspection = Schema.decodeUnknownSync(photoInspectionSchema);
 
 /**
  * Meta PDQ near-duplicate threshold as Hamming distance (ThreatExchange default ≤31).
@@ -84,7 +51,18 @@ const VISUAL_DUPLICATE_MAX_HAMMING = 31;
 export const VISUAL_DUPLICATE_MAX_L2 = Math.sqrt(VISUAL_DUPLICATE_MAX_HAMMING);
 
 /** Keep in sync with the `photo_evidence` model's `perceptual_embedding` dimensions. */
-export const PDQ_DIMENSIONS = 256;
+const PDQ_DIMENSIONS = 256;
+
+/**
+ * The integrity facts every photo is born with, however it is filed: an empty hash and a zero
+ * vector until the suspicion review reads the bytes, which no write path can.
+ */
+export const uninspectedPhotoFacts = () => ({
+	sha256: '',
+	perceptual_embedding: new Array<number>(PDQ_DIMENSIONS).fill(0),
+	flags: [],
+	matched_evidence_ids: []
+});
 
 /**
  * The stable identity of one photo's provenance, unique-indexed on the model: a channel attachment
@@ -108,15 +86,13 @@ export const photoSourceKey = (
 /** Below this PDQ quality, the hash is too featureless to trust for similarity. */
 const PDQ_MIN_QUALITY = 50;
 
-const decodedImageSchema = Schema.Struct({
-	data: Schema.Uint8Array,
-	width: Schema.Int,
-	height: Schema.Int,
-	channels: Schema.Literals([3, 4]),
-	format: Schema.Literals(['jpeg', 'png', 'heic'])
-});
-
-type DecodedImage = Schema.Schema.Type<typeof decodedImageSchema>;
+type DecodedImage = {
+	readonly data: Uint8Array;
+	readonly width: number;
+	readonly height: number;
+	readonly channels: 3 | 4;
+	readonly format: 'jpeg' | 'png' | 'heic';
+};
 
 function toIsoDate(value: Date | string | undefined): string | null {
 	if (value == null) return null;
@@ -124,21 +100,18 @@ function toIsoDate(value: Date | string | undefined): string | null {
 	return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-function expectedMimeTypes(format: 'jpeg' | 'png' | 'heic'): readonly string[] {
-	switch (format) {
-		case 'jpeg':
-			return ['image/jpeg'];
-		case 'png':
-			return ['image/png'];
-		// iPhones write `image/heic`; a HEIF-branded container may arrive as `image/heif`.
-		case 'heic':
-			return ['image/heic', 'image/heif'];
-		default: {
-			const _exhaustive: never = format;
-			return _exhaustive;
-		}
-	}
-}
+/** The first entry is the canonical type; iPhones write `image/heic`, a HEIF brand `image/heif`. */
+const FORMAT_MIME_TYPES: Readonly<Record<DecodedImage['format'], readonly string[]>> = {
+	jpeg: ['image/jpeg'],
+	png: ['image/png'],
+	heic: ['image/heic', 'image/heif']
+};
+
+/**
+ * A declared type that says nothing about the format: a WhatsApp document arrives as
+ * `application/octet-stream`. Only a declared type that names a different format is an anomaly.
+ */
+const UNDECLARED_MIME_TYPES = new Set(['', 'application/octet-stream']);
 
 function captureLocationFromExif(exif: Exif): { lat: number; lon: number } | null {
 	const lat = exif.latitude;
@@ -263,37 +236,19 @@ const decodeImage = (bytes: Uint8Array) =>
 	});
 
 /**
- * Inspect a JPEG, PNG or HEIC evidence file.
+ * Inspect a JPEG, PNG or HEIC evidence file. The format is read from the bytes, never from the
+ * declared mime type, and `mimeType` answers with the type the bytes actually are.
  *
  * PDQ hashes are computed in hex here; the inspection automation persists them as a 256-dim 0/1
  * `vector` via `hexToBinaryEmbedding`. Near-duplicate search uses the same `findNearest` path as omni
  * embeddings (HNSW + L2). Exact duplicates
  * still use SHA-256. EXIF/GPS stays on `exifr`.
  */
-export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?: Date }) =>
+export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string | null; now?: Date }) =>
 	Effect.gen(function* () {
 		const image = yield* decodeImage(input.bytes);
-		// PNG and HEIC decode as RGBA; JPEG already returns RGB so the common photo path holds one
-		// raster.
-		const rgb =
-			image.channels === 3
-				? image.data
-				: (() => {
-						const output = new Uint8Array(image.width * image.height * 3);
-						for (let i = 0, j = 0; i < image.data.length; i += 4, j += 3) {
-							output[j] = image.data[i];
-							output[j + 1] = image.data[i + 1];
-							output[j + 2] = image.data[i + 2];
-						}
-						return output;
-					})();
-		const pdq = yield* hashPdq({
-			data: rgb,
-			width: image.width,
-			height: image.height,
-			channels: 3
-		});
-		const perceptualHash = pdqHashToHex(pdq.hash);
+		const pdq = yield* hashPdq(image);
+		const perceptualHash = digestToHex(pdq.hash);
 
 		let exif: Exif = {};
 		const parsedExif = yield* Effect.tryPromise(() =>
@@ -319,8 +274,12 @@ export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?:
 		const flags = new Set<PhotoIntegrityFlag>();
 		const capturedAt = toIsoDate(exif.DateTimeOriginal ?? exif.CreateDate);
 		const now = input.now ?? (yield* currentDate);
-		const expectedMimes = expectedMimeTypes(image.format);
-		if (!expectedMimes.includes(input.mimeType.toLowerCase()) || capturedAheadOf(capturedAt, now)) {
+		const declared = (input.mimeType ?? '').toLowerCase();
+		const expected = FORMAT_MIME_TYPES[image.format];
+		if (
+			(!expected.includes(declared) && !UNDECLARED_MIME_TYPES.has(declared)) ||
+			capturedAheadOf(capturedAt, now)
+		) {
 			flags.add('metadata_anomaly');
 		}
 		if (
@@ -335,6 +294,7 @@ export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?:
 
 		return {
 			sha256,
+			mimeType: expected.includes(declared) ? declared : expected[0]!,
 			perceptualHash,
 			pdqQuality: pdq.quality,
 			width: image.width,
@@ -351,12 +311,11 @@ export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?:
  */
 export function evaluateCaptureGeolocation(
 	capture: { lat: number; lon: number } | null,
-	site: { lat: number; lon: number } | null,
-	maxDistanceM = SITE_LOCATION_TOLERANCE_M
+	site: { lat: number; lon: number } | null
 ): PhotoIntegrityFlag[] {
 	if (capture == null) return ['missing_geolocation'];
 	if (site == null) return [];
-	if (exceedsSiteTolerance(capture, site, maxDistanceM)) return ['location_mismatch'];
+	if (exceedsSiteTolerance(capture, site)) return ['location_mismatch'];
 	return [];
 }
 

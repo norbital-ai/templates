@@ -4,13 +4,13 @@ import { createHash } from 'node:crypto';
 import { encode as encodeJpeg } from 'jpeg-js';
 import { Effect, Schema } from 'effect';
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
+import { sha256Text } from '@norbital-ai/std/reckon/hash';
 import suspicionReviewAutomation, {
 	SUSPICION_REVIEW_CONCURRENCY,
 	SuspicionReviewIncompleteError
 } from '../src/automations/+review_job_assignment_suspicion.js';
 import {
 	ASSIGNMENT_PAGE_SIZE,
-	CROSS_ASSIGNMENT_MAX_HAMMING,
 	MAX_INFERENCE_ASSET_NAME_CHARS,
 	MAX_INFERENCE_CONTEXT_CHARS,
 	MAX_INFERENCE_IMAGE_BYTES,
@@ -25,11 +25,8 @@ import {
 	loadUncheckedAssignments,
 	reviewSourceKey,
 	selectSuspicionInferencePhotos,
-	shouldCreateSuspicionLog,
-	shouldReviewAssignment,
 	suspicionInferenceSchema,
 	suspicionPrompt,
-	suspicionReviewHash,
 	validDecisionEvidenceId,
 	type SuspicionReviewFacts
 } from '../src/automations/suspicion-review.js';
@@ -113,7 +110,6 @@ function automationHarness(options: {
 	readonly noLongerPending?: ReadonlySet<string>;
 	readonly openSuspicionIds?: Readonly<Record<string, string>>;
 	readonly existingReviews?: Readonly<Record<string, ExistingReview>>;
-	readonly stallAssignmentPagination?: boolean;
 	readonly inferenceDelayMillis?: number;
 	/** Photos the assignment's own facts read returns; the default is one already-inspected photo. */
 	readonly assignmentPhotos?: ReadonlyArray<Record<string, unknown>>;
@@ -130,6 +126,8 @@ function automationHarness(options: {
 	readonly nearest?: ReadonlyArray<Record<string, unknown>>;
 	/** Bytes `readFileAsset` answers with; absent makes it fail like a photo whose object is gone. */
 	readonly photoBytes?: Uint8Array;
+	/** The mime type the stored descriptor declares; a WhatsApp document arrives as octet-stream. */
+	readonly photoMimeType?: string | null;
 }) {
 	const inferenceCounts = new Map<string, number>();
 	let activeInferences = 0;
@@ -219,10 +217,7 @@ function automationHarness(options: {
 					const afterId = input.where?.id?.gt;
 					assignmentPageAfterIds.push(afterId);
 					const eligible = options.assignments
-						.filter(
-							({ id }) =>
-								options.stallAssignmentPagination === true || afterId === undefined || id > afterId
-						)
+						.filter(({ id }) => afterId === undefined || id > afterId)
 						.sort((left, right) => left.id.localeCompare(right.id));
 					return Effect.succeed(eligible.slice(0, input.limit ?? ASSIGNMENT_PAGE_SIZE));
 				}
@@ -330,7 +325,7 @@ function automationHarness(options: {
 				: Effect.succeed({
 						id: 'file',
 						name: 'photo.jpg',
-						mimeType: 'image/jpeg',
+						mimeType: options.photoMimeType === undefined ? 'image/jpeg' : options.photoMimeType,
 						size: options.photoBytes.byteLength,
 						bytes: options.photoBytes
 					})
@@ -433,14 +428,6 @@ function facts(): SuspicionReviewFacts {
 	};
 }
 
-test('reviews every unchecked assignment, including completed rows', () => {
-	assert.equal(shouldReviewAssignment('assigned'), true);
-	assert.equal(shouldReviewAssignment('unassigned'), true);
-	assert.equal(shouldReviewAssignment(null), true);
-	assert.equal(shouldReviewAssignment('completed'), true);
-	assert.equal(shouldReviewAssignment('assigned', '2026-08-24T01:00:00.000Z'), false);
-});
-
 test('materialises every unchecked assignment across pages beyond 500', async () => {
 	const assignments = Array.from({ length: ASSIGNMENT_PAGE_SIZE + 1 }, (_, index) =>
 		assignment(
@@ -454,18 +441,6 @@ test('materialises every unchecked assignment across pages beyond 500', async ()
 	assert.equal(selected.length, ASSIGNMENT_PAGE_SIZE + 1);
 	assert.equal(selected.at(-1)?.status, 'completed');
 	assert.deepEqual(harness.assignmentPageAfterIds, [undefined, 'assignment-0499']);
-});
-
-test('fails closed when an unchecked-assignment keyset page does not advance', async () => {
-	const assignments = Array.from({ length: ASSIGNMENT_PAGE_SIZE }, (_, index) =>
-		assignment(`assignment-${String(index).padStart(4, '0')}`)
-	);
-	const harness = automationHarness({ assignments, stallAssignmentPagination: true });
-
-	await assert.rejects(
-		Effect.runPromise(loadUncheckedAssignments(harness.api as never)),
-		/Unchecked assignment pagination did not advance beyond assignment-0499; received assignment-0000/
-	);
 });
 
 test('infers, persists, and stamps a completed unchecked assignment', async () => {
@@ -757,10 +732,10 @@ test('canonicalises evidence order without turning deterministic facts into a ju
 
 test('reports only the GPS metadata state retained for each named asset', () => {
 	const [missing, present] = facts().photos;
-	assert.equal(gpsMetadataStatus(missing!), 'missing_from_asset');
-	assert.equal(gpsMetadataStatus(present!), 'present_without_location_mismatch');
+	assert.equal(gpsMetadataStatus(missing!.flags), 'missing_from_asset');
+	assert.equal(gpsMetadataStatus(present!.flags), 'present_without_location_mismatch');
 	assert.equal(
-		gpsMetadataStatus({ ...present!, flags: ['location_mismatch'] }),
+		gpsMetadataStatus(['location_mismatch']),
 		'present_and_outside_assigned_site_tolerance'
 	);
 });
@@ -999,12 +974,15 @@ const hammingHex = (left: string, right: string): number => {
 	return distance;
 };
 
-/** Brute-force stand-in for the HNSW `findNearest`: every corpus row within the cosine band. */
+/**
+ * Brute-force stand-in for the HNSW `findNearest`: every corpus row within the cosine band, each
+ * carrying its measured `distance` as the real read does.
+ */
 const nearestStub =
 	(corpus: ReadonlyArray<Record<string, unknown>>) =>
 	(input: { readonly probe: readonly number[]; readonly maxDistance: number }) =>
 		Effect.succeed(
-			corpus.filter((row) => {
+			corpus.flatMap((row) => {
 				const embedding = row.record_embedding as readonly number[];
 				let dot = 0;
 				let left = 0;
@@ -1017,7 +995,8 @@ const nearestStub =
 					right += b * b;
 				}
 				const magnitude = Math.sqrt(left) * Math.sqrt(right);
-				return (magnitude === 0 ? 1 : 1 - dot / magnitude) <= input.maxDistance;
+				const distance = magnitude === 0 ? 1 : 1 - dot / magnitude;
+				return distance <= input.maxDistance ? [{ ...row, distance }] : [];
 			})
 		);
 
@@ -1589,7 +1568,8 @@ test('pins the real Kismis-Lorong crop pair past every perceptual band', () => {
 	// neighbour lists — behind hundreds of unrelated pairs, whose corpus floor is 88 bits).
 	assert.equal(hammingHex(kismisFirst, lorongCrop), 116);
 	assert.equal(hammingHex(kismisSecond, lorongCrop), 130);
-	assert.ok(hammingHex(kismisFirst, lorongCrop) > CROSS_ASSIGNMENT_MAX_HAMMING);
+	// Beyond even a generous 64-bit perceptual band: no PDQ threshold nominates this reuse.
+	assert.ok(hammingHex(kismisFirst, lorongCrop) > 64);
 	assert.ok(hammingHex(kismisFirst, lorongCrop) > 31);
 	// Same-scene, same-assignment shots are equally far apart — repeats stay neutral regardless.
 	assert.equal(hammingHex(kismisFirst, kismisSecond), 84);
@@ -1597,13 +1577,9 @@ test('pins the real Kismis-Lorong crop pair past every perceptual band', () => {
 
 test('derives stable idempotency keys from the complete evidence basis', () => {
 	const basis = buildSuspicionReviewBasis(facts());
-	const hash = suspicionReviewHash(basis);
+	const hash = sha256Text(basis);
 	assert.match(hash, /^[a-f0-9]{64}$/);
 	assert.equal(reviewSourceKey('assignment-a', hash), `suspicion-review:assignment-a:${hash}`);
-	assert.equal(
-		suspicionReviewHash('abc'),
-		'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
-	);
 });
 
 test('accepts an inference evidence citation only when it names a supplied photo', () => {
@@ -1621,25 +1597,6 @@ test('accepts an inference evidence citation only when it names a supplied photo
 			photos
 		),
 		null
-	);
-});
-
-test('creates a suspicion log only from an affirmative inference judgement', () => {
-	assert.equal(
-		shouldCreateSuspicionLog({
-			suspicious: false,
-			reason: 'The recorded facts do not justify a suspicion.',
-			evidence_id: null
-		}),
-		false
-	);
-	assert.equal(
-		shouldCreateSuspicionLog({
-			suspicious: true,
-			reason: 'The photographed unit visibly contradicts the assigned unit.',
-			evidence_id: 'photo-a'
-		}),
-		true
 	);
 });
 
@@ -2146,6 +2103,51 @@ test('reports a byte-identical foreign photo as exact_duplicate and a near match
 		'photo-identical',
 		'photo-similar'
 	]);
+});
+
+/**
+ * A WhatsApp document carries no image mime type. The bytes decide the format, and the stored
+ * descriptor is corrected so the inference turn attaches it as the image it is.
+ */
+test('inspects a photo filed as application/octet-stream by its bytes and normalises its mime', async () => {
+	const selected = assignment('assignment-document');
+	const photo = {
+		...pendingPhoto(selected.id),
+		photo: { ...pendingPhoto(selected.id).photo, mime_type: 'application/octet-stream' }
+	};
+	const harness = automationHarness({
+		assignments: [selected],
+		assignmentPhotos: [photo],
+		pendingPhotos: [photo],
+		photoBytes: solidJpeg(),
+		photoMimeType: 'application/octet-stream'
+	});
+	const outcome = await runAutomation(harness.api);
+
+	assert.equal(outcome.counts.inspection_failed, 0);
+	assert.equal(outcome.counts.inspected_photos, 1);
+	const update = harness.photoUpdates[0];
+	assert.ok(String(update?.sha256).length > 0, 'the hash was written');
+	assert.deepEqual(update?.photo, { ...photo.photo, mime_type: 'image/jpeg' });
+	assert.ok(
+		!(update?.flags as ReadonlyArray<string>).includes('metadata_anomaly'),
+		'a generic transport mime is not a metadata anomaly'
+	);
+	assert.equal(outcome.counts.checked, 1);
+});
+
+test('an assignment whose photo is still queued waits instead of failing the run', async () => {
+	const selected = assignment('assignment-queued');
+	const photo = pendingPhoto(selected.id);
+	// The photo belongs to the assignment but this run inspected nothing: it is queued, not broken.
+	const harness = automationHarness({ assignments: [selected], assignmentPhotos: [photo] });
+	const outcome = await runAutomation(harness.api);
+
+	assert.equal(outcome.counts.awaiting_inspection, 1);
+	assert.equal(outcome.counts.failed, 0);
+	assert.equal(outcome.failure_count, 0);
+	assert.equal(outcome.inference_count, 0);
+	assert.deepEqual(harness.updates, [], 'nothing is stamped checked');
 });
 
 /**

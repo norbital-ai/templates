@@ -16,7 +16,7 @@ import {
 	rowsOf,
 	type RecordedGenerated
 } from '@norbital-ai/test-utilities';
-import { hashPdq, pdqHashToHex } from '../src/collections/photo_evidence/pdq.js';
+import { hashPdq, digestToHex } from '../src/collections/photo_evidence/pdq.js';
 import { PUBLIC_ASSIGNMENT_ID, bootPublicSeedGuest } from './helpers/public-seed-guest.js';
 
 const LOCAL_DATABASE_TEST_TIMEOUT_MILLIS = 120_000;
@@ -203,7 +203,7 @@ const hashJpegRgb = async (bytes: Uint8Array) => {
 			channels: 3
 		})
 	);
-	return { hash: pdq.hash, hex: pdqHashToHex(pdq.hash) };
+	return { hash: pdq.hash, hex: digestToHex(pdq.hash) };
 };
 
 const photoDescriptor = (
@@ -355,6 +355,17 @@ test(
 				},
 				[],
 				'create reference photo_evidence'
+			);
+			// A run inspects one photo, so the reference is inspected on its own run first.
+			const referenceRun = await postGuestCommand(
+				guest.baseUrl,
+				START_COMMAND,
+				{ name: SUSPICION_AUTOMATION, input: { assignment_id: PUBLIC_ASSIGNMENT_ID } },
+				sessionHeaders(guest.credential)
+			);
+			assert.ok(
+				referenceRun.status >= 200 && referenceRun.status < 300,
+				JSON.stringify(referenceRun.value)
 			);
 
 			await pushMutation(
@@ -741,6 +752,108 @@ test(
 				2,
 				'the changed assignment is reviewed a second time'
 			);
+		} finally {
+			await guest.stop();
+		}
+	}
+);
+
+/**
+ * The inspection pass's two row facts, written through the real `photo_evidence` update rather
+ * than a stub: a byte-identical foreign file lands as `exact_duplicate`, and a photo filed as a
+ * WhatsApp document (`application/octet-stream`) is inspected by its bytes and stored as the
+ * image it is.
+ */
+const EXACT_REFERENCE_PHOTO_ID = '01990000-0000-7000-8005-000000000405';
+const EXACT_COPY_PHOTO_ID = '01990000-0000-7000-8005-000000000406';
+const DOCUMENT_PHOTO_ID = '01990000-0000-7000-8005-000000000407';
+
+test(
+	'the inspection pass stores exact_duplicate and a byte-detected mime through the collection',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	async () => {
+		const guest = await bootPublicSeedGuest({
+			tenantId: 'field-ops-public-seed-exact',
+			releaseId: 'field-ops-public-seed-exact',
+			gatewaySecret: 'field-ops-public-seed-exact-gateway',
+			founderEmail: 'field-ops-exact-founder@example.test',
+			founderClaimId: 'field-ops-public-seed-exact-founder',
+			secretsKey: 'field-ops-public-seed-exact-secrets-key',
+			invocationTimeoutMillis: 90_000,
+			files: true,
+			ai: recordedAi(
+				Array.from({ length: SUSPICION_AI_TRANSCRIPT_LENGTH }, () => recordedEmptyPhotoClear)
+			)
+		});
+		try {
+			if (guest.files === undefined) throw new Error('files: true must return files');
+			const { reference, suspectBase } = solidRgbJpegPair(JPEG_WIDTH, JPEG_HEIGHT);
+			await writeAsset(guest.files.rootDirectory, 'public-seed/exact.jpg', reference);
+			await writeAsset(guest.files.rootDirectory, 'public-seed/exact-copy.jpg', reference);
+			await writeAsset(guest.files.rootDirectory, 'public-seed/document.bin', suspectBase);
+			const file = (id: string, assignmentId: string, photo: Record<string, unknown>) =>
+				pushMutation(
+					guest.baseUrl,
+					guest.credential,
+					guest.schemaFingerprint,
+					{
+						collection: 'photo_evidence',
+						action: 'create',
+						inputs: [{ id, job_assignment_id: assignmentId, photo }]
+					},
+					[],
+					`create ${id}`
+				);
+			const run = () =>
+				postGuestCommand(
+					guest.baseUrl,
+					START_COMMAND,
+					{ name: SUSPICION_AUTOMATION, input: { assignment_id: PUBLIC_ASSIGNMENT_ID } },
+					sessionHeaders(guest.credential)
+				);
+			await file(
+				EXACT_REFERENCE_PHOTO_ID,
+				REFERENCE_ASSIGNMENT_ID,
+				photoDescriptor('public-seed/exact.jpg', 'exact.jpg', reference.byteLength)
+			);
+			// One photo per run: the reference first, then the two filed against the public assignment.
+			await run();
+			await file(
+				EXACT_COPY_PHOTO_ID,
+				PUBLIC_ASSIGNMENT_ID,
+				photoDescriptor('public-seed/exact-copy.jpg', 'exact-copy.jpg', reference.byteLength)
+			);
+			await file(DOCUMENT_PHOTO_ID, PUBLIC_ASSIGNMENT_ID, {
+				...photoDescriptor('public-seed/document.bin', 'document.bin', suspectBase.byteLength),
+				mime_type: 'application/octet-stream'
+			});
+
+			await run();
+			const started = await run();
+
+			// Row ids are minted by the write path, so the rows are found by the file they hold.
+			const rows = (await guest.query(
+				`select photo ->> 'storage_key' as key, sha256, flags, photo from photo_evidence where photo ->> 'storage_key' = any($1::text[])`,
+				[['public-seed/exact-copy.jpg', 'public-seed/document.bin']]
+			)) as ReadonlyArray<{
+				readonly key: string;
+				readonly sha256: string;
+				readonly flags: ReadonlyArray<string>;
+				readonly photo: { readonly mime_type: string } | string;
+			}>;
+			const byKey = new Map(rows.map((row) => [row.key, row]));
+			const copy = byKey.get('public-seed/exact-copy.jpg');
+			const document = byKey.get('public-seed/document.bin');
+			assert.ok(copy !== undefined && document !== undefined, JSON.stringify(rows));
+			assert.ok(
+				copy.flags.includes('exact_duplicate'),
+				`copy flags: ${JSON.stringify(copy.flags)}`
+			);
+			assert.notEqual(document.sha256, '', 'the document was inspected');
+			const documentPhoto =
+				typeof document.photo === 'string' ? JSON.parse(document.photo) : document.photo;
+			assert.equal(documentPhoto.mime_type, 'image/jpeg');
+			assert.ok(started.status >= 200 && started.status < 300, JSON.stringify(started.value));
 		} finally {
 			await guest.stop();
 		}

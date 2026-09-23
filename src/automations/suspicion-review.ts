@@ -1,7 +1,7 @@
 import { toError } from '@norbital-ai/std';
 import { sha256Text } from '@norbital-ai/std/reckon/hash';
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
-import { Effect, Schema } from 'effect';
+import { Effect, Random, Schema } from 'effect';
 import type { Api } from './$types.js';
 import type { Row as PhotoEvidenceRow } from '../collections/photo_evidence/$types.js';
 import { currentDate } from '../lib/clock.js';
@@ -28,22 +28,8 @@ const MAX_INFERENCE_COMMUNICATIONS = 24;
 const MAX_INFERENCE_MESSAGE_CHARS = 800;
 const MAX_SIGNAL_IMAGES = 2;
 const MAX_CROSS_ASSIGNMENT_PROBES = 64;
-/** Photos inspected per page; the pass pages until nothing is pending. */
-const INSPECTION_PAGE_SIZE = 250;
-/** Two at a time: inspection is provider-free but PDQ decoding is CPU-bound in this process. */
-const INSPECTION_CONCURRENCY = 2;
-
-/**
- * Cross-assignment reuse candidates are retrieved with a deliberately generous perceptual band.
- *
- * The deterministic `visual_duplicate` flag stays on the strict near-duplicate bar (Hamming ≤ 31),
- * which a crop, a zoom or a recompression easily exceeds. Candidates pulled here only nominate a
- * pair for visual judgement; the inference decides whether two photos show the same scene, so the
- * band can stay wide enough to catch reused-and-cropped evidence without flagging anything by
- * itself.
- */
-export const CROSS_ASSIGNMENT_MAX_HAMMING = 64;
-const CROSS_ASSIGNMENT_MAX_L2 = Math.sqrt(CROSS_ASSIGNMENT_MAX_HAMMING);
+/** How many pending photos one run chooses its single inspection from. */
+const INSPECTION_CANDIDATES = 250;
 const MAX_CROSS_ASSIGNMENT_CANDIDATES = 2;
 /** Candidates above this size are listed as facts but do not consume the visual attachment budget. */
 const MAX_CANDIDATE_IMAGE_BYTES = 1024 * 1024;
@@ -92,14 +78,11 @@ const similarPhotoDecisionSchema = Schema.Struct({
 	reason: Schema.String.check(Schema.isPattern(/^\s*\S[\s\S]*$/))
 });
 
-const inferenceDecisionSchema = Schema.Struct({
+export const suspicionInferenceSchema = Schema.Struct({
 	job_site_review: jobSiteDecisionSchema,
 	similar_photo_reviews: Schema.Array(similarPhotoDecisionSchema)
 });
 
-export const suspicionInferenceSchema = inferenceDecisionSchema;
-
-type SuspicionInferenceDecision = Schema.Schema.Type<typeof inferenceDecisionSchema>;
 type JobSiteDecision = Schema.Schema.Type<typeof jobSiteDecisionSchema>;
 
 export type SuspicionReviewFacts = {
@@ -185,13 +168,6 @@ export type SuspicionReviewFacts = {
 	}>;
 };
 
-export function shouldReviewAssignment(
-	_status: string | null,
-	checkedAt: string | null = null
-): boolean {
-	return checkedAt === null;
-}
-
 /** What resolving a photo's work needs: which assignment, or which variation to ask. */
 type PhotoParentRef = Pick<PhotoEvidenceRow, 'id' | 'job_assignment_id' | 'variation_request_id'>;
 
@@ -247,10 +223,6 @@ const assignmentIdsOf = (api: Api, photos: ReadonlyArray<PhotoParentRef>) =>
 const inspectFiledPhoto = (api: Api, photo: FiledPhoto) =>
 	Effect.gen(function* () {
 		const asset = yield* api.readFileAsset(photo.photo);
-		const mimeType = asset.mimeType;
-		if (mimeType == null || !mimeType.toLowerCase().startsWith('image/')) {
-			return yield* Effect.fail(new Error('Photo evidence requires an image file.'));
-		}
 		const assignmentId = (yield* assignmentIdsOf(api, [photo])).get(photo.id) ?? null;
 		const assignment =
 			assignmentId == null
@@ -266,7 +238,9 @@ const inspectFiledPhoto = (api: Api, photo: FiledPhoto) =>
 						where: { id: { eq: assignment.site_id } },
 						columns: { location: true }
 					});
-		const inspected = yield* inspectPhoto({ bytes: asset.bytes, mimeType });
+		// The bytes decide the format; the declared type (a WhatsApp document says
+		// `application/octet-stream`) is only compared against it.
+		const inspected = yield* inspectPhoto({ bytes: asset.bytes, mimeType: photo.photo.mime_type });
 		const embedding = hexToBinaryEmbedding(inspected.perceptualHash);
 		// The row's own flag union, not the inspection's: `exact_duplicate` is decided here, by
 		// comparing stored fingerprints, and never by the byte inspection itself.
@@ -305,11 +279,16 @@ const inspectFiledPhoto = (api: Api, photo: FiledPhoto) =>
 		const facts: Pick<
 			PhotoEvidenceRow,
 			'sha256' | 'perceptual_embedding' | 'flags' | 'matched_evidence_ids'
-		> = {
+		> &
+			Partial<Pick<PhotoEvidenceRow, 'photo'>> = {
 			sha256: inspected.sha256,
 			perceptual_embedding: embedding,
 			flags: [...flags],
-			matched_evidence_ids: matched
+			matched_evidence_ids: matched,
+			// The descriptor names the type the bytes are, so the inference turn attaches an image.
+			...(inspected.mimeType === photo.photo.mime_type
+				? {}
+				: { photo: { ...photo.photo, mime_type: inspected.mimeType } })
 		};
 		yield* api.collection.photo_evidence.update(photo.id, facts);
 	});
@@ -335,46 +314,34 @@ export const embedFiledPhotos = Effect.fn('SuspicionReview.embedFiledPhotos')(fu
 });
 
 /**
- * Inspect every photo still awaiting facts, oldest id first so a backlog drains in order.
+ * Inspect ONE photo still awaiting facts per run.
  *
- * A failure is recorded per photo and the pass moves on; the review then fails closed on that
- * assignment, exactly as it did when the facts arrived late from a separate automation. Nothing
- * here throws, so one unreadable file never costs a whole run.
+ * One, because decoding is the guest's heaviest work: a 12 MP photo costs 0.8 s of the
+ * invocation's 2 s CPU budget (measured in the isolate), so a second would put the whole run at
+ * risk. The photo is chosen at random among the pending ones, so a file that can never be
+ * inspected (a PDF sent as a document) cannot starve the queue behind it. A failure is recorded
+ * and the review then fails closed on that assignment; nothing here throws.
  */
 export const inspectFiledPhotos = Effect.fn('SuspicionReview.inspectFiledPhotos')(function* (
 	api: Api
 ) {
-	let inspected = 0;
-	const failures: Array<{ photo_id: string; reason: string }> = [];
-	let after: string | undefined;
-	for (;;) {
-		const page = yield* api.db.photo_evidence.findMany({
-			where: {
-				sha256: { eq: '' },
-				...(after === undefined ? {} : { id: { gt: after } })
-			},
-			columns: { id: true, photo: true, job_assignment_id: true, variation_request_id: true },
-			orderBy: { id: 'asc' },
-			limit: INSPECTION_PAGE_SIZE
-		});
-		if (page.length === 0) break;
-		yield* Effect.forEach(
-			page,
-			(photo) =>
-				inspectFiledPhoto(api, photo).pipe(
-					Effect.tap(() => Effect.sync(() => (inspected += 1))),
-					Effect.catch((error) =>
-						Effect.sync(() => {
-							failures.push({ photo_id: photo.id, reason: toError(error).message });
-						})
-					)
-				),
-			{ concurrency: INSPECTION_CONCURRENCY, discard: true }
-		);
-		if (page.length < INSPECTION_PAGE_SIZE) break;
-		after = page[page.length - 1]!.id;
-	}
-	return { inspected, failures };
+	const pending = yield* api.db.photo_evidence.findMany({
+		where: { sha256: { eq: '' } },
+		columns: { id: true, photo: true, job_assignment_id: true, variation_request_id: true },
+		orderBy: { id: 'asc' },
+		limit: INSPECTION_CANDIDATES
+	});
+	if (pending.length === 0) return { inspected: 0, failures: [] };
+	const photo = pending[yield* Random.nextIntBetween(0, pending.length - 1)]!;
+	return yield* inspectFiledPhoto(api, photo).pipe(
+		Effect.as({ inspected: 1, failures: [] }),
+		Effect.catch((error) =>
+			Effect.succeed({
+				inspected: 0,
+				failures: [{ photo_id: photo.id, reason: toError(error).message }]
+			})
+		)
+	);
 });
 
 /**
@@ -421,21 +388,9 @@ export function loadUncheckedAssignments(api: Api, assignmentId?: string) {
 				orderBy: { id: 'asc' },
 				limit: ASSIGNMENT_PAGE_SIZE
 			});
-			let nextAfterId = afterId;
-			for (const assignment of page) {
-				if (nextAfterId !== undefined && assignment.id <= nextAfterId) {
-					return yield* Effect.fail(
-						new Error(
-							`Unchecked assignment pagination did not advance beyond ${nextAfterId}; received ${assignment.id}.`
-						)
-					);
-				}
-				nextAfterId = assignment.id;
-			}
 			assignments.push(...page);
 			if (page.length < ASSIGNMENT_PAGE_SIZE) return assignments;
-			if (nextAfterId === undefined) return assignments;
-			afterId = nextAfterId;
+			afterId = page[page.length - 1]!.id;
 		}
 	});
 }
@@ -477,23 +432,11 @@ export function buildSuspicionReviewBasis(facts: SuspicionReviewFacts): string {
 	});
 }
 
-export function suspicionReviewHash(basis: string): string {
-	// Authored automation modules are bundled for Colony's portable runtime, where Node built-ins
-	// are intentionally unavailable. Hash the canonical basis with std's runtime-neutral SHA-256.
-	return sha256Text(basis);
-}
-
 export function reviewSourceKey(assignmentId: string, basisHash: string): string {
 	return `suspicion-review:${assignmentId}:${basisHash}`;
 }
 
-export function shouldCreateSuspicionLog<Decision extends { readonly suspicious: boolean }>(
-	decision: Decision
-): boolean {
-	return decision.suspicious;
-}
-
-const clipText = (value: string, maximum: number): string =>
+export const clipText = (value: string, maximum: number): string =>
 	value.length <= maximum ? value : `${value.slice(0, maximum - 12)}…[clipped]`;
 
 const inferenceAssetName = (fileName: string): string =>
@@ -529,7 +472,7 @@ type GpsMetadataStatus =
  * Raw capture coordinates are deliberately not invented here: the photo row retains the exact
  * integrity outcome (`missing_geolocation` / `location_mismatch`), not the EXIF coordinate tuple.
  */
-const gpsMetadataStatusFromFlags = (flags: ReadonlyArray<string>): GpsMetadataStatus => {
+export const gpsMetadataStatus = (flags: ReadonlyArray<string>): GpsMetadataStatus => {
 	if (flags.includes('missing_geolocation')) return 'missing_from_asset';
 	if (flags.includes('location_mismatch')) {
 		return 'present_and_outside_assigned_site_tolerance';
@@ -537,16 +480,12 @@ const gpsMetadataStatusFromFlags = (flags: ReadonlyArray<string>): GpsMetadataSt
 	return 'present_without_location_mismatch';
 };
 
-export const gpsMetadataStatus = (
-	photo: SuspicionReviewFacts['photos'][number]
-): GpsMetadataStatus => gpsMetadataStatusFromFlags(photo.flags);
-
 const namedPhotoFact = (
 	photo: SuspicionReviewFacts['photos'][number],
 	visuallyAttached: boolean
 ) => ({
 	asset_name: inferenceAssetName(photo.photo.file_name),
-	gps_metadata: gpsMetadataStatus(photo),
+	gps_metadata: gpsMetadataStatus(photo.flags),
 	visually_attached: visuallyAttached,
 	file_size: photo.photo.file_size,
 	mime_type: photo.photo.mime_type,
@@ -650,8 +589,6 @@ interface CandidateHit {
 	readonly flags: ReadonlyArray<string>;
 	readonly job_assignment_id: string | null;
 	readonly variation_request_id: string | null;
-	readonly distance: number;
-	readonly record_embedding: readonly number[] | null;
 }
 
 /**
@@ -677,29 +614,13 @@ const RECORD_EMBEDDING_MAX_COSINE = 0.35;
  */
 export const RECORD_EMBEDDING_MIN_DISTINCTIVENESS = 0.02;
 
-/** Angular distance in the same units `findNearest` sorted by, so a recomputed figure is comparable. */
-const cosineDistance = (left: readonly number[], right: readonly number[]): number => {
-	let dot = 0;
-	let leftNorm = 0;
-	let rightNorm = 0;
-	for (let index = 0; index < left.length; index += 1) {
-		const a = left[index] ?? 0;
-		const b = right[index] ?? 0;
-		dot += a * b;
-		leftNorm += a * a;
-		rightNorm += b * b;
-	}
-	const magnitude = Math.sqrt(leftNorm) * Math.sqrt(rightNorm);
-	return magnitude === 0 ? 1 : 1 - dot / magnitude;
-};
-
 /**
  * Retrieve photographs from OTHER assignments that sit close to this assignment's representative
  * photos in perceptual space.
  *
  * The wide band exists to nominate crop/zoom/recompression reuse the strict `visual_duplicate`
- * bar misses; same-assignment hits and parentless rows are dropped, distances are recomputed from
- * the durable embeddings so the audit basis is stable, and only the closest
+ * bar misses; same-assignment hits and parentless rows are dropped, each pair keeps the distance
+ * `findNearest` measured, and only the closest
  * `MAX_CROSS_ASSIGNMENT_CANDIDATES` survive.
  */
 export function loadCrossAssignmentCandidates(
@@ -733,14 +654,11 @@ export function loadCrossAssignmentCandidates(
 					sha256: true,
 					flags: true,
 					job_assignment_id: true,
-					variation_request_id: true,
-					record_embedding: true
+					variation_request_id: true
 				}
-			})) as readonly CandidateHit[];
-			for (const row of rows) {
+			})) as ReadonlyArray<CandidateHit & { readonly distance: number }>;
+			for (const { distance, ...row } of rows) {
 				if (row.id === probe.id) continue;
-				if (row.record_embedding == null || row.record_embedding.length === 0) continue;
-				const distance = cosineDistance(embedding, row.record_embedding);
 				const existing = hits.get(row.id);
 				if (existing != null) {
 					existing.matched.set(probe.id, distance);
@@ -845,10 +763,6 @@ export function loadCrossAssignmentCandidates(
 	});
 }
 
-const communicationInstant = (
-	communication: SuspicionReviewFacts['communications'][number]
-): string => communication.sent_at;
-
 type SimilarPhotoPair = {
 	readonly currentPhoto: SuspicionReviewFacts['photos'][number];
 	readonly candidate: SuspicionReviewFacts['candidates'][number];
@@ -904,7 +818,7 @@ export function buildSuspicionInferenceContext(
 	const chronologicalCommunications = [...facts.communications];
 	chronologicalCommunications.sort(
 		(left, right) =>
-			communicationInstant(left).localeCompare(communicationInstant(right)) ||
+			left.sent_at.localeCompare(right.sent_at) ||
 			left.source_message_id.localeCompare(right.source_message_id)
 	);
 	const recentCommunications = chronologicalCommunications
@@ -912,7 +826,7 @@ export function buildSuspicionInferenceContext(
 		.map((communication) => ({
 			source_message_id: clipText(communication.source_message_id, 256),
 			sender: clipText(communication.sender, 256),
-			sent_at: communicationInstant(communication),
+			sent_at: communication.sent_at,
 			message: clipText(communication.message, MAX_INFERENCE_MESSAGE_CHARS)
 		}));
 	const base = {
@@ -927,12 +841,12 @@ export function buildSuspicionInferenceContext(
 			images: [
 				...representativePhotos.map((photo) => ({
 					asset_name: inferenceAssetName(photo.photo.file_name),
-					gps_metadata: gpsMetadataStatus(photo),
+					gps_metadata: gpsMetadataStatus(photo.flags),
 					role: 'job_site_photo' as const
 				})),
 				...attachedPairs.map(({ currentPhoto, candidate }) => ({
 					asset_name: inferenceAssetName(candidate.photo.file_name),
-					gps_metadata: gpsMetadataStatusFromFlags(candidate.flags),
+					gps_metadata: gpsMetadataStatus(candidate.flags),
 					role: 'similar_photo_from_other_assignment' as const,
 					compare_only_with_asset_name: inferenceAssetName(currentPhoto.photo.file_name)
 				}))
@@ -985,7 +899,7 @@ export function buildSuspicionInferenceContext(
 		similar_photos_flagged: nominatedPairs.map(({ currentPhoto, candidate, visuallyAttached }) => ({
 			job_site_asset_name: inferenceAssetName(currentPhoto.photo.file_name),
 			similar_asset_name: inferenceAssetName(candidate.photo.file_name),
-			similar_asset_gps_metadata: gpsMetadataStatusFromFlags(candidate.flags),
+			similar_asset_gps_metadata: gpsMetadataStatus(candidate.flags),
 			retrieval_distance: candidate.distance,
 			visually_attached: visuallyAttached
 		}))
@@ -1136,6 +1050,18 @@ export function inferSuspicionReviewDecision(
 	});
 }
 
+/**
+ * A photo on the assignment has no fingerprint yet. The runner reports it as waiting when the photo
+ * is merely queued, and as a failure when this run's inspection of it failed.
+ */
+export class AwaitingInspection extends Error {
+	readonly photoId: string;
+	constructor(photoId: string) {
+		super(`Photo evidence ${photoId} has not been inspected yet.`);
+		this.photoId = photoId;
+	}
+}
+
 function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 	return Effect.gen(function* () {
 		const site =
@@ -1171,16 +1097,12 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 			},
 			limit: MAX_RELATED_ROWS
 		});
-		// The run inspects filed photos before it judges anything, so a photo still without a hash
-		// here is one whose inspection failed (unreadable bytes, a provider-free pass that could not
-		// decode it). Judging it would read an empty fingerprint as evidence, so the assignment
-		// stays unchecked until the next run retries.
+		// A photo still without a hash is queued for a later run's single inspection, or its
+		// inspection failed (unreadable bytes, not an image). Judging it would read an empty
+		// fingerprint as evidence, so the assignment stays unchecked until it has been inspected.
 		const uninspected = photos.find((photo) => photo.sha256 === '');
-		if (uninspected !== undefined) {
-			return yield* Effect.fail(
-				new Error(`Photo evidence ${uninspected.id} has not been inspected yet.`)
-			);
-		}
+		if (uninspected !== undefined)
+			return yield* Effect.fail(new AwaitingInspection(uninspected.id));
 		const communications = yield* api.db.communication_logs.findMany({
 			where: { job_assignment_id: { eq: assignment.id } },
 			columns: {
@@ -1225,22 +1147,26 @@ type SuspicionReviewResult =
 			readonly log_id: string;
 	  };
 
-type SuspicionReviewLifecycle = Readonly<{
-	readonly inferenceStarted?: (assignmentId: string) => void;
-	readonly inferenceSucceeded?: (assignmentId: string) => void;
-	readonly reviewPersisted?: (assignmentId: string) => void;
-}>;
+/** The step a review failed at, which is what the automation reports per assignment. */
+type SuspicionReviewStage =
+	'fact_loading' | 'inference' | 'review_persistence' | 'suspicion_log_persistence';
+
+type SuspicionReviewFailure = {
+	readonly stage: SuspicionReviewStage;
+	readonly cause: unknown;
+};
+
+const atStage = (stage: SuspicionReviewStage) =>
+	Effect.mapError((cause: unknown): SuspicionReviewFailure => ({ stage, cause }));
 
 export function reviewAssignmentSuspicion(
 	api: Api,
-	assignment: SuspicionReviewFacts['assignment'],
-	lifecycle: SuspicionReviewLifecycle = {}
-): Effect.Effect<SuspicionReviewResult, Error, never> {
+	assignment: SuspicionReviewFacts['assignment']
+): Effect.Effect<SuspicionReviewResult, SuspicionReviewFailure, never> {
 	return Effect.gen(function* () {
-		if (!shouldReviewAssignment(assignment.status, assignment.suspicion_checked_at ?? null))
-			return { status: 'skipped_checked' as const };
+		if (assignment.suspicion_checked_at != null) return { status: 'skipped_checked' as const };
 
-		const loadedFacts = yield* loadFacts(api, assignment);
+		const loadedFacts = yield* loadFacts(api, assignment).pipe(atStage('fact_loading'));
 		const candidates = yield* loadCrossAssignmentCandidates(api, assignment.id, loadedFacts.photos);
 		const representativePhotos = selectSuspicionInferencePhotos(
 			loadedFacts.photos,
@@ -1248,11 +1174,10 @@ export function reviewAssignmentSuspicion(
 		);
 		const facts: SuspicionReviewFacts = { ...loadedFacts, candidates };
 		const basis = buildSuspicionReviewBasis(facts);
-		const basisHash = suspicionReviewHash(basis);
-		lifecycle.inferenceStarted?.(assignment.id);
-		const decision = yield* inferSuspicionReviewDecision(api, facts, representativePhotos);
-		lifecycle.inferenceSucceeded?.(assignment.id);
-		const reviewedAt = (yield* currentDate).toISOString();
+		const basisHash = sha256Text(basis);
+		const decision = yield* inferSuspicionReviewDecision(api, facts, representativePhotos).pipe(
+			atStage('inference')
+		);
 		/**
 		 * Write, and on a lost race read the winner's judgement back by the key that makes it unique.
 		 *
@@ -1261,108 +1186,113 @@ export function reviewAssignmentSuspicion(
 		 * below then returns the winner's row, which is the same answer this call would have
 		 * produced. A read that finds nothing after a failed write is a real failure, not a race.
 		 */
-		let persistenceError: unknown;
-		const created = yield* api.collection.suspicion_reviews
-			.create({
-				job_assignment_id: assignment.id,
-				basis_hash: basisHash,
-				basis,
-				suspicious: decision.suspicious,
-				reason: decision.reason,
-				evidence_id: decision.evidence_id,
-				model: SUSPICION_REVIEW_MODEL,
-				reviewed_at: reviewedAt,
-				source_key: reviewSourceKey(assignment.id, basisHash)
-			})
-			.pipe(
-				Effect.map((row) => ({
-					id: row.id,
-					basis: row.basis,
-					suspicious: row.suspicious,
-					reason: row.reason,
-					evidence_id: row.evidence_id
-				})),
-				Effect.catch((error: unknown) =>
-					Effect.sync(() => {
-						persistenceError = error;
-						return undefined;
-					})
-				)
-			);
-		const review =
-			created ??
-			(yield* api.db.suspicion_reviews.findFirst({
-				where: {
-					job_assignment_id: { eq: assignment.id },
-					basis_hash: { eq: basisHash }
-				},
-				columns: {
-					id: true,
-					basis: true,
-					suspicious: true,
-					reason: true,
-					evidence_id: true
-				}
-			}));
-		if (review == null) {
-			return yield* Effect.fail(
-				toError(
-					persistenceError ??
-						new Error(
-							'The suspicion review was written but could not be read back by its basis hash.'
-						)
-				)
-			);
-		}
-		lifecycle.reviewPersisted?.(assignment.id);
+		const { review, created } = yield* Effect.gen(function* () {
+			const reviewedAt = (yield* currentDate).toISOString();
+			let persistenceError: unknown;
+			const created = yield* api.collection.suspicion_reviews
+				.create({
+					job_assignment_id: assignment.id,
+					basis_hash: basisHash,
+					basis,
+					suspicious: decision.suspicious,
+					reason: decision.reason,
+					evidence_id: decision.evidence_id,
+					model: SUSPICION_REVIEW_MODEL,
+					reviewed_at: reviewedAt,
+					source_key: reviewSourceKey(assignment.id, basisHash)
+				})
+				.pipe(
+					Effect.map((row) => ({
+						id: row.id,
+						basis: row.basis,
+						suspicious: row.suspicious,
+						reason: row.reason,
+						evidence_id: row.evidence_id
+					})),
+					Effect.catch((error: unknown) =>
+						Effect.sync(() => {
+							persistenceError = error;
+							return undefined;
+						})
+					)
+				);
+			const review =
+				created ??
+				(yield* api.db.suspicion_reviews.findFirst({
+					where: {
+						job_assignment_id: { eq: assignment.id },
+						basis_hash: { eq: basisHash }
+					},
+					columns: {
+						id: true,
+						basis: true,
+						suspicious: true,
+						reason: true,
+						evidence_id: true
+					}
+				}));
+			if (review == null) {
+				return yield* Effect.fail(
+					toError(
+						persistenceError ??
+							new Error(
+								'The suspicion review was written but could not be read back by its basis hash.'
+							)
+					)
+				);
+			}
+			return { review, created: created !== undefined };
+		}).pipe(atStage('review_persistence'));
 		if (!review.suspicious) {
 			return {
-				status: created !== undefined ? ('clear' as const) : ('clear_existing' as const),
+				status: created ? ('clear' as const) : ('clear_existing' as const),
 				review_id: review.id
 			};
 		}
 
-		// Inference is external I/O. Re-read the durable judgements after it completes so retries and a
-		// controller action during the call cannot create a duplicate suspicion log.
-		const [reviewLog, newlyOpen] = yield* Effect.all(
-			[
-				api.db.suspicious_activity_logs.findFirst({
-					where: { review_id: { eq: review.id } },
-					columns: { id: true }
-				}),
-				api.db.suspicious_activity_logs.findFirst({
-					where: {
-						job_assignment_id: { eq: assignment.id },
-						resolved_at: { isNull: true }
-					},
-					columns: { id: true }
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		if (reviewLog != null) {
-			return {
-				status: 'suspicious_log_exists' as const,
-				review_id: review.id,
-				log_id: reviewLog.id
-			};
-		}
-		if (newlyOpen != null) {
-			return {
-				status: 'suspicious_open_exists' as const,
-				review_id: review.id,
-				log_id: newlyOpen.id
-			};
-		}
+		return yield* Effect.gen(function* () {
+			// Inference is external I/O. Re-read the durable judgements after it completes so retries
+			// and a controller action during the call cannot create a duplicate suspicion log.
+			const [reviewLog, newlyOpen] = yield* Effect.all(
+				[
+					api.db.suspicious_activity_logs.findFirst({
+						where: { review_id: { eq: review.id } },
+						columns: { id: true }
+					}),
+					api.db.suspicious_activity_logs.findFirst({
+						where: {
+							job_assignment_id: { eq: assignment.id },
+							resolved_at: { isNull: true }
+						},
+						columns: { id: true }
+					})
+				],
+				{ concurrency: 'unbounded' }
+			);
+			if (reviewLog != null) {
+				return {
+					status: 'suspicious_log_exists' as const,
+					review_id: review.id,
+					log_id: reviewLog.id
+				};
+			}
+			if (newlyOpen != null) {
+				return {
+					status: 'suspicious_open_exists' as const,
+					review_id: review.id,
+					log_id: newlyOpen.id
+				};
+			}
 
-		const log = yield* api.collection.suspicious_activity_logs.create({
-			job_assignment_id: assignment.id,
-			origin: 'automation',
-			basis: review.basis,
-			review_id: review.id,
-			...(review.evidence_id === null ? {} : { evidence_id: review.evidence_id }),
-			reason: review.reason
-		});
-		return { status: 'suspicious' as const, review_id: review.id, log_id: log.id };
+			const log = yield* api.collection.suspicious_activity_logs.create({
+				job_assignment_id: assignment.id,
+				origin: 'automation',
+				basis: review.basis,
+				review_id: review.id,
+				...(review.evidence_id === null ? {} : { evidence_id: review.evidence_id }),
+				reason: review.reason
+			});
+			return { status: 'suspicious' as const, review_id: review.id, log_id: log.id };
+		}).pipe(atStage('suspicion_log_persistence'));
 	});
 }

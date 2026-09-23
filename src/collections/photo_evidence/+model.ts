@@ -20,6 +20,7 @@ export default defineModel(
 		/** Meta PDQ as a 256-dim 0/1 embedding — same `vector` + `findNearest` path as omni embeds. */
 		perceptual_embedding: vector({ dimensions: 256 }).notNull(),
 		flags: enums([
+			'exact_duplicate',
 			'visual_duplicate',
 			'metadata_anomaly',
 			'edited_metadata',
