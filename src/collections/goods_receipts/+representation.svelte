@@ -23,10 +23,7 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<RecordShell
-			title={record?.doc_no ?? 'New goods receipt'}
-			subtitle={record?.received_date ?? undefined}
-		>
+		<RecordShell subtitle={record?.received_date ?? undefined}>
 			<Grid minimum="compact">
 				<Field
 					name="purchase_order_id"

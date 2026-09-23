@@ -25,7 +25,6 @@
 	{#snippet children({ Field, form })}
 		{@const values = form.values()}
 		<RecordShell
-			title={record?.subject ?? 'New activity'}
 			subtitle={record
 				? `${record.type ?? 'activity'}${record.due_date ? ` · due ${record.due_date}` : ''}${record.completed_at ? ' · completed' : ''}`
 				: undefined}

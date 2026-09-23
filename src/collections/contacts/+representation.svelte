@@ -31,9 +31,6 @@
 >
 	{#snippet children({ Field })}
 		<RecordShell
-			title={record
-				? `${record.first_name} ${record.last_name}`.trim() || 'Unnamed contact'
-				: 'New contact'}
 			subtitle={record
 				? [record.email, record.title ?? record.department].filter(Boolean).join(' · ') || undefined
 				: undefined}

@@ -26,11 +26,6 @@
 		{@const values = form.values()}
 
 		<RecordShell
-			title={record?.reference
-				? record.reference
-				: record
-					? `${record.amount} ${record.currency ?? ''}`.trim() || 'Settlement'
-					: 'New settlement'}
 			subtitle={record
 				? `${record.regarding_type ?? '—'} · ${record.settled_on ?? 'unsettled'}`
 				: undefined}

@@ -24,9 +24,6 @@
 >
 	{#snippet children({ Field })}
 		<RecordShell
-			title={record?.binding_hash
-				? `Contract ${String(record.binding_hash).slice(0, 12)}`
-				: 'New contract signing'}
 			subtitle={record
 				? `${record.variant ?? 'contract'} · ${record.status ?? 'unstamped'}`
 				: undefined}

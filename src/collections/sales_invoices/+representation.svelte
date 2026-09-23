@@ -23,10 +23,7 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<RecordShell
-			title={record?.doc_no ?? 'New sales invoice'}
-			subtitle={record ? `${record.status ?? 'draft'}` : undefined}
-		>
+		<RecordShell subtitle={record ? `${record.status ?? 'draft'}` : undefined}>
 			{#if record}
 				<Field name="net" hidden />
 				<Field name="tax" hidden />

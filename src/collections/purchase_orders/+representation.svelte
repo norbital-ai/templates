@@ -31,7 +31,6 @@
 >
 	{#snippet children({ Field })}
 		<RecordShell
-			title={record?.doc_no ?? 'New purchase order'}
 			subtitle={record
 				? `${record.status ?? 'draft'} · ${record.supplier_name ?? 'no supplier'}`
 				: undefined}

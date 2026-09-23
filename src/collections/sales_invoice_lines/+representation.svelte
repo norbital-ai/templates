@@ -24,7 +24,6 @@
 >
 	{#snippet children({ Field })}
 		<RecordShell
-			title={record ? `${record.product_name} × ${record.quantity}` : 'New sales invoice line'}
 			subtitle={record
 				? `Unit price ${record.unit_price} · Total ${record.line_total ?? '—'}`
 				: undefined}

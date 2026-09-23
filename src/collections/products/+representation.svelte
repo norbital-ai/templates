@@ -24,7 +24,6 @@
 >
 	{#snippet children({ Field })}
 		<RecordShell
-			title={record?.name ?? 'New product'}
 			subtitle={record ? `${record.code} · ${record.active ? 'Active' : 'Inactive'}` : undefined}
 		>
 			<Grid minimum="compact">
