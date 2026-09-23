@@ -29,7 +29,10 @@ const SYSTEM_COLUMNS = [
 	'updated_at',
 	'row_version',
 	'sys_period',
-	'settings_id'
+	'settings_id',
+	'record_embedding',
+	'embedded_at',
+	'record_embedding_fingerprint'
 ] as const;
 type SystemColumn = (typeof SYSTEM_COLUMNS)[number];
 
@@ -158,6 +161,9 @@ export function settingsDraftWrite(
 		updated_at: _updated,
 		row_version: _version,
 		sys_period: _period,
+		record_embedding: _embedding,
+		embedded_at: _embeddedAt,
+		record_embedding_fingerprint: _fingerprint,
 		// The predecessor's change note describes the predecessor; the drafter writes this one.
 		change_summary: _summary,
 		...root
