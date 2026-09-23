@@ -18,6 +18,7 @@ import {
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 import {
 	applicableLimits,
+	funnelledLimitKeys,
 	plannedDay,
 	projectedLimitBreaches,
 	projectionBounds,
@@ -77,6 +78,7 @@ type SettingsVersionRow = {
 	readonly effective_range: unknown;
 	readonly work_rules?: {
 		readonly limits: WorkRules['limits'];
+		readonly bands?: WorkRules['bands'];
 		readonly authority?: string | null;
 		readonly breaks?: readonly {
 			readonly when: string;
@@ -179,6 +181,9 @@ export default defineCollection({
 		Effect.gen(function* () {
 			const coordinates: WorkDayCoordinate[] = [];
 			const changes: PlanChange[] = [];
+			// Approved overtime the write keys, by person-day: it is worked time the hour ceilings
+			// project, so a write that changes it is judged like a plan change.
+			const ownOvertimeByKey = new Map<string, number>();
 			for (const [index, input] of inputs.entries()) {
 				const stored = existing[index];
 				const employmentId = input.employment_id ?? stored?.employment_id;
@@ -195,7 +200,10 @@ export default defineCollection({
 							: (stored?.shift_definition_id ?? null)
 				};
 				coordinates.push(coordinate);
-				if (input.shift_definition_id !== undefined) changes.push(coordinate);
+				if (input.approved_overtime_hours !== undefined)
+					ownOvertimeByKey.set(`${employmentId}:${workDate}`, input.approved_overtime_hours ?? 0);
+				if (input.shift_definition_id !== undefined || input.approved_overtime_hours !== undefined)
+					changes.push(coordinate);
 			}
 			// The days a moved row leaves are judged too, so the neighbourhood covers them.
 			const touchedDates = [
@@ -255,7 +263,8 @@ export default defineCollection({
 										id: true,
 										employment_id: true,
 										work_date: true,
-										shift_definition_id: true
+										shift_definition_id: true,
+										approved_overtime_hours: true
 									},
 									limit: QUERY_LIMIT
 								}),
@@ -397,7 +406,8 @@ export default defineCollection({
 									id: true,
 									employment_id: true,
 									work_date: true,
-									shift_definition_id: true
+									shift_definition_id: true,
+									approved_overtime_hours: true
 								},
 								limit: QUERY_LIMIT
 							})
@@ -465,10 +475,15 @@ export default defineCollection({
 					}
 				}
 				const storedByKey = new Map<string, string | null>();
+				const storedOvertimeByKey = new Map<string, number>();
 				for (const row of [...monthRows, ...projectionRows]) {
 					const storedDate = dateKey(row.work_date);
 					if (storedDate == null) continue;
 					storedByKey.set(`${row.employment_id}:${storedDate}`, row.shift_definition_id);
+					storedOvertimeByKey.set(
+						`${row.employment_id}:${storedDate}`,
+						row.approved_overtime_hours ?? 0
+					);
 				}
 				const termsByEmployment = Map.groupBy(terms, (term) => term.employment_id);
 				const changesByGroup = Map.groupBy(
@@ -516,15 +531,17 @@ export default defineCollection({
 					if (version == null) continue;
 					const employeeNumber = employmentById.get(employmentId)?.employee_number ?? employmentId;
 					// The hour ceilings are a schedule gate too: a pattern or roster whose projection
-					// breaches any limit is refused here. Payroll still reports an attendance overrun
-					// and prices it; a plan the law forbids is never written.
+					// breaches a limit is refused here. Payroll still reports an attendance overrun
+					// and prices it; a plan the law forbids is never written. A limit payroll funnels
+					// to INCENTIVE (the monthly overtime cap, a day limit a band funnels above) is
+					// not a refusal: the plan is accepted and the payroll run warns.
 					// A conditional limit is judged over what the gate knows of the person: the
 					// contract's type and classification and the entity's facts.
 					const judged = termsByEmployment
 						.get(employmentId)
 						?.find((candidate) => coversDate(candidate.effective_range, firstChange.work_date));
 					const entity = employmentById.get(employmentId)?.employment_company;
-					const limits = applicableLimits(
+					const applicable = applicableLimits(
 						version.work_rules?.limits ?? [],
 						personContext({
 							employee: null,
@@ -534,6 +551,8 @@ export default defineCollection({
 							asOf: firstChange.work_date
 						})
 					);
+					const funnelled = funnelledLimitKeys(version.work_rules, applicable);
+					const limits = applicable.filter((limit) => !funnelled.has(limit.key));
 					if (limits.length > 0) {
 						const window = projectionBounds(
 							own.map((change) => change.work_date),
@@ -565,12 +584,15 @@ export default defineCollection({
 								const explicitId = ownByDate.has(date)
 									? ownByDate.get(date)?.shift_definition_id
 									: storedByKey.get(`${employmentId}:${date}`);
+								const key = `${employmentId}:${date}`;
 								planByDate.set(
 									date,
 									plannedDay({
 										date,
 										rosterCodeId: explicitId ?? projectedId,
-										codeById: codeFactsById
+										codeById: codeFactsById,
+										approvedOvertimeHours:
+											ownOvertimeByKey.get(key) ?? storedOvertimeByKey.get(key) ?? 0
 									})
 								);
 							}
@@ -663,7 +685,8 @@ export default defineCollection({
 				}
 			}
 
-			return inputs.map((input, index) => {
+			const assignments: Parameters<typeof assertNoOverlap>[1][number][] = [];
+			const outputs = inputs.map((input, index) => {
 				const stored = existing[index];
 				const employmentId = input.employment_id ?? stored?.employment_id;
 				if (employmentId == null) refuse('A work day must reference an employment on file.');
@@ -722,15 +745,17 @@ export default defineCollection({
 				}
 				// The plan half. `unique(employment_id, work_date)` cannot express this: the conflict
 				// is between work windows on ADJACENT days, not two rows on one day.
-				assertNoOverlap(overlap, [
-					{
-						employment_id: employmentId,
-						work_date: workDate,
-						shift_definition_id: shiftDefinitionId,
-						...(stored === undefined ? {} : { existing_id: stored.id })
-					}
-				]);
+				assignments.push({
+					employment_id: employmentId,
+					work_date: workDate,
+					shift_definition_id: shiftDefinitionId,
+					...(stored === undefined ? {} : { existing_id: stored.id })
+				});
 				return boundToContract(canonicalDays(input, ['work_date']), stored);
 			});
+			// Judged over the whole batch: an import writes a month's days in one batch, and two new
+			// adjacent days overlap each other, not anything stored.
+			assertNoOverlap(overlap, assignments);
+			return outputs;
 		})
 });

@@ -202,8 +202,22 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		...minimumWageIssues({ configuration, bundles: gathered.bundles, asOf: window.salary.end }),
 		...finalPayIssues({ configuration, bundles: gathered.bundles, payDate: window.payDate })
 	);
+	// A rule that charges without a fact the law gives no default for says so: the run pays, and
+	// the operator reads whose record to complete.
+	for (const charge of companyCharges)
+		for (const message of charge.warnings ?? [])
+			issues.push({ code: 'CONTRIBUTION_RULE_WARNING', severity: 'WARNING', message });
 	for (const { employment, measured, termsThrough } of measuredContracts) {
 		const charges = chargesByEmployment.get(employment.id)!;
+		for (const charge of charges)
+			for (const message of charge.warnings ?? [])
+				issues.push({
+					code: 'CONTRIBUTION_RULE_WARNING',
+					severity: 'WARNING',
+					message: `${employment.employee_number}: ${message}`,
+					collection: 'employments',
+					recordId: employment.id
+				});
 		if (
 			measured.bundle.deferral != null &&
 			charges.every((charge) => charge.employee === 0 && charge.employer === 0)

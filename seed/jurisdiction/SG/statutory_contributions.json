@@ -376,7 +376,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no CDAC. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -468,7 +468,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no ECF. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -570,7 +570,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.religion == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s religion: MBMF is deducted from every Muslim employee’s wages unless they opt out, so an unrecorded religion cannot be read as outside the fund."
+				"warning": "Religion not stated on the employee record: MBMF is deducted from every Muslim employee’s wages unless they opt out, and no religion can be assumed, so this payroll deducted no MBMF. Record the religion before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -677,7 +677,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no SINDA. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -1179,7 +1179,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no CDAC. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -1271,7 +1271,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no ECF. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -1373,7 +1373,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.religion == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s religion: MBMF is deducted from every Muslim employee’s wages unless they opt out, so an unrecorded religion cannot be read as outside the fund."
+				"warning": "Religion not stated on the employee record: MBMF is deducted from every Muslim employee’s wages unless they opt out, and no religion can be assumed, so this payroll deducted no MBMF. Record the religion before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -1480,7 +1480,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no SINDA. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -1982,7 +1982,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no CDAC. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -2074,7 +2074,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no ECF. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -2176,7 +2176,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.religion == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s religion: MBMF is deducted from every Muslim employee’s wages unless they opt out, so an unrecorded religion cannot be read as outside the fund."
+				"warning": "Religion not stated on the employee record: MBMF is deducted from every Muslim employee’s wages unless they opt out, and no religion can be assumed, so this payroll deducted no MBMF. Record the religion before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -2283,7 +2283,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no SINDA. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -2785,7 +2785,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no CDAC. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -2877,7 +2877,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no ECF. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -2979,7 +2979,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.religion == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s religion: MBMF is deducted from every Muslim employee’s wages unless they opt out, so an unrecorded religion cannot be read as outside the fund."
+				"warning": "Religion not stated on the employee record: MBMF is deducted from every Muslim employee’s wages unless they opt out, and no religion can be assumed, so this payroll deducted no MBMF. Record the religion before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -3086,7 +3086,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no SINDA. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -3588,7 +3588,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: CDAC is deducted from every Chinese citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no CDAC. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -3680,7 +3680,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: ECF is deducted from every Eurasian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no ECF. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -3782,7 +3782,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.religion == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s religion: MBMF is deducted from every Muslim employee’s wages unless they opt out, so an unrecorded religion cannot be read as outside the fund."
+				"warning": "Religion not stated on the employee record: MBMF is deducted from every Muslim employee’s wages unless they opt out, and no religion can be assumed, so this payroll deducted no MBMF. Record the religion before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",
@@ -3889,7 +3889,7 @@
 				"when": "base > 0.0 && !scheme.elections.shg_opt_out && person.employee.citizenship != \"FOREIGNER\" && person.employee.race == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "Record the employee’s race as shown on the NRIC: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, so an unrecorded race cannot be read as outside the fund."
+				"warning": "Race not stated on the employee record: SINDA is deducted from every Indian citizen or permanent resident unless they opt out in writing, and no race can be assumed, so this payroll deducted no SINDA. Record the race as shown on the NRIC before the next payroll."
 			},
 			{
 				"when": "scheme.elections.shg_opt_out && (\"shg_monthly_amount\" in scheme.election_keys)",

@@ -32,7 +32,12 @@ import {
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
 import { factStatusesOn, personFacts } from './facts.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
-import { resolveCompanyFacts, resolveExitFacts, resolveFactValues } from '../declared-facts.js';
+import {
+	exitFactsMissing,
+	resolveCompanyFacts,
+	resolveExitFacts,
+	resolveFactValues
+} from '../declared-facts.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import {
 	intersectDays,
@@ -302,14 +307,18 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				typeof band.limit === 'string' ? band.limit : ''
 			])
 		].some((expression) => expression.includes('employment.exit_facts'));
-		const subjectOn = (source: PayRequest): PersonContext => {
+		/** The person the entry is priced for, or the departure declaration it lacks. */
+		const subjectOn = (source: PayRequest): PersonContext | string => {
 			const employment = stint(options.bundle.employment);
 			// A separation-classed row raised while the contract still runs — ID's THR for an
 			// active employee — is an ordinary payment on its event date, not a final obligation.
+			// A fixed-term contract states its end from the first day, so the contract has only
+			// ended once that day falls inside this run's window.
 			const separation =
 				'raised_by' in options.component &&
 				options.component.raised_by === 'SEPARATION' &&
-				employment.exit_date != null;
+				employment.exit_date != null &&
+				employment.exit_date <= options.salary.end;
 			const asOf = separation ? employment.exit_date! : source.event_date;
 			const version = separation
 				? settingsInForce(
@@ -378,11 +387,15 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				),
 				asOf
 			});
-			return separation && readsExitFacts
-				? resolveExitFacts(version.exit_facts ?? [], employment.exit_facts, subject)
-				: subject;
+			if (!(separation && readsExitFacts)) return subject;
+			// The declared cause decides a separation amount (ID PP 35/2021 arts.40–57): a leaver
+			// whose departure is recorded without it cannot be priced for this class, which is
+			// skipped by name, not a reason to stop everyone else's pay. A stated value that is
+			// invalid still refuses.
+			const missing = exitFactsMissing(version.exit_facts ?? [], employment.exit_facts, subject);
+			return missing ?? resolveExitFacts(version.exit_facts ?? [], employment.exit_facts, subject);
 		};
-		const subject = subjectOn(entry);
+		const subjectOrMissing = subjectOn(entry);
 		/**
 		 * A skipped request is captured, so it has to be reported: the entry is consumed whether or
 		 * not it paid, and without a note an approved request disappears with nothing to look at.
@@ -399,6 +412,9 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			});
 			return null;
 		};
+		if (typeof subjectOrMissing === 'string')
+			return skipped(`the departure record is incomplete: ${subjectOrMissing}`);
+		const subject = subjectOrMissing;
 		if (!isEligible(options.component.eligibility, subject))
 			return skipped('this employment does not satisfy the catalogue’s eligibility rule');
 

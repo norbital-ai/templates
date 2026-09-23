@@ -10,6 +10,7 @@ import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js'
 import {
 	plannedDay,
 	applicableLimits,
+	funnelledLimitKeys,
 	projectedLimitBreaches,
 	type RosterCodeFacts,
 	type SchedulePlanDay
@@ -40,6 +41,7 @@ type SettingsVersionRow = {
 	readonly effective_range: unknown;
 	readonly work_rules?: {
 		readonly limits?: WorkRules['limits'];
+		readonly bands?: WorkRules['bands'];
 		readonly authority?: string | null;
 	} | null;
 };
@@ -142,7 +144,10 @@ export default defineCollection({
 					settingsCode,
 					start
 				);
-				const limits = applicableLimits(version?.work_rules?.limits ?? [], null);
+				// A limit payroll funnels to INCENTIVE only warns there; the plan is not refused on it.
+				const applicable = applicableLimits(version?.work_rules?.limits ?? [], null);
+				const funnelled = funnelledLimitKeys(version?.work_rules, applicable);
+				const limits = applicable.filter((limit) => !funnelled.has(limit.key));
 				if (limits.length === 0) return input;
 				const codeById = new Map<string, RosterCodeFacts>();
 				for (const code of codes) {

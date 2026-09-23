@@ -119,7 +119,7 @@ residency refuses in every lineage).
 | 37  | ID         | PPh 21 December reckoning (PMK 168/2023)                                                                                              | the December rung over prior + current, biaya jabatan, the year's JP and JHT, PKP floored to the thousand, PTKP (ID golden); the 14 keyed rows retired                                                                                                | —                                                                                                  | implemented |
 | 136 | MY, PH, VN | A mid-year joiner’s year with an earlier employer: MY TP3 (accumulated remuneration, EPF, PCB), PH BIR 2316, VN’s finalisation months | implemented 2026-09-18 (5): `statutory_fact_status.opening[]` — per scheme and tax year: base, employee, employer, ordinary, months — folded into `scheme.year_to_date`, the relief pools and `year.months_employed`                                  | residue: declared on joining, not verifiable                                                       | implemented |
 | 38  | VN         | Year-end PIT finalisation                                                                                                             | `period.last_of_year` on the scheme site; implemented 2026-09-18: the PIT annual ladder as the first rung; 2026-09-18 (5): the rung deducts the year’s contributions as charged (`produced.<code>.employee`)                                          | —                                                                                                  | implemented |
-| 116 | SG         | SHG funds deducted by default unless opted out                                                                                        | rules; implemented 2026-09-18 (4): the six SG records need `race` / `religion`; 2026-09-23: an unrecorded race or religion refuses (round 5, D16)                                                                                                     | records: no NRIC race on file (customer data)                                                      | external    |
+| 116 | SG         | SHG funds deducted by default unless opted out                                                                                        | rules; implemented 2026-09-18 (4): the six SG records need `race` / `religion`; 2026-09-23: an unrecorded race or religion refuses (round 5, D16), then warns and deducts no fund (seed bank, below)                                                  | records: no NRIC race on file (customer data)                                                      | external    |
 | 123 | VN         | Night overtime adds 20% of the day-type wage over the 30% (art.98(3))                                                                 | implemented 2026-09-18 (4): `overtime_add` 50 / 70 / 90 over the day                                                                                                                                                                                  | —                                                                                                  | implemented |
 | 124 | VN         | Contractual allowances inside the insurance salary; meal, fuel, phone, housing outside (Circular 06/2021 art.30)                      | implemented 2026-09-18 (4): `terms.basic_salary + terms.fixed_allowances`; PIT reads the catalogue less severance and job-loss; a meal row is `fixed: false` with its 730,000 cap                                                                     | —                                                                                                  | implemented |
 | 125 | VN         | UI base floored at the reference level (Law 41/2024 art.31(1)(đ))                                                                     | implemented 2026-09-18 (4): 2,340,000 floor rung                                                                                                                                                                                                      | —                                                                                                  | implemented |
@@ -424,3 +424,50 @@ values or deployed release. Current limitations are listed in the [compliance ma
   (`statutory-*-declarations.integration`, `statutory-round5-U.integration`); the hosted preload
   keeps dated entity facts and wage periods apart.
 - Privacy obligations added: SG PDPA 2012, ID UU 27/2022, VN Law 91/2025 (from 2026).
+
+#### Seed bank: every company, every seeded period (23 September 2026)
+
+After the audit, payroll refused for four of the five bank companies. Each gate, the fact the source
+states and what was decided; `tests/seed-bank-payroll.integration.test.ts` loads the private bank
+(skips by name where it is absent) and builds every company for every period, December 2025 to June
+2026 (each half at OPSPH), with payslips in every run.
+
+- **Contribution rules gain `warning`** (`contribution_rules`, `contribute.ts` `selectedRuleContext`):
+  a matching rule charges its stated amounts and the run carries `CONTRIBUTION_RULE_WARNING` naming
+  the employee, where a fact has no lawful default and a refusal would stop everyone else's pay.
+- **SG CDAC / ECF / SINDA (race) and MBMF (religion)**: no source states race or religion for any
+  of the six Norbital / OPSSG employees (there is no SG raw source; the records carry neither), and
+  none is inferred from a name; the SG employee rows record both as not stated (`null`). The gate is a warning in every SG version: the fund deducts 0.00
+  and the run names the employee. Opt-outs: no source records one, so none is seeded and the
+  schemes' default (not opted out) stands. D16 now asserts the warning (CPF residency still refuses).
+- **PH `small_establishment` / `retirement_exempt_establishment`**: both `false` on the OPSPH
+  company row, derived from the records' own employments — 17 to 19 employed in every seeded
+  period, so the establishment is neither under ten nor ten or fewer, whatever its sector.
+- **PH SSS / MPF birth date**: `OPSPH Employee Data.xlsx` and the salary listings state no birth date
+  for any employee. Coverage turns on age (RA 11199 s.9(a)), so the gate is a warning: no SSS
+  (and, above the Regular SS ceiling, no MPF) is charged on a guess, and the run names each person.
+- **PH semi-monthly MEDICAL_LEAVE 14–16 May** (OPSPH010): split at the cutoff into 14–15 (`#2026-05-1`)
+  and 16 May (`#2026-05-2`), as the bank's other straddling entries already are.
+- **ID PP 35/2021 termination cause**: fired for non-leavers. KDIT's fixed-term employments carry
+  their contract end from the first day, and THR is a `SEPARATION`-classed row, so every March
+  THR (captured in any later first run, e.g. June) was priced as a separation and demanded the
+  departure facts. `money.ts` now treats a separation class as a final obligation only once the
+  exit falls inside the run's window. A real leaver whose departure lacks a declaration the class
+  reads has that class skipped by name (`PAY_REQUEST_SKIPPED`), not the run refused; an invalid
+  stated value still refuses. KDIT0001 (the only leaver in the window, 31 January 2026) carries
+  `exit_reason: RESIGNATION` and `termination_cause: VOLUNTARY_RESIGNATION` from
+  `KDIT Employee Data.xlsx` ("Emp Termination Reason: Resignation"); no other cause was invented.
+- **ID tax residency**: every KDIT terms row is `RESIDENT` — the salary listing withholds PPh 21
+  at TER rates for every employee (PPh 26 is a flat 20%), each Indonesian carries a KTP NIK, and
+  KDIT0014 has been employed in Indonesia since 21 October 2024 (UU PPh art.2(3)).
+- **ID PTKP status / dependants / tax identity**: the salary listing's `TK/K` and `NPWP` columns
+  are empty, so nothing is declared. The three elections lose `required_when`; a PPh 21 warning
+  rule withholds nothing on a guess and names the employee (December settles the year once
+  declared). D15 counts an election a warning rule guards as settled.
+- **Roster codes before December 2025**: KDIT's six codes and Nihon's REST / OFF opened on
+  2025-12-01 although the patterns naming them run from 2022 / 2009; the December cycle's calendar
+  reads November. Their ranges now open with the patterns (KDIT 2022-08-01, Nihon 2009-12-01).
+- **Nihon December 2025 roster of record**: the 2025-12 rosters left 1–20 December rest and leave
+  days without a row. 460 `work_days` rows added from `Nihon Attendance_Dec 2025.xlsx` Sheet1 by
+  the rule the 21–31 December rows follow: reason `RES` or an `*RES` shift → REST (300), otherwise
+  the sheet's shift, planned only, the day's leave entry pricing it (160).

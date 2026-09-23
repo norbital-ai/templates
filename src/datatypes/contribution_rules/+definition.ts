@@ -31,7 +31,13 @@ export const contributionRuleSchema = Schema.Struct({
 	/** Allowable deduction evaluated once after selection, readable as scheme.deduction. */
 	deduction: Schema.optionalKey(cel),
 	/** A matching rule refuses calculation with this explanation. */
-	refusal: Schema.optionalKey(cel)
+	refusal: Schema.optionalKey(cel),
+	/**
+	 * A matching rule charges its stated amounts and reports this explanation as a run warning
+	 * instead of refusing: a fact the law sets no default for, where a refusal would stop the
+	 * unrelated payroll of everyone else (an SG self-help fund of unstated race charges 0.0).
+	 */
+	warning: Schema.optionalKey(cel)
 });
 export type ContributionRule = Schema.Schema.Type<typeof contributionRuleSchema>;
 

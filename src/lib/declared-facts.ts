@@ -110,20 +110,42 @@ export function resolveFactValues(
 	);
 }
 
+const exitPerson = (
+	fields: readonly FactKey[],
+	values: Readonly<Record<string, string | number | boolean>>,
+	person: PersonContext
+): PersonContext => ({
+	...person,
+	employment: {
+		...person.employment,
+		exit_facts: resolveFactValues(fields, values, 'Departure', false),
+		exit_fact_keys: Object.keys(values)
+	}
+});
+
 /** Validate departure declarations against the final-service-day person before selecting or pricing an exit payment. */
 export function resolveExitFacts(
 	fields: readonly FactKey[],
 	values: Readonly<Record<string, string | number | boolean>>,
 	person: PersonContext
 ): PersonContext {
-	const resolved = {
-		...person,
-		employment: {
-			...person.employment,
-			exit_facts: resolveFactValues(fields, values, 'Departure', false),
-			exit_fact_keys: Object.keys(values)
-		}
-	};
+	const resolved = exitPerson(fields, values, person);
 	requireFactValues(fields, values, 'Departure', (expression) => isEligible(expression, resolved));
 	return resolved;
+}
+
+/**
+ * The departure declaration the final-service-day person owes and has not recorded, as
+ * `resolveExitFacts` would name it; null when every recorded value is valid and nothing owed is
+ * missing. A recorded value that is invalid is not "missing": the caller's `resolveExitFacts` refuses it.
+ */
+export function exitFactsMissing(
+	fields: readonly FactKey[],
+	values: Readonly<Record<string, string | number | boolean>>,
+	person: PersonContext
+): string | null {
+	const resolved = exitPerson(fields, values, person);
+	const when = (expression: string) => isEligible(expression, resolved);
+	if (factValuesFault(fields, values, false, when) != null) return null;
+	return factValuesFault(fields, values, true, when);
 }
