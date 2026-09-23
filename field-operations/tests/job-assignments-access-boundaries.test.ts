@@ -98,7 +98,8 @@ test('contractor projections expose operational assignment and photo fields only
 	assert.deepEqual(grant(contractor, 'photo_evidence', 'mutate.new')?.fields, [
 		'job_assignment_id',
 		'variation_request_id',
-		'photo'
+		'photo',
+		'source'
 	]);
 });
 

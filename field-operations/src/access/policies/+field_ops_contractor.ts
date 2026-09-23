@@ -112,7 +112,12 @@ const evidenceReadFields = [
 	'photo',
 	'summary'
 ] as const;
-const evidenceNewMutationFields = ['job_assignment_id', 'variation_request_id', 'photo'] as const;
+const evidenceNewMutationFields = [
+	'job_assignment_id',
+	'variation_request_id',
+	'photo',
+	'source'
+] as const;
 const communicationReadFields = [
 	'id',
 	'job_assignment_id',
@@ -217,6 +222,15 @@ export default {
 			read: {
 				where: ownCommunication,
 				fields: communicationReadFields
+			},
+			mutate: {
+				new: {
+					authorize: ({ record }, api) =>
+						api.db.job_assignments
+							.findFirst({ where: { id: { eq: record.job_assignment_id } } })
+							.pipe(Effect.map((assignment) => assignment !== undefined)),
+					fields: ['job_assignment_id', 'message', 'sent_at', 'sender', 'source_message_id']
+				}
 			}
 		}
 	},

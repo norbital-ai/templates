@@ -380,6 +380,20 @@ test(
 			) as Record<string, unknown>;
 			assert.equal(reinspected.state, 'registered');
 
+			// An envoy turn carries the member's own authority, so the contractor needs their team.
+			const contractorTeam = rows(
+				await guest.query(`select id from "team" where name = 'Contractor'`)
+			)[0];
+			assert.ok(contractorTeam !== undefined);
+			requireOk(
+				await asContractor(
+					'identity.assignTeam',
+					{ memberId: String(contractor.id), teamId: String(contractorTeam.id) },
+					guest.credential
+				),
+				'identity.assignTeam'
+			);
+
 			// The linked contractor owns the public assignment from here on.
 			await guest.query(
 				`update job_assignments set assignee_user_id = $2::uuid where id = $1::uuid`,
