@@ -523,7 +523,8 @@ export default defineCollection({
 								kind,
 								paid_minutes: 0,
 								break_minutes: 0,
-								spread_hours: 0
+								spread_hours: 0,
+								statutory_rest: code.variant.kind === 'REST' && code.variant.statutory === true
 							});
 						}
 					} catch {

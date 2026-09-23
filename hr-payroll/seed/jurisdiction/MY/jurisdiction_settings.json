@@ -117,10 +117,10 @@
 				{
 					"key": "monthly_ot",
 					"period": "MONTH",
-					"measure": "OVERTIME_HOURS",
+					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 104,
 					"unit": "WORKED_HOURS",
-					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2"
+					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2: no more than 104 hours of overtime work in any one month, counted over every day of the assessment window — overtime on a rest day, an off day and a public holiday (Employment Act 1955 s.60(3), s.60D(3)) counts toward it as ordinary-day overtime does."
 				},
 				{
 					"key": "weekly_rest",
@@ -790,10 +790,10 @@
 				{
 					"key": "monthly_ot",
 					"period": "MONTH",
-					"measure": "OVERTIME_HOURS",
+					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 104,
 					"unit": "WORKED_HOURS",
-					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2"
+					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2: no more than 104 hours of overtime work in any one month, counted over every day of the assessment window — overtime on a rest day, an off day and a public holiday (Employment Act 1955 s.60(3), s.60D(3)) counts toward it as ordinary-day overtime does."
 				},
 				{
 					"key": "weekly_rest",
@@ -1474,10 +1474,10 @@
 				{
 					"key": "monthly_ot",
 					"period": "MONTH",
-					"measure": "OVERTIME_HOURS",
+					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 104,
 					"unit": "WORKED_HOURS",
-					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2"
+					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2: no more than 104 hours of overtime work in any one month, counted over every day of the assessment window — overtime on a rest day, an off day and a public holiday (Employment Act 1955 s.60(3), s.60D(3)) counts toward it as ordinary-day overtime does."
 				},
 				{
 					"key": "weekly_rest",
@@ -2169,10 +2169,10 @@
 				{
 					"key": "monthly_ot",
 					"period": "MONTH",
-					"measure": "OVERTIME_HOURS",
+					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 104,
 					"unit": "WORKED_HOURS",
-					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2"
+					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2: no more than 104 hours of overtime work in any one month, counted over every day of the assessment window — overtime on a rest day, an off day and a public holiday (Employment Act 1955 s.60(3), s.60D(3)) counts toward it as ordinary-day overtime does."
 				},
 				{
 					"key": "weekly_rest",
@@ -2864,10 +2864,10 @@
 				{
 					"key": "monthly_ot",
 					"period": "MONTH",
-					"measure": "OVERTIME_HOURS",
+					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 104,
 					"unit": "WORKED_HOURS",
-					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2"
+					"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2: no more than 104 hours of overtime work in any one month, counted over every day of the assessment window — overtime on a rest day, an off day and a public holiday (Employment Act 1955 s.60(3), s.60D(3)) counts toward it as ordinary-day overtime does."
 				},
 				{
 					"key": "weekly_rest",
