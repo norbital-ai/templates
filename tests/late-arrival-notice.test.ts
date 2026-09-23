@@ -107,7 +107,8 @@ test('a shift fifteen minutes past its start with no clock-in raises one reminde
 			key: 'late:employment:1:2026-09-22',
 			recipients: [{ team: 'Production Manager' }],
 			title: 'Late for work — Public Fixture Co',
-			body: 'Aisyah binti Rahman (PUBEM0002) has not clocked in for the 08:30 shift on 2026-09-22.'
+			body: 'Aisyah binti Rahman (PUBEM0002) has not clocked in for the 08:30 shift on 2026-09-22.',
+			via: ['inbox']
 		}
 	]);
 });
