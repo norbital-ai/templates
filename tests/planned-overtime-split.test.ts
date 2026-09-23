@@ -17,6 +17,7 @@ import { memoryWorkspaceApi } from './fixtures/memory-payroll-api.ts';
 import { applicableLimits, splitPlannedOvertime } from '../src/lib/scheduling/work-limits.ts';
 import { settingsVersions } from './fixtures/statutory-world.ts';
 import { windowOvertime } from '../src/lib/ui/roster/day-overtime.ts';
+import { addDays } from '../src/collections/payroll_runs/lib/dates.ts';
 import { transformSync } from './helpers/transform.ts';
 import { VERSION, workDayDb } from './helpers/work-day-db.ts';
 
@@ -124,17 +125,131 @@ test('chronological cascade: more overtime early in the month moves the incentiv
 	]);
 });
 
-test('a rest-day entry consumes the month like any other: it pushes a later ordinary day into incentive', () => {
-	// Owner's rule: planned overtime on a rest, off or holiday day counts toward the limits.
-	const split = splitPlannedOvertime({
-		days: [work(dayOf(1), 4), rest(dayOf(5), 8), work(dayOf(6), 2)],
-		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 12)]
-	});
-	assert.deepEqual(pairs(split), [
-		[dayOf(1), 4, 0],
-		[dayOf(5), 8, 0],
-		[dayOf(6), 0, 2]
-	]);
+test('OVERTIME_HOURS is the ordinary and off day’s at every period; ALL_OVERTIME_HOURS counts the rest day too', () => {
+	// The limit's measure decides which days it counts: a rest day neither consumes nor is bounded
+	// by a regulated-overtime limit, and consumes a limit that counts all overtime.
+	const days = [work(dayOf(1), 4), rest(dayOf(5), 8), work(dayOf(6), 10)];
+	assert.deepEqual(
+		pairs(
+			splitPlannedOvertime({ days, limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 12)] })
+		),
+		[
+			[dayOf(1), 4, 0],
+			[dayOf(5), 8, 0],
+			[dayOf(6), 8, 2]
+		]
+	);
+	assert.deepEqual(
+		pairs(
+			splitPlannedOvertime({
+				days,
+				limits: [limit('monthly_ot', 'MONTH', 'ALL_OVERTIME_HOURS', 12)]
+			})
+		),
+		[
+			[dayOf(1), 4, 0],
+			[dayOf(5), 8, 0],
+			[dayOf(6), 0, 10]
+		]
+	);
+});
+
+test('ID: holiday and rest-day overtime stay outside the 4 h a day and the 18 h week (PP 35/2021 art.26(2))', () => {
+	for (const version of settingsVersions('ID')) {
+		const limits = applicableLimits(version.work_rules.limits, null);
+		// Monday 6 to Sunday 12 July: a holiday Tuesday and a rest Sunday plan 9 each, and four
+		// ordinary days 4 each. Only the ordinary sixteen enter the week: all of it is overtime.
+		const split = splitPlannedOvertime({
+			days: [
+				work(dayOf(6), 4),
+				work(dayOf(7), 9, { holiday: true }),
+				work(dayOf(8), 4),
+				work(dayOf(9), 4),
+				work(dayOf(10), 4),
+				rest(dayOf(12), 9)
+			],
+			limits
+		});
+		assert.deepEqual(pairs(split), [
+			[dayOf(6), 4, 0],
+			[dayOf(7), 9, 0],
+			[dayOf(8), 4, 0],
+			[dayOf(9), 4, 0],
+			[dayOf(10), 4, 0],
+			[dayOf(12), 9, 0]
+		]);
+		// A fifth ordinary 4 h day passes eighteen: two within, two incentive.
+		assert.deepEqual(
+			pairs(
+				splitPlannedOvertime({ days: [6, 7, 8, 9, 10].map((n) => work(dayOf(n), 4)), limits })
+			).at(-1),
+			[dayOf(10), 2, 2]
+		);
+	}
+});
+
+test('MY: rest-day overtime consumes the 104 hours of the assessment window', () => {
+	for (const code of ['MY', 'MY-nihon'])
+		for (const version of settingsVersions(code)) {
+			const limits = applicableLimits(version.work_rules.limits, null);
+			// 21 Jan – 20 Feb: twenty-four ordinary days of 4 h (96) and a rest day of 8 (under
+			// the twelve a day) fill the 104, so the next ordinary day is all incentive.
+			const ordinary = Array.from({ length: 24 }, (_, index) =>
+				work(addDays('2026-01-21', index), 4, { paid_minutes: 450 })
+			);
+			const split = splitPlannedOvertime({
+				days: [...ordinary, rest('2026-02-15', 8), work('2026-02-16', 3, { paid_minutes: 450 })],
+				limits,
+				cutoffDay: 21
+			});
+			assert.deepEqual(split.get('2026-02-15'), { approved_overtime_hours: 8, incentive_hours: 0 });
+			assert.deepEqual(
+				split.get('2026-02-16'),
+				{ approved_overtime_hours: 0, incentive_hours: 3 },
+				code
+			);
+		}
+});
+
+test('counts_day_when: a VN rest day and a TW 休息日 count toward the month; a TW holiday counts past its normal day', () => {
+	// VN art.107(2)(b): rest-day and holiday hours enter the 40-hour month, though the four a day
+	// do not bind them. 38 on the rest day leaves two for the next day's three.
+	const vn = applicableLimits(settingsVersions('VN')[0].work_rules.limits, null);
+	assert.deepEqual(
+		pairs(splitPlannedOvertime({ days: [rest(dayOf(5), 38), work(dayOf(6), 3)], limits: vn })),
+		[
+			[dayOf(5), 38, 0],
+			[dayOf(6), 2, 1]
+		]
+	);
+	// TW §36(3): every 休息日 hour enters the 46-hour month (30 over three rest days); a holiday
+	// counts what passes its eight-hour shift (2 of 10); with 4 on an ordinary day, 10 are left.
+	const tw = settingsVersions('TW')[0].work_rules.limits.filter((row) =>
+		['daily_total', 'monthly_ot'].includes(row.key)
+	);
+	assert.deepEqual(
+		pairs(
+			splitPlannedOvertime({
+				days: [
+					rest(dayOf(4), 10),
+					rest(dayOf(11), 10),
+					work(dayOf(13), 10, { holiday: true }),
+					rest(dayOf(18), 10),
+					work(dayOf(20), 4),
+					rest(dayOf(25), 12)
+				],
+				limits: tw
+			})
+		),
+		[
+			[dayOf(4), 10, 0],
+			[dayOf(11), 10, 0],
+			[dayOf(13), 10, 0],
+			[dayOf(18), 10, 0],
+			[dayOf(20), 4, 0],
+			[dayOf(25), 10, 2]
+		]
+	);
 });
 
 test('the month is the assessment window: with a 21st cutoff the 20th and the 21st fill different months', () => {
@@ -243,10 +358,15 @@ test('every overtime limit splits — a quarter and a year too — and the tight
 		['2026-03-02', 8, 2],
 		['2026-04-01', 12, 0]
 	]);
-	// VN art.107(3): 200 a year; ALL_OVERTIME_HOURS (SG's 72 as MOM reads it) splits alike.
+	// VN art.107(3): 200 a year, its rest days counted by its day predicate; ALL_OVERTIME_HOURS
+	// (SG's 72 as MOM reads it) splits alike.
 	const year = splitPlannedOvertime({
 		days: [work('2026-01-05', 150), rest('2026-06-07', 60)],
-		limits: [limit('yearly_ot', 'YEAR', 'OVERTIME_HOURS', 200)]
+		limits: [
+			limit('yearly_ot', 'YEAR', 'OVERTIME_HOURS', 200, {
+				counts_day_when: 'day_type == "REST_DAY" || day_type == "PUBLIC_HOLIDAY"'
+			})
+		]
 	});
 	assert.deepEqual(pairs(year), [
 		['2026-01-05', 150, 0],

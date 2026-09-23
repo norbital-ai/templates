@@ -785,6 +785,7 @@ function keyClockOverruns(prepared: PreparedRun): void {
 				paid_minutes: day.shift?.paid_minutes ?? 0,
 				break_minutes: day.shift?.break_minutes ?? 0,
 				spread_hours: 0,
+				statutory_rest: day.statutoryRest,
 				holiday: day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY',
 				emergency:
 					bundle.workDays.find((entry) => String(entry.work_date).startsWith(day.date))

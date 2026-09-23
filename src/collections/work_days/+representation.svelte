@@ -455,7 +455,13 @@
 			const kind = rosterCodeKind(code.variant);
 			const window = kind === 'WORK' ? workWindow(code.variant) : null;
 			if (kind !== 'WORK')
-				codeById.set(code.id, { kind, paid_minutes: 0, break_minutes: 0, spread_hours: 0 });
+				codeById.set(code.id, {
+					kind,
+					paid_minutes: 0,
+					break_minutes: 0,
+					spread_hours: 0,
+					statutory_rest: code.variant.kind === 'REST' && code.variant.statutory === true
+				});
 			else if (window != null)
 				codeById.set(code.id, {
 					kind,

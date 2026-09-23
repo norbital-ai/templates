@@ -25,8 +25,13 @@ import {
 	type WorkLimit as AnyWorkLimit
 } from '../../datatypes/work_rules/+definition.js';
 import { addDays, monthBounds, weekStart } from '../../collections/payroll_runs/lib/dates.js';
-import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import {
+	isEligible,
+	personContext,
+	type PersonContext
+} from '../../collections/payroll_runs/lib/eligibility.js';
 import { attendanceWindow, defaultPayPeriod } from '../../collections/payroll_runs/lib/period.js';
+import { workDayHolds } from '../payroll/work-bands.js';
 
 /**
  * The limits that govern one person: every unconditional limit, and every conditional one whose
@@ -68,6 +73,8 @@ export type SchedulePlanDay = {
 	readonly break_minutes: number;
 	/** Clock span the code's window covers, break included. Zero for a non-working day. */
 	readonly spread_hours: number;
+	/** A REST code marked the statutory rest day (TW 例假), for a limit's day predicates. */
+	readonly statutory_rest?: boolean;
 };
 
 /** The roster-code facts a plan resolves to; `work_days` and `shift_patterns` both carry them. */
@@ -76,6 +83,7 @@ export type RosterCodeFacts = {
 	readonly paid_minutes: number;
 	readonly break_minutes: number;
 	readonly spread_hours: number;
+	readonly statutory_rest?: boolean;
 };
 
 type LimitBreach = {
@@ -185,7 +193,8 @@ export function plannedDay(options: {
 			kind: facts?.kind ?? null,
 			paid_minutes: 0,
 			break_minutes: 0,
-			spread_hours: 0
+			spread_hours: 0,
+			...(facts?.statutory_rest === true && { statutory_rest: true })
 		};
 	return {
 		date: options.date,
@@ -242,19 +251,20 @@ export const assessmentWindow = (
  *                                   approved hours already allocated in it
  *   WEEK… (ALL_)OVERTIME_HOURS      the maximum less the approved hours already allocated in it
  *
- * — floored to the half hour where a cap binds, so both entries stay in half-hour steps. Every day
- * counts toward the week, month, quarter and year, whatever its roster code or the calendar:
- * planned overtime on a rest, off or holiday day consumes their headroom like any other (owner's
- * rule, 2026-09-23). A day limit applies as its measure states: TOTAL_WORK_HOURS and
- * ALL_OVERTIME_HOURS bound every day (MY s.60A(7), SG s.38(8), TW §32(2): the hours of work in any
- * one day); OVERTIME_HOURS is the regulated overtime of an ordinary or off day, so it leaves a REST
- * day and a holiday to the period limits (ID PP 35/2021 art.26(2) puts rest-day and holiday overtime
- * outside the four hours; VN art.107(2)(b)'s four hours are the working day's, Decree 145 art.60
- * allowing twelve on a rest day or holiday). An emergency day is outside every ceiling: all of it is
- * overtime and it consumes nothing. A MONTH is the assessment month of `cutoffDay` (default 1, the
- * calendar month); a WEEK runs Monday to Sunday; a QUARTER or YEAR is the calendar's. Returns every
- * day's split, keyed by date. Pure: the `work_days` transform (and so the import) and the day
- * sheet's preview quote the same arithmetic.
+ * — floored to the half hour where a cap binds, so both entries stay in half-hour steps. Which
+ * days a limit counts, for every period alike, is per the limit's measure and day predicates:
+ * TOTAL_WORK_HOURS and ALL_OVERTIME_HOURS count every day (MY s.60A(7), SG s.38(8), TW §32(2): the
+ * hours of work in any one day); OVERTIME_HOURS is the regulated overtime of an ordinary or off
+ * day, so a REST day or a holiday neither consumes nor is bounded by it (ID PP 35/2021 art.26(2)
+ * puts rest-day and holiday overtime outside the four hours a day and eighteen a week; VN
+ * art.107(2)(b)'s four hours are the working day's) — unless the limit's `counts_day_when` holds on
+ * it, which counts all of the day's overtime, or its `counts_beyond_normal_when`, which counts what
+ * lies past the day's normal hours (TW 勞基法 §36(3), and past eight on a 例假 or holiday). The
+ * predicates are read as the ceiling report reads them (`workDayHolds`). An emergency day is
+ * outside every ceiling: all of it is overtime and it consumes nothing. A MONTH is the assessment
+ * month of `cutoffDay` (default 1, the calendar month); a WEEK runs Monday to Sunday; a QUARTER or
+ * YEAR is the calendar's. Returns every day's split, keyed by date. Pure: the `work_days` transform
+ * (and so the import) and the day sheet's preview quote the same arithmetic.
  */
 export function splitPlannedOvertime(options: {
 	readonly days: readonly OvertimeSplitDay[];
@@ -268,6 +278,59 @@ export function splitPlannedOvertime(options: {
 	// worked, which is not worked on top of it.
 	const plannedHours = (day: OvertimeSplitDay): number =>
 		day.kind === 'WORK' && day.holiday !== true ? day.paid_minutes / 60 : 0;
+	// The day as the ceiling report's predicates read it. A holiday on a rest day stays the rest
+	// day, as every lineage with a limit resolves it (`holiday_rest_precedence` REST_DAY or
+	// SUBSTITUTE). ponytail: no person here — a day predicate reading `person` sees a blank one;
+	// pass the person through when a lineage's predicate needs it.
+	const holds = (expression: string | undefined, day: OvertimeSplitDay): boolean =>
+		(expression ?? '').trim() !== '' &&
+		workDayHolds({
+			work: { limits: options.limits },
+			expression: expression ?? '',
+			person: personContext({
+				employee: null,
+				employment: { service_start: '' },
+				terms: null,
+				company: null,
+				asOf: day.date
+			}),
+			day: {
+				workDayId: '',
+				date: day.date,
+				dayType:
+					day.kind === 'REST'
+						? 'REST_DAY'
+						: day.holiday === true
+							? 'PUBLIC_HOLIDAY'
+							: day.kind === 'WORK'
+								? 'ORDINARY'
+								: 'OFF_DAY',
+				workedHours: plannedHours(day) + day.total_overtime_hours,
+				normalHours: day.paid_minutes / 60,
+				overtimeHours: day.total_overtime_hours,
+				breakMinutes: day.break_minutes,
+				holidayKind: day.holiday === true ? 'PUBLIC_HOLIDAY' : '',
+				holidayName: '',
+				consecutiveHours: 0,
+				continuousAttendance: false,
+				restDay: day.kind === 'REST',
+				statutoryRest: day.statutory_rest === true,
+				offDay: day.kind !== 'WORK' && day.kind !== 'REST',
+				nightHours: 0,
+				requestedBy: 'EMPLOYER'
+			},
+			rates: { ordinaryHour: 0, dayWage: 0 }
+		});
+	// The day's planned overtime a limit does not count: none on a day it counts whole, the normal
+	// hours where it counts only beyond them, and all of it (Infinity) on a day outside it.
+	const uncounted = (limit: WorkLimit, day: OvertimeSplitDay): number => {
+		if (limit.measure !== 'OVERTIME_HOURS') return 0;
+		if (day.kind !== 'REST' && day.holiday !== true) return 0;
+		if (holds(limit.counts_day_when, day)) return 0;
+		// The normal day is the shift the code names; a rest day names none.
+		if (holds(limit.counts_beyond_normal_when, day)) return day.paid_minutes / 60;
+		return Number.POSITIVE_INFINITY;
+	};
 	// Per limit and period: the hours already inside it. A period TOTAL_WORK_HOURS cap holds every
 	// planned hour of the period from the start; the allocated overtime joins it day by day.
 	const used = new Map<string, number>();
@@ -295,14 +358,9 @@ export function splitPlannedOvertime(options: {
 			continue;
 		}
 		const evaluated = evaluatedLimits(caps, day.break_minutes);
+		const free = new Map(caps.map((limit) => [limit, uncounted(limit, day)]));
 		let headroom = total;
 		for (const limit of caps) {
-			if (
-				limit.period === 'DAY' &&
-				limit.measure === 'OVERTIME_HOURS' &&
-				(day.kind === 'REST' || day.holiday === true)
-			)
-				continue;
 			const maximum = evaluated[limit.key] ?? limit.max_hours;
 			const left =
 				limit.period === 'DAY'
@@ -310,11 +368,12 @@ export function splitPlannedOvertime(options: {
 						? maximum - plannedHours(day)
 						: maximum
 					: maximum - (used.get(bucket(limit, day.date)) ?? 0);
-			headroom = Math.min(headroom, left);
+			headroom = Math.min(headroom, free.get(limit)! + left);
 		}
 		// A cap that binds leaves half-hour steps; an unbound total stands as planned.
 		const approved = headroom >= total ? total : Math.floor(Math.max(0, headroom) * 2 + 1e-9) / 2;
-		for (const limit of caps) if (limit.period !== 'DAY') add(limit, day.date, approved);
+		for (const limit of caps)
+			if (limit.period !== 'DAY') add(limit, day.date, Math.max(0, approved - free.get(limit)!));
 		split.set(day.date, { approved_overtime_hours: approved, incentive_hours: total - approved });
 	}
 	return split;

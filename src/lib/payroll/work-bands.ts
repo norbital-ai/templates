@@ -10,7 +10,7 @@
  * are incentive: the split was made when the day was written (`splitPlannedOvertime`).
  */
 
-import type { WorkRateBand, WorkRules } from '../../datatypes/work_rules/+definition.js';
+import type { WorkLimit, WorkRateBand, WorkRules } from '../../datatypes/work_rules/+definition.js';
 import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import {
 	expressionEngine,
@@ -133,7 +133,7 @@ function contextOf(options: {
 
 /** Whether a day-level predicate holds over the same context the bands read (a limit's `counts_day_when`). */
 export function workDayHolds(options: {
-	readonly work: WorkRules;
+	readonly work: { readonly limits: readonly WorkLimit[] };
 	readonly expression: string;
 	readonly person: PersonContext;
 	readonly day: WorkBandDay;
