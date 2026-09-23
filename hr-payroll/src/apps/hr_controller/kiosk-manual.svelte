@@ -31,7 +31,7 @@
 		companyId == null || term.trim().length < 2
 			? null
 			: client.db.employees.findMany({
-					search: { mode: 'lexical', term: term.trim() },
+					search: term.trim(),
 					columns: { id: true, name: true, email: true, face_enrollment_status: true },
 					limit: 20
 				})

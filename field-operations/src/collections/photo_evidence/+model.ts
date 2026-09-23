@@ -13,7 +13,10 @@ export default defineModel(
 	{
 		job_assignment_id: uuid(),
 		variation_request_id: uuid(),
-		photo: file({ mimeTypes: ['image/jpeg', 'image/png', 'image/heic', 'image/heif'] }).notNull(),
+		photo: file({
+			mimeTypes: ['image/jpeg', 'image/png', 'image/heic', 'image/heif'],
+			search: true
+		}).notNull(),
 		source_key: text().notNull(),
 		/** A photo filed without provenance is a workspace upload, whichever path filed it. */
 		source: custom('photo_source').notNull().default({ kind: 'workspace_upload' }),
@@ -40,7 +43,7 @@ export default defineModel(
 		 * title fell back to joining every scalar column, which printed `job_assignment_id` and the
 		 * hashes. No coercion turns an object into a title; where the photo came from is the answer.
 		 */
-		summary: text({ search: true }).generatedAlwaysAs(
+		summary: text().generatedAlwaysAs(
 			sql`CASE source ->> 'kind'
 				WHEN 'workspace_upload' THEN 'Workspace upload'
 				WHEN 'channel' THEN 'From ' || COALESCE(NULLIF(source ->> 'provider', ''), 'a channel') || COALESCE(' · ' || LEFT(source ->> 'sent_at', 10), '')
@@ -72,7 +75,6 @@ export default defineModel(
 		 * the provider's image content part.
 		 */
 		embedding: {
-			fields: ['photo'],
 			model: 'openrouter/google/gemini-embedding-2',
 			dimensions: 256
 		},
