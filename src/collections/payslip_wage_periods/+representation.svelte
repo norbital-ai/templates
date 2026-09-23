@@ -8,4 +8,4 @@
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
 
-<RecordShell title={t('component.wage_period_capture')} />
+<RecordShell kind={t('component.wage_period_capture')} />

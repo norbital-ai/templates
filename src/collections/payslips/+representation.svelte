@@ -550,11 +550,7 @@
 	</tr>
 {/snippet}
 
-<RecordShell
-	subtitle={record
-		? `${employment?.employment_employee?.name ?? t('component.employee')} · ${employment?.employee_number ?? t('component.employment')}`
-		: undefined}
->
+<RecordShell>
 	{#if record}
 		<Stack gap="lg">
 			<Stack as="section" gap="xs" aria-labelledby="payslip-summary-heading">
