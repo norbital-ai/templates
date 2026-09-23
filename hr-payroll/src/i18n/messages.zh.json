@@ -892,6 +892,7 @@
 	"roster.day_sheet_unrecorded_attendance": "尚未有人记录该日出勤。",
 	"roster.employment_ended": "任职已结束",
 	"roster.half_day": "半天",
+	"roster.holiday_carried_from": "代替 {date} 的假日",
 	"roster.holiday_recipients": "仅限 {date} 当日休息的员工",
 	"roster.in_paid_payroll": "位于已发薪的 {period} 期间内——已锁定",
 	"roster.in_payroll_window": "位于 {period} 发薪期间内——将被结算",

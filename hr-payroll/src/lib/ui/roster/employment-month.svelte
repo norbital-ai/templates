@@ -26,10 +26,12 @@
 	records why a fixed viewport-derived height is not the way to do that.
 -->
 <script lang="ts">
-	import { isSettledId, PAYROLL_TIME_ZONE, dateKey } from '../../iso-day.js';
+	import { isSettledId, PAYROLL_TIME_ZONE, dateKey, dayInstant } from '../../iso-day.js';
 	import { resolveEmployment } from '../../employment-contract.js';
 	import { settingsInForce } from '../../jurisdiction_settings.js';
-	import { PATTERN_WITH } from '../../scheduling/work-pattern.js';
+	import { PATTERN_WITH, patternAnchor, termPatternRow } from '../../scheduling/work-pattern.js';
+	import { observedHolidays } from '../../scheduling/work-limits.js';
+	import { coversDate } from '../../../collections/payroll_runs/lib/effective.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../holiday-calendar.js';
 	import { onLineage } from '../settings-scope.js';
 	import { client } from '../../workspace-client.js';
@@ -279,7 +281,12 @@
 					where: {
 						...approved,
 						company_id: { eq: scheduleCalendarCompanyId },
-						date: { gte: scheduleWorkDateBounds.start, lte: scheduleWorkDateBounds.end },
+						// A month either side: payroll resolves each assessment window whole, and a
+						// holiday before the month can carry into it (`observedHolidays`).
+						date: {
+							gte: dayInstant(addDays(scheduleMonthStart, -31)),
+							lte: dayInstant(addDays(scheduleMonthEnd, 31))
+						},
 						published_at: { isNotNull: true }
 					},
 					limit: HOLIDAY_QUERY_LIMIT
@@ -407,6 +414,67 @@
 			return PAYROLL_TIME_ZONE;
 		}
 	});
+	/** The months of roster of record around the month: a pattern yields to one inside it. */
+	const scheduleRostersQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.rosters.findMany({
+					where: {
+						...approved,
+						employment_id: { eq: employmentId },
+						period: {
+							in: [shiftPeriod(scheduleMonth, -1), scheduleMonth, shiftPeriod(scheduleMonth, 1)]
+						}
+					},
+					columns: { employment_id: true, period: true },
+					limit: 3
+				})
+	);
+	/**
+	 * The person's observed holidays, as payroll resolves them (`observedHolidays`): a SUBSTITUTE
+	 * carry lands on their next working day and a rest-day precedence keeps the rest day. Read only
+	 * where the viewer can read the plan it rests on — the rosters of record; a viewer who cannot
+	 * (self-service masks the plan) keeps the calendar overlay rather than a half-resolved answer.
+	 */
+	const scheduleObservedHolidays = $derived.by(() => {
+		const company = companyQuery?.current;
+		if (
+			employmentId == null ||
+			company == null ||
+			activeSettingsCode == null ||
+			scheduleRostersQuery?.error != null ||
+			scheduleRostersQuery?.current === undefined
+		)
+			return undefined;
+		try {
+			const terms = scheduleTermsQuery?.current ?? [];
+			const observed = observedHolidays({
+				dates: monthDays(scheduleMonth),
+				cutoffDay: decodeNumber(company.pay_cutoff_day ?? 1),
+				companyId: company.id,
+				holidays: scheduleHolidaysQuery?.current ?? [],
+				codes: scheduleShiftsQuery?.current ?? [],
+				precedence: settingsInForce(
+					scheduleCalendarSettingsQuery?.current ?? [],
+					activeSettingsCode,
+					scheduleMonthStart
+				)?.work_rules?.holiday_rest_precedence,
+				plans: scheduleWorkDays.map((day) => ({
+					work_date: dateKey(day.work_date),
+					shift_definition_id: day.shift_definition_id ?? null
+				})),
+				rosterPeriods: scheduleRostersQuery.current.map((row) => row.period),
+				patternOn: (date) => {
+					const term = terms.find((row) => coversDate(row.effective_range, date));
+					const row = term == null ? null : termPatternRow(term);
+					return row == null ? null : { pattern: row.pattern, anchor: patternAnchor(row) };
+				}
+			});
+			return new Map([[employmentId, observed]]);
+		} catch {
+			return undefined;
+		}
+	});
 	const scheduleFacts = $derived(
 		buildRosterMonth({
 			month: scheduleMonth,
@@ -421,7 +489,8 @@
 			leaveCodeById,
 			cutoff: scheduleCutoff,
 			locks: NO_DAY_LOCKS,
-			today
+			today,
+			observedHolidays: scheduleObservedHolidays
 		})
 	);
 

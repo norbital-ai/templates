@@ -892,6 +892,7 @@
 	"roster.day_sheet_unrecorded_attendance": "Nobody has recorded attendance for this day.",
 	"roster.employment_ended": "Employment ended",
 	"roster.half_day": "half day",
+	"roster.holiday_carried_from": "observed in lieu of {date}",
 	"roster.holiday_recipients": "for staff off on {date}",
 	"roster.in_paid_payroll": "Inside paid payroll {period} — locked",
 	"roster.in_payroll_window": "Inside payroll {period} — will be settled",

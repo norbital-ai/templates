@@ -43,7 +43,11 @@
 		schedulingImportDays,
 		schedulingImportPayload
 	} from '../../../collections/work_days/lib/import-workbook.js';
-	import { observedHolidayDates, overtimeEntitled } from '../../../lib/scheduling/work-limits.js';
+	import {
+		observedHolidayDates,
+		observedHolidays,
+		overtimeEntitled
+	} from '../../../lib/scheduling/work-limits.js';
 	import {
 		schedulingTemplateWorkbook,
 		XLSX_MEDIA_TYPE
@@ -294,7 +298,8 @@
 				work_classification: true,
 				base_salary: true,
 				statutory_work_category: true,
-				pay_frequency: true
+				pay_frequency: true,
+				allowances: true
 			},
 			// The base rides the terms read (HR20: one live query per source, no `shift_patterns`
 			// query of its own): every term arrives with the named pattern it points at.
@@ -303,6 +308,27 @@
 		});
 	});
 	const employmentTerms = $derived(employmentTermsQuery?.current ?? []);
+	/** The classes of the allowances the month's terms list, for the overtime rule's wage. */
+	const listedAllowanceIds = $derived([
+		...new Set(
+			employmentTerms.flatMap((term) =>
+				Array.isArray(term.allowances)
+					? (term.allowances as readonly { readonly catalogue_id: string }[]).map(
+							(row) => row.catalogue_id
+						)
+					: []
+			)
+		)
+	]);
+	const allowanceClassesQuery = $derived(
+		listedAllowanceIds.length === 0
+			? null
+			: client.db.allowance_catalogue.findMany({
+					where: { id: { in: listedAllowanceIds } },
+					columns: { id: true, destination: true, direction: true },
+					limit: 500
+				})
+	);
 	const employmentTermsByEmploymentId = $derived.by(() => {
 		const grouped: Record<string, Array<(typeof employmentTerms)[number]>> = {};
 		for (const term of employmentTerms) {
@@ -577,6 +603,76 @@
 			return PAYROLL_TIME_ZONE;
 		}
 	});
+	/** The months of roster of record around the board's month: a pattern yields to one inside it. */
+	const rostersQuery = $derived(
+		monthEmploymentIds.length === 0
+			? null
+			: client.db.rosters.findMany({
+					where: {
+						...approved,
+						employment_id: { in: monthEmploymentIds },
+						period: {
+							in: [addDays(monthStart, -1).slice(0, 7), period, addDays(monthEnd, 1).slice(0, 7)]
+						}
+					},
+					columns: { employment_id: true, period: true },
+					limit: MONTH_BOARD_QUERY_LIMITS.employments * 3
+				})
+	);
+	/**
+	 * Each person's observed holidays, as payroll resolves them (`observedHolidays`): a SUBSTITUTE
+	 * carry lands on the person's next working day, and the rest-day precedence keeps a rest day. A
+	 * person whose schedule cannot be resolved here keeps the calendar overlay.
+	 */
+	const observedHolidaysByEmployment = $derived.by(() => {
+		const company = selectedCompany;
+		if (company == null || selectedCompanyId == null || selectedSettingsCode == null)
+			return undefined;
+		let precedence: Parameters<typeof observedHolidays>[0]['precedence'];
+		try {
+			precedence = settingsInForce(
+				calendarSettingsQuery?.current ?? [],
+				selectedSettingsCode,
+				monthStart
+			)?.work_rules?.holiday_rest_precedence;
+		} catch {
+			return undefined;
+		}
+		const byPerson = new Map<string, ReturnType<typeof observedHolidays>>();
+		for (const employment of monthEmployments) {
+			const terms = employmentTermsByEmploymentId.get(employment.id) ?? [];
+			try {
+				byPerson.set(
+					employment.id,
+					observedHolidays({
+						dates: monthDateKeys,
+						cutoffDay: decodeNumber(company.pay_cutoff_day ?? 1),
+						companyId: selectedCompanyId,
+						holidays: holidaysQuery?.current ?? [],
+						codes: shiftsQuery?.current ?? [],
+						precedence,
+						plans: workDays
+							.filter((day) => day.employment_id === employment.id)
+							.map((day) => ({
+								work_date: dateKey(day.work_date),
+								shift_definition_id: day.shift_definition_id ?? null
+							})),
+						rosterPeriods: (rostersQuery?.current ?? [])
+							.filter((row) => row.employment_id === employment.id)
+							.map((row) => row.period),
+						patternOn: (date) => {
+							const term = terms.find((row) => termCovers(row, date));
+							const row = term == null ? null : termPatternRow(term);
+							return row == null ? null : { pattern: row.pattern, anchor: patternAnchor(row) };
+						}
+					})
+				);
+			} catch {
+				// A plan the schedule cannot resolve: this person's cells keep the calendar overlay.
+			}
+		}
+		return byPerson;
+	});
 	const facts = $derived(
 		buildRosterMonth({
 			month: period,
@@ -591,7 +687,8 @@
 			leaveCodeById,
 			cutoff,
 			locks: monthLocks,
-			today
+			today,
+			observedHolidays: observedHolidaysByEmployment
 		})
 	);
 	const boardLoadReceipt = $derived(
@@ -718,13 +815,17 @@
 				const person = byNumber.get(number);
 				return (
 					person == null ||
-					overtimeEntitled(version?.work_rules?.overtime_when, {
-						employee: null,
-						employment: { service_start: '' },
-						terms: termOn(person.id, date),
-						company: { region: company.region, facts: company.facts },
-						asOf: date
-					})
+					overtimeEntitled(
+						version?.work_rules?.overtime_when,
+						{
+							employee: null,
+							employment: { service_start: '' },
+							terms: termOn(person.id, date),
+							company: { region: company.region, facts: company.facts },
+							asOf: date
+						},
+						(id) => (allowanceClassesQuery?.current ?? []).find((row) => row.id === id)
+					)
 				);
 			}
 		);

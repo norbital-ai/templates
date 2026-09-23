@@ -475,7 +475,7 @@
 										<td
 											class={cn(
 												'w-15 min-w-15 max-w-15 border-b p-0.5 text-center',
-												holidayNames.has(date) && HOLIDAY_PRESENTATION.className,
+												day?.holidayName != null && HOLIDAY_PRESENTATION.className,
 												date === cutoffStartsAt && 'border-l-2 border-l-brand',
 												day?.lock.kind === 'SETTLED' && 'border-r-2 border-r-brand/60'
 											)}

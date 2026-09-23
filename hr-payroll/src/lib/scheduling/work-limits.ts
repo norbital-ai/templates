@@ -41,6 +41,11 @@ import type { ShiftPatternLike } from './work-pattern.js';
 import { rosterCodeKind, workWindow } from './roster-code.js';
 import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
 import { workDayHolds } from '../payroll/work-bands.js';
+import {
+	classifyWageComparand,
+	deriveStatutoryWages
+} from '../../collections/payroll_runs/lib/statutory-wages.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /**
  * The limits that govern one person: every unconditional limit, and every conditional one whose
@@ -583,7 +588,19 @@ export function breachSentence(breach: OvertimeBreach): string {
  * The split, the headroom, the day sheet and the import read this, so none keeps a calendar rule of
  * its own. Throws where the schedule cannot be resolved, as a run would.
  */
-export function observedHolidayDates(options: {
+export function observedHolidayDates(
+	options: Parameters<typeof observedHolidays>[0]
+): ReadonlySet<string> {
+	return new Set(observedHolidays(options).keys());
+}
+
+/**
+ * The holidays a person observes, by date, with the name each is observed under and — for a
+ * rest-day holiday SUBSTITUTE carried to a working day — the date it fell on. Read exactly as
+ * payroll resolves them (`resolveSchedule`); see `observedHolidayDates`. The month board draws a
+ * person's cells from this, so a board and a payslip cannot name different holidays.
+ */
+export function observedHolidays(options: {
 	readonly dates: readonly string[];
 	readonly cutoffDay: number;
 	readonly companyId: string;
@@ -601,8 +618,8 @@ export function observedHolidayDates(options: {
 	readonly patternOn: (
 		date: string
 	) => { readonly pattern: ShiftPatternLike['pattern']; readonly anchor: string | null } | null;
-}): ReadonlySet<string> {
-	const observed = new Set<string>();
+}): ReadonlyMap<string, { readonly name: string; readonly from: string | null }> {
+	const observed = new Map<string, { readonly name: string; readonly from: string | null }>();
 	if (options.precedence == null) return observed;
 	const shiftById = new Map(options.codes.map((code) => [code.id, code as ShiftDefinition]));
 	const windows = new Map(
@@ -635,29 +652,62 @@ export function observedHolidayDates(options: {
 			}
 		});
 		for (const day of schedule.values())
-			if (day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY')
-				observed.add(day.date);
+			if (day.observedHoliday != null) observed.set(day.date, day.observedHoliday);
 	}
 	return observed;
 }
 
+/** An allowance class as the wage comparand reads it: where it pays and which way. */
+type AllowanceClass = {
+	readonly destination: string | null;
+	readonly direction: string | null;
+};
+
 /**
- * Whether the version's overtime rule (`work.overtime_when`) covers a person, read before a run:
- * the contract's basic salary stands in for the statutory wage payroll derives. ponytail: a person
- * whose allowances alone carry them past a wage ceiling is caught by the run's own warning only;
- * read the derived wage here if the sheet or the import must catch them too.
+ * Whether the version's overtime rule (`work.overtime_when`) covers a person, read before a run.
+ * The wage it compares is the one payroll derives (`deriveStatutoryWages`): the contract's basic
+ * salary plus every allowance the contract lists whose class is a cash payment for work
+ * (`classifyWageComparand`), each at its contractual monthly amount. `allowanceClass` resolves a
+ * listed allowance's catalogue row; one it cannot resolve counts nothing, as payroll counts a class
+ * the period's version no longer offers. Ad hoc payments and claims are the run's own and are not
+ * known before it: a person carried past a wage ceiling by them alone is named by the run's warning.
  */
 export function overtimeEntitled(
 	overtimeWhen: string | null | undefined,
-	person: PersonInput
+	person: PersonInput,
+	allowanceClass: (catalogueId: string) => AllowanceClass | undefined = () => undefined
 ): boolean {
 	const when = (overtimeWhen ?? '').trim();
 	if (when === '') return true;
-	const salary = person.terms?.base_salary as { value?: unknown } | null | undefined;
-	return isEligible(
-		when,
-		personContext({ ...person, statutoryWages: Number(salary?.value ?? 0) || 0 })
-	);
+	const terms = person.terms as
+		| {
+				readonly base_salary?: { value?: unknown; currency?: unknown } | null;
+				readonly allowances?: unknown;
+		  }
+		| null
+		| undefined;
+	const salary = terms?.base_salary;
+	const listed = Array.isArray(terms?.allowances)
+		? (terms.allowances as readonly { readonly catalogue_id: string; readonly amount: unknown }[])
+		: [];
+	const wages = deriveStatutoryWages({
+		baseSalary: {
+			value: Number(salary?.value ?? 0) || 0,
+			currency: String(salary?.currency ?? '')
+		},
+		payments: listed.flatMap((row) => {
+			const row_class = allowanceClass(row.catalogue_id);
+			return row_class == null
+				? []
+				: [
+						{
+							category: classifyWageComparand({ ...row_class, definition: { source: 'ENTRY' } }),
+							amount: decodeNumber(row.amount)
+						}
+					];
+		})
+	});
+	return isEligible(when, personContext({ ...person, statutoryWages: wages.value }));
 }
 
 /**

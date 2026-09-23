@@ -305,3 +305,32 @@ test('planned overtime is part of the day plan, described before any punch exist
 		/planned_overtime_hours/
 	);
 });
+
+test('a cell names the holiday the person observes, as payroll resolves it, and where it was carried from', () => {
+	// The calendar holds 09 Aug, a rest day under the pattern; payroll carries it to 11 Aug.
+	const holidays = [
+		{
+			id: 'h-9',
+			company_id: 'co',
+			date: '2026-08-09',
+			name: 'National Day',
+			replaces: null,
+			given_to: null
+		}
+	];
+	const observed = new Map([
+		[EMPLOYMENT, new Map([['2026-08-11', { name: 'National Day', from: '2026-08-09' }]])]
+	]);
+	const facts = month({ holidays, observedHolidays: observed });
+	const day = (date) => facts.get(`${EMPLOYMENT}:${date}`);
+	// The rest day is not the person's holiday; the day it was carried to is.
+	assert.equal(day('2026-08-09').holidayName, null);
+	assert.equal(day('2026-08-11').holidayName, 'National Day');
+	assert.equal(day('2026-08-11').holidayFrom, '2026-08-09');
+	assert.match(
+		describeDay(day('2026-08-11'), 'heading', t),
+		/National Day \(roster\.holiday_carried_from \{"date":"2026-08-09"\}\)/
+	);
+	// A person with no observed entry keeps the calendar overlay by date.
+	assert.equal(facts.get(`${ROSTERED_EMPLOYMENT}:2026-08-09`).holidayName, 'National Day');
+});
