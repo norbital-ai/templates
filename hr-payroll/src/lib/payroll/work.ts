@@ -73,7 +73,7 @@ import { prorationSegment } from '../../collections/payroll_runs/lib/proration.j
 import { contractAllowancesOn, listedAllowances } from './contract-allowances.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
-import { applicableLimits } from '../scheduling/work-limits.js';
+import { applicableLimits, monthlyFunnelLimit } from '../scheduling/work-limits.js';
 import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
 import { PAY_FREQUENCIES, type PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 import {
@@ -2141,12 +2141,6 @@ function settleTimeOffInLieu(options: {
 		overdrawn
 	};
 }
-
-/** The calendar-month ceiling the overtime funnel reads: the first monthly OVERTIME_HOURS limit. */
-const monthlyFunnelLimit = (limits: Configuration['limits']) =>
-	limits.find(
-		(candidate) => candidate.period === 'MONTH' && candidate.measure === 'OVERTIME_HOURS'
-	);
 
 /**
  * The monthly overtime ceiling is a funnel, not a refusal: regulated overtime beyond the cap in a

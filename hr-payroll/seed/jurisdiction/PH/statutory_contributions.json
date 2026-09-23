@@ -14,7 +14,7 @@
 				"when": "base > 0.0 && person.employee.birth_date == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "SSS requires a birth date to determine statutory coverage."
+				"warning": "Birth date not stated on the employee record: SSS coverage is compulsory for employees not over sixty (RA 11199 s.9(a)) and no age can be assumed, so this payroll charged no SSS. Record the birth date before the next payroll."
 			},
 			{
 				"when": "base > 0.0 && scheme.first_contribution_due_on != \"\" && (scheme.first_contribution_due_on < person.employee.birth_date || scheme.first_contribution_due_on > period.end)",
@@ -356,6 +356,12 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 20249.99 && person.employee.birth_date == \"\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "Birth date not stated on the employee record: the MPF follows SSS coverage, which is compulsory for employees not over sixty (RA 11199 s.9(a)), and no age can be assumed, so this payroll charged no MPF. Record the birth date before the next payroll."
+			},
 			{
 				"when": "(produced.SSS.base > 0.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99)",
 				"employee": "round_cent(25.00)",
@@ -796,7 +802,7 @@
 				"when": "base > 0.0 && person.employee.birth_date == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "SSS requires a birth date to determine statutory coverage."
+				"warning": "Birth date not stated on the employee record: SSS coverage is compulsory for employees not over sixty (RA 11199 s.9(a)) and no age can be assumed, so this payroll charged no SSS. Record the birth date before the next payroll."
 			},
 			{
 				"when": "base > 0.0 && scheme.first_contribution_due_on != \"\" && (scheme.first_contribution_due_on < person.employee.birth_date || scheme.first_contribution_due_on > period.end)",
@@ -1138,6 +1144,12 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 20249.99 && person.employee.birth_date == \"\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "Birth date not stated on the employee record: the MPF follows SSS coverage, which is compulsory for employees not over sixty (RA 11199 s.9(a)), and no age can be assumed, so this payroll charged no MPF. Record the birth date before the next payroll."
+			},
 			{
 				"when": "(produced.SSS.base > 0.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99)",
 				"employee": "round_cent(25.00)",
@@ -1578,7 +1590,7 @@
 				"when": "base > 0.0 && person.employee.birth_date == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "SSS requires a birth date to determine statutory coverage."
+				"warning": "Birth date not stated on the employee record: SSS coverage is compulsory for employees not over sixty (RA 11199 s.9(a)) and no age can be assumed, so this payroll charged no SSS. Record the birth date before the next payroll."
 			},
 			{
 				"when": "base > 0.0 && scheme.first_contribution_due_on != \"\" && (scheme.first_contribution_due_on < person.employee.birth_date || scheme.first_contribution_due_on > period.end)",
@@ -1920,6 +1932,12 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 20249.99 && person.employee.birth_date == \"\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "Birth date not stated on the employee record: the MPF follows SSS coverage, which is compulsory for employees not over sixty (RA 11199 s.9(a)), and no age can be assumed, so this payroll charged no MPF. Record the birth date before the next payroll."
+			},
 			{
 				"when": "(produced.SSS.base > 0.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99)",
 				"employee": "round_cent(25.00)",
@@ -2360,7 +2378,7 @@
 				"when": "base > 0.0 && person.employee.birth_date == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "SSS requires a birth date to determine statutory coverage."
+				"warning": "Birth date not stated on the employee record: SSS coverage is compulsory for employees not over sixty (RA 11199 s.9(a)) and no age can be assumed, so this payroll charged no SSS. Record the birth date before the next payroll."
 			},
 			{
 				"when": "base > 0.0 && scheme.first_contribution_due_on != \"\" && (scheme.first_contribution_due_on < person.employee.birth_date || scheme.first_contribution_due_on > period.end)",
@@ -2702,6 +2720,12 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 20249.99 && person.employee.birth_date == \"\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "Birth date not stated on the employee record: the MPF follows SSS coverage, which is compulsory for employees not over sixty (RA 11199 s.9(a)), and no age can be assumed, so this payroll charged no MPF. Record the birth date before the next payroll."
+			},
 			{
 				"when": "(produced.SSS.base > 0.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99)",
 				"employee": "round_cent(25.00)",
@@ -3142,7 +3166,7 @@
 				"when": "base > 0.0 && person.employee.birth_date == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "SSS requires a birth date to determine statutory coverage."
+				"warning": "Birth date not stated on the employee record: SSS coverage is compulsory for employees not over sixty (RA 11199 s.9(a)) and no age can be assumed, so this payroll charged no SSS. Record the birth date before the next payroll."
 			},
 			{
 				"when": "base > 0.0 && scheme.first_contribution_due_on != \"\" && (scheme.first_contribution_due_on < person.employee.birth_date || scheme.first_contribution_due_on > period.end)",
@@ -3484,6 +3508,12 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 20249.99 && person.employee.birth_date == \"\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "Birth date not stated on the employee record: the MPF follows SSS coverage, which is compulsory for employees not over sixty (RA 11199 s.9(a)), and no age can be assumed, so this payroll charged no MPF. Record the birth date before the next payroll."
+			},
 			{
 				"when": "(produced.SSS.base > 0.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99)",
 				"employee": "round_cent(25.00)",
@@ -3924,7 +3954,7 @@
 				"when": "base > 0.0 && person.employee.birth_date == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "SSS requires a birth date to determine statutory coverage."
+				"warning": "Birth date not stated on the employee record: SSS coverage is compulsory for employees not over sixty (RA 11199 s.9(a)) and no age can be assumed, so this payroll charged no SSS. Record the birth date before the next payroll."
 			},
 			{
 				"when": "base > 0.0 && scheme.first_contribution_due_on != \"\" && (scheme.first_contribution_due_on < person.employee.birth_date || scheme.first_contribution_due_on > period.end)",
@@ -4266,6 +4296,12 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 20249.99 && person.employee.birth_date == \"\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "Birth date not stated on the employee record: the MPF follows SSS coverage, which is compulsory for employees not over sixty (RA 11199 s.9(a)), and no age can be assumed, so this payroll charged no MPF. Record the birth date before the next payroll."
+			},
 			{
 				"when": "(produced.SSS.base > 0.0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 20249.99 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 20749.99)",
 				"employee": "round_cent(25.00)",

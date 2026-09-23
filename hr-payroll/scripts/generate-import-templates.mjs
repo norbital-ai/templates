@@ -1,6 +1,7 @@
 /**
- * The two import templates operators are issued, written to `~/Desktop`: the scheduling workbook
- * (Roster and Time entries sheets) and the holidays workbook.
+ * The two import templates operators are issued, written to `~/Desktop` (or the directory named by
+ * `IMPORT_TEMPLATE_DIR`): the scheduling workbook (Roster, Time entries and Overtime sheets) and
+ * the holidays workbook.
  *
  * The sheets mirror exactly what the reader in `src/collections/work_days/lib` accepts as the
  * designed layout — one entity × one month. The Roster sheet is the plan as a month grid: a person
@@ -9,7 +10,9 @@
  * `clock_in` and a `clock_out` column, each a local wall time `HH:mm`; a blank `clock_out` is still
  * open. Blank cells are omitted — they are not inferred rest days and not punchless leave. The two
  * clock columns are imported as the one timestamp interval the day worked. The timezone, legal
- * entity and month are declared once on the `Settings` sheet.
+ * entity and month are declared once on the `Settings` sheet. The Overtime sheet is the approved
+ * overtime as a month grid, each cell a number of hours in half-hour steps; a blank cell is no
+ * approval.
  *
  * A long-form Roster sheet (`employee_number`, `work_date`, `shift_code`) and a month-grid Time
  * entries sheet (`HH:mm-HH:mm` per day cell) still import, including the files operators already
@@ -40,11 +43,8 @@ const EPOCH = new Date('2026-08-04T16:00:00.000Z');
  */
 createRequire(createRequire(import.meta.url).resolve('exceljs'))('jszip').defaults.date = EPOCH;
 
-const HOLIDAYS_TEMPLATE_PATH = path.join(
-	os.homedir(),
-	'Desktop',
-	'norbital-holidays-import-template.xlsx'
-);
+const TEMPLATE_DIR = process.env.IMPORT_TEMPLATE_DIR || path.join(os.homedir(), 'Desktop');
+const HOLIDAYS_TEMPLATE_PATH = path.join(TEMPLATE_DIR, 'norbital-holidays-import-template.xlsx');
 const HOLIDAY_HEADERS = ['date', 'name', 'replaces'];
 const HOLIDAY_SAMPLE_ROWS = [
 	['2027-01-01', "New Year's Day", ''],
@@ -60,8 +60,7 @@ const HOLIDAY_README = [
 	'publish each one on the entity’s Holidays tab. Only published holidays are used by rosters, leave and payroll.'
 ];
 const SCHEDULING_TEMPLATE_PATH = path.join(
-	os.homedir(),
-	'Desktop',
+	TEMPLATE_DIR,
 	'norbital-scheduling-import-template.xlsx'
 );
 
@@ -92,6 +91,11 @@ const ROSTER_SAMPLE_ROWS = [
 	gridRow('PUBEM0023', { 4: 'AM0830', 5: 'PM2030', 6: 'OFF' }, SAMPLE_MONTH)
 ];
 
+const OVERTIME_SAMPLE_ROWS = [
+	gridRow('PUBEM0002', { 4: 2, 5: 1.5 }, SAMPLE_MONTH),
+	gridRow('PUBEM0023', { 4: 0.5 }, SAMPLE_MONTH)
+];
+
 const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
 const TIME_ENTRY_SAMPLE_ROWS = [
 	['PUBEM0002', '2026-05-04', '08:16', '17:10'],
@@ -113,29 +117,30 @@ const SETTINGS_ROWS = [
 ];
 
 const SCHEDULING_README = [
-	'Scheduling import — one legal entity, one month, two sheets',
+	'Scheduling import — one legal entity, one month, three sheets',
 	'',
 	'"Roster" is the planned assignment: who is scheduled where, one person per row and one',
 	'calendar day per column. "Time entries" is what actually happened on the clock, one person-day',
-	'per row with a clock_in and a clock_out column. Do not rename the sheets or the column',
-	'headers. Set legal_entity, month and timezone once, on the "Settings" sheet.',
+	'per row with a clock_in and a clock_out column. "Overtime" is the approved overtime, one person',
+	'per row and one calendar day per column, each cell the hours approved. Do not rename the sheets',
+	'or the column headers. Set legal_entity, month and timezone once, on the "Settings" sheet.',
 	'',
 	'The file is the state of the month it names, for every employee of the entity. Import it again',
 	'and the month becomes what the file now says; a person the file no longer names loses the month',
-	'and falls back to their work pattern. A file carrying only one of the two sheets replaces only',
-	'that half. Every person on the Roster sheet needs a code on every day they are employed — write',
-	'REST or OFF where they are not working — or the file is refused naming the missing days.',
+	'and falls back to their work pattern. A file carrying only some of the sheets replaces only',
+	'those halves. Every person on the Roster sheet needs a code on every day they are employed —',
+	'write REST or OFF where they are not working — or the file is refused naming the missing days.',
 	'A day a payslip has already taken into account may be restated as it is; a file that changes or',
 	'omits one is refused naming those days.',
 	'',
 	'Roster — three rules that change what people get paid',
 	'',
 	'• A filled cell is an explicit assignment to that roster code on that day. A blank cell is an',
-	'  absent assignment — it is not inferred as a rest day. REST, OFF and the reserved token PH must',
-	'  be written when they are meant.',
+	'  absent assignment — it is not inferred as a rest day. REST and OFF must be written when they',
+	'  are meant.',
 	'',
-	'• A cell must name an existing roster code (or PH). The hours a working day earns are measured',
-	'  against the code it names, so a code the company has not defined refuses the file.',
+	'• A cell must name an existing roster code. The hours a working day earns are measured against',
+	'  the code it names, so a code the company has not defined refuses the file.',
 	'',
 	'• PH is not a roster code. Holidays are overlaid from the legal entity’s published calendar;',
 	'  the cell names the shift the person would have worked, or REST or OFF.',
@@ -147,19 +152,48 @@ const SCHEDULING_README = [
 	'  marker — a clock_out at or before clock_in is treated as the next calendar day. Every clock',
 	'  time is local wall time in the Settings timezone.',
 	'',
-	'• The two clock columns carry punches only — breaks, overtime and the open/closed state are',
-	'  derived from them. The break is the shift’s granted break, less any gap already visible between',
-	'  the punches.',
+	'• The two clock columns carry punches only — breaks and the open/closed state are derived from',
+	'  them. The break is the shift’s granted break, less any gap already visible between the punches.',
 	'',
 	'• A leave day is NOT a time entry. Leave lives in its own record so it can be approved and audited;',
 	'  do not add punchless cells to stand in for it.',
 	'',
-	'What is refused',
+	'Overtime — keyed, never derived',
 	'',
-	'The whole file is refused, not individual rows, and the offending cells are named: unknown',
-	'employee or roster code, a day outside the Settings month, duplicates inside the file, a missing',
-	'day on a rostered person, a sealed day the file would change, and a shift the statutory rules',
-	'refuse (rest days, hour ceilings, granted breaks, overlapping shifts).',
+	'• A cell is the overtime approved on that day, in hours after the shift: 0.5, 1, 1.5 and so on,',
+	'  at most 24. A blank cell is no approval. Overtime is never derived from the clock.',
+	'',
+	'• Approved hours are worked hours: the statutory ceilings below count the shift’s paid hours',
+	'  plus the day’s approved overtime.',
+	'',
+	'What is refused — hard requirements',
+	'',
+	'The whole file is refused, not individual rows, and the refusal names the person, the day and',
+	'the rule:',
+	'• an unknown employee or roster code, a day outside the Settings month, a duplicate inside the',
+	'  file, a missing day on a rostered person, a sealed day the file would change, PH in a cell, a',
+	'  clock time or overtime figure that is not valid, attendance or overtime on a full leave day;',
+	'• more consecutive working days than the weekly rest rule allows (e.g. 7 in a row where the',
+	'  rule is a rest day in every 6);',
+	'• a shift granting less break than the rules owe for its length;',
+	'• a shift overlapping the same person’s shift on the neighbouring day;',
+	'• a day whose worked hours — shift plus approved overtime — exceed the daily total ceiling',
+	'  (e.g. 12);',
+	'• a shift whose spread-over, break included, exceeds the daily spread-over ceiling (e.g. 10);',
+	'• a week, quarter or year of worked or overtime hours above its ceiling (e.g. 18 overtime hours',
+	'  a week, 138 a quarter, 200 a year), any overtime ceiling that counts rest days and holidays too',
+	'  (e.g. 72 a month, all overtime included), and any monthly ceiling payroll does not funnel.',
+	'',
+	'What only warns — funnelled to incentive',
+	'',
+	'Two ceilings are not refused here, because payroll pays the hours beyond them as INCENTIVE at',
+	'the rate of the band they came from and reports the overrun on the payroll run:',
+	'• overtime beyond the monthly overtime ceiling payroll funnels (e.g. 104 hours a month): the file',
+	'  is accepted; the run warns OVERTIME_LIMIT_EXCEEDED;',
+	'• a day’s overtime above a daily limit a rate band funnels above (e.g. 4 overtime hours a day):',
+	'  the file is accepted; the run warns DAILY_OVERTIME_LIMIT_EXCEEDED.',
+	'Where a band funnels above a fixed hour instead (e.g. 11 hours a day), the hours above it are',
+	'simply paid as incentive — the day is still refused if it breaches the daily total ceiling.',
 	'',
 	'Accepted values',
 	'',
@@ -169,9 +203,11 @@ const SCHEDULING_README = [
 	'                  PM2030 · PM2230 · REST · OFF',
 	'Time entries row  employee_number, work_date as YYYY-MM-DD, clock_in, and clock_out once the',
 	'                  shift is closed — each clock time HH:mm, 24-hour',
+	'Overtime cell     approved hours in half-hour steps, 0.5–24; blank is none',
 	'',
 	'A Roster sheet as a long-form table (employee_number, work_date, shift_code) still imports, and',
-	'so does a month-grid Time entries sheet with HH:mm-HH:mm cells.',
+	'so does a month-grid Time entries sheet with HH:mm-HH:mm cells and a long-form Overtime sheet',
+	'(employee_number, work_date, overtime_hours).',
 	'',
 	'The sample rows below are illustrative. Delete them and paste your own.'
 ];
@@ -259,6 +295,13 @@ addTableSheet(
 	TIME_ENTRY_HEADERS,
 	TIME_ENTRY_SAMPLE_ROWS
 );
+addTableSheet(
+	schedulingWorkbook,
+	'Overtime',
+	[18, ...DAY_HEADERS.map(() => 8)],
+	GRID_HEADERS,
+	OVERTIME_SAMPLE_ROWS
+);
 const holidaysWorkbook = newWorkbook();
 addReadmeSheet(holidaysWorkbook, HOLIDAY_README);
 addTableSheet(
@@ -282,9 +325,10 @@ Effect.runPromise(
 		const shipped = yield* writeWorkbook(schedulingWorkbook, SCHEDULING_TEMPLATE_PATH);
 		assert.deepEqual(
 			[...shipped.worksheets.map((sheet) => sheet.name)],
-			['Read me first', 'Settings', 'Roster', 'Time entries']
+			['Read me first', 'Settings', 'Roster', 'Time entries', 'Overtime']
 		);
 		assert.deepEqual(headersOf(shipped, 'Roster'), GRID_HEADERS);
+		assert.deepEqual(headersOf(shipped, 'Overtime'), GRID_HEADERS);
 		assert.deepEqual(headersOf(shipped, 'Time entries'), TIME_ENTRY_HEADERS);
 		assert.deepEqual(
 			[...settingMap(shipped)],
@@ -301,9 +345,11 @@ Effect.runPromise(
 		assert.equal(cellOf(shipped, 'Time entries', 2, 'clock_out'), '17:10');
 		assert.equal(cellOf(shipped, 'Time entries', 6, 'clock_in'), '20:31');
 		assert.equal(cellOf(shipped, 'Time entries', 6, 'clock_out'), '');
+		assert.equal(cellOf(shipped, 'Overtime', 2, '4'), '2');
+		assert.equal(cellOf(shipped, 'Overtime', 2, '5'), '1.5');
 
 		console.log(`${SCHEDULING_TEMPLATE_PATH}`);
-		console.log(`  sheets: Read me first, Settings, Roster, Time entries`);
+		console.log(`  sheets: Read me first, Settings, Roster, Time entries, Overtime`);
 		console.log(`  grid header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`);
 		console.log(`  Time entries columns: ${TIME_ENTRY_HEADERS.join(', ')}`);
 	})

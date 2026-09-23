@@ -315,9 +315,20 @@ test('VN and ID D15: every election, entity fact and departure input is required
 				if (!settled(field) && !atUse.has(field.key))
 					undeclared.push(`${start(version)} ${field.key}`);
 		}
+		// An election a rule of the scheme warns of when undeclared (`"<key>" in
+		// scheme.election_keys` under a `warning`) is settled by that rule: nothing is charged on a
+		// guess, and the run names the person.
+		const warned = (
+			scheme: { rules: readonly { warning?: string; when: string }[] },
+			key: string
+		) =>
+			scheme.rules.some(
+				(rule) => rule.warning != null && rule.when.includes(`"${key}" in scheme.election_keys`)
+			);
 		for (const scheme of contributionSchemes(lineage))
 			for (const field of scheme.elections ?? [])
-				if (!settled(field)) undeclared.push(`${scheme.code}.${field.key}`);
+				if (!settled(field) && !warned(scheme, field.key))
+					undeclared.push(`${scheme.code}.${field.key}`);
 		assert.deepEqual(undeclared, [], lineage);
 	}
 });
@@ -326,7 +337,8 @@ test('ID D16: PPh 21 no longer reads the current family record, and THR no longe
 	for (const scheme of contributionSchemes('ID').filter((row) => row.code === 'PPH21'))
 		assert.equal(
 			/employee\.(marital_status|dependents_count)|election_keys/.test(
-				JSON.stringify(scheme.rules)
+				// The undeclared-PTKP warning reads which elections are declared, never their values.
+				JSON.stringify(scheme.rules.filter((rule) => rule.warning == null))
 			),
 			false
 		);
@@ -334,24 +346,25 @@ test('ID D16: PPh 21 no longer reads the current family record, and THR no longe
 		assert.equal(row.eligibility.includes('religion'), false);
 });
 
-test('ID D15: a resident without the declared tax identity stops PPh 21 (UU PPh art.21(5a))', () => {
-	assert.throws(
-		() =>
-			assessStatutoryUnvalidated(
-				{
-					code: 'ID',
-					period: '2026-03',
-					region: 'DKI Jakarta',
-					riskClass: 'II',
-					people: [{ key: 'ID-NO-ID', wage: 10_000_000 }]
-				},
-				(world) => {
-					for (const fact of world.employment_statutory_facts)
-						delete fact.status.elections?.no_tax_id;
-				}
-			),
-		/No NPWP and no NIK usable as NPWP is required/
+test('ID D15: a resident without the declared tax identity withholds no PPh 21 and warns (UU PPh art.21(5a))', () => {
+	const run = buildStatutory(
+		{
+			code: 'ID',
+			period: '2026-03',
+			region: 'DKI Jakarta',
+			riskClass: 'II',
+			people: [{ key: 'ID-NO-ID', wage: 10_000_000 }]
+		},
+		(world) => {
+			for (const fact of world.employment_statutory_facts) delete fact.status.elections?.no_tax_id;
+		}
 	);
+	assert.equal(
+		run.slips.get('ID-NO-ID')!.statutory.find((row) => row.scheme_code === 'PPH21')
+			?.employee_amount ?? 0,
+		0
+	);
+	assert.match(run.warnings.join('\n'), /ID-NO-ID: PPH21: .*NPWP or NIK, not declared/);
 });
 
 test('ID D15: a declared missing tax identity withholds 20% more (UU PPh art.21(5a))', () => {
@@ -514,7 +527,7 @@ test('ID G14: a 2027 departure is judged against the 2027 religious holiday, not
 	assert.deepEqual(paid('PKWT-15FEB'), []);
 });
 
-test('ID G14: a departure without the declared holiday stops, and a malformed date is refused', () => {
+test('ID G14: a departure without the declared holiday skips the THR, and a malformed date is refused', () => {
 	const world = (facts: Record<string, string | number | boolean>) => {
 		const w = createStatutoryWorld({
 			code: 'ID',
@@ -556,6 +569,11 @@ test('ID G14: a departure without the declared holiday stops, and a malformed da
 				)
 			);
 	};
-	assert.throws(world({}), /Religious holiday the THR is judged against is required/);
+	// Undeclared, the THR cannot be judged and is skipped by name; the rest of the run is paid.
+	const undeclared = world({})();
+	assert.match(
+		undeclared.warnings.join('\n'),
+		/LEAVER: adhoc THR was captured for 2027-02 and paid nothing — the departure record is incomplete: Religious holiday the THR is judged against is required/
+	);
 	assert.throws(world({ thr_holiday_date: '10/03/2027' }), /must be a date written YYYY-MM-DD/);
 });

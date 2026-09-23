@@ -246,6 +246,12 @@
 				"refusal": "Record tax residency as resident or non-resident on the employment terms before calculating Indonesian withholding: UU PPh art.2(3)–(4) makes an individual resident by residence, 183 days’ presence in twelve months, or presence with intent to reside, and sets no default for an unknown one (PPh 21 against PPh 26)."
 			},
 			{
+				"when": "base > 0.0 && person.terms.tax_residency == \"RESIDENT\" && !(\"ptkp_marital_status\" in scheme.election_keys && \"ptkp_dependants\" in scheme.election_keys && \"no_tax_id\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "PTKP status or dependants on 1 January, or whether the employee holds an NPWP or NIK, not declared: the employee declares them (UU PPh art.7(2), art.21(5a); PMK 168/2023 art.9(4)) and no status can be assumed, so this payroll withheld no PPh 21. Record the declaration; the December calculation then settles the year’s tax on it."
+			},
+			{
 				"when": "person.terms.tax_residency == \"RESIDENT\" && scheme.elections.ptkp_marital_status == \"MARRIED\" && scheme.elections.ptkp != \"KI\" && !(person.employee.gender in [\"MALE\", \"FEMALE\"])",
 				"employee": "0.0",
 				"employer": "0.0",
@@ -898,8 +904,7 @@
 				"label": "PTKP marital status on 1 January",
 				"description": "UU PPh art.7(2); PMK 168/2023 art.9(4): the PTKP is the status at the start of the calendar year (for a person arriving to reside in Indonesia, the start of the arrival month). A later change applies from the next 1 January. A resident employee’s status is declared, never read from the current family record.",
 				"options": ["SINGLE", "MARRIED", "DIVORCED"],
-				"change_effect": "YEAR_START",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"change_effect": "YEAR_START"
 			},
 			{
 				"key": "ptkp_dependants",
@@ -908,15 +913,13 @@
 				"description": "UU PPh art.7(1)(c), (2): family by blood or marriage in a direct line and adopted children, wholly supported, at most three, counted at the start of the year. Declared by the employee; the household record does not establish it.",
 				"minimum": 0,
 				"integer": true,
-				"change_effect": "YEAR_START",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"change_effect": "YEAR_START"
 			},
 			{
 				"key": "no_tax_id",
 				"type": "boolean",
 				"label": "No NPWP and no NIK usable as NPWP",
-				"description": "UU PPh art.21(5a): an employee without an NPWP is withheld at a rate 20% higher. A resident’s NIK serves as the NPWP once validated (UU KUP art.2(1a) as amended by UU 7/2021; PMK 112/2022; DJP PENG-6/PJ.09/2024), so the surcharge applies only where neither is held. Declared for every resident employee; there is no default.",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"description": "UU PPh art.21(5a): an employee without an NPWP is withheld at a rate 20% higher. A resident’s NIK serves as the NPWP once validated (UU KUP art.2(1a) as amended by UU 7/2021; PMK 112/2022; DJP PENG-6/PJ.09/2024), so the surcharge applies only where neither is held. Declared for every resident employee; there is no default."
 			}
 		],
 		"short_name": null,
@@ -1172,6 +1175,12 @@
 				"refusal": "Record tax residency as resident or non-resident on the employment terms before calculating Indonesian withholding: UU PPh art.2(3)–(4) makes an individual resident by residence, 183 days’ presence in twelve months, or presence with intent to reside, and sets no default for an unknown one (PPh 21 against PPh 26)."
 			},
 			{
+				"when": "base > 0.0 && person.terms.tax_residency == \"RESIDENT\" && !(\"ptkp_marital_status\" in scheme.election_keys && \"ptkp_dependants\" in scheme.election_keys && \"no_tax_id\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "PTKP status or dependants on 1 January, or whether the employee holds an NPWP or NIK, not declared: the employee declares them (UU PPh art.7(2), art.21(5a); PMK 168/2023 art.9(4)) and no status can be assumed, so this payroll withheld no PPh 21. Record the declaration; the December calculation then settles the year’s tax on it."
+			},
+			{
 				"when": "person.terms.tax_residency == \"RESIDENT\" && scheme.elections.ptkp_marital_status == \"MARRIED\" && scheme.elections.ptkp != \"KI\" && !(person.employee.gender in [\"MALE\", \"FEMALE\"])",
 				"employee": "0.0",
 				"employer": "0.0",
@@ -1824,8 +1833,7 @@
 				"label": "PTKP marital status on 1 January",
 				"description": "UU PPh art.7(2); PMK 168/2023 art.9(4): the PTKP is the status at the start of the calendar year (for a person arriving to reside in Indonesia, the start of the arrival month). A later change applies from the next 1 January. A resident employee’s status is declared, never read from the current family record.",
 				"options": ["SINGLE", "MARRIED", "DIVORCED"],
-				"change_effect": "YEAR_START",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"change_effect": "YEAR_START"
 			},
 			{
 				"key": "ptkp_dependants",
@@ -1834,15 +1842,13 @@
 				"description": "UU PPh art.7(1)(c), (2): family by blood or marriage in a direct line and adopted children, wholly supported, at most three, counted at the start of the year. Declared by the employee; the household record does not establish it.",
 				"minimum": 0,
 				"integer": true,
-				"change_effect": "YEAR_START",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"change_effect": "YEAR_START"
 			},
 			{
 				"key": "no_tax_id",
 				"type": "boolean",
 				"label": "No NPWP and no NIK usable as NPWP",
-				"description": "UU PPh art.21(5a): an employee without an NPWP is withheld at a rate 20% higher. A resident’s NIK serves as the NPWP once validated (UU KUP art.2(1a) as amended by UU 7/2021; PMK 112/2022; DJP PENG-6/PJ.09/2024), so the surcharge applies only where neither is held. Declared for every resident employee; there is no default.",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"description": "UU PPh art.21(5a): an employee without an NPWP is withheld at a rate 20% higher. A resident’s NIK serves as the NPWP once validated (UU KUP art.2(1a) as amended by UU 7/2021; PMK 112/2022; DJP PENG-6/PJ.09/2024), so the surcharge applies only where neither is held. Declared for every resident employee; there is no default."
 			}
 		],
 		"short_name": null,
@@ -2098,6 +2104,12 @@
 				"refusal": "Record tax residency as resident or non-resident on the employment terms before calculating Indonesian withholding: UU PPh art.2(3)–(4) makes an individual resident by residence, 183 days’ presence in twelve months, or presence with intent to reside, and sets no default for an unknown one (PPh 21 against PPh 26)."
 			},
 			{
+				"when": "base > 0.0 && person.terms.tax_residency == \"RESIDENT\" && !(\"ptkp_marital_status\" in scheme.election_keys && \"ptkp_dependants\" in scheme.election_keys && \"no_tax_id\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"warning": "PTKP status or dependants on 1 January, or whether the employee holds an NPWP or NIK, not declared: the employee declares them (UU PPh art.7(2), art.21(5a); PMK 168/2023 art.9(4)) and no status can be assumed, so this payroll withheld no PPh 21. Record the declaration; the December calculation then settles the year’s tax on it."
+			},
+			{
 				"when": "person.terms.tax_residency == \"RESIDENT\" && scheme.elections.ptkp_marital_status == \"MARRIED\" && scheme.elections.ptkp != \"KI\" && !(person.employee.gender in [\"MALE\", \"FEMALE\"])",
 				"employee": "0.0",
 				"employer": "0.0",
@@ -2750,8 +2762,7 @@
 				"label": "PTKP marital status on 1 January",
 				"description": "UU PPh art.7(2); PMK 168/2023 art.9(4): the PTKP is the status at the start of the calendar year (for a person arriving to reside in Indonesia, the start of the arrival month). A later change applies from the next 1 January. A resident employee’s status is declared, never read from the current family record.",
 				"options": ["SINGLE", "MARRIED", "DIVORCED"],
-				"change_effect": "YEAR_START",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"change_effect": "YEAR_START"
 			},
 			{
 				"key": "ptkp_dependants",
@@ -2760,15 +2771,13 @@
 				"description": "UU PPh art.7(1)(c), (2): family by blood or marriage in a direct line and adopted children, wholly supported, at most three, counted at the start of the year. Declared by the employee; the household record does not establish it.",
 				"minimum": 0,
 				"integer": true,
-				"change_effect": "YEAR_START",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"change_effect": "YEAR_START"
 			},
 			{
 				"key": "no_tax_id",
 				"type": "boolean",
 				"label": "No NPWP and no NIK usable as NPWP",
-				"description": "UU PPh art.21(5a): an employee without an NPWP is withheld at a rate 20% higher. A resident’s NIK serves as the NPWP once validated (UU KUP art.2(1a) as amended by UU 7/2021; PMK 112/2022; DJP PENG-6/PJ.09/2024), so the surcharge applies only where neither is held. Declared for every resident employee; there is no default.",
-				"required_when": "person.terms.tax_residency == \"RESIDENT\""
+				"description": "UU PPh art.21(5a): an employee without an NPWP is withheld at a rate 20% higher. A resident’s NIK serves as the NPWP once validated (UU KUP art.2(1a) as amended by UU 7/2021; PMK 112/2022; DJP PENG-6/PJ.09/2024), so the surcharge applies only where neither is held. Declared for every resident employee; there is no default."
 			}
 		],
 		"short_name": null,

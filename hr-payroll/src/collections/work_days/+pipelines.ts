@@ -16,6 +16,8 @@
  *
  * Statutory limits — the weekly rest ceiling, hour ceilings, granted breaks, adjacent-shift
  * overlap — are the `work_days` transform's, and refuse the write with person, day and rule.
+ * Approved overtime counts toward the hour ceilings. The ceilings payroll funnels to INCENTIVE (the
+ * monthly overtime cap, a day limit a band funnels above) do not refuse: the payroll run warns.
  * Holidays are never stored on a day; they are overlaid from the entity's calendar, so PH is not
  * a roster code: the cell names the shift the person would have worked.
  */
@@ -609,7 +611,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 export default {
 	import: {
 		description:
-			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is the approved overtime (hours after the shift, in half-hour steps, inclusive of breaks). Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, hour, break and overlap rules refuse the write with person, day and rule. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
+			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is the approved overtime (hours after the shift, in half-hour steps, inclusive of breaks). Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, hour, break and overlap rules refuse the write with person, day and rule; approved overtime counts toward the hour ceilings, and a ceiling payroll funnels to incentive (the monthly overtime cap, a daily limit a band funnels above) is accepted and warned on the payroll run instead. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {

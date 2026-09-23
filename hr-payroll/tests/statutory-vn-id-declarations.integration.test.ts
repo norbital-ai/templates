@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { authoredSeedStages, jsonSqlParameter, requireAccepted } from '@norbital-ai/test-utilities';
-import { writeRows } from './helpers/write.ts';
+import { observedVersion, writeRows } from './helpers/write.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -318,7 +318,8 @@ test(
 				),
 				/declares the election ptkp_dependants as a number/
 			);
-			// Required: without the 1 January status and the tax identity nothing is withheld on a guess.
+			// Undeclared: without the 1 January status and the tax identity nothing is withheld on a
+			// guess — the run pays the rest of the payroll and says whose PPh 21 is not withheld.
 			requireAccepted(
 				(
 					await writeRows(session, 'employment_statutory_facts', 'create', [
@@ -327,25 +328,33 @@ test(
 				).value,
 				'save an incomplete PTKP declaration'
 			);
-			assert.match(
-				JSON.stringify((await run(JANUARY_2026)).value),
-				/PTKP marital status on 1 January is required/
-			);
-			requireAccepted(
-				(
-					await writeRows(session, 'employment_statutory_facts', 'update', [
-						{
-							id: factId,
-							status: registered({ ptkp_marital_status: 'SINGLE', ptkp_dependants: 0 })
-						}
-					])
-				).value,
-				'declare the status'
-			);
-			assert.match(
-				JSON.stringify((await run(JANUARY_2026)).value),
-				/No NPWP and no NIK usable as NPWP is required/
-			);
+			const unwithheld = async (declaration: Record<string, unknown>) => {
+				requireAccepted(
+					(
+						await writeRows(session, 'employment_statutory_facts', 'update', [
+							{ id: factId, status: registered(declaration) }
+						])
+					).value,
+					'declare part of the PTKP'
+				);
+				requireAccepted((await run(JANUARY_2026)).value, 'calculate without a declaration');
+				assert.equal(await withheld(JANUARY_2026), 0);
+				const [draft] = (await session.query(
+					'select id, row_version, warnings from payroll_runs where period = $1',
+					[JANUARY_2026]
+				)) as { id: string; row_version: number; warnings: string }[];
+				assert.match(draft!.warnings, /PPH21: PTKP status or dependants on 1 January/);
+				requireAccepted(
+					(
+						await writeRows(session, 'payroll_runs', 'delete', [{ id: draft!.id }], undefined, [
+							observedVersion('payroll_runs', draft!.id, draft!.row_version)
+						])
+					).value,
+					'delete the draft'
+				);
+			};
+			await unwithheld({ ptkp_dependants: 0 });
+			await unwithheld({ ptkp_marital_status: 'SINGLE', ptkp_dependants: 0 });
 			requireAccepted(
 				(
 					await writeRows(session, 'employment_statutory_facts', 'update', [

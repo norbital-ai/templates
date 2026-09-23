@@ -179,24 +179,26 @@ test('Indonesia — BPJS Kesehatan covers the household of five; a further membe
 	);
 });
 
-test('Indonesia — an unrecorded PTKP status stops PPh 21 rather than reading TK/0', () => {
+test('Indonesia — an unrecorded PTKP status withholds no PPh 21 and warns, rather than reading TK/0', () => {
 	// UU PPh art.7(2): the PTKP is the status at the start of the year, which the employee declares;
 	// no provision presumes TK/0 for an unknown one, and the current family record is not that
-	// declaration (PMK 168/2023 art.9(4)).
-	assert.throws(
-		() =>
-			assessStatutoryUnvalidated(
-				{
-					...idWorld('2026-01'),
-					people: [{ key: 'ID-BLANK-15M', wage: 15_000_000, marital_status: '' }]
-				},
-				(world) => {
-					for (const fact of world.employment_statutory_facts)
-						if (fact.status.kind === 'REGISTERED')
-							delete fact.status.elections?.ptkp_marital_status;
-				}
-			),
-		/PTKP marital status on 1 January is required before calculation/
+	// declaration (PMK 168/2023 art.9(4)). Nothing is withheld on a guess, and nobody else's pay
+	// waits for the declaration: the run warns by name.
+	const run = buildStatutory(
+		{
+			...idWorld('2026-01'),
+			people: [{ key: 'ID-BLANK-15M', wage: 15_000_000, marital_status: '' }]
+		},
+		(world) => {
+			for (const fact of world.employment_statutory_facts)
+				if (fact.status.kind === 'REGISTERED') delete fact.status.elections?.ptkp_marital_status;
+		}
+	);
+	const pph21 = run.slips.get('ID-BLANK-15M')!.statutory.find((row) => row.scheme_code === 'PPH21');
+	assert.equal(pph21?.employee_amount ?? 0, 0);
+	assert.match(
+		run.warnings.join('\n'),
+		/ID-BLANK-15M: PPH21: PTKP status or dependants on 1 January/
 	);
 });
 

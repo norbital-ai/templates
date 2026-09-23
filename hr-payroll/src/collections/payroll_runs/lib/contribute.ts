@@ -106,6 +106,8 @@ export type ContributionCharge = {
 	readonly rebate?: number;
 	/** The `when` expression of the rule that governed, or null where none held. */
 	readonly ruleReference: string | null;
+	/** The `warning` of every rule selected for this charge, prefixed with the scheme code. */
+	readonly warnings?: readonly string[];
 	readonly firstContributionDueOn?: string;
 	/** The priced lines the `assessed_on` formula selected, for the run's calculation trace. */
 	readonly inputs: readonly ContributionLine[];
@@ -893,14 +895,19 @@ function directedFor(
 	);
 }
 
-/** A selected rule may require missing facts; its deduction is computed before its charge. */
+/**
+ * A selected rule may require missing facts or warn of one; its deduction is computed before its
+ * charge. A warning is collected into `warnings` and rides on the charge the rule prices.
+ */
 function selectedRuleContext(
 	rule: ContributionConfig['rules'][number],
 	context: Record<string, unknown>,
 	engine: ExpressionEngine,
-	code: string
+	code: string,
+	warnings: Set<string>
 ): Record<string, unknown> {
 	if (rule.refusal != null) refuse(`${code}: ${rule.refusal}`);
+	if (rule.warning != null) warnings.add(`${code}: ${rule.warning}`);
 	const deduction = rule.deduction == null ? 0 : evaluateNumber(engine, rule.deduction, context);
 	if (!Number.isFinite(deduction) || deduction < 0)
 		refuse(`${code} deduction must be finite and nonnegative.`);
@@ -1081,6 +1088,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 						expression: ordinaryOn
 					}).base;
 		let ordinaryEmployee: number | undefined;
+		const warnings = new Set<string>();
 		const charge = (
 			employee: number,
 			employer: number,
@@ -1118,6 +1126,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				directed,
 				rebate,
 				ruleReference,
+				...(warnings.size === 0 ? {} : { warnings: [...warnings] }),
 				...(status?.kind === 'REGISTERED' && status.first_contribution_due_on != null
 					? { firstContributionDueOn: status.first_contribution_due_on }
 					: {}),
@@ -1214,7 +1223,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			produced.set(code, { base: 0, employee: 0, employer: 0 });
 			continue;
 		}
-		context = selectedRuleContext(rule, context, schemeEngine, code);
+		context = selectedRuleContext(rule, context, schemeEngine, code, warnings);
 		if (contribution.row.project_relief_annually && ordinary != null) {
 			const normalContext = { ...context, base: context.ordinary };
 			requireSchemeFacts(contribution, status, normalContext, schemeEngine);
@@ -1226,7 +1235,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 							evaluateNumber(
 								schemeEngine,
 								normalRule.employee,
-								selectedRuleContext(normalRule, normalContext, schemeEngine, code)
+								selectedRuleContext(normalRule, normalContext, schemeEngine, code, warnings)
 							),
 							input.currency
 						);
@@ -1284,7 +1293,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 							requireSchemeFacts(contribution, standing.status, own, engine);
 							const selected = selectRule(contribution.row.rules, own, engine);
 							if (selected == null) return [employee, employer];
-							const priced = selectedRuleContext(selected, own, engine, code);
+							const priced = selectedRuleContext(selected, own, engine, code, warnings);
 							return [
 								employee + evaluateNumber(engine, selected.employee, priced),
 								employer + evaluateNumber(engine, selected.employer, priced)
@@ -1430,11 +1439,13 @@ export function contributeCompany(input: {
 		};
 		requireSchemeFacts(contribution, undefined, context, engine);
 		const rule = selectRule(contribution.row.rules, context, engine);
+		const warnings = new Set<string>();
 		if (rule == null && already == null) {
 			schemeProduced.set(contribution.row.code, { base: 0, employee: 0, employer: 0 });
 			continue;
 		}
-		if (rule != null) context = selectedRuleContext(rule, context, engine, contribution.row.code);
+		if (rule != null)
+			context = selectedRuleContext(rule, context, engine, contribution.row.code, warnings);
 		const employee = rule == null ? 0 : evaluateNumber(engine, rule.employee, context);
 		if (employee !== 0)
 			refuse(
@@ -1462,6 +1473,7 @@ export function contributeCompany(input: {
 			employer: cents(assessedEmployer - (already?.employer ?? 0), input.currency),
 			directed: 0,
 			ruleReference: rule?.when ?? null,
+			...(warnings.size === 0 ? {} : { warnings: [...warnings] }),
 			inputs: evaluated.selected,
 			reads: []
 		});

@@ -392,26 +392,41 @@ test('D15 MY, MY-nihon, SG: every declared election and fact names its requireme
 	assert.deepEqual(unsettled, []);
 });
 
-test('D16 SG: an unrecorded residency status, race or religion refuses instead of skipping CPF or a fund', () => {
-	// CPF Act 1953 s.7: contributions for every citizen and PR employee; the SHG funds deduct by
-	// NRIC race (CDAC, ECF, SINDA for citizens and PRs) and by religion (MBMF) unless opted out.
+test('D16 SG: an unrecorded residency status refuses CPF; an unrecorded race or religion warns and deducts no fund', () => {
+	// CPF Act 1953 s.7: contributions for every citizen and PR employee, so no residency status is
+	// no CPF at all. The SHG funds deduct by NRIC race (CDAC, ECF, SINDA for citizens and PRs) and by
+	// religion (MBMF) unless opted out; the identity cannot be assumed, and a fund of undeterminable
+	// membership is not a reason to stop everyone else's pay: the run deducts no fund and says so.
+	const run = (person: Partial<Person>) =>
+		buildStatutory({
+			code: 'SG',
+			period: '2026-01',
+			people: [{ key: 'X', wage: 3000, citizenship: 'CITIZEN', ...person } as Person]
+		});
 	const refusal = (person: Partial<Person>) => {
 		try {
-			buildStatutory({
-				code: 'SG',
-				period: '2026-01',
-				people: [{ key: 'X', wage: 3000, citizenship: 'CITIZEN', ...person } as Person]
-			});
+			run(person);
 			return '';
 		} catch (error) {
 			return refusalMessage(error);
 		}
 	};
+	const funds = (person: Partial<Person>) =>
+		run(person)
+			.slips.get('X')!
+			.statutory.filter((row) => ['CDAC', 'ECF', 'SINDA', 'MBMF'].includes(row.scheme_code))
+			.reduce((sum, row) => sum + row.employee_amount, 0);
 	assert.match(refusal({ citizenship: '' }), /residency status: CPF/);
-	assert.match(refusal({ race: '' }), /race as shown on the NRIC/);
-	assert.match(refusal({ religion: '' }), /MBMF.*religion/);
-	// A foreign worker has no NRIC race: no refusal there.
-	assert.equal(refusal({ citizenship: 'FOREIGNER', race: '' }), '');
+	assert.match(run({ race: '' }).warnings.join('\n'), /X: CDAC: Race not stated/);
+	assert.equal(funds({ race: '' }), 0);
+	assert.match(run({ religion: '' }).warnings.join('\n'), /X: MBMF: Religion not stated/);
+	// A foreign worker has no NRIC race: nothing to warn of.
+	assert.doesNotMatch(
+		run({ citizenship: 'FOREIGNER', race: '' }).warnings.join('\n'),
+		/Race not stated/
+	);
+	// A recorded race still deducts: CDAC's $2,000–$3,500 band is $1.00.
+	assert.equal(funds({ race: 'CHINESE' }), 1);
 });
 
 test('SG versions chain: each version is cloned from the one it follows', () => {

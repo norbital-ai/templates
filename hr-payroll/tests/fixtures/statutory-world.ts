@@ -265,7 +265,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		receiving_pension: person.receiving_pension ?? false,
 		solo_parent: person.solo_parent ?? false,
 		disabled: person.disabled ?? false,
-		// SG refuses an unrecorded race (citizens and PRs) or religion under the SHG funds; synthetic
+		// SG warns of an unrecorded race (citizens and PRs) or religion under the SHG funds; synthetic
 		// SG cases are outside every fund unless stated.
 		race: person.race ?? (code === 'SG' ? 'OTHERS' : null),
 		religion: person.religion ?? (code === 'SG' ? 'NONE' : null),

@@ -644,14 +644,16 @@ export function diffStatutoryFindings(
 					prior.employer,
 					prior.rebate ?? '0.0',
 					prior.deduction ?? '0.0',
-					prior.refusal ?? ''
+					prior.refusal ?? '',
+					prior.warning ?? ''
 				]) ===
 				stableJson([
 					proposed.employee,
 					proposed.employer,
 					proposed.rebate ?? '0.0',
 					proposed.deduction ?? '0.0',
-					proposed.refusal ?? ''
+					proposed.refusal ?? '',
+					proposed.warning ?? ''
 				])
 			)
 				continue;
