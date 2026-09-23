@@ -20,7 +20,7 @@
 	);
 </script>
 
-<RecordShell title={record?.claim_number ?? 'New payment claim'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="payment_claims"

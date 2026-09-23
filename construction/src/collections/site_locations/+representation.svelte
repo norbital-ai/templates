@@ -32,7 +32,7 @@
 	/>
 </svelte:head>
 
-<RecordShell title={record?.location_name ?? 'New location'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="site_locations"

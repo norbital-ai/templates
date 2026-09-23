@@ -20,7 +20,7 @@
 	);
 </script>
 
-<RecordShell title={record?.assignment_code ?? 'New assignment'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="job_assignments"

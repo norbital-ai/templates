@@ -26,7 +26,7 @@
 	);
 </script>
 
-<RecordShell title={record?.reason ?? 'New suspicion log'} {subtitle}>
+<RecordShell {subtitle}>
 	{#if record}
 		<Stack gap="md">
 			<Inline align="center" gap="sm">

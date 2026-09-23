@@ -20,7 +20,7 @@
 	);
 </script>
 
-<RecordShell title={record?.reference_name ?? 'New reference entry'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="bim_reference_matrix"

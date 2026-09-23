@@ -21,7 +21,7 @@
 	);
 </script>
 
-<RecordShell title={record?.title ?? 'New variation request'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={collectionClient}
 		collection="variation_requests"

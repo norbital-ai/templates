@@ -18,7 +18,7 @@
 	const subtitle = $derived(record == null ? undefined : `${record.sender} · ${record.sent_at}`);
 </script>
 
-<RecordShell title={record?.message ?? 'New message'} {subtitle}>
+<RecordShell {subtitle}>
 	{#if record}
 		<CollectionForm
 			client={collectionClient}

@@ -31,7 +31,6 @@
 >
 	{#snippet children({ Field, form })}
 		<RecordShell
-			title={record ? `${record.doc_no} · ${record.title}` : 'New quote'}
 			subtitle={record
 				? `${record.status ?? 'draft'}${record.currency ? ` · ${record.currency}` : ''}`
 				: undefined}

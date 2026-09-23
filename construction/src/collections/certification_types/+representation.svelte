@@ -14,7 +14,7 @@
 	);
 </script>
 
-<RecordShell title={record?.certification_name ?? 'New certification'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={collectionClient}
 		collection="certification_types"

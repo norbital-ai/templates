@@ -24,7 +24,6 @@
 >
 	{#snippet children({ Field })}
 		<RecordShell
-			title={record?.doc_no ?? 'New purchase invoice'}
 			subtitle={record
 				? `${record.status ?? 'draft'}${record.supplier_name ? ` · ${record.supplier_name}` : ''}`
 				: undefined}

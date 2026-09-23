@@ -20,7 +20,7 @@
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
 
-<RecordShell title={record ? 'Permit worker' : 'New permit worker'}>
+<RecordShell kind="Permit worker">
 	<CollectionForm
 		client={workspaceClient}
 		collection="permits_to_work_workers"

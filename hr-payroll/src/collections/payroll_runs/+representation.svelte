@@ -382,12 +382,7 @@
 	{/if}
 {/snippet}
 
-<RecordShell
-	class={record ? 'h-full' : undefined}
-	subtitle={record
-		? t('component.period_line', { period: record.period, count: payslipCount ?? 0 })
-		: undefined}
->
+<RecordShell class={record ? 'h-full' : undefined}>
 	{#if record}
 		<Cover gap="lg" grow top={runSummary}>
 			<CollectionTable

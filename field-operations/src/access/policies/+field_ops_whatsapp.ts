@@ -20,12 +20,13 @@ const heldBySender = (
  * One update carries a report: the status it moves to, the photos the contractor sent and the
  * messages that are this assignment's slice of the conversation. It cannot create or delete an
  * assignment, reassign one, or change the work order, and it cannot reach the private review
- * collections. Reading assignments is what lets it answer a contractor who names a job in their own
+ * collections. Reading assignments is what lets it answer a member who names a job in their own
  * words instead of an exact reference.
  *
- * The linked account supplies only `subject.id`. Runtime drops its team policies and
- * administrator status, so this remains the ceiling even when the linked person has broader
- * authority in the web app.
+ * This is a ceiling, not a grant to the sender: a linked member's turn runs with their own team's
+ * authority (or the administrator bypass) capped by this policy, so an administrator or controller
+ * reads every assignment and a contractor reads only their own, and nobody exceeds what is here
+ * even when they hold more in the web app.
  */
 export default {
 	description:

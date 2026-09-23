@@ -27,7 +27,7 @@
 	/>
 </svelte:head>
 
-<RecordShell title={record?.job_title ?? 'New job'} {subtitle}>
+<RecordShell {subtitle}>
 	<CollectionForm
 		client={workspaceClient}
 		collection="jobs"

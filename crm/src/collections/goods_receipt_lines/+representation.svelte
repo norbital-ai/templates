@@ -24,7 +24,6 @@
 >
 	{#snippet children({ Field })}
 		<RecordShell
-			title={record ? `Receipt line × ${record.quantity_received}` : 'New receipt line'}
 			subtitle={record
 				? `Receipt ${String(record.goods_receipt_id).slice(0, 8)} · Order line ${String(record.purchase_order_line_id).slice(0, 8)}`
 				: undefined}

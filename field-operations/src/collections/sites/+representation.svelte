@@ -160,7 +160,6 @@
 {/snippet}
 
 <RecordShell
-	title={record?.name ?? 'New site'}
 	{subtitle}
 	tabs={record
 		? ([

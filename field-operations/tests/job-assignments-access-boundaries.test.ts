@@ -170,5 +170,14 @@ test('contractor-facing WhatsApp envoy instructions do not disclose private revi
 	assert.doesNotMatch(whatsappEnvoy.task, hiddenVocabulary);
 	assert.match(whatsappEnvoy.task, /read job_assignments/i);
 	assert.match(whatsappEnvoy.task, /one write_collection update/i);
-	assert.match(whatsappEnvoy.task, /cannot create or delete assignments/i);
+});
+
+test('WhatsApp envoy instructions state directives, never who may see or do what', () => {
+	// Access is the tools' job: a turn runs with the sender's own authority capped by the envoy's
+	// policy. A task that names roles or scopes is what told an administrator they had "a
+	// contractor account" and refused them.
+	assert.doesNotMatch(
+		whatsappEnvoy.task,
+		/contractor|administrator|admin\b|controller|team|only (?:their|your) own|cannot|may (?:ask|see)/i
+	);
 });
