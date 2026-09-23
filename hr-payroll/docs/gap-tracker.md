@@ -428,9 +428,8 @@ values or deployed release. Current limitations are listed in the [compliance ma
 #### Seed bank: every company, every seeded period (23 September 2026)
 
 After the audit, payroll refused for four of the five bank companies. Each gate, the fact the source
-states and what was decided; `tests/seed-bank-payroll.integration.test.ts` loads the private bank
-(skips by name where it is absent) and builds every company for every period, December 2025 to June
-2026 (each half at OPSPH), with payslips in every run.
+states and what was decided. Seed data is probed by one-off scripts when it is prepared, not by the
+test suite.
 
 - **Contribution rules gain `warning`** (`contribution_rules`, `contribute.ts` `selectedRuleContext`):
   a matching rule charges its stated amounts and the run carries `CONTRIBUTION_RULE_WARNING` naming

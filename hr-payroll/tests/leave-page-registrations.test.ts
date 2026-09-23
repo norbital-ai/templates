@@ -28,7 +28,8 @@ test('Employee Leave combines one computed balance query with a contract-scoped 
 		/client\.invoke\.leave_balances\(\{\s*employment_id: employmentId,\s*as_of: today/
 	);
 	assert.doesNotMatch(page, /leave_entitlements|entry_leave_entitlement|request_leave_entitlement/);
-	const tab = snippet(page, 'leave');
+	// Balances and the activity table are the leave tab's two chip tabs; the table is its own snippet.
+	const tab = snippet(page, 'leaveApplications');
 	assert.deepEqual(registrations(tab), ['CollectionTable']);
 	assert.match(tab, /collection="leave_entries"/);
 	assert.match(tab, /employment_id: employmentId \? \{ eq: employmentId \}/);

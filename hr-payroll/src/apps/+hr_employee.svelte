@@ -427,44 +427,63 @@
 	{/if}
 {/snippet}
 
+{#snippet leaveBalancesPanel()}
+	<Scroll name={t('app.hr_employee.leave_scroll_name')}>
+		{@render leaveBalances()}
+	</Scroll>
+{/snippet}
+
+{#snippet leaveApplications()}
+	<CollectionTable
+		{client}
+		collection="leave_entries"
+		title={t('app.hr_employee.my_leave_title')}
+		description={t('app.hr_employee.my_leave_description')}
+		disabled={!employmentId}
+		recordMetadata={() => [
+			{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
+		]}
+		query={{
+			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+			orderBy: { effective_on: 'desc' }
+		}}
+	>
+		{#snippet columns({ Column })}
+			<Column name="catalogue_id" label={t('component.catalogue_leave')} />
+			<Column
+				name="summary"
+				label={t('leave.activity')}
+				card="title"
+				renderer={FormattedValueRenderer}
+				rendererProps={{
+					format: ({ row }: { row: { summary: unknown } }) => formatLeaveSummary(row.summary, t)
+				}}
+			/>
+			<Column name="reference" label={t('component.reference')} />
+			<Column name="days" label={t('component.days')} />
+			<Column name="encash_days" label={t('component.encash_days')} />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
 {#snippet leave()}
 	<Cover gap="md" top={leaveChrome}>
-		<Scroll name={t('app.hr_employee.leave_scroll_name')}>
-			<Stack gap="md">
-				{@render leaveBalances()}
-				<CollectionTable
-					{client}
-					collection="leave_entries"
-					title={t('app.hr_employee.my_leave_title')}
-					description={t('app.hr_employee.my_leave_description')}
-					disabled={!employmentId}
-					recordMetadata={() => [
-						{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
-					]}
-					query={{
-						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-						orderBy: { effective_on: 'desc' }
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column name="catalogue_id" label={t('component.catalogue_leave')} />
-						<Column
-							name="summary"
-							label={t('leave.activity')}
-							card="title"
-							renderer={FormattedValueRenderer}
-							rendererProps={{
-								format: ({ row }: { row: { summary: unknown } }) =>
-									formatLeaveSummary(row.summary, t)
-							}}
-						/>
-						<Column name="reference" label={t('component.reference')} />
-						<Column name="days" label={t('component.days')} />
-						<Column name="encash_days" label={t('component.encash_days')} />
-					{/snippet}
-				</CollectionTable>
-			</Stack>
-		</Scroll>
+		<Tabs
+			animate={false}
+			variant="chip"
+			config={[
+				{
+					name: 'balances',
+					label: t('app.hr_employee.leave_tab_balances'),
+					content: leaveBalancesPanel
+				},
+				{
+					name: 'applications',
+					label: t('app.hr_employee.leave_tab_applications'),
+					content: leaveApplications
+				}
+			] satisfies TabConfig[]}
+		/>
 	</Cover>
 {/snippet}
 
@@ -507,6 +526,7 @@
 	<Tabs
 		animate={false}
 		layout="vertical"
+		variant="underline"
 		config={[
 			{ name: 'work', label: t('family.work'), icon: 'lucide:calendar-clock', content: schedule },
 			{ name: 'leave', label: t('family.leave'), icon: 'lucide:calendar-check', content: leave },

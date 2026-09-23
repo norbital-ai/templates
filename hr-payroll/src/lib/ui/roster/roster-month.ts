@@ -150,6 +150,8 @@ export type DayFacts = {
 	readonly plannedOT: boolean;
 	/** The approved overtime keyed on the day, in hours after the shift; null is no approval. */
 	readonly approvedOvertimeHours: number | null;
+	/** The planned hours beyond the overtime limit, paid as incentive; null is none. */
+	readonly incentiveHours: number | null;
 	readonly clockedIn: boolean;
 	readonly workedIntervalCount: number;
 	readonly attendanceState: 'OPEN' | 'CLOSED' | null;
@@ -258,6 +260,8 @@ type WorkDayLike = {
 		| undefined;
 	/** The approved overtime the scheduler keyed, in hours after the shift. */
 	readonly approved_overtime_hours?: number | null | undefined;
+	/** The planned hours beyond the overtime limit, paid as incentive. */
+	readonly incentive_hours?: number | null | undefined;
 };
 
 /**
@@ -625,7 +629,8 @@ function factsForDate(
 			designation === 'WORK' &&
 			(holidayName != null || baselineKind === 'REST' || baselineKind === 'OFF'),
 		approvedOvertimeHours:
-			employmentState === 'ACTIVE' ? (workDay?.approved_overtime_hours ?? null) : null,
+			employmentState === 'ACTIVE' ? storedHours(workDay?.approved_overtime_hours) : null,
+		incentiveHours: employmentState === 'ACTIVE' ? storedHours(workDay?.incentive_hours) : null,
 		clockedIn: intervals.length > 0,
 		workedIntervalCount: intervals.length,
 		attendanceState:
@@ -997,22 +1002,72 @@ export function scheduledMinutes(
 }
 
 /**
- * Worked time past what the roster planned — DERIVED, and read-only everywhere it appears.
+ * Clock time past the plan — the shift AND its planned overtime — and read-only everywhere it appears.
  *
- * It is not payable overtime: `work_days.approved_overtime_hours` is the record payroll pays, and
- * `beyondScheduleMinutes` exists so the scheduler can see that a day ran long before keying an
- * approval. The two are deliberately separate facts — the clock measures what happened, the
- * approval authorises what is paid — and a reader that treated this number as an amount would be
- * re-deriving overtime the way the pre-approval engine did.
+ * Overtime is planned: `work_days.approved_overtime_hours` is keyed on the day beside the shift, and
+ * attendance only confirms the person was there for it. So this is unplanned time, and it is not
+ * paid — a reader that treated it as an amount would be re-deriving overtime from the clock.
  *
  * Null when the day is unplanned or still open, because "beyond" needs both ends to mean anything.
  */
-export function beyondScheduleMinutes(
-	day: Pick<DayFacts, 'shiftStart' | 'shiftEnd' | 'shiftBreakMinutes' | 'workedMinutes'>
+export function beyondPlanMinutes(
+	day: Pick<
+		DayFacts,
+		| 'shiftStart'
+		| 'shiftEnd'
+		| 'shiftBreakMinutes'
+		| 'workedMinutes'
+		| 'approvedOvertimeHours'
+		| 'incentiveHours'
+	>
 ): number | null {
-	const planned = scheduledMinutes(day);
+	const planned = plannedMinutes(day);
 	if (planned == null || day.workedMinutes == null) return null;
 	return day.workedMinutes - planned;
+}
+
+/**
+ * A stored `numeric` hours column as a number, or null when unset. The wire carries `numeric` as a
+ * decimal string, and `"2" + 0` is `"20"`, so every sum over these columns reads through this.
+ */
+export function storedHours(value: unknown): number | null {
+	if (value == null) return null;
+	const hours = decodeNumber(value);
+	return Number.isFinite(hours) ? hours : null;
+}
+
+/**
+ * The whole plan in minutes: the shift's paid length plus the overtime and incentive hours planned
+ * on the day. Attendance is a presence check against all of it.
+ */
+export function plannedMinutes(
+	day: Pick<
+		DayFacts,
+		'shiftStart' | 'shiftEnd' | 'shiftBreakMinutes' | 'approvedOvertimeHours' | 'incentiveHours'
+	>
+): number | null {
+	const shift = scheduledMinutes(day);
+	return shift == null
+		? null
+		: shift + ((day.approvedOvertimeHours ?? 0) + (day.incentiveHours ?? 0)) * 60;
+}
+
+/**
+ * The planned extra time as a cell prints it — `+2h OT`, `+2h OT · +1h inc` — or null when the day
+ * plans none. Both are entries on the day, never derived from the clock.
+ */
+export function plannedExtraLabel(
+	day: Pick<DayFacts, 'approvedOvertimeHours' | 'incentiveHours'> | undefined
+): string | null {
+	const parts = [
+		(day?.approvedOvertimeHours ?? 0) > 0
+			? `+${halfHoursLabel((day?.approvedOvertimeHours ?? 0) * 60)} OT`
+			: null,
+		(day?.incentiveHours ?? 0) > 0
+			? `+${halfHoursLabel((day?.incentiveHours ?? 0) * 60)} inc`
+			: null
+	].filter((part) => part != null);
+	return parts.length === 0 ? null : parts.join(' · ');
 }
 
 /* ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -1245,6 +1300,16 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 			: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
 		day.pendingLeave ? t('roster.pending_leave') : null,
 		day.plannedOT ? t('roster.planned_ot') : null,
+		(day.approvedOvertimeHours ?? 0) > 0
+			? t('roster.planned_overtime_hours', {
+					hours: halfHoursLabel((day.approvedOvertimeHours ?? 0) * 60)
+				})
+			: null,
+		(day.incentiveHours ?? 0) > 0
+			? t('roster.planned_incentive_hours', {
+					hours: halfHoursLabel((day.incentiveHours ?? 0) * 60)
+				})
+			: null,
 		...day.conflicts.map((conflict) => t(CONFLICT_PRESENTATION[conflict].labelKey)),
 		day.lock.kind === 'SETTLED'
 			? t('roster.in_paid_payroll', { period: day.lock.period })
@@ -1402,10 +1467,9 @@ export function describeClockLayer(day: DayFacts, t: Translator): string {
  * ── THE SLOT ─────────────────────────────────────────────────────────────────────────────────
  *
  * One person-day is one slot, on both surfaces, and a slot is in exactly one of these states. The
- * cell no longer explains itself with a legend: the state is the fill, the code is the text, and
- * what the clock did is a bar that fills the slot to the length of the shift and spills past it
- * as the extra — so a long day is read as a proportion of the day it was planned against, not as
- * a symbol somebody has to look up.
+ * cell no longer explains itself with a legend: the state is the fill, the plan (the code and its
+ * planned overtime) is the text, and attendance is a bar that fills the slot to the length of that
+ * plan — a presence check against it, never a measure of overtime.
  */
 export type SlotState =
 	| 'EMPTY'
@@ -1455,14 +1519,13 @@ export function slotCode(day: DayFacts | undefined, dense = true): string {
 }
 
 /**
- * How the clock filled the slot.
+ * How attendance answers the plan: a presence check, never a source of overtime.
  *
- * `ratio` is worked ÷ planned, capped at one: the bar's length inside the slot. `extra` is the
- * part past the plan as a fraction of the plan — a 9-hour clock on an 8-hour shift is `0.125` —
- * and `deltaMinutes` is the same difference in minutes, signed, which the cell prints to the half
- * hour as `+1h` or `−0.5h`; it is the measure the day sheet calls "beyond schedule". A day with
- * attendance and no plan is all extra: its bar is full and every worked minute is the delta. An
- * open clock has no length yet; it is drawn indeterminate. AWOL is the destructive fill.
+ * The plan is the shift plus the overtime and incentive hours keyed on the day. `ratio` is worked ÷ that plan, capped
+ * at one: the bar's length inside the slot. `short` is a partial day — present, but short of the
+ * plan by at least half an hour, `shortMinutes` of it. Clock time past the plan is not drawn at all:
+ * it is not overtime and it is not paid. A day with attendance and no shift is present, full bar.
+ * An open clock has no length yet; it is drawn indeterminate. AWOL is the destructive fill.
  */
 type SlotFill =
 	| { readonly kind: 'NONE' }
@@ -1471,12 +1534,12 @@ type SlotFill =
 	| {
 			readonly kind: 'CLOCKED';
 			readonly ratio: number;
-			readonly extra: number;
-			/** Worked − planned, in minutes; every minute when nothing was planned. */
-			readonly deltaMinutes: number;
+			/** Planned − worked, in minutes, floored at zero. */
+			readonly shortMinutes: number;
 			/** Short of the plan by more than a rounding: ten minutes under an eight-hour shift is not a short day. */
 			readonly short: boolean;
 			readonly workedMinutes: number;
+			/** Shift plus planned overtime and incentive hours; null when no shift was planned. */
 			readonly plannedMinutes: number | null;
 			readonly first: string;
 			readonly last: string;
@@ -1488,16 +1551,13 @@ export function slotFill(day: DayFacts | undefined): SlotFill {
 	if (day.workedIntervalCount === 0)
 		return day.status === 'ABSENT' ? { kind: 'AWOL' } : { kind: 'NONE' };
 	const worked = day.workedMinutes ?? 0;
-	const planned = scheduledMinutes(day);
-	const ratio = planned == null || planned <= 0 ? 1 : Math.min(1, worked / planned);
-	const extra = planned == null || planned <= 0 ? 0 : Math.max(0, (worked - planned) / planned);
-	const deltaMinutes = worked - (planned ?? 0);
+	const planned = plannedMinutes(day);
+	const shortMinutes = Math.max(0, (planned ?? 0) - worked);
 	return {
 		kind: 'CLOCKED',
-		ratio,
-		extra,
-		deltaMinutes,
-		short: halfHours(deltaMinutes) < 0,
+		ratio: planned == null || planned <= 0 ? 1 : Math.min(1, worked / planned),
+		shortMinutes,
+		short: halfHours(shortMinutes) > 0,
 		workedMinutes: worked,
 		plannedMinutes: planned,
 		first: day.punchWindow?.first ?? '',
@@ -1511,12 +1571,6 @@ export function slotFill(day: DayFacts | undefined): SlotFill {
  */
 export function halfHoursLabel(minutes: number): string {
 	return `${halfHours(minutes)}h`;
-}
-
-/** The same figure signed — `+1.5h`, `−0.5h` — for the cell's over/under against the plan. */
-export function signedHalfHoursLabel(minutes: number): string {
-	const hours = halfHours(minutes);
-	return hours < 0 ? `−${-hours}h` : `+${hours}h`;
 }
 
 function halfHours(minutes: number): number {

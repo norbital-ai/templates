@@ -26,8 +26,8 @@ import {
  * roster code, and that code is the polymorphic entity - WORK owns its clock window and break while
  * REST and OFF carry no meaningless time fields, so the day cannot drift into contradictory shapes.
  * The actual side is present when `worked_intervals` is non-NULL; an empty array is different, and
- * explicitly records AWOL. The approved overtime is keyed on the day beside them: the punches
- * measure what happened, the approval authorises what is paid, and they are two different facts.
+ * explicitly records AWOL. The planned overtime is keyed on the day beside them: the punches
+ * measure what happened, the plan authorises what is paid, and they are two different facts.
  *
  * There is no `PUBLIC_HOLIDAY` roster code and no link to a holiday row. A holiday is a property
  * of the entity's calendar, overlaid on the date when the day is read; a payroll run snapshots the
@@ -42,11 +42,21 @@ export default defineModel(
 		/** The attendance: what was actually worked. Null is no punch; `[]` is a day read and found empty. */
 		worked_intervals: custom('instant_range', { multiple: true }),
 		/**
-		 * The approved overtime: hours after the shift the employer authorised, breaks included,
-		 * keyed in half-hour steps. The record of the extra time, not a derivation from the clock —
-		 * payroll pays this and nothing else beyond the shift. Null is no approval.
+		 * The planned overtime within the statutory limits: hours after the shift, breaks included,
+		 * in half-hour steps. Payroll prices it at the day type's overtime band; attendance only
+		 * confirms the day was worked. Null is none.
+		 *
+		 * WRITE CONTRACT: a create or update states the day's TOTAL planned overtime here. The
+		 * transform splits it (`splitPlannedOvertime`): the part the limits that split allow stays
+		 * here, the excess is stored in `incentive_hours`. A read always sees the split.
 		 */
 		approved_overtime_hours: numeric(),
+		/**
+		 * The planned overtime beyond the limits that split (the monthly overtime ceiling, a daily
+		 * limit a band names), in half-hour steps. Written only by the transform's split, never by a
+		 * caller; priced on the band's INCENTIVE line. Null is none.
+		 */
+		incentive_hours: numeric(),
 		/** Who asked for rest-day work, where the statute prices the two differently (SG s.37(2)/(3)); null is the employer. */
 		requested_by: enums(['EMPLOYER', 'EMPLOYEE']),
 		/**
@@ -66,7 +76,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'One person-day: the planned shift and the actual attendance side by side. Either may be absent. Holidays are overlaid from the entity’s published calendar by date, breaks are the gaps between the day’s intervals, premium work is derived from plan, attendance, calendar and the statutory rules in force, and overtime is the approved hours keyed on the day.',
+			'One person-day: the planned shift and the actual attendance side by side. Either may be absent. Holidays are overlaid from the entity’s published calendar by date, breaks are the gaps between the day’s intervals, premium work is derived from plan, attendance, calendar and the statutory rules in force, and overtime is planned on the day: the hours within the limits and the incentive hours beyond them.',
 		recordLabel: 'work_date',
 		icon: 'lucide:calendar-clock',
 		indexes: [

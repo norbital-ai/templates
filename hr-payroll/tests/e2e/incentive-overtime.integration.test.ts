@@ -27,13 +27,13 @@ const create = async (
 };
 
 /**
- * The incentive funnel, end to end on a real host: the public lineage's 1.5 band funnels the slice
- * above `limits.daily_total` to `INCENTIVE` at the band's own award — eleven net worked hours beside
- * the statutory twelve-hour and 104-hour ceilings. One weekday punch of 07:30 to 21:30 with a
- * one-hour break is thirteen worked hours on a 07:30–16:30 shift: five overtime hours, of which the
- * three from nine to eleven net settle as OVERTIME and the two past eleven as INCENTIVE, both at
- * 1.5×. The row carries punches only — no plan — so it is evidence on a base day, never a roster
- * override.
+ * Planned incentive hours, end to end on a real host. The public lineage's 1.5 band names
+ * `limits.daily_total` — twelve clock hours, eleven net of a one-hour break — so that daily limit
+ * splits planned overtime. The day plans a total of five overtime hours on its 07:30–16:30 base
+ * shift (eight net): the write stores three within the limit as `approved_overtime_hours` and two
+ * beyond it as `incentive_hours`, and payroll settles them as OVERTIME and INCENTIVE, both at 1.5×.
+ * The punch of 07:30 to 21:30 only confirms the day was worked. The row carries no plan code, so it
+ * is evidence on a base day, never a roster override.
  */
 it(
 	'a weekday worked past the lineage incentive boundary pays the surplus as incentive OT',
@@ -54,7 +54,7 @@ it(
 					worked_intervals: [
 						{ start: '2026-02-02T23:30:00.000Z', end: '2026-02-03T13:30:00.000Z' }
 					],
-					// Overtime pays only what the employer approved: the five hours after the shift.
+					// The day's TOTAL planned overtime: the write splits it at the daily limit.
 					approved_overtime_hours: 5
 				},
 				founder
@@ -67,13 +67,17 @@ it(
 			);
 			const [workDayId] = createdIds(day);
 			const stored = (await session.query(
-				'select shift_definition_id from work_days where id = $1',
+				'select shift_definition_id, approved_overtime_hours::float8 as approved, incentive_hours::float8 as incentive from work_days where id = $1',
 				[workDayId]
-			)) as ReadonlyArray<{ shift_definition_id: string | null }>;
+			)) as ReadonlyArray<{
+				shift_definition_id: string | null;
+				approved: number | null;
+				incentive: number | null;
+			}>;
 			assert.deepEqual(
 				stored,
-				[{ shift_definition_id: null }],
-				'a punch is evidence on the base day, not a roster override'
+				[{ shift_definition_id: null, approved: 3, incentive: 2 }],
+				'three planned hours within the daily limit, two beyond it; no roster override'
 			);
 
 			const run = await create(

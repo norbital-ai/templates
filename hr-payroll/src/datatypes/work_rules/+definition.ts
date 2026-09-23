@@ -20,8 +20,8 @@ import { wagesValueSchema } from '../wages/+definition.js';
  * - `proration` returns the month's denominator (calendar days, working days, or a fixed factor).
  * - `ordinary_divisor_days` is the days-per-month divisor of the ordinary rate, over the person.
  * - `overtime_when` says who the overtime ladder covers, over the person; empty is everyone.
- * - `bands` price the day, in order; each band consumes hours and may funnel the slice above a
- *   named limit to the INCENTIVE line at its own award.
+ * - `bands` price the day, in order; each band consumes hours and may name the limits above
+ *   which planned OT is recorded as incentive hours, paid on its INCENTIVE line at its own award.
  * - `limits` are enforced when schedules are written; an hours limit's evaluated value is
  *   readable in expressions as `limits.<key>`, and the consecutive-work-days limit is the weekly
  *   rest rule the roster gate judges.
@@ -37,7 +37,7 @@ const workLimitValueSchema = Schema.Struct({
 	period: Schema.Literals(['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR']),
 	/**
 	 * OVERTIME_HOURS is regulated overtime — ordinary and off-day hours beyond the normal day,
-	 * the ladder the monthly funnel reads; ALL_OVERTIME_HOURS also counts rest-day and holiday
+	 * the count the monthly incentive limit reads; ALL_OVERTIME_HOURS also counts rest-day and holiday
 	 * hours beyond the normal day, the MOM reading of SG's 72-hour month, and is reported only.
 	 */
 	measure: Schema.Literals([
@@ -137,9 +137,10 @@ const workRateBandValueSchema = Schema.Struct({
 	/** Money over the work day: what the whole slice earns; `hours` is the slice actually consumed. */
 	price_amount: cel,
 	/**
-	 * Hours over the work day, typically `limits.<key>`: the portion of this band's slice above it
-	 * is routed to the INCENTIVE line at the same award, so an incentive inherits the award of the
-	 * band the hours came from.
+	 * Names, as `limits.<key>`, a day limit above which planned OT is recorded as incentive hours
+	 * when the day is written (`splitPlannedOvertime`). Those hours pay on the INCENTIVE line at
+	 * the award of the band they fall in. The field name predates that wording; it is kept because
+	 * sealed versions store it.
 	 */
 	funnel_above_hours: Schema.optionalKey(cel)
 });
@@ -381,7 +382,7 @@ export type WorkRules = Schema.Schema.Type<typeof workRulesValueSchema>;
 export default defineCustomType({
 	name: 'work_rules',
 	description:
-		'One version’s work rules: proration, the ordinary-rate divisor and overtime eligibility as expressions over the person, the ordered bands that price a day (including the incentive funnel), the limits schedules must respect (hours, and the consecutive-work-days rest rule), the breaks the law owes, the minimum wage by region, the night premium and holiday/rest precedence.',
+		'One version’s work rules: proration, the ordinary-rate divisor and overtime eligibility as expressions over the person, the ordered bands that price a day (and the limits above which planned OT is recorded as incentive hours), the limits schedules must respect (hours, and the consecutive-work-days rest rule), the breaks the law owes, the minimum wage by region, the night premium and holiday/rest precedence.',
 	schema: Schema.toStandardSchemaV1(workRulesValueSchema, {
 		parseOptions: { onExcessProperty: 'error' }
 	})

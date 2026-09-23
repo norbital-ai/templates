@@ -130,3 +130,22 @@ export function emptyActivityFields() {
 		event_date: null
 	} as const;
 }
+
+/**
+ * The leave a pay period lists: every activity valued inside it, plus time off whose days overlap
+ * it. The range columns alone are not enough — an adjustment, encashment or carry-forward stores
+ * its entitlement window there, so a year-long window matched every month of the year. Time off is
+ * told apart by its summary, which `leaveSummary` always opens with the activity kind.
+ */
+export function leavePeriodWhere(bounds: { readonly start: string; readonly end: string }) {
+	return {
+		OR: [
+			{ effective_on: { gte: bounds.start, lt: bounds.end } },
+			{
+				summary: { like: 'TIME_OFF%' },
+				from_date: { lt: bounds.end },
+				to_date: { gte: bounds.start }
+			}
+		]
+	};
+}

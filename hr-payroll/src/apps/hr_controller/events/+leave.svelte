@@ -17,6 +17,7 @@
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
 	import { formatLeaveSummary } from '../../../lib/ui/display-formatters.js';
 	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
+	import { leavePeriodWhere } from '../../../lib/leave/activity-fields.js';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -80,9 +81,7 @@
 				query={{
 					where: {
 						leave_entry_employment: { some: { company_id: { eq: selectedCompanyId } } },
-						// The period's leave: any event whose days overlap the window.
-						from_date: { lt: pay.bounds.end },
-						to_date: { gte: pay.bounds.start }
+						...leavePeriodWhere(pay.bounds)
 					},
 					orderBy: { effective_on: 'desc' },
 					with: {

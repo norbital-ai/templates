@@ -197,7 +197,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			overtimeDays: [],
 			calendarMonthOvertimeHours: new Map(),
 			calendarMonthAllOvertimeHours: new Map(),
-			unpricedWeeks: [],
 			currency,
 			schedule: new Map(),
 			limits: [],
@@ -269,8 +268,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		calendarMonthOvertimeHours,
 		calendarMonthAllOvertimeHours,
 		calendarMonthLimitHours,
-		nightShiftHours,
-		unpricedWeeks
+		nightShiftHours
 	} = workAttendance;
 	notes.push(...workAttendance.inLieuNotes);
 	/**
@@ -495,7 +493,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		calendarMonthLimitHours,
 		settledOvertimeHours: workAttendance.settledOvertimeHours,
 		inLieuSlices: workAttendance.inLieuSlices,
-		unpricedWeeks,
 		currency,
 		schedule,
 		limits: workAttendance.limits,

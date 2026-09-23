@@ -274,8 +274,8 @@ const clock = (date, from, to, approved = 0) => {
 		id: `day-${date}`,
 		work_date: date,
 		shift_definition_id: null,
-		// The approved overtime is keyed beside the clock: payroll pays this and nothing else beyond
-		// the shift, so a fixture that expects an overtime line states the hours it authorised.
+		// The planned overtime is keyed beside the clock: payroll pays this and nothing else beyond
+		// the shift, so a fixture that expects an overtime line states the hours it planned.
 		approved_overtime_hours: approved,
 		worked_intervals: [
 			{ start: `${date}T${from}:00.000+08:00`, end: `${date}T${plus(from, 90)}:00.000+08:00` },
@@ -559,21 +559,24 @@ test('overtime crosses into a second band only where the ladder says so', () => 
 });
 
 test('a rest day pays a day’s wages, and only the hours past the normal day run the ladder', () => {
-	// 15 March 2026 is the pattern's rest day. Eight hours is a full normal day: EA s.60(3) pays one
-	// day's wages for it, 132.73 — not eight hours at 2.0 × (3451 / 26 / 8), which would be 265.44.
-	const eight = measure({ workDays: [clock('2026-03-15', '08:30', '17:30')] });
+	// 15 March 2026 is the pattern's rest day. Rest-day work pays only as planned, so each day plans
+	// the hours it works (owner's rule, 2026-09-23). Eight hours is a full normal day: EA s.60(3)
+	// pays one day's wages for it, 132.73 — not eight hours at 2.0 × (3451 / 26 / 8), 265.44.
+	const eight = measure({ workDays: [clock('2026-03-15', '08:30', '17:30', 8)] });
 	assert.equal(eight.overtimeDays[0].dayType, 'REST_DAY');
 	assert.equal(amountOf(eight, OT_REST_FULL), 132.73, 'a day’s wages is paid once, at its band');
 	assert.equal(amountOf(eight, OT_REST_BEYOND), null);
 
 	// Two hours past the normal day, and only those two, reach the 2.0× hourly band.
-	const ten = measure({ workDays: [clock('2026-03-15', '08:30', '19:30', 2)] });
+	const ten = measure({ workDays: [clock('2026-03-15', '08:30', '19:30', 10)] });
 	assert.equal(amountOf(ten, OT_REST_FULL), 132.73);
 	assert.equal(amountOf(ten, OT_REST_BEYOND), 66.37, '2 h × 2.0 × (3451 / 26 / 8)');
 	assert.equal(lineOf(ten, OT_REST_BEYOND).quantity, 2);
 
 	// Under half a normal day takes the half-day band instead of the full one.
-	const three = measure({ workDays: [clock('2026-03-15', '08:30', '12:30')] });
+	const three = measure({ workDays: [clock('2026-03-15', '08:30', '12:30', 3)] });
+	// Worked and not planned is not paid.
+	assert.deepEqual(measure({ workDays: [clock('2026-03-15', '08:30', '17:30')] }).overtimeDays, []);
 	assert.equal(amountOf(three, OT_REST_HALF), 66.37, 'half of 132.73, rounded to the cent');
 	assert.equal(
 		three.adjustments.filter((row) => row.label === OT_REST_HALF).length,
@@ -596,7 +599,8 @@ test('a public holiday is paid at its own statutory rate, from the holiday calen
 			}
 		]
 	]);
-	const worked = measure({ workDays: [clock('2026-03-10', '08:30', '19:30', 2)] }, { holidays });
+	// Holiday work pays only as planned: the ten hours worked are the day's planned hours.
+	const worked = measure({ workDays: [clock('2026-03-10', '08:30', '19:30', 10)] }, { holidays });
 	assert.equal(worked.overtimeDays[0].dayType, 'PUBLIC_HOLIDAY');
 	assert.equal(amountOf(worked, OT_HOLIDAY), 265.46, 'two days’ wages: 2 × 132.73');
 	assert.equal(amountOf(worked, OT_HOLIDAY_BEYOND), 99.55, '2 h × 3.0 × (3451 / 26 / 8)');
@@ -631,7 +635,7 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 		}
 	];
 	const worked = measure(
-		{ workDays: [clock('2026-03-10', '08:30', '19:30', 2)] },
+		{ workDays: [clock('2026-03-10', '08:30', '19:30', 10)] },
 		{ holidays, bands: rules }
 	);
 	assert.equal(worked.overtimeDays[0].dayType, 'SPECIAL_HOLIDAY');
@@ -640,7 +644,7 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 	assert.equal(amountOf(worked, OT_HOLIDAY), null);
 	// A regime that states no SPECIAL_HOLIDAY ladder prices the day at nothing on the overtime
 	// lines; the wage itself still settles.
-	const unpriced = measure({ workDays: [clock('2026-03-10', '08:30', '19:30', 2)] }, { holidays });
+	const unpriced = measure({ workDays: [clock('2026-03-10', '08:30', '19:30', 10)] }, { holidays });
 	assert.deepEqual(unpriced.adjustments, []);
 	assert.equal(amountOf(unpriced, 'BASIC'), 3451);
 });
@@ -659,7 +663,11 @@ test('SUBSTITUTE precedence keeps the rest day and observes the holiday on the n
 			}
 		]
 	]);
-	const days = [clock('2026-03-15', '08:30', '12:30'), clock('2026-03-16', '08:30', '19:30', 2)];
+	// Each day plans the hours it works: the rest day three, the holiday ten.
+	const days = [
+		clock('2026-03-15', '08:30', '12:30', 3),
+		clock('2026-03-16', '08:30', '19:30', 10)
+	];
 	const substituted = measure(
 		{ workDays: days },
 		{ holidays, holidayRestPrecedence: 'SUBSTITUTE' }
@@ -721,8 +729,8 @@ test('a holiday the calendar substitutes itself is observed once, not twice', ()
 	const measured = measure(
 		{
 			workDays: [
-				clock('2026-03-15', '08:30', '12:30'),
-				clock('2026-03-16', '08:30', '19:30', 2),
+				clock('2026-03-15', '08:30', '12:30', 3),
+				clock('2026-03-16', '08:30', '19:30', 10),
 				clock('2026-03-17', '08:30', '19:30', 2)
 			]
 		},

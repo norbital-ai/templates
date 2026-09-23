@@ -12,12 +12,12 @@
 			"end": "2026-06-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "MY",
-		"change_summary": "Malaysia’s base law from 1 October 2025 (EPF Third Schedule, SOCSO/EIS, MTD 2026, HRDF, EA 1955), plus Nihon Pigment’s incentive-overtime boundary at 11 hours’ total work in a day.",
+		"change_summary": "Malaysia’s base law from 1 October 2025 (EPF Third Schedule, SOCSO/EIS, MTD 2026, HRDF, EA 1955), plus Nihon Pigment’s own overtime pricing: basic × 12 ÷ (52 × 45 or 42.5) to the sen, every hour at its column multiple.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 26.0 * terms.basic_salary / (terms.basic_salary + terms.fixed_allowances * (terms.pay_frequency == \"WEEKLY\" ? 12.0 / 52.0 : 1.0)) : 26.0",
+			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -36,52 +36,26 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 1.5",
-					"funnel_above_hours": "11.0"
-				},
-				{
-					"label": "RESTDAY-ONE-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
-				},
-				{
-					"label": "RESTDAY-HALF-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 0.5"
-				},
-				{
-					"label": "RESTDAY-TWO-DAYS-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
-				},
-				{
-					"label": "RESTDAY-FULL-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 2.0",
-					"funnel_above_hours": "11.0"
+					"take_hours": "overtime_hours",
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
-					"label": "HOLIDAY-2-DAYS-PAY",
+					"label": "HOLIDAY-2.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 3.0",
-					"funnel_above_hours": "11.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 3.0"
 				}
 			],
 			"limits": [
@@ -140,8 +114,8 @@
 					"counts_as_worked_time": null
 				}
 			],
-			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Nihon’s incentive boundary is the company’s own eleven hours’ total work in a day, stated as `funnel_above_hours: \"11.0\"` rather than read off the statutory limit.",
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round_cent(ordinary_hour) × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond — no day-wage awards. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {
@@ -693,7 +667,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 26.0 * terms.basic_salary / (terms.basic_salary + terms.fixed_allowances * (terms.pay_frequency == \"WEEKLY\" ? 12.0 / 52.0 : 1.0)) : 26.0",
+			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -712,52 +686,26 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 1.5",
-					"funnel_above_hours": "11.0"
-				},
-				{
-					"label": "RESTDAY-ONE-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
-				},
-				{
-					"label": "RESTDAY-HALF-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 0.5"
-				},
-				{
-					"label": "RESTDAY-TWO-DAYS-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
-				},
-				{
-					"label": "RESTDAY-FULL-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 2.0",
-					"funnel_above_hours": "11.0"
+					"take_hours": "overtime_hours",
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
-					"label": "HOLIDAY-2-DAYS-PAY",
+					"label": "HOLIDAY-2.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 3.0",
-					"funnel_above_hours": "11.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 3.0"
 				}
 			],
 			"limits": [
@@ -816,8 +764,8 @@
 					"counts_as_worked_time": null
 				}
 			],
-			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Nihon’s incentive boundary is the company’s own eleven hours’ total work in a day, stated as `funnel_above_hours: \"11.0\"` rather than read off the statutory limit.",
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round_cent(ordinary_hour) × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond — no day-wage awards. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {
@@ -1380,7 +1328,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 26.0 * terms.basic_salary / (terms.basic_salary + terms.fixed_allowances * (terms.pay_frequency == \"WEEKLY\" ? 12.0 / 52.0 : 1.0)) : 26.0",
+			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -1399,52 +1347,26 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 1.5",
-					"funnel_above_hours": "11.0"
-				},
-				{
-					"label": "RESTDAY-ONE-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
-				},
-				{
-					"label": "RESTDAY-HALF-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 0.5"
-				},
-				{
-					"label": "RESTDAY-TWO-DAYS-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
-				},
-				{
-					"label": "RESTDAY-FULL-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 2.0",
-					"funnel_above_hours": "11.0"
+					"take_hours": "overtime_hours",
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
-					"label": "HOLIDAY-2-DAYS-PAY",
+					"label": "HOLIDAY-2.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 3.0",
-					"funnel_above_hours": "11.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 3.0"
 				}
 			],
 			"limits": [
@@ -1503,8 +1425,8 @@
 					"counts_as_worked_time": null
 				}
 			],
-			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Nihon’s incentive boundary is the company’s own eleven hours’ total work in a day, stated as `funnel_above_hours: \"11.0\"` rather than read off the statutory limit.",
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round_cent(ordinary_hour) × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond — no day-wage awards. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {
@@ -2078,7 +2000,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 26.0 * terms.basic_salary / (terms.basic_salary + terms.fixed_allowances * (terms.pay_frequency == \"WEEKLY\" ? 12.0 / 52.0 : 1.0)) : 26.0",
+			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -2097,52 +2019,26 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 1.5",
-					"funnel_above_hours": "11.0"
-				},
-				{
-					"label": "RESTDAY-ONE-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
-				},
-				{
-					"label": "RESTDAY-HALF-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 0.5"
-				},
-				{
-					"label": "RESTDAY-TWO-DAYS-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
-				},
-				{
-					"label": "RESTDAY-FULL-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 2.0",
-					"funnel_above_hours": "11.0"
+					"take_hours": "overtime_hours",
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
-					"label": "HOLIDAY-2-DAYS-PAY",
+					"label": "HOLIDAY-2.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 3.0",
-					"funnel_above_hours": "11.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 3.0"
 				}
 			],
 			"limits": [
@@ -2201,8 +2097,8 @@
 					"counts_as_worked_time": null
 				}
 			],
-			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Nihon’s incentive boundary is the company’s own eleven hours’ total work in a day, stated as `funnel_above_hours: \"11.0\"` rather than read off the statutory limit.",
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round_cent(ordinary_hour) × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond — no day-wage awards. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {
@@ -2776,7 +2672,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 26.0 * terms.basic_salary / (terms.basic_salary + terms.fixed_allowances * (terms.pay_frequency == \"WEEKLY\" ? 12.0 / 52.0 : 1.0)) : 26.0",
+			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -2795,52 +2691,26 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 1.5",
-					"funnel_above_hours": "11.0"
-				},
-				{
-					"label": "RESTDAY-ONE-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
-				},
-				{
-					"label": "RESTDAY-HALF-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction <= 0.5",
-					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 0.5"
-				},
-				{
-					"label": "RESTDAY-TWO-DAYS-PAY",
-					"when": "day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
-				},
-				{
-					"label": "RESTDAY-FULL-DAY-PAY",
-					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"]) && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 2.0",
-					"funnel_above_hours": "11.0"
+					"take_hours": "overtime_hours",
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
-					"label": "HOLIDAY-2-DAYS-PAY",
+					"label": "HOLIDAY-2.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * ordinary_hour * 3.0",
-					"funnel_above_hours": "11.0"
+					"price_amount": "hours * round_cent(ordinary_hour) * 3.0"
 				}
 			],
 			"limits": [
@@ -2899,8 +2769,8 @@
 					"counts_as_worked_time": null
 				}
 			],
-			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Nihon’s incentive boundary is the company’s own eleven hours’ total work in a day, stated as `funnel_above_hours: \"11.0\"` rather than read off the statutory limit.",
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round_cent(ordinary_hour) × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond — no day-wage awards. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {

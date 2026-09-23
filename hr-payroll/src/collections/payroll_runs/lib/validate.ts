@@ -19,6 +19,7 @@
 
 import { decodeNumber } from '@norbital-ai/std/json';
 import { INCENTIVE_LINE, OVERTIME_LINE } from '../../../lib/payroll/work-bands.js';
+import { paysIncentive } from '../../../lib/payroll/work-lines.js';
 
 import type { Configuration } from './configuration.js';
 import { orderSchemes } from './mentions.js';
@@ -65,7 +66,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 	// Every rate band must settle under a pay item of its own (line:label), or the run has no
 	// component to price the hours it produces.
 	for (const band of configuration.work.bands) {
-		const outputs = [OVERTIME_LINE, ...(band.funnel_above_hours == null ? [] : [INCENTIVE_LINE])];
+		const outputs = [OVERTIME_LINE, ...(paysIncentive(configuration.work) ? [INCENTIVE_LINE] : [])];
 		for (const line of outputs)
 			if (
 				!configuration.catalogueComponents.some(
@@ -209,7 +210,7 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 /**
  * A day past the hours-of-work limit.
  *
- * The excess is still routed to incentive OT rather than discarded, so the arithmetic is defined.
+ * Payroll pays the planned entries, not the clock, so the report is the clock's alone.
  * Historical vendor months contain many such days; refusing the whole run over them hides every
  * other settlement. The issue is a warning that names the person and the date.
  */
@@ -241,8 +242,8 @@ export function validateDailyWorkLimit(options: {
 /**
  * An ordinary day past the jurisdiction's daily overtime-hours ceiling.
  *
- * Vietnam and Indonesia state this as four overtime hours, not twelve total-work hours. The
- * surplus is still routed to incentive OT. Rest-day and public-holiday work is not compared
+ * Vietnam and Indonesia state this as four overtime hours, not twelve total-work hours. Every planned
+ * hour is compared, incentive included: paying the excess does not undo the breach. Rest-day and public-holiday work is not compared
  * here — those day types are outside this counter.
  */
 export function validateDailyOvertimeHoursLimit(options: {
@@ -260,7 +261,7 @@ export function validateDailyOvertimeHoursLimit(options: {
 			message:
 				`${options.employeeNumber} worked ${day.hours.toFixed(2)} overtime hours on ${day.date}, ` +
 				`above the ${options.maxOvertimeHours}-hour daily overtime limit. The run will still be built; ` +
-				'hours past the ceiling are paid as incentive overtime at the same statutory rate.',
+				'the hours past the ceiling are planned as incentive hours.',
 			collection: 'work_days',
 			recordId: day.workDayId
 		}));

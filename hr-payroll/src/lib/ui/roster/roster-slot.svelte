@@ -1,18 +1,19 @@
 <!--
 	One person-day, drawn the same way on the controller's board and the employee's calendar.
 
-	A slot is one of nine states (`slotState`) and carries one fill (`slotFill`). The state is the
-	tint and the code; the fill is a bar that runs along the bottom of the slot to the length of the
-	shift and spills past it as the extra, so what the clock did is read against what was planned
-	without a key: a full green bar is a day worked to plan, a bar that stops short is a short day,
-	a bar with an overflow segment is a long one, a moving bar is a clock still running, and the
-	destructive fill is a reviewed work day nobody clocked. The line under the code is the clock
-	against the plan to the half hour: `+1h` over, `−0.5h` under, the hours themselves when it met
-	the plan. Every state also says itself in the accessible name, so nothing here
-	depends on colour alone.
+	A slot is one of nine states (`slotState`) and carries one fill (`slotFill`). The text is the
+	PLAN: the shift code and, when the day carries them, its planned overtime and incentive hours
+	(`+2h OT · +1h inc`) — entries keyed on the day with the shift, never derived from the clock.
+	The fill is ATTENDANCE, a presence check against that plan: a bar along the bottom to the share
+	of the planned hours the clock covered. A full green bar is present, a bar that stops short is a
+	partial day, a moving bar is a clock still running, and the destructive fill is a reviewed work
+	day nobody clocked. Clock time past the plan is not drawn: it is not overtime and it is not
+	paid. Every state also says itself in the accessible name, so nothing here depends on colour
+	alone.
 
-	`dense` is the board: two lines in a 36px cell. Otherwise the calendar tile, with room for the
-	date, the punch window and the hours.
+	`dense` is the board: two lines in a 36px cell — the code, then the planned overtime or, when
+	none is planned, the presence cue. Otherwise the calendar tile, with room for the date, the punch
+	window and the presence.
 -->
 <script lang="ts">
 	import { cn } from '@norbital-ai/ui/utils';
@@ -20,8 +21,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import {
 		halfHoursLabel,
+		plannedExtraLabel,
 		punchTimeCue,
-		signedHalfHoursLabel,
 		slotCode,
 		slotFill,
 		slotState,
@@ -35,12 +36,8 @@
 	const state = $derived(slotState(day));
 	const fill = $derived(slotFill(day));
 	const code = $derived(slotCode(day, dense));
-	/** The approved overtime keyed on the day, as a compact half-hour label, or null when none. */
-	const approvedOvertime = $derived(
-		(day?.approvedOvertimeHours ?? 0) > 0
-			? halfHoursLabel((day?.approvedOvertimeHours ?? 0) * 60)
-			: null
-	);
+	/** The overtime and incentive hours planned on the day, `+2h OT · +1h inc`, or null when none. */
+	const plannedOvertime = $derived(plannedExtraLabel(day));
 
 	/**
 	 * The state's tint. Work is the plain card; everything that is not work is quieter, and a
@@ -71,20 +68,31 @@
 		EXTRA_WORK: 'roster.planned'
 	};
 	/**
-	 * The second line of a dense cell is the clock, and only the clock: what actually happened. A
-	 * plan alone prints its code and nothing under it — thirty identical shift windows across a
-	 * row say nothing the code does not, and the window is in the day sheet.
+	 * Presence against the plan, in words: attended, partial (short of shift plus planned overtime),
+	 * absent, or a clock still running. Null when attendance has nothing to say yet.
+	 */
+	const presence = $derived(
+		fill.kind === 'AWOL'
+			? t('roster.absent')
+			: fill.kind === 'OPEN'
+				? t('roster.open_punch')
+				: fill.kind === 'CLOCKED'
+					? fill.short
+						? t('roster.partial_attendance')
+						: t('roster.attended')
+					: null
+	);
+	/**
+	 * The dense cell's presence cue: `✓`, the shortfall to the half hour, or the open punch. A plan
+	 * alone prints nothing under its code.
 	 */
 	const cue = $derived(
 		fill.kind === 'AWOL'
 			? t('roster.absent')
 			: fill.kind === 'CLOCKED'
-				? // Over or under the plan to the half hour, not the punch window: `8:21p–8:30p` does
-					// not fit sixty pixels, `+0.5h` does, and the window is in the day sheet. To plan is
-					// the hours themselves.
-					Math.round(fill.deltaMinutes / 30) === 0
-					? halfHoursLabel(fill.workedMinutes)
-					: signedHalfHoursLabel(fill.deltaMinutes)
+				? fill.short
+					? `−${halfHoursLabel(fill.shortMinutes)}`
+					: '✓'
 				: fill.kind === 'OPEN'
 					? (punchTimeCue(day) ?? '')
 					: ''
@@ -100,30 +108,29 @@
 	)}
 	data-slot-state={state}
 	data-slot-fill={fill.kind}
-	aria-label={approvedOvertime == null
-		? t(stateLabelKey[state])
-		: `${t(stateLabelKey[state])} · +${approvedOvertime} OT`}
+	aria-label={[t(stateLabelKey[state]), plannedOvertime, presence]
+		.filter((part) => part != null)
+		.join(' · ')}
 >
 	{#if dense}
-		<span class="block truncate text-xs leading-4"
-			>{code}{approvedOvertime == null ? '' : ` +${approvedOvertime}`}</span
-		>
+		<span class="block truncate text-xs leading-4">{code}</span>
 		<span
 			class={cn(
 				'block truncate text-[0.625rem] leading-3',
-				fill.kind === 'NONE' ? 'text-muted-foreground/70' : 'text-foreground',
+				fill.kind === 'NONE' && plannedOvertime == null
+					? 'text-muted-foreground/70'
+					: 'text-foreground',
+				plannedOvertime != null && 'font-medium text-brand',
 				fill.kind === 'CLOCKED' && fill.short && 'text-warning',
-				fill.kind === 'CLOCKED' && Math.round(fill.deltaMinutes / 30) > 0 && 'text-brand',
 				fill.kind === 'AWOL' && 'text-destructive'
 			)}
+			data-slot-planned-ot={plannedOvertime}
 		>
-			{cue}
+			{plannedOvertime ?? cue}
 		</span>
 	{:else}
 		<span class="block truncate text-xs leading-4 font-medium">
-			{code}{state === 'EXTRA_WORK' ? ' · OT' : ''}{approvedOvertime == null
-				? ''
-				: ` +${approvedOvertime}`}
+			{code}{plannedOvertime == null ? '' : ` ${plannedOvertime}`}
 		</span>
 		{#if (state === 'WORK' || state === 'EXTRA_WORK') && day?.shiftStart != null && day.shiftEnd != null}
 			<!-- The tile has the room the board does not: the window in full, not `8a–6p`. -->
@@ -135,10 +142,8 @@
 			<span class="block truncate text-micro leading-4 tabular-nums">
 				{fill.first}–{fill.last}
 			</span>
-			<span class="block truncate text-micro leading-3 tabular-nums">
-				{halfHoursLabel(fill.workedMinutes)}{Math.round(fill.deltaMinutes / 30) === 0
-					? ''
-					: ` (${signedHalfHoursLabel(fill.deltaMinutes)})`}
+			<span class={cn('block truncate text-micro leading-3', fill.short && 'text-warning')}>
+				{presence}{fill.short ? ` −${halfHoursLabel(fill.shortMinutes)}` : ''}
 			</span>
 		{:else if fill.kind === 'OPEN'}
 			<span class="block truncate text-micro leading-4 tabular-nums">{fill.since}</span>
@@ -149,10 +154,10 @@
 	{/if}
 
 	<!--
-		THE FILL BAR. One track along the bottom of the slot; the bar is the worked share of the
-		planned shift. The extra is drawn as a second segment overlaid from the right so the eye
-		reads "full, and then some" rather than a bar that merely reaches the edge. An open clock
-		is an indeterminate stripe. Each segment is its own literal class so Tailwind keeps it.
+		THE FILL BAR. One track along the bottom of the slot; the bar is the share of the plan — shift
+		plus planned overtime — the clock covered. Nothing is drawn past it: time beyond the plan is
+		not overtime. An open clock is an indeterminate stripe. Each segment is its own literal class
+		so Tailwind keeps it.
 	-->
 	{#if fill.kind === 'CLOCKED'}
 		<span
@@ -169,12 +174,6 @@
 				)}
 				style={`width:${Math.round(fill.ratio * 100)}%`}
 			></span>
-			{#if fill.extra > 0.005}
-				<span
-					class="absolute inset-y-0 right-0 rounded-br-sm bg-brand"
-					style={`width:${Math.min(50, Math.round(fill.extra * 100))}%`}
-				></span>
-			{/if}
 		</span>
 	{:else if fill.kind === 'OPEN'}
 		<span

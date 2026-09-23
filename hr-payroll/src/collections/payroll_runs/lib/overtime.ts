@@ -1,67 +1,38 @@
 /**
- * Clocks become hours; hours become money.
+ * Planned hours become money; the clock only confirms the day was worked.
  *
- * Overtime is **keyed, never derived**: the employer's approval is the record, imported with the
- * roster or entered by the scheduler as `work_days.approved_overtime_hours`, in half-hour steps and
- * inclusive of breaks. Payroll pays that figure and nothing else beyond the shift. An hour the
- * clock shows past the shift with no approval earns nothing — work done is not the same fact as
- * work authorised, and only the approval authorises pay. That is the client's reading, and it is
- * what replaces the pre-refactor engine, which derived the overrun from the punch and paid it.
+ * Overtime is **preplanned, never derived** (owner's rule, 2026-09-23): a work day carries two
+ * entries, `approved_overtime_hours` — the planned overtime within the statutory limits — and
+ * `incentive_hours` — the planned excess beyond them. The split between them is made when the day
+ * is written (`splitPlannedOvertime`, the `work_days` transform); payroll funnels nothing. It
+ * prices the approved hours on the day type's OVERTIME band and the incentive hours on that
+ * band's INCENTIVE line, and nothing else beyond the shift.
  *
- * The clock still decides everything else. The ordinary part of the day, the day type, the night
- * window and the statutory rest-break assessment all read `worked_intervals`; a day with no
- * attendance pays no overtime at all, whatever its approval says, because an approval is not a
- * clock. On a REST, OFF or observed public holiday the observed day up to the normal day is
- * premium work and needs no approval — the roster and the calendar made it premium — and only the
- * hours beyond that boundary are the approved figure. Clock-derived parts stay exact to the minute;
- * the keyed part is exact to the half hour the scheduler enters.
+ * Attendance only confirms presence: a day with no worked interval, or none that holds an hour
+ * after the shift start, pays neither entry. Clock time beyond the plan never pays. A REST, OFF or
+ * holiday day is the same: only its planned entries pay, so rest-day or holiday work the roster
+ * wants paid is planned as that day's overtime. The clock-derived premium up to the normal day
+ * that non-ordinary days used to earn is gone, and with it the workbook divergence it documented.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  * REST-DAY AND PUBLIC-HOLIDAY WORK IS PRICED BY STATUTE, FROM THE SEEDED RULES.
  *
- * Hours up to the normal day pay the highest `FROM_START_OF_DAY` band entered — a day's wages is
- * never paid twice — and only hours beyond the normal day run through the `BEYOND_NORMAL` ladder.
- * That is EA s.60(3) and s.60D(3), and for every other jurisdiction it is whatever that
- * jurisdiction snapshot's `regime.overtime_rules` members say.
- *
- * This deliberately differs from the pre-refactor engine, which paid every clocked hour at a flat
- * multiple of the hourly rate — roughly RM88 per rest day per employee more, and routed to an
- * EPF-liable component where statutory overtime is EPF-exempt. That reading reconciled against the
- * customer's workbook; it is not what the Act says, and the customer's workbook is not the law.
- * The divergence is expected and accounted for (decision E27 / risk register #3).
- *
+ * The planned hours run through the version's bands: on a rest day or holiday the first hours up
+ * to the normal day pay the highest `FROM_START_OF_DAY` band entered and only hours beyond it run
+ * through the `BEYOND_NORMAL` ladder (EA s.60(3), s.60D(3), and each jurisdiction's own members).
  * There is no switch. The ladder is data: change the effective-dated regime, not this file.
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  *
- * A STATUTORY REST BREAK CAN REDUCE PAYABLE TIME — BUT ONLY WHERE THE STATUTE SAYS IT IS NOT WORK.
+ * THE STATUTORY REST BREAK IS ASSESSED FROM THE PUNCHES AND REPORTED.
  *
- * `regime.rest_break_rules` is a consecutive-hours rule transcribed from primary text. Overtime is
- * not its trigger and never was: overtime is simply the usual way somebody crosses the trigger,
- * which is exactly why the same rule catches a ten-hour split shift that earned no overtime at all.
+ * `work_rules.breaks` is a consecutive-hours rule transcribed from primary text; overtime is not
+ * its trigger, which is why the same rule catches a ten-hour split shift that earned no overtime.
+ * `counts_as_worked_time` records whether the statute calls the break working time (false: ID
+ * UU 13/2003 ps.79(2)(a); null: silent, MY s.60A(1)(a)).
  *
- * What reaches money is decided per jurisdiction by `counts_as_worked_time`, and by nothing else:
- *
- *   false → the break is not working time, so a break the employee was owed and did not take is
- *           time they were not working. The shortfall is deducted. Indonesia says so in terms —
- *           UU 13/2003 ps.79(2)(a), "tidak termasuk jam kerja".
- *   true  → the break is paid. The requirement is recorded and nothing is deducted.
- *   null  → THE STATUTE IS SILENT, which is not the same answer as "no". Nothing is ever deducted.
- *           Malaysia is this case: s.60A(1)(a) calls the period "leisure" and says nothing at all
- *           about payment, and `docs/architecture.md` records that as unresolved. Pricing off a
- *           null would be inventing law, in the one direction — downward — where inventing it
- *           takes money from someone who cannot see why.
- *
- * The quantity deducted is the **shortfall**, never the requirement. `clockedWorkHours` has already
- * subtracted the break the entry recorded, so deducting the requirement on top would charge a
- * thirty-minute break twice on every day that actually took one.
- *
- * The shortfall reduces the clock-derived premium hours only, never the keyed approval: the
- * approved figure is inclusive of breaks by the scheduler's own definition, so deducting from it
- * would charge the break twice — once inside the number that was keyed and once here.
- *
- * Absent member, no governing rule, or no shortfall, and the clock-derived arithmetic below is byte
- * for byte what it was before any of this existed. That is asserted in `overtime-derivation.test.ts`,
- * not assumed.
+ * Planned hours are inclusive of breaks by the scheduler's own definition, so the shortfall is
+ * assessed and reported (`restBreak`) and deducts nothing from them — deducting it would charge
+ * the break twice, once inside the number that was planned and once here.
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
@@ -73,7 +44,6 @@ import {
 	type RestBreakAssessment
 } from '../../../lib/scheduling/rest-break.js';
 import { requiredDateKey, type IsoDate } from './dates.js';
-import { roundMinute } from './rounding.js';
 import { type DayType, type ScheduledDay } from './schedule.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { clockMinutes } from '../../../lib/scheduling/roster-code.js';
@@ -119,8 +89,10 @@ export type WorkDayLike = {
 	}> | null;
 	/** The day's break, derived by the caller (`derivedBreakMinutes`); absent reads as none. */
 	readonly break_minutes?: number | undefined;
-	/** The employer's approved overtime for the day, breaks included; absent reads as none. */
+	/** The planned overtime within the limits, breaks included; absent reads as none. */
 	readonly approved_overtime_hours?: number | null | undefined;
+	/** The planned overtime beyond the limits, breaks included; absent reads as none. */
+	readonly incentive_hours?: number | null | undefined;
 };
 
 function instant(value: string): number {
@@ -276,11 +248,12 @@ export type DailyOvertime = {
 	readonly workDayId: string;
 	readonly dayType: DayType;
 	/**
-	 * The payable quantity: the keyed approval, plus the clock-derived premium a rest, off or
-	 * holiday day makes of the observed day up to the normal day — that part net of any unpaid
-	 * statutory break shortfall. Never negative, never zero — a zero day is dropped.
+	 * The payable quantity: the planned approved plus incentive hours. Never negative, never
+	 * zero — a zero day is dropped.
 	 */
 	readonly hours: number;
+	/** The part of `hours` planned beyond the limits: priced on the INCENTIVE line. */
+	readonly incentiveHours: number;
 	/** Contracted hours for the day, the boundary `STATUTORY_DAY_WAGE` bands against. */
 	readonly normalHours: number;
 	/** Actual hours at the employer's disposal, used only to locate the total-work-hours boundary. */
@@ -298,21 +271,15 @@ export type DailyOvertime = {
 	 * whole reason this member was restored.
 	 */
 	readonly restBreak: RestBreakAssessment | null;
-	/**
-	 * Hours removed from payable overtime, which is zero unless the statute says the break is not
-	 * working time. It is stated rather than left to be re-derived so a payslip can say *why* the
-	 * payable figure is below the clocked overrun instead of leaving the employee to find it.
-	 */
-	readonly restBreakDeductedHours: number;
 };
 
 /**
- * Read one day's payable overtime from the keyed approval and the observed day.
+ * Read one day's payable overtime from its planned entries, confirmed by the observed day.
  *
  * Returns `null` when the day earns nothing, which is the common case: the gates fire, no
- * attendance was recorded, no hours were approved, or the premium floors away to zero. A day that
- * earns nothing produces no entry at all rather than a zero one, so provenance never claims a
- * payslip line consumed a record it did not.
+ * attendance was recorded, or nothing was planned. A day that earns nothing produces no entry at
+ * all rather than a zero one, so provenance never claims a payslip line consumed a record it did
+ * not.
  *
  * `restBreakRules` is the jurisdiction's transcribed rest-break member, optional in the signature so
  * that a caller which has none — and every caller had none before the member was restored — computes
@@ -350,32 +317,24 @@ export function deriveDailyOvertime(
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	if (day.dayType === 'ORDINARY' && day.shift == null) return null;
 	const totalWorkHours = dailyWorkedHours(entry, day, utcOffsetMinutes);
-	// An approval is not a clock. A day nobody attended earns no overtime, whatever was keyed for
-	// it: the approval authorises hours, and hours are what the punches record.
+	// Attendance only confirms presence: a day nobody attended pays neither entry.
 	if (totalWorkHours <= 0) return null;
 	const approvedHours = Math.max(0, decodeNumber(entry.approved_overtime_hours ?? 0));
+	const incentiveHours = Math.max(0, decodeNumber(entry.incentive_hours ?? 0));
+	const hours = approvedHours + incentiveHours;
+	if (hours <= 0) return null;
 	// What the clock showed beyond the normal day. It is the quantity the rest-break rules assess
-	// and it no longer decides pay: the approved figure does.
+	// and it decides no pay.
 	const observedBeyond =
 		day.dayType === 'ORDINARY' ? Math.max(0, totalWorkHours - day.normalHours) : totalWorkHours;
-
 	/**
-	 * The rest break is assessed from the punches.
+	 * The rest break is assessed from the punches, reported, and deducts nothing.
 	 *
-	 * The assessment reads `worked_intervals`, not the payable figure: the trigger is consecutive
-	 * hours, and the payable quantity discards the normal day. A day of 08:00–19:00 with a 20-minute
-	 * pause crosses Malaysia's five consecutive hours whether or not any of it was overtime —
-	 * measuring the trigger off the payable figure would make the rule fire on the tail of a shift
-	 * instead of on the stretch the statute describes.
-	 *
-	 * Only the **shortfall** is deducted, and only where the statute says the break is not working
-	 * time. `clockedWorkHours` above has already taken the derived break off the day, so
-	 * an entry that recorded its full statutory break deducts nothing further here — it was deducted
-	 * once already, and taking the requirement again would charge a half-hour break as a full hour.
-	 *
-	 * `continuousAttendance` is not passed: no column records whether the work must be carried on
-	 * continuously, and the proviso is an exception nobody has asserted. Claiming it here would
-	 * silently swap Malaysia's five-hour rule for its eight-hour one on every day in the workspace.
+	 * The trigger is consecutive hours, so the assessment reads `worked_intervals`: a day of
+	 * 08:00–19:00 with a 20-minute pause crosses Malaysia's five consecutive hours whether or not any
+	 * of it was overtime. `continuousAttendance` is not passed: no column records whether the work
+	 * must be carried on continuously, and claiming the proviso would silently swap Malaysia's
+	 * five-hour rule for its eight-hour one on every day in the workspace.
 	 */
 	const nightHours =
 		night == null
@@ -392,28 +351,17 @@ export function deriveDailyOvertime(
 		nightHours,
 		person: person ?? null
 	});
-	const restBreakDeductedHours =
-		restBreak.rule?.counts_as_worked_time === false ? (restBreak.shortfallMinutes ?? 0) / 60 : 0;
-	// On an ordinary day the payable quantity is the approval exactly; on a rest, off or holiday day
-	// the observed day up to the normal day is already premium, and only the hours beyond it are the
-	// approved figure. The shortfall reduces the clock-derived part, never the approval.
-	const premiumHours =
-		day.dayType === 'ORDINARY'
-			? 0
-			: Math.max(0, Math.min(totalWorkHours, day.normalHours) - restBreakDeductedHours);
-	const hours = roundMinute(Math.max(0, premiumHours + approvedHours));
-	if (hours <= 0) return null;
 	return {
 		date: workDate,
 		workDayId: entry.id,
 		dayType: day.dayType,
 		hours,
+		incentiveHours,
 		normalHours: day.normalHours,
 		totalWorkHours,
 		breakMinutes: Math.max(0, decodeNumber(entry.break_minutes ?? 0)),
 		// Null rather than a "no rule" assessment: a consumer asking whether a break governed this day
 		// should not have to reach two levels in to find out that none did.
-		restBreak: restBreak.rule === null ? null : restBreak,
-		restBreakDeductedHours
+		restBreak: restBreak.rule === null ? null : restBreak
 	};
 }

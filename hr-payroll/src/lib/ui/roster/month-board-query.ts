@@ -110,13 +110,14 @@ export function monthBoardWorkDayLiveColumns<T extends Record<string, true>>(
 	return { ...columns, ...MONTH_BOARD_WORK_DAY_BASE_VERSION_COLUMNS };
 }
 
-/** Live columns for the month-board person-day prefix (plan + attendance + overtime + write identity). */
+/** Live columns for the month-board person-day prefix (plan + attendance + overtime and incentive + write identity). */
 export const MONTH_BOARD_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
 	employment_id: true,
 	work_date: true,
 	shift_definition_id: true,
 	worked_intervals: true,
-	approved_overtime_hours: true
+	approved_overtime_hours: true,
+	incentive_hours: true
 });
 
 /**

@@ -271,35 +271,6 @@ test('MY round 2 — s.60A(7): twelve hours of work a day are twelve worked hour
 	}
 });
 
-test('MY-nihon round 2 — the incentive boundary stays at eleven hours worked, its own policy', () => {
-	// Nihon's company term: hours past eleven worked in a day are the INCENTIVE line at the same
-	// s.60A(3)(a) 1.5×. 09:00–22:30 less the one-hour break is 12.5 h worked: 4.5 h past the normal
-	// eight, of which 3 h reach eleven and 1.5 h lie beyond. Hourly rate 2,600 ÷ 26 ÷ 8 = 12.50;
-	// 3 × 12.50 × 1.5 = 56.25 and 1.5 × 12.50 × 1.5 = 28.125 → 28.13.
-	const { slips } = buildStatutory(
-		{
-			code: 'MY-nihon',
-			period: '2026-01',
-			people: [
-				{
-					key: 'N',
-					wage: 2600,
-					citizenship: 'CITIZEN',
-					registrations: { EPF_NON_CITIZEN: { kind: 'NOT_REGISTERED' } }
-				}
-			]
-		},
-		(world) => punch(world, 'N', '2026-01-05', '09:00', '22:30')
-	);
-	assert.deepEqual(
-		slips.get('N')!.adjustments.map((row) => [row.statutory_rule_key, row.quantity, row.amount]),
-		[
-			['OVERTIME:WORKDAY-OT-1.5X', 3, 56.25],
-			['INCENTIVE:WORKDAY-OT-1.5X', 1.5, 28.13]
-		]
-	);
-});
-
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // PH — double holidays, the workday-before test, domestic-worker floors, separation causes.
 //   DOLE Handbook on Workers' Statutory Monetary Benefits (2022): ch.2 §C (double holiday),

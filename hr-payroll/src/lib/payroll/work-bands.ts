@@ -3,13 +3,11 @@
  *
  * A work day is priced by the version's `bands`, in order. Each band whose `when` holds consumes
  * a slice of the day's worked hours (`take_hours`), priced by `price_amount` — a money expression
- * for that whole slice, which reads the hours actually consumed as `hours`. A band may funnel the
- * portion of its slice above a named limit (`funnel_above_hours`) into the INCENTIVE line at the
- * same award, which is how overtime past a statutory ceiling becomes the INCENTIVE line while
- * keeping the multiple of the band it came from.
- *
- * Nothing here classifies or discards hours: attendance is priced as it happened, and compliance
- * belongs to the schedule that should have prevented it.
+ * for that whole slice, which reads the hours actually consumed as `hours`. The day's planned
+ * incentive hours (`work_days.incentive_hours`) are the top of its payable hours: the part of any
+ * slice that falls in them settles on that band's INCENTIVE line at the same award, so an
+ * incentive hour keeps the multiple of the band it lands in. Nothing here decides how many hours
+ * are incentive: the split was made when the day was written (`splitPlannedOvertime`).
  */
 
 import type { WorkRateBand, WorkRules } from '../../datatypes/work_rules/+definition.js';
@@ -22,7 +20,7 @@ import {
 } from '../expressions/evaluate.js';
 import { evaluatedLimits } from '../scheduling/work-limits.js';
 
-/** The two lines a band can emit: every band settles as OVERTIME, its funnel as INCENTIVE. */
+/** The two lines a band can emit: planned overtime settles as OVERTIME, incentive hours as INCENTIVE. */
 export const OVERTIME_LINE = 'OVERTIME';
 export const INCENTIVE_LINE = 'INCENTIVE';
 
@@ -50,6 +48,8 @@ export type WorkBandDay = {
 	 * overrun on an ordinary day, the whole day on a rest or holiday.
 	 */
 	readonly overtimeHours: number;
+	/** The top of `overtimeHours` planned beyond the limits (`work_days.incentive_hours`); absent is none. */
+	readonly incentiveHours?: number;
 	readonly breakMinutes: number;
 	readonly holidayKind: string;
 	readonly holidayName: string;
@@ -184,7 +184,7 @@ export function nightAddsFor(options: {
 }
 
 /**
- * Price one day's bands. Rows are ordered by band; a funnel row follows the row it came from.
+ * Price one day's bands. Rows are ordered by band; an incentive row follows the row it came from.
  */
 export function priceWorkDay(options: {
 	readonly work: WorkRules;
@@ -250,12 +250,8 @@ export function priceWorkDay(options: {
 		const amount = Math.max(0, evaluateNumber(engine, slice.band.price_amount, priced));
 		const start = base + slice.cursor;
 		const end = start + slice.hours;
-		let funnelHours = 0;
-		if (slice.band.funnel_above_hours != null) {
-			const above = evaluateNumber(engine, slice.band.funnel_above_hours, priced);
-			funnelHours = Math.max(0, end - Math.max(start, above));
-			funnelHours = Math.min(funnelHours, slice.hours);
-		}
+		const above = payable - (day.incentiveHours ?? 0);
+		const funnelHours = Math.min(slice.hours, Math.max(0, end - Math.max(start, above)));
 		const funnelAmount = slice.hours > 0 ? (amount * funnelHours) / slice.hours : 0;
 		const mainAmount = amount - funnelAmount;
 		if (mainAmount > 0)
