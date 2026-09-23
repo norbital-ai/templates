@@ -68,28 +68,39 @@ const holiday = (worked, normalHours = 8) => ({
 });
 
 test('Malaysia and Singapore — a rest day worked for exactly half the normal hours is the half-day limb', () => {
-	for (const code of ['MY', 'MY-nihon']) {
-		// EA 1955 s.60(3)(b), the monthly-rated limb: "does not exceed half" the normal hours → half
-		// a day's wages; over half, up to the normal hours → one day's wages. The row carries the
-		// hours actually worked, so a 4.5-hour day reads as 4.5 hours at a day's wage, never as four
-		// fabricated hours at twice the hourly rate. The labels say what the statute pays, not a
-		// multiple the payslip reader has to reverse-engineer.
-		assert.deepEqual(price(code, restDay(4)), [['RESTDAY-HALF-DAY-PAY', 4, 400]]);
-		assert.deepEqual(price(code, restDay(4.5)), [['RESTDAY-FULL-DAY-PAY', 4.5, 800]]);
-		// s.60(3)(c): work in excess of the normal hours on a rest day, two times the hourly rate.
-		assert.deepEqual(price(code, restDay(10)), [
-			['RESTDAY-FULL-DAY-PAY', 8, 800],
-			['RESTDAY-OT-2.0X', 2, 400]
-		]);
-		// s.60D(3)(a)(i): two days' wages for work on a paid holiday, in addition to the holiday pay;
-		// s.60D(3)(aa): three times the hourly rate beyond the normal hours. Two statutes, two rows.
-		assert.deepEqual(price(code, holiday(10)), [
-			['HOLIDAY-2-DAYS-PAY', 8, 1600],
-			['HOLIDAY-OT-3.0X', 2, 600]
-		]);
-		// s.60A(3)(a): an ordinary day's overrun at one and a half times the hourly rate.
-		assert.deepEqual(price(code, ordinary(10)), [['WORKDAY-OT-1.5X', 2, 300]]);
-	}
+	const code = 'MY';
+	// EA 1955 s.60(3)(b), the monthly-rated limb: "does not exceed half" the normal hours → half
+	// a day's wages; over half, up to the normal hours → one day's wages. The row carries the
+	// hours actually worked, so a 4.5-hour day reads as 4.5 hours at a day's wage, never as four
+	// fabricated hours at twice the hourly rate. The labels say what the statute pays, not a
+	// multiple the payslip reader has to reverse-engineer.
+	assert.deepEqual(price(code, restDay(4)), [['RESTDAY-HALF-DAY-PAY', 4, 400]]);
+	assert.deepEqual(price(code, restDay(4.5)), [['RESTDAY-FULL-DAY-PAY', 4.5, 800]]);
+	// s.60(3)(c): work in excess of the normal hours on a rest day, two times the hourly rate.
+	assert.deepEqual(price(code, restDay(10)), [
+		['RESTDAY-FULL-DAY-PAY', 8, 800],
+		['RESTDAY-OT-2.0X', 2, 400]
+	]);
+	// s.60D(3)(a)(i): two days' wages for work on a paid holiday, in addition to the holiday pay;
+	// s.60D(3)(aa): three times the hourly rate beyond the normal hours. Two statutes, two rows.
+	assert.deepEqual(price(code, holiday(10)), [
+		['HOLIDAY-2-DAYS-PAY', 8, 1600],
+		['HOLIDAY-OT-3.0X', 2, 600]
+	]);
+	// s.60A(3)(a): an ordinary day's overrun at one and a half times the hourly rate.
+	assert.deepEqual(price(code, ordinary(10)), [['WORKDAY-OT-1.5X', 2, 300]]);
+	// MY-nihon prices overtime by the customer's own attendance-sheet columns, not the s.60(3) and
+	// s.60D(3) day-wage limbs (owner-approved company terms, 2026-09-23; the lineage's authority):
+	// every rest-day hour at 2.0, a holiday at 2.0 up to the normal hours and 3.0 beyond, a working
+	// day's overrun at 1.5 — hours × the hourly rate × the column multiple, no day-wage awards.
+	assert.deepEqual(price('MY-nihon', restDay(4)), [['RESTDAY-OT-2.0X', 4, 800]]);
+	assert.deepEqual(price('MY-nihon', restDay(4.5)), [['RESTDAY-OT-2.0X', 4.5, 900]]);
+	assert.deepEqual(price('MY-nihon', restDay(10)), [['RESTDAY-OT-2.0X', 10, 2000]]);
+	assert.deepEqual(price('MY-nihon', holiday(10)), [
+		['HOLIDAY-2.0X', 8, 1600],
+		['HOLIDAY-OT-3.0X', 2, 600]
+	]);
+	assert.deepEqual(price('MY-nihon', ordinary(10)), [['WORKDAY-OT-1.5X', 2, 300]]);
 	// Singapore EA s.37(3): one day's basic pay up to half, two days' over half, 1.5× beyond. The
 	// day's basic pay is Third Schedule item 2, priced by the band from the contract itself —
 	// 12 × 2,860 ÷ (52 × 5) = 132.00 — never from the hourly divisor (Fourth Schedule, 52 × 44).

@@ -22,6 +22,7 @@
 	import { todayKey } from '../calendar.js';
 	import { formatTermsDates } from '../display-formatters.js';
 	import FormSection from '../form-section.svelte';
+	import { contractSeal } from './contract-seal.svelte.js';
 	import TermsFields from './terms-fields.svelte';
 	import EffectiveRangeRenderer from '../effective-range-renderer.svelte';
 	import ExitFactsRenderer from '../offboarding/exit-facts-renderer.svelte';
@@ -30,7 +31,8 @@
 		record,
 		editing = $bindable(false),
 		scopedCompanyId,
-		contracts = true
+		contracts = true,
+		sealNotice = true
 	}: {
 		record: WorkspaceRow<'employments'>;
 		/** Edit mode, toggled by the record shell's header actions. */
@@ -39,27 +41,15 @@
 		scopedCompanyId?: string | undefined;
 		/** Whether the terms in force and the other revisions follow the stint; the employment record lists them on their own tab. */
 		contracts?: boolean;
+		/** Whether the seal is stated here; the employment record states it in its sheet header instead. */
+		sealNotice?: boolean;
 	} = $props();
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	const today = todayKey();
 
-	// A contract is sealed by the rows that reference it; the transform is the guard, this is the hint.
-	const consumers = $derived(
-		[
-			client.db.employment_terms,
-			client.db.claim_requests,
-			client.db.adhoc_requests,
-			client.db.loans,
-			client.db.loan_repayments,
-			client.db.leave_entries,
-			client.db.work_days,
-			client.db.payslips
-		].map((collection) =>
-			collection.findFirst({ where: { employment_id: { eq: record.id } }, columns: { id: true } })
-		)
-	);
-	const sealed = $derived(consumers.some((query) => query.current != null));
-	const sealLoading = $derived(consumers.some((query) => query.loading));
+	const seal = contractSeal(() => record.id);
+	const sealed = $derived(seal.sealed);
+	const sealLoading = $derived(seal.loading);
 
 	const termsQuery = $derived(
 		client.db.employment_terms.findMany({
@@ -84,7 +74,7 @@
 </script>
 
 <Stack gap="md">
-	{#if sealed}
+	{#if sealed && sealNotice}
 		<!-- The seal is a fact about this contract, not an action: it stays in the body; Edit and
 		     Cancel ride the record shell's header with the other actions. -->
 		<Inline gap="xs" align="center" class="text-meta">

@@ -1,11 +1,10 @@
 /**
- * Overtime controls: hours become money, and the statutory ceiling funnels instead of dropping.
+ * Overtime controls: planned hours become money, and the clock only confirms the day was worked.
  *
- * The earlier engine classified a day into retained and excess hours (`classifyOvertimeByCalendarMonth`)
- * and then priced the retained slice (`priceDay`). Both are gone: the payable hours come from the
- * day's keyed approval (`deriveDailyOvertime`, with the day type's own premium) and are priced by
- * the version's `bands`, where the slice above a named limit funnels to the INCENTIVE line at the
- * band's own award. These checks exercise those two halves against the migrated source.
+ * The payable hours are the day's planned entries (`deriveDailyOvertime`): the approved overtime
+ * within the limits and the incentive hours beyond them, split when the day was written. The
+ * version's `bands` price them; the incentive hours are the top of the day and settle on the
+ * band's INCENTIVE line at its own award. These checks exercise both halves against the source.
  */
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -145,15 +144,26 @@ Effect.runPromise(
 			const late = deriveDailyOvertime(
 				entry({
 					worked_intervals: [interval('08:30', '20:45')],
-					approved_overtime_hours: 3
+					approved_overtime_hours: 3,
+					incentive_hours: 2
 				}),
 				scheduled(),
 				[]
 			);
-			assert.equal(late.hours, 3, 'the keyed three hours');
+			assert.equal(late.hours, 5, 'the planned three hours and two incentive hours');
+			assert.equal(late.incentiveHours, 2);
 			assert.equal(late.totalWorkHours, 11.25, '12.25 clocked less the recorded hour');
+			assert.equal(
+				deriveDailyOvertime(
+					entry({ worked_intervals: [], approved_overtime_hours: 3, incentive_hours: 2 }),
+					scheduled(),
+					[]
+				),
+				null,
+				'a day nobody attended pays neither entry'
+			);
 
-			// An ordinary overrun funnels the slice above the ceiling at the band's own award.
+			// The planned incentive hours are the top of the day, at the band's own award.
 			const person = personContext({
 				employee: null,
 				employment: { service_start: '2020-01-01' },
@@ -163,7 +173,7 @@ Effect.runPromise(
 			const priced = priceWorkDay({
 				work: workRules(),
 				person,
-				day: bandDay(),
+				day: bandDay({ incentiveHours: 2 }),
 				rates
 			});
 			assert.deepEqual(
@@ -174,11 +184,16 @@ Effect.runPromise(
 				]
 			);
 
-			// A public holiday keeps its ×3 on the funneled hours.
+			// A public holiday keeps its ×3 on the incentive hours.
 			const holiday = priceWorkDay({
 				work: workRules(),
 				person,
-				day: bandDay({ dayType: 'PUBLIC_HOLIDAY', workedHours: 12, overtimeHours: 12 }),
+				day: bandDay({
+					dayType: 'PUBLIC_HOLIDAY',
+					workedHours: 12,
+					overtimeHours: 12,
+					incentiveHours: 1
+				}),
 				rates
 			});
 			assert.deepEqual(
@@ -189,7 +204,7 @@ Effect.runPromise(
 				]
 			);
 
-			console.log('Overtime controls verified: 8 checks passed.');
+			console.log('Overtime controls verified: 10 checks passed.');
 		})
 	)
 );

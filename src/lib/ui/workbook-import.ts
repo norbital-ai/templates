@@ -111,7 +111,7 @@ function reportImportFailure(fallbackHeadline: string, error: unknown, t: Transl
 	});
 }
 
-interface WorkbookImportOptions {
+interface WorkbookImportOptions<Payload extends object = object> {
 	readonly collectionName: string;
 	/** Names the thing being imported in the toasts: "roster rows", "time entries". */
 	readonly recordLabel: string;
@@ -123,7 +123,13 @@ interface WorkbookImportOptions {
 	 * signature, so naming the record type here would reject the very functions this exists for. The
 	 * widening to a record happens once, below, where the payload becomes a wire value.
 	 */
-	buildPayload(grids: WorkbookGrids): object;
+	buildPayload(grids: WorkbookGrids): Payload;
+	/**
+	 * The rows the import wrote, read off the file. `collections.import` counts only the rows a
+	 * pipeline returns for the host to create; a pipeline that writes its own updates (the work
+	 * days' restated month) states its count here instead.
+	 */
+	importedCount?(payload: Payload): number;
 }
 
 /**
@@ -133,14 +139,21 @@ interface WorkbookImportOptions {
  * and toasts `error.message`, which for these refusals is a headline and a bulleted list of rows
  * collapsed into a single line — so this handles its own and hands the caller a quiet return.
  */
-export function runWorkbookImport(options: WorkbookImportOptions, t: Translator) {
+export function runWorkbookImport<Payload extends object>(
+	options: WorkbookImportOptions<Payload>,
+	t: Translator
+) {
 	return Effect.gen(function* () {
 		const file = yield* pickWorkbookFile(t);
 		if (file == null) return;
 		yield* Effect.catch(
 			Effect.gen(function* () {
 				const grids = yield* readWorkbookGrids(file, t);
-				const payload = yield* importPayloadFromGrids(options.buildPayload, grids);
+				const built = yield* Effect.try({
+					try: () => options.buildPayload(grids),
+					catch: toError
+				});
+				const payload = yield* importPayloadFromGrids(() => built, grids);
 				/**
 				 * The whole file is one record, not one record per row.
 				 *
@@ -170,7 +183,7 @@ export function runWorkbookImport(options: WorkbookImportOptions, t: Translator)
 				});
 				toast.success(
 					t('component.workbook_imported', {
-						count: imported,
+						count: options.importedCount?.(built) ?? imported,
 						label: options.recordLabel,
 						file: file.name
 					})

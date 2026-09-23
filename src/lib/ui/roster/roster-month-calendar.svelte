@@ -65,10 +65,10 @@
 	import { sourceLockReason, type SourceLock } from '../../scheduling/lock.js';
 	import {
 		HOLIDAY_PRESENTATION,
-		beyondScheduleMinutes,
 		describeDay,
 		monthDays,
 		personDayKey,
+		scheduledMinutes,
 		type DayFacts,
 		type HolidayLike
 	} from './roster-month.js';
@@ -183,24 +183,27 @@
 		return facts.get(personDayKey(employmentId, date));
 	}
 
-	/**
-	 * Worked time past the plan, floored at zero for display.
-	 *
-	 * `beyondScheduleMinutes` is imported rather than recomputed, and it deliberately returns a
-	 * signed number and `null` — negative for a short day, null while a punch is open — because the
-	 * day sheet has room to say "under by 40 minutes" and this tile does not. Only the overshoot is
-	 * drawn here, as the `↑` the legend names; a short day is not a fault worth a mark of its own on
-	 * a month view, and the day sheet is one click away for the whole sentence.
-	 */
-
 	const monthDaysForPerson = $derived(
 		days.flatMap((date) => {
 			const day = dayOf(date);
 			return day == null ? [] : [day];
 		})
 	);
-	const workedMinutesTotal = $derived(
-		monthDaysForPerson.reduce((total, day) => total + (day.workedMinutes ?? 0), 0)
+	/**
+	 * The month's PLAN, not its clock: rostered shift hours on the days not taken as leave, and the
+	 * overtime and incentive hours planned on the days. Punches never add to either — overtime is keyed, not measured.
+	 */
+	const plannedShiftMinutes = $derived(
+		monthDaysForPerson.reduce(
+			(total, day) => total + (day.leaveCode == null ? (scheduledMinutes(day) ?? 0) : 0),
+			0
+		)
+	);
+	const plannedOvertimeMinutes = $derived(
+		monthDaysForPerson.reduce((total, day) => total + (day.approvedOvertimeHours ?? 0) * 60, 0)
+	);
+	const plannedIncentiveMinutes = $derived(
+		monthDaysForPerson.reduce((total, day) => total + (day.incentiveHours ?? 0) * 60, 0)
 	);
 
 	/**
@@ -291,8 +294,10 @@
 		{:else}
 			<Inline gap="md" class="text-sm text-muted-foreground">
 				<span>
-					{t('roster.calendar_worked_total', {
-						hours: formatDurationHours(workedMinutesTotal, t)
+					{t('roster.calendar_planned_total', {
+						shift: formatDurationHours(plannedShiftMinutes, t),
+						overtime: formatDurationHours(plannedOvertimeMinutes, t),
+						incentive: formatDurationHours(plannedIncentiveMinutes, t)
 					})}
 				</span>
 			</Inline>

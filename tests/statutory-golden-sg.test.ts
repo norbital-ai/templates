@@ -507,7 +507,7 @@ test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day
 	assert.equal(slips.get('SG-WORKMAN-OVER')!.gross, 4787.2);
 });
 
-test('Singapore — s.38(1) caps the normal week at 44 hours, and a rest-day hour is paid whole or part (s.37(3)(c)(ii))', () => {
+test('Singapore — s.38(1)’s 44-hour week pays nothing from the clock, and a rest-day hour is paid whole or part (s.37(3)(c)(ii))', () => {
 	const { slips } = buildStatutory(
 		{
 			code: 'SG',
@@ -526,16 +526,16 @@ test('Singapore — s.38(1) caps the normal week at 44 hours, and a rest-day hou
 			punch(world, 'SG-SIX-DAY', '2026-01-11', '09:00', '18:15'); // Sunday rest day: 9h15
 		}
 	);
-	// Monday to Saturday are each a normal 8-hour day; the 45th to 48th hour of the week fall on
-	// Saturday and are overtime of that day at s.38(4)'s 1.5×: 4 × 12.00 × 1.5 = 72.00. The rest
-	// day: 9h15 with no shift is all work, two days' pay for the first eight (176.00), and the
-	// 1h15 beyond the normal day is "each hour or part thereof" — two hours × 12.00 × 1.5 = 36.00.
+	// Monday to Saturday are each a normal 8-hour day. The 45th to 48th hour of the week pay only
+	// where they are planned as overtime (owner's rule, 2026-09-23): the weekly limit derives no
+	// pay from the clock, so Saturday earns no line. The rest day, planned as its 9h15 worked: two
+	// days' pay for the first eight (176.00), and the 1h15 beyond the normal day is "each hour or
+	// part thereof" — two hours × 12.00 × 1.5 = 36.00.
 	assert.deepEqual(workLines(slips.get('SG-SIX-DAY')!), [
-		['2026-01-10', 'OT-1.5X', 4, 72],
 		['2026-01-11', 'OT-1.5X', 1.25, 36],
 		['2026-01-11', 'OT-2.0X', 8, 176]
 	]);
-	assert.equal(slips.get('SG-SIX-DAY')!.gross, 2288 + 72 + 36 + 176);
+	assert.equal(slips.get('SG-SIX-DAY')!.gross, 2288 + 36 + 176);
 });
 
 test('Singapore — rest-day work at the employee’s request pays half (s.37(2)), and a holiday on a non-working day pays a day (s.88)', () => {

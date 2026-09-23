@@ -1404,7 +1404,9 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 	// holiday-work pay under the ruling and outside the withholding base — 3,000 on the salary
 	// alone. Fifty ordinary-day overtime hours in the month: the 46 within 勞基法 §32 are exempt,
 	// the four beyond are the INCENTIVE line and taxable — the 47th hour is the tenth day's second
-	// 4/3 hour and the 48th to 50th its 5/3 hours: 333.33 + 3 × 416.67 = 1,583.34.
+	// 4/3 hour and the 48th to 50th its 5/3 hours. The write stores those four as incentive hours
+	// and each band line is priced whole, then rounded once: 333.33 + 1,250.00 = 1,583.33 (the
+	// payroll-time funnel cut a rounded line and carried its cent, 1,583.34).
 	// The full taxable salary × 5% truncates to NT$3,079.
 	const { slips } = buildStatutory(
 		{
@@ -1483,7 +1485,7 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 	);
 	assert.deepEqual(charge(encash, 'INCOME_TAX'), [60_000, 3000, 0]);
 	const fifty = slips.get('TW-FIFTY')!;
-	assert.deepEqual(charge(fifty, 'INCOME_TAX'), [61_583.34, 3079, 0]);
+	assert.deepEqual(charge(fifty, 'INCOME_TAX'), [61_583.33, 3079, 0]);
 });
 
 test('Taiwan — thirty half-paid 普通傷病假 days a year, hospitalised or not, across entries (勞工請假規則 §4(3))', () => {

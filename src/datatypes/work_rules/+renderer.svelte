@@ -3,8 +3,8 @@
 	 * One version's work rules, compact.
 	 *
 	 * Work is a producer, not a catalogue: it prices a day through ordered `bands` (each
-	 * band consuming a slice and optionally funnelling the portion above a named limit to the
-	 * incentive line), states the `limits` schedules must respect and the `breaks` the law owes.
+	 * band consuming a slice and optionally naming the limits above which planned OT is recorded
+	 * as incentive hours), states the `limits` schedules must respect and the `breaks` the law owes.
 	 * Every attribute whose value is a money decision is CEL over the `work_day` context; a CEL
 	 * cell carries the Fields popover and prints the same refusal the transform would.
 	 *
@@ -159,7 +159,7 @@
 		},
 		{
 			key: 'funnel_above_hours',
-			label: t('renderer.work_rules.funnel_above_hours'),
+			label: t('renderer.work_rules.incentive_above_hours'),
 			field: exprField('funnel_above_hours', 'work_day', 'hours'),
 			renderer: ExpressionCell,
 			placeholder: 'limits.daily_total',

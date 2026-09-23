@@ -547,8 +547,8 @@ export const settingsCatalogueGrants = (
 /** Which person, which day. In every write mask, or nothing could be created at all. */
 const WORK_DAY_IDENTITY_FIELDS = ['employment_id', 'work_date'] as const;
 
-/** The plan: the roster code and its provenance. */
-export const WORK_DAY_PLANNED_FIELDS = ['shift_definition_id'] as const;
+/** The plan: the roster code, and the overtime planned on the day beside it. */
+export const WORK_DAY_PLANNED_FIELDS = ['shift_definition_id', 'approved_overtime_hours'] as const;
 
 /** The clock. Writing any of these is what review exists for. */
 export const WORK_DAY_ATTENDANCE_FIELDS = ['worked_intervals'] as const;

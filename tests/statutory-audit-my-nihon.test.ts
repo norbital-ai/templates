@@ -1,6 +1,6 @@
 /**
  * MY-nihon independent audit (2026-09-23): the Malaysian statute on Nihon Pigment's own rows,
- * and the one company term that separates the fork from `MY` — the OT-incentive funnel.
+ * and the company terms that separate the fork from `MY` — the customer's overtime pricing.
  *
  * Every figure below is derived by hand from the instrument named beside it. Nothing here was
  * read off the engine. Sources, all fetched for this audit:
@@ -24,27 +24,19 @@ import test from 'node:test';
 import {
 	assessStatutory,
 	buildStatutory,
-	COMPANY_ID,
 	expectStatutory,
 	expectStatutorySkipped,
+	settingsVersions,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
+import { priceWorkDay, type WorkBandDay } from '../src/lib/payroll/work-bands.ts';
+import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
 const OUT = { kind: 'NOT_REGISTERED' } as const;
 const LOCAL = { EPF_NON_CITIZEN: OUT };
 const FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
 
-const holiday = (date: string, name: string) => ({
-	id: `holiday-${date}`,
-	company_id: COMPANY_ID,
-	date,
-	name,
-	replaces: null,
-	source: null,
-	published_at: '2025-12-01T00:00:00.000Z',
-	approval_id: null
-});
 const next = (date: string) =>
 	new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 /** Worked intervals on `date` in +08:00; an `end` before `start` runs past midnight. */
@@ -213,77 +205,85 @@ test('MY-nihon SKBBK on the fork’s own June and July 2026 versions', () => {
 	}
 });
 
-// ─── The OT-incentive funnel: never below s.60A(3), never hiding the ceilings ─────────────────
+// ─── The customer's overtime method (owner-accepted), and the ceilings it never hides ──────────
 
-test('MY-nihon — the incentive funnel pays every hour at its statutory multiple on work, rest and holiday days', () => {
-	// RM2,600 monthly: ordinary rate 2,600 / 26 = 100.00 a day (EA s.60I(1A)), hourly 100 / 8 =
-	// 12.50; 1.5× = 18.75, 2× = 25.00, 3× = 37.50.
+// RM2,600 on the 45-hour 6D week: 2,600 × 12 ÷ (52 × 45) = 13.333… → 13.33 an hour, to the sen.
+// Off day 10 × 13.33 × 1.5 = 199.95; rest day 12 × 13.33 × 2 = 319.92; holiday 9 × 13.33 × 2 =
+// 239.94 and 2 × 13.33 × 3 = 79.98.
+test('MY-nihon — a weekday’s overtime is hours × round(basic ÷ 195) × 1.5, with no company incentive boundary', () => {
 	const { slips } = buildStatutory(
 		{
 			code: 'MY-nihon',
 			period: '2026-01',
 			people: [{ key: 'N', wage: 2600, citizenship: 'CITIZEN', registrations: LOCAL }]
 		},
-		(world) => {
-			world.jurisdiction_holidays.push(holiday('2026-01-14', 'Thaipusam'));
-			// Monday: 09:00–21:00 less the shift's hour = 11 h worked, 3 h past the eight. Exactly at
-			// Nihon's eleven-hour boundary, so nothing is funnelled. s.60A(3)(a): 3 × 18.75 = 56.25.
-			work(world, 'N', '2026-01-05', [['09:00', '21:00']]);
-			// Sunday rest day, 09:00–22:00 = 13 h (no shift, no break). s.60(3)(b)(ii): one day's
-			// wages 100.00 for the first eight; s.60(3)(c): 5 h × 25.00 = 125.00. Total 225.00.
-			work(world, 'N', '2026-01-04', [['09:00', '22:00']]);
-			// Wednesday holiday, 09:00–22:00 less the shift's hour = 12 h. s.60D(3)(a)(i): two days'
-			// wages 200.00; s.60D(3)(aa): 4 h × 37.50 = 150.00. Total 350.00.
-			work(world, 'N', '2026-01-14', [['09:00', '22:00']]);
-		}
+		// Monday 09:00–22:00 less the shift's hour = 12 h worked, 4 h past the normal eight, keyed by
+		// the fixture as the day's plan: 4 × 13.33 × 1.5 = 79.98, all OVERTIME — the eleven-hour
+		// boundary the fork used to funnel at is withdrawn.
+		(world) => work(world, 'N', '2026-01-05', [['09:00', '22:00']])
 	);
 	const slip = slips.get('N')!;
-	// Nothing below the statute: OVERTIME + INCENTIVE per day equals the statutory figure.
-	const byDay = (date: string) =>
-		slip.adjustments
-			.filter((row) => row.source_id.endsWith(date))
-			.reduce((total, row) => total + row.amount, 0);
-	assert.equal(byDay('2026-01-05'), 56.25);
-	assert.equal(byDay('2026-01-04'), 225);
-	assert.equal(byDay('2026-01-14'), 350);
-	assert.equal(slip.gross, 2600 + 56.25 + 225 + 350);
-	// Each funnelled hour keeps its band's multiple (the INCENTIVE line's rate is its band's).
-	for (const row of slip.adjustments.filter((r) =>
-		r.statutory_rule_key?.startsWith('INCENTIVE:')
-	)) {
-		const label = row.statutory_rule_key!.slice('INCENTIVE:'.length);
-		const multiple = { 'WORKDAY-OT-1.5X': 18.75, 'RESTDAY-OT-2.0X': 25, 'HOLIDAY-OT-3.0X': 37.5 }[
-			label
-		];
-		assert.ok(multiple != null, `unexpected funnelled band ${label}`);
-		assert.equal(row.amount, row.quantity! * multiple);
-	}
-	// Act 4 s.2(24): "wages" include "overtime, and extra work on holidays" — every line, INCENTIVE
-	// included. 2,600 + 631.25 = 3,231.25 → ACT4 row 3,200–3,300: 16.25 / 56.85; A800: 6.50 each.
-	// PSMB s.2 "upah" is basic and fixed allowances: the levy base stays 2,600 → 26.00.
-	const charge = (code: string) => slip.statutory.find((row) => row.scheme_code === code)!;
-	assert.equal(charge('SOCSO').base_amount, 3231.25);
-	assert.deepEqual(
-		[charge('SOCSO').employee_amount, charge('SOCSO').employer_amount],
-		[16.25, 56.85]
-	);
-	assert.deepEqual([charge('EIS').employee_amount, charge('EIS').employer_amount], [6.5, 6.5]);
-	assert.equal(charge('PCB').base_amount, 3231.25);
-	assert.equal(charge('HRDF').base_amount, 2600);
-	// EPF Act 1991 s.2 "wages" excludes "(b) overtime payment": the s.60A(3) hour stays overtime
-	// whether the payslip calls it OVERTIME or INCENTIVE, so 2,600 at most.
-	assert.ok(charge('EPF').base_amount <= 2600);
+	assert.deepEqual(lines(slip, 'OVERTIME:'), [
+		['2026-01-05', 'OVERTIME:WORKDAY-OT-1.5X', 4, 79.98]
+	]);
+	assert.deepEqual(lines(slip, 'INCENTIVE:'), []);
+	assert.equal(slip.gross, 2600 + 79.98);
+	// EPF Act 1991 s.2 "wages" excludes "(b) overtime payment".
+	assert.ok(slip.statutory.find((row) => row.scheme_code === 'EPF')!.base_amount <= 2600);
 });
 
-test('MY-nihon — funnelled hours do not hide a month past the 104-hour ceiling (EA s.60A(4)(a), OTR reg.2)', () => {
+test('MY-nihon — every planned hour at its column multiple: 1.5 off day, 2.0 rest day, 2.0 then 3.0 holiday', () => {
+	// The bands alone, on the planned hours a day carries (`overtime_hours`): the customer's sheet
+	// pays an off day's hours at 1.5, every rest-day hour at 2.0, and a holiday's normal hours at 2.0
+	// with the hours beyond at 3.0 — no day-wage awards.
+	const version = settingsVersions('MY-nihon')[0]!;
+	const person = personContext({
+		employee: null,
+		employment: { service_start: '2020-01-01' },
+		terms: null,
+		asOf: '2026-01-31'
+	});
+	const price = (dayType: WorkBandDay['dayType'], overtimeHours: number, offDay = false) =>
+		priceWorkDay({
+			work: version.work_rules,
+			person,
+			day: {
+				workDayId: 'd',
+				date: '2026-01-14',
+				dayType,
+				workedHours: overtimeHours,
+				normalHours: 9,
+				overtimeHours,
+				breakMinutes: 60,
+				holidayKind: '',
+				holidayName: '',
+				consecutiveHours: 5,
+				continuousAttendance: false,
+				restDay: dayType === 'REST_DAY',
+				offDay,
+				nightHours: 0,
+				requestedBy: 'EMPLOYER'
+			},
+			// The divisor already put the hour on the contract week; the bands round it to the sen.
+			rates: { ordinaryHour: (2600 * 12) / (52 * 45), dayWage: 100 }
+		}).map((row) => [row.line, row.label, row.hours, Math.round(row.amount * 100) / 100]);
+	assert.deepEqual(price('OFF_DAY', 10, true), [['OVERTIME', 'WORKDAY-OT-1.5X', 10, 199.95]]);
+	assert.deepEqual(price('REST_DAY', 12), [['OVERTIME', 'RESTDAY-OT-2.0X', 12, 319.92]]);
+	assert.deepEqual(price('PUBLIC_HOLIDAY', 11), [
+		['OVERTIME', 'HOLIDAY-2.0X', 9, 239.94],
+		['OVERTIME', 'HOLIDAY-OT-3.0X', 2, 79.98]
+	]);
+});
+
+test('MY-nihon — the 104-hour ceiling is still reported (EA s.60A(4)(a), OTR reg.2)', () => {
 	// s.60A(3)(b): overtime is work beyond the normal hours per day; s.60A(4)(a) proviso: rest-day
 	// and public-holiday work "shall not be construed as overtime work" for the ceiling. January
 	// 1–20 2026, Saturday OFF (an off day's hours are all beyond the normal day), Sunday REST:
 	//   14 weekdays 09:00–23:00, 13 h worked less the shift's hour → 5 h each = 70 h
 	//    3 Saturdays 09:00–21:00, 12 h each on an off day            = 36 h
 	//   regulated overtime = 106 h > 104 → the employer has breached reg.2 and the run must say so.
-	//    3 Sundays 09:00–21:00, 12 h rest-day work — not overtime for the ceiling.
-	// Pay: 70 × 18.75 = 1,312.50; 36 × 18.75 = 675.00; each Sunday 100.00 + 4 × 25.00 = 200.00.
+	// Pay on the regulated days: 5 × 13.33 × 1.5 = 99.975 → 99.98 a weekday; 12 × 13.33 × 1.5 =
+	// 239.94 a Saturday.
 	const { slips, warnings } = buildStatutory(
 		{
 			code: 'MY-nihon',
@@ -294,14 +294,20 @@ test('MY-nihon — funnelled hours do not hide a month past the 104-hour ceiling
 			saturdayOff(world);
 			for (let date = '2026-01-01'; date <= '2026-01-20'; date = next(date)) {
 				const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
-				work(world, 'CAP', date, [
-					weekday === 0 || weekday === 6 ? ['09:00', '21:00'] : ['09:00', '23:00']
-				]);
+				if (weekday === 0) continue;
+				// The plan is the whole overtime of the day: 5 h past a weekday's shift, 12 h on the off day.
+				work(
+					world,
+					'CAP',
+					date,
+					[weekday === 6 ? ['09:00', '21:00'] : ['09:00', '23:00']],
+					weekday === 6 ? 12 : 5
+				);
 			}
 		}
 	);
 	const slip = slips.get('CAP')!;
-	assert.equal(slip.gross, 2600 + 1312.5 + 675 + 600);
+	assert.equal(slip.gross, Math.round((2600 + 14 * 99.98 + 3 * 239.94) * 100) / 100);
 	assert.ok(
 		warnings.some((line) => line.startsWith('OVERTIME_LIMIT_EXCEEDED') && /106/.test(line)),
 		`106 regulated overtime hours must be reported against the 104-hour ceiling:\n${warnings.join('\n')}`
@@ -312,7 +318,7 @@ test('MY-nihon — work after the ten-hour spread-over is overtime (EA s.60A(3)(
 	// Split shift 08:00–12:00 and 16:00–22:00: 10 h worked, 2 h past the normal eight. The spread-over
 	// that began at 08:00 ends at 18:00, and "the whole period beginning from the time that the said
 	// spread over period ends up to the time that the employee ceases work for the day shall be deemed
-	// to be overtime": 18:00–22:00 = 4 h × 18.75 = 75.00. The employer approved the four hours.
+	// to be overtime": 18:00–22:00 = 4 h × 13.33 × 1.5 = 79.98. The employer approved the four hours.
 	const { slips } = buildStatutory(
 		{
 			code: 'MY-nihon',
@@ -333,7 +339,7 @@ test('MY-nihon — work after the ten-hour spread-over is overtime (EA s.60A(3)(
 	);
 	const slip = slips.get('SPLIT')!;
 	assert.equal(sum(slip, 'OVERTIME:', 'quantity') + sum(slip, 'INCENTIVE:', 'quantity'), 4);
-	assert.equal(sum(slip, 'OVERTIME:', 'amount') + sum(slip, 'INCENTIVE:', 'amount'), 75);
+	assert.equal(sum(slip, 'OVERTIME:', 'amount') + sum(slip, 'INCENTIVE:', 'amount'), 79.98);
 	assert.deepEqual(lines(slip, 'INCENTIVE:'), []);
 });
 

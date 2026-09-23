@@ -52,7 +52,8 @@ const configuration = (catalogueComponents, bands = []) => ({
 		proration: { by: 'CALENDAR_DAYS' },
 		ordinary_divisor_days: '26.0',
 		overtime_when: '',
-		bands
+		bands,
+		limits: []
 	},
 	contributions: [EPF],
 	catalogueComponents,

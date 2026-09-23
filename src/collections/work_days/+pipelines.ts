@@ -14,10 +14,12 @@
  * has already taken into account is sealed: the file may restate it unchanged, but a sealed day
  * it changes or omits is a conflict, and the whole file is refused naming those days.
  *
- * Statutory limits — the weekly rest ceiling, hour ceilings, granted breaks, adjacent-shift
- * overlap — are the `work_days` transform's, and refuse the write with person, day and rule.
- * Approved overtime counts toward the hour ceilings. The ceilings payroll funnels to INCENTIVE (the
- * monthly overtime cap, a day limit a band funnels above) do not refuse: the payroll run warns.
+ * An Overtime row states the day's TOTAL planned overtime. The `work_days` transform the writes
+ * run through splits it (`splitPlannedOvertime`): the hours within the limits that split (the
+ * monthly overtime cap, a day limit a band names) stay approved overtime, the excess is stored as
+ * incentive hours. A sealed day compares on that total, so restating it unchanged still passes.
+ * Statutory limits — the weekly rest ceiling, the other hour ceilings, granted breaks,
+ * adjacent-shift overlap — are the transform's, and refuse the write with person, day and rule.
  * Holidays are never stored on a day; they are overlaid from the entity's calendar, so PH is not
  * a roster code: the cell names the shift the person would have worked.
  */
@@ -25,6 +27,7 @@ import { resolveEmployment } from '../../lib/employment-contract.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate, isClockTime, isUtcIsoInstant } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { dateKey } from '../../lib/iso-day.js';
 import { formatNamedList, isYearMonth } from '../../lib/period.js';
 import { addDays, monthBounds } from '../payroll_runs/lib/dates.js';
@@ -479,6 +482,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				shift_definition_id: true,
 				worked_intervals: true,
 				approved_overtime_hours: true,
+				incentive_hours: true,
 				payslip_id: true
 			},
 			limit: QUERY_LIMIT
@@ -508,7 +512,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			const overtimeSame =
 				!carriesOvertime ||
 				(file.approved ?? blankOvertime).approved_overtime_hours ===
-					(day.approved_overtime_hours ?? 0);
+					decodeNumber(day.approved_overtime_hours ?? 0) + decodeNumber(day.incentive_hours ?? 0);
 			if (planSame && clockSame && overtimeSame) untouched.add(key);
 			else conflicts.push(`${label} (the file changes it)`);
 		}
@@ -527,7 +531,11 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			const keepsAnyHalf =
 				(carriesPlan ? false : day.shift_definition_id != null) ||
 				(carriesClock ? false : day.worked_intervals != null) ||
-				(carriesOvertime ? false : (day.approved_overtime_hours ?? 0) > 0);
+				(carriesOvertime
+					? false
+					: decodeNumber(day.approved_overtime_hours ?? 0) +
+							decodeNumber(day.incentive_hours ?? 0) >
+						0);
 			if (!keepsAnyHalf) {
 				deletes.push(day.id);
 				continue;
@@ -570,24 +578,54 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				...(carriesOvertime ? (day.approved ?? blankOvertime) : {})
 			}));
 		const updates = [...restated, ...clears];
+		// In date order per person: the limits split overtime chronologically, and the host writes
+		// returned creates a hundred at a time, so a later batch must never hold an earlier day.
+		const creates = [...fileDays.entries()]
+			.filter(([key]) => !existingByKey.has(key))
+			.map(([, day]) => day)
+			.toSorted(
+				(left, right) =>
+					left.employmentId.localeCompare(right.employmentId) ||
+					left.workDate.localeCompare(right.workDate)
+			);
+		const createOf = (day: (typeof creates)[number], overtime: boolean) => ({
+			...(carriesPlan ? (day.plan ?? blankPlan) : {}),
+			...(carriesClock ? (day.clock ?? blankClock) : {}),
+			...(overtime && carriesOvertime ? (day.approved ?? blankOvertime) : {}),
+			employment_id: day.employmentId,
+			work_date: day.workDate
+		});
+		// A write moves only the days it carries. When the file both restates days and creates new
+		// ones, the new days are created without their overtime first, and every day's total then
+		// lands in one update, so the whole month is split in one pass.
+		const onePass = carriesOvertime && creates.length > 0 && updates.length > 0;
+		if (onePass) {
+			const created = yield* api.collection.work_days.createMany(
+				creates.map((day) => createOf(day, false))
+			);
+			const idOf = new Map(
+				created.map((row) => [
+					personDayKey(String(row['employment_id']), dateKey(String(row['work_date']))),
+					String(row['id'])
+				])
+			);
+			for (const day of creates)
+				updates.push({
+					id: idOf.get(personDayKey(day.employmentId, day.workDate))!,
+					...(day.approved ?? blankOvertime)
+				});
+		}
 		if (updates.length > 0) yield* api.collection.work_days.updateMany(updates);
 
-		return [...fileDays.entries()]
-			.filter(([key]) => !existingByKey.has(key))
-			.map(([, day]) => ({
-				...(carriesPlan ? (day.plan ?? blankPlan) : {}),
-				...(carriesClock ? (day.clock ?? blankClock) : {}),
-				...(carriesOvertime ? (day.approved ?? blankOvertime) : {}),
-				employment_id: day.employmentId,
-				work_date: day.workDate
-			}));
+		// The host counts only these rows; the toast counts the file's days (`schedulingImportDays`).
+		return onePass ? [] : creates.map((day) => createOf(day, true));
 	});
 }
 
 export default {
 	import: {
 		description:
-			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is the approved overtime (hours after the shift, in half-hour steps, inclusive of breaks). Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, hour, break and overlap rules refuse the write with person, day and rule; approved overtime counts toward the hour ceilings, and a ceiling payroll funnels to incentive (the monthly overtime cap, a daily limit a band funnels above) is accepted and warned on the payroll run instead. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
+			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is the total planned overtime (hours after the shift, in half-hour steps, inclusive of breaks), which the write splits into overtime within the statutory limits and incentive hours beyond them. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, hour, break and overlap rules refuse the write with person, day and rule; planned overtime counts toward the hour ceilings, and a ceiling that splits (the monthly overtime cap, a daily limit a band names) is accepted, the hours beyond it stored as incentive hours. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {

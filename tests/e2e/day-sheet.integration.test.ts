@@ -147,20 +147,29 @@ it('a board cell opens the record sheet for a stored day and the create sheet fo
 		assert.match(createBody, /Why this day is locked/);
 		await page.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
 
-		// A stored row is the other arm: the record sheet, opened from the URL stack.
+		// A stored row is the other arm: the record sheet, opened from the URL stack. It carries
+		// planned overtime, which is part of the plan: the cell prints it before any punch exists.
 		const month = payrollMonth();
 		await session.query(
-			`insert into work_days (id, employment_id, work_date, shift_definition_id)
-			 values (gen_random_uuid(), $1, $2::timestamptz, $3)
-			 on conflict (employment_id, work_date) do nothing`,
+			`insert into work_days (id, employment_id, work_date, shift_definition_id, approved_overtime_hours)
+			 values (gen_random_uuid(), $1, $2::timestamptz, $3, 2)
+			 on conflict (employment_id, work_date) do update
+			 set approved_overtime_hours = excluded.approved_overtime_hours`,
 			[EMPLOYMENT_ID, `${month}-01T00:00:00.000Z`, SHIFT_WORK_ID]
 		);
 		await page.evaluate('location.reload()');
 		await poll(
 			page,
 			cellLabel('0:0'),
-			(label) => label.includes('Rostered override'),
-			'the board did not read the stored day after reload'
+			(label) => label.includes('Rostered override') && label.includes('Planned overtime 2h'),
+			'the board did not read the stored day and its planned overtime after reload'
+		);
+		assert.equal(
+			await page.evaluate(
+				`document.querySelector('[data-roster-cell="0:0"] [data-slot-planned-ot]')?.textContent?.trim() ?? ''`
+			),
+			'+2h OT',
+			'the board cell does not show the planned overtime'
 		);
 		assert.equal(await page.evaluate(activateCell('[data-roster-cell="0:0"]')), 'clicked');
 		const recordBody = await poll(
@@ -175,6 +184,14 @@ it('a board cell opens the record sheet for a stored day and the create sheet fo
 		assert.match(recordBody, /Save assignment/);
 		// The plan the row names is the plan the sheet shows.
 		assert.match(recordBody, /7\.5AM/);
+		// Planned overtime is keyed in the Planned section, beside the shift, not under attendance.
+		assert.match(recordBody, /Planned[\s\S]*Planned overtime \(hours\)[\s\S]*Actual/);
+		assert.doesNotMatch(recordBody, /beyond schedule/i);
+		// The total is previewed as the split the write path stores: overtime to the limit, the rest incentive.
+		assert.match(
+			recordBody,
+			/No overtime limit stated|Up to .+ of overtime this day: .+ overtime · .+ incentive hours/
+		);
 
 		// The sheet's write is the collection's own: an interval added and saved lands on the row
 		// through the same transform every attendance write crosses (and is held for review).

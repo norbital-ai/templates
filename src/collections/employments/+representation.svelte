@@ -19,6 +19,7 @@
 	import OffboardingFlow from '../../lib/ui/offboarding/offboarding-flow.svelte';
 	import ChangeTermsFlow from '../../lib/ui/offboarding/change-terms-flow.svelte';
 	import ContractDetail from '../../lib/ui/contract/contract-detail.svelte';
+	import { contractSeal } from '../../lib/ui/contract/contract-seal.svelte.js';
 	import HireForm from '../../lib/ui/contract/hire-form.svelte';
 	import { HR_CREATE_SCOPE, hrCreateScope, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import { setContext } from 'svelte';
@@ -58,6 +59,9 @@
 	/** A closed range is a departed contract: only comments stay writable, and the flows hide. */
 	const departed = $derived(readRange(record?.effective_range)?.end != null);
 	const rangeStart = $derived(readRange(record?.effective_range)?.start ?? '');
+	/** The seal rides the sheet header beside the record label, as every sealed record's does. */
+	const seal = contractSeal(() => record?.id ?? '');
+	const sealed = $derived(record != null && seal.sealed);
 </script>
 
 <svelte:head>
@@ -133,7 +137,13 @@
 		{/if}
 		{#if record != null}
 			{#key contractEpoch}
-				<ContractDetail {record} {scopedCompanyId} contracts={false} bind:editing />
+				<ContractDetail
+					{record}
+					{scopedCompanyId}
+					contracts={false}
+					sealNotice={false}
+					bind:editing
+				/>
 			{/key}
 		{:else}
 			<HireForm onDone={close} />
@@ -141,6 +151,12 @@
 	</Stack>
 {/snippet}
 
-<RecordShell actions={record != null ? contractActions : undefined}>
+<RecordShell
+	kind={t('component.employment')}
+	icon={sealed ? 'lucide:lock-keyhole' : undefined}
+	badge={sealed ? t('component.settings_sealed_badge') : undefined}
+	hint={sealed ? t('component.employment_sealed') : undefined}
+	actions={record != null ? contractActions : undefined}
+>
 	{@render general()}
 </RecordShell>

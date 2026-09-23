@@ -1,17 +1,14 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * Overtime is keyed, not derived.
+ * Overtime is planned, not derived.
  *
- * The employer's approval is the record: `work_days.approved_overtime_hours`, in half-hour steps and
- * inclusive of breaks. `deriveDailyOvertime` reads it and pays it; an hour the clock shows past the
- * shift with no approval earns nothing. `time_entries` used to carry `overtime_authorized` and five
- * `approved_ot_*_hours` buckets and the engine branched on both; this contract is different again —
- * one figure on the work day, and the clock decides only the premium the day type makes of the
- * observed day.
+ * A work day carries two planned entries: `approved_overtime_hours` (within the statutory limits)
+ * and `incentive_hours` (the excess beyond them), split when the day was written. `deriveDailyOvertime`
+ * pays them where the clock confirms the day was worked; an hour the clock shows past the plan
+ * earns nothing, on an ordinary day and on a rest, off or holiday day alike.
  *
  * These are the behaviours that decision is made of. They are pinned because the same punches
- * priced two different ways is precisely how someone gets quietly underpaid — and because until the
- * TS source resolver existed nothing could drive these modules from a test at all.
+ * priced two different ways is precisely how someone gets quietly underpaid.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -149,48 +146,45 @@ test('multiple observed intervals are normalized and the approval still governs'
 	assert.equal(day.totalWorkHours, 10.25, '11h15m clocked less the hour of break');
 });
 
-test('a rest day is premium from the first minute, and its overrun is approved', () => {
-	// 08:30–14:30 is six hours; an hour of break leaves five. The roster and the calendar made the
-	// observed day premium, so no approval is needed for it.
-	const half = deriveDailyOvertime(
-		entry({ worked_intervals: [interval('08:30', '14:30')] }),
-		scheduled({ dayType: 'REST_DAY' })
+test('a rest day pays only its planned entries: the clock confirms, it never pays', () => {
+	// 08:30–20:45 is 11h15m net on a rest day. Nothing planned is nothing paid (owner's rule,
+	// 2026-09-23): the clock-derived premium up to the normal day is gone.
+	assert.equal(
+		deriveDailyOvertime(
+			entry({ worked_intervals: [interval('08:30', '20:45')] }),
+			scheduled({ dayType: 'REST_DAY' })
+		),
+		null
 	);
-	assert.equal(half.hours, 5);
-	assert.equal(half.normalHours, 8, 'the contracted day is still the band boundary');
-
-	// 08:30–20:45 is 11h15m net on a rest day: the observed day up to the normal eight is premium,
-	// and the 3h15m beyond it is not paid without an approval.
-	const long = deriveDailyOvertime(
-		entry({ worked_intervals: [interval('08:30', '20:45')] }),
-		scheduled({ dayType: 'REST_DAY' })
-	);
-	assert.equal(long.hours, 8, 'the unapproved overrun earns nothing');
-	const approved = deriveDailyOvertime(
+	const planned = deriveDailyOvertime(
 		entry({
 			worked_intervals: [interval('08:30', '20:45')],
-			approved_overtime_hours: 3
+			approved_overtime_hours: 8,
+			incentive_hours: 2
 		}),
 		scheduled({ dayType: 'REST_DAY' })
 	);
-	assert.equal(approved.hours, 11, 'eight premium hours plus the three keyed beyond them');
+	assert.equal(
+		planned.hours,
+		10,
+		'the eight planned and two incentive hours, not the clocked 11h15m'
+	);
+	assert.equal(planned.incentiveHours, 2);
+	assert.equal(planned.normalHours, 8, 'the contracted day is still the band boundary');
 });
 
-test('a rostered rest-day shift discards the early clock-in like any other day with a shift', () => {
-	// The day carries a shift, so the clock is measured from 08:30 on a rest day as on an ordinary
-	// one: 08:30–14:30 less the hour of break is five hours, all of them premium.
-	const early = deriveDailyOvertime(
-		entry({ worked_intervals: [interval('06:00', '14:30')] }),
-		scheduled({ dayType: 'REST_DAY' })
+test('a day whose only punch falls before the shift was not worked, and pays neither entry', () => {
+	assert.equal(
+		deriveDailyOvertime(
+			entry({
+				worked_intervals: [interval('06:00', '08:00')],
+				approved_overtime_hours: 3,
+				incentive_hours: 1
+			}),
+			scheduled({ dayType: 'REST_DAY' })
+		),
+		null
 	);
-	assert.equal(early.hours, 5);
-	// A rest day with no shift has no start to measure from: 06:00–14:30 is 8h30m of premium work,
-	// and the half hour beyond the normal day is not paid without an approval.
-	const unrostered = deriveDailyOvertime(
-		entry({ worked_intervals: [interval('06:00', '14:30')], break_minutes: 0 }),
-		scheduled({ dayType: 'REST_DAY', shift: null, clampStart: null })
-	);
-	assert.equal(unrostered.hours, 8);
 });
 
 test('overlapping intervals cannot pay the same minute twice', () => {
@@ -213,12 +207,10 @@ test('an open clock is refused rather than priced as if it had stopped', () => {
 	);
 });
 
-// ── the statutory rest break, where it reaches pay and where it must not ────────────────────────
+// ── the statutory rest break is assessed and reported, and deducts nothing ─────────────────────
 //
-// `regime.rest_break_rules` is a consecutive-hours rule. The trigger is measured on the clocked run,
-// and what reaches money is decided solely by `counts_as_worked_time`. Since overtime is keyed, the
-// shortfall reduces only the clock-derived premium of a rest, off or holiday day — never the
-// approval, which the scheduler keys inclusive of breaks.
+// `work_rules.breaks` is a consecutive-hours rule measured on the clocked run. Planned hours are
+// keyed inclusive of breaks, so a shortfall is reported on the day and never taken off them.
 
 const breakRule = (overrides) => ({
 	when: 'consecutive_hours > 5.0',
@@ -227,119 +219,53 @@ const breakRule = (overrides) => ({
 	...overrides
 });
 
-/** A rest day run 08:30–20:45 with nothing recorded as break: a 12h15m run, 8 premium hours. */
+/** A rest day run 08:30–20:45 with nothing recorded as break and eight planned hours. */
 const restLongRun = (overrides = {}) =>
 	entry({
 		worked_intervals: [interval('08:30', '20:45')],
 		break_minutes: 0,
+		approved_overtime_hours: 8,
 		...overrides
 	});
 
-test('a jurisdiction with no rest break rule computes exactly what it always computed', () => {
-	// Omitted, null and empty are one statement. Every caller passed nothing before the member was
-	// restored, and none of them may lose a minute of premium to its arrival.
+test('a jurisdiction with no rest break rule assesses nothing', () => {
 	for (const rules of [undefined, null, []]) {
 		const day = deriveDailyOvertime(restLongRun(), scheduled({ dayType: 'REST_DAY' }), rules);
 		assert.equal(day.hours, 8);
 		assert.equal(day.restBreak, null);
-		assert.equal(day.restBreakDeductedHours, 0);
 	}
 });
 
-test('a silent statute is assessed, cited and priced at nothing', () => {
-	// Malaysia. s.60A(1)(a) calls the period "leisure" and says nothing about payment, so the day is
-	// half an hour short of a break it was owed and is paid every minute of its premium regardless.
-	// This is the arm that must never quietly become a deduction.
+test('a shortfall is assessed and cited, whatever the statute says, and the plan pays in full', () => {
+	for (const counts of [null, false, true]) {
+		const day = deriveDailyOvertime(restLongRun(), scheduled({ dayType: 'REST_DAY' }), [
+			breakRule({ counts_as_worked_time: counts })
+		]);
+		assert.equal(day.restBreak.shortfallMinutes, 30);
+		assert.equal(day.restBreak.rule.counts_as_worked_time, counts);
+		assert.equal(day.hours, 8, 'the planned hours are inclusive of breaks');
+	}
+	// The trigger is the consecutive run on the clock: 12h15m.
 	const day = deriveDailyOvertime(restLongRun(), scheduled({ dayType: 'REST_DAY' }), [breakRule()]);
-	assert.equal(day.restBreak.shortfallMinutes, 30);
-	assert.equal(day.restBreak.rule.counts_as_worked_time, null);
-	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 8, 'a silent statute prices nothing');
-	// The trigger is the consecutive run, not the premium: 12h15m clocked against 8 premium hours.
 	assert.equal(day.restBreak.longestRunHours, 12.25);
 });
 
-test('a break the statute says is not working time deducts the shortfall', () => {
-	// Indonesia. ps.79(2)(a) says the rest is not counted as working hours, so a break that was owed
-	// and not taken is time the employee was not working.
-	const rules = [breakRule({ when: 'consecutive_hours > 4.0', counts_as_worked_time: false })];
-	const day = deriveDailyOvertime(restLongRun(), scheduled({ dayType: 'REST_DAY' }), rules);
-	assert.equal(day.restBreak.shortfallMinutes, 30);
-	assert.equal(day.restBreakDeductedHours, 0.5);
-	assert.equal(day.hours, 7.5, 'eight premium hours less the 30-minute shortfall');
-
-	// The approval is keyed inclusive of breaks, so the shortfall never reduces it.
-	const approved = deriveDailyOvertime(
-		restLongRun({ approved_overtime_hours: 4 }),
-		scheduled({ dayType: 'REST_DAY' }),
-		rules
-	);
-	assert.equal(approved.hours, 11.5, '7h30m premium plus the four keyed hours');
-});
-
-test('a break the statute counts as working time deducts nothing', () => {
-	const rules = [breakRule({ counts_as_worked_time: true })];
-	const day = deriveDailyOvertime(restLongRun(), scheduled({ dayType: 'REST_DAY' }), rules);
-	assert.equal(day.restBreak.shortfallMinutes, 30);
-	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 8);
-});
-
-test('the shortfall is deducted, never the requirement', () => {
-	// The arithmetic trap. `clockedWorkHours` has already taken the recorded break off the day, so a
-	// day that recorded its full statutory thirty minutes owes nothing further. Deducting the
-	// requirement again would charge that half hour twice.
+test('the shortfall is what was not taken, never the requirement', () => {
 	const rules = [breakRule({ counts_as_worked_time: false })];
-	const day = deriveDailyOvertime(
+	const full = deriveDailyOvertime(
 		restLongRun({ break_minutes: 30 }),
 		scheduled({ dayType: 'REST_DAY' }),
 		rules
 	);
-	assert.equal(day.restBreak.takenMinutes, 30);
-	assert.equal(day.restBreak.shortfallMinutes, 0);
-	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 8, 'the full eight premium hours stand');
-});
-
-test('a partly taken break deducts only the part that was not taken', () => {
-	const rules = [breakRule({ counts_as_worked_time: false })];
-	const day = deriveDailyOvertime(
+	assert.equal(full.restBreak.takenMinutes, 30);
+	assert.equal(full.restBreak.shortfallMinutes, 0);
+	const part = deriveDailyOvertime(
 		restLongRun({ break_minutes: 10 }),
 		scheduled({ dayType: 'REST_DAY' }),
 		rules
 	);
-	assert.equal(day.restBreak.shortfallMinutes, 20);
-	assert.equal(Math.round(day.hours * 60), 460, 'eight premium hours less the 20-minute shortfall');
-});
-
-test('a day whose whole premium is owed as unpaid break earns nothing at all', () => {
-	// A rest day worked 08:30–09:00 with no break is half an hour of premium against a thirty-minute
-	// shortfall. The day must produce no entry rather than a zero one.
-	const rules = [breakRule({ when: 'consecutive_hours > 0.25', counts_as_worked_time: false })];
-	const day = deriveDailyOvertime(
-		entry({ worked_intervals: [interval('08:30', '09:00')], break_minutes: 0 }),
-		scheduled({ dayType: 'REST_DAY' }),
-		rules
-	);
-	assert.equal(day, null);
-});
-
-test('an ordinary day pays the approval in full, whatever the break rule says', () => {
-	// The keyed hours are inclusive of breaks by definition, so the not-working-time shortfall is
-	// reported against the observed work and never deducted from the approval.
-	const rules = [breakRule({ when: 'consecutive_hours > 4.0', counts_as_worked_time: false })];
-	const day = deriveDailyOvertime(
-		entry({
-			worked_intervals: [interval('08:30', '20:45')],
-			break_minutes: 0,
-			approved_overtime_hours: 2
-		}),
-		scheduled(),
-		rules
-	);
-	assert.equal(day.restBreak.shortfallMinutes, 30);
-	assert.equal(day.restBreakDeductedHours, 0.5, 'reported against the observed day');
-	assert.equal(day.hours, 2, 'the approval is paid as keyed');
+	assert.equal(part.restBreak.shortfallMinutes, 20);
+	assert.equal(part.hours, 8);
 });
 
 /**

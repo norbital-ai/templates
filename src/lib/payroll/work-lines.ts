@@ -3,7 +3,7 @@
  *
  * BASIC, ABSENCE and the NIGHT premium are engine-priced lines; the overtime classes and the
  * incentive come from `bands`, one component per (line, label) so each class settles as its
- * own payslip line and the funnel keeps the band's award. Which schemes charge each line is the
+ * own payslip line and an incentive hour keeps the band's award. Which schemes charge each line is the
  * scheme's own declaration; nothing here names one.
  */
 
@@ -98,17 +98,19 @@ export function workPayItems(
 			})
 		);
 	};
-	// A calendar-month overtime ceiling (`funnelMonthlyOvertime`) funnels every band's excess to
-	// its INCENTIVE line, so each band needs that line whether or not it funnels a daily limit
-	// itself. Without it a Malaysian who worked past the Employment (Limitation of Overtime Work)
-	// Regulations 1980 reg.4 104 hours refused the whole run — and s.60A(3)(a) still owes those
-	// hours at 1.5× whatever the employer's own breach.
-	const monthlyCeiling = work.limits.some(
-		(limit) => limit.measure === 'OVERTIME_HOURS' && limit.period === 'MONTH'
-	);
+	const incentive = paysIncentive(work);
 	for (const band of work.bands) {
 		add(OVERTIME_LINE, band.label);
-		if (band.funnel_above_hours != null || monthlyCeiling) add(INCENTIVE_LINE, band.label);
+		if (incentive) add(INCENTIVE_LINE, band.label);
 	}
 	return items;
 }
+
+/**
+ * Whether a version can store incentive hours: a limit splits planned overtime
+ * (`funnelledLimitKeys`) — a calendar-month overtime ceiling, or a band naming a daily limit. Each
+ * band then needs its INCENTIVE line, because the split may leave incentive on any day type.
+ */
+export const paysIncentive = (work: Pick<WorkRules, 'limits' | 'bands'>): boolean =>
+	work.limits.some((limit) => limit.measure === 'OVERTIME_HOURS' && limit.period === 'MONTH') ||
+	work.bands.some((band) => band.funnel_above_hours != null);

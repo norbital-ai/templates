@@ -29,6 +29,7 @@ export function workDayDb({
 	codes = [],
 	patterns = [],
 	rosters = [],
+	holidays = [],
 	versions = [VERSION],
 	employees = null
 } = {}) {
@@ -58,6 +59,7 @@ export function workDayDb({
 		jurisdiction_settings: { findMany: () => Effect.succeed(versions) },
 		payroll_runs: { findMany: () => Effect.succeed(runs) },
 		payslips: { findMany: () => Effect.succeed(payslips) },
-		leave_entries: { findMany: () => Effect.succeed(leave) }
+		leave_entries: { findMany: () => Effect.succeed(leave) },
+		jurisdiction_holidays: { findMany: () => Effect.succeed(holidays) }
 	};
 }

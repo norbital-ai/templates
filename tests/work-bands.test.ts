@@ -1,6 +1,6 @@
 /**
- * The work band engine: a band prices its slice, and the slice above the named
- * limit funnels to the incentive line at the band's own award.
+ * The work band engine: a band prices its slice, and the day's planned incentive hours — the top
+ * of its payable hours — settle on the band's incentive line at its own award.
  */
 
 import assert from 'node:assert/strict';
@@ -100,8 +100,13 @@ const day = (overrides: Partial<WorkBandDay>): WorkBandDay => ({
 
 const rates: WorkBandRates = { ordinaryHour: 25.5, ordinaryDay: 204, dayWage: 204 };
 
-test('an ordinary overrun funnels the hours above the limit at the band’s own award', () => {
-	const rows: WorkBandRow[] = priceWorkDay({ work: nihon, person, day: day({}), rates });
+test('an ordinary day’s planned incentive hours settle at the band’s own award', () => {
+	const rows: WorkBandRow[] = priceWorkDay({
+		work: nihon,
+		person,
+		day: day({ incentiveHours: 2 }),
+		rates
+	});
 	assert.deepEqual(
 		rows.map((row) => [row.line, row.label, row.hours, Math.round(row.amount * 100) / 100]),
 		[
@@ -111,11 +116,11 @@ test('an ordinary overrun funnels the hours above the limit at the band’s own 
 	);
 });
 
-test('a holiday keeps its ×3 for the funneled hours', () => {
+test('a holiday keeps its ×3 for the incentive hours', () => {
 	const rows = priceWorkDay({
 		work: philippines,
 		person,
-		day: day({ dayType: 'PUBLIC_HOLIDAY', workedHours: 12, overtimeHours: 12 }),
+		day: day({ dayType: 'PUBLIC_HOLIDAY', workedHours: 12, overtimeHours: 12, incentiveHours: 1 }),
 		rates
 	});
 	assert.deepEqual(
@@ -128,7 +133,7 @@ test('a holiday keeps its ×3 for the funneled hours', () => {
 	);
 });
 
-test('a day under the limit produces one row and no funnel row', () => {
+test('a day with no incentive hours produces one row and no incentive row', () => {
 	const rows = priceWorkDay({
 		work: nihon,
 		person,

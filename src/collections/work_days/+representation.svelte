@@ -65,14 +65,30 @@
 		DAY_MINUTES,
 		LOCK_RAIL_PRESENTATION,
 		assessAttendanceDraft,
-		beyondScheduleMinutes,
+		beyondPlanMinutes,
 		clockToDayMinutes,
 		dayMinutesOffsetDays,
 		dayMinutesToClock,
 		instantFromDayStart,
 		minutesFromDayStart,
-		scheduledMinutes
+		plannedMinutes,
+		storedHours
 	} from '../../lib/ui/roster/roster-month.js';
+	import {
+		applicableLimits,
+		assessmentWindow,
+		funnelledLimitKeys,
+		type RosterCodeFacts
+	} from '../../lib/scheduling/work-limits.js';
+	import {
+		PATTERN_WITH,
+		patternAnchor,
+		patternRosterCodeId,
+		termPatternRow
+	} from '../../lib/scheduling/work-pattern.js';
+	import { windowOvertime, type WindowDay } from '../../lib/ui/roster/day-overtime.js';
+	import { coversDate } from '../payroll_runs/lib/effective.js';
+	import { personContext } from '../payroll_runs/lib/eligibility.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
@@ -98,14 +114,19 @@
 	 *
 	 * The company rides the employment so the roster-code picker is scoped to the entity's own
 	 * vocabulary and the timezone is the entity's own: a Jakarta punch read in Kuala Lumpur time is
-	 * an hour of overtime nobody worked.
+	 * a day an hour off its plan.
 	 *
 	 * The relations ride the row through `with`; the generated query type carries only the selected
 	 * columns, so the shape is stated here the way every other surface in this template states it.
 	 */
 	type EmploymentIdentity = WorkspaceRow<'employments'> & {
 		readonly employment_employee?: { readonly name: string | null } | null;
-		readonly employment_company?: { readonly settings_code: string | null } | null;
+		readonly employment_company?: {
+			readonly settings_code: string | null;
+			readonly region: string | null;
+			readonly facts: WorkspaceRow<'companies'>['facts'];
+			readonly pay_cutoff_day: number | null;
+		} | null;
 	};
 	const employmentQuery = $derived(
 		employmentId == null
@@ -115,7 +136,9 @@
 					columns: { id: true, employee_number: true, company_id: true },
 					with: {
 						employment_employee: { columns: { name: true } },
-						employment_company: { columns: { settings_code: true } }
+						employment_company: {
+							columns: { settings_code: true, region: true, facts: true, pay_cutoff_day: true }
+						}
 					},
 					limit: 1
 				})
@@ -143,18 +166,16 @@
 			(employmentQuery?.current !== undefined &&
 				(settingsCode == null || settingsQuery?.current !== undefined))
 	);
-	const timeZone = $derived.by(() => {
+	const settingsVersion = $derived.by(() => {
 		const code = settingsCode;
-		if (code == null) return PAYROLL_TIME_ZONE;
+		if (code == null) return null;
 		try {
-			return (
-				settingsInForce(settingsQuery?.current ?? [], code, workDate ?? todayKey())?.payroll
-					.timezone ?? PAYROLL_TIME_ZONE
-			);
+			return settingsInForce(settingsQuery?.current ?? [], code, workDate ?? todayKey());
 		} catch {
-			return PAYROLL_TIME_ZONE;
+			return null;
 		}
 	});
+	const timeZone = $derived(settingsVersion?.payroll.timezone ?? PAYROLL_TIME_ZONE);
 
 	/* ── THE ROSTER VOCABULARY ────────────────────────────────────────────────────────────────── */
 
@@ -243,7 +264,10 @@
 	let draftIntervals = $state<EditableInterval[]>([]);
 	let draftAttendanceRecorded = $state(false);
 	let baselineAttendance = $state<AttendanceValue>({ intervals: null });
-	/** The approved overtime the scheduler keyed, in hours after the shift; null is no approval. */
+	/**
+	 * The day's TOTAL planned overtime, in hours after the shift; null is none planned. The write
+	 * path splits it: up to the version's limit is overtime, the rest incentive hours.
+	 */
 	let draftOvertime = $state<number | null>(null);
 	let baselineOvertime = $state<number | null>(null);
 	/** Self-service only: the operator has asked to report a punch on a day that has none. */
@@ -252,12 +276,19 @@
 	/** The identity of the sheet, so a new person-day re-seeds the editors. */
 	const sheetKey = $derived(`${employmentId ?? ''}:${workDate ?? ''}`);
 
+	/** The stored day's total planned overtime, approved plus incentive; null when none is keyed. */
+	const baselineTotal = $derived.by(() => {
+		const approved = storedHours(record?.approved_overtime_hours);
+		const incentive = storedHours(record?.incentive_hours);
+		return approved == null && incentive == null ? null : (approved ?? 0) + (incentive ?? 0);
+	});
+
 	/** Seed the editors from the record. Runs on mount, and again whenever the keyed block remounts. */
 	function seedSheet(): void {
 		reporting = false;
 		draftCodeId = record?.shift_definition_id ?? null;
 		baselineCodeId = record?.shift_definition_id ?? null;
-		draftOvertime = record?.approved_overtime_hours ?? null;
+		draftOvertime = baselineTotal;
 		baselineOvertime = draftOvertime;
 		draftAttendanceRecorded = record?.worked_intervals != null;
 		baselineAttendance = {
@@ -328,9 +359,163 @@
 			workDate < todayKey()
 	);
 
-	const planned = $derived(scheduledMinutes(plannedShift));
-	const beyond = $derived(
-		beyondScheduleMinutes({ ...plannedShift, workedMinutes: assessment.workedMinutes })
+	/* ── THE ASSESSMENT WINDOW ─────────────────────────────────────────────────────────────── */
+
+	/**
+	 * The pay's assessment window around this day (the entity's `pay_cutoff_day`: Nihon's 21st to
+	 * 20th) and what the split reads inside it: the employment's stored days, its terms and their
+	 * pattern, and the published holidays. Read for the plan's writer only.
+	 */
+	const overtimeWindow = $derived(
+		!planWritable || workDate == null || employment == null
+			? null
+			: assessmentWindow(workDate, employment.employment_company?.pay_cutoff_day ?? 1)
+	);
+	const windowDaysQuery = $derived(
+		overtimeWindow == null || employmentId == null
+			? null
+			: client.db.work_days.findMany({
+					where: {
+						employment_id: { eq: employmentId },
+						work_date: {
+							gte: dayInstant(overtimeWindow.start),
+							lte: dayInstant(overtimeWindow.end)
+						}
+					},
+					columns: {
+						id: true,
+						work_date: true,
+						shift_definition_id: true,
+						approved_overtime_hours: true,
+						incentive_hours: true,
+						emergency_cause: true,
+						payslip_id: true
+					},
+					limit: 62
+				})
+	);
+	const termsQuery = $derived(
+		overtimeWindow == null || employmentId == null
+			? null
+			: client.db.employment_terms.findMany({
+					where: { employment_id: { eq: employmentId } },
+					columns: {
+						effective_range: true,
+						shift_pattern_id: true,
+						employment_type: true,
+						work_classification: true
+					},
+					with: { term_shift_pattern: PATTERN_WITH },
+					limit: 100
+				})
+	);
+	const holidaysQuery = $derived(
+		overtimeWindow == null || companyId == null
+			? null
+			: client.db.jurisdiction_holidays.findMany({
+					where: {
+						company_id: { eq: companyId },
+						date: {
+							gte: dayInstant(overtimeWindow.start),
+							lte: dayInstant(overtimeWindow.end)
+						},
+						published_at: { isNotNull: true },
+						approval_id: { isNull: true }
+					},
+					columns: { date: true },
+					limit: 62
+				})
+	);
+
+	/**
+	 * How the write path will split the planned total, stated before the save: the transform's own
+	 * arithmetic over the assessment window and the person's applicable limits (`windowOvertime`).
+	 * The limit is what this day can hold as overtime — the split of the largest total the input
+	 * allows. `moved` are the open days the save restates beside it; `sealed` the ones it cannot.
+	 */
+	const overtimeSplit = $derived.by(() => {
+		const rules = settingsVersion?.work_rules;
+		const terms = termsQuery?.current ?? [];
+		const termOn = (date: string) => terms.find((term) => coversDate(term.effective_range, date));
+		const entity = employment?.employment_company;
+		const limits = applicableLimits(
+			rules?.limits ?? [],
+			workDate == null
+				? null
+				: personContext({
+						employee: null,
+						employment: { service_start: '' },
+						terms: termOn(workDate) ?? null,
+						company: entity == null ? null : { region: entity.region, facts: entity.facts },
+						asOf: workDate
+					})
+		);
+		const caps = funnelledLimitKeys(rules, limits);
+		const codeById = new Map<string, RosterCodeFacts>();
+		for (const code of shiftsById.values()) {
+			const kind = rosterCodeKind(code.variant);
+			const window = kind === 'WORK' ? workWindow(code.variant) : null;
+			if (kind !== 'WORK')
+				codeById.set(code.id, { kind, paid_minutes: 0, break_minutes: 0, spread_hours: 0 });
+			else if (window != null)
+				codeById.set(code.id, {
+					kind,
+					paid_minutes: window.paid_minutes,
+					break_minutes: window.break_minutes,
+					spread_hours: window.elapsed_minutes / 60
+				});
+		}
+		const stored: WindowDay[] = (windowDaysQuery?.current ?? []).map((row) => ({
+			id: row.id,
+			date: dateKey(row.work_date),
+			shift_definition_id: row.shift_definition_id ?? null,
+			total:
+				(storedHours(row.approved_overtime_hours) ?? 0) + (storedHours(row.incentive_hours) ?? 0),
+			emergency: row.emergency_cause === true,
+			sealed: row.payslip_id != null
+		}));
+		const date = workDate ?? '';
+		const split = (total: number) =>
+			windowOvertime({
+				window: overtimeWindow ?? { start: date, end: date },
+				date,
+				draft: { codeId: draftCodeId, total, emergency: record?.emergency_cause === true },
+				stored,
+				projected: (day) => {
+					const term = termOn(day);
+					const row = term == null ? null : termPatternRow(term);
+					return row == null ? null : patternRosterCodeId(row.pattern, day, patternAnchor(row));
+				},
+				codeById,
+				holidays: new Set((holidaysQuery?.current ?? []).map((row) => dateKey(row.date))),
+				limits,
+				caps,
+				cutoffDay: employment?.employment_company?.pay_cutoff_day ?? 1
+			});
+		const current = split(draftOvertime ?? 0);
+		return {
+			overtime: current.split?.approved_overtime_hours ?? 0,
+			incentive: current.split?.incentive_hours ?? 0,
+			limit: caps.size === 0 ? null : (split(24).split?.approved_overtime_hours ?? null),
+			moved: current.moved,
+			sealed: current.sealed
+		};
+	});
+	/** The plan the clock is checked against: the shift plus the overtime planned on the day. */
+	const planned = $derived(
+		plannedMinutes({ ...plannedShift, approvedOvertimeHours: draftOvertime, incentiveHours: null })
+	);
+	/** Clock time past that plan: unplanned, and not paid. */
+	const unplanned = $derived(
+		Math.max(
+			0,
+			beyondPlanMinutes({
+				...plannedShift,
+				approvedOvertimeHours: draftOvertime,
+				incentiveHours: null,
+				workedMinutes: assessment.workedMinutes
+			}) ?? 0
+		)
 	);
 
 	/**
@@ -382,10 +567,44 @@
 	 * unique person-day key cannot be missed by a day-precision instant read in the host's zone.
 	 */
 	const formDefaults = $derived.by(() => {
-		if (record != null) return record;
+		// The column states the day's TOTAL: a save that did not touch the overtime restates the
+		// stored approved plus incentive hours, never the approved half alone.
+		if (record != null) return { ...record, approved_overtime_hours: baselineTotal };
 		if (employmentId == null || workDateInstant == null) return undefined;
 		return { employment_id: employmentId, work_date: workDateInstant };
 	});
+	/**
+	 * The form's write surface: the collection's own, except that saving a stored day whose draft
+	 * moves the split of other open days in the window restates them in the same write, at their
+	 * unchanged totals, so the transform re-splits them together (`windowOvertime`).
+	 */
+	const writes = client.collection.work_days;
+	const formClient = {
+		db: client.db,
+		collection: {
+			work_days: {
+				create: writes.create,
+				createMany: writes.createMany,
+				update: (id: string, input: Parameters<typeof writes.update>[1]) =>
+					overtimeSplit.moved.length === 0
+						? writes.update(id, input)
+						: writes.updateMany([
+								{ ...input, id },
+								...overtimeSplit.moved.map((day) => ({
+									id: day.id,
+									approved_overtime_hours: day.total
+								}))
+							]),
+				updateMany: writes.updateMany,
+				delete: writes.delete,
+				deleteMany: writes.deleteMany,
+				get pending() {
+					return writes.pending;
+				}
+			}
+		}
+	};
+
 	/** The identity is a fact of the cell, not a field: shown, never edited. */
 	const identityFixed = $derived(employmentId != null);
 
@@ -423,8 +642,8 @@
 	}
 
 	/**
-	 * Mirror the approved half into the form. Null clears the approval; the input offers the
-	 * half-hour step, and the write path enforces it with the day's own bound.
+	 * Mirror the planned total into the form. Null clears it; the input offers the half-hour step,
+	 * and the write path splits it at the version's limit and enforces the day's own bound.
 	 */
 	function pushOvertime(form: CollectionFormController): void {
 		form.setValues({ approved_overtime_hours: draftOvertime });
@@ -612,7 +831,7 @@
 		{#key sheetKey}
 			<div style="display: contents;" {@attach seedSheet}>
 				<CollectionForm
-					{client}
+					client={formClient}
 					collection="work_days"
 					notice="header"
 					{recordMetadata}
@@ -689,6 +908,77 @@
 											break: selectedWindow.break_minutes / 60
 										})
 									)}
+								{/if}
+								<!--
+									Overtime is PLANNED, keyed on the day beside the shift in half-hour steps. It is not
+									derived from the clock: attendance only confirms the person was there for it, and
+									clock time past the shift and this figure is not paid.
+								-->
+								{#if planWritable}
+									<Stack gap="xs">
+										<Inline gap="xs" align="center">
+											<span class="min-w-16 shrink-0 text-xs text-muted-foreground">
+												{t('roster.day_sheet_approved_overtime')}
+											</span>
+											<Input
+												type="number"
+												min="0"
+												max="24"
+												step="0.5"
+												class="w-28"
+												aria-label={t('roster.day_sheet_approved_overtime')}
+												value={draftOvertime ?? ''}
+												oninput={(event) => {
+													setOvertime(event.currentTarget.value);
+													pushOvertime(form);
+												}}
+											/>
+										</Inline>
+										<!-- The split the write path will store, stated before the save. -->
+										<p class="text-xs" role="status" data-overtime-split>
+											{overtimeSplit.limit == null
+												? t('roster.day_sheet_overtime_split_no_limit')
+												: t('roster.day_sheet_overtime_split', {
+														limit: formatDurationHours(overtimeSplit.limit * 60, t),
+														overtime: formatDurationHours(overtimeSplit.overtime * 60, t),
+														incentive: formatDurationHours(overtimeSplit.incentive * 60, t)
+													})}
+										</p>
+										{#if overtimeSplit.sealed.length > 0}
+											<Alert variant="destructive">
+												<AlertDescription>
+													{t('roster.day_sheet_overtime_moves_sealed', {
+														dates: overtimeSplit.sealed.map((day) => day.date).join(', ')
+													})}
+												</AlertDescription>
+											</Alert>
+										{:else if overtimeSplit.moved.length > 0}
+											<p class="text-xs text-muted-foreground" data-overtime-restates>
+												{t('roster.day_sheet_overtime_restates', {
+													dates: overtimeSplit.moved.map((day) => day.date).join(', ')
+												})}
+											</p>
+										{/if}
+										<p class="text-xs text-muted-foreground">
+											{t('roster.day_sheet_approved_overtime_description')}
+										</p>
+									</Stack>
+								{:else}
+									{@render fieldRow(
+										t('roster.day_sheet_approved_overtime'),
+										(storedHours(record?.approved_overtime_hours) ?? 0) > 0
+											? formatDurationHours(
+													(storedHours(record?.approved_overtime_hours) ?? 0) * 60,
+													t
+												)
+											: t('roster.no_approved_overtime')
+									)}
+									{#if (storedHours(record?.incentive_hours) ?? 0) > 0}
+										{@render fieldRow(
+											t('roster.day_sheet_incentive_hours'),
+											formatDurationHours((storedHours(record?.incentive_hours) ?? 0) * 60, t)
+										)}
+									{/if}
 								{/if}
 							</FormSection>
 
@@ -814,36 +1104,6 @@
 											</Button>
 										{/if}
 									</Inline>
-									<!--
-										The approved overtime: the hours after the shift the employer authorised, keyed
-										by the scheduler in half-hour steps. Payroll pays this and nothing else beyond the
-										shift, so a day whose clock ran long without an entry here earns nothing extra.
-									-->
-									{#if planWritable}
-										<Stack gap="xs">
-											<Inline gap="xs" align="center">
-												<span class="min-w-16 shrink-0 text-xs text-muted-foreground">
-													{t('roster.day_sheet_approved_overtime')}
-												</span>
-												<Input
-													type="number"
-													min="0"
-													max="24"
-													step="0.5"
-													class="w-28"
-													aria-label={t('roster.day_sheet_approved_overtime')}
-													value={draftOvertime ?? ''}
-													oninput={(event) => {
-														setOvertime(event.currentTarget.value);
-														pushOvertime(form);
-													}}
-												/>
-											</Inline>
-											<p class="text-xs text-muted-foreground">
-												{t('roster.day_sheet_approved_overtime_description')}
-											</p>
-										</Stack>
-									{/if}
 									<!-- A rest-day worked reads differently by who asked for it (SG EA s.37, MY EA s.60). -->
 									<Field name="requested_by" label={t('component.requested_by')} />
 									<!-- TW 勞基法 §32(4) emergency hours and the §32-1 election, priced by the version's bands. -->
@@ -869,12 +1129,6 @@
 													count: record?.worked_intervals?.length ?? 0
 												})
 									)}
-									{@render fieldRow(
-										t('roster.day_sheet_approved_overtime'),
-										(record?.approved_overtime_hours ?? 0) > 0
-											? formatDurationHours((record?.approved_overtime_hours ?? 0) * 60, t)
-											: t('roster.no_approved_overtime')
-									)}
 									{#if canReportMissingPunch}
 										<Inline>
 											<Button
@@ -897,14 +1151,9 @@
 								{/if}
 
 								<!--
-									Derived, read-only, and the only place a length-of-day figure appears. It is not
-									payable overtime: the approved hours above are what payroll pays, and the engine
-									prices premium work from the punches against the effective schedule. This figure
-									exists so the scheduler can see that a day ran long before keying an approval.
-
-									The two-arm split is not cosmetic: `beyondScheduleMinutes` is signed, so a day
-									with nothing recorded against an eight-hour shift would read as negative
-									overtime rather than as the absence of any measurement at all.
+									Attendance as a presence check against the plan (shift plus planned overtime), and
+									the only place a length-of-day figure appears. Clock time past the plan is shown as
+									unplanned and is not paid; it is never overtime.
 								-->
 								<p class="text-xs">
 									{#if assessment.workedMinutes == null || assessment.workedMinutes === 0}
@@ -914,8 +1163,8 @@
 									{:else}
 										{t('roster.day_sheet_totals', {
 											worked: formatDurationHours(assessment.workedMinutes, t),
-											scheduled: formatDurationHours(planned, t),
-											beyond: formatDurationHours(beyond, t)
+											planned: formatDurationHours(planned, t),
+											unplanned: formatDurationHours(unplanned, t)
 										})}
 									{/if}
 								</p>

@@ -3,10 +3,10 @@
  * The workday import's refusal/warning split, through the `work_days` transform an import writes
  * through.
  *
- * A ceiling payroll funnels to INCENTIVE only warns: the monthly overtime cap
- * (`monthlyFunnelLimit`) and a day limit a band's `funnel_above_hours` names as `limits.<key>`.
- * Every other statutory ceiling is a hard refusal. Approved overtime is worked time: a day's hours
- * are the code's paid hours plus its approved overtime, and its overtime likewise.
+ * A ceiling that splits never refuses: the monthly overtime cap (`monthlyFunnelLimit`) and a day
+ * limit a band's `funnel_above_hours` names as `limits.<key>` — the planned overtime beyond them is
+ * stored as incentive hours. Every other statutory ceiling is a hard refusal. Planned overtime is
+ * worked time: a day's hours are the code's paid hours plus its total planned overtime.
  *
  * Every figure below is derived by hand from the codes and limits stated here — Nihon's (MY-nihon)
  * roster codes and work rules, a Vietnam and an Indonesia version — not read from the seed.
@@ -20,7 +20,6 @@ import {
 	projectedLimitBreaches,
 	plannedDay
 } from '../src/lib/scheduling/work-limits.ts';
-import { funnelMonthlyOvertime } from '../src/lib/payroll/work.ts';
 import { validateOvertimeLimits } from '../src/collections/payroll_runs/lib/validate.ts';
 import { transformSync } from './helpers/transform.ts';
 import { VERSION, workDayDb } from './helpers/work-day-db.ts';
@@ -186,63 +185,34 @@ test('Nihon, accepted: 27 days of 8h + 4h approved OT is 108 OT hours, over the 
 	assert.equal(write(NIHON_RULES, inputs)().length, 31);
 });
 
-test('Nihon, accepted at write → payroll warns OVERTIME_LIMIT_EXCEEDED and prices the excess as INCENTIVE', () => {
-	const workDates = Array.from({ length: 31 }, (_, index) => index + 1).filter((n) => n % 7 !== 0);
-	const days = workDates.map((n) => ({ workDayId: `d${n}`, date: dayOf(n) }));
-	const overtime = {
-		family: 'WORK',
-		output: 'OVERTIME:WORKDAY-OT-1.5X',
-		destination: 'EARNINGS',
-		direction: 'CREDIT',
-		code: 'OT'
-	};
-	const incentive = {
-		family: 'WORK',
-		output: 'INCENTIVE:WORKDAY-OT-1.5X',
-		destination: 'EARNINGS',
-		direction: 'CREDIT',
-		code: 'PINCEN'
-	};
-	// 4 OT hours a day at RM15/h: the first 26 days fill 104 hours, the 27th day's 4 are incentive.
-	const out = funnelMonthlyOvertime({
-		rows: days.map((day) => ({
-			input: { family: 'WORK_DAY', id: day.workDayId },
-			catalogueComponent: overtime,
-			bucket: 'EARNINGS',
-			label: 'WORKDAY-OT-1.5X',
-			amount: 60,
-			quantity: 4,
-			rate: 15,
-			statutoryRuleKey: 'OVERTIME:WORKDAY-OT-1.5X'
-		})),
-		days,
-		limits: NIHON_RULES.limits.filter((row) => row.measure !== 'CONSECUTIVE_WORK_DAYS'),
-		holds: () => false,
-		prior: new Map(),
-		catalogueComponents: [overtime, incentive]
-	});
-	const incentiveRows = out.rows.filter((row) =>
-		row.catalogueComponent.output.startsWith('INCENTIVE')
-	);
+test('Nihon, accepted at write → the 27th day’s 4 hours are stored as incentive, and payroll reports the 108', () => {
+	// 4 OT hours a day: the first 26 working days fill 104 hours, the 27th day's 4 are incentive.
+	const out = write(NIHON_RULES, julyWrite(sixOnOneOff(['c-8', 4])))();
 	assert.deepEqual(
-		incentiveRows.map((row) => [row.input.id, row.quantity, row.amount]),
-		[['d31', 4, 60]]
+		out.flatMap((row) =>
+			row.incentive_hours > 0
+				? [[row.work_date.slice(0, 10), row.approved_overtime_hours, row.incentive_hours]]
+				: []
+		),
+		[['2026-07-31', 0, 4]]
 	);
-	assert.deepEqual([...out.funnelledHours], [['2026-07', 4]]);
-	const issues = validateOvertimeLimits({
-		employeeNumber: 'NHPMY0001',
-		configuration: {
-			limits: NIHON_RULES.limits,
-			work: { authority: 'EA s.60A' },
-			jurisdiction: { id: 'v' }
-		},
-		hoursByMonth: new Map([['2026-07', 108]])
-	});
-	assert.deepEqual(
-		issues.map((issue) => [issue.code, issue.severity]),
-		[['OVERTIME_LIMIT_EXCEEDED', 'WARNING']]
+	// Payroll still reports the planned month against the ceiling: incentive pays the excess, it
+	// does not undo the breach.
+	const issues = (hours) =>
+		validateOvertimeLimits({
+			employeeNumber: 'NHPMY0001',
+			configuration: {
+				limits: NIHON_RULES.limits,
+				work: { authority: 'EA s.60A' },
+				jurisdiction: { id: 'v' }
+			},
+			hoursByMonth: new Map([['2026-07', hours]])
+		});
+	assert.deepEqual(issues(104), []);
+	assert.match(
+		issues(108)[0].message,
+		/108 regulated overtime hours in 2026-07, against a 104-hour/
 	);
-	assert.match(issues[0].message, /108 regulated overtime hours in 2026-07, against a 104-hour/);
 });
 
 test('Nihon, refused: 7 consecutive WORK days breaks the weekly rest rule (6)', () => {

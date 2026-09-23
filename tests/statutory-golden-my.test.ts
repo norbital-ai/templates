@@ -892,9 +892,10 @@ test('Malaysia — s.18A prices an incomplete month and unpaid absence on the ca
 
 test('Malaysia — regulation 4’s 104-hour month is a ceiling on the employer, not on the pay', () => {
 	// Employment (Limitation of Overtime Work) Regulations 1980 reg.4: an employer shall not require
-	// overtime beyond 104 hours in a month. s.60A(3)(a) still pays every hour worked at 1.5×; the
-	// engine moves the excess to the INCENTIVE line at the band's own award and reports the
-	// breach. Fourteen January weekdays of eight hours past the shift (18:00 → 02:00) are 112 h.
+	// overtime beyond 104 hours in a month. s.60A(3)(a) still pays every planned hour at 1.5×; the
+	// write stores the planned excess as incentive hours (`splitPlannedOvertime`), paid on the
+	// INCENTIVE line at the band's own award. Fourteen January weekdays of eight hours past the
+	// shift (18:00 → 02:00) are 112 h.
 	const next = (date: string) =>
 		new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 	const { slips, warnings } = buildStatutory(
@@ -956,11 +957,11 @@ test('Malaysia — regulation 4’s 104-hour month is a ceiling on the employer,
 	);
 });
 
-test('MY-nihon — the company incentive boundary sits at eleven hours worked in a day', () => {
-	// The fork's only company term: `funnel_above_hours: "11.0"` on every hourly band —
-	// eleven hours' total work in a day (its own policy, not the s.60A(7) limit), and overtime past
-	// it is the INCENTIVE line at the same s.60A(3)(a) 1.5× the statute owes. 09:00–22:30 is
-	// 12.5 h worked: 4.5 h past the normal eight, of which 3 h reach eleven and 1.5 h lie beyond.
+test('MY-nihon — overtime past twelve hours worked is incentive at the customer’s rate', () => {
+	// The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the
+	// statutory limits — here s.60A(7)'s twelve worked hours a day (`daily_total`). 09:00–22:30 is
+	// 12.5 h worked, 4.5 h past the normal eight at round(2,600 × 12 ÷ (52 × 45)) = 13.33 × 1.5 =
+	// 19.995: 4 h within twelve, 4 × 19.995 = 79.98; 0.5 h beyond, 0.5 × 19.995 = 9.9975 → 10.00.
 	const { slips } = buildStatutory(
 		{
 			code: 'MY-nihon',
@@ -976,13 +977,13 @@ test('MY-nihon — the company incentive boundary sits at eleven hours worked in
 			.get('N-2600')!
 			.adjustments.map((row) => [row.statutory_rule_key, row.quantity, row.amount]),
 		[
-			['OVERTIME:WORKDAY-OT-1.5X', 3, 56.25],
-			['INCENTIVE:WORKDAY-OT-1.5X', 1.5, 28.13]
+			['OVERTIME:WORKDAY-OT-1.5X', 4, 79.98],
+			['INCENTIVE:WORKDAY-OT-1.5X', 0.5, 10]
 		]
 	);
 });
 
-test('Nihon cash allowances enter ordinary pay; the incentive funnel preserves every paid hour', () => {
+test('Nihon cash allowances enter the contribution bases but not the overtime hour', () => {
 	const { slips } = buildStatutory(
 		{
 			code: 'MY-nihon',
@@ -1002,18 +1003,15 @@ test('Nihon cash allowances enter ordinary pay; the incentive funnel preserves e
 		}
 	);
 	const slip = slips.get('N-GROSS')!;
-	// The display funnel preserves overtime's statutory character for contribution bases.
 	assert.equal(slip.statutory.find((row) => row.scheme_code === 'EPF')!.base_amount, 2860);
 	for (const code of ['SOCSO', 'EIS', 'PCB'])
-		assert.equal(slip.statutory.find((row) => row.scheme_code === code)!.base_amount, 2942.51);
+		assert.equal(slip.statutory.find((row) => row.scheme_code === code)!.base_amount, 2939.98);
 
-	// (2,600 + 260) / 26 / 8 = 13.75. Three hours before the daily boundary and one after it.
+	// The customer’s hour is basic only: round(2,600 ÷ 195) = 13.33, not (2,600 + 260) ÷ 26 ÷ 8.
+	// Four hours past the normal eight: 4 × 13.33 × 1.5 = 79.98.
 	assert.deepEqual(
 		slip.adjustments.map((row) => [row.statutory_rule_key, row.quantity, row.amount]),
-		[
-			['OVERTIME:WORKDAY-OT-1.5X', 3, 61.88],
-			['INCENTIVE:WORKDAY-OT-1.5X', 1, 20.63]
-		]
+		[['OVERTIME:WORKDAY-OT-1.5X', 4, 79.98]]
 	);
 });
 
@@ -1124,9 +1122,9 @@ const rostered = (
 	}
 };
 
-test('MY-nihon — a rostered person’s ordinary hour is the shift over the agreed week (s.60I(1)(c))', () => {
-	// NHPMY0339: RM1,700 on 7.5-hour shifts, six days a week. The normal day is the shift's paid
-	// hours, so the ordinary hour is 1,700 ÷ 26 ÷ 7.5 = 8.72 — not the month's rostered minutes
+test('MY-nihon — a rostered person’s hour is the contract week’s, whatever the month rostered', () => {
+	// NHPMY0339: RM1,700 on 7.5-hour shifts, six days a week. The customer’s hour is
+	// 1,700 × 12 ÷ (52 × 45) = 8.7179… → 8.72 to the sen — not the month's rostered minutes
 	// spread over its calendar, which priced the same wage at a different rate every month.
 	const { slips } = buildStatutory(
 		{
@@ -1144,11 +1142,11 @@ test('MY-nihon — a rostered person’s ordinary hour is the shift over the agr
 			];
 		}
 	);
-	// 2 × (1,700 / 26 / 7.5) × 1.5 = 26.153846… → 26.15.
+	// 2 × 8.72 × 1.5 = 26.16.
 	assert.deepEqual(workLines(slips.get('NHPMY0339')!), [
-		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 26.15]
+		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 26.16]
 	]);
-	assert.equal(slips.get('NHPMY0339')!.gross, 1726.15);
+	assert.equal(slips.get('NHPMY0339')!.gross, 1726.16);
 });
 
 test('MY-nihon — a deferred rostered joiner is paid their arrears without a roster in the deferred window', () => {
@@ -1606,19 +1604,18 @@ test('Malaysia — the termination benefit counts a part year to the nearest mon
 	);
 });
 
-test('Malaysia — the 45-hour week counts the scheduled days nobody clocked, and reports the week whose excess nobody did (s.60A(1)(d))', () => {
-	// A six-day, 8-hour pattern is a 48-hour week: three hours beyond s.60A(1)(d) every week.
-	// SIX8-SAT clocks Saturday only: silence is presence for the weekdays, so the week's first
-	// forty hours are theirs and Saturday's 45th to 48th hours are overtime — 3 × 12.50 × 1.5 =
-	// 56.25 (the 44-hour rate week: 2,600 ÷ 26 ÷ 8 = 12.50). SIX8-NONE clocks nothing: no line
-	// can price an unclocked day, and the run says so.
-	const { slips, warnings } = buildStatutory(
+test('Malaysia — the 45-hour week pays nothing from the clock; its excess is paid only where it was planned (s.60A(1)(d))', () => {
+	// A six-day, 8-hour pattern is a 48-hour week: three hours beyond s.60A(1)(d) every week. Since
+	// overtime is planned (owner's rule, 2026-09-23), the weekly limit derives no pay: SIX8-SAT
+	// clocks Saturday and plans nothing, so nothing is paid; SIX8-PLAN plans the three hours on its
+	// Saturday — 3 × 12.50 × 1.5 = 56.25 (the 44-hour rate week: 2,600 ÷ 26 ÷ 8 = 12.50).
+	const { slips } = buildStatutory(
 		{
 			code: 'MY',
 			period: '2026-01',
 			people: [
 				{ key: 'SIX8-SAT', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL },
-				{ key: 'SIX8-NONE', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
+				{ key: 'SIX8-PLAN', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
 			]
 		},
 		(world) => {
@@ -1626,25 +1623,14 @@ test('Malaysia — the 45-hour week counts the scheduled days nobody clocked, an
 			const [monday, , , , , , sunday] = pattern.pattern.days;
 			pattern.pattern = { days: [monday!, monday!, monday!, monday!, monday!, monday!, sunday!] };
 			punch(world, 'SIX8-SAT', '2026-01-10', '09:00', '18:00');
+			punch(world, 'SIX8-PLAN', '2026-01-10', '09:00', '18:00');
+			world.work_days.at(-1)!.approved_overtime_hours = 3;
 		}
 	);
-	assert.deepEqual(workLines(slips.get('SIX8-SAT')!), [
+	assert.deepEqual(workLines(slips.get('SIX8-SAT')!), []);
+	assert.deepEqual(workLines(slips.get('SIX8-PLAN')!), [
 		['2026-01-10', 'WORKDAY-OT-1.5X', 3, 56.25]
 	]);
-	assert.deepEqual(workLines(slips.get('SIX8-NONE')!), []);
-	const unpriced = warnings.filter((line) => line.startsWith('WEEKLY_NORMAL_UNPRICED'));
-	assert.ok(
-		unpriced.some((line) => line.includes('SIX8-NONE')),
-		`the unclocked week is reported:\n${warnings.join('\n')}`
-	);
-	// The Saturday priced its own week; the other weeks of the month, unclocked, are reported.
-	assert.ok(
-		!unpriced.some((line) => line.includes('SIX8-SAT') && line.includes('week of 2026-01-05')),
-		'the clocked Saturday priced its week'
-	);
-	assert.ok(
-		unpriced.some((line) => line.includes('SIX8-SAT') && line.includes('week of 2026-01-12'))
-	);
 });
 
 test('Malaysia — a part-timer’s hours beyond their own day up to a full-timer’s eight are the hourly rate, beyond that 1.5× (Part-Time Employees Regulations 2010 reg. 5)', () => {

@@ -628,7 +628,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `ABSENCE` | Unexplained absence and every unpaid leave day |
 | `NO_PAY_LEAVE` | Unpaid leave days |
 | `ENCASHMENT` | Every encashed leave day |
-| `INCENTIVE` | The overtime lines a band funnelled above its named limit — the hours beyond the statutory ceiling, priced at the band’s award; also inside OVERTIME |
+| `INCENTIVE` | The incentive lines: the planned hours beyond the statutory limits, priced at the band’s award; also inside OVERTIME |
 | `NIGHT_WAGE` | The ordinary (not overtime) hours inside the night window at the ordinary hour — already inside BASE; a law that exempts the whole night-work wage, not only its premium, subtracts it |
 | `ALLOWANCES` | The signed sum of this payslip’s allowance lines whose class counts toward this scheme |
 | `ADHOC` | The signed sum of this payslip’s ad hoc lines (bonus, back pay, separation pay, claw-backs) whose class counts toward this scheme |

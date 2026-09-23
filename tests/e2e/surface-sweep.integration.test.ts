@@ -337,9 +337,10 @@ const UNOPENABLE_FORMS = new Set<string>([]);
  * The scheduling board is a month calendar: a person-day is created by opening the day, not by a
  * table's New. Its other tabs are the entity's shift codes and patterns, which are not events and
  * carry no scope contract. Settings always offers its tabs' own New buttons (under Catalog and
- * Statutory contributions), so it is not one of these.
+ * Statutory contributions), so it is not one of these. Self-Service opens Leave on its Balances
+ * chip; its New Leave Entry sits behind the Leave application chip, which this check does not open.
  */
-const NO_CREATE_SURFACES = new Set(['/app/hr_controller/events/work']);
+const NO_CREATE_SURFACES = new Set(['/app/hr_controller/events/work', '/app/hr_employee']);
 
 /**
  * The New buttons a surface offers: inside its open record sheet when it has one, else the page's.

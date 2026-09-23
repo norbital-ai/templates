@@ -21,7 +21,7 @@ import { CATALOGUE_WORDS, type CatalogueWord } from '../../../lib/expressions/co
 
 /**
  * The reserved lines of the assessment site. `OVERTIME_PREMIUM` is not a line of its own: it is
- * the part of every overtime line within the limits (not funnelled to INCENTIVE) above the
+ * the part of every overtime line within the limits (not planned as INCENTIVE) above the
  * ordinary hour (amount − hours × ordinary hour), the quantity a tax regime exempts where it
  * exempts the premium and not the wage (VN art.4(8) before 1 July 2026).
  */
@@ -33,7 +33,7 @@ export type ReservedLine =
 	| 'ABSENCE'
 	| 'NO_PAY_LEAVE'
 	| 'ENCASHMENT'
-	/** The overtime lines a band funnelled above its named limit — inside OVERTIME as well. */
+	/** The incentive lines: planned hours beyond the statutory limits — inside OVERTIME as well. */
 	| 'INCENTIVE'
 	/**
 	 * What the ordinary hours inside the night window earned at the ordinary hour — already inside
@@ -166,7 +166,7 @@ export function accumulatePayslip(options: {
 				countsTowardOf.set(rowCode, []);
 			}
 			if (reserved === 'OVERTIME') {
-				// The funnelled slice — the hours a band priced above its named limit — is its own
+				// The incentive slice — the planned hours beyond the statutory limits — is its own
 				// magnitude too, for a law that taxes the overrun (VN Decree 253/2026 art.26(3)). Its
 				// premium is not the lawful overtime premium a law exempts (Circular 111/2013
 				// art.3(1)(i)), so it stays out of OVERTIME_PREMIUM and is taxed whole.

@@ -1191,7 +1191,7 @@ const RESERVED_LINES: readonly ContextField[] = [
 	{
 		path: 'INCENTIVE',
 		description:
-			'The overtime lines a band funnelled above its named limit — the hours beyond the statutory ceiling, priced at the band’s award; also inside OVERTIME'
+			'The incentive lines: the planned hours beyond the statutory limits, priced at the band’s award; also inside OVERTIME'
 	},
 	{
 		path: 'NIGHT_WAGE',

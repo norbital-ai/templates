@@ -31,8 +31,7 @@ import {
 	monthKey,
 	requiredDateKey,
 	type IsoDate,
-	addDays,
-	weekStart
+	addDays
 } from '../../collections/payroll_runs/lib/dates.js';
 import type { InLieuSlice } from '../../datatypes/payroll_trace/+definition.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
@@ -54,14 +53,7 @@ import {
 	nightWindowHours,
 	type DailyOvertime
 } from '../../collections/payroll_runs/lib/overtime.js';
-import {
-	INCENTIVE_LINE,
-	OVERTIME_LINE,
-	nightAddsFor,
-	priceWorkDay,
-	workDayHolds,
-	type WorkBandDay
-} from './work-bands.js';
+import { nightAddsFor, priceWorkDay, workDayHolds, type WorkBandDay } from './work-bands.js';
 import {
 	absenceDayRate,
 	ordinaryDayWage,
@@ -73,7 +65,7 @@ import { prorationSegment } from '../../collections/payroll_runs/lib/proration.j
 import { contractAllowancesOn, listedAllowances } from './contract-allowances.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
-import { applicableLimits, monthlyFunnelLimit } from '../scheduling/work-limits.js';
+import { applicableLimits } from '../scheduling/work-limits.js';
 import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
 import { PAY_FREQUENCIES, type PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 import {
@@ -919,13 +911,12 @@ export function calculateWorkAttendance(
 		dayWage,
 		ratesOn
 	} = options.work;
-	// ── overtime: the keyed approval, plus the premium the day type makes of the clock ─────────
+	// ── overtime: the day's planned entries, confirmed by attendance ─────────────────────────────
 	//
 	// `worked_intervals` is the presence test for the actual half of a work day: NULL means no
 	// attendance was recorded at all, while an empty array means the day was read and nothing was
-	// worked. Only attendance can be priced or claimed — a day carrying nothing but a plan has no
-	// clock to measure an hour against and no punch to freeze, and `deriveDailyOvertime` reads the
-	// day's `approved_overtime_hours` only where a clock exists to have earned them.
+	// worked. A day carrying nothing but a plan was not confirmed, so `deriveDailyOvertime` pays its
+	// `approved_overtime_hours` and `incentive_hours` only where the clock shows it was worked.
 	const attendedDays = bundle.workDays.filter((day) => day.worked_intervals != null);
 	// Overtime settles in the window the hours fall in: this employment's own attendance window.
 	const overtimeAttendance = attendance;
@@ -942,43 +933,8 @@ export function calculateWorkAttendance(
 	// The limits that govern this person: a conditional one (`limits[].when`) applies only where
 	// its predicate holds over them.
 	const limits = applicableLimits(configuration.limits, subject);
-	// The week's normal hours, where the version caps them (a `WEEK NORMAL_HOURS` limit: Singapore's
-	// 44, s.38(1)). Hours inside the normal day but past the cap are overtime of the day they fall
-	// on — a week of six 8-hour days earns its 45th to 48th hour at the ordinary-day band. The
-	// running sum reads the days in order, Monday to Sunday, the week the schedule gate measures.
-	const weeklyNormalCap =
-		limits.find((limit) => limit.period === 'WEEK' && limit.measure === 'NORMAL_HOURS')
-			?.max_hours ?? null;
-	// Silence is presence for the wage, so it is presence for the week: a scheduled ordinary day
-	// with no attendance row counts its normal hours in the running sum (MY s.60A(1)(d) on a
-	// six-day 8-hour pattern: the clocked Saturday carries the week's three hours beyond 45 even
-	// when the weekdays were never punched). It is priced by no line of its own — a day with no
-	// clock has no hour to price — and a week whose excess falls on such days is reported.
-	const weekNormalRunning = new Map<string, number>();
-	const weekExcessPriced = new Map<string, number>();
-	const attendedDates = new Set(clockedDays.map((row) => row.workDate));
-	const unclockedByWeek = new Map<string, { date: IsoDate; hours: number }[]>();
-	if (weeklyNormalCap != null)
-		for (const [date, day] of schedule)
-			if (
-				date >= complianceWindow.start &&
-				date <= complianceWindow.end &&
-				!attendedDates.has(date) &&
-				day.dayType === 'ORDINARY' &&
-				day.shift != null
-			) {
-				const week = weekStart(date);
-				const rows = unclockedByWeek.get(week) ?? [];
-				rows.push({ date, hours: Math.min(day.shift.paid_minutes / 60, day.normalHours) });
-				unclockedByWeek.set(week, rows);
-			}
-	const countUnclockedBefore = (week: string, date: IsoDate) => {
-		for (const row of unclockedByWeek.get(week) ?? [])
-			if (row.date < date) {
-				weekNormalRunning.set(week, (weekNormalRunning.get(week) ?? 0) + row.hours);
-				row.hours = 0;
-			}
-	};
+	// A weekly or daily normal-hours limit prices nothing here: hours beyond it pay only as the
+	// day's planned entries (owner's rule, 2026-09-23). Clock time never pays.
 	for (const { entry, workDate } of clockedDays) {
 		const day = schedule.get(workDate);
 		if (!day) continue;
@@ -1000,16 +956,6 @@ export function calculateWorkAttendance(
 			subject
 		);
 		const worked = daily?.totalWorkHours ?? dailyWorkedHours(clocked, day, offset);
-		let weeklyExcess = 0;
-		if (weeklyNormalCap != null && day.dayType === 'ORDINARY') {
-			const withinNormal = Math.min(Math.max(0, worked), day.normalHours);
-			const week = weekStart(workDate);
-			countUnclockedBefore(week, workDate);
-			const running = (weekNormalRunning.get(week) ?? 0) + withinNormal;
-			weekNormalRunning.set(week, running);
-			weeklyExcess = Math.min(withinNormal, Math.max(0, running - weeklyNormalCap));
-			weekExcessPriced.set(week, (weekExcessPriced.get(week) ?? 0) + weeklyExcess);
-		}
 		// An unworked holiday the person's calendar recorded (a day read and found empty) is a
 		// band day of zero hours: the first band that holds prices it by amount — a regular
 		// holiday's day wage (PH art.94), a holiday on a non-working day (SG s.88).
@@ -1017,22 +963,22 @@ export function calculateWorkAttendance(
 			daily == null &&
 			worked <= 0 &&
 			(day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY');
-		const derived =
+		const derived: DailyOvertime | null =
 			daily == null
-				? weeklyExcess > 0 || unworkedHoliday
+				? unworkedHoliday
 					? {
 							date: workDate,
 							workDayId: entry.id,
 							dayType: day.dayType,
-							hours: weeklyExcess,
+							hours: 0,
+							incentiveHours: 0,
 							normalHours: day.normalHours,
 							totalWorkHours: worked,
 							breakMinutes: clocked.break_minutes,
-							restBreak: null,
-							restBreakDeductedHours: 0
+							restBreak: null
 						}
 					: null
-				: { ...daily, hours: daily.hours + weeklyExcess };
+				: daily;
 		const nightHours =
 			configuration.nightPremium == null
 				? 0
@@ -1056,11 +1002,15 @@ export function calculateWorkAttendance(
 			workDayId: derived.workDayId,
 			date: derived.date,
 			dayType: derived.dayType,
-			// Net of the unpaid statutory break the day owed and did not take: a rest-day clock the
-			// break is not working time on is priced from the start over the payable hours.
-			workedHours: derived.totalWorkHours - derived.restBreakDeductedHours,
+			// The planned day, never the clock: the normal day plus the planned hours on an ordinary
+			// or off day, the planned hours alone on a rest day or holiday.
+			workedHours:
+				day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY'
+					? derived.normalHours + derived.hours
+					: derived.hours,
 			normalHours: derived.normalHours,
 			overtimeHours: derived.hours,
+			incentiveHours: derived.incentiveHours,
 			breakMinutes: clocked.break_minutes,
 			holidayKind: configuration.holidays.get(workDate)?.kind ?? '',
 			holidayName: configuration.holidays.get(workDate)?.name ?? '',
@@ -1119,12 +1069,13 @@ export function calculateWorkAttendance(
 	// the overtime rule has no regulated hours to cap, so the ceiling is not reported against them.
 	// Counted over the days `counts` admits: the whole calendar months for this run's report, the
 	// attendance window for what this payslip settles and a later run's quarter or year reads.
-	const funnelLimit = monthlyFunnelLimit(limits);
 	const countOvertime = (counts: (date: IsoDate) => boolean) => {
 		const regulatedByMonth = new Map<string, number>();
 		// The wider count an ALL_OVERTIME_HOURS limit reads: rest-day and holiday hours beyond the
-		// normal day too (MOM on SG's 72-hour month). Reported, never funnelled.
+		// normal day too (MOM on SG's 72-hour month). Reported only.
 		const allByMonth = new Map<string, number>();
+		// Every planned hour, incentive included: storing the excess as incentive pays it, and does
+		// not undo the breach the ceiling reports (MY reg.4 limits the hours required).
 		for (const day of overtimeDays) {
 			if (!counts(day.date) || !paymentEligibleOn(day.date)) continue;
 			const calendarMonth = monthKey(day.date);
@@ -1140,10 +1091,6 @@ export function calculateWorkAttendance(
 		// counts the hours past the normal day (TW: past eight on a 例假 or §37 休假日). Emergency
 		// days stay outside, as above.
 		const byLimit = new Map<string, Map<string, number>>();
-		// What the monthly funnel counts: the regulated hours plus the whole days its limit's
-		// `counts_day_when` adds — never the holiday hours `counts_beyond_normal_when` adds, which
-		// the tax exemption leaves out of the month (財政部 74 台財稅第16713號 item 3).
-		const funnelByMonth = new Map(regulatedByMonth);
 		for (const limit of limits) {
 			if (
 				(limit.measure !== 'OVERTIME_HOURS' && limit.measure !== 'ALL_OVERTIME_HOURS') ||
@@ -1178,12 +1125,10 @@ export function calculateWorkAttendance(
 					const month = monthKey(day.date);
 					const added = (everyHour ? day.workedHours : beyondNormal) - counted;
 					byMonth.set(month, (byMonth.get(month) ?? 0) + added);
-					if (everyHour && limit === funnelLimit)
-						funnelByMonth.set(month, (funnelByMonth.get(month) ?? 0) + added);
 				}
 			byLimit.set(limit.key, byMonth);
 		}
-		return { regulatedByMonth, allByMonth, byLimit, funnelByMonth };
+		return { regulatedByMonth, allByMonth, byLimit };
 	};
 	const {
 		regulatedByMonth: calendarMonthOvertimeHours,
@@ -1193,9 +1138,9 @@ export function calculateWorkAttendance(
 	const settled = countOvertime(
 		(date) => date >= overtimeAttendance.start && date <= overtimeAttendance.end
 	);
-	// What this payslip settled, as each ceiling counts it; `''` is the count the monthly funnel
-	// reads. Persisted on the run's trace for the next run's quarter and year.
-	const settledOvertimeHours = new Map([['', settled.funnelByMonth], ...settled.byLimit]);
+	// What this payslip settled, as each ceiling counts it; `''` is the regulated count. Persisted
+	// on the run's trace for the next run's quarter and year.
+	const settledOvertimeHours = new Map([['', settled.regulatedByMonth], ...settled.byLimit]);
 
 	// ── absent days: a rostered day with no time entry ─────────────────────────────────────
 	//
@@ -1217,15 +1162,6 @@ export function calculateWorkAttendance(
 	// A REST or OFF day, a holiday, and a day outside the attendance window are all no-ops. DAILY
 	// and HOURLY employments are not deducted here: their base pay is earned units, so an absent
 	// day simply earns nothing (see below).
-	// The weeks whose hours beyond the cap fall on unclocked scheduled days: nothing priced them.
-	const unpricedWeeks: { week: string; hours: number }[] = [];
-	if (weeklyNormalCap != null)
-		for (const [week, rows] of unclockedByWeek) {
-			const running =
-				(weekNormalRunning.get(week) ?? 0) + rows.reduce((sum, row) => sum + row.hours, 0);
-			const unpriced = Math.max(0, running - weeklyNormalCap) - (weekExcessPriced.get(week) ?? 0);
-			if (unpriced > 0) unpricedWeeks.push({ week, hours: unpriced });
-		}
 	const absentDays = options.work.absentDaysIn(attendance);
 	const absentAdjustments: MeasuredAdjustment[] =
 		absentDays.length === 0 ||
@@ -1315,26 +1251,11 @@ export function calculateWorkAttendance(
 					];
 				});
 	const nightShiftHours = nightDays.reduce((total, day) => total + day.ordinary + day.overtime, 0);
-	const capped = funnelMonthlyOvertime({
-		rows: measureWorkBands({
-			work: { ...configuration.work, limits },
-			personOn: (date) => ratesOn(date).person,
-			days: pricedBandDays,
-			ratesOn,
-			catalogueComponents: configuration.catalogueComponents,
-			currency: options.work.currency
-		}),
+	const bandRows = measureWorkBands({
+		work: { ...configuration.work, limits },
+		personOn: (date) => ratesOn(date).person,
 		days: pricedBandDays,
-		limits,
-		holds: (expression, day) =>
-			workDayHolds({
-				work: configuration.work,
-				expression,
-				person: ratesOn(day.date).person,
-				day,
-				rates: ratesOn(day.date)
-			}),
-		prior: options.priorOvertimeHours?.get('') ?? new Map(),
+		ratesOn,
 		catalogueComponents: configuration.catalogueComponents,
 		currency: options.work.currency
 	});
@@ -1429,7 +1350,7 @@ export function calculateWorkAttendance(
 				])
 	];
 	const adjustments = [
-		...capped.rows,
+		...bandRows,
 		...(nightPremium == null
 			? []
 			: measureNightPremium({
@@ -1468,8 +1389,6 @@ export function calculateWorkAttendance(
 		nightShiftHours,
 		/** The rostered days with no punch and no leave, for an allowance that loses unpaid days. */
 		absentDays,
-		/** Weeks whose normal hours beyond the weekly cap fall on scheduled days nobody clocked. */
-		unpricedWeeks,
 		/** Overtime elected as time off in lieu, with what the day's bands would have paid. */
 		inLieuNotes,
 		/** This payslip's in-lieu credits and payouts, for the trace a later run reads. */
@@ -1962,9 +1881,9 @@ function measureNightPremium(options: {
  * Work bands, priced from the clocks and the version's own rules.
  *
  * Each day's facts go to `priceWorkDay`; every row it returns is one payslip line, one row per
- * (work day × band × class), settled under the component whose output is `line:label`. The funnel
- * has already moved the hours above the named limit to the funnel line at the band's own award,
- * so the incentive keeps the multiple of the band the hours came from.
+ * (work day × band × class), settled under the component whose output is `line:label`, with the
+ * work day as its provenance. The day's planned incentive hours settle on the band's INCENTIVE
+ * line at the band's own award.
  */
 function measureWorkBands(options: {
 	readonly work: Configuration['work'];
@@ -2142,102 +2061,6 @@ function settleTimeOffInLieu(options: {
 	};
 }
 
-/**
- * The monthly overtime ceiling is a funnel, not a refusal: regulated overtime beyond the cap in a
- * calendar month is paid as incentive at the band's own multiple, exactly as a day's hours past
- * the daily ceiling are. The cap counts the month's earlier paid runs first, so a window that
- * straddles two months continues each month from where the last run left it; within the month
- * the hours fill it in the order they were worked.
- */
-export function funnelMonthlyOvertime(options: {
-	readonly rows: readonly MeasuredAdjustment[];
-	readonly days: readonly WorkBandDay[];
-	readonly limits: Configuration['limits'];
-	/** Whether a limit's day predicate (`counts_day_when`) holds on a day. */
-	readonly holds: (expression: string, day: WorkBandDay) => boolean;
-	readonly prior: ReadonlyMap<string, number>;
-	readonly catalogueComponents: readonly CatalogueComponent[];
-	readonly currency: string;
-}): { readonly rows: MeasuredAdjustment[]; readonly funnelledHours: ReadonlyMap<string, number> } {
-	const limit = monthlyFunnelLimit(options.limits);
-	if (limit == null) return { rows: [...options.rows], funnelledHours: new Map() };
-	const maxHours = decodeNumber(limit.max_hours);
-	const dayOf = new Map(options.days.map((day) => [day.workDayId, day]));
-	// Rest-day and holiday work is not overtime for the ceiling (MY EA s.60A(4)(a)), so it neither
-	// counts toward it nor funnels: the same `regulated` split the monthly count reads. A day the
-	// limit's `counts_day_when` holds on counts and funnels with the rest (TW 勞基法 §36(3): 休息日
-	// hours enter the §32(2) month, and their pay is tax-free only inside it).
-	const unregulated = new Set(['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY']);
-	const whole = (limit.counts_day_when ?? '').trim();
-	const incentiveFor = (label: string) => {
-		const component = options.catalogueComponents.find(
-			(row) => row.family === 'WORK' && row.output === `${INCENTIVE_LINE}:${label}`
-		);
-		if (component == null)
-			throw new Error(
-				`The monthly overtime ceiling funnels ${label} hours to ${INCENTIVE_LINE} ${label}, which has no pay item to settle under.`
-			);
-		return component;
-	};
-	const running = new Map<string, number>();
-	const funnelled = new Map<string, number>();
-	const rows: MeasuredAdjustment[] = [];
-	const ordered = options.rows
-		.map((row, index) => {
-			const day = dayOf.get(row.input.id);
-			return {
-				row,
-				index,
-				date: day?.date ?? '',
-				regulated:
-					day != null &&
-					day.emergency !== true &&
-					(!unregulated.has(day.dayType) || (whole !== '' && options.holds(whole, day)))
-			};
-		})
-		.toSorted((left, right) => left.date.localeCompare(right.date) || left.index - right.index);
-	for (const { row, date, regulated } of ordered) {
-		const overtime =
-			regulated &&
-			row.input.family === 'WORK_DAY' &&
-			row.catalogueComponent.output?.startsWith(`${OVERTIME_LINE}:`) === true &&
-			row.quantity != null &&
-			row.quantity > 0 &&
-			date !== '';
-		if (!overtime) {
-			rows.push(row);
-			continue;
-		}
-		const month = monthKey(date);
-		const before = running.get(month) ?? options.prior.get(month) ?? 0;
-		const hours = row.quantity!;
-		const excess = Math.min(hours, Math.max(0, before + hours - maxHours));
-		running.set(month, before + hours);
-		if (excess <= 0) {
-			rows.push(row);
-			continue;
-		}
-		funnelled.set(month, (funnelled.get(month) ?? 0) + excess);
-		const incentive = incentiveFor(row.label);
-		const excessAmount = cents((row.amount * excess) / hours, options.currency);
-		if (hours - excess > 0)
-			rows.push({
-				...row,
-				quantity: hours - excess,
-				amount: cents(row.amount - excessAmount, options.currency)
-			});
-		rows.push({
-			...row,
-			catalogueComponent: incentive,
-			bucket: settlementBucket(incentive.destination, incentive.direction),
-			quantity: excess,
-			amount: excessAmount,
-			statutoryRuleKey: `${INCENTIVE_LINE}:${row.label}`
-		});
-	}
-	return { rows, funnelledHours: funnelled };
-}
-
 export function prepareWorkSteps(
 	options: Omit<MeasureComponentOptions, 'component' | 'entry'>
 ): readonly import('./family.js').FamilyStep[] {
@@ -2331,18 +2154,6 @@ export function validateWorkResult(options: {
 	const ownDays = measured.overtimeDays.filter(
 		(day) => day.date >= attendance.start && day.date <= attendance.end
 	);
-	for (const { week, hours } of measured.unpricedWeeks)
-		issues.push({
-			code: 'WEEKLY_NORMAL_UNPRICED',
-			severity: 'WARNING',
-			message:
-				`${bundle.employment.employee_number}'s week of ${week} projects ${hours.toFixed(2)} normal ` +
-				'hours beyond the weekly limit on scheduled days with no attendance recorded. The run will ' +
-				'still be built; those hours are overtime the law owes and are priced only from attendance ' +
-				'— record the days, or shorten the pattern.',
-			collection: 'employments',
-			recordId: bundle.employment.id
-		});
 	for (const limit of measured.limits) {
 		if (limit.period !== 'DAY') continue;
 		if (limit.measure === 'TOTAL_WORK_HOURS')

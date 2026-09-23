@@ -205,7 +205,7 @@ A separate payroll regression pays MYR59.27 of a MYR260 monthly allowance for 29
 using `260 × (2/30 + 5/31)` and retaining the weekly basic salary. These cases failed before
 the weekly encashment profile and allowance-unit corrections.
 
-`statutory-golden-my.test.ts` preserves Nihon's excess-hours incentive funnel and checks the
+`statutory-golden-my.test.ts` preserves Nihon's incentive hours (planned OT above the statutory limits) and checks the
 ordinary wage including fixed allowances, work-date salary changes, and EPF/SOCSO/EIS/PCB bases.
 `statutory-golden-ph.test.ts` checks paid-day exemption history across a salary increase and the
 shared ₱90,000 pool for excess leave, excess rice subsidy, bonus and 13th-month pay. Missing paid

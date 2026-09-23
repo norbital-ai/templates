@@ -23,10 +23,19 @@ import {
 } from '../../src/collections/payroll_runs/lib/engine.ts';
 import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
 import { prepareWorkContext } from '../../src/lib/payroll/work.ts';
-import { dailyWorkedHours } from '../../src/collections/payroll_runs/lib/overtime.ts';
-import { derivedBreakMinutes } from '../../src/lib/scheduling/rest-break.ts';
+import {
+	dailyWorkedHours,
+	nightWindowHours
+} from '../../src/collections/payroll_runs/lib/overtime.ts';
+import { derivedBreakMinutes, restBreakAssessment } from '../../src/lib/scheduling/rest-break.ts';
 import { roundMinute } from '../../src/collections/payroll_runs/lib/rounding.ts';
 import { offsetMinutesFor } from '../../src/lib/timezone.ts';
+import {
+	applicableLimits,
+	funnelledLimitKeys,
+	splitPlannedOvertime
+} from '../../src/lib/scheduling/work-limits.ts';
+import { decodeNumber } from '@norbital-ai/std/json';
 import type { PayslipProration } from '../../src/datatypes/payslip_proration/+definition.ts';
 import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
 
@@ -711,14 +720,15 @@ export const COMPANY = '__company__';
 export type BuiltPayslip = ReturnType<typeof buildPayrollRun>['payslip_payroll_run'][number];
 
 /**
- * Keys each punched day's clock overrun as approved overtime.
+ * Plans each punched day's clocked overtime, stored as the `work_days` transform would store it.
  *
- * These suites price statutes — bands, rates, rest-day and holiday multiples — not the approval
- * gate. Before overtime was keyed, `deriveDailyOvertime` measured each punched day's overrun itself;
- * the fixtures now state that same figure as the employer's approval, in one place, so every golden
- * keeps verifying the pricing it was written for. The gate itself is pinned in
- * `overtime-derivation.test.ts` and the workbook import tests, and a fixture that keys an approval
- * larger or smaller than its clock can do so before this runs.
+ * These suites price statutes — bands, rates, rest-day and holiday multiples — not the plan. Since
+ * overtime is planned (owner's rule, 2026-09-23), a day pays only its planned entries, so the
+ * fixtures state each punched day's clock as its plan, in one place: the hours beyond the normal
+ * day on an ordinary day, every worked hour on a rest, off or holiday day. The total is then split
+ * the way the transform splits it (`splitPlannedOvertime`, over the version's limits that split),
+ * so what the payroll-time funnel used to move to INCENTIVE is stored as incentive hours instead.
+ * A fixture that plans a day itself can do so before this runs.
  *
  * The resolved schedule is the engine's own (`prepareWorkContext`), so the boundary is the day the
  * run will price — shift, holiday and pattern included — and never a fixture's idea of a normal day.
@@ -733,6 +743,7 @@ function keyClockOverruns(prepared: PreparedRun): void {
 			salary: prepared.window.salary,
 			employed: bundle.employedDays ?? bundle.attendance
 		});
+		const planned = new Map<string, (typeof punched)[number]>();
 		for (const entry of punched) {
 			if (entry.approved_overtime_hours != null) continue;
 			const workDate = String(entry.work_date).slice(0, 10);
@@ -747,7 +758,55 @@ function keyClockOverruns(prepared: PreparedRun): void {
 				workDate
 			);
 			const observed = dailyWorkedHours(clocked, day, offset);
-			entry.approved_overtime_hours = roundMinute(Math.max(0, observed - day.normalHours));
+			// A rest, off or holiday day plans every worked hour, less a statutory break the day owed
+			// and did not take where the statute says it is not work (ID ps.79(2)(a)).
+			const night = prepared.configuration.nightPremium;
+			const measuredNight =
+				night == null ? null : nightWindowHours(clocked, night, day.shift, offset);
+			const shortfall = restBreakAssessment({
+				intervals: entry.worked_intervals ?? [],
+				breakMinutes: clocked.break_minutes,
+				breaks: prepared.configuration.breaks,
+				overtimeHours: observed,
+				nightHours: measuredNight == null ? 0 : measuredNight.ordinary + measuredNight.overtime,
+				person: work.subject
+			});
+			const unpaid =
+				shortfall.rule?.counts_as_worked_time === false
+					? (shortfall.shortfallMinutes ?? 0) / 60
+					: 0;
+			entry.approved_overtime_hours = roundMinute(
+				Math.max(0, day.dayType === 'ORDINARY' ? observed - day.normalHours : observed - unpaid)
+			);
+			planned.set(workDate, entry);
+		}
+		if (planned.size === 0) continue;
+		const limits = applicableLimits(prepared.configuration.limits, work.subject);
+		const split = splitPlannedOvertime({
+			days: [...work.schedule.values()].map((day) => ({
+				date: day.date,
+				kind: day.restDay ? 'REST' : day.shift != null ? 'WORK' : 'OFF',
+				paid_minutes: day.shift?.paid_minutes ?? 0,
+				break_minutes: day.shift?.break_minutes ?? 0,
+				spread_hours: 0,
+				holiday: day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY',
+				emergency:
+					bundle.workDays.find((entry) => String(entry.work_date).startsWith(day.date))
+						?.emergency_cause === true,
+				total_overtime_hours: decodeNumber(
+					bundle.workDays.find((entry) => String(entry.work_date).startsWith(day.date))
+						?.approved_overtime_hours ?? 0
+				)
+			})),
+			limits,
+			caps: funnelledLimitKeys(prepared.configuration.work, limits),
+			cutoffDay: prepared.configuration.company.pay_cutoff_day
+		});
+		for (const [date, entry] of planned) {
+			const row = split.get(date);
+			if (row == null) continue;
+			entry.approved_overtime_hours = row.approved_overtime_hours;
+			entry.incentive_hours = row.incentive_hours;
 		}
 	}
 }

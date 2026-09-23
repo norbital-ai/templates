@@ -239,8 +239,6 @@ export type MeasuredEmployment = {
 	readonly settledOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/** The in-lieu slices this payslip credited and paid, for the trace a later run reads. */
 	readonly inLieuSlices?: readonly InLieuSlice[];
-	/** Weeks whose normal hours beyond the weekly cap fall on scheduled days nobody clocked. */
-	readonly unpricedWeeks: readonly { readonly week: string; readonly hours: number }[];
 	readonly currency: string;
 	readonly schedule: ReadonlyMap<IsoDate, ScheduledDay>;
 	/** The version's limits that govern this person, the conditional ones (`limits[].when`) judged. */

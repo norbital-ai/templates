@@ -43,6 +43,7 @@
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import EffectiveRangeRenderer from '../../lib/ui/effective-range-renderer.svelte';
+	import { leavePeriodWhere } from '../../lib/leave/activity-fields.js';
 
 	/** Terms as the profile reads them: the pointer, and the named pattern riding the `with`. */
 	type EmploymentTerm = Pick<
@@ -528,9 +529,7 @@
 				query={{
 					where: {
 						...byContract,
-						// The period's leave: any event whose days overlap the window.
-						from_date: { lt: pay.bounds.end },
-						to_date: { gte: pay.bounds.start }
+						...leavePeriodWhere(pay.bounds)
 					},
 					orderBy: { effective_on: 'desc' }
 				}}
@@ -760,6 +759,7 @@
 <!-- Tab content must be snippets (TabConfig.content); the shell always renders tabs so no snippet is ever render-called elsewhere. -->
 <RecordShell
 	{subtitle}
+	kind={t('app.people.profiles_title')}
 	tabs={[
 		{ name: 'person', label: t('component.person'), icon: 'lucide:user', content: person },
 		...(record

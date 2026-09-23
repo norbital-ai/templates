@@ -183,6 +183,18 @@ function longFormOvertimeRows(table: SheetTable): readonly OvertimeImportRow[] {
 }
 
 /**
+ * The person-days a scheduling file sets, each created or restated by the import. The pipeline
+ * writes restated days itself (and, when a file both restates and creates, the new ones too), so
+ * the host's count of returned rows is not the import's.
+ */
+export const schedulingImportDays = (payload: SchedulingImportPayload): number =>
+	new Set(
+		[...(payload.roster ?? []), ...(payload.attendance ?? []), ...(payload.overtime ?? [])].map(
+			(row) => `${row.employee_number}\t${row.work_date}`
+		)
+	).size;
+
+/**
  * The whole scheduling workbook: one legal entity and one month from the Settings sheet, the
  * Roster sheet as the plan and the Time entries sheet as the attendance. A sheet the file does
  * not carry stays absent, so the pipeline leaves that half of every day alone; a sheet it carries

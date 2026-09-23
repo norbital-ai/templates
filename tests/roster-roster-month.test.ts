@@ -13,7 +13,7 @@ import test from 'node:test';
 import { PAYROLL_TIME_ZONE } from '../src/lib/iso-day.ts';
 import {
 	assessAttendanceDraft,
-	beyondScheduleMinutes,
+	beyondPlanMinutes,
 	buildRosterMonth,
 	indexWorkDaysByPersonDay,
 	clockToDayMinutes,
@@ -361,23 +361,23 @@ test('a clock reading that is not a clock reading is refused rather than coerced
 	assert.equal(clockToDayMinutes('8:16', 0), null);
 });
 
-/* ── Beyond schedule, which is derived and read-only ──────────────────────────────────────────── */
+/* ── Beyond the plan, which is unplanned time and never overtime ─────────────────────────────── */
 
-test('beyond schedule is the difference between two numbers, never an input', () => {
+test('beyond the plan measures the clock past shift plus planned overtime, never an input', () => {
 	const planned = {
 		shiftStart: '08:00',
 		shiftEnd: '17:00',
 		shiftBreakMinutes: 60,
+		approvedOvertimeHours: null,
 		workedMinutes: 504
 	};
 	assert.equal(scheduledMinutes(planned), 480);
-	assert.equal(beyondScheduleMinutes(planned), 24);
+	assert.equal(beyondPlanMinutes(planned), 24);
+	// Planned overtime is part of the plan: the same clock is now short of it, not over.
+	assert.equal(beyondPlanMinutes({ ...planned, approvedOvertimeHours: 2 }), -96);
 	// An unplanned day has nothing to be beyond, and an open one has no total to compare.
-	assert.equal(
-		beyondScheduleMinutes({ shiftStart: null, shiftEnd: null, workedMinutes: 504 }),
-		null
-	);
-	assert.equal(beyondScheduleMinutes({ ...planned, workedMinutes: null }), null);
+	assert.equal(beyondPlanMinutes({ shiftStart: null, shiftEnd: null, workedMinutes: 504 }), null);
+	assert.equal(beyondPlanMinutes({ ...planned, workedMinutes: null }), null);
 });
 
 test('a shift crossing midnight is measured the way the publish check measures it', () => {

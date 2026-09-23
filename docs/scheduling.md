@@ -19,13 +19,14 @@ always reference the contract. Only one contract for a person/entity pair can co
 contracts in other entities may be active simultaneously. Rehire starts a new contract. A sealed
 contract's departure is recorded separately and does not create Leave or Payment entries.
 
-Three scheduling layers have distinct meanings:
+Four scheduling layers have distinct meanings:
 
-| Layer      | Stored input                                 | Meaning                                        |
-| ---------- | -------------------------------------------- | ---------------------------------------------- |
-| Base       | Terms reference a named `shift_patterns` row | The contractual schedule projected onto a date |
-| Assignment | `work_days.shift_definition_id`              | An explicit plan for that contract/date        |
-| Attendance | `work_days.worked_intervals`                 | The observed time worked; the break is derived |
+| Layer      | Stored input                                 | Meaning                                         |
+| ---------- | -------------------------------------------- | ----------------------------------------------- |
+| Base       | Terms reference a named `shift_patterns` row | The contractual schedule projected onto a date  |
+| Assignment | `work_days.shift_definition_id`              | An explicit plan for that contract/date         |
+| Overtime   | `approved_overtime_hours`, `incentive_hours` | Overtime planned with the shift, and its excess |
+| Attendance | `work_days.worked_intervals`                 | Presence against the plan; the break is derived |
 
 The shift assignment is one column of the contract's terms: `employment_terms.shift_pattern_id`,
 always set. The days a week the contract works live in the pattern and nowhere else
@@ -49,6 +50,13 @@ A Work row with an empty interval list records absence unless approved Leave cov
 patterned contract, no row means worked to the base with no overtime. For rostered contracts, missing
 assignments remain visible and contractual workload checks prevent an unmet guarantee being treated
 as a valid month.
+
+Overtime is planned, like a rostered shift: the month board and the person's calendar print it in
+the day's cell beside the shift code (`D` / `+2h OT · +1h inc`), and the day sheet keys the day's
+total in the Planned section and previews its split at the limit. Attendance is drawn only as a
+presence check against shift plus planned overtime —
+present, partial or absent. Clock time beyond that plan is shown on the day sheet as unplanned and
+is never presented as overtime or paid.
 
 Patterned changes are validated against the required monthly days and paid minutes. Rostered
 changes are validated against their stated guarantee or cap. Assignment and attendance are separate
@@ -95,41 +103,34 @@ Controller → Events → Work is the operational month board. People holds the 
 terms; Settings → Catalog holds family calculation definitions. The board identifies projected base,
 explicit assignments and clocked time so an implied schedule cannot be confused with an observation.
 
-A workbook may carry planned roster data, actual attendance and the approved overtime:
+A workbook may carry planned roster data, actual attendance and the planned overtime:
 
 ```text
 planned code  → resolve WORK / REST / OFF assignment
 blank cell    → no explicit assignment
 PH token      → validate against the entity's published holidays
 punch columns → normalize worked intervals
-OT hours      → key the approved overtime for the day
+OT hours      → key the day's total planned overtime (split into overtime and incentive hours)
 ```
 
 Import does not manufacture holiday rows or personal holiday scope, and it never derives overtime:
-the Overtime sheet's half-hour cells are the employer's approval, stored on the day as
-`work_days.approved_overtime_hours`, breaks included. A file still carrying the retired
-`overtime_in`/`overtime_out` columns is refused by name rather than imported with its overtime
+the Overtime sheet's half-hour cells are the day's total planned overtime, breaks included. The
+write splits it at the version's overtime limit: the hours within it are stored as
+`work_days.approved_overtime_hours`, and only the excess as `work_days.incentive_hours`. A file
+still carrying the retired `overtime_in`/`overtime_out` columns is refused by name rather than imported with its overtime
 silently dropped. Overlap normalization and source evidence belong to import; the resulting Work
 rows follow the ordinary validation and approval path.
 
-Overtime follows this order:
-
-1. Resolve effective contract terms and the base schedule.
-2. Apply dated assignments and the entity's holiday classification.
-3. Validate and measure observed intervals.
-4. Read the day's approved hours and price the applicable Work bands.
-5. Apply dated floors, compliance controls and the payroll settlement window.
-
-Overtime is an input, not a derivation: payroll pays the keyed approval and nothing else beyond the
-shift, and an hour the clock shows past the shift with no approval earns nothing. On a REST, OFF or
-observed public holiday the observed day up to the normal day is premium work by the roster and the
-calendar, and only the hours beyond that boundary are the approved figure. The clock still decides
-the ordinary part of the day, the day type, the night window and the statutory rest-break
-assessment, and a day with no attendance pays no overtime whatever its approval says.
+Overtime is an input, not a derivation. It is planned on the day like a rostered shift, as two
+entries: `approved_overtime_hours` within the statutory limits and `incentive_hours` for the excess.
+Payroll turns each entry into a payslip line — hours × rate × the day type's multiple — the way a
+leave entry becomes a line. Attendance only confirms the person was present for the plan; clock time
+beyond the plan never pays. On a REST, OFF or observed public holiday only the planned entries pay:
+the clock adds no premium.
 
 The ordinary approval policy remains authoritative. Paying hours that were approved does not
-establish that the schedule complied with working-time requirements. Detailed band pricing, the
-incentive funnel, limits, breaks and coverage rules remain in
+establish that the schedule complied with working-time requirements. Detailed band pricing,
+limits, breaks and coverage rules remain in
 [Architecture](architecture.md#work-calculation).
 
 ## Time-off interaction
@@ -169,8 +170,8 @@ to its window; a multi-month absence is not charged entirely to the first month.
 | Contract, terms and named pattern reference                     | Service scope and projected base                           |
 | Roster-code variant and explicit dated assignment               | Normal minutes, final day type and workload                |
 | Published holiday rows and an entry's own pay link              | Holiday classification for each date                       |
-| Observed intervals and break minutes                            | Open/closed state, duration and premium value              |
-| Approved overtime hours, keyed on the day                       | The payable overtime beyond the shift                      |
+| Observed intervals and break minutes                            | Open/closed state and presence against the plan            |
+| Planned overtime and incentive hours, keyed on the day          | The payable time beyond the shift                          |
 | Approved activity, half-day range and frozen dated charges      | Calendar presentation and period-specific charge selection |
 | Manual carry/encashment/correction terms and source allocations | Balance, expiry and outstanding monetary obligations       |
 | Effective family catalogues and contract facts                  | Eligibility, entitlement, statutory opt-ins and amounts    |

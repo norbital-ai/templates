@@ -38,7 +38,10 @@
 	import { setDayDraftContext } from '../../../lib/ui/roster/day-draft.js';
 	import { toast } from 'svelte-sonner';
 	import { runWorkbookImport } from '../../../lib/ui/workbook-import.js';
-	import { schedulingImportPayload } from '../../../collections/work_days/lib/import-workbook.js';
+	import {
+		schedulingImportDays,
+		schedulingImportPayload
+	} from '../../../collections/work_days/lib/import-workbook.js';
 	import {
 		schedulingTemplateWorkbook,
 		XLSX_MEDIA_TYPE
@@ -641,7 +644,8 @@
 			{
 				collectionName: 'work_days',
 				recordLabel: t('component.work_days'),
-				buildPayload: schedulingImportPayload
+				buildPayload: schedulingImportPayload,
+				importedCount: schedulingImportDays
 			},
 			t
 		);
