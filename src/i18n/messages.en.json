@@ -76,6 +76,8 @@
 	"component.provider_agent": "{provider} agent",
 	"component.not_recorded": "Not recorded",
 	"component.status_and_activity": "Status and activity",
+	"component.new_site_by_address": "New site by address",
+	"component.site_address": "Site address",
 	"component.add_site": "Add site",
 	"component.create_assignment": "Create assignment",
 	"component.evidence_write_only": "A photo evidence record is written when an image is ingested and hashed, never by hand.",

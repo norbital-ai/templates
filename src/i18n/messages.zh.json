@@ -76,6 +76,8 @@
 	"component.provider_agent": "{provider} 代理",
 	"component.not_recorded": "未记录",
 	"component.status_and_activity": "状态与活动",
+	"component.new_site_by_address": "按地址新建工地",
+	"component.site_address": "工地地址",
 	"component.add_site": "添加工地",
 	"component.create_assignment": "创建分配",
 	"component.evidence_write_only": "照片证据记录在图像被采集并哈希后写入，从不手工创建。",

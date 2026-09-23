@@ -1,4 +1,5 @@
-import { defineModel, enums, geolocation, numeric, text } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, geolocation, numeric, sql, text } from '@norbital-ai/bolt/authoring';
+import { siteKeySql } from '../../lib/site-key.mjs';
 
 export default defineModel(
 	{
@@ -12,6 +13,15 @@ export default defineModel(
 		 */
 		site_code: text(),
 		name: text({ search: true }).notNull(),
+		/**
+		 * Which site this is, derived from its address: postal code plus unit (`460133#05-12`), or the
+		 * normalised address when there is no postal code. `lib/site-key.mjs` holds the rule.
+		 *
+		 * Generated rather than stamped, so every path that files a site carries it — the seed loader
+		 * writes rows directly, and a site created through another collection's relation skips this
+		 * collection's transform. Unique, because two rows with one key are one site filed twice.
+		 */
+		site_key: text().notNull().generatedAlwaysAs(sql.raw(siteKeySql())),
 		location: geolocation(),
 		client_name: text(),
 		house_type: enums(['hdb_flat', 'condo', 'landed', 'commercial', 'industrial', 'other']),
@@ -21,6 +31,9 @@ export default defineModel(
 		description: 'Physical site with tenant and dwelling context. Past jobs hang off the site.',
 		recordLabel: 'name',
 		icon: 'lucide:map-pin',
-		indexes: [{ columns: ['site_code'], unique: true }]
+		indexes: [
+			{ columns: ['site_code'], unique: true },
+			{ columns: ['site_key'], unique: true }
+		]
 	}
 );
