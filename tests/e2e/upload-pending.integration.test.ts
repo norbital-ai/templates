@@ -31,6 +31,7 @@ test(
 					environment: 'test',
 					releaseId: 'project-upload-pending',
 					principal: 'project-upload-pending-founder',
+					email: 'founder@project-upload-pending.test',
 					organizationName: 'Project test',
 					commandPrefix: '/__bolt/command/',
 					syncStreamUrl: `/__bolt/sync/stream?project_test=${browserSession}`,
