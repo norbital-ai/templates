@@ -530,11 +530,14 @@ Work prices the day through `work_rules.bands` in declaration order: each band s
 condition, the hours it takes (`take_hours`) and the money that slice earns (`price_amount`, which
 reads the slice actually consumed as `hours`), and one component is emitted per (line, label) pair
 — so `OVERTIME 1.0/1.5/2.0/3.0` and `INCENTIVE` each settle as their own payslip line. Planned OT
-is split when the day is written: the monthly overtime limit and any day limit a band names in
-`funnel_above_hours` (as `limits.<key>`) are the limits above which planned OT is recorded as
-incentive hours. Payroll prices those hours on the `INCENTIVE` line at the award of the band they
-fall in: a three-times holiday hour pays as `INCENTIVE` at three times, not at a fixed multiple.
-Jurisdictions with no such limit simply state their statutory ladder. A band reads
+is split when the day is written: every statutory overtime limit (`splitsOvertime`: a
+TOTAL_WORK_HOURS, OVERTIME_HOURS or ALL_OVERTIME_HOURS limit of any period) caps it, and the
+excess is recorded as incentive hours; no overtime limit refuses a plan. Payroll prices the day's
+approved hours then its incentive hours through the bands in order, so an incentive hour takes the
+band it falls in when the day's hours continue past the cap and settles on that band's `INCENTIVE`
+line at the same rate and multiple: a three-times holiday hour pays as `INCENTIVE` at three times,
+not at a fixed multiple. A band's `funnel_above_hours` is inert, kept because sealed versions
+store it. Jurisdictions with no overtime limit (PH) simply state their statutory ladder. A band reads
 the day as `rest_day`, `off_day`, `holiday.kind`, `night_hours` and `requested_by` (who asked for
 rest-day work, the MY s.60(3) axis), and a band whose `take_hours` is zero on an unworked day
 prices the day by amount alone — the PH art.94 unworked regular holiday. `work_rules.normal_hours`
@@ -555,7 +558,7 @@ that holds replaces `proration` for that person everywhere a proration is read �
 segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167). A rostered shift shorter than
 `normal_hours` is that day's normal day (ID art.31(2)(b)); an `ALL_OVERTIME_HOURS` limit
 counts rest-day and holiday hours beyond the normal day for its warning while the regulated
-`OVERTIME_HOURS` count stays the one the monthly incentive limit reads. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_half_hours` carry SG s.88(2)
+`OVERTIME_HOURS` count stays the regulated one. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_half_hours` carry SG s.88(2)
 and s.20A(2). A scheme whose ceiling splits ordinary from additional wages states `ordinary_on`,
 and `terms.fixed_allowances` is the contract's allowances — on a scheme's own expression, those
 counting toward that scheme (RFC catalogue-classes §3.4). A person's year is

@@ -10,7 +10,6 @@ import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js'
 import {
 	plannedDay,
 	applicableLimits,
-	funnelledLimitKeys,
 	projectedLimitBreaches,
 	type RosterCodeFacts,
 	type SchedulePlanDay
@@ -144,10 +143,8 @@ export default defineCollection({
 					settingsCode,
 					start
 				);
-				// A limit payroll funnels to INCENTIVE only warns there; the plan is not refused on it.
-				const applicable = applicableLimits(version?.work_rules?.limits ?? [], null);
-				const funnelled = funnelledLimitKeys(version?.work_rules, applicable);
-				const limits = applicable.filter((limit) => !funnelled.has(limit.key));
+				// A pattern plans no overtime: only its shifts' own hours and spread-over are judged.
+				const limits = applicableLimits(version?.work_rules?.limits ?? [], null);
 				if (limits.length === 0) return input;
 				const codeById = new Map<string, RosterCodeFacts>();
 				for (const code of codes) {

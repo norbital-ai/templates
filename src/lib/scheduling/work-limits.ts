@@ -1,32 +1,28 @@
 /**
- * The schedule-time limit gate: the hour ceilings a plan is refused on.
+ * The schedule-time limit arithmetic: how planned overtime splits at the statutory limits, and the
+ * roster-plan ceilings a shift or pattern is refused on.
  *
- * `work_rules.limits` are ceilings a plan may not breach: a day's normal, total and spread hours,
- * and a week, month, quarter or year of work and overtime. Payroll reports an overrun and still
- * prices it; the schedule is where the ceiling refuses, because a plan the law forbids should never
- * have been written. The exception is a limit that splits (`funnelledLimitKeys`): the planned
- * overtime beyond it is stored as the day's `incentive_hours` at write time
- * (`splitPlannedOvertime`), so the plan is accepted. This module is that decision, pure, so the
- * `work_days` transform and the `shift_patterns` transform quote the same sentence.
+ * Every limit that bounds overtime splits it (`splitsOvertime`, owner's rule 2026-09-23: "The OT
+ * entries strictly follow the statutory limits; any excess is always an incentive entry"): a day's
+ * planned overtime within every such limit is stored as `approved_overtime_hours` and the excess
+ * as `incentive_hours` at write time (`splitPlannedOvertime`). No overtime limit refuses a plan.
+ * What still refuses is the roster plan itself — a shift whose own paid hours or spread-over are
+ * above a TOTAL_WORK_HOURS or SPREAD_HOURS limit (`projectedLimitBreaches`) — because a shift's
+ * hours are not overtime and cannot be moved to incentive. This module is that arithmetic, pure,
+ * so the `work_days` transform, the `shift_patterns` transform and the day sheet quote the same
+ * sentence.
  *
  * The projection is the pattern cycle plus the roster overlay: every date in the window resolves to
  * the roster code an explicit row names, else the code the pattern projects. A plan's paid minutes
  * are the net worked hours a limit is measured in; a CLOCK_HOURS day limit is evaluated against the
  * granted break exactly as the priced context evaluates it, so a twelve-hour clock day less a
  * one-hour break is eleven net worked hours.
- *
- * A projected overtime figure needs a normal day to measure beyond. It is the version's own day
- * `NORMAL_HOURS` limit where one is declared: with no normal stated every planned hour is normal.
- * Inventing a default normal here would charge a schedule for a law the version never transcribed.
- * Approved overtime is keyed, not measured: a day's approved hours add to its worked hours and to
- * its overtime whether or not a normal is stated.
  */
 
 import {
 	isRestLimit,
 	type WorkHoursLimit as WorkLimit,
-	type WorkLimit as AnyWorkLimit,
-	type WorkRateBand
+	type WorkLimit as AnyWorkLimit
 } from '../../datatypes/work_rules/+definition.js';
 import { addDays, monthBounds, weekStart } from '../../collections/payroll_runs/lib/dates.js';
 import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
@@ -51,36 +47,16 @@ export function applicableLimits(
 		});
 }
 
-/** The calendar-month overtime ceiling: the first monthly OVERTIME_HOURS limit. */
-const monthlyFunnelLimit = <Limit extends { readonly period?: string; readonly measure: string }>(
-	limits: readonly Limit[]
-): Limit | undefined =>
-	limits.find((limit) => limit.period === 'MONTH' && limit.measure === 'OVERTIME_HOURS');
-
 /**
- * The limits that split planned overtime rather than refuse it: the monthly overtime ceiling, and
- * every day limit a band's `funnel_above_hours` names as `limits.<key>`. Planned overtime beyond
- * them is stored as `incentive_hours` (`splitPlannedOvertime`), so a plan that overruns them is
- * accepted. A normal-hours limit is the overtime threshold, never a split.
+ * Whether a limit bounds overtime, and so splits it: a total-work or overtime limit. Not the normal
+ * day or week (the threshold overtime is measured beyond), the spread-over (the shift's clock span,
+ * which planned overtime does not enter) or the weekly rest rule. Planned overtime beyond it is
+ * stored as `incentive_hours`.
  */
-export function funnelledLimitKeys(
-	workRules:
-		{ readonly bands?: readonly Pick<WorkRateBand, 'funnel_above_hours'>[] } | null | undefined,
-	limits: readonly WorkLimit[]
-): ReadonlySet<string> {
-	const keys = new Set<string>();
-	const monthly = monthlyFunnelLimit(limits);
-	if (monthly != null) keys.add(monthly.key);
-	for (const band of workRules?.bands ?? [])
-		for (const [, key] of (band.funnel_above_hours ?? '').matchAll(/\blimits\.(\w+)/g))
-			if (
-				limits.some(
-					(limit) => limit.key === key && limit.period === 'DAY' && limit.measure !== 'NORMAL_HOURS'
-				)
-			)
-				keys.add(key!);
-	return keys;
-}
+export const splitsOvertime = (limit: Pick<AnyWorkLimit, 'measure'>): boolean =>
+	limit.measure === 'TOTAL_WORK_HOURS' ||
+	limit.measure === 'OVERTIME_HOURS' ||
+	limit.measure === 'ALL_OVERTIME_HOURS';
 
 type SchedulePlanKind = 'WORK' | 'REST' | 'OFF';
 
@@ -92,8 +68,6 @@ export type SchedulePlanDay = {
 	readonly break_minutes: number;
 	/** Clock span the code's window covers, break included. Zero for a non-working day. */
 	readonly spread_hours: number;
-	/** Keyed approved overtime: worked hours and overtime on top of the code's paid hours. */
-	readonly approved_overtime_hours?: number;
 };
 
 /** The roster-code facts a plan resolves to; `work_days` and `shift_patterns` both carry them. */
@@ -203,26 +177,22 @@ export function plannedDay(options: {
 	readonly date: string;
 	readonly rosterCodeId: string | null;
 	readonly codeById: ReadonlyMap<string, RosterCodeFacts>;
-	readonly approvedOvertimeHours?: number;
 }): SchedulePlanDay {
 	const facts = options.rosterCodeId == null ? null : options.codeById.get(options.rosterCodeId);
-	const approved = options.approvedOvertimeHours ?? 0;
 	if (facts == null || facts.kind !== 'WORK')
 		return {
 			date: options.date,
 			kind: facts?.kind ?? null,
 			paid_minutes: 0,
 			break_minutes: 0,
-			spread_hours: 0,
-			...(approved > 0 ? { approved_overtime_hours: approved } : {})
+			spread_hours: 0
 		};
 	return {
 		date: options.date,
 		kind: 'WORK',
 		paid_minutes: facts.paid_minutes,
 		break_minutes: facts.break_minutes,
-		spread_hours: facts.spread_hours,
-		...(approved > 0 ? { approved_overtime_hours: approved } : {})
+		spread_hours: facts.spread_hours
 	};
 }
 
@@ -260,11 +230,10 @@ export const assessmentWindow = (
 /**
  * Split each day's total planned overtime into the hours within the limits
  * (`approved_overtime_hours`) and the excess beyond them (`incentive_hours`), the way a loan
- * recovery never exceeds its cap: the limit decides how much is overtime, the rest is incentive.
+ * recovery never exceeds its cap: the limits decide how much is overtime, the rest is incentive.
  *
- * `caps` names the limits that split rather than refuse (`funnelledLimitKeys`); every other limit
- * is the refusal gate's. Days are allocated chronologically, each taking the least headroom its
- * caps leave after the days before it —
+ * Every limit that bounds overtime caps it (`splitsOvertime`). Days are allocated chronologically,
+ * each taking the least headroom its caps leave after the days before it —
  *
  *   DAY   TOTAL_WORK_HOURS          evaluated maximum (a CLOCK_HOURS figure less the break) less
  *                                   the plan's paid hours
@@ -274,32 +243,31 @@ export const assessmentWindow = (
  *   WEEK… (ALL_)OVERTIME_HOURS      the maximum less the approved hours already allocated in it
  *
  * — floored to the half hour where a cap binds, so both entries stay in half-hour steps. Every day
- * counts, whatever its roster code or the calendar: planned overtime on a rest, off or holiday day
- * consumes headroom in the week, month, quarter and year like any other (owner's rule,
- * 2026-09-23). A day cap splits only an ordinary or off day: every band that names one prices the
- * ordinary day (VN art.107(2)(b)'s four hours are the working day's; a rest day or holiday runs to
- * twelve, Decree 145 art.60), so a REST day or a holiday is split by the period caps alone. An
- * emergency day is outside every ceiling: all of it is overtime and it consumes nothing. A MONTH is the assessment month of
- * `cutoffDay` (default 1, the calendar month); a WEEK runs Monday to Sunday; a QUARTER or YEAR is
- * the calendar's. Returns every day's split, keyed by date. Pure: the `work_days` transform (and
- * so the import) and the day sheet's preview quote the same arithmetic.
+ * counts toward the week, month, quarter and year, whatever its roster code or the calendar:
+ * planned overtime on a rest, off or holiday day consumes their headroom like any other (owner's
+ * rule, 2026-09-23). A day limit applies as its measure states: TOTAL_WORK_HOURS and
+ * ALL_OVERTIME_HOURS bound every day (MY s.60A(7), SG s.38(8), TW §32(2): the hours of work in any
+ * one day); OVERTIME_HOURS is the regulated overtime of an ordinary or off day, so it leaves a REST
+ * day and a holiday to the period limits (ID PP 35/2021 art.26(2) puts rest-day and holiday overtime
+ * outside the four hours; VN art.107(2)(b)'s four hours are the working day's, Decree 145 art.60
+ * allowing twelve on a rest day or holiday). An emergency day is outside every ceiling: all of it is
+ * overtime and it consumes nothing. A MONTH is the assessment month of `cutoffDay` (default 1, the
+ * calendar month); a WEEK runs Monday to Sunday; a QUARTER or YEAR is the calendar's. Returns every
+ * day's split, keyed by date. Pure: the `work_days` transform (and so the import) and the day
+ * sheet's preview quote the same arithmetic.
  */
 export function splitPlannedOvertime(options: {
 	readonly days: readonly OvertimeSplitDay[];
 	readonly limits: readonly WorkLimit[];
-	readonly caps: ReadonlySet<string>;
 	/** The company's `pay_cutoff_day`: the day the assessment month opens. */
 	readonly cutoffDay?: number;
 }): ReadonlyMap<string, OvertimeSplit> {
 	const cutoffDay = options.cutoffDay ?? 1;
-	const caps = options.limits.filter(
-		(limit) =>
-			options.caps.has(limit.key) &&
-			limit.measure !== 'NORMAL_HOURS' &&
-			limit.measure !== 'SPREAD_HOURS'
-	);
-	const plannedHours = (day: SchedulePlanDay): number =>
-		day.kind === 'WORK' ? day.paid_minutes / 60 : 0;
+	const caps = options.limits.filter(splitsOvertime);
+	// A holiday's work is its planned overtime: the code names the shift the person would have
+	// worked, which is not worked on top of it.
+	const plannedHours = (day: OvertimeSplitDay): number =>
+		day.kind === 'WORK' && day.holiday !== true ? day.paid_minutes / 60 : 0;
 	// Per limit and period: the hours already inside it. A period TOTAL_WORK_HOURS cap holds every
 	// planned hour of the period from the start; the allocated overtime joins it day by day.
 	const used = new Map<string, number>();
@@ -329,7 +297,12 @@ export function splitPlannedOvertime(options: {
 		const evaluated = evaluatedLimits(caps, day.break_minutes);
 		let headroom = total;
 		for (const limit of caps) {
-			if (limit.period === 'DAY' && (day.kind === 'REST' || day.holiday === true)) continue;
+			if (
+				limit.period === 'DAY' &&
+				limit.measure === 'OVERTIME_HOURS' &&
+				(day.kind === 'REST' || day.holiday === true)
+			)
+				continue;
 			const maximum = evaluated[limit.key] ?? limit.max_hours;
 			const left =
 				limit.period === 'DAY'
@@ -348,8 +321,11 @@ export function splitPlannedOvertime(options: {
 }
 
 /**
- * Every limit the changed dates breach, with the sentence a refusal quotes. Only periods a changed
- * date falls inside are judged: a plan edit elsewhere in the year is not this write's refusal.
+ * Every roster-plan ceiling the changed dates breach, with the sentence a refusal quotes: a shift's
+ * own paid hours against a TOTAL_WORK_HOURS limit, its spread-over against a SPREAD_HOURS one.
+ * Planned overtime is not read — it is split at the limits, never refused (`splitPlannedOvertime`)
+ * — and neither are the overtime measures, which bound only overtime. Only periods a changed date
+ * falls inside are judged: a plan edit elsewhere in the year is not this write's refusal.
  */
 export function projectedLimitBreaches(options: {
 	readonly subject: string;
@@ -358,29 +334,20 @@ export function projectedLimitBreaches(options: {
 	readonly limits: readonly WorkLimit[];
 	readonly authority?: string | null;
 }): LimitBreach[] {
-	const { limits } = options;
+	const limits = options.limits.filter(
+		(limit) => limit.measure === 'TOTAL_WORK_HOURS' || limit.measure === 'SPREAD_HOURS'
+	);
 	if (limits.length === 0 || options.changedDates.size === 0) return [];
-	const normal =
-		limits.find(
-			(limit) =>
-				limit.period === 'DAY' && limit.measure === 'NORMAL_HOURS' && limit.unit === 'WORKED_HOURS'
-		)?.max_hours ?? null;
-	const planned = (plan: SchedulePlanDay | undefined): number =>
+	const hours = (plan: SchedulePlanDay | undefined): number =>
 		plan != null && plan.kind === 'WORK' ? plan.paid_minutes / 60 : 0;
-	const approved = (plan: SchedulePlanDay | undefined): number =>
-		plan?.approved_overtime_hours ?? 0;
-	const hours = (plan: SchedulePlanDay | undefined): number => planned(plan) + approved(plan);
-	const overtime = (plan: SchedulePlanDay | undefined): number =>
-		(normal == null ? 0 : Math.max(0, planned(plan) - normal)) + approved(plan);
 	const spread = (plan: SchedulePlanDay | undefined): number =>
 		plan != null && plan.kind === 'WORK' ? plan.spread_hours : 0;
-	type Totals = { worked: number; overtime: number; spread: number };
+	type Totals = { worked: number; spread: number };
 	const totals = new Map<string, Totals>();
 	const add = (period: string, key: string, plan: SchedulePlanDay | undefined): void => {
 		const id = `${period}:${key}`;
-		const row = totals.get(id) ?? { worked: 0, overtime: 0, spread: 0 };
+		const row = totals.get(id) ?? { worked: 0, spread: 0 };
 		row.worked += hours(plan);
-		row.overtime += overtime(plan);
 		row.spread += spread(plan);
 		totals.set(id, row);
 	};
@@ -405,24 +372,13 @@ export function projectedLimitBreaches(options: {
 		if (plan == null) continue;
 		const evaluated = evaluatedLimits(limits, plan.break_minutes);
 		const read = (limit: WorkLimit): number => {
-			if (limit.period === 'DAY') {
-				if (limit.measure === 'SPREAD_HOURS') return plan.spread_hours;
-				if (limit.measure === 'OVERTIME_HOURS' || limit.measure === 'ALL_OVERTIME_HOURS')
-					return overtime(plan);
-				return hours(plan);
-			}
+			if (limit.period === 'DAY')
+				return limit.measure === 'SPREAD_HOURS' ? plan.spread_hours : hours(plan);
 			const row = totals.get(`${limit.period}:${periodKey(limit.period, date)}`);
 			if (row == null) return 0;
-			if (limit.measure === 'SPREAD_HOURS') return row.spread;
-			if (limit.measure === 'OVERTIME_HOURS' || limit.measure === 'ALL_OVERTIME_HOURS')
-				return row.overtime;
-			return row.worked;
+			return limit.measure === 'SPREAD_HOURS' ? row.spread : row.worked;
 		};
 		for (const limit of limits) {
-			// The normal-hours ceiling is the threshold, not a wall: hours a day plans beyond it are
-			// overtime, priced by the conversion the version states (Malaysia's flows to incentive).
-			// It splits the day for the overtime ceilings above and refuses nothing by itself.
-			if (limit.measure === 'NORMAL_HOURS') continue;
 			const value = read(limit);
 			const maximum = evaluated[limit.key] ?? limit.max_hours;
 			if (!(value > maximum)) continue;

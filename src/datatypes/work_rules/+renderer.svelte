@@ -107,7 +107,6 @@
 		when: string;
 		take_hours: string;
 		price_amount: string;
-		funnel_above_hours: string;
 	};
 	const projectBands = (rules: WorkRules | null): BandRow[] =>
 		(rules?.bands ?? []).map((band, index) => ({
@@ -115,8 +114,7 @@
 			label: band.label,
 			when: band.when,
 			take_hours: band.take_hours,
-			price_amount: band.price_amount,
-			funnel_above_hours: band.funnel_above_hours ?? ''
+			price_amount: band.price_amount
 		}));
 	let bandRows = $state<BandRow[]>([]);
 	watch(
@@ -156,14 +154,6 @@
 			renderer: ExpressionCell,
 			placeholder: 'hours * ordinary_hour * 1.5',
 			width: 210
-		},
-		{
-			key: 'funnel_above_hours',
-			label: t('renderer.work_rules.incentive_above_hours'),
-			field: exprField('funnel_above_hours', 'work_day', 'hours'),
-			renderer: ExpressionCell,
-			placeholder: 'limits.daily_total',
-			width: 190
 		}
 	];
 	function commitBands(rows: BandRow[]): void {
@@ -174,10 +164,7 @@
 				label: row.label,
 				when: row.when,
 				take_hours: row.take_hours,
-				price_amount: row.price_amount,
-				...(row.funnel_above_hours.trim() === ''
-					? {}
-					: { funnel_above_hours: row.funnel_above_hours })
+				price_amount: row.price_amount
 			}))
 		});
 	}
@@ -735,8 +722,7 @@
 					label: '',
 					when: '',
 					take_hours: '',
-					price_amount: '',
-					funnel_above_hours: ''
+					price_amount: ''
 				})}
 				onChange={commitBands}
 			/>

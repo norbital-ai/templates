@@ -55,8 +55,7 @@ const nihon: WorkRules = {
 			label: '1.5',
 			when: 'day_type == "ORDINARY"',
 			take_hours: 'hours_beyond_normal',
-			price_amount: 'hours_beyond_normal * ordinary_hour * 1.5',
-			funnel_above_hours: 'limits.daily_total'
+			price_amount: 'hours_beyond_normal * ordinary_hour * 1.5'
 		}
 	]
 };
@@ -76,8 +75,7 @@ const philippines: WorkRules = {
 			label: '3.0',
 			when: 'day_type == "PUBLIC_HOLIDAY"',
 			take_hours: 'hours_beyond_normal',
-			price_amount: 'hours_beyond_normal * ordinary_hour * 3.0',
-			funnel_above_hours: 'limits.daily_total'
+			price_amount: 'hours_beyond_normal * ordinary_hour * 3.0'
 		}
 	]
 };
@@ -131,6 +129,49 @@ test('a holiday keeps its ×3 for the incentive hours', () => {
 			['INCENTIVE', '3.0', 1, 76.5]
 		]
 	);
+});
+
+test('incentive hours continue the day past the cap: each hour takes the band and multiple it falls in', () => {
+	// A holiday of 12 planned hours, 7 within the limits and 5 incentive: the 2.0 band takes the
+	// normal day (hours 0–9) and the 3.0 band the rest (9–12). Continuing past the seventh hour,
+	// two incentive hours fall in the 2.0 band and three in the 3.0 band — each at that band's rate,
+	// exactly as those hours would have paid as overtime.
+	const holiday: WorkRules = {
+		...philippines,
+		bands: [
+			{
+				label: '2.0',
+				when: 'day_type == "PUBLIC_HOLIDAY"',
+				take_hours: 'normal_hours',
+				price_amount: 'hours * ordinary_hour * 2.0'
+			},
+			{
+				label: '3.0',
+				when: 'day_type == "PUBLIC_HOLIDAY"',
+				take_hours: 'hours_beyond_normal',
+				price_amount: 'hours * ordinary_hour * 3.0'
+			}
+		]
+	};
+	const priced = (incentiveHours: number) =>
+		priceWorkDay({
+			work: holiday,
+			person,
+			day: day({ dayType: 'PUBLIC_HOLIDAY', workedHours: 12, overtimeHours: 12, incentiveHours }),
+			rates
+		});
+	const rows = priced(5);
+	assert.deepEqual(
+		rows.map((row) => [row.line, row.label, row.hours, row.rate, row.amount]),
+		[
+			['OVERTIME', '2.0', 7, 51, 357],
+			['INCENTIVE', '2.0', 2, 51, 102],
+			['INCENTIVE', '3.0', 3, 76.5, 229.5]
+		]
+	);
+	// Moving hours between the entries moves no money: the day pays what it would all as overtime.
+	const total = (list: readonly WorkBandRow[]) => list.reduce((sum, row) => sum + row.amount, 0);
+	assert.equal(total(rows), total(priced(0)));
 });
 
 test('a day with no incentive hours produces one row and no incentive row', () => {

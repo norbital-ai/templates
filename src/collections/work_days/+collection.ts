@@ -19,7 +19,6 @@ import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js'
 import {
 	applicableLimits,
 	assessmentWindow,
-	funnelledLimitKeys,
 	plannedDay,
 	projectedLimitBreaches,
 	projectionBounds,
@@ -170,15 +169,17 @@ function assertApprovedOvertimeHours(stated: number | string | null | undefined)
  * account; refuses a planned shift that would overlap the person's adjacent-day assignments;
  * refuses a plan change under recorded attendance unless the same write restates the attendance;
  * and — for a month with no roster of record — refuses a plan write that would leave the month's
- * WORK-day count or paid minutes different from what the work pattern projects. Statutory rest,
- * hour and break ceilings refuse any plan, rostered or not. Deleting a day a run took into
- * account is refused by the delete grant (`lib/policy_grants.ts`).
+ * WORK-day count or paid minutes different from what the work pattern projects. Statutory rest
+ * and break rules, and a shift's own hours or spread-over above a limit, refuse any plan, rostered
+ * or not; planned overtime never does. Deleting a day a run took into account is refused by the
+ * delete grant (`lib/policy_grants.ts`).
  *
  * Overtime: a write states the day's TOTAL planned overtime in `approved_overtime_hours`, and the
- * transform stores it split (`splitPlannedOvertime`): within the limits that split, and the excess
- * as `incentive_hours`. The split runs in date order over the employment's ceiling periods; a day
- * outside the write whose stored split the change would move refuses — sealed, or to be restated
- * in the same write (a transform returns one payload per input and writes no other row).
+ * transform stores it split (`splitPlannedOvertime`): within every statutory overtime limit, and
+ * the excess as `incentive_hours`. The split runs in date order over the employment's ceiling
+ * periods; a day outside the write whose stored split the change would move refuses — sealed, or
+ * to be restated in the same write (a transform returns one payload per input and writes no other
+ * row).
  *
  * Two waves: the people, their terms, the months around the write, the leave and payslips over
  * them, the rosters of record and every settings version; then the entities' runs, roster codes
@@ -193,8 +194,8 @@ export default defineCollection({
 		Effect.gen(function* () {
 			const coordinates: WorkDayCoordinate[] = [];
 			const changes: PlanChange[] = [];
-			// The total planned overtime the write keys, by person-day: it is worked time the hour
-			// ceilings project, so a write that changes it is judged like a plan change.
+			// The total planned overtime the write keys, by person-day: it moves the split, so a write
+			// that changes it is judged like a plan change.
 			const ownOvertimeByKey = new Map<string, number>();
 			// The split every changed person-day stores (`splitPlannedOvertime`), by person-day.
 			const splitByKey = new Map<string, OvertimeSplit>();
@@ -594,11 +595,9 @@ export default defineCollection({
 					const version = settingsInForce(settingsVersions, settingsCode, firstChange.work_date);
 					if (version == null) continue;
 					const employeeNumber = employmentById.get(employmentId)?.employee_number ?? employmentId;
-					// The hour ceilings are a schedule gate too: a pattern or roster whose projection
-					// breaches a limit is refused here. Payroll still reports an attendance overrun
-					// and prices it; a plan the law forbids is never written. A limit that splits (the
-					// monthly overtime cap, a day limit a band names) is not a refusal: the planned
-					// overtime beyond it is stored as the day's incentive hours.
+					// Every overtime limit splits: the planned overtime beyond it is stored as the
+					// day's incentive hours, never refused. The roster plan itself is still a gate:
+					// a shift whose own hours or spread-over breach a limit is refused here.
 					// A conditional limit is judged over what the gate knows of the person: the
 					// contract's type and classification and the entity's facts.
 					const judged = termsByEmployment
@@ -615,8 +614,6 @@ export default defineCollection({
 							asOf: firstChange.work_date
 						})
 					);
-					const funnelled = funnelledLimitKeys(version.work_rules, applicable);
-					const limits = applicable.filter((limit) => !funnelled.has(limit.key));
 					const ownDates = own.map((change) => change.work_date).toSorted();
 					// A month that splits is the assessment month (the entity's cutoff window), which
 					// the read span's month-and-31-days pad already holds.
@@ -668,8 +665,7 @@ export default defineCollection({
 							plannedDay({
 								date,
 								rosterCodeId: explicitId ?? projectedId,
-								codeById: codeFactsById,
-								approvedOvertimeHours: totalOn(date)
+								codeById: codeFactsById
 							})
 						);
 					}
@@ -689,7 +685,6 @@ export default defineCollection({
 								};
 							}),
 							limits: applicable,
-							caps: funnelled,
 							cutoffDay
 						});
 					const split = splitWith(totalOn);
@@ -722,12 +717,12 @@ export default defineCollection({
 								`date order, so this change moves the overtime and incentive split of ` +
 								`${moved.join(', ')}. Save those days in the same write.`
 						);
-					if (limits.length > 0) {
+					if (applicable.length > 0) {
 						const breach = projectedLimitBreaches({
 							subject: employeeNumber,
 							changedDates: new Set(ownDates),
 							planByDate,
-							limits,
+							limits: applicable,
 							authority: version.work_rules?.authority ?? null
 						})[0];
 						if (breach != null) refuse(breach.message);

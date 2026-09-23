@@ -1,7 +1,8 @@
 /**
- * The schedule-time limit gate: `work_rules.limits` refuse a plan, payroll only
- * reports an overrun. These drive the pure decision the `work_days` and `shift_patterns`
- * transforms quote, with the CLOCK evaluation the priced work-day context shares.
+ * The schedule-time roster gate: a shift's own hours or spread-over above a `work_rules` limit
+ * refuse a plan; an overtime limit never does (it splits planned overtime, `splitPlannedOvertime`).
+ * These drive the pure decision the `work_days` and `shift_patterns` transforms quote, with the
+ * CLOCK evaluation the priced work-day context shares.
  */
 
 import assert from 'node:assert/strict';
@@ -104,20 +105,20 @@ test('a week exactly at the ceiling passes; one more hour is refused', () => {
 	assert.equal(weekly[0]?.maximum, 45);
 });
 
-test('projected overtime needs a declared normal day', () => {
+test('an overtime limit is not a roster gate: hours past the normal day never refuse the plan', () => {
+	// Four nine-hour days against an eight-hour normal and a 3-hour month: overtime limits split
+	// planned overtime; the shift's own hours are not overtime and are judged by total and spread.
 	const month = ['2026-02-02', '2026-02-03', '2026-02-04', '2026-02-05'];
-	const long = month.map((date) => day(date, 9, 60));
-	const withNormal = MY_LIMITS.filter(
-		(limit) => limit.key === 'normal_day' || limit.key === 'monthly_ot'
-	).map((limit) => (limit.key === 'monthly_ot' ? { ...limit, max_hours: 3 } : limit));
-	const breaches = breachOn(long, withNormal, month);
-	const monthly = breaches.find((breach) => breach.key === 'monthly_ot');
-	assert.equal(monthly?.projected, 4, 'one overtime hour on each of four days');
-	const noNormal = withNormal.filter((limit) => limit.key === 'monthly_ot');
+	const tight = MY_LIMITS.map((limit) =>
+		limit.key === 'monthly_ot' ? { ...limit, max_hours: 3 } : limit
+	);
 	assert.deepEqual(
-		breachOn(long, noNormal, month),
-		[],
-		'without a normal there is no projected overtime to compare'
+		breachOn(
+			month.map((date) => day(date, 9, 60)),
+			tight,
+			month
+		).map((breach) => breach.key),
+		[]
 	);
 });
 

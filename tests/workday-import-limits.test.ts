@@ -1,12 +1,11 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * The workday import's refusal/warning split, through the `work_days` transform an import writes
- * through.
+ * The workday import's refusals, through the `work_days` transform an import writes through.
  *
- * A ceiling that splits never refuses: the monthly overtime cap (`monthlyFunnelLimit`) and a day
- * limit a band's `funnel_above_hours` names as `limits.<key>` — the planned overtime beyond them is
- * stored as incentive hours. Every other statutory ceiling is a hard refusal. Planned overtime is
- * worked time: a day's hours are the code's paid hours plus its total planned overtime.
+ * Every statutory overtime limit splits (owner's rule, 2026-09-23): the planned overtime beyond it
+ * is stored as incentive hours and the write is accepted — none refuses. What still refuses is not
+ * an overtime limit: the weekly rest rule, a shift whose own hours or spread-over breach a limit,
+ * a granted break short of the rules, and overlapping shifts.
  *
  * Every figure below is derived by hand from the codes and limits stated here — Nihon's (MY-nihon)
  * roster codes and work rules, a Vietnam and an Indonesia version — not read from the seed.
@@ -14,12 +13,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import workDays from '../src/collections/work_days/+collection.ts';
-import {
-	applicableLimits,
-	funnelledLimitKeys,
-	projectedLimitBreaches,
-	plannedDay
-} from '../src/lib/scheduling/work-limits.ts';
+import { applicableLimits, splitsOvertime } from '../src/lib/scheduling/work-limits.ts';
 import { validateOvertimeLimits } from '../src/collections/payroll_runs/lib/validate.ts';
 import { transformSync } from './helpers/transform.ts';
 import { VERSION, workDayDb } from './helpers/work-day-db.ts';
@@ -38,7 +32,7 @@ const weeklyRest = {
 	discharged_by: 'REST'
 };
 
-/** MY-nihon: EA s.60A — 12 worked hours a day, 8 normal, 10 spread, 104 OT a month; 11h funnel. */
+/** MY-nihon: EA s.60A — 12 worked hours a day, 8 normal, 10 spread, 104 OT a month. */
 const NIHON_RULES = {
 	limits: [
 		limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12),
@@ -48,10 +42,10 @@ const NIHON_RULES = {
 		limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 104),
 		weeklyRest
 	],
-	bands: [{ label: 'WORKDAY-OT-1.5X', funnel_above_hours: '11.0' }],
+	bands: [],
 	breaks: [{ when: 'consecutive_hours > 5.0', owed_minutes: '30.0', counts_as_worked_time: null }]
 };
-/** VN: BLLĐ 2019 art.107 — 4 OT hours a day (funnelled by OT-1.5X), 40 a month, 200 a year. */
+/** VN: BLLĐ 2019 art.107 — 4 OT hours a day, 40 a month, 200 a year. */
 const VN_RULES = {
 	limits: [
 		limit('daily_ot', 'DAY', 'OVERTIME_HOURS', 4),
@@ -59,9 +53,9 @@ const VN_RULES = {
 		limit('yearly_ot', 'YEAR', 'OVERTIME_HOURS', 200),
 		weeklyRest
 	],
-	bands: [{ label: 'OT-1.5X', funnel_above_hours: 'normal_hours + limits.daily_ot' }]
+	bands: []
 };
-/** ID: PP 35/2021 art.26 — 4 OT hours a day, 18 a week; no band funnels. */
+/** ID: PP 35/2021 art.26 — 4 OT hours a day, 18 a week. */
 const ID_RULES = {
 	limits: [
 		limit('daily_ot', 'DAY', 'OVERTIME_HOURS', 4),
@@ -83,7 +77,8 @@ const CODES = [
 		code: 'AM0830',
 		variant: { kind: 'WORK', start_time: '08:30', end_time: '18:30', break_minutes: 60 }
 	},
-	// Not Nihon's: a 07:00–18:00 day (11h spread) and a 6h day with a 15-minute break.
+	// Not Nihon's: a 07:00–18:00 day (11h spread), a 6h day with a 15-minute break, and a
+	// 07:00–21:00 day (13 paid hours).
 	{
 		id: 'c-long',
 		code: 'LONG',
@@ -93,6 +88,11 @@ const CODES = [
 		id: 'c-short-break',
 		code: 'SB',
 		variant: { kind: 'WORK', start_time: '09:00', end_time: '15:15', break_minutes: 15 }
+	},
+	{
+		id: 'c-13',
+		code: 'D13',
+		variant: { kind: 'WORK', start_time: '07:00', end_time: '21:00', break_minutes: 60 }
 	},
 	// Nihon's PM2230 (22:30–08:30) and 03 (07:30–16:30).
 	{
@@ -133,69 +133,39 @@ const sixOnOneOff = (work) => (n) => (n % 7 === 0 ? ['c-rest'] : work);
 const write = (rules, inputs, days) => () =>
 	transformSync(workDays, inputs, { db: dbFor(rules, days) });
 
-test('the funnelled limits are the monthly overtime cap and a day limit a band names', () => {
-	assert.deepEqual(
-		[...funnelledLimitKeys(NIHON_RULES, applicableLimits(NIHON_RULES.limits, null))],
-		['monthly_ot']
+/** The stored split of the days that carry incentive: [date, overtime, incentive]. */
+const incentiveDays = (out) =>
+	out.flatMap((row) =>
+		row.incentive_hours > 0
+			? [[row.work_date.slice(0, 10), row.approved_overtime_hours, row.incentive_hours]]
+			: []
 	);
-	assert.deepEqual(
-		[...funnelledLimitKeys(VN_RULES, applicableLimits(VN_RULES.limits, null))].toSorted(),
-		['daily_ot', 'monthly_ot']
-	);
-	assert.deepEqual([...funnelledLimitKeys(ID_RULES, applicableLimits(ID_RULES.limits, null))], []);
-	// SG: the regulated 72 is funnelled, the all-overtime 72 is not.
-	const sg = [
-		limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 72),
-		limit('monthly_ot_all', 'MONTH', 'ALL_OVERTIME_HOURS', 72)
-	];
-	assert.deepEqual([...funnelledLimitKeys({ bands: [] }, sg)], ['monthly_ot']);
-});
 
-test('Nihon, accepted: 27 days of 8h + 4h approved OT is 108 OT hours, over the funnelled 104', () => {
-	const inputs = julyWrite(sixOnOneOff(['c-8', 4]));
-	// Without the funnel the plan breaches monthly_ot: 27 × 4 = 108 > 104.
-	const planByDate = new Map(
-		inputs.map((input) => {
-			const facts =
-				input.shift_definition_id === 'c-8'
-					? { kind: 'WORK', paid_minutes: 480, break_minutes: 60, spread_hours: 9 }
-					: { kind: 'REST', paid_minutes: 0, break_minutes: 0, spread_hours: 0 };
-			return [
-				input.work_date,
-				plannedDay({
-					date: input.work_date,
-					rosterCodeId: 'x',
-					codeById: new Map([['x', facts]]),
-					approvedOvertimeHours: input.approved_overtime_hours
-				})
-			];
-		})
-	);
-	const unfunnelled = projectedLimitBreaches({
-		subject: 'emp-1',
-		changedDates: new Set(inputs.map((input) => input.work_date)),
-		planByDate,
-		limits: applicableLimits(NIHON_RULES.limits, null)
-	});
+test('every overtime and total-hours limit splits; the normal day, the spread and the rest rule do not', () => {
+	const splitting = (rules) =>
+		applicableLimits(rules.limits, null)
+			.filter(splitsOvertime)
+			.map((limit) => limit.key);
+	assert.deepEqual(splitting(NIHON_RULES), ['daily_total', 'monthly_ot']);
+	assert.deepEqual(splitting(VN_RULES), ['daily_ot', 'monthly_ot', 'yearly_ot']);
+	assert.deepEqual(splitting(ID_RULES), ['daily_ot', 'weekly_ot']);
+	// SG: the regulated 72 and the all-overtime 72 both split.
 	assert.deepEqual(
-		unfunnelled.map((breach) => [breach.key, breach.projected]),
-		[['monthly_ot', 108]]
+		[
+			limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 72),
+			limit('monthly_ot_all', 'MONTH', 'ALL_OVERTIME_HOURS', 72),
+			limit('weekly_normal', 'WEEK', 'NORMAL_HOURS', 44)
+		]
+			.filter(splitsOvertime)
+			.map((row) => row.key),
+		['monthly_ot', 'monthly_ot_all']
 	);
-	// Through the transform: 12 worked hours a day is not above daily_total, and monthly_ot funnels.
-	assert.equal(write(NIHON_RULES, inputs)().length, 31);
 });
 
 test('Nihon, accepted at write → the 27th day’s 4 hours are stored as incentive, and payroll reports the 108', () => {
 	// 4 OT hours a day: the first 26 working days fill 104 hours, the 27th day's 4 are incentive.
 	const out = write(NIHON_RULES, julyWrite(sixOnOneOff(['c-8', 4])))();
-	assert.deepEqual(
-		out.flatMap((row) =>
-			row.incentive_hours > 0
-				? [[row.work_date.slice(0, 10), row.approved_overtime_hours, row.incentive_hours]]
-				: []
-		),
-		[['2026-07-31', 0, 4]]
-	);
+	assert.deepEqual(incentiveDays(out), [['2026-07-31', 0, 4]]);
 	// Payroll still reports the planned month against the ceiling: incentive pays the excess, it
 	// does not undo the breach.
 	const issues = (hours) =>
@@ -223,15 +193,17 @@ test('Nihon, refused: 7 consecutive WORK days breaks the weekly rest rule (6)', 
 	);
 });
 
-test('Nihon, refused: 9h paid + 4h approved OT is 13 worked hours, above daily_total 12', () => {
+test('Nihon, accepted: 9h paid + 4h planned OT is 13 worked hours — 3 within daily_total 12, 1 incentive', () => {
 	const inputs = julyWrite((n) => (n === 2 ? ['c-9', 4] : sixOnOneOff(['c-8'])(n)));
+	assert.deepEqual(incentiveDays(write(NIHON_RULES, inputs)()), [['2026-07-02', 3, 1]]);
+});
+
+test('Nihon, refused: a 13-hour shift is above daily_total 12 by its own hours, which are not overtime', () => {
+	const inputs = julyWrite((n) => (n === 2 ? ['c-13'] : sixOnOneOff(['c-8'])(n)));
 	assert.throws(
 		write(NIHON_RULES, inputs),
 		/through 2026-07-02 projects 13\.00 worked hours in the day, above the 12-hour limit "daily_total"/
 	);
-	// 9h + 3h = 12 is at the ceiling, not above it — and 1h of it funnels above 11 at payroll.
-	const atCeiling = julyWrite((n) => (n === 2 ? ['c-9', 3] : sixOnOneOff(['c-8'])(n)));
-	assert.equal(write(NIHON_RULES, atCeiling)().length, 31);
 });
 
 test('Nihon, refused: a 07:00–18:00 shift spreads over 11 hours, above spread_day 10', () => {
@@ -250,43 +222,47 @@ test('Nihon, refused: a 6-hour shift granting 15 minutes of break, where 30 are 
 	);
 });
 
-test('VN, accepted: 11 days × 4h approved OT is 44 hours, over the funnelled monthly 40 and at daily_ot', () => {
+test('VN, accepted: 11 days × 4h is 44 hours, 40 within the monthly limit and 4 incentive', () => {
 	const inputs = julyWrite((n) => (n % 7 === 0 ? ['c-rest'] : ['c-8', n <= 12 ? 4 : 0]));
-	// Days 1–12 less the 7th: 11 days × 4 = 44 > 40 (funnelled); 4 a day is not above daily_ot.
-	assert.equal(write(VN_RULES, inputs)().length, 31);
-	// 6h approved on one day is above daily_ot 4 — funnelled by OT-1.5X, so still accepted.
+	// Days 1–12 less the 7th: the tenth working day (the 11th) fills 40; the 12th is incentive.
+	assert.deepEqual(incentiveDays(write(VN_RULES, inputs)()), [['2026-07-12', 0, 4]]);
+	// 6h on one ordinary day is 4 within daily_ot and 2 incentive.
 	const sixHours = julyWrite((n) => (n % 7 === 0 ? ['c-rest'] : ['c-8', n === 1 ? 6 : 0]));
-	assert.equal(write(VN_RULES, sixHours)().length, 31);
+	assert.deepEqual(incentiveDays(write(VN_RULES, sixHours)()), [['2026-07-01', 4, 2]]);
 });
 
-test('VN, refused: 160 stored OT hours this year plus July’s 44 is 204, above yearly_ot 200', () => {
-	// Forty stored days, Mon–Thu from 2 March for ten weeks, each with 4 approved hours: 160.
-	const stored = [];
-	for (let week = 0; week < 10; week += 1)
-		for (let weekday = 0; weekday < 4; weekday += 1) {
-			const date = new Date(Date.UTC(2026, 2, 2 + week * 7 + weekday)).toISOString().slice(0, 10);
-			stored.push({
-				id: `s-${date}`,
-				employment_id: 'emp-1',
-				work_date: date,
-				shift_definition_id: 'c-8',
-				approved_overtime_hours: 4
-			});
-		}
+test('VN, accepted: 160 stored OT hours this year plus July’s 44 splits at yearly_ot 200', () => {
+	// Ten Mon–Thu days in each of January to April, 4 approved hours each: 40 a month, 160.
+	const storedDay = (date) => ({
+		id: `s-${date}`,
+		employment_id: 'emp-1',
+		work_date: date,
+		shift_definition_id: 'c-8',
+		approved_overtime_hours: 4
+	});
+	const monThu = (month) =>
+		Array.from({ length: 31 }, (_, index) => new Date(Date.UTC(2026, month, index + 1)))
+			.filter((date) => date.getUTCMonth() === month && [1, 2, 3, 4].includes(date.getUTCDay()))
+			.map((date) => date.toISOString().slice(0, 10));
+	const stored = [0, 1, 2, 3].flatMap((month) => monThu(month).slice(0, 10)).map(storedDay);
 	const inputs = julyWrite((n) => (n % 7 === 0 ? ['c-rest'] : ['c-8', n <= 12 ? 4 : 0]));
-	assert.throws(
-		write(VN_RULES, inputs, stored),
-		/projects 204\.00 overtime hours in the year, above the 200-hour limit "yearly_ot"/
-	);
+	// The year has 40 left, exactly July's month: the 12th is incentive by the month alone.
+	assert.deepEqual(incentiveDays(write(VN_RULES, inputs, stored)()), [['2026-07-12', 0, 4]]);
+	// Four more in May leave the year 24: the sixth working day of July fills it.
+	const more = [...stored, ...monThu(4).slice(0, 4).map(storedDay)];
+	assert.deepEqual(incentiveDays(write(VN_RULES, inputs, more)()), [
+		['2026-07-08', 0, 4],
+		['2026-07-09', 0, 4],
+		['2026-07-10', 0, 4],
+		['2026-07-11', 0, 4],
+		['2026-07-12', 0, 4]
+	]);
 });
 
-test('ID, refused: five days × 4h approved OT in one week is 20, above weekly_ot 18', () => {
+test('ID, accepted: five days × 4h in one week is 20, 18 within weekly_ot and 2 incentive', () => {
 	// Week of Monday 6 July (the 7th is its rest day): days 8–12 carry 4 hours each.
 	const inputs = julyWrite((n) => (n % 7 === 0 ? ['c-rest'] : ['c-8', n >= 8 && n <= 12 ? 4 : 0]));
-	assert.throws(
-		write(ID_RULES, inputs),
-		/projects 20\.00 overtime hours in the week, above the 18-hour limit "weekly_ot"/
-	);
+	assert.deepEqual(incentiveDays(write(ID_RULES, inputs)()), [['2026-07-12', 2, 2]]);
 });
 
 test('Nihon, refused: PM2230 on the 9th runs to 08:30, overlapping 03 from 07:30 on the 10th', () => {

@@ -895,7 +895,9 @@ test('Malaysia — regulation 4’s 104-hour month is a ceiling on the employer,
 	// overtime beyond 104 hours in a month. s.60A(3)(a) still pays every planned hour at 1.5×; the
 	// write stores the planned excess as incentive hours (`splitPlannedOvertime`), paid on the
 	// INCENTIVE line at the band's own award. Fourteen January weekdays of eight hours past the
-	// shift (18:00 → 02:00) are 112 h.
+	// shift (18:00 → 02:00) are 112 h. The s.60A(7) twelve-hour day splits first: each day's eight
+	// shift hours leave four within it and four incentive, so the month holds 56 and never reaches
+	// 104 (owner's rule, 2026-09-23: every statutory overtime limit splits).
 	const next = (date: string) =>
 		new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 	const { slips, warnings } = buildStatutory(
@@ -933,20 +935,20 @@ test('Malaysia — regulation 4’s 104-hour month is a ceiling on the employer,
 	);
 	// The whole 112 h at 12.50 × 1.5 = 18.75: 2,100.00 on top of the month's wages.
 	assert.equal(slips.get('MY-CAP')!.gross, 2600 + 112 * 18.75);
-	// The lines say where the ceiling fell: 104 h as overtime, 8 h as incentive at the same rate.
+	// The lines say where the ceilings fell: 56 h as overtime, 56 h as incentive at the same rate.
 	assert.equal(
 		slips
 			.get('MY-CAP')!
 			.adjustments.filter((row) => row.statutory_rule_key?.startsWith('OVERTIME:'))
 			.reduce((total, row) => total + row.quantity!, 0),
-		104
+		56
 	);
 	assert.equal(
 		slips
 			.get('MY-CAP')!
 			.adjustments.filter((row) => row.statutory_rule_key?.startsWith('INCENTIVE:'))
 			.reduce((total, row) => total + row.quantity!, 0),
-		8
+		56
 	);
 	assert.equal(hours('WORKDAY-OT-1.5X'), 112);
 	// Paying the excess as incentive does not undo the breach: reg.4 limits the hours required, so

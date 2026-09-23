@@ -115,14 +115,20 @@ OT hours      → key the day's total planned overtime (split into overtime and 
 
 Import does not manufacture holiday rows or personal holiday scope, and it never derives overtime:
 the Overtime sheet's half-hour cells are the day's total planned overtime, breaks included. The
-write splits it at the version's overtime limit: the hours within it are stored as
-`work_days.approved_overtime_hours`, and only the excess as `work_days.incentive_hours`. A file
+write splits it at every statutory overtime limit — daily, weekly, monthly (over the pay's
+assessment window), quarterly and yearly; none refuses the file: the hours within all of them are
+stored as `work_days.approved_overtime_hours`, and only the excess as `work_days.incentive_hours`.
+A daily total-hours limit binds every day; a daily overtime-hours limit binds an ordinary or off
+day (ID art.26(2), VN art.107); rest, off and holiday hours count toward the longer periods. What
+the import still refuses is not overtime: the weekly rest rule, a shift whose own hours or
+spread-over exceed a limit, a short break, overlapping shifts. A file
 still carrying the retired `overtime_in`/`overtime_out` columns is refused by name rather than imported with its overtime
 silently dropped. Overlap normalization and source evidence belong to import; the resulting Work
 rows follow the ordinary validation and approval path.
 
 Overtime is an input, not a derivation. It is planned on the day like a rostered shift, as two
-entries: `approved_overtime_hours` within the statutory limits and `incentive_hours` for the excess.
+entries: `approved_overtime_hours` within the statutory limits and `incentive_hours` for the excess,
+priced at exactly the same rate and multiple as the overtime it overflowed from.
 Payroll turns each entry into a payslip line — hours × rate × the day type's multiple — the way a
 leave entry becomes a line. Attendance only confirms the person was present for the plan; clock time
 beyond the plan never pays. On a REST, OFF or observed public holiday only the planned entries pay:

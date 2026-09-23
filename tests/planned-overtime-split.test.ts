@@ -1,8 +1,9 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
  * Planned overtime is split at write time (owner's rule, 2026-09-23): a day states its TOTAL
- * planned overtime, and `splitPlannedOvertime` keeps what the limits that split allow as
- * `approved_overtime_hours` and stores the rest as `incentive_hours`, chronologically. The
+ * planned overtime, and `splitPlannedOvertime` keeps what every statutory overtime limit allows as
+ * `approved_overtime_hours` and stores the rest as `incentive_hours`, chronologically. No overtime
+ * limit refuses: each is a split cap. The
  * `work_days` transform stores the split, re-splits what a change moves, and refuses a change that
  * would move a day outside the write — sealed or not.
  */
@@ -13,11 +14,7 @@ import workDays from '../src/collections/work_days/+collection.ts';
 import pipeline from '../src/collections/work_days/+pipelines.ts';
 import { createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
 import { memoryWorkspaceApi } from './fixtures/memory-payroll-api.ts';
-import {
-	applicableLimits,
-	funnelledLimitKeys,
-	splitPlannedOvertime
-} from '../src/lib/scheduling/work-limits.ts';
+import { applicableLimits, splitPlannedOvertime } from '../src/lib/scheduling/work-limits.ts';
 import { settingsVersions } from './fixtures/statutory-world.ts';
 import { windowOvertime } from '../src/lib/ui/roster/day-overtime.ts';
 import { transformSync } from './helpers/transform.ts';
@@ -61,8 +58,7 @@ test('daily cap: a CLOCK_HOURS day total less the break, less the shift, is the 
 	const limits = [{ ...limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12), unit: 'CLOCK_HOURS' }];
 	const split = splitPlannedOvertime({
 		days: [work('2026-02-03', 5), work('2026-02-04', 2)],
-		limits,
-		caps: new Set(['daily_total'])
+		limits
 	});
 	assert.deepEqual(pairs(split), [
 		['2026-02-03', 3, 2],
@@ -74,8 +70,7 @@ test('weekly cap: the week fills in date order and the rest of it is incentive',
 	// Monday 6 July to Friday 10 July, 3 hours a day against a 10-hour week.
 	const split = splitPlannedOvertime({
 		days: [10, 9, 8, 7, 6].map((n) => work(dayOf(n), 3)),
-		limits: [limit('weekly_ot', 'WEEK', 'OVERTIME_HOURS', 10)],
-		caps: new Set(['weekly_ot'])
+		limits: [limit('weekly_ot', 'WEEK', 'OVERTIME_HOURS', 10)]
 	});
 	assert.deepEqual(pairs(split), [
 		[dayOf(6), 3, 0],
@@ -91,8 +86,7 @@ test('monthly 104: 27 days × 4 hours fill the month on the 26th working day; th
 	const split = splitPlannedOvertime({
 		// Handed over out of order: the allocation is by date, not by input.
 		days: dates.toReversed().map((n) => work(dayOf(n), 4)),
-		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 104)],
-		caps: new Set(['monthly_ot'])
+		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 104)]
 	});
 	assert.equal(dates.length, 27);
 	assert.deepEqual(pairs(split).at(-1), [dayOf(31), 0, 4]);
@@ -108,8 +102,7 @@ test('monthly 104: 27 days × 4 hours fill the month on the 26th working day; th
 
 test('chronological cascade: more overtime early in the month moves the incentive earlier', () => {
 	const cap = {
-		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 10)],
-		caps: new Set(['monthly_ot'])
+		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 10)]
 	};
 	const before = splitPlannedOvertime({
 		...cap,
@@ -135,8 +128,7 @@ test('a rest-day entry consumes the month like any other: it pushes a later ordi
 	// Owner's rule: planned overtime on a rest, off or holiday day counts toward the limits.
 	const split = splitPlannedOvertime({
 		days: [work(dayOf(1), 4), rest(dayOf(5), 8), work(dayOf(6), 2)],
-		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 12)],
-		caps: new Set(['monthly_ot'])
+		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 12)]
 	});
 	assert.deepEqual(pairs(split), [
 		[dayOf(1), 4, 0],
@@ -150,8 +142,7 @@ test('the month is the assessment window: with a 21st cutoff the 20th and the 21
 		work(date, 4)
 	);
 	const cap = {
-		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 6)],
-		caps: new Set(['monthly_ot'])
+		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 6)]
 	};
 	// 21 Dec – 20 Jan, then 21 Jan – 20 Feb: each window fills afresh.
 	assert.deepEqual(pairs(splitPlannedOvertime({ ...cap, days, cutoffDay: 21 })), [
@@ -172,20 +163,17 @@ test('the month is the assessment window: with a 21st cutoff the 20th and the 21
 test('headroom is floored to the half hour, so both entries stay in half-hour steps', () => {
 	const split = splitPlannedOvertime({
 		days: [work(dayOf(1), 4, { paid_minutes: 555 })],
-		limits: [limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12)],
-		caps: new Set(['daily_total'])
+		limits: [limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12)]
 	});
 	// 12 − 9.25 = 2.75 → 2.5 within, 1.5 incentive.
 	assert.deepEqual(pairs(split), [[dayOf(1), 2.5, 1.5]]);
 });
 
-test('MY-nihon: the s.60A(7) twelve-hour day splits an ordinary or off day, never a rest day or holiday', () => {
+test('MY-nihon: the s.60A(7) twelve hours of work bound every day — ordinary, off, rest and holiday', () => {
 	for (const version of settingsVersions('MY-nihon')) {
 		const limits = applicableLimits(version.work_rules.limits, null);
-		const caps = funnelledLimitKeys(version.work_rules, limits);
-		assert.deepEqual([...caps].toSorted(), ['daily_total', 'monthly_ot']);
-		// Seeded days: 6 h on a 7.5-hour shift is 4.5 within twelve and 1.5 incentive; 14 h on an OFF
-		// day is 12 and 2; 14 h on a rest day and on a holiday stand whole.
+		// 6 h on a 7.5-hour shift is 4.5 within twelve and 1.5 incentive; 14 h on an OFF or a rest
+		// day is 12 and 2; so is 14 h on a holiday, whose shift is not worked on top of its plan.
 		const split = splitPlannedOvertime({
 			days: [
 				work(dayOf(1), 6, { paid_minutes: 450 }),
@@ -194,16 +182,84 @@ test('MY-nihon: the s.60A(7) twelve-hour day splits an ordinary or off day, neve
 				work(dayOf(6), 14, { holiday: true })
 			],
 			limits,
-			caps,
 			cutoffDay: 21
 		});
 		assert.deepEqual(pairs(split), [
 			[dayOf(1), 4.5, 1.5],
 			[dayOf(2), 12, 2],
-			[dayOf(5), 14, 0],
-			[dayOf(6), 14, 0]
+			[dayOf(5), 12, 2],
+			[dayOf(6), 12, 2]
 		]);
 	}
+});
+
+test('a day OVERTIME_HOURS limit is the ordinary and off day’s: a rest day or holiday is left to the period limits', () => {
+	// ID PP 35/2021 art.26(2) and VN art.107(2)(b): the four hours bind an ordinary or off day only.
+	for (const code of ['ID', 'VN']) {
+		const limits = applicableLimits(settingsVersions(code)[0].work_rules.limits, null).filter(
+			(row) => row.period === 'DAY'
+		);
+		const split = splitPlannedOvertime({
+			days: [
+				work(dayOf(6), 6),
+				{ ...rest(dayOf(7), 6), kind: 'OFF' },
+				rest(dayOf(12), 9),
+				work(dayOf(13), 9, { holiday: true })
+			],
+			limits
+		});
+		assert.deepEqual(
+			pairs(split),
+			[
+				[dayOf(6), 4, 2],
+				[dayOf(7), 4, 2],
+				[dayOf(12), 9, 0],
+				[dayOf(13), 9, 0]
+			],
+			code
+		);
+	}
+});
+
+test('every overtime limit splits — a quarter and a year too — and the tightest one decides', () => {
+	// A 46-hour month under a 100-hour quarter: January and February hold 92, so March has 8 left
+	// of the quarter though 46 of its month; April opens a new quarter.
+	const quarter = [
+		limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 46),
+		limit('quarterly_ot', 'QUARTER', 'OVERTIME_HOURS', 100)
+	];
+	const split = splitPlannedOvertime({
+		days: [
+			work('2026-01-05', 46),
+			work('2026-02-02', 46),
+			work('2026-03-02', 10),
+			work('2026-04-01', 12)
+		],
+		limits: quarter
+	});
+	assert.deepEqual(pairs(split), [
+		['2026-01-05', 46, 0],
+		['2026-02-02', 46, 0],
+		['2026-03-02', 8, 2],
+		['2026-04-01', 12, 0]
+	]);
+	// VN art.107(3): 200 a year; ALL_OVERTIME_HOURS (SG's 72 as MOM reads it) splits alike.
+	const year = splitPlannedOvertime({
+		days: [work('2026-01-05', 150), rest('2026-06-07', 60)],
+		limits: [limit('yearly_ot', 'YEAR', 'OVERTIME_HOURS', 200)]
+	});
+	assert.deepEqual(pairs(year), [
+		['2026-01-05', 150, 0],
+		['2026-06-07', 50, 10]
+	]);
+	const all = splitPlannedOvertime({
+		days: [work(dayOf(1), 70), rest(dayOf(5), 4)],
+		limits: [limit('monthly_ot_all', 'MONTH', 'ALL_OVERTIME_HOURS', 72)]
+	});
+	assert.deepEqual(pairs(all), [
+		[dayOf(1), 70, 0],
+		[dayOf(5), 2, 2]
+	]);
 });
 
 test('the day sheet restates the open days its draft moves, and names the sealed ones', () => {
@@ -224,7 +280,6 @@ test('the day sheet restates the open days its draft moves, and names the sealed
 			codeById: new Map([['W', code]]),
 			holidays: new Set(),
 			limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 10)],
-			caps: new Set(['monthly_ot']),
 			cutoffDay: 1
 		});
 	const open = read(false);
@@ -240,11 +295,14 @@ test('the day sheet restates the open days its draft moves, and names the sealed
 	);
 });
 
-test('a limit that does not split never caps: the refusal gate owns it', () => {
+test('the normal day and the spread-over never cap: they are not overtime limits', () => {
 	const split = splitPlannedOvertime({
 		days: [work(dayOf(1), 6)],
-		limits: [limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12)],
-		caps: new Set()
+		limits: [
+			limit('normal_day', 'DAY', 'NORMAL_HOURS', 8),
+			limit('spread_day', 'DAY', 'SPREAD_HOURS', 10),
+			limit('weekly_normal', 'WEEK', 'NORMAL_HOURS', 45)
+		]
 	});
 	assert.deepEqual(pairs(split), [[dayOf(1), 6, 0]]);
 });
@@ -259,13 +317,13 @@ const RULES = {
 	],
 	bands: []
 };
-/** The public fixture's shape: a 12 clock-hour day a band names, and the 104-hour month. */
+/** The public fixture's shape: a 12 clock-hour day and the 104-hour month. */
 const PUBLIC_RULES = {
 	limits: [
 		{ ...limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12), unit: 'CLOCK_HOURS' },
 		limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 104)
 	],
-	bands: [{ label: 'OT-1.5X', funnel_above_hours: 'limits.daily_total' }]
+	bands: []
 };
 const CODES = [
 	{
@@ -392,8 +450,7 @@ const importWorld = () => {
 					label: 'OT-1.5X',
 					when: 'day_type == "ORDINARY"',
 					take_hours: 'hours_beyond_normal',
-					price_amount: 'hours * ordinary_hour * 1.5',
-					funnel_above_hours: 'limits.daily_total'
+					price_amount: 'hours * ordinary_hour * 1.5'
 				}
 			]
 		}

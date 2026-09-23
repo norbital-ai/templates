@@ -47,14 +47,15 @@ export default defineModel(
 		 * confirms the day was worked. Null is none.
 		 *
 		 * WRITE CONTRACT: a create or update states the day's TOTAL planned overtime here. The
-		 * transform splits it (`splitPlannedOvertime`): the part the limits that split allow stays
-		 * here, the excess is stored in `incentive_hours`. A read always sees the split.
+		 * transform splits it (`splitPlannedOvertime`): the part every statutory overtime limit
+		 * allows stays here, the excess is stored in `incentive_hours`. A read always sees the split.
 		 */
 		approved_overtime_hours: numeric(),
 		/**
-		 * The planned overtime beyond the limits that split (the monthly overtime ceiling, a daily
-		 * limit a band names), in half-hour steps. Written only by the transform's split, never by a
-		 * caller; priced on the band's INCENTIVE line. Null is none.
+		 * The planned overtime beyond any statutory overtime limit (daily, weekly, monthly,
+		 * quarterly or yearly), in half-hour steps. Written only by the transform's split, never by
+		 * a caller; priced on the INCENTIVE line at the band and multiple its hours fall in. Null is
+		 * none.
 		 */
 		incentive_hours: numeric(),
 		/** Who asked for rest-day work, where the statute prices the two differently (SG s.37(2)/(3)); null is the employer. */

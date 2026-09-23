@@ -30,11 +30,7 @@ import {
 import { derivedBreakMinutes, restBreakAssessment } from '../../src/lib/scheduling/rest-break.ts';
 import { roundMinute } from '../../src/collections/payroll_runs/lib/rounding.ts';
 import { offsetMinutesFor } from '../../src/lib/timezone.ts';
-import {
-	applicableLimits,
-	funnelledLimitKeys,
-	splitPlannedOvertime
-} from '../../src/lib/scheduling/work-limits.ts';
+import { applicableLimits, splitPlannedOvertime } from '../../src/lib/scheduling/work-limits.ts';
 import { decodeNumber } from '@norbital-ai/std/json';
 import type { PayslipProration } from '../../src/datatypes/payslip_proration/+definition.ts';
 import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
@@ -726,7 +722,7 @@ export type BuiltPayslip = ReturnType<typeof buildPayrollRun>['payslip_payroll_r
  * overtime is planned (owner's rule, 2026-09-23), a day pays only its planned entries, so the
  * fixtures state each punched day's clock as its plan, in one place: the hours beyond the normal
  * day on an ordinary day, every worked hour on a rest, off or holiday day. The total is then split
- * the way the transform splits it (`splitPlannedOvertime`, over the version's limits that split),
+ * the way the transform splits it (`splitPlannedOvertime`, at every overtime limit the version states),
  * so what the payroll-time funnel used to move to INCENTIVE is stored as incentive hours instead.
  * A fixture that plans a day itself can do so before this runs.
  *
@@ -799,7 +795,6 @@ function keyClockOverruns(prepared: PreparedRun): void {
 				)
 			})),
 			limits,
-			caps: funnelledLimitKeys(prepared.configuration.work, limits),
 			cutoffDay: prepared.configuration.company.pay_cutoff_day
 		});
 		for (const [date, entry] of planned) {
