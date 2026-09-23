@@ -10,6 +10,7 @@
 import type { CatalogueComponent } from '../../collections/payroll_runs/lib/configuration.js';
 import type { WorkRules } from '../../datatypes/work_rules/+definition.js';
 import { INCENTIVE_LINE, OVERTIME_LINE } from './work-bands.js';
+import { splitsOvertime } from '../scheduling/work-limits.js';
 
 const WORK_LINE_CODES = {
 	salary: 'BASIC',
@@ -107,10 +108,9 @@ export function workPayItems(
 }
 
 /**
- * Whether a version can store incentive hours: a limit splits planned overtime
- * (`funnelledLimitKeys`) — a calendar-month overtime ceiling, or a band naming a daily limit. Each
- * band then needs its INCENTIVE line, because the split may leave incentive on any day type.
+ * Whether a version can store incentive hours: it states a limit that splits planned overtime
+ * (`splitsOvertime`). Each band then needs its INCENTIVE line, because the split may leave
+ * incentive on any day type.
  */
-export const paysIncentive = (work: Pick<WorkRules, 'limits' | 'bands'>): boolean =>
-	work.limits.some((limit) => limit.measure === 'OVERTIME_HOURS' && limit.period === 'MONTH') ||
-	work.bands.some((band) => band.funnel_above_hours != null);
+export const paysIncentive = (work: Pick<WorkRules, 'limits'>): boolean =>
+	work.limits.some(splitsOvertime);

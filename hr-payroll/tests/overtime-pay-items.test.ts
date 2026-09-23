@@ -45,7 +45,16 @@ const component = (code, definition) => ({
 	definition: definition ?? { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 });
 
-const configuration = (catalogueComponents, bands = []) => ({
+/** A twelve-hour day: an overtime limit, so the planned excess can be incentive on any band. */
+const DAILY_TOTAL = {
+	key: 'daily_total',
+	period: 'DAY',
+	measure: 'TOTAL_WORK_HOURS',
+	max_hours: 12,
+	unit: 'WORKED_HOURS'
+};
+
+const configuration = (catalogueComponents, bands = [], limits = [DAILY_TOTAL]) => ({
 	company: { id: 'co-1', name: 'Fixture Co' },
 	jurisdiction: { id: 'jur-1', code: 'MY' },
 	work: {
@@ -53,7 +62,7 @@ const configuration = (catalogueComponents, bands = []) => ({
 		ordinary_divisor_days: '26.0',
 		overtime_when: '',
 		bands,
-		limits: []
+		limits
 	},
 	contributions: [EPF],
 	catalogueComponents,
@@ -73,8 +82,7 @@ test('a work band needs a pay item of its own, and names the lines it emits', ()
 		label: '1.5',
 		when: 'worked_hours > normal_hours',
 		take_hours: 'hours_beyond_normal',
-		price_amount: 'hours_beyond_normal * ordinary_hour',
-		funnel_above_hours: 'limits.daily_total'
+		price_amount: 'hours_beyond_normal * ordinary_hour'
 	};
 	const missing = validateConfiguration(configuration([], [band])).filter(
 		(issue) => issue.code === 'WORK_BAND_COMPONENT_MISSING'
@@ -93,4 +101,13 @@ test('a work band needs a pay item of its own, and names the lines it emits', ()
 		)
 	).filter((issue) => issue.code === 'WORK_BAND_COMPONENT_MISSING');
 	assert.equal(complete.length, 0, JSON.stringify(complete));
+
+	// With no overtime limit nothing is ever incentive: the band needs its OVERTIME line only.
+	const unlimited = validateConfiguration(configuration([], [band], [])).filter(
+		(issue) => issue.code === 'WORK_BAND_COMPONENT_MISSING'
+	);
+	assert.deepEqual(
+		unlimited.map((issue) => /INCENTIVE/.test(issue.message)),
+		[false]
+	);
 });

@@ -912,11 +912,14 @@ test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 do
 		// §24(2): a 休息日 is priced from its first hour — 2 h at 4/3, the third at 5/3.
 		['2026-01-10', THIRD, 2, 666.67],
 		['2026-01-10', TWO_THIRDS, 1, 416.67],
-		// 12 and 13 hours: 2 h at 4/3 and the rest at 5/3; the over-limit day is still paid.
+		// 12 and 13 hours: 2 h at 4/3 and the rest at 5/3; the over-limit day is still paid. The
+		// thirteenth hour is past §32(2)'s twelve, so the write stores it as incentive: the same
+		// 5/3 on the INCENTIVE line (owner's rule, 2026-09-23).
 		['2026-01-12', THIRD, 2, 666.67],
 		['2026-01-12', TWO_THIRDS, 2, 833.33],
 		['2026-01-13', THIRD, 2, 666.67],
-		['2026-01-13', TWO_THIRDS, 3, 1250]
+		['2026-01-13', TWO_THIRDS, 2, 833.33],
+		['2026-01-13', TWO_THIRDS, 1, 416.67]
 	]);
 	// §32(2): normal plus extended WORKING time may not exceed 12 hours a day, and the §35 break is
 	// not working time — so twelve hours worked in a thirteen-hour clock span is lawful and only the
@@ -931,19 +934,21 @@ test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 do
 	// = 943.01 → 943, the insuring unit's 60,800 × 5.17% × 60% × 1.56 = 2,942.28 → 2,942; 職災
 	// 60,800 × 0.25% = 152. Income tax reads the salary alone: 所得稅法 §14(1)三(2) with 財政部 74
 	// 台財稅第16713號 keeps overtime within the 勞基法 §24/§32 standard and holiday-work pay out of
-	// 薪資所得, so the 7,583.35 of work-day lines is outside the 5% election — 3,000.
+	// 薪資所得, so the 7,166.68 of work-day lines within them is outside the 5% election; the
+	// thirteenth hour of the 13th, past §32(2)'s twelve, is the 416.67 INCENTIVE line and inside
+	// it — 60,416.67 × 5% = 3,020.83, truncated to 3,020.
 	assert.equal(slip.gross, 67_583.35);
 	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [60_800, 0, 3648]);
 	assert.deepEqual(charge(slip, 'NHI'), [60_800, 943, 2942]);
 	assert.deepEqual(charge(slip, 'OCC_INJURY'), [60_800, 0, 152]);
-	assert.deepEqual(charge(slip, 'INCOME_TAX'), [60_000, 3000, 0]);
+	assert.deepEqual(charge(slip, 'INCOME_TAX'), [60_416.67, 3020, 0]);
 	assert.deepEqual(charge(slip, 'LI'), [45_800, 1053, 3687]); // the 勞保 ceiling grade
 	// net = gross − every employee leg; employer cost = Σ employer legs (settle.ts).
-	assert.equal(slip.total_deductions, 5088); // 1,053 + 92 + 943 + 3,000
-	assert.equal(slip.net, 62_495.35); // 67,583.35 − 5,088
+	assert.equal(slip.total_deductions, 5108); // 1,053 + 92 + 943 + 3,020
+	assert.equal(slip.net, 62_475.35); // 67,583.35 − 5,108
 	// 健保法 §34: the insuring unit's supplementary premium is 2.11% of the month's 薪資所得 (格式
 	// 代號50) above the insured amounts. NHIA's Q&A keeps overtime within the 46-hour tax-free
-	// standard out of that total, so the base is the 60,000 salary alone: 60,000 − 60,800 < 0, no
+	// standard out of that total, so the base is the salary and the incentive hour: 60,416.67 − 60,800 < 0, no
 	// charge. The insured's own supplement (§31) is on a bonus over four times the grade; none here.
 	assert.equal(companyCharges.get('NHI_SUPPLEMENT_EMPLOYER'), undefined);
 	assert.equal(
@@ -1402,12 +1407,12 @@ test('Taiwan — an hourly worker is insured for every enrolled day of the month
 test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the monthly limit inside it (財政部 74 台財稅第16713號)', () => {
 	// 60,000 on the 5% election with five days encashed (10,000): pay for unused annual leave is
 	// holiday-work pay under the ruling and outside the withholding base — 3,000 on the salary
-	// alone. Fifty ordinary-day overtime hours in the month: the 46 within 勞基法 §32 are exempt,
-	// the four beyond are the INCENTIVE line and taxable — the 47th hour is the tenth day's second
-	// 4/3 hour and the 48th to 50th its 5/3 hours. The write stores those four as incentive hours
-	// and each band line is priced whole, then rounded once: 333.33 + 1,250.00 = 1,583.33 (the
-	// payroll-time funnel cut a rounded line and carried its cent, 1,583.34).
-	// The full taxable salary × 5% truncates to NT$3,079.
+	// alone. Fifty ordinary-day overtime hours in the month, five a day: §32(2)'s twelve-hour day
+	// holds four of each day's five (8 + 4), so the tenth hour past the shift of every day — ten in
+	// all — is beyond the §32 limits, the INCENTIVE line and taxable; the 40 within stay under the
+	// 46-hour month and are exempt. Each incentive hour is the day's fifth, at 5/3: 10 × 416.67 =
+	// 4,166.70, each line priced whole and rounded once. The taxable salary 64,166.70 × 5%
+	// truncates to NT$3,208.
 	const { slips } = buildStatutory(
 		{
 			code: 'TW',
@@ -1485,7 +1490,7 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 	);
 	assert.deepEqual(charge(encash, 'INCOME_TAX'), [60_000, 3000, 0]);
 	const fifty = slips.get('TW-FIFTY')!;
-	assert.deepEqual(charge(fifty, 'INCOME_TAX'), [61_583.33, 3079, 0]);
+	assert.deepEqual(charge(fifty, 'INCOME_TAX'), [64_166.7, 3208, 0]);
 });
 
 test('Taiwan — thirty half-paid 普通傷病假 days a year, hospitalised or not, across entries (勞工請假規則 §4(3))', () => {

@@ -64,15 +64,13 @@ const workRules = () => ({
 			label: '1.5',
 			when: 'day_type == "ORDINARY"',
 			take_hours: 'hours_beyond_normal',
-			price_amount: 'hours * ordinary_hour * 1.5',
-			funnel_above_hours: 'limits.daily_total'
+			price_amount: 'hours * ordinary_hour * 1.5'
 		},
 		{
 			label: '3.0',
 			when: 'day_type == "PUBLIC_HOLIDAY"',
 			take_hours: 'hours_beyond_normal',
-			price_amount: 'hours * ordinary_hour * 3.0',
-			funnel_above_hours: 'limits.daily_total'
+			price_amount: 'hours * ordinary_hour * 3.0'
 		}
 	],
 	limits: [

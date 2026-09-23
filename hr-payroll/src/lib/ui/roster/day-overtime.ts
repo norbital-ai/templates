@@ -45,7 +45,6 @@ export function windowOvertime(options: {
 	readonly codeById: ReadonlyMap<string, RosterCodeFacts>;
 	readonly holidays: ReadonlySet<string>;
 	readonly limits: SplitOptions['limits'];
-	readonly caps: SplitOptions['caps'];
 	readonly cutoffDay: number;
 }): {
 	readonly split: OvertimeSplit | undefined;
@@ -76,7 +75,6 @@ export function windowOvertime(options: {
 		splitPlannedOvertime({
 			days: days.map((day) => ({ ...day, total_overtime_hours: total(day) })),
 			limits: options.limits,
-			caps: options.caps,
 			cutoffDay: options.cutoffDay
 		});
 	const after = splitWith((day) => day.total_overtime_hours);

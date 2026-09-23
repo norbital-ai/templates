@@ -20,9 +20,10 @@ import { wagesValueSchema } from '../wages/+definition.js';
  * - `proration` returns the month's denominator (calendar days, working days, or a fixed factor).
  * - `ordinary_divisor_days` is the days-per-month divisor of the ordinary rate, over the person.
  * - `overtime_when` says who the overtime ladder covers, over the person; empty is everyone.
- * - `bands` price the day, in order; each band consumes hours and may name the limits above
- *   which planned OT is recorded as incentive hours, paid on its INCENTIVE line at its own award.
- * - `limits` are enforced when schedules are written; an hours limit's evaluated value is
+ * - `bands` price the day, in order; each band consumes hours, and the incentive hours that fall
+ *   in its slice are paid on its INCENTIVE line at its own award.
+ * - `limits` are applied when schedules are written — an overtime limit splits planned overtime,
+ *   a shift's own hours or spread-over above a limit are refused; an hours limit's evaluated value is
  *   readable in expressions as `limits.<key>`, and the consecutive-work-days limit is the weekly
  *   rest rule the roster gate judges.
  * - `breaks` state what the law owes; the shift's `break_minutes` is what it grants.
@@ -137,10 +138,9 @@ const workRateBandValueSchema = Schema.Struct({
 	/** Money over the work day: what the whole slice earns; `hours` is the slice actually consumed. */
 	price_amount: cel,
 	/**
-	 * Names, as `limits.<key>`, a day limit above which planned OT is recorded as incentive hours
-	 * when the day is written (`splitPlannedOvertime`). Those hours pay on the INCENTIVE line at
-	 * the award of the band they fall in. The field name predates that wording; it is kept because
-	 * sealed versions store it.
+	 * Inert: nothing reads it. It once named the day limit above which planned OT became incentive;
+	 * every overtime limit now splits (`splitsOvertime`). Kept, and still compiled, only because
+	 * sealed versions (MY-nihon, VN) store it.
 	 */
 	funnel_above_hours: Schema.optionalKey(cel)
 });

@@ -198,8 +198,7 @@ const WORK = {
 			label: '2.0',
 			when: 'day_type == "REST_DAY"',
 			take_hours: 'hours_beyond_normal',
-			price_amount: 'hours * ordinary_hour * 2.0',
-			funnel_above_hours: 'limits.daily_total'
+			price_amount: 'hours * ordinary_hour * 2.0'
 		}
 	],
 	limits: [

@@ -77,7 +77,7 @@
 	import {
 		applicableLimits,
 		assessmentWindow,
-		funnelledLimitKeys,
+		splitsOvertime,
 		type RosterCodeFacts
 	} from '../../lib/scheduling/work-limits.js';
 	import {
@@ -450,7 +450,6 @@
 						asOf: workDate
 					})
 		);
-		const caps = funnelledLimitKeys(rules, limits);
 		const codeById = new Map<string, RosterCodeFacts>();
 		for (const code of shiftsById.values()) {
 			const kind = rosterCodeKind(code.variant);
@@ -489,14 +488,15 @@
 				codeById,
 				holidays: new Set((holidaysQuery?.current ?? []).map((row) => dateKey(row.date))),
 				limits,
-				caps,
 				cutoffDay: employment?.employment_company?.pay_cutoff_day ?? 1
 			});
 		const current = split(draftOvertime ?? 0);
 		return {
 			overtime: current.split?.approved_overtime_hours ?? 0,
 			incentive: current.split?.incentive_hours ?? 0,
-			limit: caps.size === 0 ? null : (split(24).split?.approved_overtime_hours ?? null),
+			limit: limits.some(splitsOvertime)
+				? (split(24).split?.approved_overtime_hours ?? null)
+				: null,
 			moved: current.moved,
 			sealed: current.sealed
 		};

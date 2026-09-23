@@ -15,11 +15,12 @@
  * it changes or omits is a conflict, and the whole file is refused naming those days.
  *
  * An Overtime row states the day's TOTAL planned overtime. The `work_days` transform the writes
- * run through splits it (`splitPlannedOvertime`): the hours within the limits that split (the
- * monthly overtime cap, a day limit a band names) stay approved overtime, the excess is stored as
- * incentive hours. A sealed day compares on that total, so restating it unchanged still passes.
- * Statutory limits — the weekly rest ceiling, the other hour ceilings, granted breaks,
- * adjacent-shift overlap — are the transform's, and refuse the write with person, day and rule.
+ * run through splits it (`splitPlannedOvertime`): the hours within every statutory overtime limit
+ * stay approved overtime, the excess is stored as incentive hours; no overtime limit refuses. A
+ * sealed day compares on that total, so restating it unchanged still passes. The other statutory
+ * rules — the weekly rest ceiling, a shift's own hours or spread-over above a limit, granted
+ * breaks, adjacent-shift overlap — are the transform's, and refuse the write with person, day and
+ * rule.
  * Holidays are never stored on a day; they are overlaid from the entity's calendar, so PH is not
  * a roster code: the cell names the shift the person would have worked.
  */
@@ -625,7 +626,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 export default {
 	import: {
 		description:
-			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is the total planned overtime (hours after the shift, in half-hour steps, inclusive of breaks), which the write splits into overtime within the statutory limits and incentive hours beyond them. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, hour, break and overlap rules refuse the write with person, day and rule; planned overtime counts toward the hour ceilings, and a ceiling that splits (the monthly overtime cap, a daily limit a band names) is accepted, the hours beyond it stored as incentive hours. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
+			'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is the total planned overtime (hours after the shift, in half-hour steps, inclusive of breaks), which the write splits into overtime within the statutory limits and incentive hours beyond them. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory rest, break and overlap rules, and a shift whose own hours or spread-over exceed a limit, refuse the write with person, day and rule; planned overtime never refuses — every statutory overtime limit splits it, the hours beyond stored as incentive hours. Holidays are overlaid from the calendar and never imported; overtime is keyed, never derived.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {
