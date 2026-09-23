@@ -1,7 +1,8 @@
 import type { Envoy } from './$types.js';
 
 /**
- * Field-operations work over WhatsApp for contractors with a verified workspace account.
+ * Field-operations work on the `field_ops_whatsapp` WhatsApp channel for contractors with a verified
+ * workspace account.
  *
  * The envoy's whole job is to bring the contractor's existing assignments up to date from what
  * they send: attach their photos, move the status, and file the messages as that assignment's
@@ -10,7 +11,7 @@ import type { Envoy } from './$types.js';
  * never creates, deletes or reassigns work.
  */
 export default {
-	transport: 'whatsapp',
+	channel: 'field_ops_whatsapp',
 	audience: 'authenticated',
 	policies: ['field_ops_whatsapp'],
 	groupMessages: 'mention_or_reply',

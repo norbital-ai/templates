@@ -7,7 +7,7 @@ export default defineModel(
 		 *
 		 * Nullable, because a site entered by hand here has no counterpart over there and inventing one
 		 * would be a lie the unique index then enforces. It carries that index anyway: it is the key an
-		 * inbound job’s `site_code` is resolved through, and a code that matched two sites would silently
+		 * imported job’s site is resolved through, and a code that matched two sites would silently
 		 * file jobs against whichever row came back first.
 		 */
 		site_code: text(),

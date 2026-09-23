@@ -37,8 +37,9 @@ site → job assignment → user (the assignee)
   were separate collections until the job and its single assignment were folded together.
   `assignee_user_id` is `user.id` directly — a contractor is a **role**, not a record, a user whose
   team holds `field_ops_contractor` — and is null while the work order is filed but unassigned.
-  `external_ref` is the dispatch system's identity key (unique, so redelivery is idempotent) and
-  `source_message_id` is the channel message the dispatch came from. Status runs `unassigned` →
+  Controllers file work orders in the dashboard or import them from a sheet; `external_ref` is the
+  dispatch system's reference when a sheet carries one (unique, so a re-imported sheet files nothing
+  twice) and `source_message_id` is the channel message the dispatch came from. Status runs `unassigned` →
   `assigned` → `completed`; whether the work was legitimately done is a suspicion question and is
   never stored on this row (`suspicion_checked_at` is the only suspicion-adjacent column, written by
   the review automation after a run).
@@ -141,7 +142,8 @@ assignment's progress and their evidence photos — never the integrity results.
 ### The WhatsApp envoy
 
 `field_ops_whatsapp` is a conversational entry point for contractors who already have an active
-workspace account. An administrator verifies the contractor's WhatsApp number on that account; an
+workspace account. It answers on the WhatsApp channel of the same name
+(`src/channels/+field_ops_whatsapp.ts`). An administrator verifies the contractor's WhatsApp number on that account; an
 unknown number receives a registration prompt and no model run.
 
 The envoy's whole job is to bring a contractor's **existing** assignments up to date from what
@@ -178,7 +180,6 @@ The envoy runs under the strict capability lock:
 | Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).                                                       |
 | Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read assignments; update status, completion and summary on one the linked contractor holds; file new photo and message rows under it. No other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                 |
 | Policy     | `suspicion_review_automation`     | The review automation's authority: the photo corpus it inspects (facts written once, while the hash is empty), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                                       |
-| Policy     | `dispatch_integration`            | The dispatch import's authority: read, create and update `job_assignments`, plus the site-code read it resolves authored site references against.                                                                                                                                                                       |
 | Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its photo-to-assignment map is reviewed photo by photo; the job-assignment import CSV template lives in `assets/` with its own README.                                                                     |
 
 The controller reads assignments, people, sites, and open suspicion logs directly from the
@@ -192,8 +193,9 @@ stay live without a remote query handler or refresh control.
 ```text
 src/
 ├── apps/                           +field_ops_controller.svelte, +field_ops_contractor.svelte
-├── envoys/                         +field_ops_whatsapp.ts
-├── access/policies/                the six policies and the variation approval flow
+├── channels/                       +field_ops_whatsapp.ts, the WhatsApp channel
+├── envoys/                         +field_ops_whatsapp.ts, the agent on that channel
+├── access/policies/                the four policies and the variation approval flow
 ├── collections/                    models, relationships, write contracts (+collection.ts), pipelines, representations
 │   ├── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
 │   ├── suspicion_reviews/          the review ledger (controller-only)
@@ -213,8 +215,8 @@ not only the UI:
 
 - A dispatched job must reference an existing site; naming a contractor is what moves it from
   `unassigned` to `assigned`.
-- `external_ref` is the dispatch system's identity key and `source_message_id` the channel
-  message's; both are unique idempotency keys.
+- `external_ref` is an imported job's dispatch-system reference and `source_message_id` the
+  channel message's; both are unique idempotency keys.
 - A reported location beyond the site tolerance is recorded as an evidence fact and never sets
   `suspect`; completion is stamped by the collection's own transform.
 - Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded by
@@ -240,7 +242,8 @@ not only the UI:
 
 ### How the WhatsApp envoy works
 
-The host holds the transport credential and delivers an already-authenticated inbound command. Bolt
+The `field_ops_whatsapp` channel declares the transport; the host holds its credential and delivers
+already-authenticated inbound messages. Bolt
 binds the conversation to a transcript, claims the message exactly once, and matches its sender to a
 verified WhatsApp identity. Runtime mints `envoy:field_ops_whatsapp` with the declaration's policies;
 the linked contractor supplies only `userId` for requestor predicates, never team authority or admin.

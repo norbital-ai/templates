@@ -28,7 +28,7 @@ import { PUBLIC_ASSIGNMENT_ID, bootPublicSeedGuest } from './helpers/public-seed
  * the inbound delivery and the database is the real pipeline.
  */
 const TIMEOUT_MILLIS = 180_000;
-const ENVOY = 'field_ops_whatsapp';
+const CHANNEL = 'field_ops_whatsapp';
 const SENDER_JID = '6591234567@s.whatsapp.net';
 const REPORT_MESSAGE_ID = 'msg-report-1';
 const SENT_AT = '2026-09-06T04:00:00.000Z';
@@ -120,7 +120,7 @@ test(
 	{ timeout: TIMEOUT_MILLIS },
 	async () => {
 		const communication: FacilityBinding<CommunicationRequest, CommunicationResponse> = {
-			call: async () => ({ _tag: 'Success', value: { receipt: { id: 'wire' } } })
+			call: async () => ({ _tag: 'Success', value: { providerMessageId: 'wire' } })
 		};
 		const guest = await bootPublicSeedGuest({
 			tenantId: 'field-ops-envoy-report',
@@ -170,30 +170,39 @@ test(
 			]);
 
 			const received = requireOk(
-				await system('envoys.receive', {
-					envoy: ENVOY,
-					delivery: {
-						conversationId: SENDER_JID,
-						conversationKind: 'dm',
-						messageId: REPORT_MESSAGE_ID,
-						sentAt: SENT_AT,
-						invocation: 'direct',
-						text: REPORT_TEXT,
-						sender: { id: SENDER_JID, displayName: 'Contractor' },
-						attachments: []
-					}
+				await system('channels.ingest', {
+					channel: CHANNEL,
+					changes: [
+						{
+							_tag: 'Upsert',
+							envelope: {
+								_tag: 'chat',
+								conversationId: SENDER_JID,
+								conversationKind: 'dm',
+								messageId: REPORT_MESSAGE_ID,
+								sentAt: SENT_AT,
+								invocation: 'direct',
+								text: REPORT_TEXT,
+								sender: { id: SENDER_JID, displayName: 'Contractor' },
+								attachments: []
+							},
+							version: SENT_AT,
+							origin: 'live',
+							direction: 'inbound'
+						}
+					]
 				}),
-				'envoys.receive'
+				'channels.ingest'
 			) as Row;
-			assert.equal(received.status, 'buffered');
+			assert.equal(received.admitted, 1);
 			await waitFor(async () => {
 				const state = rows(
 					await guest.query(
-						`select status from bolt_envoy_messages where direction = 'inbound' and external_message_id = $1`,
-						[REPORT_MESSAGE_ID]
+						`select answered_at from channel_messages where channel = $1 and direction = 'inbound' and provider_message_id = $2`,
+						[CHANNEL, REPORT_MESSAGE_ID]
 					)
 				)[0];
-				return state?.status === 'answered' ? state : undefined;
+				return state?.answered_at != null ? state : undefined;
 			}, 'the envoy answering the report');
 
 			const toolResult = rows(

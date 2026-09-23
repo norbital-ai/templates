@@ -70,7 +70,7 @@ function assertFiledMessage(message: FiledMessage): void {
  * channel message it came from. The update selection carries the dispatch itself plus progress:
  * this is the collection where naming a contractor *is* the dispatch, so `assignee_user_id` and
  * `dispatched_at` are writable, while the identity keys (`external_ref`, `source_message_id`) are
- * not — a redelivery or a re-import may not restate who a job is.
+ * not — a re-import may not restate who a job is.
  */
 export default defineCollection({
 	model,

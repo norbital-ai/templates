@@ -11,22 +11,22 @@ import {
 export default defineModel(
 	{
 		/**
-		 * The dispatch system's reference for this work — the external key the webhook is keyed on.
+		 * The dispatch system's reference for this work, when an imported sheet carries one.
 		 *
 		 * Nullable for the same reason `sites.site_code` is: a job somebody files here was never
-		 * dispatched and has no reference to carry. The unique index is what makes the inbound binding
-		 * idempotent — webhook delivery is at-least-once, so without it a redelivery is a second job.
+		 * dispatched elsewhere and has no reference to carry. The unique index is what keeps a sheet
+		 * imported twice from filing the same job twice.
 		 */
 		external_ref: text(),
 		/**
 		 * The work order and the dispatch of it, in one row.
 		 *
-		 * These used to be two collections: `jobs` was the work order the dispatch system sent, and
+		 * These used to be two collections: `jobs` was the work order a controller filed, and
 		 * `job_assignments` was the labour record hung off it. But a job had exactly one assignment
 		 * (`job_id` was unique), every assignment field was written by the dispatch gesture, and the
 		 * job's own `status` was derived from the assignment's — so the pairing was one entity split
 		 * across two rows, with the split maintained by two automations. The work order is now this
-		 * row: it arrives unassigned from the dispatch feed, and the dispatch is the act of naming
+		 * row: a controller files or imports it unassigned, and the dispatch is the act of naming
 		 * who holds it.
 		 */
 		site_id: uuid().notNull(),
