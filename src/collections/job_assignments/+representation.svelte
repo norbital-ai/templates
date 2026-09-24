@@ -6,7 +6,17 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Cluster, Column, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import {
+		Cluster,
+		Column,
+		Cover,
+		Frame,
+		Grid,
+		Imposter,
+		Inline,
+		Scroll,
+		Stack
+	} from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import { cn } from '@norbital-ai/ui/utils';
@@ -645,17 +655,13 @@
 										>
 											<button
 												type="button"
-												class="size-14 shrink-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+												class="size-14 shrink-0 rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 												aria-label={t('component.open_photo', { name: photo.name })}
 												onclick={() => (openedPhoto = photo)}
 											>
-												<img
-													src={photo.url}
-													alt={photo.name}
-													class="size-full object-cover"
-													loading="lazy"
-													decoding="async"
-												/>
+												<Frame as="span" ratio="square" class="size-full rounded-md">
+													<img src={photo.url} alt={photo.name} loading="lazy" decoding="async" />
+												</Frame>
 											</button>
 											<Stack gap="xs" class="min-w-0 py-0.5">
 												<p class="truncate text-tiny font-medium">{photo.name}</p>
@@ -735,14 +741,10 @@
 														})}
 													</span>
 												</Inline>
-												<Grid
-													tracks="minmax(0, 1fr) auto minmax(0, 1fr)"
-													gap="xs"
-													class="items-center"
-												>
+												<Inline gap="xs" align="center">
 													<button
 														type="button"
-														class="min-w-0 rounded-md bg-muted/45 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														class="min-w-0 flex-1 rounded-md bg-muted/45 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 														onclick={() => (openedPhoto = pair.submitted)}
 													>
 														<img
@@ -758,12 +760,12 @@
 													</button>
 													<Icon
 														icon="lucide:arrow-left-right"
-														class="size-3.5 text-muted-foreground"
+														class="size-3.5 shrink-0 text-muted-foreground"
 														aria-hidden="true"
 													/>
 													<button
 														type="button"
-														class="min-w-0 rounded-md bg-warning/5 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														class="min-w-0 flex-1 rounded-md bg-warning/5 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 														onclick={() => (openedPhoto = pair.candidate)}
 													>
 														<img
@@ -780,7 +782,7 @@
 															{pair.assignment}
 														</span>
 													</button>
-												</Grid>
+												</Inline>
 											</Stack>
 										</article>
 									{/each}
@@ -956,18 +958,18 @@
 							{#each communicationTimeline as item, index (item.id)}
 								{@const dayKey = timelineDayKey(item.sentAt)}
 								{#if index === 0 || dayKey !== timelineDayKey(communicationTimeline[index - 1]?.sentAt)}
-									<li class="flex justify-center py-1">
+									<Inline as="li" justify="center" class="py-1">
 										<span
 											class="rounded-full bg-background px-2.5 py-1 text-micro font-medium text-muted-foreground"
 										>
 											{formatTimelineDay(item.sentAt)}
 										</span>
-									</li>
+									</Inline>
 								{/if}
 								{@const recordedFlags = [
 									...new Set(item.photos.flatMap((photo) => photo.flags.map(integrityFlagLabel)))
 								]}
-								<li class={item.system ? 'flex justify-center' : 'flex justify-start'}>
+								<Inline as="li" justify={item.system ? 'center' : 'start'}>
 									<article
 										class={cn(
 											'min-w-0 px-2.5 py-2',
@@ -996,38 +998,38 @@
 														{t('component.photo_count', { count: item.photos.length })}
 													</p>
 												{/if}
-												<div
-													class={cn(
-														'grid min-w-0 gap-1.5 overflow-hidden rounded-md',
-														item.photos.length > 1 && 'grid-cols-2 sm:grid-cols-3',
-														item.photos.length > 6 && 'sm:grid-cols-4'
-													)}
-												>
+												<Grid minimum="compact" gap="xs">
 													{#each item.photos as photo (photo.id)}
 														<button
 															type="button"
 															onclick={() => (openedPhoto = photo)}
-															class="group min-w-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															class="group min-w-0 rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 															aria-label={t('component.open_photo', { name: photo.name })}
 															title={photo.name}
 														>
-															<img
-																src={photo.url}
-																alt={photo.name}
+															<Frame
+																as="span"
+																ratio="landscape"
 																class={cn(
-																	'w-full object-cover transition-opacity duration-150 group-hover:opacity-90',
+																	'rounded-md',
 																	item.photos.length === 1
-																		? 'aspect-[4/3] max-h-96'
+																		? 'max-h-96'
 																		: item.photos.length > 6
-																			? 'aspect-[4/3] max-h-60'
-																			: 'aspect-[4/3] max-h-72'
+																			? 'max-h-60'
+																			: 'max-h-72'
 																)}
-																loading="lazy"
-																decoding="async"
-															/>
+															>
+																<img
+																	src={photo.url}
+																	alt={photo.name}
+																	class="transition-opacity duration-150 group-hover:opacity-90"
+																	loading="lazy"
+																	decoding="async"
+																/>
+															</Frame>
 														</button>
 													{/each}
-												</div>
+												</Grid>
 											{/if}
 											{#if mayReadSuspicion && recordedFlags.length > 0}
 												<Inline align="start" gap="xs" class="text-micro text-muted-foreground">
@@ -1056,23 +1058,25 @@
 											</Inline>
 										</Stack>
 									</article>
-								</li>
+								</Inline>
 							{/each}
 						</Stack>
 					{/if}
 				</Scroll>
 				{#if conversationAwayFromLatest && communicationTimeline.length > 0}
-					<div class="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-						<Button
-							size="sm"
-							variant="secondary"
-							class="pointer-events-auto shadow-sm"
-							onclick={scrollConversationToLatest}
-						>
-							<Icon icon="lucide:arrow-down" class="size-3.5 shrink-0" />
-							{t('component.conversation_to_latest')}
-						</Button>
-					</div>
+					<Imposter placement="bottom" class="pointer-events-none pb-3">
+						<Inline justify="center">
+							<Button
+								size="sm"
+								variant="secondary"
+								class="pointer-events-auto shadow-sm"
+								onclick={scrollConversationToLatest}
+							>
+								<Icon icon="lucide:arrow-down" class="size-3.5 shrink-0" />
+								{t('component.conversation_to_latest')}
+							</Button>
+						</Inline>
+					</Imposter>
 				{/if}
 			</div>
 		</Stack>
