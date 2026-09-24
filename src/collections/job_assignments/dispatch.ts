@@ -1,10 +1,10 @@
 import type { Row } from './$types.js';
 
 /** What a filed job says about its own dispatch; the rest of the row is not read here. */
-export type FiledJob = Pick<Row, 'title'> &
+type FiledJob = Pick<Row, 'title'> &
 	Partial<Pick<Row, 'assignee_user_id' | 'status' | 'dispatched_at'>>;
 
-type SiteWords = { readonly name: string; readonly site_code?: string | null };
+type SiteWords = { readonly name: string; readonly site_code?: string | null | undefined };
 
 /** The board's searchable copy of a job: its own title plus the site's name and code. */
 export const searchTextFor = (title: string, site: SiteWords | undefined): string =>

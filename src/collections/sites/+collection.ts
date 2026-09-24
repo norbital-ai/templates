@@ -2,7 +2,7 @@ import { defineCollection, refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { currentDate } from '../../lib/clock.js';
 import { siteKey } from '../../lib/site-key.mjs';
-import { dispatchFacts, searchTextFor, type FiledJob } from '../job_assignments/dispatch.js';
+import { dispatchFacts, searchTextFor } from '../job_assignments/dispatch.js';
 import model from './+model.js';
 import type { CreateInput, Row, UpdateInput } from './$types.js';
 
@@ -37,8 +37,8 @@ const siteAssignments = {
 } as const;
 
 type Jobs = NonNullable<CreateInput['site_assignments']>;
-type SiteWords = Pick<Row, 'name' | 'site_code'>;
-type LinkedJob = { readonly id: string; readonly set?: Readonly<Record<string, unknown>> };
+/** A stored site or a create naming one: a create may omit `site_code`. */
+type SiteWords = Pick<Row, 'name'> & Partial<Pick<Row, 'site_code'>>;
 
 /**
  * A site is identified by its address (`site_key`, generated from `name` and `location`), so
@@ -96,7 +96,7 @@ export default defineCollection({
 								...(jobs.create === undefined
 									? {}
 									: {
-											create: jobs.create.map((job: FiledJob) => ({
+											create: jobs.create.map((job) => ({
 												...job,
 												...dispatchFacts(job, site, now)
 											}))
@@ -104,7 +104,7 @@ export default defineCollection({
 								...(jobs.link === undefined
 									? {}
 									: {
-											link: jobs.link.map((link: LinkedJob) => ({
+											link: jobs.link.map((link) => ({
 												...link,
 												set: {
 													...link.set,
