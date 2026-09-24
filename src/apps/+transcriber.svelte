@@ -4,8 +4,11 @@
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
+	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import { Bound, Cover } from '@norbital-ai/ui/layout';
+	import { Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Label } from '@norbital-ai/ui/label';
 	import { Effect } from 'effect';
@@ -42,6 +45,13 @@
 		limit: 500
 	});
 	let projects = $derived(projectsQuery.current ?? []);
+	let projectOptions = $derived(
+		projects.map((project) => ({
+			value: project.id,
+			label: String(project.name),
+			search_term: String(project.name)
+		}))
+	);
 
 	let selectedProject = $state<string | null>(null);
 	let projectName = $derived(
@@ -436,196 +446,183 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Transcriber</title>
-	<meta
-		name="description"
-		content="Record or import audio and transcribe it on-device, then save it to a project."
+<AppHeaderActions>
+	<Combobox
+		ariaLabel={t('transcriber.project_label')}
+		options={projectOptions}
+		bind:value={selectedProject}
+		emptyPlaceholder={t('transcriber.select_project')}
+		clientConfig={{
+			isLoading: projectsQuery.loading,
+			error: projectsQuery.error?.message ?? null
+		}}
+		disabled={saving}
+		class="min-w-64"
 	/>
-	<meta name="bolt:icon" content="lucide:mic" />
-</svelte:head>
+</AppHeaderActions>
 
-<Cover as="main">
-	<Bound size="full" inset>
-		<p class="transcriber-notice">{t('transcriber.first_use_notice')}</p>
+<AppShell
+	icon="lucide:mic"
+	title="Transcriber"
+	description="Record or import audio and transcribe it on-device, then save it to a project."
+	variant="full"
+>
+	<Scroll name={t('app.transcriber.header_title')} inset>
+		<Stack gap="md">
+			<p class="transcriber-notice">{t('transcriber.first_use_notice')}</p>
 
-		<Label for="transcriber-project-select">{t('transcriber.project_label')}</Label>
-		<select
-			id="transcriber-project-select"
-			bind:value={selectedProject}
-			aria-label={t('transcriber.project_label')}
-			disabled={saving}
-		>
-			<option value="" disabled>{t('transcriber.select_project')}</option>
-			{#each projects as project}
-				<option value={project.id}>{project.name}</option>
-			{/each}
-		</select>
-
-		<Label for="transcriber-language-select">{t('transcriber.language_label')}</Label>
-		<select
-			id="transcriber-language-select"
-			bind:value={language}
-			aria-label={t('transcriber.language_label')}
-			disabled={transcribeStatus === 'running' || saving}
-		>
-			<option value="english">{t('transcriber.language_option_english')}</option>
-			<option value="chinese">{t('transcriber.language_option_chinese')}</option>
-			<option value="malay">{t('transcriber.language_option_malay')}</option>
-			<option value="japanese">{t('transcriber.language_option_japanese')}</option>
-			<option value="indonesian">{t('transcriber.language_option_indonesian')}</option>
-		</select>
-
-		<h2>{t('transcriber.source_heading')}</h2>
-		<div class="transcriber-source">
-			{#if recordingState === 'recording'}
-				<Button variant="destructive" onclick={stopRecording}>
-					{t('transcriber.record_stop')}
-				</Button>
-				<span>
-					{t('transcriber.recording_indicator')}
-					{formatDuration(recordingElapsedSeconds)}
-				</span>
-			{:else}
-				<Button
-					variant="outline"
-					onclick={startRecording}
-					disabled={decoding || saving || requestingMic || transcribeStatus === 'running'}
+			<Stack gap="xs" align="start">
+				<Label for="transcriber-language-select">{t('transcriber.language_label')}</Label>
+				<select
+					id="transcriber-language-select"
+					bind:value={language}
+					aria-label={t('transcriber.language_label')}
+					disabled={transcribeStatus === 'running' || saving}
 				>
-					{t('transcriber.record_start')}
-				</Button>
-			{/if}
-			{#if micError}
-				<p class="transcriber-error">{micError}</p>
-			{/if}
+					<option value="english">{t('transcriber.language_option_english')}</option>
+					<option value="chinese">{t('transcriber.language_option_chinese')}</option>
+					<option value="malay">{t('transcriber.language_option_malay')}</option>
+					<option value="japanese">{t('transcriber.language_option_japanese')}</option>
+					<option value="indonesian">{t('transcriber.language_option_indonesian')}</option>
+				</select>
+			</Stack>
 
-			<Label for="transcriber-file-input">{t('transcriber.import_label')}</Label>
-			<input
-				id="transcriber-file-input"
-				type="file"
-				accept="audio/*"
-				onchange={onFileSelected}
-				disabled={recordingState === 'recording' ||
-					decoding ||
-					saving ||
-					requestingMic ||
-					transcribeStatus === 'running'}
-			/>
-
-			{#if decoding}
-				<p>{t('transcriber.decoding')}</p>
-			{:else if decodeError}
-				<p class="transcriber-error">{decodeError}</p>
-			{:else if audioObjectUrl}
-				<audio controls src={audioObjectUrl}></audio>
-				<p>
-					{t('transcriber.audio_ready')}
-					{#if audioDurationSeconds !== null}
-						— {t('transcriber.duration_label')}: {formatDuration(audioDurationSeconds)}
+			<Stack as="section" gap="sm">
+				<h2>{t('transcriber.source_heading')}</h2>
+				<Stack gap="sm" align="start">
+					{#if recordingState === 'recording'}
+						<Button variant="destructive" onclick={stopRecording}>
+							{t('transcriber.record_stop')}
+						</Button>
+						<span>
+							{t('transcriber.recording_indicator')}
+							{formatDuration(recordingElapsedSeconds)}
+						</span>
+					{:else}
+						<Button
+							variant="outline"
+							onclick={startRecording}
+							disabled={decoding || saving || requestingMic || transcribeStatus === 'running'}
+						>
+							{t('transcriber.record_start')}
+						</Button>
 					{/if}
-				</p>
+					{#if micError}
+						<p class="transcriber-error">{micError}</p>
+					{/if}
+
+					<Label for="transcriber-file-input">{t('transcriber.import_label')}</Label>
+					<input
+						id="transcriber-file-input"
+						type="file"
+						accept="audio/*"
+						onchange={onFileSelected}
+						disabled={recordingState === 'recording' ||
+							decoding ||
+							saving ||
+							requestingMic ||
+							transcribeStatus === 'running'}
+					/>
+
+					{#if decoding}
+						<p>{t('transcriber.decoding')}</p>
+					{:else if decodeError}
+						<p class="transcriber-error">{decodeError}</p>
+					{:else if audioObjectUrl}
+						<audio controls src={audioObjectUrl}></audio>
+						<p>
+							{t('transcriber.audio_ready')}
+							{#if audioDurationSeconds !== null}
+								— {t('transcriber.duration_label')}: {formatDuration(audioDurationSeconds)}
+							{/if}
+						</p>
+					{/if}
+				</Stack>
+			</Stack>
+
+			<Stack as="section" gap="sm">
+				<h2>{t('transcriber.transcribe_heading')}</h2>
+				<Stack gap="sm" align="start">
+					{#if transcribeStatus === 'running'}
+						<Button variant="destructive" onclick={cancelTranscription}>
+							{t('transcriber.cancel_button')}
+						</Button>
+						<progress></progress>
+						{#if progressMessage}
+							<p role="status">{progressMessage}</p>
+						{/if}
+					{:else}
+						<Button variant="default" disabled={!canTranscribe} onclick={startTranscription}>
+							{transcribeStatus === 'error' || transcribeStatus === 'cancelled'
+								? t('transcriber.retry_button')
+								: t('transcriber.transcribe_button')}
+						</Button>
+					{/if}
+					{#if transcribeStatus === 'no-speech'}
+						<p>{t('transcriber.status_no_speech')}</p>
+					{:else if transcribeStatus === 'error'}
+						<p class="transcriber-error">{transcribeError ?? t('transcriber.status_error')}</p>
+					{:else if transcribeStatus === 'cancelled'}
+						<p>{t('transcriber.status_cancelled')}</p>
+					{:else if transcribeStatus === 'done'}
+						<p>{t('transcriber.status_done')}</p>
+					{/if}
+					<p class="transcriber-notice">{t('transcriber.speaker_notice')}</p>
+				</Stack>
+			</Stack>
+
+			{#if transcribeStatus === 'done'}
+				<Stack as="section" gap="sm">
+					<h2>{t('transcriber.transcript_heading')}</h2>
+					<Stack gap="sm" align="start">
+						<Label for="transcriber-transcript">{t('transcriber.transcript_label')}</Label>
+						<textarea
+							id="transcriber-transcript"
+							bind:value={transcriptMarkdown}
+							rows={16}
+							cols={80}
+							aria-label={t('transcriber.transcript_label')}
+							disabled={saving}
+							spellcheck
+							style="width: 100%; font-family: monospace;"></textarea>
+
+						<Label for="transcriber-subject">{t('transcriber.subject_label')}</Label>
+						<input
+							id="transcriber-subject"
+							type="text"
+							bind:value={subject}
+							placeholder={`${t('transcriber.default_subject_prefix')} ${projectName}`}
+							disabled={saving}
+						/>
+
+						<Inline as="label" gap="sm">
+							<input type="checkbox" bind:checked={saveWithRecording} disabled={saving} />
+							{t('transcriber.save_with_recording_label')}
+						</Inline>
+
+						<Inline gap="sm">
+							<Button variant="default" disabled={saving || !canSave} onclick={saveTranscript}>
+								{saving ? t('transcriber.saving') : t('transcriber.save_button')}
+							</Button>
+							<Button variant="outline" onclick={downloadTranscript}>
+								{t('transcriber.download_button')}
+							</Button>
+						</Inline>
+						{#if saveError}
+							<p class="transcriber-error">{saveError}</p>
+						{:else if saveStatus === 'saved'}
+							<p class="transcriber-status">{t('transcriber.save_saved')}</p>
+						{:else if saveStatus === 'pending'}
+							<p class="transcriber-status">{t('transcriber.save_pending')}</p>
+						{/if}
+					</Stack>
+				</Stack>
 			{/if}
-		</div>
-
-		<h2>{t('transcriber.transcribe_heading')}</h2>
-		<div class="transcriber-transcribe">
-			{#if transcribeStatus === 'running'}
-				<Button variant="destructive" onclick={cancelTranscription}>
-					{t('transcriber.cancel_button')}
-				</Button>
-				<progress></progress>
-				{#if progressMessage}
-					<p role="status">{progressMessage}</p>
-				{/if}
-			{:else}
-				<Button variant="default" disabled={!canTranscribe} onclick={startTranscription}>
-					{transcribeStatus === 'error' || transcribeStatus === 'cancelled'
-						? t('transcriber.retry_button')
-						: t('transcriber.transcribe_button')}
-				</Button>
-			{/if}
-			{#if transcribeStatus === 'no-speech'}
-				<p>{t('transcriber.status_no_speech')}</p>
-			{:else if transcribeStatus === 'error'}
-				<p class="transcriber-error">{transcribeError ?? t('transcriber.status_error')}</p>
-			{:else if transcribeStatus === 'cancelled'}
-				<p>{t('transcriber.status_cancelled')}</p>
-			{:else if transcribeStatus === 'done'}
-				<p>{t('transcriber.status_done')}</p>
-			{/if}
-			<p class="transcriber-notice">{t('transcriber.speaker_notice')}</p>
-		</div>
-
-		{#if transcribeStatus === 'done'}
-			<h2>{t('transcriber.transcript_heading')}</h2>
-			<div class="transcriber-review">
-				<Label for="transcriber-transcript">{t('transcriber.transcript_label')}</Label>
-				<textarea
-					id="transcriber-transcript"
-					bind:value={transcriptMarkdown}
-					rows={16}
-					cols={80}
-					aria-label={t('transcriber.transcript_label')}
-					disabled={saving}
-					spellcheck
-					style="width: 100%; font-family: monospace;"></textarea>
-
-				<Label for="transcriber-subject">{t('transcriber.subject_label')}</Label>
-				<input
-					id="transcriber-subject"
-					type="text"
-					bind:value={subject}
-					placeholder={`${t('transcriber.default_subject_prefix')} ${projectName}`}
-					disabled={saving}
-				/>
-
-				<label class="transcriber-checkbox">
-					<input type="checkbox" bind:checked={saveWithRecording} disabled={saving} />
-					{t('transcriber.save_with_recording_label')}
-				</label>
-
-				<div class="transcriber-actions">
-					<Button variant="default" disabled={saving || !canSave} onclick={saveTranscript}>
-						{saving ? t('transcriber.saving') : t('transcriber.save_button')}
-					</Button>
-					<Button variant="outline" onclick={downloadTranscript}>
-						{t('transcriber.download_button')}
-					</Button>
-				</div>
-				{#if saveError}
-					<p class="transcriber-error">{saveError}</p>
-				{:else if saveStatus === 'saved'}
-					<p class="transcriber-status">{t('transcriber.save_saved')}</p>
-				{:else if saveStatus === 'pending'}
-					<p class="transcriber-status">{t('transcriber.save_pending')}</p>
-				{/if}
-			</div>
-		{/if}
-	</Bound>
-</Cover>
+		</Stack>
+	</Scroll>
+</AppShell>
 
 <style>
-	.transcriber-source,
-	.transcriber-transcribe,
-	.transcriber-review {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.5rem;
-		margin-block-end: 1rem;
-	}
-
-	.transcriber-actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.transcriber-checkbox {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
 	.transcriber-error {
 		color: var(--color-destructive, #b91c1c);
 	}

@@ -3,8 +3,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import { Bound, Cover } from '@norbital-ai/ui/layout';
 	import { Tabs } from '@norbital-ai/ui/tabs';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -18,12 +18,6 @@
 
 	let section = $state('companies');
 </script>
-
-<svelte:head>
-	<title>CRM</title>
-	<meta name="description" content="Companies, contacts, projects, activity and issues." />
-	<meta name="bolt:icon" content="lucide:contact-round" />
-</svelte:head>
 
 {#snippet companiesTab()}
 	<CollectionTable client={companiesClient} collection="companies" view="companies:table">
@@ -95,21 +89,53 @@
 	</CollectionTable>
 {/snippet}
 
-<Cover as="main">
-	<Bound size="full" inset>
-		<Tabs
-			value={section}
-			onValueChange={(next) => (section = next)}
-			variant="underline"
-			contentPadding={false}
-			config={[
-				{ name: 'companies', label: t('crm.section.companies'), content: companiesTab },
-				{ name: 'contacts', label: t('crm.section.contacts'), content: contactsTab },
-				{ name: 'projects', label: t('crm.section.projects'), content: projectsTab },
-				{ name: 'activities', label: t('crm.section.activities'), content: activitiesTab },
-				{ name: 'issues', label: t('crm.section.issues'), content: issuesTab },
-				{ name: 'documents', label: t('crm.section.documents'), content: documentsTab }
-			]}
-		/>
-	</Bound>
-</Cover>
+<AppShell
+	icon="lucide:contact-round"
+	title="CRM"
+	description="Companies, contacts, projects, activity and issues."
+	variant="full"
+>
+	<Tabs
+		value={section}
+		onValueChange={(next) => (section = next)}
+		variant="underline"
+		config={[
+			{
+				name: 'companies',
+				label: t('crm.section.companies'),
+				icon: 'lucide:building-2',
+				content: companiesTab
+			},
+			{
+				name: 'contacts',
+				label: t('crm.section.contacts'),
+				icon: 'lucide:contact-round',
+				content: contactsTab
+			},
+			{
+				name: 'projects',
+				label: t('crm.section.projects'),
+				icon: 'lucide:folder-kanban',
+				content: projectsTab
+			},
+			{
+				name: 'activities',
+				label: t('crm.section.activities'),
+				icon: 'lucide:calendar-check',
+				content: activitiesTab
+			},
+			{
+				name: 'issues',
+				label: t('crm.section.issues'),
+				icon: 'lucide:circle-alert',
+				content: issuesTab
+			},
+			{
+				name: 'documents',
+				label: t('crm.section.documents'),
+				icon: 'lucide:file-text',
+				content: documentsTab
+			}
+		]}
+	/>
+</AppShell>
