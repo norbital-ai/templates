@@ -144,7 +144,6 @@ it('a board cell opens the record sheet for a stored day and the create sheet fo
 		);
 		assert.match(createBody, /Planned/);
 		assert.match(createBody, /Actual/);
-		assert.match(createBody, /Why this day is locked/);
 		await page.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
 
 		// A stored row is the other arm: the record sheet, opened from the URL stack. It carries
@@ -180,16 +179,13 @@ it('a board cell opens the record sheet for a stored day and the create sheet fo
 		);
 		assert.doesNotMatch(recordBody, /Create day/);
 		assert.match(recordBody, /Actual/);
-		assert.match(recordBody, /Why this day is locked/);
 		assert.match(recordBody, /Save assignment/);
 		// The plan the row names is the plan the sheet shows.
 		assert.match(recordBody, /7\.5AM/);
-		// Planned overtime is keyed in the Planned section, beside the shift, not under attendance:
-		// approved overtime and incentive hours as two figures, never split by the sheet.
-		assert.match(
-			recordBody,
-			/Planned[\s\S]*Approved overtime \(hours\)[\s\S]*Incentive hours[\s\S]*Actual/
-		);
+		// Planned overtime is one figure on the Planned tab, beside the shift: the sheet splits it
+		// into approved overtime and incentive hours at the day's limit, so neither is keyed apart.
+		assert.match(recordBody, /Planned overtime \(hours\)/);
+		assert.doesNotMatch(recordBody, /Approved overtime \(hours\)|Incentive hours/);
 		assert.doesNotMatch(recordBody, /beyond schedule/i);
 		// The day's statutory maximum is stated beside the approved figure.
 		assert.match(

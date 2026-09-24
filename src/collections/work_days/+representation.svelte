@@ -660,7 +660,12 @@
 
 	/** What the day reads as, from its own row: the person, and the state of the plan and the clock. */
 	const subtitle = $derived.by(() => {
-		if (record == null) return undefined;
+		// A create from a board cell has no title of its own: the subtitle names whose day it is.
+		if (record == null)
+			return identityFixed
+				? [personLabel, workDate].filter((part) => part != null && part !== '').join(' · ') ||
+						undefined
+				: undefined;
 		const plannedCode =
 			record.shift_definition_id == null
 				? null

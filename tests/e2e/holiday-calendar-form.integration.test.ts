@@ -221,23 +221,53 @@ it('the entity saves a Google source, imports unpublished holidays and publishes
 			COMPANY_ID
 		]);
 		// Holidays: import from the Google source, then publish one day. The panel opens on the
-		// current year and the fixture reads the next one, so page forward first.
+		// current year and the fixture reads the next one, so pick it in the year scope first.
 		await perform(
 			page,
 			`(() => {
-				const node = document.querySelector('[aria-label="Next year"]');
-				if (!(node instanceof HTMLElement)) return false;
-				node.click();
-				return true;
+				${ACTIVATE}
+				const option = [...document.querySelectorAll('[role="option"]')].find(
+					(node) => node.textContent?.trim() === ${JSON.stringify(String(YEAR))}
+				);
+				if (option instanceof HTMLElement) {
+					activate(option);
+					return true;
+				}
+				const trigger = document.querySelector('[role="combobox"][aria-label="Year"]');
+				if (trigger?.getAttribute('aria-expanded') !== 'true') activate(trigger);
+				return false;
 			})()`,
-			'view next year'
+			'pick the next year'
 		);
 		await perform(
 			page,
 			`document.body.innerText.includes(${JSON.stringify(String(YEAR))})`,
 			`the year reads ${YEAR}`
 		);
-		await clickNamed(page, 'button', 'Import from Google');
+		// The Google import is the table's import pipeline: collection actions → Import → run it.
+		await perform(
+			page,
+			`(() => {
+				${ACTIVATE}
+				const run = document.querySelector('[aria-label="Run Import from Google"]');
+				if (run instanceof HTMLElement && run.getBoundingClientRect().height > 0) {
+					activate(run);
+					return true;
+				}
+				const section = [...document.querySelectorAll('[data-slot="accordion-trigger"], [role="button"][aria-expanded], button[aria-expanded]')].find(
+					(node) => /^Import\\s*\\d+$/.test(node.textContent?.trim() ?? '')
+				);
+				if (section instanceof HTMLElement) {
+					if (section.getAttribute('aria-expanded') !== 'true') activate(section);
+					return 'import section expanded: ' + section.getAttribute('aria-expanded');
+				}
+				// The entities table behind the sheet has its own actions; the holidays table is the sheet's.
+				const actions = ${DIALOG}?.querySelector('[aria-label="Open collection actions"]') ?? null;
+				if (actions?.getAttribute('aria-expanded') !== 'true') activate(actions);
+				return actions === null ? 'no collection actions' : 'actions open: ' + actions.getAttribute('aria-expanded');
+			})()`,
+			'Import from Google'
+		);
 		let imported: readonly unknown[];
 		try {
 			imported = await until(
@@ -278,7 +308,30 @@ it('the entity saves a Google source, imports unpublished holidays and publishes
 			'durable import progress'
 		);
 		// A second import adds nothing: the same two days are already there.
-		await clickNamed(page, 'button', 'Import from Google');
+		// The Google import is the table's import pipeline: collection actions → Import → run it.
+		await perform(
+			page,
+			`(() => {
+				${ACTIVATE}
+				const run = document.querySelector('[aria-label="Run Import from Google"]');
+				if (run instanceof HTMLElement && run.getBoundingClientRect().height > 0) {
+					activate(run);
+					return true;
+				}
+				const section = [...document.querySelectorAll('[data-slot="accordion-trigger"], [role="button"][aria-expanded], button[aria-expanded]')].find(
+					(node) => /^Import\\s*\\d+$/.test(node.textContent?.trim() ?? '')
+				);
+				if (section instanceof HTMLElement) {
+					if (section.getAttribute('aria-expanded') !== 'true') activate(section);
+					return 'import section expanded: ' + section.getAttribute('aria-expanded');
+				}
+				// The entities table behind the sheet has its own actions; the holidays table is the sheet's.
+				const actions = ${DIALOG}?.querySelector('[aria-label="Open collection actions"]') ?? null;
+				if (actions?.getAttribute('aria-expanded') !== 'true') activate(actions);
+				return actions === null ? 'no collection actions' : 'actions open: ' + actions.getAttribute('aria-expanded');
+			})()`,
+			'Import from Google'
+		);
 		await perform(
 			page,
 			`document.body.innerText.includes('Imported 0 holidays; 2 already present')`,

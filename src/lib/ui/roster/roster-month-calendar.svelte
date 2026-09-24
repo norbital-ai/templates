@@ -425,7 +425,7 @@
 										<Imposter placement="fill">
 											<button
 												type="button"
-												class="size-full cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+												class="block size-full cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 												aria-haspopup="dialog"
 												aria-label={tileLabel(day, date, entryLock)}
 												title={tileLabel(day, date, entryLock)}

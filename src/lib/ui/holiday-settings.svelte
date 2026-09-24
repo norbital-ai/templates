@@ -46,6 +46,10 @@
 		const value = String(thisYear - 3 + index);
 		return { value, label: value };
 	});
+	/** The last Google import, held so its live progress and outcome stay beside the year. */
+	let latestRun = $state<
+		Awaited<ReturnType<typeof client.automations.holiday_import.run>> | undefined
+	>();
 	const yearRange = $derived({
 		start: dayInstant(`${year}-01-01`),
 		end: dayInstant(`${year}-12-31`)
@@ -106,6 +110,15 @@
 		ariaLabel={t('holiday_calendar.year')}
 		class="w-28"
 	/>
+	{#if latestRun?.current?.status === 'failed'}
+		<span class="text-sm text-destructive" role="alert"
+			>{keyUnset(latestRun.current.error ?? '')}</span
+		>
+	{:else if latestRun != null}
+		<span class="text-sm text-muted-foreground" role="status"
+			>{latestRun.current?.progress?.text ?? t('holiday_import.started')}</span
+		>
+	{/if}
 {/snippet}
 
 <CollectionTable
@@ -153,11 +166,12 @@
 					try: () => client.automations.holiday_import.run({ company_id: companyId, year }),
 					catch: (cause) => new Error(keyUnset(getErrorMessage(cause)))
 				}).pipe(
-					Effect.flatMap((run) =>
-						run.current?.status === 'failed'
+					Effect.flatMap((run) => {
+						latestRun = run;
+						return run.current?.status === 'failed'
 							? Effect.fail(new Error(keyUnset(run.current.error ?? '')))
-							: Effect.sync(() => toast.success(t('holiday_import.started')))
-					)
+							: Effect.void;
+					})
 				)
 		},
 		{
