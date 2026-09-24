@@ -209,7 +209,11 @@
 						value={current.elections ?? {}}
 						declarations={schemeQuery?.current?.elections ?? []}
 						{disabled}
-						onValueChange={(elections) => emit({ ...current, elections })}
+						onValueChange={(elections) => {
+							// The value declares `elections` optional, never null: a cleared editor drops the key.
+							const { elections: _prior, ...rest } = current;
+							emit(elections === null ? rest : { ...rest, elections });
+						}}
 					/>
 				</Stack>
 			</Column>
