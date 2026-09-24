@@ -15,7 +15,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { FieldDescription, FieldLegend, FieldSet } from '@norbital-ai/ui/field';
+	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
@@ -52,11 +53,9 @@
 			<!-- The entity's Google holiday source is set on the Holidays tab, not here; the form
 			     still declares it, because a mutable field it never names is a runtime refusal. -->
 			<Field name="holiday_source" hidden />
-			<Stack as="section" gap="sm">
-				<Stack gap="xs">
-					<h3 class="text-sm font-semibold">{t('component.legal_entity')}</h3>
-					<p class="text-meta">{t('component.legal_entity_description')}</p>
-				</Stack>
+			<FieldSet>
+				<FieldLegend>{t('component.legal_entity')}</FieldLegend>
+				<FieldDescription>{t('component.legal_entity_description')}</FieldDescription>
 				<Grid gap="md" minimum="panel">
 					<Field name="name" label={t('component.legal_name')} />
 					<Field name="registration_number" label={t('component.registration_number')} />
@@ -99,7 +98,7 @@
 						/>
 					</Column>
 				</Grid>
-			</Stack>
+			</FieldSet>
 		{/snippet}
 	</CollectionForm>
 {/snippet}

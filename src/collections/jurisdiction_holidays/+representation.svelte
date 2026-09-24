@@ -4,7 +4,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { getContext } from 'svelte';
 	import { HOLIDAY_COMPANY } from '../../lib/holiday-scope.js';
@@ -37,18 +37,20 @@
 					<Column span="all"><Field name="name" label={t('component.holiday')} /></Column>
 					<Field name="replaces" label={t('holiday_calendar.replaces')} />
 					<Column span="all">
-						<label class="flex items-start gap-2 text-sm">
-							<input
-								type="checkbox"
-								checked={form.values().published_at != null}
-								onchange={(event) =>
-									form.setValues({
-										...form.values(),
-										published_at: event.currentTarget.checked ? new Date().toISOString() : null
-									})}
-							/>
-							{t('holiday_calendar.published')}
-						</label>
+						<label class="text-sm"
+							><Inline as="span" gap="sm" align="start">
+								<input
+									type="checkbox"
+									checked={form.values().published_at != null}
+									onchange={(event) =>
+										form.setValues({
+											...form.values(),
+											published_at: event.currentTarget.checked ? new Date().toISOString() : null
+										})}
+								/>
+								{t('holiday_calendar.published')}
+							</Inline></label
+						>
 					</Column>
 					<Field name="published_at" hidden />
 				</Grid>

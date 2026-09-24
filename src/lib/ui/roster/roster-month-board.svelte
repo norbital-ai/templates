@@ -41,7 +41,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Number as EffectNumber } from 'effect';
-	import { Cluster, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Cluster, Cover, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Skeleton } from '@norbital-ai/ui/skeleton';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { createVirtualizer } from '@norbital-ai/ui/utils/virtualizer.svelte';
@@ -308,46 +308,52 @@
 
 {#snippet boardHeader()}
 	<!-- The header viewport clips; the rows below remain the one scroll owner on both axes. -->
-	<div
-		class="relative h-10 overflow-hidden border-b bg-card text-xs"
+	<Inline
+		gap="none"
+		align="stretch"
+		class="h-10 border-b bg-card text-xs"
 		aria-hidden="true"
 		onwheel={handleBoardHeaderWheel}
 	>
-		<div
-			class="absolute inset-y-0 left-0 z-20 flex w-40 items-center border-r bg-card px-3 font-semibold"
-		>
+		<Inline gap="none" shrink={false} class="w-40 border-r bg-card px-3 font-semibold">
 			{t('roster.person')}
-		</div>
-		<div class="absolute inset-y-0 right-0 left-40 overflow-hidden">
-			<div bind:this={boardHeaderTrack} class="flex h-full w-max will-change-transform">
-				{#each days as date (date)}
-					{@const holiday = holidayNames.get(date)}
-					{@const settled = !loading && locks.get(date)?.kind === 'SETTLED'}
-					<div
-						title={holiday == null ? undefined : holidayTitle(holiday, t)}
-						class={cn(
-							'flex h-10 w-15 min-w-15 max-w-15 flex-col items-center justify-center bg-card text-center font-medium',
-							isWeekend(date) && 'bg-muted',
-							holiday != null && HOLIDAY_PRESENTATION.headerClassName,
-							date === today && 'font-semibold ring-2 ring-inset ring-brand',
-							date === cutoffStartsAt && 'border-l-2 border-l-brand',
-							settled && 'border-r-2 border-r-brand/60',
-							date < today && !settled && 'text-muted-foreground'
-						)}
-					>
-						<span class="block text-meta">
-							{settled
-								? '🔒'
-								: holiday == null
-									? WEEKDAY_LETTERS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]!
-									: HOLIDAY_PRESENTATION.mark}
-						</span>
-						<span class="block tabular-nums">{decodeNumber(date.slice(8, 10))}</span>
-					</div>
-				{/each}
+		</Inline>
+		<Bound size="full" clip grow>
+			<div bind:this={boardHeaderTrack} class="h-full w-max will-change-transform">
+				<Inline gap="none" align="stretch" fill>
+					{#each days as date (date)}
+						{@const holiday = holidayNames.get(date)}
+						{@const settled = !loading && locks.get(date)?.kind === 'SETTLED'}
+						<Stack
+							gap="none"
+							align="center"
+							justify="center"
+							shrink={false}
+							title={holiday == null ? undefined : holidayTitle(holiday, t)}
+							class={cn(
+								'h-10 w-15 min-w-15 max-w-15 bg-card text-center font-medium',
+								isWeekend(date) && 'bg-muted',
+								holiday != null && HOLIDAY_PRESENTATION.headerClassName,
+								date === today && 'font-semibold ring-2 ring-inset ring-brand',
+								date === cutoffStartsAt && 'border-l-2 border-l-brand',
+								settled && 'border-r-2 border-r-brand/60',
+								date < today && !settled && 'text-muted-foreground'
+							)}
+						>
+							<span class="block text-meta">
+								{settled
+									? '🔒'
+									: holiday == null
+										? WEEKDAY_LETTERS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]!
+										: HOLIDAY_PRESENTATION.mark}
+							</span>
+							<span class="block tabular-nums">{decodeNumber(date.slice(8, 10))}</span>
+						</Stack>
+					{/each}
+				</Inline>
 			</div>
-		</div>
-	</div>
+		</Bound>
+	</Inline>
 {/snippet}
 
 {#snippet boardColumns()}
@@ -369,6 +375,7 @@
 			{#each Array(16) as _, rowIndex (rowIndex)}
 				<tr>
 					<th
+						// repository-health:allow UI19 -- sticky person column of the board table; Imposter position="sticky" cannot render as a `th`, and sticky on a child of the cell sticks only within that cell
 						class="sticky left-0 z-10 w-40 min-w-40 max-w-40 border-r border-b bg-card px-3 py-1.5"
 					>
 						<Stack gap="xs">
@@ -425,6 +432,7 @@
 								<tr data-index={personIndex}>
 									<th
 										scope="row"
+										// repository-health:allow UI19 -- sticky person column of the board table; Imposter position="sticky" cannot render as a `th`, and sticky on a child of the cell sticks only within that cell
 										class="sticky left-0 z-10 w-40 min-w-40 max-w-40 border-r border-b bg-card px-3 py-1.5 text-left font-normal"
 									>
 										<span class="block truncate font-mono tabular-nums">{person.number}</span>
@@ -554,13 +562,17 @@
 												}}
 											>
 												{#if firstConflict != null}
-													<span
+													<!-- 2px into the 36px cell corner: `xs` would cover the cell code. `under` stays beneath the sticky person column. -->
+													<Imposter
+														as="span"
+														placement="top-end"
+														layer="under"
 														class={cn(
-															'absolute top-0.5 right-0.5 size-1.5 rounded-full',
+															'top-0.5 right-0.5 size-1.5 rounded-full',
 															CONFLICT_PRESENTATION[firstConflict].className
 														)}
 														title={t(CONFLICT_PRESENTATION[firstConflict].labelKey)}
-													></span>
+													/>
 												{/if}
 												{#if LOCK_RAIL_PRESENTATION[rung].padlock !== ''}
 													<!--
@@ -568,13 +580,16 @@
 												actually refuse a write. Colour alone is not an accessible way to say
 												"locked", and the rail is four values on one narrow strip.
 											-->
-													<span
-														class="absolute top-0.5 left-0.5 text-[0.5rem] leading-none"
+													<Imposter
+														as="span"
+														placement="top-start"
+														layer="under"
+														class="top-0.5 left-0.5 text-[0.5rem] leading-none"
 														aria-hidden="true"
 														title={t(LOCK_RAIL_PRESENTATION[rung].labelKey)}
 													>
 														{LOCK_RAIL_PRESENTATION[rung].padlock}
-													</span>
+													</Imposter>
 												{/if}
 												<RosterSlot {day} dense />
 											</button>

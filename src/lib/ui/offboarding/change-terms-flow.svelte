@@ -253,7 +253,7 @@
 	<label class="text-sm font-medium"
 		><Stack gap="xs"
 			>{label}<select
-				class="border-input bg-background flex h-8 rounded-md border px-3 text-sm"
+				class="border-input bg-background h-8 rounded-md border px-3 text-sm"
 				{value}
 				onchange={(event) => change(event.currentTarget.value)}
 			>

@@ -232,7 +232,7 @@
 
 {#snippet home()}
 	<Bound size="full">
-		<Scroll name={t('app.hr_employee.tab_home')}>
+		<Scroll name={t('app.hr_employee.tab_home')} inset>
 			<Stack gap="md">
 				{@render contextGate()}
 				{#if employeeQuery.loading}
@@ -283,6 +283,7 @@
 							{/if}
 						</Cluster>
 						<!-- repository-health:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
+						<!-- repository-health:allow UI27 -- gap-px hairline gutter over bg-border: the gap scale has no 1px step, and `divided` (Stack/Inline/Cluster) rules one axis only, while these cells wrap into rows and columns -->
 						<Grid class="gap-px bg-border" gap="none" minimum="compact">
 							<Stack class="bg-card px-5 py-4" gap="xs">
 								<p class="text-xs font-medium text-muted-foreground">{t('component.email')}</p>
@@ -407,7 +408,7 @@
 									balance.window.end
 								)}
 							</p>
-							<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+							<Grid as="dl" gap="sm" tracks="repeat(auto-fit, minmax(min(100%, 7rem), 1fr))">
 								{#each [{ label: t('app.hr_employee.leave_entitlement'), value: balance.entitlement }, { label: t('app.hr_employee.leave_earned'), value: balance.earned }, { label: t('leave.posted_balance'), value: balance.balance }, { label: t('app.hr_employee.leave_pending'), value: balance.pending }, { label: t('leave.expired_carry'), value: balance.expired }, { label: t('app.hr_employee.leave_available'), value: balance.available }] as item (item.label)}
 									<div>
 										<dt class="text-meta">{item.label}</dt>
@@ -418,7 +419,7 @@
 										</dd>
 									</div>
 								{/each}
-							</dl>
+							</Grid>
 						</Stack>
 					{/each}
 				{/if}
@@ -428,7 +429,7 @@
 {/snippet}
 
 {#snippet leaveBalancesPanel()}
-	<Scroll name={t('app.hr_employee.leave_scroll_name')}>
+	<Scroll name={t('app.hr_employee.leave_scroll_name')} inset>
 		{@render leaveBalances()}
 	</Scroll>
 {/snippet}

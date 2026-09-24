@@ -19,37 +19,30 @@
 	 */
 	import { Effect } from 'effect';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
-	import { toast } from 'svelte-sonner';
-	import { getErrorMessage } from '@norbital-ai/std';
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import type { RepresentationProps } from './$types.js';
 	import {
 		CollectionForm,
-		submitCollectionMutation,
 		type CollectionFormController,
 		type CollectionFormSemantic
 	} from '@norbital-ai/ui/collection-form';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import { Tabs } from '@norbital-ai/ui/tabs';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Inline, Stack } from '@norbital-ai/ui/layout';
-	import { cn } from '@norbital-ai/ui/utils';
+	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { client } from '../../lib/workspace-client.js';
-	import {
-		sourceLock,
-		sourceLockReason,
-		sourceLockRecordMetadata
-	} from '../../lib/scheduling/lock.js';
+	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
 	import FormSection from '../../lib/ui/form-section.svelte';
 	import { todayKey } from '../../lib/ui/calendar.js';
-	import { dayInstant, dateKey, isSettledId, PAYROLL_TIME_ZONE } from '../../lib/iso-day.js';
+	import { dayInstant, dateKey, PAYROLL_TIME_ZONE } from '../../lib/iso-day.js';
 	import { settingsInForce } from '../../lib/jurisdiction_settings.js';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 	import { formatDurationHours } from '../../lib/ui/display-formatters.js';
@@ -63,7 +56,6 @@
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
 		DAY_MINUTES,
-		LOCK_RAIL_PRESENTATION,
 		assessAttendanceDraft,
 		beyondPlanMinutes,
 		clockToDayMinutes,
@@ -205,7 +197,11 @@
 					label:
 						window == null
 							? `${code.code} · ${kind}`
-							: `${code.code} · ${window.start_time}–${window.end_time}`,
+							: `${code.code} · ${t('roster.shift_window', {
+									start: window.start_time,
+									end: window.end_time,
+									break: window.break_minutes / 60
+								})}`,
 					search_term: `${code.code} ${code.name} ${window?.start_time ?? ''} ${window?.end_time ?? ''}`
 				};
 			})
@@ -216,8 +212,41 @@
 	let draftCodeId = $state<string | null>(null);
 	let baselineCodeId = $state<string | null>(null);
 
+	/** The picker's value for "no override": the work pattern decides the day. */
+	const PATTERN_OPTION = '__pattern__';
+	/** What the work pattern projects on this day; the plan the day follows without an override. */
+	const patternCodeId = $derived.by(() => {
+		if (workDate == null) return null;
+		const term = (termsQuery?.current ?? []).find((row) =>
+			coversDate(row.effective_range, workDate)
+		);
+		const row = term == null ? null : termPatternRow(term);
+		return row == null ? null : patternRosterCodeId(row.pattern, workDate, patternAnchor(row));
+	});
+	/** The code the day is planned on: its own override, else the pattern's. */
+	const effectiveCodeId = $derived(draftCodeId ?? patternCodeId);
+	const effectiveKind = $derived.by(() => {
+		const code = effectiveCodeId == null ? null : shiftsById.get(effectiveCodeId);
+		return code == null ? null : rosterCodeKind(code.variant);
+	});
+	const planOptions = $derived([
+		{
+			value: PATTERN_OPTION,
+			label:
+				patternCodeId == null
+					? t('roster.no_work_pattern')
+					: t('roster.follow_work_pattern', {
+							code:
+								rosterCodeOptions.find((option) => option.value === patternCodeId)?.label ??
+								shiftsById.get(patternCodeId)?.code ??
+								''
+						})
+		},
+		...rosterCodeOptions
+	]);
+
 	const selectedWindow = $derived.by(() => {
-		const code = draftCodeId == null ? null : shiftsById.get(draftCodeId);
+		const code = effectiveCodeId == null ? null : shiftsById.get(effectiveCodeId);
 		if (code == null) return null;
 		return rosterCodeKind(code.variant) === 'WORK' ? workWindow(code.variant) : null;
 	});
@@ -242,13 +271,10 @@
 				})
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
-	const rung = $derived<'OPEN' | 'CONSUMED'>(settled ? 'CONSUMED' : 'OPEN');
 
 	const planWritable = $derived(mode === 'controller' && !frozen);
-	const planTouched = $derived(
-		planWritable && draftCodeId != null && draftCodeId !== baselineCodeId
-	);
-	const hasExplicitPlan = $derived(record?.shift_definition_id != null);
+	/** Choosing the pattern clears the override: a change like any other, saved with the form. */
+	const planTouched = $derived(planWritable && draftCodeId !== baselineCodeId);
 
 	/* ── THE ACTUAL ───────────────────────────────────────────────────────────────────────────── */
 
@@ -266,11 +292,11 @@
 	let draftAttendanceRecorded = $state(false);
 	let baselineAttendance = $state<AttendanceValue>({ intervals: null });
 	/**
-	 * The day's planned overtime, keyed as two figures: the approved overtime, up to the statutory
-	 * headroom the sheet shows, and the incentive hours beyond it. Null is none planned.
+	 * The day's planned overtime, keyed as ONE figure. The statute decides the split, not the
+	 * operator: the hours within the day's headroom are approved overtime, the rest incentive
+	 * hours — the same split the import makes (`splitPlannedOvertime`). Null is none planned.
 	 */
-	let draftApproved = $state<number | null>(null);
-	let draftIncentive = $state<number | null>(null);
+	let draftOvertime = $state<number | null>(null);
 	/** Self-service only: the operator has asked to report a punch on a day that has none. */
 	let reporting = $state(false);
 
@@ -282,8 +308,12 @@
 		reporting = false;
 		draftCodeId = record?.shift_definition_id ?? null;
 		baselineCodeId = record?.shift_definition_id ?? null;
-		draftApproved = storedHours(record?.approved_overtime_hours);
-		draftIncentive = storedHours(record?.incentive_hours);
+		const storedApproved = storedHours(record?.approved_overtime_hours);
+		const storedIncentive = storedHours(record?.incentive_hours);
+		draftOvertime =
+			storedApproved == null && storedIncentive == null
+				? null
+				: (storedApproved ?? 0) + (storedIncentive ?? 0);
 		draftAttendanceRecorded = record?.worked_intervals != null;
 		baselineAttendance = {
 			intervals:
@@ -331,12 +361,6 @@
 	const attendanceWritable = $derived(!frozen && (mode === 'controller' || reporting));
 	const attendanceTouched = $derived(
 		attendanceWritable && attendanceChanged(baselineAttendance, draftAttendance)
-	);
-	/** Null and zero are one statement to payroll: no approved hours. */
-	const overtimeTouched = $derived(
-		planWritable &&
-			((draftApproved ?? 0) !== (storedHours(record?.approved_overtime_hours) ?? 0) ||
-				(draftIncentive ?? 0) !== (storedHours(record?.incentive_hours) ?? 0))
 	);
 
 	/**
@@ -570,9 +594,22 @@
 				)
 		};
 	});
-	/** The approved hours keyed above the day's headroom: the save is blocked. */
-	const overHeadroom = $derived(
-		overtimeHeadroom.maximum != null && (draftApproved ?? 0) > overtimeHeadroom.maximum.hours
+	/** The planned figure, split at the day's headroom; no limit keeps every hour approved. */
+	const draftApproved = $derived.by(() => {
+		if (draftOvertime == null) return null;
+		const maximum = overtimeHeadroom.maximum?.hours;
+		return maximum == null ? draftOvertime : Math.min(draftOvertime, maximum);
+	});
+	const draftIncentive = $derived(
+		draftOvertime == null || draftApproved == null || draftOvertime === draftApproved
+			? null
+			: draftOvertime - draftApproved
+	);
+	/** Null and zero are one statement to payroll: no approved hours. */
+	const overtimeTouched = $derived(
+		planWritable &&
+			((draftApproved ?? 0) !== (storedHours(record?.approved_overtime_hours) ?? 0) ||
+				(draftIncentive ?? 0) !== (storedHours(record?.incentive_hours) ?? 0))
 	);
 	/**
 	 * The company holiday worked by a person the overtime rule does not cover: no overtime is paid,
@@ -659,6 +696,22 @@
 		return { employment_id: employmentId, work_date: workDateInstant };
 	});
 
+	/**
+	 * The three statutory flags exist for the jurisdictions whose overtime bands read them —
+	 * `requested_by` (SG, ID) only on a rest day, `emergency_cause` and `time_off_in_lieu` (TW).
+	 * A version whose bands never name one leaves it registered but unpainted: asking an operator
+	 * a question payroll never reads is noise.
+	 */
+	const bandText = $derived(
+		(settingsVersion?.work_rules?.bands ?? [])
+			.flatMap((band) => [band.when ?? '', band.take_hours, band.price_amount])
+			.join('\n')
+	);
+	const bandsRead = (name: string) => new RegExp(`\\b${name}\\b`).test(bandText);
+	const showRequestedBy = $derived(bandsRead('requested_by') && effectiveKind === 'REST');
+	const showEmergency = $derived(bandsRead('emergency_cause'));
+	const showTimeOffInLieu = $derived(bandsRead('time_off_in_lieu'));
+
 	/** The identity is a fact of the cell, not a field: shown, never edited. */
 	const identityFixed = $derived(employmentId != null);
 
@@ -674,14 +727,6 @@
 		Effect.sync(() => {
 			if (!planTouched && !attendanceTouched && !overtimeTouched)
 				return [{ message: t('roster.day_sheet_cannot_save') }];
-			if (overtimeTouched && overHeadroom && overtimeHeadroom.maximum != null)
-				return [
-					{
-						message: t('roster.day_sheet_overtime_over_max', {
-							max: formatDurationHours(overtimeHeadroom.maximum.hours * 60, t)
-						})
-					}
-				];
 			if (!attendanceTouched) return;
 			if (missingIntervalStart) return [{ message: t('roster.day_sheet_problem_missing_start') }];
 			if (draftIntervals.length === 0) return;
@@ -693,6 +738,8 @@
 	/** Mirror the plan half into the form; the picker is custom composition. */
 	function pushPlan(form: CollectionFormController): void {
 		form.setValues({ shift_definition_id: draftCodeId });
+		// The headroom follows the plan, so the split of a keyed figure may move with it.
+		pushOvertime(form);
 	}
 
 	/**
@@ -824,18 +871,6 @@
 		draftIntervals = [{ startMinutes: start, endMinutes: end <= start ? end + DAY_MINUTES : end }];
 		draftAttendanceRecorded = true;
 	}
-
-	/**
-	 * Drop the day's own plan and let the pattern project it again.
-	 *
-	 * A zero-input gesture, not a form submit: the write nulls the plan column and leaves any
-	 * attendance on the row exactly where it was. It is written inline at the button, which is the
-	 * shape the authoring audit requires of a command that is not a form submission.
-	 */
-	function planClearValues(): { readonly id: string } | null {
-		const workDayId = record?.id;
-		return workDayId == null || !isSettledId(workDayId) ? null : { id: workDayId };
-	}
 </script>
 
 {#snippet fieldRow(label: string, value: string)}
@@ -845,46 +880,12 @@
 	</Inline>
 {/snippet}
 
-{#snippet planActions()}
-	<!--
-		Clearing the plan clears the PLAN, and never the row: the write nulls the plan column and
-		leaves any attendance on the row exactly where it was. The pattern baseline resumes for that
-		day, which is what clearing an override means.
-	-->
-	<Button
-		variant="outline"
-		size="sm"
-		type="button"
-		onclick={() => {
-			const target = planClearValues();
-			if (target == null) return;
-			Effect.runFork(
-				submitCollectionMutation(() =>
-					client.collection.work_days.update(target.id, { shift_definition_id: null })
-				).pipe(
-					Effect.tap((submission) =>
-						Effect.sync(() => {
-							if (submission.kind === 'pendingApproval') {
-								toast.success(t('roster.day_sheet_pending_approval'));
-							}
-						})
-					),
-					Effect.catch((cause) =>
-						Effect.sync(() =>
-							toast.error(t('roster.day_sheet_save_failed'), {
-								description: getErrorMessage(cause)
-							})
-						)
-					)
-				)
-			);
-		}}
-	>
-		{t('roster.clear_assignment')}
-	</Button>
-{/snippet}
-
-<RecordShell {subtitle} actions={hasExplicitPlan && planWritable ? planActions : undefined}>
+<!--
+	No record actions: returning the day to its work pattern is the picker's first option, saved with
+	the rest of the sheet. The person and the day are the sheet's title and subtitle, and the lock is
+	the header's seal (`recordMetadata`), so none of them is repeated in the body.
+-->
+<RecordShell {subtitle}>
 	{#if identityResolved}
 		{#key sheetKey}
 			<div style="display: contents;" {@attach seedSheet}>
@@ -900,11 +901,7 @@
 					onAfterSubmit={record == null ? close : undefined}
 				>
 					{#snippet children({ Field, form })}
-						<!--
-							Identity registers exactly once, as the form contract requires. A cell already names
-							the person and the day, so there it is a read-only fact; a create with no cell behind
-							it still names its own.
-						-->
+						<!-- Identity registers exactly once; a cell already names the person and the day. -->
 						<Field
 							name="employment_id"
 							hidden={identityFixed}
@@ -917,124 +914,75 @@
 						<Field name="approved_overtime_hours" hidden />
 						<Field name="incentive_hours" hidden />
 
-						<Stack gap="lg">
-							{#if identityFixed}
-								{@render fieldRow(t('component.person'), personLabel === '' ? '—' : personLabel)}
-								{@render fieldRow(t('component.day'), workDate == null ? '—' : workDate)}
-							{/if}
-
-							<FormSection
-								title={t('component.work_day_planned')}
-								hint={t('component.work_day_planned_description')}
-								first
-							>
+						{#snippet planned()}
+							<Stack gap="md">
 								{#if mode === 'controller'}
-									<Stack gap="xs">
-										<!--
-											A <span>, not a <Label>. `Combobox` is not a labellable control — it carries
-											its own `ariaLabel` — and a <label> with nothing to point at is an accessibility
-											warning that reads as a fix while making the picker no easier to reach.
-										-->
-										<span class="text-xs font-medium">{t('roster.choose_roster_code')}</span>
-										<Combobox
-											ariaLabel={t('roster.choose_roster_code')}
-											options={rosterCodeOptions}
-											value={draftCodeId}
-											disabled={!planWritable}
-											onValueChange={(value) => {
-												draftCodeId = value;
-												pushPlan(form);
-											}}
-											emptyPlaceholder={t('roster.choose_roster_code')}
-											searchPlaceholder={t('roster.search_roster_codes')}
-										/>
-									</Stack>
+									<Combobox
+										ariaLabel={t('roster.choose_roster_code')}
+										options={planOptions}
+										value={draftCodeId ?? PATTERN_OPTION}
+										disabled={!planWritable}
+										allowClear={false}
+										preserveOptionOrder
+										onValueChange={(value) => {
+											draftCodeId = value == null || value === PATTERN_OPTION ? null : value;
+											pushPlan(form);
+										}}
+										searchPlaceholder={t('roster.search_roster_codes')}
+									/>
 								{:else}
 									<!-- Self-service reads the plan; it never sets it. A roster is HR's record. -->
 									{@render fieldRow(
 										t('roster.day_sheet_roster_code'),
 										selectedWindow == null
 											? t('roster.unrostered')
-											: `${selectedWindow.start_time}–${selectedWindow.end_time}`
-									)}
-								{/if}
-								{#if selectedWindow != null}
-									{@render fieldRow(
-										t('roster.day_sheet_scheduled'),
-										t('roster.shift_window', {
-											start: selectedWindow.start_time,
-											end: selectedWindow.end_time,
-											break: selectedWindow.break_minutes / 60
-										})
+											: t('roster.shift_window', {
+													start: selectedWindow.start_time,
+													end: selectedWindow.end_time,
+													break: selectedWindow.break_minutes / 60
+												})
 									)}
 								{/if}
 								<!--
-									Overtime is PLANNED, keyed on the day beside the shift in half-hour steps. It is not
-									derived from the clock: attendance only confirms the person was there for it, and
-									clock time past the shift and this figure is not paid.
+									Overtime is PLANNED on the day. One figure: the statute splits it into approved
+									overtime (within the headroom) and incentive hours (beyond it).
 								-->
-								{#if planWritable}
-									<Stack gap="xs">
-										<Inline gap="xs" align="center">
-											<span class="min-w-16 shrink-0 text-xs text-muted-foreground">
-												{t('roster.day_sheet_approved_overtime')}
-											</span>
-											<Input
-												type="number"
-												min="0"
-												max={overtimeHeadroom.maximum?.hours ?? 24}
-												step="0.5"
-												class="w-28"
-												aria-label={t('roster.day_sheet_approved_overtime')}
-												aria-invalid={overHeadroom}
-												value={draftApproved ?? ''}
-												oninput={(event) => {
-													const next = hoursValue(event.currentTarget.value);
-													if (next === undefined) return;
-													draftApproved = next;
-													pushOvertime(form);
-												}}
-											/>
-										</Inline>
-										<!-- The day's statutory headroom: approved overtime is keyed up to it. -->
-										<p
-											class={cn('text-xs', overHeadroom && 'text-destructive')}
-											role="status"
-											data-overtime-max
-										>
-											{overtimeHeadroom.maximum == null
-												? t('roster.day_sheet_overtime_no_limit')
-												: overHeadroom
-													? t('roster.day_sheet_overtime_over_max', {
-															max: formatDurationHours(overtimeHeadroom.maximum.hours * 60, t)
-														})
-													: t('roster.day_sheet_overtime_max', {
-															max: formatDurationHours(overtimeHeadroom.maximum.hours * 60, t),
-															limit: overtimeHeadroom.maximum.limit.key
-														})}
-										</p>
-										<Inline gap="xs" align="center">
-											<span class="min-w-16 shrink-0 text-xs text-muted-foreground">
-												{t('roster.day_sheet_incentive_hours')}
-											</span>
-											<Input
-												type="number"
-												min="0"
-												max="24"
-												step="0.5"
-												class="w-28"
-												aria-label={t('roster.day_sheet_incentive_hours')}
-												value={draftIncentive ?? ''}
-												oninput={(event) => {
-													const next = hoursValue(event.currentTarget.value);
-													if (next === undefined) return;
-													draftIncentive = next;
-													pushOvertime(form);
-												}}
-											/>
-										</Inline>
-										<p class="text-xs text-muted-foreground">
-											{t('roster.day_sheet_approved_overtime_description')}
+								<FormSection
+									title={t('roster.day_sheet_planned_overtime')}
+									hint={t('roster.day_sheet_approved_overtime_description')}
+									first
+								>
+									{#if planWritable}
+										<Input
+											type="number"
+											min="0"
+											max="24"
+											step="0.5"
+											class="w-28"
+											aria-label={t('roster.day_sheet_planned_overtime')}
+											value={draftOvertime ?? ''}
+											oninput={(event) => {
+												const next = hoursValue(event.currentTarget.value);
+												if (next === undefined) return;
+												draftOvertime = next;
+												pushOvertime(form);
+											}}
+										/>
+										<p class="text-xs text-muted-foreground" role="status" data-overtime-max>
+											{#if draftIncentive != null && overtimeHeadroom.maximum != null}
+												{t('roster.day_sheet_overtime_split', {
+													approved: formatDurationHours((draftApproved ?? 0) * 60, t),
+													incentive: formatDurationHours(draftIncentive * 60, t),
+													limit: overtimeHeadroom.maximum.limit.key
+												})}
+											{:else if overtimeHeadroom.maximum == null}
+												{t('roster.day_sheet_overtime_no_limit')}
+											{:else}
+												{t('roster.day_sheet_overtime_max', {
+													max: formatDurationHours(overtimeHeadroom.maximum.hours * 60, t),
+													limit: overtimeHeadroom.maximum.limit.key
+												})}
+											{/if}
 										</p>
 										{#if holidayWithoutOvertime}
 											<Alert data-holiday-without-overtime>
@@ -1046,33 +994,32 @@
 												</AlertDescription>
 											</Alert>
 										{/if}
-									</Stack>
-								{:else}
-									{@render fieldRow(
-										t('roster.day_sheet_approved_overtime'),
-										(storedHours(record?.approved_overtime_hours) ?? 0) > 0
-											? formatDurationHours(
-													(storedHours(record?.approved_overtime_hours) ?? 0) * 60,
-													t
-												)
-											: t('roster.no_approved_overtime')
-									)}
-									{#if (storedHours(record?.incentive_hours) ?? 0) > 0}
+									{:else}
 										{@render fieldRow(
-											t('roster.day_sheet_incentive_hours'),
-											formatDurationHours((storedHours(record?.incentive_hours) ?? 0) * 60, t)
+											t('roster.day_sheet_approved_overtime'),
+											(storedHours(record?.approved_overtime_hours) ?? 0) > 0
+												? formatDurationHours(
+														(storedHours(record?.approved_overtime_hours) ?? 0) * 60,
+														t
+													)
+												: t('roster.no_approved_overtime')
 										)}
+										{#if (storedHours(record?.incentive_hours) ?? 0) > 0}
+											{@render fieldRow(
+												t('roster.day_sheet_incentive_hours'),
+												formatDurationHours((storedHours(record?.incentive_hours) ?? 0) * 60, t)
+											)}
+										{/if}
 									{/if}
-								{/if}
-							</FormSection>
+								</FormSection>
+							</Stack>
+						{/snippet}
 
-							<FormSection
-								title={t('component.work_day_actual')}
-								hint={t('component.work_day_actual_description')}
-							>
+						{#snippet actual()}
+							<Stack gap="md">
 								{#if attendanceWritable}
 									{#each draftIntervals as interval, index (index)}
-										<Inline gap="xs" align="center" class="flex-wrap text-xs">
+										<Cluster gap="xs" align="center" class="text-xs">
 											<span class="min-w-16 shrink-0 text-muted-foreground">
 												{t('roster.day_sheet_interval', { number: index + 1 })}
 											</span>
@@ -1131,7 +1078,7 @@
 											>
 												<IconWrapper name="lucide:x" class="size-3.5" />
 											</Button>
-										</Inline>
+										</Cluster>
 									{/each}
 									{#if draftAttendanceRecorded && draftIntervals.length === 0}
 										<Alert>
@@ -1146,7 +1093,7 @@
 										</p>
 									{/if}
 
-									<Inline gap="xs" class="flex-wrap">
+									<Cluster gap="xs">
 										<Button
 											variant="outline"
 											size="sm"
@@ -1187,12 +1134,23 @@
 												{t('roster.day_sheet_clear_attendance')}
 											</Button>
 										{/if}
-									</Inline>
-									<!-- A rest-day worked reads differently by who asked for it (SG EA s.37, MY EA s.60). -->
-									<Field name="requested_by" label={t('component.requested_by')} />
-									<!-- TW 勞基法 §32(4) emergency hours and the §32-1 election, priced by the version's bands. -->
-									<Field name="emergency_cause" label={t('component.emergency_cause')} />
-									<Field name="time_off_in_lieu" label={t('component.time_off_in_lieu')} />
+									</Cluster>
+									<!-- Painted only where the version's bands read them (see `bandsRead`). -->
+									<Field
+										name="requested_by"
+										label={t('component.requested_by')}
+										hidden={!showRequestedBy}
+									/>
+									<Field
+										name="emergency_cause"
+										label={t('component.emergency_cause')}
+										hidden={!showEmergency}
+									/>
+									<Field
+										name="time_off_in_lieu"
+										label={t('component.time_off_in_lieu')}
+										hidden={!showTimeOffInLieu}
+									/>
 
 									{#if problemMessage != null}
 										<Alert variant="destructive">
@@ -1235,10 +1193,10 @@
 								{/if}
 
 								<!--
-									Attendance as a presence check against the plan (shift plus planned overtime), and
-									the only place a length-of-day figure appears. Clock time past the plan is shown as
-									unplanned and is not paid; it is never overtime.
-								-->
+						Attendance as a presence check against the plan (shift plus planned overtime), and
+						the only place a length-of-day figure appears. Clock time past the plan is shown as
+						unplanned and is not paid; it is never overtime.
+					-->
 								<p class="text-xs">
 									{#if assessment.workedMinutes == null || assessment.workedMinutes === 0}
 										{t('roster.day_sheet_totals_planned', {
@@ -1252,35 +1210,33 @@
 										})}
 									{/if}
 								</p>
-							</FormSection>
+							</Stack>
+						{/snippet}
 
-							<FormSection title={t('roster.day_sheet_lock')}>
-								<Inline gap="xs" align="center">
-									<!--
-										Literal variants, never assembled. A class built with a template literal is a
-										class Tailwind's source scan never sees, so the swatch would be styled in dev and
-										blank in production — the same rule `roster-month.ts` states over
-										`STATUS_PRESENTATION`.
-									-->
-									<span
-										class={cn(
-											'inline-block h-4 w-1 rounded-sm',
-											rung === 'OPEN' && 'bg-muted',
-											rung === 'CONSUMED' && 'bg-brand/70'
-										)}
-									></span>
-									<span class="text-xs font-medium">
-										{t(LOCK_RAIL_PRESENTATION[rung].labelKey)}
-									</span>
-									{#if LOCK_RAIL_PRESENTATION[rung].padlock !== ''}
-										<span aria-hidden="true">{LOCK_RAIL_PRESENTATION[rung].padlock}</span>
-									{/if}
-								</Inline>
-								<p class="text-xs text-muted-foreground">
-									{sourceLockReason(lock, t) ?? t('roster.day_sheet_lock_open')}
-								</p>
-							</FormSection>
-						</Stack>
+						<!-- Every Field stays mounted in both tabs: validation and submit read all of them. -->
+						<Tabs
+							variant="underline"
+							flush
+							animate={false}
+							lazyLoad={false}
+							keepAlive
+							config={[
+								{
+									name: 'planned',
+									label: t('component.work_day_planned'),
+									icon: 'lucide:calendar-range',
+									description: t('component.work_day_planned_description'),
+									content: planned
+								},
+								{
+									name: 'actual',
+									label: t('component.work_day_actual'),
+									icon: 'lucide:clock',
+									description: t('component.work_day_actual_description'),
+									content: actual
+								}
+							]}
+						/>
 					{/snippet}
 				</CollectionForm>
 			</div>

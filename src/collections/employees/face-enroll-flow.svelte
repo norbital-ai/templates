@@ -6,6 +6,7 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { Cluster, Columns, Frame, Grid, Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Spinner } from '@norbital-ai/ui/spinner';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { Row } from './$types.js';
@@ -320,8 +321,8 @@
 	};
 </script>
 
-<div class="flex flex-col gap-5" data-face-enroll-step={step}>
-	<ol class="grid grid-cols-3 gap-2" aria-label={t('face.progress')}>
+<Stack gap="md" data-face-enroll-step={step}>
+	<Columns as="ol" count={3} gap="sm" collapse="none" aria-label={t('face.progress')}>
 		{#each STEPS as name, index (name)}
 			<li
 				class="border-t-2 pt-2 text-meta {index <= STEPS.indexOf(step)
@@ -331,40 +332,39 @@
 				{t(`face.step_${name}`)}
 			</li>
 		{/each}
-	</ol>
+	</Columns>
 	<!-- Steps hide with the `hidden` attribute rather than an `{#if}`, so the camera loop and
 		the captures survive step changes. -->
-	<div hidden={step !== 'capture'} class="flex flex-col gap-4">
-		<div class="relative aspect-video w-full overflow-hidden rounded-xl bg-foreground">
-			<video
-				{@attach attachVideo}
-				playsinline
-				autoplay
-				muted
-				class="absolute inset-0 size-full -scale-x-100 object-cover"
-			></video>
+	<Stack hidden={step !== 'capture'} gap="md">
+		<Frame ratio="widescreen" class="relative w-full rounded-xl bg-foreground">
+			<video {@attach attachVideo} playsinline autoplay muted class="-scale-x-100"></video>
 			{#if warming}
-				<div class="absolute inset-0 flex items-center justify-center bg-black/40">
-					<Spinner class="size-8 text-white" label={t('face.preparing')} />
-				</div>
+				<Imposter placement="fill" class="bg-black/40">
+					<Inline justify="center" fill>
+						<Spinner class="size-8 text-white" label={t('face.preparing')} />
+					</Inline>
+				</Imposter>
 			{/if}
-			<p
-				class="absolute inset-x-3 bottom-3 rounded-lg bg-black/65 px-4 py-2 text-center text-sm font-medium text-white"
-				role="status"
-				aria-live="polite"
-				data-pose-target={target ?? ''}
-			>
-				{guidance}
-			</p>
-		</div>
-		<ol class="grid grid-cols-5 gap-2" aria-label={t('face.poses')}>
+			<Imposter placement="bottom" class="p-3">
+				<p
+					class="rounded-lg bg-black/65 px-4 py-2 text-center text-sm font-medium text-white"
+					role="status"
+					aria-live="polite"
+					data-pose-target={target ?? ''}
+				>
+					{guidance}
+				</p>
+			</Imposter>
+		</Frame>
+		<Grid as="ol" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={t('face.poses')}>
 			{#each GUIDED_POSES as pose (pose)}
 				{@const progress = poseProgress(guided, pose, now)}
 				{@const done = guided.captured.includes(pose)}
-				<li
-					class="flex flex-col items-center gap-1 text-meta {pose === target
-						? 'text-foreground'
-						: ''}"
+				<Stack
+					as="li"
+					gap="xs"
+					align="center"
+					class="text-meta {pose === target ? 'text-foreground' : ''}"
 					data-pose={pose}
 					data-pose-progress={done ? 1 : Math.round(progress * 100) / 100}
 				>
@@ -404,35 +404,35 @@
 						{/if}
 					</svg>
 					<span>{poseLabel(pose)}</span>
-				</li>
+				</Stack>
 			{/each}
-		</ol>
+		</Grid>
 		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
-		<div class="flex justify-end border-t pt-4">
+		<Inline justify="end" class="border-t pt-4">
 			<Button variant="ghost" onclick={onclose}>{t('face.cancel')}</Button>
-		</div>
-	</div>
+		</Inline>
+	</Stack>
 
-	<div hidden={step !== 'review'} class="flex flex-col gap-4">
+	<Stack hidden={step !== 'review'} gap="md">
 		<p class="text-sm text-muted-foreground">{t('face.review_description')}</p>
-		<ul class="grid grid-cols-5 gap-2" aria-label={t('face.captures')}>
+		<Grid as="ul" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={t('face.captures')}>
 			{#each GUIDED_POSES as pose (pose)}
 				{@const sample = samples[pose]}
-				<li class="overflow-hidden rounded-lg border bg-background">
+				<li class="rounded-lg border bg-background">
 					{#if sample !== undefined}
-						<img
-							class="aspect-video w-full -scale-x-100 object-cover"
-							src={sample.dataUrl}
-							alt={poseLabel(pose)}
-						/>
+						<Frame ratio="widescreen" class="rounded-t-lg">
+							<img class="-scale-x-100" src={sample.dataUrl} alt={poseLabel(pose)} />
+						</Frame>
 					{/if}
 					<p class="px-2 py-1 text-center text-meta">{poseLabel(pose)}</p>
 				</li>
 			{/each}
-		</ul>
-		<label class="flex items-center gap-3 rounded-lg border bg-background p-4 text-sm font-medium">
-			<input class="size-4" type="checkbox" bind:checked={consent} />
-			{t('face.consent')}
+		</Grid>
+		<label class="rounded-lg border bg-background p-4 text-sm font-medium">
+			<Inline as="span" gap="sm">
+				<input class="size-4" type="checkbox" bind:checked={consent} />
+				{t('face.consent')}
+			</Inline>
 		</label>
 		{#if blocked}
 			<p role="note" class="text-sm text-warning-foreground">
@@ -442,7 +442,7 @@
 			</p>
 		{/if}
 		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
-		<div class="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+		<Cluster justify="between" gap="sm" class="border-t pt-4">
 			<Button variant="ghost" onclick={restartCapture} disabled={submitting}>
 				<Icon icon="lucide:rotate-ccw" class="size-4" />
 				{t('face.recapture')}
@@ -475,16 +475,16 @@
 				{/if}
 				{submitting ? t('face.enrolling') : t('face.enroll')}
 			</Button>
-		</div>
-	</div>
+		</Cluster>
+	</Stack>
 
-	<div hidden={step !== 'done'} class="flex flex-col gap-4">
-		<div class="flex items-start gap-3 rounded-lg bg-success/10 p-4 text-success" role="status">
+	<Stack hidden={step !== 'done'} gap="md">
+		<Inline align="start" gap="sm" class="rounded-lg bg-success/10 p-4 text-success" role="status">
 			<Icon icon="lucide:circle-check" class="mt-0.5 size-5 shrink-0" />
 			<p class="text-sm font-medium">{t('face.saved')}</p>
-		</div>
-		<div class="flex justify-end border-t pt-4">
+		</Inline>
+		<Inline justify="end" class="border-t pt-4">
 			<Button onclick={onclose}>{t('face.close')}</Button>
-		</div>
-	</div>
-</div>
+		</Inline>
+	</Stack>
+</Stack>

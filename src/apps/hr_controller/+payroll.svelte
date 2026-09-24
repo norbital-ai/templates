@@ -148,7 +148,7 @@
 
 {#snippet overview()}
 	<Bound size="full">
-		<Scroll name={t('component.tab_overview')}>
+		<Scroll name={t('component.tab_overview')} inset>
 			{#if companiesUnknown}
 				<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
 			{:else if selectedCompanyId == null}
@@ -194,14 +194,17 @@
 										<th class="px-3 py-2 text-right font-semibold">{t('app.payroll.timing')}</th>
 									</tr>
 								</thead>
-								<tbody class="divide-y">
+								<tbody>
 									{#each cycleBoard as row (row.period)}
 										<tr
-											class={row.status === 'late'
-												? 'bg-destructive/5'
-												: row.status === 'current'
-													? 'bg-muted/30'
-													: undefined}
+											class={[
+												'border-t first:border-t-0',
+												row.status === 'late'
+													? 'bg-destructive/5'
+													: row.status === 'current'
+														? 'bg-muted/30'
+														: undefined
+											]}
 										>
 											<td class="px-3 py-2.5">
 												<span

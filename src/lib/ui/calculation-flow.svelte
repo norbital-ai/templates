@@ -9,6 +9,7 @@
 	import { client } from '../workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { Cluster, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import * as Popover from '@norbital-ai/ui/popover';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { orderSchemes, producedMentions } from '../../collections/payroll_runs/lib/mentions.js';
@@ -105,54 +106,69 @@
 {#if nodes.length === 0}
 	<p class="text-meta">{t('component.scheme_used_by_empty')}</p>
 {:else}
-	<div class="max-w-full w-fit overflow-x-auto">
+	<Scroll name={t('component.calculation_flow')} axis="x" class="w-fit max-w-full">
 		<div class="relative" style:width="{width}px" style:height="{height}px">
-			<svg class="pointer-events-none absolute inset-0" {width} {height} aria-hidden="true">
-				<defs>
-					<marker
-						id="flow-arrow"
-						viewBox="0 0 8 8"
-						refX="7"
-						refY="4"
-						markerWidth="6"
-						markerHeight="6"
-						orient="auto"
-					>
-						<path d="M 0 0 L 8 4 L 0 8 z" class="fill-muted-foreground" />
-					</marker>
-				</defs>
-				{#each edges as edge (edge.key)}
-					<path
-						d={edge.d}
-						fill="none"
-						class="stroke-muted-foreground/60"
-						stroke-width="1.25"
-						marker-end="url(#flow-arrow)"
-					/>
-				{/each}
-			</svg>
+			<Imposter placement="fill" class="pointer-events-none">
+				<svg {width} {height} aria-hidden="true">
+					<defs>
+						<marker
+							id="flow-arrow"
+							viewBox="0 0 8 8"
+							refX="7"
+							refY="4"
+							markerWidth="6"
+							markerHeight="6"
+							orient="auto"
+						>
+							<path d="M 0 0 L 8 4 L 0 8 z" class="fill-muted-foreground" />
+						</marker>
+					</defs>
+					{#each edges as edge (edge.key)}
+						<path
+							d={edge.d}
+							fill="none"
+							class="stroke-muted-foreground/60"
+							stroke-width="1.25"
+							marker-end="url(#flow-arrow)"
+						/>
+					{/each}
+				</svg>
+			</Imposter>
 			{#each nodes as node, index (node.row.code)}
 				<Popover.Root>
-					<Popover.Trigger
-						type="button"
-						class="absolute flex items-center gap-1.5 rounded-md border border-border bg-card px-2 text-left text-xs shadow-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-						style="left:{x(node)}px;top:{y(node)}px;width:{NODE_W}px;height:{NODE_H}px"
-						title={node.row.name}
-					>
-						<span class="tabular-nums text-muted-foreground">{index + 1}</span>
-						<span class="truncate font-medium">{node.row.code}</span>
-						{#if node.row.assessment_scope === 'COMPANY'}
-							<span class="ml-auto rounded-sm bg-muted px-1 text-[10px] text-muted-foreground"
-								>{t('component.flow_company')}</span
+					<Popover.Trigger>
+						{#snippet child({ props })}
+							<!-- A graph node: pinned top-start, then moved to its computed coordinates by inline left/top. -->
+							<Imposter
+								{...props}
+								as="button"
+								type="button"
+								placement="top-start"
+								offset="none"
+								class="z-20 rounded-md border border-border bg-card px-2 text-left text-xs shadow-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+								style="left:{x(node)}px;top:{y(node)}px;width:{NODE_W}px;height:{NODE_H}px"
+								title={node.row.name}
 							>
-						{/if}
+								<Inline as="span" gap="xs" fill class="w-full">
+									<span class="tabular-nums text-muted-foreground">{index + 1}</span>
+									<span class="truncate font-medium">{node.row.code}</span>
+									{#if node.row.assessment_scope === 'COMPANY'}
+										<span class="ml-auto rounded-sm bg-muted px-1 text-[10px] text-muted-foreground"
+											>{t('component.flow_company')}</span
+										>
+									{/if}
+								</Inline>
+							</Imposter>
+						{/snippet}
 					</Popover.Trigger>
-					<Popover.Content
-						align="start"
-						sideOffset={6}
-						class="max-h-[min(28rem,calc(100dvh-6rem))] w-[36rem] max-w-[90vw] overflow-auto p-3 text-xs"
-					>
-						<div class="space-y-2">
+					<Popover.Content align="start" sideOffset={6} class="p-0 text-xs">
+						<Scroll
+							name={node.row.code}
+							max="standard"
+							layout="stack"
+							gap="sm"
+							class="w-[36rem] max-w-[90vw] p-3"
+						>
 							<p class="font-medium">
 								{node.row.code} <span class="text-muted-foreground">· {node.row.name}</span>
 							</p>
@@ -165,18 +181,18 @@
 							{#if node.reads.length > 0}
 								<div>
 									<p class="text-meta">{t('component.flow_reads')}</p>
-									<ul class="flex flex-wrap gap-1">
+									<Cluster as="ul" gap="xs">
 										{#each node.reads as code (code)}
 											<li class="rounded-sm bg-muted px-1.5 py-0.5">produced.{code}</li>
 										{/each}
-									</ul>
+									</Cluster>
 								</div>
 							{/if}
 							<div>
 								<p class="text-meta">
 									{t('component.flow_rules_hint', { count: node.row.rules.length })}
 								</p>
-								<ol class="m-0 list-decimal space-y-1 pl-4 font-mono">
+								<Stack as="ol" gap="xs" class="m-0 list-decimal pl-4 font-mono">
 									{#each node.row.rules.slice(0, 40) as rule, ruleIndex (ruleIndex)}
 										<li class="break-words">
 											<span class="text-muted-foreground">{t('component.flow_rule_when')}</span>
@@ -192,12 +208,12 @@
 											{t('component.flow_rules_more', { count: node.row.rules.length - 40 })}
 										</li>
 									{/if}
-								</ol>
+								</Stack>
 							</div>
-						</div>
+						</Scroll>
 					</Popover.Content>
 				</Popover.Root>
 			{/each}
 		</div>
-	</div>
+	</Scroll>
 {/if}

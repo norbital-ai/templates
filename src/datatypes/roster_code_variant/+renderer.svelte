@@ -2,7 +2,7 @@
 	import { Result, Schema } from 'effect';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { TimeRangeField, type TimeRange } from '@norbital-ai/ui/time-range';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -107,15 +107,17 @@
 			</Stack>
 		</label>
 		{#if current?.kind === 'REST'}
-			<label class="flex items-center gap-2 text-xs">
-				<input
-					type="checkbox"
-					checked={current.statutory === true}
-					{disabled}
-					onchange={(event) => emit({ kind: 'REST', statutory: event.currentTarget.checked })}
-				/>
-				<span>{t('component.statutory_rest_day')}</span>
-			</label>
+			<label class="text-xs"
+				><Inline as="span" gap="sm">
+					<input
+						type="checkbox"
+						checked={current.statutory === true}
+						{disabled}
+						onchange={(event) => emit({ kind: 'REST', statutory: event.currentTarget.checked })}
+					/>
+					<span>{t('component.statutory_rest_day')}</span>
+				</Inline></label
+			>
 		{/if}
 		{#if current?.kind === 'WORK'}
 			<TimeRangeField

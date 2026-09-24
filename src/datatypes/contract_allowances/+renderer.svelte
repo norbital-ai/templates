@@ -9,6 +9,7 @@
 	import type { RendererProps } from './$types.js';
 
 	let props: RendererProps & { row?: Record<string, unknown>; class?: string } = $props();
+	const className = $derived(props.class);
 	const employmentId = $derived(
 		props.row?.employment_id == null ? '' : String(props.row.employment_id)
 	);
@@ -41,7 +42,7 @@
 	disabled={props.mode === 'edit' ? props.disabled : true}
 	{settingsCode}
 	{firstDay}
-	class={props.class}
+	class={className}
 	onValueChange={(next) => {
 		if (props.mode === 'edit') props.onValueChange(next);
 	}}

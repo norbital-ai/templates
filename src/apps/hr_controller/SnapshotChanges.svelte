@@ -201,7 +201,7 @@
 	</span>
 {/snippet}
 
-<Scroll name={t('app.settings.changes')} layout="stack" gap="lg">
+<Scroll name={t('app.settings.changes')} inset layout="stack" gap="lg">
 	<Stack gap="sm">
 		<Inline gap="lg" align="end">
 			<Stack gap="xs">
@@ -243,21 +243,22 @@
 		{#if rootChanges.length > 0}
 			<Stack gap="xs" data-settings-diff-root>
 				<h3 class="text-sm font-semibold">{t('component.diff_settings_fields')}</h3>
-				<ul class="space-y-1 text-sm">
+				<Stack as="ul" gap="xs" class="text-sm">
 					{#each rootChanges as change (change.path)}
 						<li>
 							<span class="text-xs font-medium">{formatLeafPath(change.path)}</span>
 							{@render diffValue(diffLine(change.previous, change.proposed))}
 						</li>
 					{/each}
-				</ul>
+				</Stack>
 			</Stack>
 		{/if}
 		{#each collectionDiffs as diff (diff.collection)}
 			<Stack gap="sm" data-settings-diff-collection={diff.collection}>
 				<h3 class="text-sm font-semibold">{collectionLabel(diff.collection)}</h3>
 				{#each diff.rows as row (`${diff.collection}:${row.code}`)}
-					<div
+					<Stack
+						gap="sm"
 						class="rounded-md border p-3 {row.state === 'ADDED'
 							? 'border-emerald-500/40 bg-emerald-500/5'
 							: row.state === 'REMOVED'
@@ -282,16 +283,16 @@
 							{/if}
 						</Inline>
 						{#if row.changes.length > 0}
-							<ul class="mt-2 space-y-1 text-sm">
+							<Stack as="ul" gap="xs" class="text-sm">
 								{#each row.changes as change (change.path)}
 									<li>
 										<span class="text-xs font-medium">{formatLeafPath(change.path)}</span>
 										{@render diffValue(diffLine(change.previous, change.proposed))}
 									</li>
 								{/each}
-							</ul>
+							</Stack>
 						{/if}
-					</div>
+					</Stack>
 				{/each}
 			</Stack>
 		{/each}

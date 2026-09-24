@@ -144,6 +144,7 @@
 			<p class="text-sm text-muted-foreground">{t('app.people.empty_overview')}</p>
 		{:else}
 			<!-- repository-health:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
+			<!-- repository-health:allow UI27 -- gap-px hairline gutter over bg-border: the gap scale has no 1px step, and `divided` (Stack/Inline/Cluster) rules one axis only, while these cells wrap into rows and columns -->
 			<Columns count={2} gap="none" class="gap-px rounded-lg border bg-border">
 				<Stack gap="none" class="bg-card p-4">
 					<p class="text-xs font-medium text-muted-foreground">{t('app.people.current')}</p>
@@ -170,14 +171,14 @@
 		<p class="text-sm text-muted-foreground">{t('app.people.empty_trend')}</p>
 	{:else}
 		<div class="min-w-0 rounded-lg border bg-card p-4 shadow-card">
-			<Display spec={workforceChart} class="min-h-[18rem]" />
+			<Display spec={workforceChart} class="min-h-72" />
 		</div>
 	{/if}
 {/snippet}
 
 {#snippet overview()}
 	<Bound size="full">
-		<Scroll name={t('component.tab_overview')}>
+		<Scroll name={t('component.tab_overview')} inset>
 			<Split
 				ratio="third"
 				collapse="stack"

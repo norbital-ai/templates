@@ -19,7 +19,7 @@
 	import { Tabs } from '@norbital-ai/ui/tabs';
 	import { payRequestRecordMetadata } from '../../lib/scheduling/lock.js';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
-	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import {
 		createCollectionRouteKey,
@@ -413,16 +413,25 @@
 		<Stack gap="lg">
 			<!-- The hire lives here, on the person: a contract is theirs before it is an entity's. -->
 			<Dialog.Root bind:open={hireOpen}>
-				<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
-					<Dialog.Header>
-						<Dialog.Title
-							>{t('component.hire_title', { name: String(record.name ?? '') })}</Dialog.Title
-						>
-						<Dialog.Description>{t('component.hire_description')}</Dialog.Description>
-					</Dialog.Header>
-					{#if hireOpen}
-						<HireForm askCompany onDone={() => (hireOpen = false)} />
-					{/if}
+				<!-- The panel is the Scroll: it grows with the flow up to the dialog's 90dvh cap. -->
+				<Dialog.Content class="max-w-2xl p-0">
+					<Scroll
+						name={t('component.hire_title', { name: String(record.name ?? '') })}
+						layout="stack"
+						gap="md"
+						max="tall"
+						class="max-h-[90dvh] p-6"
+					>
+						<Dialog.Header>
+							<Dialog.Title
+								>{t('component.hire_title', { name: String(record.name ?? '') })}</Dialog.Title
+							>
+							<Dialog.Description>{t('component.hire_description')}</Dialog.Description>
+						</Dialog.Header>
+						{#if hireOpen}
+							<HireForm askCompany onDone={() => (hireOpen = false)} />
+						{/if}
+					</Scroll>
 				</Dialog.Content>
 			</Dialog.Root>
 			{#if timeline.columns.length > 0}
@@ -464,14 +473,17 @@
 										<ol class="ml-1 border-l border-border">
 											{#each contract.events as event (event.id)}
 												<li class="relative pb-5 pl-5 last:pb-0">
-													<span
-														class="absolute top-1.5 -left-[5px] size-2 rounded-full {event.kind ===
-														'EXITED'
+													<!-- The dot straddles the list's border-l: the offset classes win over the corner's. -->
+													<Imposter
+														as="span"
+														placement="top-start"
+														layer="under"
+														class="top-1.5 -left-[5px] size-2 rounded-full {event.kind === 'EXITED'
 															? 'bg-muted-foreground'
 															: event.kind === 'HIRED'
 																? 'bg-primary'
 																: 'bg-brand'}"
-													></span>
+													/>
 													<Stack gap="xs">
 														<Inline align="baseline" gap="sm">
 															<span class="text-sm font-medium">
@@ -687,8 +699,10 @@
 		{#if photoHref === null && displayFaceStatus === 'NONE'}
 			<!-- No face yet is a first-run state, not a caption: what the tab is for, what to do,
 			     and the one action that does it. -->
-			<div
-				class="flex max-w-lg flex-col items-start gap-4 rounded-lg border border-dashed border-border p-6"
+			<Stack
+				gap="md"
+				align="start"
+				class="max-w-lg rounded-lg border border-dashed border-border p-6"
 			>
 				<span class="rounded-full bg-muted p-3 text-muted-foreground">
 					<Icon icon="lucide:scan-face" class="size-6" />
@@ -706,7 +720,7 @@
 					<Icon icon="lucide:scan-face" class="size-4" />
 					{t('face.enroll')}
 				</Button>
-			</div>
+			</Stack>
 		{:else}
 			<Stack gap="sm">
 				{#if photoHref !== null}
@@ -735,22 +749,25 @@
 			</Stack>
 		{/if}
 		<Dialog.Root bind:open={enrollOpen}>
-			<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
-				<Dialog.Header>
-					<Dialog.Title>{t('face.title')}</Dialog.Title>
-					<Dialog.Description>{t('face.description', { name: record.name })}</Dialog.Description>
-				</Dialog.Header>
-				{#if enrollOpen}
-					<FaceEnrollFlow
-						{record}
-						onsaved={(previewUrl) => {
-							justSavedUrl = previewUrl;
-						}}
-						onclose={() => {
-							enrollOpen = false;
-						}}
-					/>
-				{/if}
+			<!-- The panel is the Scroll: it grows with the flow up to the dialog's 90dvh cap. -->
+			<Dialog.Content class="max-w-2xl p-0">
+				<Scroll name={t('face.title')} layout="stack" gap="md" max="tall" class="max-h-[90dvh] p-6">
+					<Dialog.Header>
+						<Dialog.Title>{t('face.title')}</Dialog.Title>
+						<Dialog.Description>{t('face.description', { name: record.name })}</Dialog.Description>
+					</Dialog.Header>
+					{#if enrollOpen}
+						<FaceEnrollFlow
+							{record}
+							onsaved={(previewUrl) => {
+								justSavedUrl = previewUrl;
+							}}
+							onclose={() => {
+								enrollOpen = false;
+							}}
+						/>
+					{/if}
+				</Scroll>
 			</Dialog.Content>
 		</Dialog.Root>
 	{/if}

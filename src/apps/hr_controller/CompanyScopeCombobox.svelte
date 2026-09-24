@@ -25,6 +25,6 @@
 		ariaLabel={t('component.legal_entity')}
 		searchPlaceholder={t('component.search_companies')}
 		emptyPlaceholder={t('component.choose_legal_entity')}
-		class="min-w-[14rem] w-56"
+		class="w-56 min-w-56"
 	/>
 </div>

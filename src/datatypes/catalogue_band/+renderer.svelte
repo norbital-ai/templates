@@ -12,6 +12,7 @@
 	 * against the entry context; the Fields popover lists that context's members.
 	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { Stack } from '@norbital-ai/ui/layout';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import type { CollectionField } from '@norbital-ai/std/collection';
@@ -129,7 +130,7 @@
 	}
 </script>
 
-<div class="flex w-full flex-col gap-2">
+<Stack gap="sm" class="w-full">
 	<p class="text-meta">{t('renderer.catalogue_band.identity')}</p>
 	<MatrixRenderer
 		{disabled}
@@ -153,4 +154,4 @@
 	{#if rows.length === 0}
 		<p class="text-meta">{t('renderer.catalogue_band.empty')}</p>
 	{/if}
-</div>
+</Stack>

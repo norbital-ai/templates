@@ -20,7 +20,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
@@ -72,14 +72,16 @@
 					{...props}
 					type="button"
 					data-settings-sealed-note
-					class="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring"
+					class="w-fit rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring"
 				>
-					<Icon
-						icon={voided ? 'lucide:circle-slash' : 'lucide:lock-keyhole'}
-						class="size-3 shrink-0"
-						aria-hidden="true"
-					/>
-					{voided ? t('component.settings_voided_badge') : t('component.settings_sealed_badge')}
+					<Inline as="span" gap="xs">
+						<Icon
+							icon={voided ? 'lucide:circle-slash' : 'lucide:lock-keyhole'}
+							class="size-3 shrink-0"
+							aria-hidden="true"
+						/>
+						{voided ? t('component.settings_voided_badge') : t('component.settings_sealed_badge')}
+					</Inline>
 				</button>
 			{/snippet}
 			{#snippet content()}

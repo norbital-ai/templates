@@ -22,7 +22,7 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
 	import { Button } from '@norbital-ai/ui/button';
-	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import * as Popover from '@norbital-ai/ui/popover';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -243,7 +243,7 @@
 			maxWidth={336}
 			collisionPadding={16}
 			style="width: 336px;"
-			class="w-[336px] max-h-[min(34rem,calc(100dvh-5rem))] overflow-hidden p-0"
+			class="w-[336px] max-h-[min(34rem,calc(100dvh-5rem))] p-0"
 		>
 			<Scroll name={t('component.leave_range')} axis="y" grow>
 				<Stack gap="sm" class="w-[336px] p-3">
@@ -286,21 +286,28 @@
 						{#each days as date (date)}
 							{@const inMonth = date.slice(0, 7) === visibleMonth}
 							{@const dayAvailability = availabilityFor(date)}
-							<div
+							<Bound
+								size="full"
+								clip
 								class={cn(
-									'relative min-h-14 min-w-0 overflow-hidden rounded-md border',
+									'relative rounded-md border',
 									date === today ? 'border-primary' : 'border-transparent',
 									!inMonth && 'opacity-40'
 								)}
 							>
-								<span
-									class="pointer-events-none absolute top-0.5 left-0.5 z-10 rounded-sm bg-background/80 px-0.5 text-[0.625rem] font-semibold tabular-nums"
-									>{decodeNumber(date.slice(8))}</span
+								<!-- 2px into the tile corner: `xs` would sit over the 28px half-day button's label. -->
+								<Imposter
+									as="span"
+									placement="top-start"
+									class="pointer-events-none top-0.5 left-0.5 rounded-sm bg-background/80 px-0.5 text-[0.625rem] font-semibold tabular-nums"
+									>{decodeNumber(date.slice(8))}</Imposter
 								>
 								{#if dayAvailability.reasonMark}
-									<span
-										class="pointer-events-none absolute top-0.5 right-0.5 z-10 text-[0.625rem]"
-										aria-hidden="true">{dayAvailability.reasonMark}</span
+									<Imposter
+										as="span"
+										placement="top-end"
+										class="pointer-events-none top-0.5 right-0.5 text-[0.625rem]"
+										aria-hidden="true">{dayAvailability.reasonMark}</Imposter
 									>
 								{/if}
 								{#each ['FIRST', 'SECOND'] as half}
@@ -338,15 +345,18 @@
 										{half === 'FIRST' ? '1' : '2'}
 									</button>
 								{/each}
-							</div>
+							</Bound>
 						{/each}
 					</Grid>
 
 					<p class="line-clamp-2 min-h-8 text-meta">{t('component.leave_half_hint')}</p>
 
-					<div
+					<!-- A fixed-height status strip that clips its overflow line so the popover never shifts. -->
+					<Bound
+						size="auto"
+						clip
 						class={cn(
-							'h-[4.25rem] overflow-hidden rounded-md px-3 py-2 text-xs',
+							'h-17 rounded-md px-3 py-2 text-xs',
 							overLimit ? 'bg-destructive/10 ring-1 ring-destructive' : 'bg-muted/60'
 						)}
 						aria-live="polite"
@@ -382,7 +392,7 @@
 								</p>
 							{/if}
 						{/if}
-					</div>
+					</Bound>
 				</Stack>
 			</Scroll>
 		</Popover.Content>

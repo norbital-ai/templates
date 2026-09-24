@@ -5,6 +5,7 @@
 	 * through `minimum_wage(region)`, so a region with no row refuses the run rather than guessing.
 	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { Stack } from '@norbital-ai/ui/layout';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import type { CollectionField } from '@norbital-ai/std/collection';
@@ -71,7 +72,7 @@
 	}
 </script>
 
-<div class="flex w-full flex-col gap-2">
+<Stack gap="sm" class="w-full">
 	<MatrixRenderer
 		bind:rows
 		{columns}
@@ -86,7 +87,7 @@
 	{#if rows.length === 0}
 		<p class="text-meta">{t('renderer.minimum_wage.empty')}</p>
 	{/if}
-	<div class="flex flex-col gap-1">
+	<Stack gap="xs">
 		<span class="text-sm font-semibold">{t('renderer.minimum_wage.applies_when')}</span>
 		<p class="text-meta">{t('renderer.minimum_wage.applies_when_hint')}</p>
 		<ExpressionField
@@ -99,5 +100,5 @@
 			placeholder={'employment.type != "INTERN"'}
 			onValueChange={(next) => commit(rows, next)}
 		/>
-	</div>
-</div>
+	</Stack>
+</Stack>

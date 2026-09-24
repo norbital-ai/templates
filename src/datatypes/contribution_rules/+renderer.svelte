@@ -8,6 +8,7 @@
 	import type { CollectionField } from '@norbital-ai/std/collection';
 	import { watch } from 'runed';
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { Stack } from '@norbital-ai/ui/layout';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { contributionRuleSchema } from './+definition.js';
 	import { Result, Schema } from 'effect';
@@ -124,7 +125,7 @@
 	}
 </script>
 
-<div class="flex w-full flex-col gap-2">
+<Stack gap="sm" class="w-full">
 	<p class="text-sm text-muted-foreground">{t('component.scheme_rules_description')}</p>
 	<MatrixRenderer
 		{disabled}
@@ -146,4 +147,4 @@
 		})}
 		onChange={commit}
 	/>
-</div>
+</Stack>

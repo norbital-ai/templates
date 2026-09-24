@@ -68,18 +68,20 @@
 			onValueChange={selectBasis}
 		/>
 		{#if current?.by === 'FIXED_DAYS'}
-			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground">{t('renderer.proration_basis.days')}</span>
-				<Input
-					type="number"
-					min="0.5"
-					step="0.5"
-					value={current.days}
-					{disabled}
-					oninput={(event) =>
-						emit({ by: 'FIXED_DAYS', days: numberFrom(event.currentTarget.value, 1) })}
-				/>
-			</label>
+			<label class="text-xs"
+				><Stack gap="xs">
+					<span class="text-muted-foreground">{t('renderer.proration_basis.days')}</span>
+					<Input
+						type="number"
+						min="0.5"
+						step="0.5"
+						value={current.days}
+						{disabled}
+						oninput={(event) =>
+							emit({ by: 'FIXED_DAYS', days: numberFrom(event.currentTarget.value, 1) })}
+					/>
+				</Stack></label
+			>
 		{/if}
 	</Stack>
 {/if}

@@ -99,7 +99,7 @@
 
 {#snippet general()}
 	{#if selectedVersion}
-		<Scroll name={t('app.settings.general')} layout="stack" gap="lg">
+		<Scroll name={t('app.settings.general')} inset layout="stack" gap="lg">
 			<!-- Keyed: a form keeps its first values, and a draft chosen after a sealed version
 			     would otherwise show — and save — the sealed version's figures as its own. -->
 			{#key selectedVersion.id}
@@ -176,7 +176,7 @@
 
 {#snippet workRules()}
 	{#if selectedVersion}
-		<Scroll name={t('component.work_rules')} layout="stack" gap="lg">
+		<Scroll name={t('component.work_rules')} inset layout="stack" gap="lg">
 			{#key selectedVersion.id}
 				<SettingsRepresentation
 					record={selectedVersion}

@@ -5,7 +5,7 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import type { StatutoryDeductionClaim } from './+definition.js';
 	import { deductionTotals } from '../../lib/statutory-deductions.js';
 
@@ -213,7 +213,7 @@
 			></label
 		>
 		<p class="text-meta">{t('renderer.statutory_deductions.audit_hint')}</p>
-		<div class="overflow-x-auto">
+		<Scroll name={t('renderer.statutory_deductions.audit_month')} axis="x">
 			<table class="w-full text-left text-sm">
 				<thead
 					><tr
@@ -236,6 +236,6 @@
 					{/each}
 				</tbody>
 			</table>
-		</div>
+		</Scroll>
 	{/if}
 </Stack>
