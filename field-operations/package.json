@@ -15,10 +15,10 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/bolt": "0.0.104",
-		"@norbital-ai/bolt-protocol": "0.0.104",
-		"@norbital-ai/std": "0.0.104",
-		"@norbital-ai/ui": "0.0.104",
+		"@norbital-ai/bolt": "0.0.108",
+		"@norbital-ai/bolt-protocol": "0.0.108",
+		"@norbital-ai/std": "0.0.108",
+		"@norbital-ai/ui": "0.0.108",
 		"effect": "4.0.0-rc.112",
 		"exifr": "7.1.3",
 		"fast-png": "8.0.0",
@@ -31,9 +31,9 @@
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.104",
-		"@norbital-ai/test-utilities": "0.0.104",
-		"@norbital-ai/doctor": "0.0.104",
+		"@norbital-ai/bolt-server": "0.0.108",
+		"@norbital-ai/test-utilities": "0.0.108",
+		"@norbital-ai/doctor": "0.0.108",
 		"@types/node": "^26.2.0",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"prettier": "^3.9.6",
