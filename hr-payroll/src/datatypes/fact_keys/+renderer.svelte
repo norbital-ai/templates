@@ -11,7 +11,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Cluster, Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Textarea } from '@norbital-ai/ui/textarea';
 	import type { FactKey } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
@@ -86,14 +86,18 @@
 					<details>
 						<summary class="cursor-pointer text-sm">{t('fact_keys.validation')}</summary>
 						<Grid gap="sm" minimum="compact" class="pt-3">
-							<label class="flex items-center gap-2 text-sm"
-								><input
-									type="checkbox"
-									{disabled}
-									checked={row.scope === 'EMPLOYMENT'}
-									onchange={(event) =>
-										edit(index, { scope: event.currentTarget.checked ? 'EMPLOYMENT' : undefined })}
-								/>{t('fact_keys.employment_scope')}</label
+							<label class="text-sm"
+								><Inline as="span" gap="sm"
+									><input
+										type="checkbox"
+										{disabled}
+										checked={row.scope === 'EMPLOYMENT'}
+										onchange={(event) =>
+											edit(index, {
+												scope: event.currentTarget.checked ? 'EMPLOYMENT' : undefined
+											})}
+									/>{t('fact_keys.employment_scope')}</Inline
+								></label
 							>
 							<label class="text-sm"
 								><Stack gap="xs"
@@ -113,19 +117,21 @@
 									/></Stack
 								></label
 							>
-							<label class="flex items-center gap-2 text-sm"
-								><input
-									type="checkbox"
-									{disabled}
-									checked={row.required === true}
-									onchange={(event) =>
-										edit(index, {
-											required: event.currentTarget.checked,
-											...(event.currentTarget.checked
-												? { default_value: undefined, required_when: undefined }
-												: {})
-										})}
-								/>{t('fact_keys.required')}</label
+							<label class="text-sm"
+								><Inline as="span" gap="sm"
+									><input
+										type="checkbox"
+										{disabled}
+										checked={row.required === true}
+										onchange={(event) =>
+											edit(index, {
+												required: event.currentTarget.checked,
+												...(event.currentTarget.checked
+													? { default_value: undefined, required_when: undefined }
+													: {})
+											})}
+									/>{t('fact_keys.required')}</Inline
+								></label
 							>
 							<Column span="all">
 								<label class="text-sm"
@@ -183,17 +189,19 @@
 									</Stack></label
 								>
 							</Column>
-							<label class="flex items-center gap-2 text-sm"
-								><input
-									type="checkbox"
-									{disabled}
-									checked={row.default_value !== undefined}
-									onchange={(event) =>
-										edit(index, {
-											default_value: event.currentTarget.checked ? EMPTY_OF[row.type] : undefined,
-											...(event.currentTarget.checked ? { required: false } : {})
-										})}
-								/>{t('fact_keys.use_default')}</label
+							<label class="text-sm"
+								><Inline as="span" gap="sm"
+									><input
+										type="checkbox"
+										{disabled}
+										checked={row.default_value !== undefined}
+										onchange={(event) =>
+											edit(index, {
+												default_value: event.currentTarget.checked ? EMPTY_OF[row.type] : undefined,
+												...(event.currentTarget.checked ? { required: false } : {})
+											})}
+									/>{t('fact_keys.use_default')}</Inline
+								></label
 							>
 							{#if row.default_value !== undefined}
 								<label class="text-sm"
@@ -265,13 +273,15 @@
 										/></Stack
 									></label
 								>
-								<label class="flex items-center gap-2 text-sm"
-									><input
-										type="checkbox"
-										{disabled}
-										checked={row.integer === true}
-										onchange={(event) => edit(index, { integer: event.currentTarget.checked })}
-									/>{t('fact_keys.integer')}</label
+								<label class="text-sm"
+									><Inline as="span" gap="sm"
+										><input
+											type="checkbox"
+											{disabled}
+											checked={row.integer === true}
+											onchange={(event) => edit(index, { integer: event.currentTarget.checked })}
+										/>{t('fact_keys.integer')}</Inline
+									></label
 								>
 							{:else if row.type === 'string'}
 								<label class="text-sm"

@@ -57,7 +57,16 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
-	import { Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import {
+		Bound,
+		Cluster,
+		Cover,
+		Grid,
+		Imposter,
+		Inline,
+		Scroll,
+		Stack
+	} from '@norbital-ai/ui/layout';
 	import { Skeleton } from '@norbital-ai/ui/skeleton';
 	import { cn } from '@norbital-ai/ui/utils';
 	import MonthPeriodPicker from '../month-period-picker.svelte';
@@ -307,7 +316,7 @@
 
 {#snippet weekdayHeader()}
 	<!-- The clip belongs to the fixed header viewport; the body below is the sole scroll owner. -->
-	<div class="overflow-hidden border-b bg-card" onwheel={handleCalendarHeaderWheel}>
+	<Bound size="full" clip class="border-b bg-card" onwheel={handleCalendarHeaderWheel}>
 		<div bind:this={calendarHeaderTrack} class="min-w-[38rem] px-2 pt-2 pb-1.5">
 			<Grid tracks="repeat(7, minmax(0, 1fr))" gap="sm">
 				{#each WEEKDAY_KEYS as weekdayKey (weekdayKey)}
@@ -317,7 +326,7 @@
 				{/each}
 			</Grid>
 		</div>
-	</div>
+	</Bound>
 {/snippet}
 
 <!--
@@ -398,80 +407,84 @@
 								the stacking order. A button nested inside a button is invalid markup and the
 								inner one is unreachable by keyboard in several browsers.
 							-->
-								<Stack
-									gap="none"
+								<Bound
+									size="full"
+									clip
 									class={cn(
-										'relative min-h-24 overflow-hidden rounded-md border text-left',
+										'relative min-h-24 rounded-md border text-left',
 										day == null && 'bg-muted/20',
 										holiday != null && HOLIDAY_PRESENTATION.className,
 										date === today && 'ring-2 ring-brand ring-inset'
 									)}
 								>
-									<span
-										class={cn('absolute inset-y-0 left-0 w-1', rail.railClass)}
-										aria-hidden="true"
-									></span>
+									<Imposter as="span" placement="fill" class="w-1" aria-hidden="true">
+										<span class={cn('block size-full', rail.railClass)}></span>
+									</Imposter>
 
 									{#if day != null && onSelectDay != null}
-										<button
-											type="button"
-											class="absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-											aria-haspopup="dialog"
-											aria-label={tileLabel(day, date, entryLock)}
-											title={tileLabel(day, date, entryLock)}
-											onclick={() => onSelectDay(employmentId, date)}
-										></button>
+										<Imposter placement="fill">
+											<button
+												type="button"
+												class="size-full cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+												aria-haspopup="dialog"
+												aria-label={tileLabel(day, date, entryLock)}
+												title={tileLabel(day, date, entryLock)}
+												onclick={() => onSelectDay(employmentId, date)}
+											></button>
+										</Imposter>
 									{/if}
 
-									<Stack gap="none" grow class="pointer-events-none relative z-0 py-1 pr-1 pl-2">
-										<Inline align="baseline" justify="between" gap="xs">
-											<span class="text-sm font-semibold tabular-nums">
-												{decodeNumber(date.slice(8, 10))}
-											</span>
-											<Inline as="span" gap="xs" class="text-micro">
-												{#if holiday != null}
-													<span class="font-semibold">{HOLIDAY_PRESENTATION.mark}</span>
-												{/if}
-												{#if rail.lockKind === 'system'}
-													<IconWrapper
-														name="lucide:shield-check"
-														class="size-3.5 text-warning-foreground"
-													/>
-												{:else if rail.lockKind === 'application'}
-													<IconWrapper name="lucide:lock-keyhole" class="size-3.5 text-brand" />
-												{/if}
+									<Stack gap="none" fill>
+										<Stack gap="none" grow class="pointer-events-none relative z-0 py-1 pr-1 pl-2">
+											<Inline align="baseline" justify="between" gap="xs">
+												<span class="text-sm font-semibold tabular-nums">
+													{decodeNumber(date.slice(8, 10))}
+												</span>
+												<Inline as="span" gap="xs" class="text-micro">
+													{#if holiday != null}
+														<span class="font-semibold">{HOLIDAY_PRESENTATION.mark}</span>
+													{/if}
+													{#if rail.lockKind === 'system'}
+														<IconWrapper
+															name="lucide:shield-check"
+															class="size-3.5 text-warning-foreground"
+														/>
+													{:else if rail.lockKind === 'application'}
+														<IconWrapper name="lucide:lock-keyhole" class="size-3.5 text-brand" />
+													{/if}
+												</Inline>
 											</Inline>
-										</Inline>
 
-										{#if day != null}
-											<RosterSlot {day} dense={false} />
+											{#if day != null}
+												<RosterSlot {day} dense={false} />
 
-											<!-- LOCK, when it is a rung the employee can be told something about -->
-											{#if rung === 'PENDING'}
-												<span class="truncate text-micro leading-3 font-medium">
-													{t(RUNG_PRESENTATION.PENDING.labelKey)}
-												</span>
-											{:else if rungDetail(entryLock) != null}
-												<span class="truncate text-micro leading-3 opacity-70">
-													{rungDetail(entryLock)}
-												</span>
+												<!-- LOCK, when it is a rung the employee can be told something about -->
+												{#if rung === 'PENDING'}
+													<span class="truncate text-micro leading-3 font-medium">
+														{t(RUNG_PRESENTATION.PENDING.labelKey)}
+													</span>
+												{:else if rungDetail(entryLock) != null}
+													<span class="truncate text-micro leading-3 opacity-70">
+														{rungDetail(entryLock)}
+													</span>
+												{/if}
 											{/if}
+										</Stack>
+
+										{#if reportable && onReportDay != null}
+											<div class="relative z-10 px-1.5 pb-1.5">
+												<Button
+													variant="outline"
+													size="sm"
+													class="h-6 w-full px-1 text-micro"
+													onclick={() => onReportDay(employmentId, date)}
+												>
+													{t('roster.calendar_report_punch')}
+												</Button>
+											</div>
 										{/if}
 									</Stack>
-
-									{#if reportable && onReportDay != null}
-										<div class="relative z-10 px-1.5 pb-1.5">
-											<Button
-												variant="outline"
-												size="sm"
-												class="h-6 w-full px-1 text-micro"
-												onclick={() => onReportDay(employmentId, date)}
-											>
-												{t('roster.calendar_report_punch')}
-											</Button>
-										</div>
-									{/if}
-								</Stack>
+								</Bound>
 							{/if}
 						{/each}
 					</Grid>

@@ -29,5 +29,5 @@
 	allowClear={false}
 	preserveOptionOrder
 	ariaLabel={label}
-	class="w-56 min-w-[14rem]"
+	class="w-56 min-w-56"
 />

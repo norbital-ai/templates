@@ -372,11 +372,7 @@
 			class="h-full"
 		>
 			{#snippet start()}
-				<Bound
-					size="full"
-					pad="md"
-					class="rounded-lg border bg-card [&_.kanban-lane]:gap-4 [&_.kanban-lane]:p-4"
-				>
+				<Bound size="full" pad="md" class="rounded-lg border bg-card">
 					<CollectionKanban
 						client={collectionClient}
 						collection="job_assignments"

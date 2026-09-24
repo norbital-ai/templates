@@ -35,7 +35,7 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { MonthPicker, monthLabel } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	import { Cluster, Cover, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { resolveWindow } from './lib/period.js';
 	import {
@@ -359,16 +359,18 @@
 					>
 						{t('component.run_warnings', { count: warnings.length })}
 					</Popover.Trigger>
-					<Popover.Content
-						align="start"
-						sideOffset={6}
-						class="max-h-[min(28rem,calc(100dvh-6rem))] w-[44rem] max-w-[90vw] overflow-auto p-3 text-sm"
-					>
-						<ul class="list-disc space-y-1 pl-5">
-							{#each warnings as warning (warning)}
-								<li>{warning}</li>
-							{/each}
-						</ul>
+					<Popover.Content align="start" sideOffset={6} class="p-0 text-sm">
+						<Scroll
+							name={t('component.run_warnings', { count: warnings.length })}
+							max="standard"
+							class="w-[44rem] max-w-[90vw] p-3"
+						>
+							<Stack as="ul" gap="xs" class="list-disc pl-5">
+								{#each warnings as warning (warning)}
+									<li>{warning}</li>
+								{/each}
+							</Stack>
+						</Scroll>
 					</Popover.Content>
 				</Popover.Root>
 			{/if}

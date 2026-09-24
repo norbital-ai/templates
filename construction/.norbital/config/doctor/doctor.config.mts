@@ -1,4 +1,4 @@
-import { defineConfig, stringlyPack } from '@norbital-ai/doctor';
+import { defineConfig, layoutPack, stringlyPack } from '@norbital-ai/doctor';
 
 /**
  * Workspace health rules for this published template.
@@ -8,11 +8,11 @@ import { defineConfig, stringlyPack } from '@norbital-ai/doctor';
  */
 // `norbital` / `reactivePack` live in @norbital-ai/doctor-norbital. A shipped
 // template does not install that package, and the isolate audit cannot resolve
-// it from @norbital-ai/doctor. Name no registered pack here — stringly rules
+// it from @norbital-ai/doctor. Name no registered pack here — stringly and layout rules
 // plus the Bolt health profile are the template contract. FILE1/EXP1 stay in
 // doctor's baseline graph pack and use the profile below.
 export default defineConfig({
-	packs: [stringlyPack],
+	packs: [stringlyPack, layoutPack],
 	// FILE1/EXP1 walk the static import graph. Bolt loads `+model`, `+definition`,
 	// `*.host.ts`, and `.svelte` by convention — without these roots the isolate
 	// audit treats the whole workspace as unreachable and fails provision.

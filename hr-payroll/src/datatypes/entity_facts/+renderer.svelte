@@ -3,7 +3,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import type { FactKey } from '../fact_keys/+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	import { client } from '../../lib/workspace-client.js';
@@ -152,12 +152,12 @@
 		{#if unused.length > 0}
 			<p class="text-meta">{t('entity_facts.other_values')}</p>
 			{#each unused as key (key)}
-				<div class="flex items-center justify-between gap-2 text-sm">
+				<Inline justify="between" gap="sm" class="text-sm">
 					<span>{key}: {String(current[key])}</span>
 					<Button variant="ghost" size="sm" {disabled} onclick={() => edit(key, undefined)}
 						>{t('entity_facts.remove')}</Button
 					>
-				</div>
+				</Inline>
 			{/each}
 		{/if}
 	</Stack>

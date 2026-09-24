@@ -327,22 +327,19 @@
 {#snippet adjustmentRows(groups: readonly AdjustmentGroup[], direction: 'add' | 'subtract')}
 	{#each groups as group (group.key)}
 		{#if group.entries.length === 1}
-			<div
-				class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-1 pl-4"
-				data-adjustment-group={group.key}
-			>
+			<Grid tracks="minmax(0,1fr) auto" class="py-1 pl-4" data-adjustment-group={group.key}>
 				<span class="min-w-0 truncate">
 					{group.label}
 					<span class="text-meta">· {group.inputKind}</span>
 				</span>
 				<span>{signedAmount(group.amount, direction)}</span>
-			</div>
+			</Grid>
 		{:else}
 			<AccordionItem value={group.key} class="border-0" data-adjustment-group={group.key}>
 				<AccordionTrigger
-					class="group gap-2 py-1 pl-4 hover:no-underline [&>[data-slot=accordion-chevron]]:hidden"
+					class="group py-1 pl-4 hover:no-underline [&>[data-slot=accordion-chevron]]:hidden"
 				>
-					<span class="flex min-w-0 flex-1 items-center gap-2 text-left font-normal">
+					<Inline as="span" gap="sm" grow class="text-left font-normal">
 						<!--
 							The disclosure marker rides inside the label cell. A trailing chevron costs every
 							accordion row grid width, so the numeric column ends left of the plain rows'.
@@ -358,20 +355,20 @@
 						<span class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
 							{t('component.payslip_adjustment_entries', { count: group.entries.length })}
 						</span>
-					</span>
+					</Inline>
 					<span>{signedAmount(group.amount, direction)}</span>
 				</AccordionTrigger>
 				<AccordionContent class="pb-2 pl-10">
 					<ul class="text-meta tabular-nums">
 						{#each group.entries as entry (entry.id)}
-							<li class="flex justify-between gap-4 py-0.5">
+							<Inline as="li" justify="between" gap="md" class="py-0.5">
 								<span>
 									#{Number(entry.id) + 1} · {formatNumeric(entry.quantity)} × {formatNumeric(
 										entry.rate
 									)}
 								</span>
 								<span>{signedAmount(decodeNumber(entry.amount), direction)}</span>
-							</li>
+							</Inline>
 						{/each}
 					</ul>
 				</AccordionContent>
@@ -394,7 +391,7 @@
 			</Button>
 		{/snippet}
 		{#snippet content()}
-			<Stack gap="xs" class="max-h-96 overflow-auto">
+			<Scroll name={t('component.flow_derivation')} max="standard" layout="stack" gap="xs">
 				{#if charge.authority}
 					<p class="text-xs text-muted-foreground">{charge.authority}</p>
 				{/if}
@@ -434,7 +431,7 @@
 					<p class="text-meta">{t('component.flow_inputs')}</p>
 					<ul class="text-xs">
 						{#each groupedInputs(detail.inputs) as input (input.key)}
-							<li class="flex justify-between gap-2 tabular-nums">
+							<Inline as="li" justify="between" gap="sm" class="tabular-nums">
 								<span class="truncate"
 									>{input.label === input.code ? input.code : `${input.code} · ${input.label}`} · {input.effect ===
 									'REDUCE'
@@ -442,7 +439,7 @@
 										: '+'}</span
 								>
 								<span>{formatNumeric(input.amount)}</span>
-							</li>
+							</Inline>
 						{/each}
 					</ul>
 				{/if}
@@ -450,14 +447,14 @@
 					<p class="text-meta">{t('component.flow_reads')}</p>
 					<ul class="text-xs">
 						{#each detail.reads as read (read.code)}
-							<li class="flex justify-between gap-2 tabular-nums">
+							<Inline as="li" justify="between" gap="sm" class="tabular-nums">
 								<span class="truncate">produced.{read.code}.employee</span>
 								<span>{formatNumeric(read.employee_amount)}</span>
-							</li>
+							</Inline>
 						{/each}
 					</ul>
 				{/if}
-			</Stack>
+			</Scroll>
 		{/snippet}
 	</Tooltip>
 {/snippet}
@@ -475,7 +472,7 @@
 			</Button>
 		{/snippet}
 		{#snippet content()}
-			<Stack gap="xs" class="max-h-96 overflow-auto">
+			<Scroll name={t('component.payslip_base_info')} max="standard" layout="stack" gap="xs">
 				<p class="text-xs leading-5">{t('component.payslip_base_description')}</p>
 				{#if proration.length > 0}
 					<p class="text-xs leading-5 text-muted-foreground">
@@ -510,7 +507,7 @@
 						</tbody>
 					</table>
 				{/if}
-			</Stack>
+			</Scroll>
 		{/snippet}
 	</Tooltip>
 {/snippet}
@@ -520,20 +517,16 @@
 	amount: string,
 	options?: { emphasis?: boolean; indent?: boolean }
 )}
-	<div
-		class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-1 {options?.indent
-			? 'pl-4'
-			: ''}"
-	>
+	<Grid tracks="minmax(0,1fr) auto" class="py-1 {options?.indent ? 'pl-4' : ''}">
 		<span class={options?.emphasis ? 'font-medium' : ''}>{label}</span>
 		<span class={options?.emphasis ? 'font-medium' : ''}>{amount}</span>
-	</div>
+	</Grid>
 {/snippet}
 
 {#snippet schemeStatRow(charge: (typeof statutory)[number], index: number)}
 	<tr class="border-t border-border">
 		<td class="py-1 pr-3 pl-4">
-			<span class="flex min-w-0 items-center gap-1">
+			<Inline as="span" gap="xs">
 				<span class="truncate">{schemeLabel(charge)}</span>
 				{@render schemeInfo(charge)}
 				{#if decodeNumber(charge.employee_amount) < 0}
@@ -541,7 +534,7 @@
 						>{t('renderer.payslip_statutory.refund')}</span
 					>
 				{/if}
-			</span>
+			</Inline>
 		</td>
 		<td class="py-1 pr-3 text-right"
 			>{signedAmount(decodeNumber(charge.employee_amount), 'subtract')}</td
@@ -685,10 +678,12 @@
 				{/if}
 
 				<!-- Take home. -->
-				<Inline justify="between" align="baseline" class="mt-3 border-t border-border pt-2 pb-1">
-					<span class="text-heading">{t('component.payslip_net_pay')}</span>
-					<span class="text-heading">{formatNumeric(net)}</span>
-				</Inline>
+				<div class="pt-3">
+					<Inline justify="between" align="baseline" class="border-t border-border pt-2 pb-1">
+						<span class="text-heading">{t('component.payslip_net_pay')}</span>
+						<span class="text-heading">{formatNumeric(net)}</span>
+					</Inline>
+				</div>
 
 				<!-- What the employer owes on top of the settlement. The scheme shares were printed
 				     beside their employee counterparts; this is the same employer column, totalled. -->
@@ -730,14 +725,12 @@
 					{/each}
 				{/if}
 
-				<Inline
-					justify="between"
-					align="baseline"
-					class="mt-3 border-t-2 border-foreground/20 pt-2"
-				>
-					<span class="font-medium">{t('component.payslip_total_cost')}</span>
-					<span class="font-medium">{formatNumeric(companyCost)}</span>
-				</Inline>
+				<div class="pt-3">
+					<Inline justify="between" align="baseline" class="border-t-2 border-foreground/20 pt-2">
+						<span class="font-medium">{t('component.payslip_total_cost')}</span>
+						<span class="font-medium">{formatNumeric(companyCost)}</span>
+					</Inline>
+				</div>
 				<p class="text-meta">
 					{t('component.payslip_of_which_authorities')}: {formatNumeric(authoritiesTotal)}
 				</p>

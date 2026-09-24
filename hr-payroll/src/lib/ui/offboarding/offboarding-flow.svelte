@@ -78,7 +78,7 @@
 			<label class="text-sm font-medium"
 				><Stack gap="xs"
 					>{t('component.exit_reason')}<select
-						class="border-input bg-background flex h-8 rounded-md border px-3 text-sm"
+						class="border-input bg-background h-8 rounded-md border px-3 text-sm"
 						value={exitReason}
 						onchange={(event) => {
 							exitReason = event.currentTarget.value as ExitReason | '';

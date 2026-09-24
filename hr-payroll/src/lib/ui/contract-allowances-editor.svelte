@@ -16,7 +16,7 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../workspace-client.js';
 	import { inForceCatalogue } from './create-scope.js';
@@ -107,7 +107,7 @@
 			<p class="text-meta">{t('component.contract_allowances_none')}</p>
 		{/if}
 		{#each rows as row, index (row.catalogue_id)}
-			<div class="flex items-center gap-2">
+			<Inline gap="sm">
 				<select
 					class="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
 					value={row.catalogue_id}
@@ -148,7 +148,7 @@
 				>
 					{t('component.contract_allowances_remove')}
 				</Button>
-			</div>
+			</Inline>
 		{/each}
 		{#if settingsCode == null}
 			<p class="text-meta">{t('component.contract_allowances_needs_contract')}</p>

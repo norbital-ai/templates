@@ -31,6 +31,6 @@
 		ariaLabel={t('app.settings.jurisdiction')}
 		searchPlaceholder={t('app.settings.search_jurisdictions')}
 		emptyPlaceholder={t('app.settings.choose_jurisdiction')}
-		class="min-w-[16rem] w-64"
+		class="w-64 min-w-64"
 	/>
 </div>

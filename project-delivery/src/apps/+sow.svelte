@@ -4,8 +4,11 @@
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
+	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import { Bound, Cover } from '@norbital-ai/ui/layout';
+	import { Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { ReadonlyMarkdown } from '@norbital-ai/ui/markdown-editor';
 	import { Tabs } from '@norbital-ai/ui/tabs';
 	import { Button } from '@norbital-ai/ui/button';
@@ -79,6 +82,13 @@ Provider: ________________________  Date: ____________
 		limit: 500
 	});
 	let projects = $derived(projectsQuery.current ?? []);
+	let projectOptions = $derived(
+		projects.map((project) => ({
+			value: project.id,
+			label: String(project.name),
+			search_term: String(project.name)
+		}))
+	);
 
 	let selectedProject = $state<string | null>(null);
 	let projectName = $derived(
@@ -220,96 +230,103 @@ Provider: ________________________  Date: ____________
 	}
 </script>
 
-<svelte:head>
-	<title>SOW Editor</title>
-	<meta name="description" content="Create, edit, and download SOW markdown." />
-	<meta name="bolt:icon" content="lucide:file-document" />
-</svelte:head>
+<AppHeaderActions>
+	<Combobox
+		ariaLabel={t('sow.project_label')}
+		options={projectOptions}
+		bind:value={selectedProject}
+		emptyPlaceholder={t('sow.select_project')}
+		clientConfig={{
+			isLoading: projectsQuery.loading,
+			error: projectsQuery.error?.message ?? null
+		}}
+		disabled={saving}
+		class="min-w-64"
+	/>
+	{#if selectedProject}
+		<Button
+			variant="outline"
+			disabled={docsLoading || docsEmpty || !!docsError || saving}
+			onclick={loadSavedSow}
+		>
+			{t('sow.load_saved')}
+		</Button>
+		<Button variant="outline" disabled={saving} onclick={newDraft}>
+			{t('sow.new_draft')}
+		</Button>
+	{/if}
+</AppHeaderActions>
 
 {#snippet editTab()}
-	<Label for="markdown-input">{t('sow.markdown_label')}</Label>
-	<textarea
-		id="markdown-input"
-		bind:value={markdown}
-		rows={20}
-		cols={80}
-		aria-label={t('sow.markdown_label')}
-		disabled={saving}
-		spellcheck
-		style="width: 100%; font-family: monospace;"></textarea>
-	<div class="sow-actions">
-		<Button
-			variant="default"
-			disabled={saving || !uploadClient || docsLoading || !!docsError}
-			onclick={saveDocument}
-		>
-			{saving ? t('sow.saving') : t('sow.save_button')}
-		</Button>
-		<Button variant="outline" onclick={downloadMarkdown}>
-			{t('sow.download_button')}
-		</Button>
-	</div>
-	{#if saveError}
-		<p class="sow-error">{saveError}</p>
-	{:else if saveStatus === 'saved'}
-		<p class="sow-status">{t('sow.save_saved')}</p>
-	{:else if saveStatus === 'pending'}
-		<p class="sow-status">{t('sow.save_pending')}</p>
-	{/if}
+	<Scroll name={t('sow.edit_tab')} inset>
+		<Stack gap="sm">
+			{#if docsLoading}
+				<p class="text-meta">{t('sow.loading')}</p>
+			{:else if docsError}
+				<p class="text-meta text-destructive">{t('sow.load_error')}</p>
+			{:else if docsEmpty}
+				<p class="text-meta">{t('sow.no_saved_sow')}</p>
+			{:else}
+				<p class="text-meta">{t('sow.saved_available')}</p>
+			{/if}
+			<Label for="markdown-input">{t('sow.markdown_label')}</Label>
+			<textarea
+				id="markdown-input"
+				bind:value={markdown}
+				rows={20}
+				cols={80}
+				aria-label={t('sow.markdown_label')}
+				disabled={saving}
+				spellcheck
+				style="width: 100%; font-family: monospace;"></textarea>
+			<Inline gap="sm">
+				<Button
+					variant="default"
+					disabled={saving || !uploadClient || docsLoading || !!docsError}
+					onclick={saveDocument}
+				>
+					{saving ? t('sow.saving') : t('sow.save_button')}
+				</Button>
+				<Button variant="outline" onclick={downloadMarkdown}>
+					{t('sow.download_button')}
+				</Button>
+			</Inline>
+			{#if saveError}
+				<p class="text-destructive">{saveError}</p>
+			{:else if saveStatus === 'saved'}
+				<p>{t('sow.save_saved')}</p>
+			{:else if saveStatus === 'pending'}
+				<p>{t('sow.save_pending')}</p>
+			{/if}
+		</Stack>
+	</Scroll>
 {/snippet}
 
 {#snippet previewTab()}
-	<ReadonlyMarkdown content={markdown} allowHtml={false} scale="document" />
+	<Scroll name={t('sow.preview_tab')} inset>
+		<ReadonlyMarkdown content={markdown} allowHtml={false} scale="document" />
+	</Scroll>
 {/snippet}
 
-<Cover as="main">
-	<Bound size="full" inset>
-		<Label for="project-select">{t('sow.project_label')}</Label>
-		<select
-			id="project-select"
-			bind:value={selectedProject}
-			aria-label={t('sow.project_label')}
-			disabled={saving}
-		>
-			<option value="" disabled>{t('sow.select_project')}</option>
-			{#each projects as project}
-				<option value={project.id}>{project.name}</option>
-			{/each}
-		</select>
-
-		{#if selectedProject}
-			<div class="sow-doc-status">
-				{#if docsLoading}
-					<span>{t('sow.loading')}</span>
-				{:else if docsError}
-					<span class="sow-error">{t('sow.load_error')}</span>
-				{:else if docsEmpty}
-					<span>{t('sow.no_saved_sow')}</span>
-				{:else}
-					<span>{t('sow.saved_available')}</span>
-				{/if}
-				<Button
-					variant="outline"
-					disabled={docsLoading || docsEmpty || !!docsError || saving}
-					onclick={loadSavedSow}
-				>
-					{t('sow.load_saved')}
-				</Button>
-				<Button variant="outline" disabled={saving} onclick={newDraft}>
-					{t('sow.new_draft')}
-				</Button>
-			</div>
-
-			<Tabs
-				variant="underline"
-				contentPadding={false}
-				value={showingPreview ? 'preview' : 'edit'}
-				onValueChange={(v) => (showingPreview = v === 'preview')}
-				config={[
-					{ name: 'edit', label: t('sow.edit_tab'), content: editTab },
-					{ name: 'preview', label: t('sow.preview_tab'), content: previewTab }
-				]}
-			/>
-		{/if}
-	</Bound>
-</Cover>
+<AppShell
+	icon="lucide:file-document"
+	title="SOW Editor"
+	description="Create, edit, and download SOW markdown."
+	variant="full"
+>
+	{#if selectedProject}
+		<Tabs
+			variant="underline"
+			value={showingPreview ? 'preview' : 'edit'}
+			onValueChange={(v) => (showingPreview = v === 'preview')}
+			config={[
+				{ name: 'edit', label: t('sow.edit_tab'), icon: 'lucide:pencil', content: editTab },
+				{ name: 'preview', label: t('sow.preview_tab'), icon: 'lucide:eye', content: previewTab }
+			]}
+		/>
+	{:else}
+		<Cover center>
+			<p class="text-meta">{t('sow.select_project')}</p>
+		</Cover>
+	{/if}
+</AppShell>

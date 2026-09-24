@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Inline } from '@norbital-ai/ui/layout';
 	import { MonthPicker } from '@norbital-ai/ui/month-picker';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -30,11 +31,24 @@
 	const { t } = useI18n<TenantI18nKeys>();
 	const half = $derived(periodHalf(month) ?? 1);
 	const monthWeeks = $derived(weeks ? weeklyInstalments(periodMonth(month)) : []);
-	const halfClass = (active: boolean) =>
-		`rounded-md border px-2 py-1 text-xs ${active ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground hover:bg-muted'}`;
 </script>
 
-<div data-month-picker class="flex items-center gap-2">
+{#snippet periodButton(active: boolean, label: string, select: () => void, title?: string)}
+	<button
+		type="button"
+		class="rounded-md border px-2 py-1 text-xs {active
+			? 'border-foreground bg-foreground text-background'
+			: 'border-border text-muted-foreground hover:bg-muted'}"
+		aria-pressed={active}
+		{title}
+		{disabled}
+		onclick={select}
+	>
+		{label}
+	</button>
+{/snippet}
+
+<Inline gap="sm" data-month-picker>
 	<MonthPicker
 		value={periodMonth(month)}
 		onValueChange={(next) =>
@@ -50,50 +64,36 @@
 		class={className}
 	/>
 	{#if weeks}
-		<div
+		<Inline
+			gap="xs"
+			align="stretch"
 			role="group"
 			aria-label={t('app.scheduling.week_picker')}
-			class="flex gap-1"
 			data-week-picker
 		>
 			{#each monthWeeks as week (week.sequence)}
-				<button
-					type="button"
-					class={halfClass(half === week.sequence)}
-					aria-pressed={half === week.sequence}
-					title={`${week.salary.start} – ${week.salary.end}`}
-					{disabled}
-					onclick={() => onMonthChange(`${periodMonth(month)}-${week.sequence}`)}
-				>
-					{t('app.scheduling.week_n', { n: week.sequence })}
-				</button>
+				{@render periodButton(
+					half === week.sequence,
+					t('app.scheduling.week_n', { n: week.sequence }),
+					() => onMonthChange(`${periodMonth(month)}-${week.sequence}`),
+					`${week.salary.start} – ${week.salary.end}`
+				)}
 			{/each}
-		</div>
+		</Inline>
 	{:else if halves}
-		<div
+		<Inline
+			gap="xs"
+			align="stretch"
 			role="group"
 			aria-label={t('app.scheduling.half_picker')}
-			class="flex gap-1"
 			data-half-picker
 		>
-			<button
-				type="button"
-				class={halfClass(half === 1)}
-				aria-pressed={half === 1}
-				{disabled}
-				onclick={() => onMonthChange(`${periodMonth(month)}-1`)}
-			>
-				{t('app.scheduling.first_half')}
-			</button>
-			<button
-				type="button"
-				class={halfClass(half === 2)}
-				aria-pressed={half === 2}
-				{disabled}
-				onclick={() => onMonthChange(`${periodMonth(month)}-2`)}
-			>
-				{t('app.scheduling.second_half')}
-			</button>
-		</div>
+			{@render periodButton(half === 1, t('app.scheduling.first_half'), () =>
+				onMonthChange(`${periodMonth(month)}-1`)
+			)}
+			{@render periodButton(half === 2, t('app.scheduling.second_half'), () =>
+				onMonthChange(`${periodMonth(month)}-2`)
+			)}
+		</Inline>
 	{/if}
-</div>
+</Inline>

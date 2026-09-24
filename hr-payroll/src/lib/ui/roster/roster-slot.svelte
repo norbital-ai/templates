@@ -17,6 +17,7 @@
 -->
 <script lang="ts">
 	import { cn } from '@norbital-ai/ui/utils';
+	import { Bound, Imposter, Stack } from '@norbital-ai/ui/layout';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import {
@@ -99,12 +100,13 @@
 	);
 </script>
 
-<div
+<Bound
+	size="full"
+	clip
 	class={cn(
-		'relative grid h-full w-full content-center overflow-hidden rounded-sm text-center tabular-nums',
+		'relative w-full rounded-sm text-center tabular-nums',
 		STATE_CLASS[state],
-		fill.kind === 'AWOL' && 'bg-destructive/20 font-semibold text-destructive',
-		dense ? 'px-0.5' : 'px-2 py-1.5 text-left'
+		fill.kind === 'AWOL' && 'bg-destructive/20 font-semibold text-destructive'
 	)}
 	data-slot-state={state}
 	data-slot-fill={fill.kind}
@@ -112,46 +114,48 @@
 		.filter((part) => part != null)
 		.join(' · ')}
 >
-	{#if dense}
-		<span class="block truncate text-xs leading-4">{code}</span>
-		<span
-			class={cn(
-				'block truncate text-[0.625rem] leading-3',
-				fill.kind === 'NONE' && plannedOvertime == null
-					? 'text-muted-foreground/70'
-					: 'text-foreground',
-				plannedOvertime != null && 'font-medium text-brand',
-				fill.kind === 'CLOCKED' && fill.short && 'text-warning',
-				fill.kind === 'AWOL' && 'text-destructive'
-			)}
-			data-slot-planned-ot={plannedOvertime}
-		>
-			{plannedOvertime ?? cue}
-		</span>
-	{:else}
-		<span class="block truncate text-xs leading-4 font-medium">
-			{code}{plannedOvertime == null ? '' : ` ${plannedOvertime}`}
-		</span>
-		{#if (state === 'WORK' || state === 'EXTRA_WORK') && day?.shiftStart != null && day.shiftEnd != null}
-			<!-- The tile has the room the board does not: the window in full, not `8a–6p`. -->
-			<span class="block truncate text-micro leading-3 opacity-80">
-				{day.shiftStart.slice(0, 5)}–{day.shiftEnd.slice(0, 5)}
+	<Stack gap="none" justify="center" fill class={dense ? 'px-0.5' : 'px-2 py-1.5 text-left'}>
+		{#if dense}
+			<span class="block truncate text-xs leading-4">{code}</span>
+			<span
+				class={cn(
+					'block truncate text-[0.625rem] leading-3',
+					fill.kind === 'NONE' && plannedOvertime == null
+						? 'text-muted-foreground/70'
+						: 'text-foreground',
+					plannedOvertime != null && 'font-medium text-brand',
+					fill.kind === 'CLOCKED' && fill.short && 'text-warning',
+					fill.kind === 'AWOL' && 'text-destructive'
+				)}
+				data-slot-planned-ot={plannedOvertime}
+			>
+				{plannedOvertime ?? cue}
 			</span>
+		{:else}
+			<span class="block truncate text-xs leading-4 font-medium">
+				{code}{plannedOvertime == null ? '' : ` ${plannedOvertime}`}
+			</span>
+			{#if (state === 'WORK' || state === 'EXTRA_WORK') && day?.shiftStart != null && day.shiftEnd != null}
+				<!-- The tile has the room the board does not: the window in full, not `8a–6p`. -->
+				<span class="block truncate text-micro leading-3 opacity-80">
+					{day.shiftStart.slice(0, 5)}–{day.shiftEnd.slice(0, 5)}
+				</span>
+			{/if}
+			{#if fill.kind === 'CLOCKED'}
+				<span class="block truncate text-micro leading-4 tabular-nums">
+					{fill.first}–{fill.last}
+				</span>
+				<span class={cn('block truncate text-micro leading-3', fill.short && 'text-warning')}>
+					{presence}{fill.short ? ` −${halfHoursLabel(fill.shortMinutes)}` : ''}
+				</span>
+			{:else if fill.kind === 'OPEN'}
+				<span class="block truncate text-micro leading-4 tabular-nums">{fill.since}</span>
+				<span class="block truncate text-micro leading-3">{t('roster.attendance_open')}</span>
+			{:else if fill.kind === 'AWOL'}
+				<span class="block truncate text-micro leading-4">{t('roster.absent')}</span>
+			{/if}
 		{/if}
-		{#if fill.kind === 'CLOCKED'}
-			<span class="block truncate text-micro leading-4 tabular-nums">
-				{fill.first}–{fill.last}
-			</span>
-			<span class={cn('block truncate text-micro leading-3', fill.short && 'text-warning')}>
-				{presence}{fill.short ? ` −${halfHoursLabel(fill.shortMinutes)}` : ''}
-			</span>
-		{:else if fill.kind === 'OPEN'}
-			<span class="block truncate text-micro leading-4 tabular-nums">{fill.since}</span>
-			<span class="block truncate text-micro leading-3">{t('roster.attendance_open')}</span>
-		{:else if fill.kind === 'AWOL'}
-			<span class="block truncate text-micro leading-4">{t('roster.absent')}</span>
-		{/if}
-	{/if}
+	</Stack>
 
 	<!--
 		THE FILL BAR. One track along the bottom of the slot; the bar is the share of the plan — shift
@@ -160,27 +164,25 @@
 		so Tailwind keeps it.
 	-->
 	{#if fill.kind === 'CLOCKED'}
-		<span
-			class={cn(
-				'absolute inset-x-0 bottom-0 h-1 rounded-b-sm',
-				dense ? 'bg-foreground/10' : 'h-1.5 bg-foreground/10'
-			)}
+		<Imposter
+			as="span"
+			placement="bottom"
+			class={cn('h-1 rounded-b-sm', dense ? 'bg-foreground/10' : 'h-1.5 bg-foreground/10')}
 			aria-hidden="true"
 		>
 			<span
-				class={cn(
-					'absolute inset-y-0 left-0 rounded-bl-sm',
-					fill.short ? 'bg-warning' : 'bg-success'
-				)}
+				class={cn('block h-full rounded-bl-sm', fill.short ? 'bg-warning' : 'bg-success')}
 				style={`width:${Math.round(fill.ratio * 100)}%`}
 			></span>
-		</span>
+		</Imposter>
 	{:else if fill.kind === 'OPEN'}
-		<span
-			class="absolute inset-x-0 bottom-0 h-1 overflow-hidden rounded-b-sm bg-warning/25"
+		<Imposter
+			as="span"
+			placement="bottom"
+			class="h-1 rounded-b-sm bg-warning/25"
 			aria-hidden="true"
 		>
-			<span class="absolute inset-y-0 w-1/3 animate-pulse bg-warning"></span>
-		</span>
+			<span class="block h-full w-1/3 animate-pulse rounded-bl-sm bg-warning"></span>
+		</Imposter>
 	{/if}
-</div>
+</Bound>

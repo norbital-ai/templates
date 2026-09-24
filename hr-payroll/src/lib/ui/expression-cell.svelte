@@ -9,6 +9,7 @@
 	 */
 	import type { MatrixCellRendererProps, MatrixRow } from '@norbital-ai/ui/data-renderer/matrix';
 	import { Input } from '@norbital-ai/ui/input';
+	import { Inline } from '@norbital-ai/ui/layout';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import ExpressionFields from './expression-fields.svelte';
@@ -31,7 +32,7 @@
 		>{text === '' ? '—' : text}</span
 	>
 {:else}
-	<div class="flex min-w-0 items-center gap-1">
+	<Inline gap="xs">
 		<Input
 			class="h-8 min-w-0 flex-1 font-mono text-xs"
 			value={text}
@@ -41,5 +42,5 @@
 			oninput={(event) => onValueChange(event.currentTarget.value)}
 		/>
 		<ExpressionFields {site} expression={text} {type} inline />
-	</div>
+	</Inline>
 {/if}

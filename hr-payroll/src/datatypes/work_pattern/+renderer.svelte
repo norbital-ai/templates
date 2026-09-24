@@ -216,7 +216,7 @@
 				</label>
 			</Grid>
 		{:else}
-			<div class="flex flex-col gap-2">
+			<Stack gap="sm">
 				{#if codeIds.length === 0}
 					<p class="text-meta">{t('renderer.work_pattern.no_codes')}</p>
 				{:else}
@@ -235,7 +235,7 @@
 						onChange={commitDays}
 					/>
 				{/if}
-			</div>
+			</Stack>
 		{/if}
 	</Stack>
 {/if}

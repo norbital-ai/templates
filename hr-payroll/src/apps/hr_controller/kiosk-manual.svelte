@@ -3,6 +3,7 @@
 	import Icon from '@iconify/svelte';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
+	import { Center, Cluster, Frame, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../../lib/workspace-client.js';
@@ -97,50 +98,51 @@
 	};
 </script>
 
-<div class="mx-auto w-full max-w-3xl p-4 sm:p-8">
-	<section class="rounded-xl border bg-card p-5 sm:p-7">
-		<header class="flex items-start gap-4 border-b pb-5">
-			<div class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted">
+<Center measure="full" class="max-w-3xl py-6">
+	<Stack as="section" gap="lg" class="rounded-xl border bg-card p-5 sm:p-7">
+		<Inline as="header" align="start" gap="md" class="border-b pb-5">
+			<Frame ratio="square" shrink={false} class="size-11 rounded-lg bg-muted">
 				<Icon icon="lucide:keyboard" class="size-5" />
-			</div>
+			</Frame>
 			<div>
 				<h1 class="text-section">{t('kiosk.manual_entry')}</h1>
 				<p class="mt-1 max-w-2xl text-sm text-muted-foreground">
 					{t('kiosk.manual_description')}
 				</p>
 			</div>
-		</header>
+		</Inline>
 
-		<div class="py-6">
-			<label for="kiosk-person-search" class="text-label">{t('kiosk.search_employee')}</label>
-			<Input
-				id="kiosk-person-search"
-				class="mt-2"
-				type="search"
-				disabled={companyId == null}
-				placeholder={t('kiosk.search_employee_placeholder')}
-				bind:value={term}
-			/>
-			{#if companyId == null}<p class="mt-3 text-sm text-muted-foreground">
+		<Stack gap="md">
+			<Stack gap="sm">
+				<label for="kiosk-person-search" class="text-label">{t('kiosk.search_employee')}</label>
+				<Input
+					id="kiosk-person-search"
+					type="search"
+					disabled={companyId == null}
+					placeholder={t('kiosk.search_employee_placeholder')}
+					bind:value={term}
+				/>
+			</Stack>
+			{#if companyId == null}<p class="text-sm text-muted-foreground">
 					{t('kiosk.choose_entity_before_punch')}
 				</p>{/if}
 			{#if error !== null}
-				<p role="alert" class="mt-3 text-sm text-destructive">{error}</p>
+				<p role="alert" class="text-sm text-destructive">{error}</p>
 			{/if}
 			{#if peopleQuery?.error}
-				<p role="alert" class="mt-3 text-sm text-destructive">{peopleQuery.error.message}</p>
+				<p role="alert" class="text-sm text-destructive">{peopleQuery.error.message}</p>
 			{/if}
 			{#if term.trim().length >= 2 && (peopleQuery?.loading ?? true) === false && people.length === 0}
-				<p class="mt-4 text-sm text-muted-foreground">{t('kiosk.no_people_match')}</p>
+				<p class="text-sm text-muted-foreground">{t('kiosk.no_people_match')}</p>
 			{/if}
 			{#if people.length > 0}
-				<ul class="mt-4 divide-y overflow-hidden rounded-lg border">
+				<Stack as="ul" gap="none" divided class="overflow-clip rounded-lg border">
 					{#each people as person (person.id)}
 						<li>
 							<button
 								type="button"
 								aria-pressed={chosenId === person.id}
-								class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring {chosenId ===
+								class="w-full px-4 py-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring {chosenId ===
 								person.id
 									? 'bg-muted'
 									: ''}"
@@ -151,44 +153,49 @@
 									error = null;
 								}}
 							>
-								<div
-									class="flex size-9 shrink-0 items-center justify-center rounded-full bg-background"
-								>
-									<Icon icon="lucide:user-round" class="size-4" />
-								</div>
-								<span class="min-w-0 flex-1">
-									<strong class="block truncate text-sm font-medium">{person.name}</strong>
-									{#if person.email}
-										<span class="block truncate text-meta">{person.email}</span>
+								<Inline as="span" gap="sm">
+									<Frame
+										as="span"
+										ratio="square"
+										shrink={false}
+										class="size-9 rounded-full bg-background"
+									>
+										<Icon icon="lucide:user-round" class="size-4" />
+									</Frame>
+									<span class="min-w-0 flex-1">
+										<strong class="block truncate text-sm font-medium">{person.name}</strong>
+										{#if person.email}
+											<span class="block truncate text-meta">{person.email}</span>
+										{/if}
+									</span>
+									{#if chosenId === person.id}
+										<Icon icon="lucide:check" class="size-4 text-success" />
 									{/if}
-								</span>
-								{#if chosenId === person.id}
-									<Icon icon="lucide:check" class="size-4 text-success" />
-								{/if}
+								</Inline>
 							</button>
 						</li>
 					{/each}
-				</ul>
+				</Stack>
 			{/if}
-		</div>
+		</Stack>
 
 		{#if employmentsQuery?.error}
-			<p role="alert" class="mb-4 text-sm text-destructive">{employmentsQuery.error.message}</p>
+			<p role="alert" class="text-sm text-destructive">{employmentsQuery.error.message}</p>
 		{/if}
 		{#if employmentsSettled && employments.length === 0 && employmentsQuery?.error == null}
-			<p class="mb-4 rounded-lg bg-warning/10 p-4 text-sm text-warning-foreground">
+			<p class="rounded-lg bg-warning/10 p-4 text-sm text-warning-foreground">
 				{t('kiosk.no_active_contract_in_entity')}
 			</p>
 		{/if}
 		{#if employments.length > 1 || (employmentsQuery?.current?.length ?? 0) >= 1_000}
-			<p role="alert" class="mb-4 text-sm text-destructive">{t('kiosk.contract_scope_conflict')}</p>
+			<p role="alert" class="text-sm text-destructive">{t('kiosk.contract_scope_conflict')}</p>
 		{:else if employments.length === 1}
-			<div class="border-t pt-6">
+			<Stack gap="md" class="border-t pt-6">
 				<h2 class="text-heading">{t('kiosk.active_employment')}</h2>
-				<div class="mt-4 divide-y overflow-hidden rounded-lg border">
+				<Stack gap="none" divided class="overflow-clip rounded-lg border">
 					{#each employments as employment (employment.id)}
-						<div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-							<div class="min-w-0 flex-1">
+						<Cluster gap="md" class="p-4">
+							<div class="min-w-0 grow basis-48">
 								<p class="truncate text-sm font-medium">
 									{companyById.get(employment.company_id) ?? t('kiosk.entity_unknown')}
 								</p>
@@ -200,40 +207,40 @@
 								punch by hand does not have to work out which of the two this is, and can
 								no longer assert one the day contradicts.
 							-->
-							<div class="sm:flex">
-								<Button
-									disabled={working}
-									onclick={() => {
-										working = true;
-										onworkingchange(true);
-										result = null;
-										error = null;
-										void Promise.resolve(
-											client.invoke.kiosk_punch({
-												employment_id: employment.id,
-												kind: 'MANUAL'
-											})
-										)
-											.then(acceptPunch, failPunch)
-											.finally(() => {
-												working = false;
-												onworkingchange(false);
-											});
-									}}
-								>
-									<Icon icon="lucide:clock" class="size-4" />
-									{t('kiosk.record_punch')}
-								</Button>
-							</div>
-						</div>
+							<Button
+								disabled={working}
+								onclick={() => {
+									working = true;
+									onworkingchange(true);
+									result = null;
+									error = null;
+									void Promise.resolve(
+										client.invoke.kiosk_punch({
+											employment_id: employment.id,
+											kind: 'MANUAL'
+										})
+									)
+										.then(acceptPunch, failPunch)
+										.finally(() => {
+											working = false;
+											onworkingchange(false);
+										});
+								}}
+							>
+								<Icon icon="lucide:clock" class="size-4" />
+								{t('kiosk.record_punch')}
+							</Button>
+						</Cluster>
 					{/each}
-				</div>
-			</div>
+				</Stack>
+			</Stack>
 		{/if}
 
 		{#if result !== null}
-			<div
-				class="mt-5 flex items-start gap-3 rounded-lg p-4 {resultTone === 'warning'
+			<Inline
+				align="start"
+				gap="sm"
+				class="rounded-lg p-4 {resultTone === 'warning'
 					? 'bg-warning/10 text-warning-foreground'
 					: 'bg-success/10 text-success'}"
 				role="status"
@@ -243,14 +250,14 @@
 					class="mt-0.5 size-5 shrink-0"
 				/>
 				<p class="text-sm font-medium">{result}</p>
-			</div>
+			</Inline>
 		{/if}
 
-		<footer class="mt-6 flex justify-end border-t pt-5">
+		<Inline as="footer" justify="end" class="border-t pt-5">
 			<Button variant="ghost" onclick={ondone}>
 				<Icon icon="lucide:arrow-left" class="size-4" />
 				{t('kiosk.back_to_clock')}
 			</Button>
-		</footer>
-	</section>
-</div>
+		</Inline>
+	</Stack>
+</Center>

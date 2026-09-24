@@ -76,7 +76,6 @@
 <Tabs
 	animate={false}
 	variant="underline"
-	contentPadding={false}
 	config={[
 		{
 			name: 'codes',

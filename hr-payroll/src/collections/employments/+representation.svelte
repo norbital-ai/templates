@@ -10,7 +10,7 @@
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
-	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { Button } from '@norbital-ai/ui/button';
 	import { readRange } from '../payroll_runs/lib/effective.js';
@@ -72,7 +72,7 @@
 </svelte:head>
 
 {#snippet contractActions()}
-	<div class="flex gap-2">
+	<Inline gap="sm" align="stretch">
 		{#if !departed}
 			<Button variant="outline" size="sm" onclick={() => (changeTermsOpen = true)}>
 				<Icon icon="lucide:file-signature" class="size-4" />
@@ -91,47 +91,65 @@
 				{t('common.edit')}
 			</Button>
 		{/if}
-	</div>
+	</Inline>
 {/snippet}
 
 {#snippet general()}
 	<Stack gap="md">
 		{#if record != null && !departed}
 			<Dialog.Root bind:open={changeTermsOpen}>
-				<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
-					<Dialog.Header>
-						<Dialog.Title>{t('offboarding.change_terms_title')}</Dialog.Title>
-						<Dialog.Description>{t('offboarding.change_terms_description')}</Dialog.Description>
-					</Dialog.Header>
-					{#if changeTermsOpen}
-						<ChangeTermsFlow
-							employment={{ id: record.id, company_id: record.company_id }}
-							onclose={() => {
-								changeTermsOpen = false;
-							}}
-						/>
-					{/if}
+				<!-- The panel is the Scroll: it grows with the flow up to the dialog's 90dvh cap. -->
+				<Dialog.Content class="max-w-2xl p-0">
+					<Scroll
+						name={t('offboarding.change_terms_title')}
+						layout="stack"
+						gap="md"
+						max="tall"
+						class="max-h-[90dvh] p-6"
+					>
+						<Dialog.Header>
+							<Dialog.Title>{t('offboarding.change_terms_title')}</Dialog.Title>
+							<Dialog.Description>{t('offboarding.change_terms_description')}</Dialog.Description>
+						</Dialog.Header>
+						{#if changeTermsOpen}
+							<ChangeTermsFlow
+								employment={{ id: record.id, company_id: record.company_id }}
+								onclose={() => {
+									changeTermsOpen = false;
+								}}
+							/>
+						{/if}
+					</Scroll>
 				</Dialog.Content>
 			</Dialog.Root>
 			<Dialog.Root bind:open={offboardOpen}>
-				<Dialog.Content class="max-h-[90dvh] max-w-2xl overflow-y-auto">
-					<Dialog.Header>
-						<Dialog.Title>{t('offboarding.title')}</Dialog.Title>
-						<Dialog.Description>{t('offboarding.description')}</Dialog.Description>
-					</Dialog.Header>
-					{#if offboardOpen}
-						<OffboardingFlow
-							employment={{
-								id: record.id,
-								range_start: rangeStart,
-								company_id: record.company_id,
-								employee_number: record.employee_number
-							}}
-							onclose={() => {
-								offboardOpen = false;
-							}}
-						/>
-					{/if}
+				<!-- The panel is the Scroll: it grows with the flow up to the dialog's 90dvh cap. -->
+				<Dialog.Content class="max-w-2xl p-0">
+					<Scroll
+						name={t('offboarding.title')}
+						layout="stack"
+						gap="md"
+						max="tall"
+						class="max-h-[90dvh] p-6"
+					>
+						<Dialog.Header>
+							<Dialog.Title>{t('offboarding.title')}</Dialog.Title>
+							<Dialog.Description>{t('offboarding.description')}</Dialog.Description>
+						</Dialog.Header>
+						{#if offboardOpen}
+							<OffboardingFlow
+								employment={{
+									id: record.id,
+									range_start: rangeStart,
+									company_id: record.company_id,
+									employee_number: record.employee_number
+								}}
+								onclose={() => {
+									offboardOpen = false;
+								}}
+							/>
+						{/if}
+					</Scroll>
 				</Dialog.Content>
 			</Dialog.Root>
 		{/if}

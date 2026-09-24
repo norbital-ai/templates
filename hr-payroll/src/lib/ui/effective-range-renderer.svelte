@@ -15,10 +15,11 @@
 
 	let props: CollectionFormRendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const className = $derived(props.class);
 </script>
 
 {#if props.mode === 'display'}
-	<span class={props.class}>{formatTermsDates({ effective_range: props.value }, t)}</span>
+	<span class={className}>{formatTermsDates({ effective_range: props.value }, t)}</span>
 {:else}
 	<DataRenderer {...props} renderer={undefined} />
 {/if}

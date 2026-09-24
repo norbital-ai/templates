@@ -16,7 +16,8 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { FieldLegend } from '@norbital-ai/ui/field';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import type { CollectionField } from '@norbital-ai/std/collection';
 	import { Schema } from 'effect';
@@ -391,63 +392,73 @@
 	<Stack gap="lg" class="w-full">
 		<!-- Scalars, in one compact labelled grid. -->
 		<Grid gap="sm" minimum="compact">
-			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground" title={t('renderer.work_rules.proration_hint')}
-					>{t('renderer.work_rules.proration')}</span
-				>
-				<ProrationBasisRenderer
-					mode="edit"
-					field={{ name: 'proration', type: 'proration_basis' }}
-					value={current.proration}
-					{disabled}
-					onValueChange={(next) => {
-						if (next != null) edit({ proration: next });
-					}}
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground">{t('renderer.work_rules.normal_hours')}</span>
-				<Input
-					value={current.normal_hours ?? ''}
-					{disabled}
-					placeholder="8.0"
-					oninput={(event) => edit({ normal_hours: event.currentTarget.value })}
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground">{t('renderer.work_rules.rate_week_hours')}</span>
-				<Input
-					type="number"
-					value={current.rate_week_hours ?? ''}
-					{disabled}
-					placeholder="44"
-					oninput={(event) =>
-						edit({
-							rate_week_hours:
-								event.currentTarget.value.trim() === '' ? null : Number(event.currentTarget.value)
-						})}
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground">{t('renderer.work_rules.precedence_label')}</span>
-				<Combobox
-					options={precedenceOptions}
-					value={current.holiday_rest_precedence}
-					{disabled}
-					searchable={false}
-					onValueChange={(holiday_rest_precedence) => {
-						if (holiday_rest_precedence) edit({ holiday_rest_precedence });
-					}}
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-xs">
-				<span class="text-muted-foreground">{t('component.authority')}</span>
-				<Input
-					value={current.authority ?? ''}
-					{disabled}
-					oninput={(event) => edit({ authority: event.currentTarget.value || undefined })}
-				/>
-			</label>
+			<label class="text-xs"
+				><Stack gap="xs">
+					<span class="text-muted-foreground" title={t('renderer.work_rules.proration_hint')}
+						>{t('renderer.work_rules.proration')}</span
+					>
+					<ProrationBasisRenderer
+						mode="edit"
+						field={{ name: 'proration', type: 'proration_basis' }}
+						value={current.proration}
+						{disabled}
+						onValueChange={(next) => {
+							if (next != null) edit({ proration: next });
+						}}
+					/>
+				</Stack></label
+			>
+			<label class="text-xs"
+				><Stack gap="xs">
+					<span class="text-muted-foreground">{t('renderer.work_rules.normal_hours')}</span>
+					<Input
+						value={current.normal_hours ?? ''}
+						{disabled}
+						placeholder="8.0"
+						oninput={(event) => edit({ normal_hours: event.currentTarget.value })}
+					/>
+				</Stack></label
+			>
+			<label class="text-xs"
+				><Stack gap="xs">
+					<span class="text-muted-foreground">{t('renderer.work_rules.rate_week_hours')}</span>
+					<Input
+						type="number"
+						value={current.rate_week_hours ?? ''}
+						{disabled}
+						placeholder="44"
+						oninput={(event) =>
+							edit({
+								rate_week_hours:
+									event.currentTarget.value.trim() === '' ? null : Number(event.currentTarget.value)
+							})}
+					/>
+				</Stack></label
+			>
+			<label class="text-xs"
+				><Stack gap="xs">
+					<span class="text-muted-foreground">{t('renderer.work_rules.precedence_label')}</span>
+					<Combobox
+						options={precedenceOptions}
+						value={current.holiday_rest_precedence}
+						{disabled}
+						searchable={false}
+						onValueChange={(holiday_rest_precedence) => {
+							if (holiday_rest_precedence) edit({ holiday_rest_precedence });
+						}}
+					/>
+				</Stack></label
+			>
+			<label class="text-xs"
+				><Stack gap="xs">
+					<span class="text-muted-foreground">{t('component.authority')}</span>
+					<Input
+						value={current.authority ?? ''}
+						{disabled}
+						oninput={(event) => edit({ authority: event.currentTarget.value || undefined })}
+					/>
+				</Stack></label
+			>
 		</Grid>
 
 		<!-- The ordinary rate divisor and who the overtime ladder covers: expressions over the person. -->
@@ -455,7 +466,7 @@
 			<Stack gap="xs">
 				<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary')}</span>
 				<p class="text-meta">{t('renderer.work_rules.ordinary_hint')}</p>
-				<div class="flex items-start gap-1">
+				<Inline gap="xs" align="start">
 					<ExpressionField
 						site="person"
 						type="days"
@@ -472,12 +483,12 @@
 						type="days"
 						inline
 					/>
-				</div>
+				</Inline>
 			</Stack>
 			<Stack gap="xs">
 				<span class="text-sm font-semibold">{t('renderer.work_rules.overtime_when')}</span>
 				<p class="text-meta">{t('renderer.work_rules.overtime_when_hint')}</p>
-				<div class="flex items-start gap-1">
+				<Inline gap="xs" align="start">
 					<ExpressionField
 						site="person"
 						type="boolean"
@@ -495,7 +506,7 @@
 						type="boolean"
 						inline
 					/>
-				</div>
+				</Inline>
 			</Stack>
 		</Grid>
 
@@ -503,24 +514,26 @@
 			<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary_reference')}</span>
 			<p class="text-meta">{t('renderer.work_rules.ordinary_reference_hint')}</p>
 			{#if !readonly}
-				<label class="flex items-center gap-2 text-xs">
-					<input
-						type="checkbox"
-						{disabled}
-						checked={current.ordinary_rate_reference != null}
-						onchange={(event) =>
-							edit({
-								ordinary_rate_reference: event.currentTarget.checked
-									? {
-											reference: 'PREVIOUS_WAGE_PERIOD',
-											pay_frequencies: ['DAILY', 'HOURLY'],
-											authority: ''
-										}
-									: null
-							})}
-					/>
-					{t('renderer.work_rules.ordinary_reference_enabled')}
-				</label>
+				<label class="text-xs"
+					><Inline as="span" gap="sm">
+						<input
+							type="checkbox"
+							{disabled}
+							checked={current.ordinary_rate_reference != null}
+							onchange={(event) =>
+								edit({
+									ordinary_rate_reference: event.currentTarget.checked
+										? {
+												reference: 'PREVIOUS_WAGE_PERIOD',
+												pay_frequencies: ['DAILY', 'HOURLY'],
+												authority: ''
+											}
+										: null
+								})}
+						/>
+						{t('renderer.work_rules.ordinary_reference_enabled')}
+					</Inline></label
+				>
 			{/if}
 			{#if current.ordinary_rate_reference != null}
 				<Grid gap="sm" minimum="compact">
@@ -547,28 +560,34 @@
 							/>
 						</Stack></label
 					>
-					<fieldset class="flex flex-wrap gap-3 text-xs">
-						<legend class="mb-2">{t('renderer.work_rules.ordinary_reference_frequencies')}</legend>
-						{#each ordinaryFrequencies as frequency}
-							<label class="flex items-center gap-1"
-								><input
-									type="checkbox"
-									{disabled}
-									checked={current.ordinary_rate_reference.pay_frequencies.includes(frequency)}
-									onchange={(event) => {
-										const previous = current.ordinary_rate_reference!.pay_frequencies;
-										editOrdinaryReference({
-											pay_frequencies: event.currentTarget.checked
-												? [...previous, frequency]
-												: previous.filter((item) => item !== frequency)
-										});
-									}}
-								/>
-								{t(
-									`renderer.work_rules.encashment_frequency_${frequency}` as TenantI18nKeys
-								)}</label
-							>
-						{/each}
+					<fieldset class="text-xs">
+						<FieldLegend variant="label" class="text-xs font-normal"
+							>{t('renderer.work_rules.ordinary_reference_frequencies')}</FieldLegend
+						>
+						<Cluster gap="sm">
+							{#each ordinaryFrequencies as frequency}
+								<label
+									><Inline as="span" gap="xs"
+										><input
+											type="checkbox"
+											{disabled}
+											checked={current.ordinary_rate_reference.pay_frequencies.includes(frequency)}
+											onchange={(event) => {
+												const previous = current.ordinary_rate_reference!.pay_frequencies;
+												editOrdinaryReference({
+													pay_frequencies: event.currentTarget.checked
+														? [...previous, frequency]
+														: previous.filter((item) => item !== frequency)
+												});
+											}}
+										/>
+										{t(
+											`renderer.work_rules.encashment_frequency_${frequency}` as TenantI18nKeys
+										)}</Inline
+									></label
+								>
+							{/each}
+						</Cluster>
 					</fieldset>
 					<label class="text-xs"
 						><Stack gap="xs">
@@ -588,28 +607,30 @@
 			<span class="text-sm font-semibold">{t('renderer.work_rules.encashment')}</span>
 			<p class="text-meta">{t('renderer.work_rules.encashment_hint')}</p>
 			{#if !readonly}
-				<label class="flex items-center gap-2 text-xs">
-					<input
-						type="checkbox"
-						{disabled}
-						checked={current.encashment != null}
-						onchange={(event) =>
-							edit({
-								encashment: event.currentTarget.checked
-									? {
-											reference: 'EVENT_DATE',
-											day_amount: '',
-											pay_frequencies: ['MONTHLY', 'SEMI_MONTHLY'],
-											include_allowances: [],
-											exclude_allowances: [],
-											preserve_year_end_rate: false,
-											authority: ''
-										}
-									: null
-							})}
-					/>
-					{t('renderer.work_rules.encashment_enabled')}
-				</label>
+				<label class="text-xs"
+					><Inline as="span" gap="sm">
+						<input
+							type="checkbox"
+							{disabled}
+							checked={current.encashment != null}
+							onchange={(event) =>
+								edit({
+									encashment: event.currentTarget.checked
+										? {
+												reference: 'EVENT_DATE',
+												day_amount: '',
+												pay_frequencies: ['MONTHLY', 'SEMI_MONTHLY'],
+												include_allowances: [],
+												exclude_allowances: [],
+												preserve_year_end_rate: false,
+												authority: ''
+											}
+										: null
+								})}
+						/>
+						{t('renderer.work_rules.encashment_enabled')}
+					</Inline></label
+				>
 			{/if}
 			{#if current.encashment != null}
 				<Grid gap="sm" minimum="card">
@@ -661,35 +682,45 @@
 						>
 					{/each}
 				</Grid>
-				<fieldset class="flex flex-wrap gap-3 text-xs">
-					<legend class="mb-2">{t('renderer.work_rules.encashment_frequencies')}</legend>
-					{#each frequencies as frequency}
-						<label class="flex items-center gap-1"
-							><input
-								type="checkbox"
-								{disabled}
-								checked={current.encashment.pay_frequencies.includes(frequency)}
-								onchange={(event) => {
-									const previous = current.encashment!.pay_frequencies;
-									editEncashment({
-										pay_frequencies: event.currentTarget.checked
-											? [...previous, frequency]
-											: previous.filter((item) => item !== frequency)
-									});
-								}}
-							/>
-							{t(`renderer.work_rules.encashment_frequency_${frequency}` as TenantI18nKeys)}</label
-						>
-					{/each}
+				<fieldset class="text-xs">
+					<FieldLegend variant="label" class="text-xs font-normal"
+						>{t('renderer.work_rules.encashment_frequencies')}</FieldLegend
+					>
+					<Cluster gap="sm">
+						{#each frequencies as frequency}
+							<label
+								><Inline as="span" gap="xs"
+									><input
+										type="checkbox"
+										{disabled}
+										checked={current.encashment.pay_frequencies.includes(frequency)}
+										onchange={(event) => {
+											const previous = current.encashment!.pay_frequencies;
+											editEncashment({
+												pay_frequencies: event.currentTarget.checked
+													? [...previous, frequency]
+													: previous.filter((item) => item !== frequency)
+											});
+										}}
+									/>
+									{t(
+										`renderer.work_rules.encashment_frequency_${frequency}` as TenantI18nKeys
+									)}</Inline
+								></label
+							>
+						{/each}
+					</Cluster>
 				</fieldset>
-				<label class="flex items-center gap-2 text-xs"
-					><input
-						type="checkbox"
-						{disabled}
-						checked={current.encashment.preserve_year_end_rate}
-						onchange={(event) =>
-							editEncashment({ preserve_year_end_rate: event.currentTarget.checked })}
-					/>{t('renderer.work_rules.encashment_year_end')}</label
+				<label class="text-xs"
+					><Inline as="span" gap="sm"
+						><input
+							type="checkbox"
+							{disabled}
+							checked={current.encashment.preserve_year_end_rate}
+							onchange={(event) =>
+								editEncashment({ preserve_year_end_rate: event.currentTarget.checked })}
+						/>{t('renderer.work_rules.encashment_year_end')}</Inline
+					></label
 				>
 				<label class="text-xs"
 					><Stack gap="xs"
@@ -755,83 +786,93 @@
 			/>
 			<!-- The weekly rest rule is the consecutive-work-days limit: the roster gate judges it, no band reads it. -->
 			<Grid gap="sm" minimum="compact" class="rounded-md border border-border p-2">
-				<label class="flex flex-col gap-1 text-xs">
-					<span class="text-muted-foreground">{t('renderer.work_rules.consecutive_days')}</span>
-					<Input
-						type="number"
-						min="1"
-						max="30"
-						step="1"
-						value={restLimit?.max_days ?? ''}
-						{disabled}
-						placeholder="6"
-						oninput={(event) => editRest({ max_days: numberFrom(event.currentTarget.value, 6) })}
-					/>
-				</label>
-				<label class="flex flex-col gap-1 text-xs">
-					<span class="text-muted-foreground">{t('renderer.work_rules.discharged_by')}</span>
-					<Combobox
-						options={restOptions}
-						value={restLimit?.discharged_by ?? 'REST'}
-						{disabled}
-						searchable={false}
-						onValueChange={(discharged_by) => {
-							if (discharged_by) editRest({ discharged_by });
-						}}
-					/>
-				</label>
-				<label class="flex flex-col gap-1 text-xs">
-					<span class="text-muted-foreground">{t('renderer.work_rules.suspended_by_leave')}</span>
-					<Input
-						value={(restLimit?.suspended_by_leave ?? []).join(', ')}
-						{disabled}
-						placeholder="MATERNITY_LEAVE, MEDICAL_LEAVE"
-						oninput={(event) => {
-							const codes = event.currentTarget.value
-								.split(',')
-								.map((code) => code.trim())
-								.filter((code) => code !== '');
-							editRest({ suspended_by_leave: codes.length === 0 ? undefined : codes });
-						}}
-					/>
-				</label>
-				<label class="flex flex-col gap-1 text-xs">
-					<span class="text-muted-foreground">{t('renderer.work_rules.rest_average')}</span>
-					<Input
-						value={restLimit?.average == null
-							? ''
-							: `${restLimit.average.rest_days} / ${restLimit.average.days}`}
-						{disabled}
-						placeholder="4 / 30"
-						title={t('renderer.work_rules.rest_average_hint')}
-						oninput={(event) => {
-							const match = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(event.currentTarget.value);
-							editRest({
-								average:
-									match == null
-										? undefined
-										: {
-												...(restLimit?.average ?? {}),
-												rest_days: Number(match[1]),
-												days: Number(match[2])
-											}
-							});
-						}}
-					/>
-				</label>
-				<label class="flex flex-col gap-1 text-xs">
-					<span class="text-muted-foreground">{t('renderer.work_rules.limit_when')}</span>
-					<Input
-						value={restLimit?.average?.when ?? ''}
-						{disabled}
-						placeholder="has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
-						oninput={(event) => {
-							if (restLimit?.average == null) return;
-							const when = event.currentTarget.value.trim();
-							editRest({ average: { ...restLimit.average, ...(when === '' ? {} : { when }) } });
-						}}
-					/>
-				</label>
+				<label class="text-xs"
+					><Stack gap="xs">
+						<span class="text-muted-foreground">{t('renderer.work_rules.consecutive_days')}</span>
+						<Input
+							type="number"
+							min="1"
+							max="30"
+							step="1"
+							value={restLimit?.max_days ?? ''}
+							{disabled}
+							placeholder="6"
+							oninput={(event) => editRest({ max_days: numberFrom(event.currentTarget.value, 6) })}
+						/>
+					</Stack></label
+				>
+				<label class="text-xs"
+					><Stack gap="xs">
+						<span class="text-muted-foreground">{t('renderer.work_rules.discharged_by')}</span>
+						<Combobox
+							options={restOptions}
+							value={restLimit?.discharged_by ?? 'REST'}
+							{disabled}
+							searchable={false}
+							onValueChange={(discharged_by) => {
+								if (discharged_by) editRest({ discharged_by });
+							}}
+						/>
+					</Stack></label
+				>
+				<label class="text-xs"
+					><Stack gap="xs">
+						<span class="text-muted-foreground">{t('renderer.work_rules.suspended_by_leave')}</span>
+						<Input
+							value={(restLimit?.suspended_by_leave ?? []).join(', ')}
+							{disabled}
+							placeholder="MATERNITY_LEAVE, MEDICAL_LEAVE"
+							oninput={(event) => {
+								const codes = event.currentTarget.value
+									.split(',')
+									.map((code) => code.trim())
+									.filter((code) => code !== '');
+								editRest({ suspended_by_leave: codes.length === 0 ? undefined : codes });
+							}}
+						/>
+					</Stack></label
+				>
+				<label class="text-xs"
+					><Stack gap="xs">
+						<span class="text-muted-foreground">{t('renderer.work_rules.rest_average')}</span>
+						<Input
+							value={restLimit?.average == null
+								? ''
+								: `${restLimit.average.rest_days} / ${restLimit.average.days}`}
+							{disabled}
+							placeholder="4 / 30"
+							title={t('renderer.work_rules.rest_average_hint')}
+							oninput={(event) => {
+								const match = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(event.currentTarget.value);
+								editRest({
+									average:
+										match == null
+											? undefined
+											: {
+													...(restLimit?.average ?? {}),
+													rest_days: Number(match[1]),
+													days: Number(match[2])
+												}
+								});
+							}}
+						/>
+					</Stack></label
+				>
+				<label class="text-xs"
+					><Stack gap="xs">
+						<span class="text-muted-foreground">{t('renderer.work_rules.limit_when')}</span>
+						<Input
+							value={restLimit?.average?.when ?? ''}
+							{disabled}
+							placeholder="has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly"
+							oninput={(event) => {
+								if (restLimit?.average == null) return;
+								const when = event.currentTarget.value.trim();
+								editRest({ average: { ...restLimit.average, ...(when === '' ? {} : { when }) } });
+							}}
+						/>
+					</Stack></label
+				>
 			</Grid>
 		</Stack>
 
@@ -900,7 +941,7 @@
 			<span class="text-sm font-semibold">{t('renderer.work_rules.night_premium')}</span>
 			<p class="text-meta">{t('renderer.work_rules.night_premium_hint')}</p>
 			{#if current.night_premium == null}
-				<div class="flex items-center gap-2">
+				<Inline gap="sm">
 					<span class="text-sm text-muted-foreground">
 						{t('renderer.work_rules.night_premium_not_stated')}
 					</span>
@@ -915,47 +956,59 @@
 					>
 						{t('renderer.work_rules.add_night_premium')}
 					</Button>
-				</div>
+				</Inline>
 			{:else}
 				<Grid gap="sm" minimum="compact">
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.night_from')}</span>
-						<Input
-							type="time"
-							value={current.night_premium.from}
-							{disabled}
-							oninput={(event) => editNight({ from: event.currentTarget.value })}
-						/>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.night_to')}</span>
-						<Input
-							type="time"
-							value={current.night_premium.to}
-							{disabled}
-							oninput={(event) => editNight({ to: event.currentTarget.value })}
-						/>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.night_ordinary_add')}</span>
-						<Input
-							value={String(current.night_premium.ordinary_add)}
-							{disabled}
-							oninput={(event) =>
-								editNight({ ordinary_add: percentAddFrom(event.currentTarget.value) })}
-						/>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.night_overtime_add')}</span>
-						<Input
-							value={String(current.night_premium.overtime_add)}
-							{disabled}
-							oninput={(event) =>
-								editNight({ overtime_add: percentAddFrom(event.currentTarget.value) })}
-						/>
-					</label>
+					<label class="text-xs"
+						><Stack gap="xs">
+							<span class="text-muted-foreground">{t('renderer.work_rules.night_from')}</span>
+							<Input
+								type="time"
+								value={current.night_premium.from}
+								{disabled}
+								oninput={(event) => editNight({ from: event.currentTarget.value })}
+							/>
+						</Stack></label
+					>
+					<label class="text-xs"
+						><Stack gap="xs">
+							<span class="text-muted-foreground">{t('renderer.work_rules.night_to')}</span>
+							<Input
+								type="time"
+								value={current.night_premium.to}
+								{disabled}
+								oninput={(event) => editNight({ to: event.currentTarget.value })}
+							/>
+						</Stack></label
+					>
+					<label class="text-xs"
+						><Stack gap="xs">
+							<span class="text-muted-foreground"
+								>{t('renderer.work_rules.night_ordinary_add')}</span
+							>
+							<Input
+								value={String(current.night_premium.ordinary_add)}
+								{disabled}
+								oninput={(event) =>
+									editNight({ ordinary_add: percentAddFrom(event.currentTarget.value) })}
+							/>
+						</Stack></label
+					>
+					<label class="text-xs"
+						><Stack gap="xs">
+							<span class="text-muted-foreground"
+								>{t('renderer.work_rules.night_overtime_add')}</span
+							>
+							<Input
+								value={String(current.night_premium.overtime_add)}
+								{disabled}
+								oninput={(event) =>
+									editNight({ overtime_add: percentAddFrom(event.currentTarget.value) })}
+							/>
+						</Stack></label
+					>
 				</Grid>
-				<div class="flex justify-end">
+				<Inline justify="end">
 					<Button
 						variant="ghost"
 						size="sm"
@@ -964,7 +1017,7 @@
 					>
 						{t('renderer.work_rules.remove_night_premium')}
 					</Button>
-				</div>
+				</Inline>
 			{/if}
 		</Stack>
 	</Stack>

@@ -158,12 +158,13 @@
 {#snippet scheduleLock()}
 	<Badge
 		variant="outline"
-		class="gap-1"
 		title={t('component.loan_schedule_locked_note')}
 		aria-label={`${t('component.loan_schedule_locked_badge')}: ${t('component.loan_schedule_locked_note')}`}
 	>
-		<Icon icon="lucide:lock-keyhole" class="size-3 shrink-0" aria-hidden="true" />
-		{t('component.loan_schedule_locked_badge')}
+		<Inline as="span" gap="xs">
+			<Icon icon="lucide:lock-keyhole" class="size-3 shrink-0" aria-hidden="true" />
+			{t('component.loan_schedule_locked_badge')}
+		</Inline>
 	</Badge>
 {/snippet}
 

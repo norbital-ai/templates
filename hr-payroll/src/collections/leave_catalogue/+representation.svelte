@@ -139,7 +139,6 @@
 			<Tabs
 				animate={false}
 				listClass="w-full"
-				contentPadding={false}
 				lazyLoad={false}
 				keepAlive
 				config={[

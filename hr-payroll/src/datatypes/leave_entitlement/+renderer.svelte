@@ -6,7 +6,7 @@
 	import { Checkbox } from '@norbital-ai/ui/checkbox';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import type { RendererProps } from './$types.js';
 	import type { LeaveEntitlement } from './+definition.js';
@@ -199,12 +199,14 @@
 				/>
 			</Stack></label
 		>
-		<label class="flex items-center gap-2 text-sm font-medium"
-			><Checkbox
-				checked={current.qualifies_window === true}
-				{disabled}
-				onCheckedChange={(checked) => emit({ ...current, qualifies_window: checked === true })}
-			/>{t('leave.qualifies_window')}</label
+		<label class="text-sm font-medium"
+			><Inline as="span" gap="sm"
+				><Checkbox
+					checked={current.qualifies_window === true}
+					{disabled}
+					onCheckedChange={(checked) => emit({ ...current, qualifies_window: checked === true })}
+				/>{t('leave.qualifies_window')}</Inline
+			></label
 		>
 		<label class="text-sm font-medium"
 			><Stack gap="xs">

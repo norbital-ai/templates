@@ -10,7 +10,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import * as Popover from '@norbital-ai/ui/popover';
 	import { Textarea } from '@norbital-ai/ui/textarea';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import type { RendererProps, Value } from './$types.js';
 
 	let props: RendererProps = $props();
@@ -36,7 +36,7 @@
 </script>
 
 <Stack gap="xs" class="w-full min-w-0">
-	<div class="flex items-start gap-2">
+	<Inline align="start" gap="sm">
 		<div class="min-w-0 flex-1">
 			{#if readonly}
 				{#if urls.length === 0}
@@ -70,18 +70,22 @@
 		<Popover.Root>
 			<Popover.Trigger
 				type="button"
-				class="text-muted-foreground hover:text-foreground inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-border"
+				class="text-muted-foreground hover:text-foreground size-6 shrink-0 rounded-md border border-border"
 				title={t('renderer.sources.instructions')}
 				aria-label={t('renderer.sources.instructions')}
 			>
-				<Icon icon="lucide:info" class="size-3.5" aria-hidden="true" />
+				<Inline as="span" justify="center" fill>
+					<Icon icon="lucide:info" class="size-3.5" aria-hidden="true" />
+				</Inline>
 			</Popover.Trigger>
-			<Popover.Content
-				align="end"
-				sideOffset={6}
-				class="max-h-[min(28rem,calc(100dvh-6rem))] w-[38rem] max-w-[90vw] overflow-auto p-3 text-xs"
-			>
-				<Stack gap="xs">
+			<Popover.Content align="end" sideOffset={6} class="p-0 text-xs">
+				<Scroll
+					name={t('renderer.sources.instructions')}
+					max="standard"
+					layout="stack"
+					gap="xs"
+					class="w-[38rem] max-w-[90vw] p-3"
+				>
 					<p class="text-muted-foreground">{t('renderer.sources.instructions_hint')}</p>
 					{#if readonly}
 						<p class="whitespace-pre-wrap">{instructions === '' ? '—' : instructions}</p>
@@ -93,8 +97,8 @@
 							oninput={(event) => commitInstructions(event.currentTarget.value)}
 						/>
 					{/if}
-				</Stack>
+				</Scroll>
 			</Popover.Content>
 		</Popover.Root>
-	</div>
+	</Inline>
 </Stack>

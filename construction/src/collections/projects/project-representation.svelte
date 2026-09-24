@@ -11,6 +11,7 @@
 		Columns,
 		Cover,
 		Grid,
+		Imposter,
 		Inline,
 		Scroll,
 		Split,
@@ -250,28 +251,22 @@
 			</p>
 		</div>
 		{#if ifcDocument?.document_url}
-			<Bound size="standard" clip class="rounded-md border bg-muted/30">
-				<div class="relative h-full w-full">
-					{#await viewerModule}
-						<Inline
-							align="center"
-							justify="center"
-							class="absolute inset-0 bg-background/80 text-sm text-muted-foreground"
-						>
+			<Bound size="standard" clip class="relative rounded-md border bg-muted/30">
+				{#await viewerModule}
+					<Imposter placement="fill" class="bg-background/80 text-sm text-muted-foreground">
+						<Inline align="center" justify="center" fill>
 							{t('component.loading_viewer')}
 						</Inline>
-					{:then mod}
-						<div class="h-full w-full" use:mountViewer={mod}></div>
-					{:catch error}
-						<Inline
-							align="center"
-							justify="center"
-							class="absolute inset-0 bg-background/80 text-sm text-destructive"
-						>
+					</Imposter>
+				{:then mod}
+					<div class="h-full w-full" use:mountViewer={mod}></div>
+				{:catch error}
+					<Imposter placement="fill" class="bg-background/80 text-sm text-destructive">
+						<Inline align="center" justify="center" fill>
 							{String(error)}
 						</Inline>
-					{/await}
-				</div>
+					</Imposter>
+				{/await}
 			</Bound>
 		{:else if documentsQuery.loading}
 			<div class="h-64 animate-pulse rounded-md bg-muted/60"></div>
@@ -292,7 +287,7 @@
 			<p class="text-overline">
 				{t('component.delivery_pulse')}
 			</p>
-			<dl class="divide-y text-sm">
+			<Stack as="dl" gap="none" divided class="text-sm">
 				<Inline as="div" justify="between" class="py-2">
 					<dt>{t('component.work_fronts')}</dt>
 					<dd class="font-medium tabular-nums">{sitesQuery.current?.length ?? 0}</dd>
@@ -305,7 +300,7 @@
 					<dt>{t('component.project_documents')}</dt>
 					<dd class="font-medium tabular-nums">{documents.length}</dd>
 				</Inline>
-			</dl>
+			</Stack>
 		</Stack>
 		{#if record.description}
 			<Stack gap="sm">
@@ -492,7 +487,7 @@
 						{t('component.payment_claims_description')}
 					</p>
 				</div>
-				<div class="divide-y rounded-md border bg-card">
+				<Stack gap="none" divided class="rounded-md border bg-card">
 					{#each claims as claim (claim.id)}
 						<Inline align="start" justify="between" gap="md" class="p-3">
 							<div class="min-w-0">
@@ -507,7 +502,7 @@
 					{:else}
 						<p class="p-4 text-sm text-muted-foreground">{t('component.no_payment_claims')}</p>
 					{/each}
-				</div>
+				</Stack>
 			</Stack>
 
 			<Stack as="section" gap="sm">
@@ -517,7 +512,7 @@
 						{t('component.project_documents_description')}
 					</p>
 				</div>
-				<div class="divide-y rounded-md border bg-card">
+				<Stack gap="none" divided class="rounded-md border bg-card">
 					{#each documents as document (document.id)}
 						<Inline align="start" justify="between" gap="md" class="p-3">
 							<div class="min-w-0">
@@ -541,7 +536,7 @@
 					{:else}
 						<p class="p-4 text-sm text-muted-foreground">{t('component.no_project_documents')}</p>
 					{/each}
-				</div>
+				</Stack>
 			</Stack>
 		</Grid>
 
@@ -588,7 +583,6 @@
 <Cover as="main" gap="md" top={projectSummary}>
 	<Tabs
 		animate={false}
-		contentPadding={false}
 		listClass="w-full"
 		config={[
 			{

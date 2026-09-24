@@ -14,6 +14,7 @@
 	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import * as Popover from '@norbital-ai/ui/popover';
 	import {
 		EXPRESSION_CONTEXTS,
@@ -46,55 +47,62 @@
 
 {#snippet members()}
 	<p class="text-muted-foreground">{context.description}</p>
-	<dl class="grid gap-1">
+	<Stack as="dl" gap="xs">
 		{#each context.fields as field (field.path)}
-			<div class="grid grid-cols-[minmax(9rem,auto)_1fr] gap-2">
+			<Grid tracks="minmax(9rem,auto) 1fr" gap="sm">
 				<dt class="font-mono">{field.path}</dt>
 				<dd class="text-muted-foreground">{field.description}</dd>
-			</div>
+			</Grid>
 		{/each}
-	</dl>
+	</Stack>
 	<p class="text-muted-foreground">{t('component.expression_functions')}</p>
-	<dl class="grid gap-1">
+	<Stack as="dl" gap="xs">
 		{#each context.functions as fn (fn.path)}
-			<div class="grid grid-cols-[minmax(9rem,auto)_1fr] gap-2">
+			<Grid tracks="minmax(9rem,auto) 1fr" gap="sm">
 				<dt class="font-mono">{fn.path}</dt>
 				<dd class="text-muted-foreground">{fn.description}</dd>
-			</div>
+			</Grid>
 		{/each}
-	</dl>
+	</Stack>
+{/snippet}
+
+{#snippet popover()}
+	<Popover.Root>
+		<Popover.Trigger
+			type="button"
+			class={`w-fit text-xs font-medium underline decoration-dotted underline-offset-2 ${fault != null ? 'text-destructive' : 'text-muted-foreground hover:text-foreground'}`}
+			title={inline && fault != null ? fault : undefined}
+		>
+			{t('component.expression_fields')}
+		</Popover.Trigger>
+		<Popover.Content align="start" sideOffset={6} class="p-0 text-xs">
+			<Scroll
+				name={t('component.expression_fields')}
+				max="standard"
+				class="w-[38rem] max-w-[90vw] p-3"
+			>
+				{#if inline && fault != null}
+					<p class="pb-2 text-destructive" role="alert">{fault}</p>
+				{/if}
+				{@render members()}
+			</Scroll>
+		</Popover.Content>
+	</Popover.Root>
 {/snippet}
 
 {#if mode === 'members'}
-	<div class="flex flex-col gap-2" data-expression-fields={site}>
+	<Stack gap="sm" data-expression-fields={site}>
 		{@render members()}
-	</div>
+	</Stack>
+{:else if inline}
+	<Inline gap="none" shrink={false} data-expression-fields={site}>
+		{@render popover()}
+	</Inline>
 {:else}
-	<div
-		class={inline ? 'flex min-w-0 shrink-0 items-center' : 'flex flex-col gap-1'}
-		data-expression-fields={site}
-	>
-		<Popover.Root>
-			<Popover.Trigger
-				type="button"
-				class={`w-fit text-xs font-medium underline decoration-dotted underline-offset-2 ${fault != null ? 'text-destructive' : 'text-muted-foreground hover:text-foreground'}`}
-				title={inline && fault != null ? fault : undefined}
-			>
-				{t('component.expression_fields')}
-			</Popover.Trigger>
-			<Popover.Content
-				align="start"
-				sideOffset={6}
-				class="max-h-[min(28rem,calc(100dvh-6rem))] w-[38rem] max-w-[90vw] overflow-auto p-3 text-xs"
-			>
-				{#if inline && fault != null}
-					<p class="mb-2 text-destructive" role="alert">{fault}</p>
-				{/if}
-				{@render members()}
-			</Popover.Content>
-		</Popover.Root>
-		{#if !inline && fault != null}
+	<Stack gap="xs" data-expression-fields={site}>
+		{@render popover()}
+		{#if fault != null}
 			<p class="text-xs text-destructive" role="alert">{fault}</p>
 		{/if}
-	</div>
+	</Stack>
 {/if}

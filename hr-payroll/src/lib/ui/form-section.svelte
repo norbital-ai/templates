@@ -46,9 +46,11 @@
 						{...props}
 						type="button"
 						aria-label={title}
-						class="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+						class="size-5 shrink-0 rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
 					>
-						<Icon icon="lucide:info" class="size-3" aria-hidden="true" />
+						<Inline as="span" justify="center" fill>
+							<Icon icon="lucide:info" class="size-3" aria-hidden="true" />
+						</Inline>
 					</button>
 				{/snippet}
 				{#snippet content()}
@@ -60,7 +62,7 @@
 			{@render trailing()}
 		{/if}
 		{#if actions}
-			<span class="ml-auto flex items-center gap-2">{@render actions()}</span>
+			<Inline as="span" gap="sm" class="ml-auto">{@render actions()}</Inline>
 		{/if}
 	</Inline>
 	{@render children()}

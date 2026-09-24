@@ -6,7 +6,7 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Bound, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { watch } from 'runed';
 	import { convertIfcToFragments } from './ifc_viewer.converter.js';
@@ -641,161 +641,161 @@
 </script>
 
 <Bound size="standard" clip class="relative rounded-lg border border-border/80 bg-muted/20">
-	<div
-		class={cn(
-			'absolute inset-0 z-0 size-full overscroll-contain border-0 bg-transparent p-0 text-left',
-			interactionLocked ? 'touch-pan-y' : 'touch-none'
-		)}
-		role="button"
-		tabindex={0}
-		aria-label={alt ?? t('component.ifc_model_preview')}
-		onclick={() => void Effect.runPromise(handlePick())}
-		onkeydown={handleKeydown}
-		{@attach viewerAttach}
-	></div>
-
-	<Inline
-		align="start"
-		justify="between"
-		gap="sm"
-		class="pointer-events-none absolute inset-x-0 top-0 z-20 p-3"
-	>
-		<div class="min-w-0 w-full max-w-[min(38rem,100%)]">
-			{#if selectedItem}
-				{@const item = selectedItem}
-				<Stack
-					gap="xs"
-					class="pointer-events-auto rounded-md border border-border/80 bg-background/95 p-2 shadow-sm"
-				>
-					<button
-						type="button"
-						class="w-full min-w-0 rounded-sm px-1 py-1 text-left transition-colors hover:bg-muted/60"
-						onclick={() => (propertiesOpen = !propertiesOpen)}
-					>
-						<Inline align="start" justify="between" gap="xs">
-							<div class="min-w-0">
-								<span class="block truncate text-sm font-medium text-foreground">
-									{item.title}
-								</span>
-								{#if item.subtitle}
-									<span class="block truncate text-[11px] text-muted-foreground">
-										{item.subtitle}
-									</span>
-								{:else}
-									<span class="block truncate text-[11px] text-muted-foreground">
-										{t('component.ifc_element_line', {
-											modelId: item.modelId,
-											elementId: item.id
-										})}
-									</span>
-								{/if}
-							</div>
-							<Icon
-								icon="lucide:chevron-down"
-								class="h-4 w-4 shrink-0 text-muted-foreground transition-transform {propertiesOpen
-									? 'rotate-180'
-									: ''}"
-							/>
-						</Inline>
-					</button>
-
-					<Button
-						size="icon"
-						variant="ghost"
-						hint={t('component.clear_selected_element')}
-						class="shrink-0 self-start"
-						onclick={clearSelection}
-					>
-						<Icon icon="lucide:x" />
-					</Button>
-
-					{#if propertiesOpen}
-						<div class="rounded-md border border-border/80 bg-background/95 p-3 shadow-sm">
-							<p class="text-overline pb-2">
-								{t('component.selected_element_properties')}
-							</p>
-							<Scroll
-								axis="both"
-								name="Selected element properties"
-								class="max-h-80 rounded-md bg-muted/50 p-3 text-[11px] wrap-break-word whitespace-pre-wrap text-muted-foreground"
-							>
-								<pre>{item.properties}</pre>
-							</Scroll>
-						</div>
-					{/if}
-				</Stack>
-			{/if}
-		</div>
-
-		<Inline align="center" gap="sm" class="pointer-events-auto">
-			{#if interactionLocked}
-				<div
-					class="hidden rounded-md border border-border/80 bg-background/90 px-2 py-1 text-[11px] text-muted-foreground shadow-sm sm:block"
-				>
-					{t('component.scroll_safe_mode')}
-				</div>
-			{/if}
-			<Button
-				size="icon"
-				variant={interactionLocked ? 'secondary' : 'ghost'}
-				aria-pressed={!interactionLocked}
-				hint={interactionLocked
-					? t('component.unlock_model_navigation')
-					: t('component.lock_model_navigation')}
-				onclick={toggleInteractionLock}
-			>
-				<Icon icon={interactionLocked ? 'lucide:lock' : 'lucide:unlock'} />
-			</Button>
-		</Inline>
-	</Inline>
+	<Imposter placement="fill">
+		<div
+			class={cn(
+				'size-full overscroll-contain border-0 bg-transparent p-0 text-left',
+				interactionLocked ? 'touch-pan-y' : 'touch-none'
+			)}
+			role="button"
+			tabindex={0}
+			aria-label={alt ?? t('component.ifc_model_preview')}
+			onclick={() => void Effect.runPromise(handlePick())}
+			onkeydown={handleKeydown}
+			{@attach viewerAttach}
+		></div>
+	</Imposter>
 
 	{#if loadBanner === 'loading'}
-		<Inline
-			align="center"
-			justify="center"
-			class="pointer-events-auto absolute inset-0 z-10 bg-background/80 p-4"
-		>
-			<p class="text-sm text-muted-foreground">{t('component.loading_ifc_model')}</p>
-		</Inline>
+		<Imposter placement="fill" class="pointer-events-auto bg-background/80 p-4">
+			<Inline align="center" justify="center" fill>
+				<p class="text-sm text-muted-foreground">{t('component.loading_ifc_model')}</p>
+			</Inline>
+		</Imposter>
 	{:else if typeof loadBanner === 'object'}
-		<Inline
-			align="center"
-			justify="center"
-			class="pointer-events-auto absolute inset-0 z-10 bg-background/85 p-4"
-		>
-			<p class="max-w-sm text-center text-sm text-destructive">
-				{loadBanner.error}
-			</p>
-		</Inline>
+		<Imposter placement="fill" class="pointer-events-auto bg-background/85 p-4">
+			<Inline align="center" justify="center" fill>
+				<p class="max-w-sm text-center text-sm text-destructive">
+					{loadBanner.error}
+				</p>
+			</Inline>
+		</Imposter>
 	{:else if !trimmedSrc}
-		<Inline align="center" justify="center" class="absolute inset-0 z-10 p-4">
-			<p class="text-sm text-muted-foreground">{t('component.no_ifc_model')}</p>
-		</Inline>
+		<Imposter placement="fill" class="p-4">
+			<Inline align="center" justify="center" fill>
+				<p class="text-sm text-muted-foreground">{t('component.no_ifc_model')}</p>
+			</Inline>
+		</Imposter>
 	{/if}
 
+	<!-- After the banners in source order: every Imposter shares one z-layer, so paint order is DOM order. -->
+	<Imposter placement="top" class="pointer-events-none p-3">
+		<Inline align="start" justify="between" gap="sm">
+			<div class="min-w-0 w-full max-w-[min(38rem,100%)]">
+				{#if selectedItem}
+					{@const item = selectedItem}
+					<Stack
+						gap="xs"
+						class="pointer-events-auto rounded-md border border-border/80 bg-background/95 p-2 shadow-sm"
+					>
+						<button
+							type="button"
+							class="w-full min-w-0 rounded-sm px-1 py-1 text-left transition-colors hover:bg-muted/60"
+							onclick={() => (propertiesOpen = !propertiesOpen)}
+						>
+							<Inline align="start" justify="between" gap="xs">
+								<div class="min-w-0">
+									<span class="block truncate text-sm font-medium text-foreground">
+										{item.title}
+									</span>
+									{#if item.subtitle}
+										<span class="block truncate text-[11px] text-muted-foreground">
+											{item.subtitle}
+										</span>
+									{:else}
+										<span class="block truncate text-[11px] text-muted-foreground">
+											{t('component.ifc_element_line', {
+												modelId: item.modelId,
+												elementId: item.id
+											})}
+										</span>
+									{/if}
+								</div>
+								<Icon
+									icon="lucide:chevron-down"
+									class="h-4 w-4 shrink-0 text-muted-foreground transition-transform {propertiesOpen
+										? 'rotate-180'
+										: ''}"
+								/>
+							</Inline>
+						</button>
+
+						<Button
+							size="icon"
+							variant="ghost"
+							hint={t('component.clear_selected_element')}
+							class="shrink-0 self-start"
+							onclick={clearSelection}
+						>
+							<Icon icon="lucide:x" />
+						</Button>
+
+						{#if propertiesOpen}
+							<div class="rounded-md border border-border/80 bg-background/95 p-3 shadow-sm">
+								<p class="text-overline pb-2">
+									{t('component.selected_element_properties')}
+								</p>
+								<Scroll
+									axis="both"
+									name="Selected element properties"
+									class="max-h-80 rounded-md bg-muted/50 p-3 text-[11px] wrap-break-word whitespace-pre-wrap text-muted-foreground"
+								>
+									<pre>{item.properties}</pre>
+								</Scroll>
+							</div>
+						{/if}
+					</Stack>
+				{/if}
+			</div>
+
+			<Inline align="center" gap="sm" class="pointer-events-auto">
+				{#if interactionLocked}
+					<div
+						class="hidden rounded-md border border-border/80 bg-background/90 px-2 py-1 text-[11px] text-muted-foreground shadow-sm sm:block"
+					>
+						{t('component.scroll_safe_mode')}
+					</div>
+				{/if}
+				<Button
+					size="icon"
+					variant={interactionLocked ? 'secondary' : 'ghost'}
+					aria-pressed={!interactionLocked}
+					hint={interactionLocked
+						? t('component.unlock_model_navigation')
+						: t('component.lock_model_navigation')}
+					onclick={toggleInteractionLock}
+				>
+					<Icon icon={interactionLocked ? 'lucide:lock' : 'lucide:unlock'} />
+				</Button>
+			</Inline>
+		</Inline>
+	</Imposter>
+
 	{#if normalizedMarkerGroups.length > 0}
-		<Stack
-			gap="sm"
-			class="pointer-events-none absolute bottom-2 left-2 z-20 max-w-[min(16rem,85%)] rounded-md border border-border/80 bg-background/90 p-2 shadow-sm"
+		<Imposter
+			placement="bottom-start"
+			class="pointer-events-none max-w-[min(16rem,85%)] rounded-md border border-border/80 bg-background/90 p-2 shadow-sm"
 			aria-label={t('component.marker_legend')}
 		>
-			<p class="text-overline">
-				{t('component.highlights')}
-			</p>
-			<Stack as="ul" gap="xs">
-				{#each normalizedMarkerGroups as group (group.label + group.color + group.expressIds.join(','))}
-					<li>
-						<Inline gap="xs" class="text-[11px] text-foreground">
-							<span
-								class="size-2.5 shrink-0 rounded-sm border border-border/60"
-								style={`background-color: ${group.color}`}
-								aria-hidden="true"
-							></span>
-							<span class="min-w-0 truncate">{group.label}</span>
-						</Inline>
-					</li>
-				{/each}
+			<Stack gap="sm">
+				<p class="text-overline">
+					{t('component.highlights')}
+				</p>
+				<Stack as="ul" gap="xs">
+					{#each normalizedMarkerGroups as group (group.label + group.color + group.expressIds.join(','))}
+						<li>
+							<Inline gap="xs" class="text-[11px] text-foreground">
+								<span
+									class="size-2.5 shrink-0 rounded-sm border border-border/60"
+									style={`background-color: ${group.color}`}
+									aria-hidden="true"
+								></span>
+								<span class="min-w-0 truncate">{group.label}</span>
+							</Inline>
+						</li>
+					{/each}
+				</Stack>
 			</Stack>
-		</Stack>
+		</Imposter>
 	{/if}
 </Bound>

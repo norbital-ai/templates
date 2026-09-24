@@ -11,6 +11,7 @@
 	 */
 	import { CodeEditor } from '@norbital-ai/ui/code-editor';
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { Stack } from '@norbital-ai/ui/layout';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { compileExpression } from '../expressions/compile.js';
 	import type { ExpressionSite, ExpressionType } from '../expressions/contexts.js';
@@ -62,7 +63,7 @@
 	);
 </script>
 
-<div class="flex min-w-0 flex-col gap-0.5 {className ?? ''}">
+<Stack gap="xs" class={className}>
 	{#if mode === 'display'}
 		<span class="block min-w-0 font-mono text-xs break-words">{text === '' ? '—' : text}</span>
 	{:else}
@@ -81,4 +82,4 @@
 			<p class="text-xs text-destructive" role="alert">{fault}</p>
 		{/if}
 	{/if}
-</div>
+</Stack>

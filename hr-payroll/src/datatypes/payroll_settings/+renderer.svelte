@@ -37,40 +37,40 @@
 
 {#if props.mode === 'display'}
 	<Grid gap="sm" minimum="compact" class="w-full">
-		<div class="flex flex-col gap-0.5 text-xs">
+		<Stack gap="xs" class="text-xs">
 			<span class="text-muted-foreground">{t('component.currency')}</span>
 			<span class="text-sm">{current?.currency ?? '—'}</span>
-		</div>
-		<div class="flex flex-col gap-0.5 text-xs">
+		</Stack>
+		<Stack gap="xs" class="text-xs">
 			<span class="text-muted-foreground">{t('component.timezone')}</span>
 			<span class="text-sm">{current?.timezone ?? '—'}</span>
-		</div>
-		<div class="flex flex-col gap-0.5 text-xs">
+		</Stack>
+		<Stack gap="xs" class="text-xs">
 			<span class="text-muted-foreground">{t('component.tax_year_start_month')}</span>
 			<span class="text-sm">
 				{current == null ? '—' : monthName(current.tax_year_start_month)}
 			</span>
-		</div>
-		<div class="flex flex-col gap-0.5 text-xs">
+		</Stack>
+		<Stack gap="xs" class="text-xs">
 			<span class="text-muted-foreground">{t('component.allowance_npl_prorates')}</span>
 			<span class="text-sm">
 				{current == null ? '—' : current.allowance_npl_prorates ? t('common.yes') : t('common.no')}
 			</span>
-		</div>
-		<div class="flex flex-col gap-0.5 text-xs">
+		</Stack>
+		<Stack gap="xs" class="text-xs">
 			<span class="text-muted-foreground">{t('component.final_pay_due_days')}</span>
 			<span class="text-sm">{current?.final_pay_due_days ?? '—'}</span>
-		</div>
-		<div class="flex flex-col gap-0.5 text-xs">
+		</Stack>
+		<Stack gap="xs" class="text-xs">
 			<span class="text-muted-foreground">{t('component.holiday_in_npl_unpaid')}</span>
 			<span class="text-sm"
 				>{current?.holiday_in_no_pay_leave_unpaid ? t('common.yes') : t('common.no')}</span
 			>
-		</div>
-		<div class="flex flex-col gap-0.5 text-xs">
+		</Stack>
+		<Stack gap="xs" class="text-xs">
 			<span class="text-muted-foreground">{t('component.short_day_half_hours')}</span>
 			<span class="text-sm">{current?.short_day_half_hours ?? '—'}</span>
-		</div>
+		</Stack>
 	</Grid>
 {:else if current != null}
 	<Grid gap="sm" minimum="compact" class="w-full">

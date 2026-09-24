@@ -11,12 +11,13 @@
 	import { Checkbox } from '@norbital-ai/ui/checkbox';
 	import type { CollectionFormRendererProps } from '@norbital-ai/ui/collection-form';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../workspace-client.js';
 
 	let props: CollectionFormRendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const className = $derived(props.class);
 	const settingsId = $derived(props.row?.settings_id == null ? '' : String(props.row.settings_id));
 	const schemesQuery = $derived(
 		settingsId === ''
@@ -46,18 +47,18 @@
 </script>
 
 {#if props.mode === 'display'}
-	<span class={props.class}>{selected.join(' · ') || t('component.counts_toward_none')}</span>
+	<span class={className}>{selected.join(' · ') || t('component.counts_toward_none')}</span>
 {:else if settingsId === ''}
 	<p class="text-meta">{t('component.counts_toward_needs_version')}</p>
 {:else if schemes.length === 0}
 	<p class="text-meta">{t('component.counts_toward_no_schemes')}</p>
 {:else}
-	<Stack gap="xs" class={props.class}>
+	<Stack gap="xs" class={className}>
 		{#if selected.length === 0}
 			<p class="text-meta">{t('component.counts_toward_nothing')}</p>
 		{/if}
 		<!-- The reserved WAGES mark: not a scheme, the earnings history a regular payment enters. -->
-		<div class="flex items-center gap-2 text-sm">
+		<Inline gap="sm" class="text-sm">
 			<Checkbox
 				checked={selected.includes('WAGES')}
 				{disabled}
@@ -65,12 +66,12 @@
 				onCheckedChange={(checked) => set('WAGES', checked ? 'WAGES' : '')}
 			/>
 			<span class="min-w-0 flex-1">{t('component.counts_toward_wages')}</span>
-		</div>
+		</Inline>
 		{#each schemes as scheme (scheme.code)}
 			{@const parts = partsOf(scheme.parts)}
 			{@const current = membership(scheme.code)}
 			<!-- Not a <label>: the checkbox is a button, and a label re-dispatches the click to it — one press toggled twice. -->
-			<div class="flex items-center gap-2 text-sm">
+			<Inline gap="sm" class="text-sm">
 				<Checkbox
 					checked={current !== ''}
 					{disabled}
@@ -93,7 +94,7 @@
 						{/each}
 					</select>
 				{/if}
-			</div>
+			</Inline>
 		{/each}
 	</Stack>
 {/if}

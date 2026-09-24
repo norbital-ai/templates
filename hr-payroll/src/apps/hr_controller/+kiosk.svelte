@@ -7,7 +7,17 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import { LocaleToggle } from '@norbital-ai/ui/locale-toggle';
-	import { Bound, Cover, Stack } from '@norbital-ai/ui/layout';
+	import {
+		Bound,
+		Center,
+		Cluster,
+		Cover,
+		Frame,
+		Imposter,
+		Inline,
+		Scroll,
+		Stack
+	} from '@norbital-ai/ui/layout';
 	import { Spinner } from '@norbital-ai/ui/spinner';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../../lib/workspace-client.js';
@@ -820,12 +830,17 @@
 </svelte:head>
 
 {#snippet header()}
-	<header
-		class="flex min-h-16 flex-wrap items-center justify-between gap-4 border-b bg-card px-4 py-3 sm:px-6"
+	<Cluster
+		as="header"
+		justify="between"
+		gap="md"
+		class="min-h-16 border-b bg-card px-4 py-3 sm:px-6"
 	>
-		<div class="flex min-w-0 items-center gap-3">
-			<div
-				class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-background"
+		<Inline gap="sm">
+			<Inline
+				justify="center"
+				shrink={false}
+				class="size-10 overflow-clip rounded-lg border bg-background"
 			>
 				{#if organizationLogoUrl !== null}
 					<img
@@ -836,12 +851,12 @@
 				{:else}
 					<span class="text-sm font-semibold">{organizationInitials}</span>
 				{/if}
-			</div>
+			</Inline>
 			<div class="min-w-0">
 				<p class="truncate text-heading">{organizationDisplayName}</p>
 				<p class="text-meta">{t('kiosk.title')}</p>
 			</div>
-		</div>
+		</Inline>
 
 		<div data-kiosk-company>
 			<Combobox
@@ -863,7 +878,7 @@
 			<p class="text-meta">{currentDate}</p>
 		</div>
 
-		<div class="flex shrink-0 items-center gap-1" aria-label={t('kiosk.tools')}>
+		<Inline gap="xs" shrink={false} aria-label={t('kiosk.tools')}>
 			<Button
 				variant={tab === 'scan' ? 'secondary' : 'ghost'}
 				size="sm"
@@ -894,8 +909,8 @@
 			>
 				<Icon icon={voiceEnabled ? 'lucide:volume-2' : 'lucide:volume-x'} class="size-4" />
 			</Button>
-		</div>
-	</header>
+		</Inline>
+	</Cluster>
 {/snippet}
 
 {#snippet statusBar()}
@@ -905,18 +920,18 @@
 		aria-live="polite"
 		aria-atomic="true"
 	>
-		<div class="mx-auto flex max-w-5xl items-center gap-3">
-			<div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-current/10">
+		<Center measure="full" layout="inline" gap="sm" class="max-w-5xl">
+			<Frame ratio="square" shrink={false} class="size-9 rounded-full bg-current/10">
 				<Icon
 					icon={status.icon}
 					class="size-5 {status.icon === 'lucide:loader-circle' ? 'animate-spin' : ''}"
 				/>
-			</div>
+			</Frame>
 			<div class="min-w-0">
 				<p class="text-sm font-medium">{status.title}</p>
 				<p class="text-sm opacity-80">{status.detail}</p>
 			</div>
-		</div>
+		</Center>
 	</div>
 {/snippet}
 
@@ -940,11 +955,9 @@
 			</Stack>
 		{:else if tab === 'scan' && phase === 'error'}
 			<Stack align="center" justify="center" fill gap="md" class="px-6 text-center">
-				<div
-					class="flex size-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"
-				>
+				<Frame ratio="square" class="size-14 rounded-full bg-destructive/10 text-destructive">
 					<Icon icon="lucide:camera-off" class="size-7" />
-				</div>
+				</Frame>
 				<Stack gap="xs" align="center">
 					<h1 class="text-section">{t('kiosk.camera_unavailable')}</h1>
 					<p class="max-w-xl text-sm text-muted-foreground">{fatal ?? t('kiosk.camera_help')}</p>
@@ -956,190 +969,215 @@
 			</Stack>
 		{:else if tab === 'scan'}
 			<div
+				// repository-health:allow UI6 -- the camera is a definite 1fr row above the auto aside, then a column beside it at lg: Split stacks into auto rows at a 40rem container width, Switcher's wrapped lines share the free height equally, and Cover never goes side by side
+				// repository-health:allow UI27 -- same track template as UI6: no primitive switches a 1fr/auto row template to a two-column split
 				class="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1.55fr)_minmax(22rem,0.8fr)] lg:grid-rows-none"
 			>
-				<div
+				<Stack
 					{@attach measureCell}
-					class="grid min-h-0 min-w-0 place-items-center overflow-hidden bg-foreground"
+					align="center"
+					justify="center"
+					class="overflow-clip bg-foreground"
 					data-kiosk-cell
 				>
-					<section
-						class="relative overflow-hidden"
+					<Bound
+						as="section"
+						size="full"
+						clip
+						class="relative"
 						style="width: {frame.width}px; height: {frame.height}px;"
 						aria-label={t('kiosk.camera')}
 					>
-						<video
-							{@attach attachVideo}
-							playsinline
-							autoplay
-							muted
-							class="absolute inset-0 size-full -scale-x-100 object-cover"
-						></video>
-						<div class="pointer-events-none absolute inset-0 bg-black/25"></div>
-
-						<div
-							class="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-sm text-white"
-							data-kiosk-engine={phase === 'unavailable' ? 'unavailable' : 'ready'}
-						>
-							{#if phase === 'unavailable'}
-								<span class="size-2 rounded-full bg-destructive"></span>
-								{t('kiosk.engine_unavailable')}
-							{:else}
-								<span class="size-2 rounded-full bg-success"></span>
-								{t('kiosk.camera_ready')}
-							{/if}
-						</div>
+						<Imposter placement="fill">
+							<video
+								{@attach attachVideo}
+								playsinline
+								autoplay
+								muted
+								class="size-full -scale-x-100 object-cover"
+							></video>
+						</Imposter>
 
 						<!--
-						One silhouette, drawn in the frame's own pixels: a head ellipse spanning 58% of the
-						frame's height, a neck gap, then shoulders that fade as they run off the bottom edge.
-						The geometry is `silhouetteGeometry(frame)`; the frame is measured above, so the
-						guide scales with the video at every breakpoint. The countdown sits in the head.
+						One silhouette, drawn in the frame's own pixels over the scrim: a head ellipse
+						spanning 58% of the frame's height, a neck gap, then shoulders that fade as they run
+						off the bottom edge. The geometry is `silhouetteGeometry(frame)`; the frame is
+						measured above, so the guide scales with the video at every breakpoint. The
+						countdown sits in the head.
 					-->
-						<svg
-							viewBox="0 0 {silhouette.width} {silhouette.height}"
-							preserveAspectRatio="none"
-							class="pointer-events-none absolute inset-0 size-full {phase === 'challenge'
-								? 'text-brand'
-								: 'text-white/80'}"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-dasharray="6 8"
-							data-kiosk-silhouette
-							data-head-height={Math.round(silhouette.head.ry * 2)}
-							data-frame-height={Math.round(silhouette.height)}
-							aria-hidden="true"
-						>
-							<defs>
-								<linearGradient
-									id="kiosk-silhouette-fade"
-									x1="0"
-									y1={silhouette.shoulders.top}
-									x2="0"
-									y2={silhouette.height}
-									gradientUnits="userSpaceOnUse"
-								>
-									<stop offset="0" stop-color="currentColor" stop-opacity="1" />
-									<stop offset="0.6" stop-color="currentColor" stop-opacity="0.6" />
-									<stop offset="1" stop-color="currentColor" stop-opacity="0" />
-								</linearGradient>
-							</defs>
-							<ellipse
-								cx={silhouette.head.cx}
-								cy={silhouette.head.cy}
-								rx={silhouette.head.rx}
-								ry={silhouette.head.ry}
-							/>
-							<path d={silhouette.shoulders.path} stroke="url(#kiosk-silhouette-fade)" />
-						</svg>
+						<Imposter placement="fill" class="pointer-events-none bg-black/25">
+							<svg
+								viewBox="0 0 {silhouette.width} {silhouette.height}"
+								preserveAspectRatio="none"
+								class="size-full {phase === 'challenge' ? 'text-brand' : 'text-white/80'}"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-dasharray="6 8"
+								data-kiosk-silhouette
+								data-head-height={Math.round(silhouette.head.ry * 2)}
+								data-frame-height={Math.round(silhouette.height)}
+								aria-hidden="true"
+							>
+								<defs>
+									<linearGradient
+										id="kiosk-silhouette-fade"
+										x1="0"
+										y1={silhouette.shoulders.top}
+										x2="0"
+										y2={silhouette.height}
+										gradientUnits="userSpaceOnUse"
+									>
+										<stop offset="0" stop-color="currentColor" stop-opacity="1" />
+										<stop offset="0.6" stop-color="currentColor" stop-opacity="0.6" />
+										<stop offset="1" stop-color="currentColor" stop-opacity="0" />
+									</linearGradient>
+								</defs>
+								<ellipse
+									cx={silhouette.head.cx}
+									cy={silhouette.head.cy}
+									rx={silhouette.head.rx}
+									ry={silhouette.head.ry}
+								/>
+								<path d={silhouette.shoulders.path} stroke="url(#kiosk-silhouette-fade)" />
+							</svg>
+						</Imposter>
+
+						<Imposter placement="top-start" class="m-2">
+							<Inline
+								gap="sm"
+								class="rounded-full bg-black/60 px-3 py-1.5 text-sm text-white"
+								data-kiosk-engine={phase === 'unavailable' ? 'unavailable' : 'ready'}
+							>
+								{#if phase === 'unavailable'}
+									<span class="size-2 rounded-full bg-destructive"></span>
+									{t('kiosk.engine_unavailable')}
+								{:else}
+									<span class="size-2 rounded-full bg-success"></span>
+									{t('kiosk.camera_ready')}
+								{/if}
+							</Inline>
+						</Imposter>
+
 						{#if phase === 'challenge'}
-							<div
-								class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+							<Imposter
+								placement="center"
+								class="pointer-events-none"
 								style="left: {(silhouette.head.cx / silhouette.width) * 100}%; top: {(silhouette
 									.head.cy /
 									silhouette.height) *
 									100}%;"
 							>
-								<span
-									class="flex size-20 items-center justify-center rounded-full bg-black/70 text-title text-white tabular-nums"
-									aria-hidden="true">{challengeLeft}</span
+								<Frame
+									as="span"
+									ratio="square"
+									class="size-20 rounded-full bg-black/70 text-title text-white tabular-nums"
+									aria-hidden="true">{challengeLeft}</Frame
 								>
-							</div>
+							</Imposter>
 						{/if}
-					</section>
-				</div>
+					</Bound>
+				</Stack>
 
-				<aside class="min-h-0 overflow-y-auto bg-card px-5 py-6 sm:px-8 sm:py-8">
-					<div class="mx-auto flex max-w-lg flex-col gap-8">
+				<Scroll as="aside" name={t('kiosk.identity')} class="bg-card px-5 py-6 sm:px-8 sm:py-8">
+					<Center measure="narrow" layout="stack" gap="xl">
 						<!--
 							No action cards. The kiosk does not ask which way to punch — the day already
 							knows — so the aside is the person, and the one line above it says what to do.
 						-->
-						<section class="hidden lg:block">
+						<Stack as="section" gap="sm" class="max-lg:hidden">
 							<h1 class="text-section">{t('kiosk.how_it_works')}</h1>
-							<p class="mt-2 text-sm text-muted-foreground">{t('kiosk.how_it_works_hint')}</p>
-						</section>
+							<p class="text-sm text-muted-foreground">{t('kiosk.how_it_works_hint')}</p>
+						</Stack>
 
-						<section class="lg:border-t lg:pt-7" aria-labelledby="identity-heading">
+						<Stack
+							as="section"
+							gap="md"
+							class="lg:border-t lg:pt-7"
+							aria-labelledby="identity-heading"
+						>
 							<h2 id="identity-heading" class="text-heading">{t('kiosk.identity')}</h2>
 							{#if candidate !== null}
-								<div class="mt-4 flex items-start gap-4">
-									<div
-										class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+								<Inline align="start" gap="md">
+									<Frame
+										ratio="square"
+										shrink={false}
+										class="size-12 rounded-full bg-primary text-primary-foreground"
 									>
 										<Icon
 											icon={phase === 'done' ? 'lucide:check' : 'lucide:user-round'}
 											class="size-6"
 										/>
-									</div>
-									<div class="min-w-0 flex-1">
+									</Frame>
+									<Stack gap="sm" grow>
 										<p class="truncate text-subhead">{candidate.employeeName}</p>
-										<dl class="mt-3 grid gap-2 text-sm">
-											<div class="flex items-center justify-between gap-4 border-b pb-2">
+										<Stack as="dl" gap="sm" class="text-sm">
+											<Inline justify="between" gap="md" class="border-b pb-2">
 												<dt class="text-muted-foreground">{t('kiosk.entity')}</dt>
 												<dd class="truncate font-medium">{candidateCompany}</dd>
-											</div>
-											<div class="flex items-center justify-between gap-4">
+											</Inline>
+											<Inline justify="between" gap="md">
 												<dt class="text-muted-foreground">{t('kiosk.employee_number')}</dt>
 												<dd class="font-mono text-sm">{candidate.employeeNumber}</dd>
-											</div>
-										</dl>
-									</div>
-								</div>
+											</Inline>
+										</Stack>
+									</Stack>
+								</Inline>
 							{:else if phase === 'unknown'}
-								<div class="mt-4 flex items-start gap-4">
-									<div
-										class="flex size-12 shrink-0 items-center justify-center rounded-full bg-warning/15"
-									>
+								<Inline align="start" gap="md">
+									<Frame ratio="square" shrink={false} class="size-12 rounded-full bg-warning/15">
 										<Icon
 											icon="lucide:user-round-question"
 											class="size-6 text-warning-foreground"
 										/>
-									</div>
+									</Frame>
 									<div>
 										<p class="text-base font-medium">{t('kiosk.unknown_person')}</p>
 										<p class="mt-1 text-sm text-muted-foreground">{t('kiosk.unknown_hint')}</p>
 									</div>
-								</div>
+								</Inline>
 							{:else if phase === 'rejected' && notice !== null}
-								<div class="mt-4 flex items-start gap-4">
-									<div
-										class="flex size-12 shrink-0 items-center justify-center rounded-full bg-destructive/10"
+								<Inline align="start" gap="md">
+									<Frame
+										ratio="square"
+										shrink={false}
+										class="size-12 rounded-full bg-destructive/10"
 									>
 										<Icon icon={notice.icon} class="size-6 text-destructive" />
-									</div>
+									</Frame>
 									<div>
 										<p class="text-base font-medium">{notice.title}</p>
 										<p class="mt-1 text-sm text-muted-foreground">{notice.detail}</p>
 									</div>
-								</div>
+								</Inline>
 							{:else if phase === 'unavailable'}
-								<div class="mt-4 flex items-start gap-4">
-									<div
-										class="flex size-12 shrink-0 items-center justify-center rounded-full bg-destructive/10"
+								<Inline align="start" gap="md">
+									<Frame
+										ratio="square"
+										shrink={false}
+										class="size-12 rounded-full bg-destructive/10"
 									>
 										<Icon icon="lucide:cpu" class="size-6 text-destructive" />
-									</div>
-									<div>
-										<p class="text-base font-medium">{t('kiosk.engine_unavailable')}</p>
-										<p class="mt-1 text-sm text-muted-foreground">
-											{t('kiosk.engine_unavailable_detail', { models: engineMissing.join(', ') })}
-										</p>
-										<Button class="mt-4" variant="secondary" onclick={() => openTab('manual')}>
+									</Frame>
+									<Stack gap="md" align="start">
+										<Stack gap="xs">
+											<p class="text-base font-medium">{t('kiosk.engine_unavailable')}</p>
+											<p class="text-sm text-muted-foreground">
+												{t('kiosk.engine_unavailable_detail', { models: engineMissing.join(', ') })}
+											</p>
+										</Stack>
+										<Button variant="secondary" onclick={() => openTab('manual')}>
 											<Icon icon="lucide:keyboard" class="size-4" />
 											{t('kiosk.manual_entry')}
 										</Button>
-									</div>
-								</div>
+									</Stack>
+								</Inline>
 							{:else}
-								<div class="mt-4 flex items-start gap-4">
-									<div
-										class="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted"
-									>
+								<Inline align="start" gap="md">
+									<Frame ratio="square" shrink={false} class="size-12 rounded-full bg-muted">
 										<Icon icon="lucide:user-round" class="size-6 text-muted-foreground" />
-									</div>
+									</Frame>
 									<div>
 										<p class="text-base font-medium">
 											{companyId == null
@@ -1156,14 +1194,14 @@
 													: t('kiosk.waiting_for_face_hint')}
 										</p>
 									</div>
-								</div>
+								</Inline>
 							{/if}
-						</section>
-					</div>
-				</aside>
+						</Stack>
+					</Center>
+				</Scroll>
 			</div>
 		{:else}
-			<div class="h-full overflow-y-auto bg-muted/40">
+			<Scroll name={t('kiosk.manual_entry')} inset class="bg-muted/40">
 				{#key companyId}
 					<ManualTab
 						{companyId}
@@ -1173,7 +1211,7 @@
 						}}
 					/>
 				{/key}
-			</div>
+			</Scroll>
 		{/if}
 	</Cover>
 </Bound>

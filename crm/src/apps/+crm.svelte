@@ -149,7 +149,7 @@
 			isLoading: accountsQuery.loading,
 			error: accountsQuery.error?.message ?? null
 		}}
-		class="min-w-[16rem]"
+		class="min-w-64"
 	/>
 {/snippet}
 
