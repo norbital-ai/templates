@@ -37,11 +37,17 @@ const SYSTEM_COLUMNS = [
 type SystemColumn = (typeof SYSTEM_COLUMNS)[number];
 
 /** A stored row as a nested create accepts it: without the runtime's columns and any named extras. */
-function cloneRow<R extends Record<string, unknown>>(row: R): Omit<R, SystemColumn> {
+/**
+ * A row without its system columns. Key remapping rather than `Omit`: a row type that carries an
+ * index signature makes `Omit`'s `keyof` collapse to `string`, which drops every named column.
+ */
+type Cloned<R> = { [K in keyof R as K extends SystemColumn ? never : K]: R[K] };
+
+function cloneRow<R extends Record<string, unknown>>(row: R): Cloned<R> {
 	const out: Record<string, unknown> = {};
 	for (const [column, value] of Object.entries(row))
 		if (!(SYSTEM_COLUMNS as readonly string[]).includes(column)) out[column] = value;
-	return out as Omit<R, SystemColumn>;
+	return out as Cloned<R>;
 }
 
 type Db = Api['db'];

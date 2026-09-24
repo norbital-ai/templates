@@ -337,10 +337,71 @@ const validateMessageCatalogs = (template: Template): void => {
 	}
 };
 
+/**
+ * Exact peer pins a first-party package declares that its locked install does not satisfy.
+ *
+ * `@norbital-ai/bolt` pins `effect` exactly as a peer because its published declarations name
+ * modules of that exact release (`effect/StandardSchema`). pnpm only warns on a mismatch, and a
+ * template pinned to an older `effect` installed anyway: the missing module resolved to nothing,
+ * every `custom()` column value became `any`, and `skipLibCheck` hid it. Read from the lockfile,
+ * which records both the declared peers and what each install resolved them to.
+ */
+export const unsatisfiedFirstPartyPeers = (lockfile: string): string[] => {
+	const declared = new Map<string, Map<string, string>>();
+	for (const block of lockfile.split(/\n(?=  '@norbital-ai\/)/)) {
+		const header = /^ {2}'(@norbital-ai\/[^@']+@[^(':]+)':\n/.exec(block);
+		const peers = /\n {4}peerDependencies:\n((?: {6}.+\n?)+)/.exec(block);
+		if (header?.[1] === undefined || peers?.[1] === undefined) continue;
+		const exact = new Map<string, string>();
+		for (const line of peers[1].split('\n')) {
+			const peer = /^ {6}'?([^':]+)'?: (\S+)$/.exec(line);
+			if (peer?.[1] !== undefined && peer[2] !== undefined && exactVersion.test(peer[2]))
+				exact.set(peer[1], peer[2]);
+		}
+		if (exact.size > 0) declared.set(header[1], exact);
+	}
+	const problems: string[] = [];
+	for (const match of lockfile.matchAll(/^ {2}'(@norbital-ai\/[^@']+@[^(':]+)(\(.*\))':$/gm)) {
+		const exact = declared.get(match[1] ?? '');
+		if (exact === undefined) continue;
+		// Top-level `(name@version)` groups only; nested groups are the peers' own peers.
+		const resolved = new Map<string, string>();
+		let depth = 0;
+		let start = 0;
+		for (const [index, character] of [...(match[2] ?? '')].entries()) {
+			if (character === '(' && depth++ === 0) start = index + 1;
+			if (character === ')' && --depth === 0) {
+				const group = (match[2] ?? '').slice(start, index).replace(/\(.*$/, '');
+				const at = group.lastIndexOf('@');
+				if (at > 0) resolved.set(group.slice(0, at), group.slice(at + 1));
+			}
+		}
+		for (const [peer, version] of exact) {
+			const actual = resolved.get(peer);
+			if (actual !== undefined && actual !== version)
+				problems.push(
+					`${match[1]} needs ${peer}@${version} but the install resolves ${peer}@${actual}`
+				);
+		}
+	}
+	return [...new Set(problems)];
+};
+
+const validateFirstPartyPeers = (template: Template): void => {
+	const lockfile = path.join(template.directory, 'pnpm-lock.yaml');
+	if (!existsSync(lockfile)) return;
+	const problems = unsatisfiedFirstPartyPeers(readFileSync(lockfile, 'utf8'));
+	if (problems.length > 0)
+		fail(
+			`Template ${template.slug} does not satisfy first-party peer pins:\n  ${problems.join('\n  ')}`
+		);
+};
+
 export const checkTemplates = async (filter?: string): Promise<void> => {
 	const templates = discoverTemplates(filter);
 	for (const template of templates) {
 		validateManifest(template);
+		validateFirstPartyPeers(template);
 		validateMessageCatalogs(template);
 		const actual = await actualCounts(template.directory);
 		for (const key of ['collections', 'apps', 'automations'] as const) {

@@ -18,7 +18,8 @@ import {
 	resolveLockfile,
 	repositoryRoot,
 	templateMetadataFile,
-	templateRefNamespace
+	templateRefNamespace,
+	unsatisfiedFirstPartyPeers
 } from './ci.ts';
 
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.svelte'];
@@ -310,5 +311,35 @@ describe('template CI', () => {
 
 	it('lives next to the repository root that owns the templates', () => {
 		assert.ok(existsSync(path.join(repositoryRoot, 'package.json')));
+	});
+});
+
+describe('first-party peer pins', () => {
+	const lockfile = (resolvedEffect: string): string =>
+		[
+			'packages:',
+			'',
+			"  '@norbital-ai/bolt@0.0.103':",
+			'    resolution: {integrity: sha512-x}',
+			'    peerDependencies:',
+			"      '@norbital-ai/doctor': 0.0.103",
+			'      effect: 4.0.0-rc.112',
+			'      svelte: ^5.0.0',
+			'',
+			'snapshots:',
+			'',
+			`  '@norbital-ai/bolt@0.0.103(@norbital-ai/doctor@0.0.103)(@tiptap/pm@3.31.3(effect@4.0.0-rc.1))(effect@${resolvedEffect})(svelte@5.57.0)':`,
+			'    dependencies: {}',
+			''
+		].join('\n');
+
+	it('names an exact peer the install resolves to another version', () => {
+		assert.deepEqual(unsatisfiedFirstPartyPeers(lockfile('4.0.0-rc.111')), [
+			'@norbital-ai/bolt@0.0.103 needs effect@4.0.0-rc.112 but the install resolves effect@4.0.0-rc.111'
+		]);
+	});
+
+	it('accepts a satisfied pin and ignores ranges and nested peers', () => {
+		assert.deepEqual(unsatisfiedFirstPartyPeers(lockfile('4.0.0-rc.112')), []);
 	});
 });
