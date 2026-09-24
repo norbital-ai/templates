@@ -63,7 +63,7 @@ export default defineAutomation(
 		output: OutputSchema,
 		policies: ['suspicion_review_automation'],
 		description:
-			'Every 15 minutes and on manual request, embeds newly filed photos, then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious.',
+			"Every 15 minutes and on manual request, inspects newly filed photos (fills each one's sha256, perceptual embedding and integrity flags, which are blank until then), then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious.",
 		handler: (api, { args }) =>
 			Effect.gen(function* () {
 				yield* api.progress({ progress: 0.02, text: 'Embedding filed photos' });
