@@ -154,8 +154,8 @@
 			</Grid>
 
 			{#if (dashboardData?.top_suppliers ?? []).length > 0}
-				<div class="divide-y rounded-lg border bg-card text-sm">
-					<h3 class="border-b px-4 py-3 font-semibold">
+				<Stack as="section" gap="none" divided class="rounded-lg border bg-card text-sm">
+					<h3 class="px-4 py-3 font-semibold">
 						{t('app.crm_purchase.top_suppliers')}
 					</h3>
 					{#each dashboardData?.top_suppliers ?? [] as supplier (supplier.supplier_id)}
@@ -166,7 +166,7 @@
 							</p>
 						</Inline>
 					{/each}
-				</div>
+				</Stack>
 			{/if}
 		</Stack>
 	</Scroll>
