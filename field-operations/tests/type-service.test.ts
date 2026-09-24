@@ -11,7 +11,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { createWorkspaceTypeService } from '@norbital-ai/bolt/type-service';
+import {
+	collectionDocs,
+	createWorkspaceTypeService,
+	readFromDisk
+} from '@norbital-ai/bolt/type-service';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const service = createWorkspaceTypeService();
@@ -60,5 +64,25 @@ describe('the agent type service over this workspace', () => {
 			problems.some((problem) => problem.line === line && /recrod/.test(problem.message)),
 			JSON.stringify(problems)
 		);
+	});
+	it("carries the workspace's own statements of what a write does, with where each is written", () => {
+		// What `bolt sync` ships on the type index, and `workspace_type collections.job_assignments.create`
+		// answers with: the transform's stamps and a column's meaning, each with its line.
+		const docs = collectionDocs(readFromDisk(root), 'job_assignments');
+		assert.match(
+			docs?.transform?.text ?? '',
+			/^Refuses a job that names a site that does not exist, files it unassigned until a contractor holds it, stamps the dispatch/
+		);
+		assert.equal(
+			docs?.transform?.source,
+			`src/collections/job_assignments/+collection.ts:${at('src/collections/job_assignments/+collection.ts', 'transform: (inputs').line}`
+		);
+		assert.equal(docs?.fields['status']?.text, 'Where the work has got to, and nothing else.');
+		assert.equal(
+			docs?.fields['status']?.source,
+			`src/collections/job_assignments/+model.ts:${at('src/collections/job_assignments/+model.ts', 'status: enums(').line}`
+		);
+		const photos = collectionDocs(readFromDisk(root), 'photo_evidence');
+		assert.ok(photos !== undefined && Object.keys(photos.fields).includes('sha256'));
 	});
 });
