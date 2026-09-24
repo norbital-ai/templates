@@ -31,6 +31,8 @@ export default {
 		'"whatsapp", conversation_id: the message\'s chat, message_id: its message, attachment_id: the ' +
 		'attachment name, sender_id: its sender, sent_at: its time}; and ' +
 		'job_assignment_communications.create with one row per message about this work that has text ' +
-		'— message, sent_at, sender and source_message_id: its message. Confirm only after the update ' +
-		'succeeds.'
+		'— message, sent_at, sender and source_message_id: its message. Photos are filed only through ' +
+		'that nested create, never photo_evidence directly: a direct create drops the channel source. ' +
+		'Confirm only after the update succeeds. When you report a job, state only fields you read — ' +
+		'read assignee_user_id (and the person it names) before saying who holds the work.'
 } satisfies Envoy;
