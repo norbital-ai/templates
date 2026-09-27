@@ -1,64 +1,70 @@
 /**
- * The job-assignment compliance rule, run through the collection's own `transform` against a
- * stub read surface: a worker whose active permit covers every certification a site job requires
- * passes; one whose permit misses a certification is refused with the authored sentence.
+ * L-TPL-construction-008: an assignment is refused unless the worker's active, in-force permits cover every
+ * certification some job at that site requires; it is re-checked when the worker or the site changes.
  */
+import { fileURLToPath } from 'node:url';
+import { expect, it } from 'vitest';
+import { testWorkspace } from '@norbital-ai/bolt/test';
 
-import assert from 'node:assert/strict';
-import test from 'node:test';
-import { Effect, Exit } from 'effect';
-import collection from '../src/collections/job_assignments/+collection.ts';
+const UNCERTIFIED = /Worker must satisfy at least one site-location job requirement/;
 
-type Transform = NonNullable<typeof collection.transform>;
-type Context = Parameters<Transform>[1];
-
-const WORKER = 'worker-1';
-const SITE = 'site-1';
-const PERMIT = 'permit-1';
-const JOB = 'job-1';
-
-const rows: Record<string, ReadonlyArray<Record<string, unknown>>> = {
-	permits_to_work_workers: [{ permits_to_work_id: PERMIT, worker_id: WORKER }],
-	jobs_site_locations: [{ job_id: JOB, site_location_id: SITE }],
-	permits_to_work: [{ id: PERMIT, status: 'active', validity_range: null }],
-	permits_to_work_certification_types: [
-		{ permits_to_work_id: PERMIT, certification_type_id: 'cert-a' }
-	],
-	jobs_certification_types: [
-		{ job_id: JOB, certification_type_id: 'cert-a' },
-		{ job_id: JOB, certification_type_id: 'cert-b' }
-	]
-};
-
-/** Every collection answers its whole fixture; the transform filters by id itself. */
-const db = new Proxy(
-	{},
-	{
-		get: (_, collectionName: string) => ({
-			findMany: () => Effect.succeed(rows[collectionName] ?? [])
-		})
-	}
-) as Context['db'];
-
-const run = (transform: Transform) =>
-	Effect.runPromiseExit(
-		transform([{ worker_id: WORKER, site_location_id: SITE }], { existing: [undefined], db })
-	);
-
-test('refuses a worker whose permits miss a required certification', async () => {
-	assert.ok(collection.transform);
-	const exit = await run(collection.transform);
-	assert.ok(Exit.isFailure(exit));
-	assert.match(JSON.stringify(exit), /Worker must satisfy at least one site-location job/);
-});
-
-test('admits a worker whose active permit covers every required certification', async () => {
-	assert.ok(collection.transform);
-	rows['permits_to_work_certification_types'] = [
-		{ permits_to_work_id: PERMIT, certification_type_id: 'cert-a' },
-		{ permits_to_work_id: PERMIT, certification_type_id: 'cert-b' }
+it('refuses an uncertified worker and admits a covered one, on create and on a move', async () => {
+	const t = await testWorkspace({ root: fileURLToPath(new URL('..', import.meta.url)) });
+	const admin = t.as(t.admin);
+	const id = async (callable: string, input: object) => {
+		const outcome = await admin.act(callable, input as never);
+		if (outcome.kind !== 'committed') throw new Error(`${callable}: ${JSON.stringify(outcome)}`);
+		return outcome.records[0]!.id;
+	};
+	const [certA, certB] = [
+		await id('certification_types.create', { certification_name: 'A' }),
+		await id('certification_types.create', { certification_name: 'B' })
 	];
-	const exit = await run(collection.transform);
-	assert.ok(Exit.isSuccess(exit));
-	assert.deepEqual(exit.value, [{ worker_id: WORKER, site_location_id: SITE }]);
+	const [site, bare] = [
+		await id('site_locations.create', { location_name: 'Tower' }),
+		await id('site_locations.create', { location_name: 'Yard' })
+	];
+	const job = await id('jobs.create', { job_title: 'Steel' });
+	await id('jobs_site_locations.create', { job_id: job, site_location_id: site });
+	await id('jobs_certification_types.create', { job_id: job, certification_type_id: certA });
+	await id('jobs_certification_types.create', { job_id: job, certification_type_id: certB });
+	const worker = await id('workers.create', { worker_name: 'Dan' });
+	const permit = await id('permits_to_work.create', {
+		permit_number: 'PTW-1',
+		status: 'active',
+		validity_range: { from: '2026-01-01', to: '2026-12-31' }
+	});
+	await id('permits_to_work_workers.create', { permits_to_work_id: permit, worker_id: worker });
+	await id('permits_to_work_certification_types.create', {
+		permits_to_work_id: permit,
+		certification_type_id: certA
+	});
+
+	const assign = { worker_id: worker, site_location_id: site, status: 'assigned' };
+	expect(await admin.act('job_assignments.create', assign)).toMatchObject({
+		kind: 'refused',
+		message: expect.stringMatching(UNCERTIFIED)
+	});
+
+	await id('permits_to_work_certification_types.create', {
+		permits_to_work_id: permit,
+		certification_type_id: certB
+	});
+	const assignment = await id('job_assignments.create', assign);
+
+	// a move to a site whose jobs require nothing is refused; an edit that leaves worker and site alone is not re-judged
+	expect(
+		await admin.act('job_assignments.update', {
+			target: assignment,
+			set: { site_location_id: bare }
+		})
+	).toMatchObject({ kind: 'refused', message: expect.stringMatching(UNCERTIFIED) });
+	t.clock.set('2027-02-01T00:00:00.000Z');
+	expect(
+		await admin.act('job_assignments.update', { target: assignment, set: { status: 'completed' } })
+	).toMatchObject({
+		kind: 'committed'
+	});
+	// once the permit has lapsed, a new assignment is refused
+	expect(await admin.act('job_assignments.create', assign)).toMatchObject({ kind: 'refused' });
 });
