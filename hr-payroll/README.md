@@ -6,9 +6,9 @@ A Bolt workspace for employment records, scheduling, leave, payroll and statutor
 Approved inputs produce a payslip for each employment contract, with calculation details and links
 to the records settled by that payslip.
 
-**Compliance coverage is incomplete.** Review the [compliance matrix](docs/compliance-matrix.md)
-for jurisdiction coverage, release blockers and obligations outside calculation. Regression tests
-verify specific cases; they do not certify every legal obligation or future statutory version.
+**Payroll mechanism acceptance has open findings.** Review the [jurisdiction obligation registers](docs/inventory/README.md)
+for the exact mechanism findings, jurisdiction evidence and closure requirements. Missing customer
+values are tracked separately from calculation defects.
 
 ## Applications
 
@@ -51,29 +51,27 @@ them. Existing payroll retains its captured holiday evidence.
 
 ## Automations
 
-| Automation                 | Trigger                                    | Result and review                                                                                                                                                                                                       |
-| -------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `statutory_drift`          | Monthly; also on demand                    | Compares contribution rules and leave entitlements with official sources. Creates an unsealed draft only for supported changes with a known commencement date. Missing evidence and unsupported changes require review. |
-| `leave_encashment_on_exit` | Employment contract update; also on demand | Submits the unused balance of leave types marked for exit encashment and eligible separation payments for HR approval. Dismissal alone does not establish forfeiture. Existing requests are skipped on retry.           |
-| `leave_encashment_due`     | Daily at 01:00 UTC; also on demand         | Catches departures recorded in advance. Future departures reserve no leave; due requests use the balance calculated when the automation runs.                                                                           |
-| `holiday_import`           | Annually on 1 October; also on demand      | Imports holiday candidates from the entity's Google Calendar source. HR reviews and publishes each holiday.                                                                                                             |
+| Automation                 | Trigger                                    | Result and review                                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `statutory_drift`          | Monthly; also on demand                    | Researches each jurisdiction's version in force against its official sources, all in parallel. Reported changes, with source and quote, become one unsealed draft for review.                                 |
+| `leave_encashment_on_exit` | Employment contract update; also on demand | Submits the unused balance of leave types marked for exit encashment and eligible separation payments for HR approval. Dismissal alone does not establish forfeiture. Existing requests are skipped on retry. |
+| `leave_encashment_due`     | Daily at 01:00 UTC; also on demand         | Catches departures recorded in advance. Future departures reserve no leave; due requests use the balance calculated when the automation runs.                                                                 |
+| `holiday_import`           | Annually on 1 October; also on demand      | Imports holiday candidates from the entity's Google Calendar source. HR reviews and publishes each holiday.                                                                                                   |
 
 Drift detection does not cover every statutory field. Exit approval must establish entitlement,
-valuation, any lawful forfeiture and payment timing. See the [automation acceptance requirements](docs/compliance-matrix.md#automation-acceptance).
+valuation, any lawful forfeiture and payment timing. See the [jurisdiction obligation registers](docs/inventory/README.md).
 
 ## Documentation
 
-| Document                                           | Purpose                                                                 |
-| -------------------------------------------------- | ----------------------------------------------------------------------- |
-| [Compliance matrix](docs/compliance-matrix.md)     | Current coverage, blockers, external obligations and official sources   |
-| [Verification record](docs/verification.md)        | Synthetic acceptance, live standalone observations and remaining limits |
-| [Architecture](docs/architecture.md)               | Models, expression contexts, calculation and settlement                 |
-| [Leave](docs/leave.md)                             | Entitlement, balances, manual activity, approval and payroll            |
-| [Scheduling](docs/scheduling.md)                   | Patterns, rosters, attendance, holidays and kiosk                       |
-| [Source data](docs/data.md)                        | Input evidence, provisioning and reconciliation                         |
-| [Expression reference](docs/expression-context.md) | Available fields and functions for rule expressions                     |
-| [Implementation register](docs/gap-tracker.md)     | Historical statutory issues and implementation records                  |
-| [Statutory review history](docs/statutory-gaps.md) | Detailed historical jurisdiction reviews                                |
+| Document                                                      | Purpose                                                                 |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [Jurisdiction obligation registers](docs/inventory/README.md) | Payroll and HR law, mechanism decisions, open findings and sources      |
+| [Verification record](docs/verification.md)                   | Synthetic acceptance, live standalone observations and remaining limits |
+| [Architecture](docs/architecture.md)                          | Models, expression contexts, calculation and settlement                 |
+| [Leave](docs/leave.md)                                        | Entitlement, balances, manual activity, approval and payroll            |
+| [Scheduling](docs/scheduling.md)                              | Patterns, rosters, attendance, holidays and kiosk                       |
+| [Source data](docs/data.md)                                   | Input evidence, provisioning and reconciliation                         |
+| [Expression reference](docs/expression-context.md)            | Available fields and functions for rule expressions                     |
 
 ## Verification
 

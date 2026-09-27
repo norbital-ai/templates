@@ -24,21 +24,23 @@ import {
 	COMPANY_ID,
 	leaveCatalogue,
 	settingsVersions,
+	settingsIdOn,
 	type BuiltPayslip,
 	type Person
 } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
-import { Effect } from 'effect';
-import { gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { payrollWorld, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { resolveExitFacts } from '../src/lib/declared-facts.ts';
-import { preloadPayrollWorlds } from '../src/collections/payroll_runs/lib/preload.ts';
+import { readPayrollWorlds } from '../src/lib/payroll/world.ts';
+import { memoryDb } from './helpers/ctx.ts';
 import { refuseUnknownMemberships } from '../src/lib/catalogue_rules.ts';
 
 const KEY = 'TW-U';
 /** The 2026 version (1 January 2026 onward) and its 補休 leave row. */
 const COMP = leaveCatalogue('TW').find(
-	(row) => row.code === 'COMPENSATORY_TIME_OFF' && row.settings_id.startsWith('1fcfa66f')
+	(row) =>
+		row.code === 'COMPENSATORY_TIME_OFF' && row.settings_id === settingsIdOn('TW', '2026-01-15')
 )!;
 /** A six-hour roster code (09:00–15:00, no break), the day a half-day charge is three hours of. */
 const SHORT_SHIFT = 'c0000000-0000-4000-8000-0000000000e6';
@@ -276,7 +278,7 @@ test('TW round 5 — §32-1: a deferred joiner’s elected hours are credited by
 // ── §24-1: the latest month's normal-hours wage, read from its payslips ─────────────────────────
 
 /** The 2026 version (1 January 2026 – 31 December 2026). */
-const TW_2026 = '1fcfa66f-40da-5792-b925-7c2fcaa8f92c';
+const TW_2026 = settingsIdOn('TW', '2026-01-15');
 const COMMISSION = 'd5000000-0000-4000-8000-000000000c01';
 
 /** A 60,000 contract raised to 66,000 from 16 June, a June commission and a June overtime day. */
@@ -288,7 +290,7 @@ const raisedInJune =
 		world.employment_terms.push({
 			...terms,
 			id: 'b0000000-0000-4000-8000-0000000000u1',
-			base_salary: { ...terms.base_salary, value: 66_000 },
+			base_salary: 66_000,
 			effective_range: { start: '2026-06-16', end: world.employments[0]!.effective_range.end }
 		});
 		// 勞基法 §2(3): commission paid regularly for the work is 經常性給與 — wages. The class is
@@ -406,9 +408,11 @@ test('TW round 5 — a class marked WAGES enters the earnings history the averag
 			person: RAISED,
 			plant: raisedInJune({ marked })
 		});
-		const prepared = Effect.runSync(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-07' })
-		);
+		const prepared = gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period: '2026-07'
+		});
 		const june = prepared.gathered.earnedByMonth
 			.get(employmentOf(world).employee_id)!
 			.get('2026-06')!;
@@ -498,7 +502,7 @@ const priorPayslips = (
 /** Approved time off of `code` over `from`–`to`, charged on its weekdays. */
 const timeOff = (world: PayrollWorld, code: string, from: string, to: string) => {
 	const row = leaveCatalogue('TW').find(
-		(entry) => entry.code === code && entry.settings_id.startsWith('99d794f9')
+		(entry) => entry.code === code && entry.settings_id === settingsIdOn('TW', '2025-12-15')
 	)!;
 	if (!world.leave_catalogue.some((entry) => entry.id === row.id))
 		world.leave_catalogue.push({ ...row, approval_id: null } as never);
@@ -917,7 +921,7 @@ test('TW round 5 — D36: a grade change inside continuous cover is refused — 
 					['2026-02-16', null, 'REGISTERED', { insured_amount: 40_100 }]
 				])
 			),
-		/LI: Labour insurance salary changes on 2026-02-16, inside continuous cover/
+		/LI: Labour insurance salary changes on 2026-02-16, inside a calendar month/
 	);
 	// Dated from 1 March it is the March grade: February stays 800 / 2,801.
 	const book = february((world) =>
@@ -988,9 +992,13 @@ test('TW round 5 — D16: an unrecorded birth date, nationality, foreign pass or
 	);
 	assert.throws(
 		() =>
-			run({ ...base, citizenship: 'FOREIGNER' }, (world) => {
-				world.employment_terms[0]!.pass_type = null as never;
-			}),
+			// outside EI (no foreign-spouse or PR-professional class), so the pension's own question is the one asked
+			run(
+				{ ...base, citizenship: 'FOREIGNER', registrations: { EI: { kind: 'NOT_REGISTERED' } } },
+				(world) => {
+					world.employment_terms[0]!.pass_type = null as never;
+				}
+			),
 		/勞工退休金條例 §7.*pass type/
 	);
 	assert.throws(() => run(base, undefined, null), /災害費率表.*risk class/);
@@ -1006,7 +1014,7 @@ test('TW round 5 — D15: unrecorded entity declarations read as the statute’s
 			assert.equal(field.default_value, false, field.key);
 });
 
-test('TW round 5 — D22: the hosted read keeps dated entity facts and wage periods apart', () => {
+test('TW round 5 — D22: the hosted read keeps dated entity facts and wage periods apart', async () => {
 	// The hosted run preloads its world in one wave; the company's dated fact revisions and the
 	// employment's wage periods were read into each other's slot, so a dated revision (the
 	// January reserve rate) never governed a hosted run and a wage record was never found.
@@ -1030,7 +1038,8 @@ test('TW round 5 — D22: the hosted read keeps dated entity facts and wage peri
 			id: 'd9400000-0000-4000-8000-000000000002',
 			employment_id: world.employments[0]!.id,
 			period: { start: '2025-12-01', end: '2025-12-31' },
-			normal_wages: { currency: 'TWD', value: 50_000 },
+			currency: 'TWD',
+			normal_wages: 50_000,
 			ordinary_wages: null,
 			ordinary_days: null,
 			due_on: '2025-12-31',
@@ -1039,11 +1048,9 @@ test('TW round 5 — D22: the hosted read keeps dated entity facts and wage peri
 			approval_id: null
 		}
 	] as never;
-	const worlds = Effect.runSync(
-		preloadPayrollWorlds(memoryPayrollApi(world).db as never, [
-			{ company_id: COMPANY_ID, period: '2026-01' }
-		])
-	);
+	const worlds = await readPayrollWorlds(memoryDb(world) as never, [
+		{ company_id: COMPANY_ID, period: '2026-01' }
+	]);
 	const loaded = worlds.get(`${COMPANY_ID}:2026-01`)!;
 	assert.deepEqual(
 		loaded.company_facts.map((row) => row.id),

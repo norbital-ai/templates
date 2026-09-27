@@ -5,7 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { bankFileFor, ocbcFastFile } from '../src/collections/payroll_runs/lib/bank-formats.ts';
+import { bankFileFor, ocbcFastFile } from '../src/lib/payroll/run/bank-formats.ts';
 
 const payer = {
 	bank_name: 'OVERSEA-CHINESE BANKING CORPORATION LIMITED',

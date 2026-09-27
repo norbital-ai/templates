@@ -7,11 +7,11 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { contribute } from '../src/collections/payroll_runs/lib/contribute.ts';
-import { accumulatePayslip } from '../src/collections/payroll_runs/lib/accumulate.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { contribute } from '../src/lib/payroll/run/contribute.ts';
+import { accumulatePayslip } from '../src/lib/payroll/run/accumulate.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { minimumWageCovers, minimumWageIssues } from '../src/lib/payroll/contribution.ts';
-import { settingsVersions } from './fixtures/statutory-world.ts';
+import { buildStatutory, settingsVersions } from './fixtures/statutory-world.ts';
 import { compileExpression } from '../src/lib/expressions/compile.ts';
 
 /** A payslip whose only money is a salary of `base`. */
@@ -48,7 +48,7 @@ const person = (employmentType: string) =>
 	personContext({
 		employee: { nationality: 'IDN', date_of_birth: '1990-01-01' },
 		employment: { service_start: '2025-01-01' },
-		terms: { employment_type: employmentType, base_salary: { value: 3_000_000, currency: 'IDR' } },
+		terms: { employment_type: employmentType, base_salary: 3_000_000, currency: 'IDR' },
 		company: { region: 'DKI Jakarta' },
 		asOf: '2026-01-31'
 	});
@@ -138,7 +138,8 @@ test('a covered person under the wage is a warning on the run; an intern is not'
 			{
 				id: `t-${number}`,
 				employment_type: employmentType,
-				base_salary: { value: basic, currency: 'MYR' },
+				base_salary: basic,
+				currency: 'MYR',
 				effective_range: { start: '2025-01-01', end: null }
 			}
 		]
@@ -160,6 +161,44 @@ test('a covered person under the wage is a warning on the run; an intern is not'
 		issues[0].message,
 		/A is contracted at 1500 a month, below the Malaysia minimum wage of 1700/
 	);
+});
+
+test('PH daily apprentice at exactly 75% of each NCR floor has no rounding warning', () => {
+	// RA 12063 s.13(b): NCR-26 ₱695 and NCR-28 ₱755 daily floors.
+	for (const [period, floor] of [
+		['2025-12', 695],
+		['2026-10', 755]
+	]) {
+		const exact = floor * 0.75;
+		const result = buildStatutory({
+			code: 'PH',
+			period,
+			region: 'NCR',
+			people: [
+				{
+					key: 'APP-BELOW',
+					wage: exact - 0.01,
+					pay_frequency: 'DAILY',
+					employment_type: 'APPRENTICE'
+				},
+				{ key: 'APP-EXACT', wage: exact, pay_frequency: 'DAILY', employment_type: 'APPRENTICE' },
+				{
+					key: 'APP-ABOVE',
+					wage: exact + 0.01,
+					pay_frequency: 'DAILY',
+					employment_type: 'APPRENTICE'
+				},
+				{ key: 'ORDINARY', wage: exact, pay_frequency: 'DAILY', employment_type: 'PERMANENT' }
+			]
+		});
+		assert.deepEqual(
+			result.warnings
+				.filter((warning) => warning.startsWith('MINIMUM_WAGE_BELOW:'))
+				.map((warning) => warning.split(' ')[1]),
+			['APP-BELOW', 'ORDINARY'],
+			period
+		);
+	}
 });
 
 test('a wages order’s rule on the contract’s composition warns like the floor (ID PP 36/2021 art.7(2): basic at least 75%)', () => {
@@ -197,7 +236,8 @@ test('a wages order’s rule on the contract’s composition warns like the floo
 			{
 				id: `t-${number}`,
 				employment_type: 'PERMANENT',
-				base_salary: { value: basic, currency: 'IDR' },
+				base_salary: basic,
+				currency: 'IDR',
 				allowances: [{ catalogue_id: 'house', amount: 1_500_000 }],
 				effective_range: { start: '2025-01-01', end: null }
 			}

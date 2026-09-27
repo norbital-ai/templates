@@ -9,8 +9,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { resolve } from 'node:path';
 import { Effect } from 'effect';
-import { settle } from '../src/collections/payroll_runs/lib/settle.ts';
-import { runLeaveEncashmentOnExit } from '../src/automations/+leave_encashment_on_exit.ts';
+import { settle } from '../src/lib/payroll/run/settle.ts';
+import { settleExit } from '../src/lib/leave/exit-settlement.ts';
 import { evaluateBoolean, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 import {
 	COMPANY,
@@ -67,7 +67,7 @@ const settled = (
 	settle({
 		base: [earning(gross)],
 		adjustments,
-		charges: [{ employee: statutory, employer: 0 }],
+		charges: [{ contribution: { row: { code: 'SI' } }, employee: statutory, employer: 0 }],
 		currency: 'MYR',
 		ceiling: ceilingOf(code),
 		finalPay
@@ -98,9 +98,9 @@ test('MY EA s.24(8): deductions in a month stay within half the wages, statutory
 
 test('SG EA s.32: CPF counts toward the half, loans (s.27(1)(f)) do not, and an excess other deduction is reported', () => {
 	// Salary 4,000 → half = 2,000; employee CPF 800 (s.27(1)(h)) counts, leaving 1,200. A consented
-	// deduction (s.27(1)(i)) of 1,300 exceeds it by 100; the 1,500 loan instalment is s.27(1)(f),
-	// outside s.32, and is kept.
-	const month = settled('SG', 4000, 800, [deduction('CONSENTED', 1300), loan('STAFF', 1500)]);
+	// deduction (s.27(1)(i)) of 1,300 exceeds it by 100; a 1,000 loan instalment is s.27(1)(f),
+	// outside s.32 and at s.31(5)'s separate quarter limit.
+	const month = settled('SG', 4000, 800, [deduction('CONSENTED', 1300), loan('STAFF', 1000)]);
 	assert.equal(month.ceilingExcess, 100);
 	assert.deepEqual(month.shortfalls, []);
 	assert.equal(month.adjustments.length, 2);
@@ -228,7 +228,8 @@ test('MY run: a loan instalment past the s.24(8) half stays outstanding and the 
 });
 
 test('SG run: a consented deduction past the s.32 half refuses the payroll by name', () => {
-	// Salary 4,000, CPF not registered → half = 2,000; a 2,500 consented deduction is 500 over.
+	// Salary 4,000 → half = 2,000. CPF is owed for a citizen whether or not the employer registered (the CPF scheme
+	// assesses unregistered), and s.27(1)(h) CPF counts toward s.32: 800 + a 2,500 consented deduction is 1,300 over.
 	assert.throws(
 		() =>
 			buildStatutory(
@@ -236,7 +237,12 @@ test('SG run: a consented deduction past the s.32 half refuses the payroll by na
 					code: 'SG',
 					period: '2026-01',
 					people: [
-						{ key: 'SG-DED', wage: 4000, citizenship: 'CITIZEN', registrations: unregistered('SG') }
+						{
+							key: 'SG-DED',
+							wage: 4000,
+							citizenship: 'CITIZEN',
+							registrations: { ...unregistered('SG'), SDL: { kind: 'REGISTERED' } }
+						}
 					]
 				},
 				(world) => {
@@ -271,7 +277,7 @@ test('SG run: a consented deduction past the s.32 half refuses the payroll by na
 					});
 				}
 			),
-		/DEDUCTION_CEILING_EXCEEDED: SG-DED: deductions exceed the lawful ceiling by 500 SGD \(Employment Act 1968 s\.32/
+		/DEDUCTION_CEILING_EXCEEDED: SG-DED: deductions exceed the lawful ceiling by 1300 SGD \(Employment Act 1968 s\.32/
 	);
 });
 
@@ -339,7 +345,44 @@ test('SG EA s.23: a resignation with notice served is paid on the last day, with
 	assert.match(late() ?? '', /by 2026-01-17.*s\.23\(2\)/);
 	assert.match(late({ notice_served: false }) ?? '', /by 2026-01-17/);
 	// s.23(1): the day the contract ends.
-	assert.match(late({ notice_served: true }) ?? '', /by 2026-01-10.*s\.23\(1\)/);
+	assert.match(late({ notice_served: true }) ?? '', /by 2026-01-10.*23\(1\)/);
+});
+
+test('SG EA s.22: employer exit is payable immediately unless same-day payment was impossible', () => {
+	for (const version of settingsVersions('SG')) {
+		assert.equal(version.payroll.final_pay_deadlines[1].days, 3);
+		assert.equal(version.payroll.final_pay_deadlines[1].basis, 'NON_REST_HOLIDAY_DAYS');
+		assert.match(version.payroll.final_pay_deadlines[1].when, /final_pay_not_possible/);
+		assert.equal(version.payroll.final_pay_deadlines[2].days, 0);
+		assert.ok(version.exit_facts.some((fact) => fact.key === 'final_pay_not_possible'));
+	}
+	const late = (facts: Record<string, boolean>, holidays: readonly string[] = []) =>
+		buildStatutory(
+			{
+				code: 'SG',
+				period: '2026-01',
+				people: [
+					{ key: 'SG-DISMISSED', wage: 6000, exit_date: '2026-01-23', exit_reason: 'DISMISSAL' }
+				]
+			},
+			(world) => {
+				world.employments[0]!.exit_facts = facts;
+				world.jurisdiction_holidays.push(...holidays.map(holiday));
+				const offId = 'f0000000-0000-4000-8000-000000000033';
+				world.shift_definitions.push({
+					...world.shift_definitions[1]!,
+					id: offId,
+					code: 'OFF',
+					name: 'Off day',
+					variant: { kind: 'OFF' }
+				});
+				world.shift_patterns[0]!.pattern.days[5] = { roster_code_id: offId };
+			}
+		).warnings.find((line) => line.startsWith('FINAL_PAY_LATE'));
+	assert.match(late({ final_pay_not_possible: false }) ?? '', /by 2026-01-23/);
+	assert.match(late({ final_pay_not_possible: true }) ?? '', /by 2026-01-27/);
+	// Saturday is an OFF day, not a REST day. The Monday holiday does not count.
+	assert.match(late({ final_pay_not_possible: true }, ['2026-01-26']) ?? '', /by 2026-01-28/);
 });
 
 test('SG IR21: every non-citizen is held, except a permanent resident not leaving Singapore', () => {
@@ -357,7 +400,13 @@ test('SG IR21: every non-citizen is held, except a permanent resident not leavin
 		assert.equal(held(null), true);
 		assert.deepEqual(
 			version.exit_facts.map((fact) => fact.key),
-			['notice_served', 'leaving_singapore', 'misconduct_dismissal']
+			[
+				'notice_served',
+				'leaving_singapore',
+				'misconduct_dismissal',
+				'final_pay_not_possible',
+				'clearance_awareness_on'
+			]
 		);
 	}
 });
@@ -376,50 +425,44 @@ async function exitPayout(code: string, exitReason: string, facts: Record<string
 	};
 	context.versions[0].exit_facts = versionOn(code, '2026-06-30').exit_facts;
 	context.employments[0].effective_range = { start: '2025-01-01', end: '2026-06-30' };
-	context.employments[0].exit_facts = facts;
+	// MY's notice declarations (EA 1955 ss.12–14) are required on every departure; this probe is about leave, so
+	// no party gave notice and none of them apply.
+	context.employments[0].exit_facts = code.startsWith('MY')
+		? { notice_termination_party: 'NEITHER', ...facts }
+		: { final_pay_not_possible: false, clearance_awareness_on: '2026-06-30', ...facts };
 	const employment = {
 		...context.employments[0],
 		employee_number: 'E-1',
 		exit_reason: exitReason,
-		employment_employee: context.employees[0],
-		employment_company: context.companies[0]
+		approval_id: null
 	};
-	const rows = (list: readonly unknown[]) => ({ findMany: () => Effect.succeed(list) });
+	const rows = {
+		employments: [employment],
+		employees: context.employees,
+		companies: context.companies,
+		employment_terms: context.terms,
+		jurisdiction_settings: context.versions,
+		leave_catalogue: context.catalogues,
+		shift_patterns: context.patterns,
+		shift_definitions: context.shifts
+	};
 	const written: unknown[] = [];
-	const api = {
-		progress: () => Effect.void,
-		db: {
-			employments: { ...rows([employment]), findFirst: () => Effect.succeed(employment) },
-			employment_terms: rows(context.terms),
-			leave_entries: rows([]),
-			work_days: rows([]),
-			jurisdiction_settings: rows(context.versions),
-			leave_catalogue: rows(context.catalogues),
-			payroll_runs: rows([]),
-			shift_patterns: rows(context.patterns),
-			shift_definitions: rows(context.shifts),
-			jurisdiction_holidays: rows([]),
-			payslips: rows([]),
-			statutory_contributions: rows([]),
-			employment_statutory_facts: rows([]),
-			adhoc_catalogue: rows([]),
-			adhoc_requests: rows([])
-		},
-		collection: {
-			leave_entries: {
-				createMany: (inputs: unknown[]) =>
-					Effect.sync(() => {
-						written.push(...inputs);
-						return inputs.map((row, index) => ({
-							...row,
-							leave_code: 'ANNUAL',
-							id: id(90 + index)
-						}));
-					})
+	const now = '2026-06-30T12:00:00.000Z';
+	await settleExit(
+		{
+			now,
+			today: now.slice(0, 10),
+			todayIn: () => now.slice(0, 10),
+			progress: async () => {},
+			get: async () => employment,
+			read: async (collection: string) => ({ rows: rows[collection] ?? [], next: null }),
+			act: async (callable: string, input: unknown[]) => {
+				if (callable === 'leave_entries.create') written.push(...input);
+				return { kind: 'committed', output: undefined, records: [] };
 			}
-		}
-	};
-	await Effect.runPromise(runLeaveEncashmentOnExit(api, id(1), new Date('2026-06-30T12:00:00Z')));
+		} as never,
+		id(1)
+	);
 	return written.length;
 }
 
@@ -483,4 +526,30 @@ test('SG salary in lieu of notice is outside CPF and the SHG funds, inside SDL',
 	assert.equal(sdl.base, 6000);
 	assert.equal(sdl.employer, 11.25);
 	expectStatutoryBase(book, 'SG-PILON', 'CPF', 4000);
+});
+
+test('SG s.31(3)/(5): each loan instalment stays within a quarter, including final salary — every version', () => {
+	for (const version of settingsVersions('SG')) {
+		for (const finalPay of [false, true]) {
+			const run = (gross: number, amount: number) =>
+				settle({
+					base: [earning(gross)],
+					adjustments: [loan('STAFF', amount)],
+					charges: [{ employee: 0, employer: 0 }],
+					currency: 'SGD',
+					ceiling: version.payroll.deduction_ceiling,
+					finalPay
+				});
+			assert.equal(run(4000, 1000).net, 3000);
+			const over = run(4000, 1000.01);
+			assert.equal(over.net, 4000);
+			assert.deepEqual(over.shortfalls, [
+				{ componentCatalogueId: 'STAFF', amount: 1000.01, cause: 'DEDUCTION_CEILING' }
+			]);
+			// A partial salary period uses salary actually payable; reimbursements cannot enlarge it.
+			assert.equal(run(1500, 500).adjustments.length, 0);
+			assert.equal(run(3999.99, 1000).adjustments.length, 0);
+			assert.equal(run(3999.99, 999.99).adjustments.length, 1);
+		}
+	}
 });

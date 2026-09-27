@@ -4,15 +4,12 @@
  * `allowances.ts`.
  */
 
-import { decodeNumber } from '@norbital-ai/std/json';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
-import type {
-	CatalogueComponent,
-	Configuration
-} from '../../collections/payroll_runs/lib/configuration.js';
-import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import type { IsoDate } from '../../collections/payroll_runs/lib/dates.js';
-import type { ContractAllowance } from '../../datatypes/contract_allowances/+definition.js';
+import { decodeNumber } from '../wire.js';
+import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
+import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
+import { coversDate } from '../../lib/payroll/run/effective.js';
+import type { IsoDate } from '../../lib/payroll/run/dates.js';
+import type { ContractAllowance } from '../datatypes/contract_allowances.js';
 
 type Terms = EmploymentBundle['terms'][number];
 
@@ -70,6 +67,6 @@ export function contractAllowancesOn(
 			)
 		)
 			return sum;
-		return sum + decodeNumber(listed.amount);
+		return sum + listed.amount;
 	}, 0);
 }

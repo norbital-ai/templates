@@ -10,8 +10,8 @@
  * are incentive: they are keyed on the day (split only by the import, `splitPlannedOvertime`).
  */
 
-import type { WorkLimit, WorkRateBand, WorkRules } from '../../datatypes/work_rules/+definition.js';
-import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import type { WorkLimit, WorkRateBand, WorkRules } from '../datatypes/work_rules.js';
+import type { PersonContext } from '../../lib/payroll/run/eligibility.js';
 import {
 	expressionEngine,
 	evaluateBoolean,
@@ -19,6 +19,7 @@ import {
 	type ExpressionEngine
 } from '../expressions/evaluate.js';
 import { evaluatedLimits } from '../scheduling/work-limits.js';
+import * as Predicate from 'effect/Predicate';
 
 /** The two lines a band can emit: planned overtime settles as OVERTIME, incentive hours as INCENTIVE. */
 export const OVERTIME_LINE = 'OVERTIME';
@@ -43,24 +44,25 @@ export type WorkBandDay = {
 	/** The day's actual worked hours, net of the recorded break: the consumption space. */
 	readonly workedHours: number;
 	readonly normalHours: number;
+	readonly comparableFullTimeDailyHours?: number | undefined;
 	/**
 	 * The payable units the ladder prices, already net of any break shortfall and floored: the
 	 * overrun on an ordinary day, the whole day on a rest or holiday.
 	 */
 	readonly overtimeHours: number;
 	/** The top of `overtimeHours` planned beyond the limits (`work_days.incentive_hours`); absent is none. */
-	readonly incentiveHours?: number;
+	readonly incentiveHours?: number | undefined;
 	readonly breakMinutes: number;
 	readonly holidayKind: string;
 	readonly holidayName: string;
 	/** Present or on paid leave on the workday before the holiday (`presentBeforeHoliday`); true on other days. */
-	readonly holidayPriorPresent?: boolean;
+	readonly holidayPriorPresent?: boolean | undefined;
 	readonly consecutiveHours: number;
 	readonly continuousAttendance: boolean;
 	/** The roster's weekly rest day, whatever holiday precedence called the day. */
 	readonly restDay: boolean;
 	/** The statutory rest day (TW 例假), whatever the holiday made it. */
-	readonly statutoryRest?: boolean;
+	readonly statutoryRest?: boolean | undefined;
 	/** The roster's unassigned day (OFF) before a holiday was overlaid on it. */
 	readonly offDay: boolean;
 	/** Hours inside the regime's night window, 0 where the version prices none. */
@@ -68,9 +70,9 @@ export type WorkBandDay = {
 	/** `work_days.requested_by`: EMPLOYER unless the row says EMPLOYEE. */
 	readonly requestedBy: string;
 	/** `work_days.emergency_cause`: the extra hours were forced by an emergency. */
-	readonly emergency?: boolean;
+	readonly emergency?: boolean | undefined;
 	/** `work_days.time_off_in_lieu`: the worker elected time off instead of overtime pay. */
-	readonly timeOffInLieu?: boolean;
+	readonly timeOffInLieu?: boolean | undefined;
 };
 
 export type WorkBandRates = {
@@ -100,6 +102,8 @@ function contextOf(options: {
 		day_type: ordinary ? 'ORDINARY' : day.dayType,
 		worked_hours: day.workedHours,
 		normal_hours: day.normalHours,
+		comparable_full_time_daily_hours:
+			day.comparableFullTimeDailyHours ?? person.terms.comparable_full_time_daily_hours,
 		hours_beyond_normal: ordinary
 			? day.overtimeHours
 			: Math.max(0, day.overtimeHours - day.normalHours),
@@ -166,10 +170,10 @@ export function nightAddsFor(options: {
 	readonly person: PersonContext;
 	readonly day: WorkBandDay;
 	readonly rates: WorkBandRates;
-	readonly engine?: ExpressionEngine;
+	readonly engine?: ExpressionEngine | undefined;
 }): { readonly ordinary: number; readonly overtime: number } {
 	const { premium } = options;
-	if (typeof premium.ordinary_add === 'number' && typeof premium.overtime_add === 'number')
+	if (Predicate.isNumber(premium.ordinary_add) && Predicate.isNumber(premium.overtime_add))
 		return { ordinary: premium.ordinary_add, overtime: premium.overtime_add };
 	const engine = options.engine ?? expressionEngine;
 	const context = contextOf({
@@ -179,7 +183,7 @@ export function nightAddsFor(options: {
 		limits: evaluatedLimits(options.work.limits, options.day.breakMinutes)
 	});
 	const read = (add: number | string) =>
-		typeof add === 'number' ? add : Math.max(0, evaluateNumber(engine, add, context));
+		Predicate.isNumber(add) ? add : Math.max(0, evaluateNumber(engine, add, context));
 	return { ordinary: read(premium.ordinary_add), overtime: read(premium.overtime_add) };
 }
 
@@ -191,12 +195,28 @@ export function priceWorkDay(options: {
 	readonly person: PersonContext;
 	readonly day: WorkBandDay;
 	readonly rates: WorkBandRates;
-	readonly engine?: ExpressionEngine;
+	readonly engine?: ExpressionEngine | undefined;
 }): WorkBandRow[] {
 	const { work, day } = options;
 	const limits = evaluatedLimits(work.limits, day.breakMinutes);
 	const engine = options.engine ?? expressionEngine;
 	const context = contextOf({ person: options.person, day, rates: options.rates, limits });
+	if (
+		(work.part_time_comparator_when ?? '').trim() !== '' &&
+		evaluateBoolean(engine, work.part_time_comparator_when!, context)
+	) {
+		const presence = options.person.terms.comparable_full_time_presence;
+		const usualHours = options.person.terms.comparable_full_time_daily_hours;
+		const dayHours = day.comparableFullTimeDailyHours ?? 0;
+		if (presence === 'ABSENT' && (usualHours > 0 || dayHours > 0))
+			throw new Error(
+				'A declared absence of a comparable full-time employee conflicts with stated comparable hours.'
+			);
+		if (presence !== 'ABSENT' && !(presence === 'PRESENT' && (dayHours > 0 || usualHours > 0)))
+			throw new Error(
+				'The comparable full-time employee’s normal daily hours are required for part-time work pay.'
+			);
+	}
 	const slices: {
 		readonly band: WorkRateBand;
 		readonly hours: number;

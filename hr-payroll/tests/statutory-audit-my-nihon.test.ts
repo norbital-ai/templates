@@ -30,7 +30,7 @@ import {
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import { priceWorkDay, type WorkBandDay } from '../src/lib/payroll/work-bands.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
 const OUT = { kind: 'NOT_REGISTERED' } as const;

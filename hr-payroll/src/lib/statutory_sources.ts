@@ -1,14 +1,9 @@
 /**
- * The official sites statutory research may read, per payroll jurisdiction: the statute database
- * or gazette that carries the declarations themselves, and the regulators that publish the tables.
- *
- * The drift automation prefilters a version's `sources.urls` through this list before the
- * research agent runs, so the agent opens declarations and never a news site or a commercial
- * mirror; how to move around each site is the version's own `sources.instructions`, written by
- * the operator beside the URLs.
+ * The official sites statutory research reads, per payroll jurisdiction: the statute database or
+ * gazette that carries the declarations themselves, and the regulators that publish the tables.
+ * The drift automation hands a lineage's list to its research call as-is.
  */
-
-const CANONICAL_ORIGINS: Readonly<Record<string, readonly string[]>> = {
+export const STATUTORY_SOURCES: Readonly<Record<string, readonly string[]>> = {
 	MY: [
 		'https://lom.agc.gov.my',
 		'https://www.kwsp.gov.my',
@@ -82,61 +77,3 @@ const CANONICAL_ORIGINS: Readonly<Record<string, readonly string[]>> = {
 		'https://nief.mof.gov.vn'
 	]
 };
-
-/**
- * The Wayback Machine's dated copy of a page — `web.archive.org/web/<timestamp>[id_]/<url>` —
- * is that page as the authority published it on the day, kept for a host that refuses the
- * reader (kwsp.gov.my, peraturan.bpk.go.id). It vouches as the page it wraps.
- */
-const ARCHIVE = /^https?:\/\/web\.archive\.org\/web\/\d+(?:id_)?\/(https?:\/\/.+)$/;
-const unwrapArchive = (url: string): string => ARCHIVE.exec(url)?.[1] ?? url;
-const originOf = (url: string): string | null => {
-	const inner = unwrapArchive(url);
-	return URL.canParse(inner) ? new URL(inner).origin : null;
-};
-
-/**
- * A version's research URLs, ranked and screened against the jurisdiction's canonical sites.
- *
- * `kept` are the listed URLs on a canonical origin, in canonical-site order; `dropped` are the
- * rest, each with its reason, for the run's notes. A jurisdiction this file does not know keeps
- * every URL: the operator's list is then the only vouching there is.
- */
-export function prefilterStatutorySources(
-	jurisdictionCode: string,
-	urls: readonly string[]
-): {
-	readonly kept: readonly string[];
-	readonly dropped: readonly { url: string; reason: string }[];
-} {
-	const canonical = CANONICAL_ORIGINS[jurisdictionCode];
-	const unique = [...new Set(urls)];
-	if (canonical == null) return { kept: unique, dropped: [] };
-	const rank = new Map(canonical.map((origin, index) => [origin, index]));
-	const kept: string[] = [];
-	const dropped: { url: string; reason: string }[] = [];
-	for (const url of unique) {
-		const origin = originOf(url);
-		if (origin != null && rank.has(origin)) kept.push(url);
-		else
-			dropped.push({
-				url,
-				reason:
-					origin == null
-						? 'not a URL'
-						: `${new URL(url).host} is not a canonical ${jurisdictionCode} source; corroboration at most`
-			});
-	}
-	kept.sort((a, b) => rank.get(originOf(a)!)! - rank.get(originOf(b)!)!);
-	return { kept, dropped };
-}
-
-/** The origins research may open for a jurisdiction: its canonical sites, and the kept URLs' own. */
-export const researchOrigins = (jurisdictionCode: string, urls: readonly string[]): string[] => [
-	...new Set([
-		...(CANONICAL_ORIGINS[jurisdictionCode] ?? []),
-		...prefilterStatutorySources(jurisdictionCode, urls).kept,
-		// An archived page is read on the archive's own host.
-		...(urls.some((url) => ARCHIVE.test(url)) ? ['https://web.archive.org'] : [])
-	])
-];

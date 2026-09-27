@@ -6,7 +6,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { validateConfiguration } from '../src/collections/payroll_runs/lib/validate.ts';
+import { validateConfiguration } from '../src/lib/payroll/run/validate.ts';
 
 const EPF = {
 	row: {

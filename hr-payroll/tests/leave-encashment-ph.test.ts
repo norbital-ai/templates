@@ -22,7 +22,7 @@ for (const period of ['2025-12', '2026-01', '2026-04', '2026-10']) {
 					world.employment_terms.push({
 						...current,
 						id: 'f2000000-0000-4000-8000-000000000001',
-						base_salary: { ...current.base_salary, value: frequency === 'DAILY' ? 600 : 75 },
+						base_salary: frequency === 'DAILY' ? 600 : 75,
 						effective_range: { start: '2015-01-01', end: `${period}-10` }
 					});
 					current.effective_range = { start: `${period}-10`, end: null };

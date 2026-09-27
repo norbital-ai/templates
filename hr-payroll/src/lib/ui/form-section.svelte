@@ -9,7 +9,7 @@
 	import type { Snippet } from 'svelte';
 	import Icon from '@iconify/svelte';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
-	import { Tooltip } from '@norbital-ai/ui/tooltip';
+	import { Tooltip } from '@norbital-ai/ui';
 
 	let {
 		title,

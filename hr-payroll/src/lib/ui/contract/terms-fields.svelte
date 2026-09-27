@@ -1,36 +1,37 @@
 <script lang="ts">
 	/**
-	 * Every field of one `employment_terms` row, in the sections the contract reads them by: pay,
-	 * shift assignment, standing, organisation and the dates. The contract detail and the terms
-	 * record both compose this, so a term never shows a different set of facts in two places.
+	 * Every field of one `employment_terms` row, in the sections the contract reads them by: pay, shift assignment,
+	 * standing, organisation and the dates. The contract detail, the hire form and the terms record all compose this
+	 * inside their `Form`, so a term never shows a different set of facts in two places.
 	 */
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import type { WorkspaceCollections } from '$bolt/client';
-	import type { CollectionFormComposition } from '@norbital-ai/ui/collection-form';
+	import EmploymentField from '../EmploymentField.svelte';
+	import { t } from '../t.js';
+	import type { Id } from '@norbital-ai/bolt';
+	import { Field, Picker, useForm } from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { employmentRelationOptions } from '../create-scope.js';
+	import ContractAllowancesEditor from '../contract-allowances-editor.svelte';
+	import type { ContractAllowance } from '../../datatypes/contract_allowances.js';
+	import { hrCreateScope } from '../create-scope.js';
 	import FormSection from '../form-section.svelte';
-	import EffectiveRangeRenderer from '../effective-range-renderer.svelte';
-
-	/** The `Field` a `CollectionForm` on `employment_terms` composes with. */
-	export type TermsFieldComponent = CollectionFormComposition<
-		WorkspaceCollections,
-		'employment_terms'
-	>['Field'];
+	import * as Predicate from 'effect/Predicate';
 
 	let {
-		Field,
 		employmentScoped,
 		scopedCompanyId
 	}: {
-		Field: TermsFieldComponent;
-		/** The contract is known: its picker is prefilled and hidden. */
+		/** The contract is known (the form's values carry it): its picker is not offered. */
 		employmentScoped: boolean;
 		/** The entity whose patterns and people the pickers offer; unscoped offers all. */
-		scopedCompanyId: string | undefined;
+		scopedCompanyId: Id<'companies'> | undefined;
 	} = $props();
-	const { t } = useI18n<TenantI18nKeys>();
+	const form = useForm();
+	/** The lineage whose allowance classes are offered, and the terms' first day that names the version. */
+	const settingsCode = hrCreateScope()?.settingsCode();
+	const firstDay = $derived.by(() => {
+		const range = form?.get('effective_range') as { readonly from?: unknown } | null | undefined;
+		const from = range?.from;
+		return Predicate.isString(from) && from !== '' ? from : undefined;
+	});
 </script>
 
 <Stack gap="lg">
@@ -40,23 +41,28 @@
 		hint={t('component.terms_section_pay_hint')}
 	>
 		<Grid gap="sm" minimum="compact">
-			{#if employmentScoped}
-				<Field name="employment_id" hidden />
-			{:else}
-				<Field
-					name="employment_id"
-					label={t('component.employment')}
-					relationOptions={employmentRelationOptions(scopedCompanyId)}
-				/>
+			{#if !employmentScoped}
+				<EmploymentField label={t('component.employment')} companyId={scopedCompanyId} />
 			{/if}
+			<Field name="currency" label={t('component.currency')} />
 			<Field name="base_salary" label={t('component.base_salary')} />
 			<Field name="pay_frequency" label={t('component.pay_frequency')} />
 			<Column span="all">
 				<Field
 					name="allowances"
 					label={t('component.allowances')}
-					description={t('component.allowances_hint')}
-				/>
+					help={t('component.allowances_hint')}
+				>
+					{#snippet editor(field)}
+						<ContractAllowancesEditor
+							value={field.value}
+							{settingsCode}
+							{firstDay}
+							disabled={field.disabled}
+							onValueChange={(next: readonly ContractAllowance[]) => field.onChange(next as never)}
+						/>
+					{/snippet}
+				</Field>
 			</Column>
 		</Grid>
 	</FormSection>
@@ -66,26 +72,36 @@
 			<Field
 				name="ordinary_hours_per_week"
 				label={t('component.ordinary_hours_per_week')}
-				description={t('component.ordinary_hours_per_week_hint')}
+				help={t('component.ordinary_hours_per_week_hint')}
 			/>
-			<!--
-				The entity's own named pattern: a day cycle, or a declared week ("Rostered 6 days") under
-				which every priced day needs a roster row with a shift. The days a week are the pattern's.
-			-->
+			<!-- Part-time premiums (MY Part-Time Regulations, SG Part-Time Regulations) are priced against a comparable full-timer -->
+			<Field
+				name="comparable_full_time_presence"
+				label={t('component.comparable_full_time_presence')}
+			/>
+			<Field
+				name="comparable_full_time_daily_hours"
+				label={t('component.comparable_full_time_daily_hours')}
+			/>
+			<!-- The entity's own named pattern: a day cycle, or a declared week under which every priced day needs a roster
+			     row with a shift. The days a week are the pattern's. -->
 			<Field
 				name="shift_pattern_id"
 				label={t('component.shift_pattern')}
-				description={t('component.shift_pattern_hint')}
-				relationOptions={{
-					label: (pattern) =>
-						pattern.code != null && pattern.code !== ''
-							? `${String(pattern.code)} · ${String(pattern.name ?? '')}`
-							: '—',
-					...(scopedCompanyId == null ? {} : { where: { company_id: { eq: scopedCompanyId } } }),
-					orderBy: { code: 'asc' },
-					limit: 500
-				}}
-			/>
+				help={t('component.shift_pattern_hint')}
+			>
+				{#snippet editor(field)}
+					<Picker
+						of="shift_patterns"
+						label={['code', 'name']}
+						{...scopedCompanyId == null ? {} : { where: { company_id: { eq: scopedCompanyId } } }}
+						orderBy={{ code: 'asc' }}
+						value={typeof field.value === 'string' ? field.value : null}
+						onChange={field.onChange}
+						disabled={field.disabled}
+					/>
+				{/snippet}
+			</Field>
 		</Grid>
 	</FormSection>
 
@@ -101,6 +117,12 @@
 			<Field name="tax_residency" label={t('component.tax_residency')} />
 			<Field name="notice_days" label={t('component.notice_days')} />
 			<Field name="paid_rest_days" label={t('component.paid_rest_days')} />
+			<!-- VN Decree 293/2025 art. 5(5): the worksite's 2025 region and whether 2026 reclassified it lower -->
+			<Field name="minimum_wage_2025_region" label={t('component.minimum_wage_2025_region')} />
+			<Field
+				name="minimum_wage_2026_area_reclassified"
+				label={t('component.minimum_wage_2026_area_reclassified')}
+			/>
 		</Grid>
 	</FormSection>
 
@@ -118,11 +140,7 @@
 	<FormSection title={t('component.section_period')} hint={t('component.section_period_hint')}>
 		<Grid gap="sm" minimum="compact">
 			<Column span="all">
-				<Field
-					name="effective_range"
-					renderer={EffectiveRangeRenderer}
-					label={t('component.effective_period')}
-				/>
+				<Field name="effective_range" label={t('component.effective_period')} />
 			</Column>
 		</Grid>
 	</FormSection>

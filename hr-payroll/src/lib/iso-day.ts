@@ -1,25 +1,18 @@
 import { Schema } from 'effect';
-import { isCalendarDate } from '@norbital-ai/std/date';
+import * as Predicate from 'effect/Predicate';
 
 /** The workspace business zone owns payroll calendar dates, independently of the host. */
 export const PAYROLL_TIME_ZONE = 'Asia/Kuala_Lumpur';
-const payrollDateFormat = new Intl.DateTimeFormat('en', {
-	timeZone: PAYROLL_TIME_ZONE,
-	year: 'numeric',
-	month: '2-digit',
-	day: '2-digit'
-});
+const dayFormat = (timeZone: string) =>
+	new Intl.DateTimeFormat('en', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+// made at first use: an Intl object at module top level refuses the guest snapshot (V8 cannot serialize it)
+let payrollDateFormat: Intl.DateTimeFormat | undefined;
 
 export function calendarDateInTimeZone(value: Date, timeZone: string): string {
 	const formatter =
 		timeZone === PAYROLL_TIME_ZONE
-			? payrollDateFormat
-			: new Intl.DateTimeFormat('en', {
-					timeZone,
-					year: 'numeric',
-					month: '2-digit',
-					day: '2-digit'
-				});
+			? (payrollDateFormat ??= dayFormat(timeZone))
+			: dayFormat(timeZone);
 	const parts = formatter.formatToParts(value);
 	const part = (type: Intl.DateTimeFormatPartTypes) =>
 		parts.find((entry) => entry.type === type)?.value ?? '';
@@ -98,20 +91,36 @@ export function dayInstant(day: string): string {
 	return `${day}T00:00:00.000Z`;
 }
 
-/** The same, for a value that may already be an instant; absent stays absent. */
-function canonicalDay<T extends string | null | undefined>(value: T): T {
-	if (value == null || value === '') return value;
-	const day = dateKey(value);
-	return (day === '' ? value : dayInstant(day)) as T;
+const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const UTC_ISO_INSTANT = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,3})?Z$/;
+
+/** A real calendar day `YYYY-MM-DD`. */
+export function isCalendarDate(value: string): boolean {
+	return (
+		CALENDAR_DATE.test(value) &&
+		new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value
+	);
 }
 
-/** A write's day columns in their stored form, so every writer lands on the same instant. */
-export function canonicalDays<T extends Record<string, unknown>>(
-	input: T,
-	keys: readonly (keyof T & string)[]
-): T {
-	const out: Record<string, unknown> = { ...input };
-	for (const key of keys)
-		if (typeof out[key] === 'string') out[key] = canonicalDay(out[key] as string);
-	return out as T;
+/** A 24-hour clock time `HH:MM`. */
+export const isClockTime = (value: string): boolean => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+
+/** A UTC ISO instant `YYYY-MM-DDTHH:MM:SS(.sss)Z` whose parts are in range. */
+export function isUtcIsoInstant(value: string): boolean {
+	const match = UTC_ISO_INSTANT.exec(value);
+	return (
+		match != null &&
+		isCalendarDate(match[1]!) &&
+		Number.parseInt(match[2]!, 10) <= 23 &&
+		Number.parseInt(match[3]!, 10) <= 59 &&
+		Number.parseInt(match[4]!, 10) <= 59
+	);
+}
+
+/** The UTC calendar day `YYYY-MM-DD` of a stored instant or calendar string. */
+export function formatDateISO(value: string | Date): string {
+	if (Predicate.isString(value) && isCalendarDate(value)) return value;
+	const date = Predicate.isString(value) ? new Date(value) : value;
+	if (Number.isNaN(date.getTime())) throw new Error(`Invalid UTC instant: ${String(value)}`);
+	return date.toISOString().slice(0, 10);
 }

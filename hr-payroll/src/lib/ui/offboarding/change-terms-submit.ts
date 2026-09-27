@@ -1,33 +1,19 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
+import type { Id, Insert } from '@norbital-ai/bolt';
+import { PlainDate } from '@norbital-ai/std/date';
+import { refuse } from '../../refuse.js';
 import { dateKey } from '../../iso-day.js';
-import { addDays } from '../../../collections/payroll_runs/lib/dates.js';
-import type { ContractAllowance } from '../../../datatypes/contract_allowances/+definition.js';
+import { addDays } from '../../../lib/payroll/run/dates.js';
 
 /** The day before: a successor starting `start` closes its predecessor on this day. */
 export function previousDay(start: string): string {
 	return addDays(start, -1);
 }
 
-export type ChangeTermsFacts = {
-	readonly residency_status: string | null;
-	readonly residency_since: string | null;
-	readonly base_salary: { readonly value: number; readonly currency: string };
-	readonly allowances: readonly ContractAllowance[];
-	readonly pay_frequency: string;
-	readonly work_classification: string;
-	readonly statutory_work_category: string;
-	readonly employment_type: string;
-	readonly department: string | null;
-	readonly job_title: string | null;
-	readonly payroll_group: string | null;
-	readonly grade: string | null;
-	readonly ordinary_hours_per_week: number | null;
-	readonly shift_pattern_id: string;
-	readonly pass_type: string | null;
-	readonly tax_residency: string | null;
-	readonly notice_days: number | null;
-	readonly paid_rest_days: boolean;
-};
+/** A successor's facts: every column of the terms but the contract and the period, which the pair states. */
+export type ChangeTermsFacts = Omit<
+	Insert<'employment_terms'>,
+	'employment_id' | 'effective_range'
+>;
 
 /**
  * The contract-change pair: the row in force closes the day before the successor starts. The
@@ -36,8 +22,8 @@ export type ChangeTermsFacts = {
  * lives here.
  */
 export function buildChangeTermsWrites(options: {
-	readonly previousId: string;
-	readonly employmentId: string;
+	readonly previousId: Id<'employment_terms'>;
+	readonly employmentId: Id<'employments'>;
 	/** Stored range start of the row in force, carried through verbatim. */
 	readonly previousStart: string;
 	/** The predecessor's new end: the day before the successor starts, as stored. */
@@ -46,10 +32,14 @@ export function buildChangeTermsWrites(options: {
 	readonly newStart: string;
 	readonly facts: ChangeTermsFacts;
 }): {
-	readonly close: { readonly id: string; readonly effective_range: { start: string; end: string } };
+	/** The update that closes the row in force: `ctx.act('employment_terms.update', close)`. */
+	readonly close: {
+		readonly target: Id<'employment_terms'>;
+		readonly set: { readonly effective_range: { from: PlainDate; to: PlainDate } };
+	};
 	readonly create: ChangeTermsFacts & {
-		readonly employment_id: string;
-		readonly effective_range: { start: string; end: null };
+		readonly employment_id: Id<'employments'>;
+		readonly effective_range: { from: PlainDate; to: null };
 	};
 } {
 	const { previousId, employmentId, previousStart, closeEnd, newStart, facts } = options;
@@ -58,11 +48,14 @@ export function buildChangeTermsWrites(options: {
 	if (previousDay(dateKey(newStart)) !== dateKey(closeEnd))
 		refuse('New terms start the day after the previous terms close.');
 	return {
-		close: { id: previousId, effective_range: { start: previousStart, end: closeEnd } },
+		close: {
+			target: previousId,
+			set: { effective_range: { from: PlainDate(previousStart), to: PlainDate(closeEnd) } }
+		},
 		create: {
 			...facts,
 			employment_id: employmentId,
-			effective_range: { start: newStart, end: null }
+			effective_range: { from: PlainDate(newStart), to: null }
 		}
 	};
 }

@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
-import { guestUrlForChromium, launchChromiumOrSkip } from '@norbital-ai/test-utilities';
+import { chromium, type Browser } from 'playwright';
 import { KIOSK_REQUIRED_MODELS } from '../../src/lib/kiosk/config.ts';
 
 it('the browser runs the packaged MiniFASNet model, passes the real sample and rejects both spoofs', async () => {
@@ -23,9 +23,9 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 		...['minifasnet.onnx', 'ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm'].map(
 			(name) =>
 				[
-					`/models/minifas/${name}`,
+					`/assets/models/${name}`,
 					{
-						path: join(root, '.norbital/dist/models/minifas', name),
+						path: join(root, 'assets/models', name),
 						type: name.endsWith('.wasm')
 							? 'application/wasm'
 							: name.endsWith('.mjs')
@@ -48,8 +48,8 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 	const requested = new Set<string>();
 	for (const name of KIOSK_REQUIRED_MODELS)
 		for (const suffix of ['json', 'bin']) {
-			files.set(`/models/human/${name}.${suffix}`, {
-				path: join(root, '.norbital/dist/models/human', `${name}.${suffix}`),
+			files.set(`/assets/models/human/${name}.${suffix}`, {
+				path: join(root, 'assets/models/human', `${name}.${suffix}`),
 				type: suffix === 'json' ? 'application/json' : 'application/octet-stream'
 			});
 		}
@@ -73,7 +73,7 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 			response.writeHead(500).end();
 		}
 	});
-	let browser: Awaited<ReturnType<typeof launchChromiumOrSkip>>;
+	let browser: Browser | undefined;
 	try {
 		await build({
 			configFile: false,
@@ -99,9 +99,10 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 		await new Promise<void>((resolve) => server.listen(0, '0.0.0.0', resolve));
 		const address = server.address();
 		assert.ok(address !== null && typeof address !== 'string');
-		browser = await launchChromiumOrSkip();
+		browser = await chromium.launch().catch(() => undefined);
 		assert.ok(browser, 'Chromium is required for the anti-spoof model gate');
-		const page = await browser.openPage(guestUrlForChromium('127.0.0.1', address.port, '/'));
+		const page = await browser.newPage();
+		await page.goto(`http://127.0.0.1:${address.port}/`);
 		const capture = await page.evaluate(`(async () => {
 			const {drawVideoFrame,createAnalyseCanvas} = await import('/assets/face.js');
 			const source = document.createElement('canvas'); source.width=720; source.height=1280;
@@ -206,7 +207,7 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 			assert.ok(Math.abs(sample.score - sample.reference) < 0.1, JSON.stringify(sample));
 		}
 		for (const name of ['minifasnet.onnx', 'ort-wasm-simd-threaded.wasm']) {
-			assert.ok(requested.has('/models/minifas/' + name), 'release must supply ' + name);
+			assert.ok(requested.has('/assets/models/' + name), 'release must supply ' + name);
 		}
 		console.log('KIOSK_ANTI_SPOOF_PROFILE', JSON.stringify(measured));
 		await writeFile(

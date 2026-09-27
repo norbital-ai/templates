@@ -1,26 +1,26 @@
-import { decodeNumber } from '@norbital-ai/std/json';
-import type { MoneyValue } from '@norbital-ai/std/finance';
+import { decodeNumber } from '../wire.js';
 import {
 	monthBounds,
 	monthKey,
 	requiredDateKey,
 	type IsoDate,
 	addDays
-} from '../../collections/payroll_runs/lib/dates.js';
-import { readRange } from '../../collections/payroll_runs/lib/effective.js';
+} from '../../lib/payroll/run/dates.js';
+import { readRange } from '../../lib/payroll/run/effective.js';
 
 export type ReferenceWagePeriod = {
 	readonly id: string;
 	readonly period: unknown;
-	readonly normal_wages: MoneyValue | null;
-	readonly ordinary_wages: MoneyValue | null;
+	readonly currency: string;
+	readonly normal_wages: number | null;
+	readonly ordinary_wages: number | null;
 	readonly ordinary_days: unknown;
 	readonly due_on: string;
 	readonly paid_on: string | null;
 	readonly reference: string;
-	readonly approval_id?: string | null;
+	readonly approval_id?: string | null | undefined;
 	/** Set on a month read from the payslips that settled it, which no manual record stands for. */
-	readonly payslips?: readonly string[];
+	readonly payslips?: readonly string[] | undefined;
 };
 
 /**
@@ -57,14 +57,15 @@ export function periodDates(row: ReferenceWagePeriod): {
 }
 
 function amount(
-	money: MoneyValue | null,
+	row: ReferenceWagePeriod,
+	field: 'normal_wages' | 'ordinary_wages',
 	currency: string,
 	label: 'normal wages' | 'ordinary earnings'
 ): number {
-	if (money == null) throw new Error(`Reference wage period is missing ${label}.`);
-	if (money.currency !== currency)
+	if (row[field] == null) throw new Error(`Reference wage period is missing ${label}.`);
+	if (row.currency !== currency)
 		throw new Error(`Reference wage period ${label} currency differs from payroll.`);
-	const value = decodeNumber(money.value);
+	const value = row[field];
 	if (!Number.isFinite(value) || value < 0)
 		throw new Error(`Reference wage period ${label} must be finite and nonnegative.`);
 	return value;
@@ -89,7 +90,7 @@ export function previousWagePeriodOrdinaryRate(options: {
 	if (matches.length !== 1)
 		throw new Error(`Ordinary rate has ambiguous wage periods ending ${previousEnd}.`);
 	const row = matches[0]!;
-	const wages = amount(row.ordinary_wages, options.currency, 'ordinary earnings');
+	const wages = amount(row, 'ordinary_wages', options.currency, 'ordinary earnings');
 	const days = decodeNumber(row.ordinary_days);
 	if (!Number.isFinite(days) || days <= 0)
 		throw new Error('Reference wage period ordinary days must be finite and positive.');
@@ -101,7 +102,10 @@ export function latestDueMonthNormalRate(options: {
 	readonly periods: readonly ReferenceWagePeriod[];
 	readonly boundary: IsoDate;
 	readonly currency: string;
+	readonly dailyDivisor: number;
 }): { readonly row: ReferenceWagePeriod; readonly normalDay: number } {
+	if (!Number.isInteger(options.dailyDivisor) || options.dailyDivisor <= 0)
+		throw new Error('Normal-wage daily divisor must be a positive integer in the sealed version.');
 	const eligible = approved(options.periods)
 		.filter((row) => {
 			const period = periodDates(row);
@@ -126,5 +130,8 @@ export function latestDueMonthNormalRate(options: {
 	if (matches.length !== 1)
 		throw new Error(`Normal-wage rate has ambiguous monthly periods ending ${latestEnd}.`);
 	const row = matches[0]!;
-	return { row, normalDay: amount(row.normal_wages, options.currency, 'normal wages') / 30 };
+	return {
+		row,
+		normalDay: amount(row, 'normal_wages', options.currency, 'normal wages') / options.dailyDivisor
+	};
 }

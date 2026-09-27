@@ -14,7 +14,7 @@
  * than a real component, so it stays inlined.
  */
 
-import { decodeNumber } from '@norbital-ai/std/json';
+import { decodeNumber } from '../wire.js';
 
 /** A finite number from a raw field, or `fallback` when the field does not hold one. */
 export function numberFrom(raw: string, fallback: number): number {
@@ -34,3 +34,6 @@ export function nullableNumberFrom(raw: string): number | null {
  * slot accepts. A field that parses as a finite number is that number; anything else is left as
  * the expression text, which the write-time compiler judges.
  */
+
+/** A renderer's edit: any field of the value, where `undefined` clears it (the editor drops undefined keys). */
+export type Patch<T> = { [K in keyof T]?: T[K] | undefined };

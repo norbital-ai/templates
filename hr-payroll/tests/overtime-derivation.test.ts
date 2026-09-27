@@ -16,8 +16,8 @@ import {
 	nightWindowHours,
 	deriveDailyOvertime,
 	ordinaryWorkedHours
-} from '../src/collections/payroll_runs/lib/overtime.ts';
-import { roundMinute } from '../src/collections/payroll_runs/lib/rounding.ts';
+} from '../src/lib/payroll/run/overtime.ts';
+import { roundMinute } from '../src/lib/payroll/run/rounding.ts';
 
 /** 08:30–17:30 with an hour's scheduled break. */
 const DAY_SHIFT = {

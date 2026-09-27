@@ -117,10 +117,10 @@ Effect.runPromise(
 				vite.ssrLoadModule('/src/lib/scheduling/work-limits.ts')
 			);
 			const { deriveDailyOvertime } = yield* Effect.tryPromise(() =>
-				vite.ssrLoadModule('/src/collections/payroll_runs/lib/overtime.ts')
+				vite.ssrLoadModule('/src/lib/payroll/run/overtime.ts')
 			);
 			const { personContext } = yield* Effect.tryPromise(() =>
-				vite.ssrLoadModule('/src/collections/payroll_runs/lib/eligibility.ts')
+				vite.ssrLoadModule('/src/lib/payroll/run/eligibility.ts')
 			);
 
 			// The CLOCK_HOURS control evaluates net of the break the shift grants: 12 clock less 1.

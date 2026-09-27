@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 import { nightAddsFor, priceWorkDay } from '../src/lib/payroll/work-bands.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { settingsVersions, contributionSchemes } from './fixtures/statutory-world.ts';
 
 const person = personContext({
@@ -107,7 +107,7 @@ test('Malaysia and Singapore — a rest day worked for exactly half the normal h
 	const singaporean = personContext({
 		employee: null,
 		employment: { service_start: '2020-01-01' },
-		terms: { base_salary: { value: 2860, currency: 'SGD' } },
+		terms: { base_salary: 2860, currency: 'SGD' },
 		week: { ordinary_hours_per_week: 40, working_days_per_week: 5 },
 		// The work day's person carries the version's divisor (52 × 5 ÷ 12), as `ratesOn` builds it,
 		// so `terms.ordinary_day` is the Third Schedule day.

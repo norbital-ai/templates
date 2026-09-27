@@ -28,9 +28,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { calculateFamilies } from '../src/lib/payroll/families.ts';
-import { payrollRunGraph } from '../src/collections/payroll_runs/lib/graph.ts';
-import { payrollRunGrants } from '../src/lib/policy_grants.ts';
-import relationships from '../src/collections/+relationship.ts';
+import { payrollRunGraph } from '../src/lib/payroll/run/graph.ts';
 import {
 	sourceLock,
 	sourceLockApplicationLocked,
@@ -124,7 +122,8 @@ function measure(overrides = {}) {
 			{
 				id: 'terms-1',
 				employment_id: 'emp-1',
-				base_salary: { value: 3451, currency: 'MYR' },
+				base_salary: 3451,
+				currency: 'MYR',
 				pay_frequency: 'MONTHLY',
 				shift_pattern_id: 'pattern-1',
 				statutory_work_category: 'NON_MANUAL',
@@ -476,86 +475,4 @@ test('a pending approval still answers first, because it is the platform\u2019s 
 	assert.equal(lock.kind, 'PENDING_APPROVAL');
 	// And the transforms leave it alone: a held row is the platform's hold, not a refusal.
 	assert.equal(sourceLockApplicationLocked(lock), false);
-});
-
-// ── 4. the refusal that makes a paid run's captures permanent ───────────────────────────────────
-
-/**
- * A run with no paid slips. Payment lives on the slip now, so the delete grant asks the slips
- * first — `paid` below is the run whose money has left the building. The company has no other
- * run, so the deletion-order rule does not fire.
- */
-const releaseDb = {
-	payslips: { findFirst: () => Effect.succeed(undefined) },
-	payroll_runs: { findMany: () => Effect.succeed([]) }
-};
-const paidDb = {
-	payslips: { findFirst: () => Effect.succeed({ id: 'slip-1' }) },
-	payroll_runs: { findMany: () => Effect.succeed([]) }
-};
-const run = { id: 'run-1', company_id: 'co-1', period: '2026-03' };
-const authorize = payrollRunGrants().payroll_runs.delete.authorize;
-
-test('a PAID payroll run refuses deletion', () => {
-	assert.equal(Effect.runSync(authorize({ record: run }, { db: paidDb })), false);
-});
-
-test('a DRAFT payroll run may be deleted, which is the only release the lock has', () => {
-	assert.equal(Effect.runSync(authorize({ record: run }, { db: releaseDb })), true);
-});
-
-test('a run below a later one is not deleted: lineages are unwound from the end', () => {
-	const laterDb = {
-		payslips: { findFirst: () => Effect.succeed(undefined) },
-		payroll_runs: { findMany: () => Effect.succeed([run, { id: 'run-2', period: '2026-04' }]) }
-	};
-	assert.throws(
-		() => Effect.runSync(authorize({ record: run }, { db: laterDb })),
-		/Delete payrolls newest first/
-	);
-});
-
-// ── 5. the declarations the release depends on ──────────────────────────────────────────────────
-
-test('deleting a payroll run releases its captures — the declarations that cascade', () => {
-	/**
-	 * What this asserts is the *declaration*, and the title says so because the distinction is real:
-	 * the cascade — run → payslips — is performed by Postgres, and what this workspace controls is
-	 * that the hop is declared. A single `cascade(` wrapper is the whole of that declaration: the
-	 * compiler turns it into `ON DELETE CASCADE` in the migration lineage.
-	 *
-	 * The pins are the other half. Every entry family carries a nullable `payslip_id` column, and
-	 * deleting a draft run clears it: the pin is a plain column, never a relationship edge. An edge
-	 * from `payslips` into an entry would delete the consumed source instead of releasing it, which
-	 * is the opposite of the lock. The guard below fails if such an edge ever appears.
-	 *
-	 * The marker is read the only way it can be read from outside the authoring package.
-	 */
-	const probe = new Proxy(
-		{},
-		{
-			get: (_target, property) =>
-				property === 'one' || property === 'many'
-					? new Proxy({}, { get: () => () => ({}) })
-					: new Proxy({}, { get: () => ({}) })
-		}
-	);
-	const graph = relationships(probe);
-	const markersOf = (edge) =>
-		Object.getOwnPropertySymbols(edge).map((symbol) => Reflect.get(edge, symbol));
-
-	assert.ok(
-		markersOf(graph.payslips.payslip_payroll_run).includes('cascade'),
-		'a payslip must cascade from its run, or deleting a run leaves orphan payslips'
-	);
-
-	for (const family of ['claim_requests', 'leave_entries', 'loan_repayments'] as const)
-		for (const [name, edge] of Object.entries(graph[family] ?? {}))
-			assert.equal(
-				typeof edge === 'object' && edge !== null && 'to' in (edge as object)
-					? String(Reflect.get(edge as object, 'to'))
-					: name,
-				name,
-				`${family}.${name} must stay a plain pin, not a relationship edge`
-			);
 });

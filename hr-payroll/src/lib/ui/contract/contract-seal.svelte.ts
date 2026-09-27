@@ -1,32 +1,35 @@
-import { client } from '../../workspace-client.js';
+import type { Id } from '@norbital-ai/bolt';
+import { bolt } from '$bolt';
+import { liveRows } from '../live.svelte.js';
+
+/** The collections whose rows seal a contract by naming it. */
+const CONSUMERS = [
+	'employment_terms',
+	'claim_requests',
+	'adhoc_requests',
+	'loans',
+	'loan_repayments',
+	'leave_entries',
+	'work_days',
+	'payslips'
+] as const;
 
 /** A contract is sealed by the rows that reference it; the transform is the guard, this is the hint. */
-export function contractSeal(employmentId: () => string) {
-	const consumers = $derived(
-		[
-			client.db.employment_terms,
-			client.db.claim_requests,
-			client.db.adhoc_requests,
-			client.db.loans,
-			client.db.loan_repayments,
-			client.db.leave_entries,
-			client.db.work_days,
-			client.db.payslips
-		].map((collection) =>
-			collection.findFirst({
-				where: { employment_id: { eq: employmentId() } },
-				columns: { id: true }
-			})
-		)
+export function contractSeal(employmentId: () => Id<'employments'> | undefined) {
+	const consumers = CONSUMERS.map((collection) =>
+		liveRows(() => {
+			const id = employmentId();
+			return id == null
+				? null
+				: bolt.read(collection, { where: { employment_id: { eq: id } }, limit: 1 });
+		})
 	);
-	const sealed = $derived(consumers.some((query) => query.current != null));
-	const loading = $derived(consumers.some((query) => query.loading));
 	return {
 		get sealed() {
-			return sealed;
+			return consumers.some((rows) => (rows.current?.length ?? 0) > 0);
 		},
 		get loading() {
-			return loading;
+			return consumers.some((rows) => rows.loading);
 		}
 	};
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';

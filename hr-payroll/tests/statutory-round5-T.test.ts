@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { leaveEncashmentRate } from '../src/lib/leave/encashment-rate.ts';
-import { memoryPayrollApi, refusalMessage } from './fixtures/memory-payroll-api.ts';
-import { settle } from '../src/collections/payroll_runs/lib/settle.ts';
+import { payrollWorld, refusalMessage } from './fixtures/memory-payroll-api.ts';
+import { settle } from '../src/lib/payroll/run/settle.ts';
 import { planLeaveActivity } from '../src/lib/leave/activity.ts';
 import { id, leaveContext, submission, timeOff } from './helpers/manual-leave-context.ts';
 import {
@@ -333,9 +333,11 @@ function sgCashDay(
 		payslip_id: null,
 		as_adjustment_entry: false
 	} as never);
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-06' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-06'
+	});
 	const bundle = prepared.gathered.bundles[0]!;
 	return leaveEncashmentRate({
 		bundle,
@@ -429,8 +431,30 @@ test('D16 SG: an unrecorded residency status refuses CPF; an unrecorded race or 
 	assert.equal(funds({ race: 'CHINESE' }), 1);
 });
 
-test('SG versions chain: each version is cloned from the one it follows', () => {
-	const versions = settingsVersions('SG');
-	for (const [index, version] of versions.entries())
-		if (index > 0) assert.equal(version.cloned_from_id, versions[index - 1]!.id);
+test('SG versions chain and each active correction preserves its historical predecessor', () => {
+	const versions: ReturnType<typeof settingsVersions> = JSON.parse(
+		readFileSync(
+			new URL('../seed/jurisdiction/SG/jurisdiction_settings.json', import.meta.url),
+			'utf8'
+		)
+	);
+	const active = versions.filter((version) => version.voided_at == null);
+	const byId = new Map(versions.map((version) => [version.id, version]));
+	assert.equal(active.length, 5);
+	for (const version of active) {
+		const predecessor = byId.get(version.cloned_from_id!);
+		assert.ok(predecessor);
+		assert.ok(predecessor.voided_at);
+		assert.deepEqual(version.effective_range, predecessor.effective_range);
+		const visited = new Set<string>();
+		let current: (typeof versions)[number] | undefined = version;
+		while (current != null) {
+			assert.ok(!visited.has(current.id), 'sealed lineage must not cycle');
+			visited.add(current.id);
+			const parentId: string | null = current.cloned_from_id;
+			if (parentId != null) assert.ok(byId.has(parentId), 'sealed ancestor must be retained');
+			current = parentId == null ? undefined : byId.get(parentId);
+			if (current != null) assert.ok(current.voided_at);
+		}
+	}
 });

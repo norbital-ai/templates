@@ -1,228 +1,151 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
-import type { Api } from '$bolt/types.js';
-import type { CreateInput } from '../collections/jurisdiction_settings/$types.js';
-import { readRange } from '../collections/payroll_runs/lib/effective.js';
-import { describeVersion } from './jurisdiction_settings.js';
-import { dateKey } from './iso-day.js';
+import { everyField } from './every-field.js';
+import type { Act, Insert, QueryCtx, Row } from '@norbital-ai/bolt';
+import { describeVersion, governed } from './jurisdiction_settings.js';
 
 /**
- * A new version of a jurisdiction settings lineage: one version and every row under it, cloned
- * into a draft of the same code with an open range starting on a given day.
+ * A new version of a jurisdiction settings lineage: one version and every row under it, cloned into a draft of the
+ * same code with an open period starting on a given day.
  *
- * Two callers share it. `functions/+new_settings_version.ts` is the Settings timeline's New
- * version action; `automations/+statutory_drift.ts` proposes a draft carrying the statutory rows
- * an official page contradicts. The clone is three steps so the automation can revise the draft
- * before it is written: read the tree, shape the write, write it. Schemes keep their codes under
- * new ids; their rules follow them. Everything lands in one write, nested under the root. The
- * draft is the controller's to edit; sealing it is the HR Manager's act.
+ * Two callers share it. The `jurisdiction_settings` action `new_settings_version` is the Settings timeline's New
+ * version; the `statutory_drift` automation proposes a draft carrying the changes its research reports.
+ * The clone is three steps so the automation can revise the draft before it is written: read the tree, shape the
+ * write, write it. Schemes keep their codes under new ids; their rules follow them. Everything lands in one write,
+ * nested under the root. The draft is the controller's to edit; sealing it is the HR Manager's act.
  */
 
-/** Every child collection of a settings version, read whole. */
-const LIMIT = 5_000;
+/** The owned families of a version, by the relation name its create takes them under. */
+const FAMILIES = [
+	'statutory_contributions',
+	'leave_catalogue',
+	'loan_catalogue',
+	'claim_catalogue',
+	'adhoc_catalogue',
+	'allowance_catalogue'
+] as const;
+type Family = (typeof FAMILIES)[number];
 
-/** The columns the runtime owns on every stored row, and the parent key a nested row is given. */
-const SYSTEM_COLUMNS = [
+/** The columns the runtime owns on every row, and the parent key a nested row is given. */
+const SYSTEM = new Set([
 	'id',
+	'revision',
 	'approval_id',
 	'created_at',
 	'updated_at',
-	'row_version',
-	'sys_period',
-	'settings_id',
-	'record_embedding',
-	'embedded_at',
-	'record_embedding_fingerprint'
-] as const;
-type SystemColumn = (typeof SYSTEM_COLUMNS)[number];
+	'created_by',
+	'updated_by',
+	'settings_id'
+]);
 
-/** A stored row as a nested create accepts it: without the runtime's columns and any named extras. */
-/**
- * A row without its system columns. Key remapping rather than `Omit`: a row type that carries an
- * index signature makes `Omit`'s `keyof` collapse to `string`, which drops every named column.
- */
-type Cloned<R> = { [K in keyof R as K extends SystemColumn ? never : K]: R[K] };
-
-function cloneRow<R extends Record<string, unknown>>(row: R): Cloned<R> {
-	const out: Record<string, unknown> = {};
-	for (const [column, value] of Object.entries(row))
-		if (!(SYSTEM_COLUMNS as readonly string[]).includes(column)) out[column] = value;
-	return out as Cloned<R>;
-}
-
-type Db = Api['db'];
-type SettingsCloneApi = Readonly<{
-	readonly db: Pick<
-		Db,
-		| 'jurisdiction_settings'
-		| 'statutory_contributions'
-		| 'leave_catalogue'
-		| 'loan_catalogue'
-		| 'claim_catalogue'
-		| 'adhoc_catalogue'
-		| 'allowance_catalogue'
-	>;
-	readonly collection: Pick<Api['collection'], 'jurisdiction_settings'>;
-}>;
-
-type Row<N extends keyof Db> = Effect.Success<ReturnType<Db[N]['findMany']>>[number];
+type Refuse = (message: string) => never;
+type Reads = Pick<QueryCtx, 'read' | 'get'>;
 
 /** One version and every row under it, as stored. */
 export type SettingsVersionTree = Readonly<{
 	source: Row<'jurisdiction_settings'>;
-	schemes: ReadonlyArray<Row<'statutory_contributions'>>;
-	catalogueLeaves: ReadonlyArray<Row<'leave_catalogue'>>;
-	loanCatalogue: ReadonlyArray<Row<'loan_catalogue'>>;
-	claimCatalogue: ReadonlyArray<Row<'claim_catalogue'>>;
-	adhocCatalogue: ReadonlyArray<Row<'adhoc_catalogue'>>;
-	allowanceCatalogue: ReadonlyArray<Row<'allowance_catalogue'>>;
+	schemes: readonly Row<'statutory_contributions'>[];
+	catalogueLeaves: readonly Row<'leave_catalogue'>[];
+	loanCatalogue: readonly Row<'loan_catalogue'>[];
+	claimCatalogue: readonly Row<'claim_catalogue'>[];
+	adhocCatalogue: readonly Row<'adhoc_catalogue'>[];
+	allowanceCatalogue: readonly Row<'allowance_catalogue'>[];
 }>;
 
 /** The nested write that creates a draft: the root and every child row created under it. */
-export type SettingsDraftWrite = CreateInput;
+export type SettingsDraftWrite = Insert<'jurisdiction_settings'>;
 
-/** Reads a version and every row under it; refuses when it does not exist or is too large. */
-export const readSettingsVersionTree = (
-	api: SettingsCloneApi,
-	settingsId: string
-): Effect.Effect<SettingsVersionTree> =>
-	Effect.gen(function* () {
-		const source = yield* api.db.jurisdiction_settings.findFirst({
-			where: { id: { eq: settingsId }, approval_id: { isNull: true } }
-		});
-		if (source == null) refuse('The jurisdiction settings version to clone does not exist.');
-		const under = { settings_id: { eq: source.id }, approval_id: { isNull: true } } as const;
-		const [
-			schemes,
-			catalogueLeaves,
-			loanCatalogue,
-			claimCatalogue,
-			adhocCatalogue,
-			allowanceCatalogue
-		] = yield* Effect.all(
-			[
-				api.db.statutory_contributions.findMany({ where: under, limit: LIMIT }),
-				api.db.leave_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.loan_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.claim_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.adhoc_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.allowance_catalogue.findMany({ where: under, limit: LIMIT })
-			],
-			{ concurrency: 'unbounded' }
-		);
-		for (const rows of [
-			schemes,
-			catalogueLeaves,
-			loanCatalogue,
-			claimCatalogue,
-			adhocCatalogue,
-			allowanceCatalogue
-		])
-			if (rows.length >= LIMIT) refuse('The version is too large to clone safely.');
-		return {
-			source,
-			schemes,
-			catalogueLeaves,
-			loanCatalogue,
-			claimCatalogue,
-			adhocCatalogue,
-			allowanceCatalogue
-		};
-	});
-
-type SettingsDraftOptions = Readonly<{
-	/** The first day the new version governs, YYYY-MM-DD. */
-	starts_on: string;
-	name?: string | undefined;
-}>;
-
-/**
- * The write that creates the draft, pure over the tree. Nothing carries an id: the runtime
- * assigns the draft's own and every child's.
- *
- * Scheme rows keep their codes under new ids. A scheme's base names catalogue rows by family and
- * code, so the clone carries every declaration unchanged.
- */
-export function settingsDraftWrite(
-	tree: SettingsVersionTree,
-	options: SettingsDraftOptions
-): Readonly<{ name: string; write: SettingsDraftWrite }> {
-	const {
-		source,
-		schemes,
-		catalogueLeaves,
-		loanCatalogue,
-		claimCatalogue,
-		adhocCatalogue,
-		allowanceCatalogue
-	} = tree;
-	const sourceRange = readRange(source.effective_range);
-	const sourceStart = sourceRange == null ? '' : dateKey(sourceRange.start);
-	if (sourceStart !== '' && options.starts_on <= sourceStart)
-		refuse(`A new version starts after ${describeVersion(source)} begins (${sourceStart}).`);
-	const {
-		id: _sourceId,
-		approval_id: _approval,
-		created_at: _created,
-		updated_at: _updated,
-		row_version: _version,
-		sys_period: _period,
-		record_embedding: _embedding,
-		embedded_at: _embeddedAt,
-		record_embedding_fingerprint: _fingerprint,
-		// The predecessor's change note describes the predecessor; the drafter writes this one.
-		change_summary: _summary,
-		...root
-	} = source;
-	const name = options.name ?? `${source.code} from ${options.starts_on}`;
+/** Reads a version and every row under it (one wave for the children); refuses when it does not exist. */
+export async function readSettingsVersionTree(
+	ctx: Reads,
+	settingsId: string,
+	refuse: Refuse
+): Promise<SettingsVersionTree> {
+	const source = await ctx.get(
+		'jurisdiction_settings',
+		settingsId as Row<'jurisdiction_settings'>['id'],
+		{ select: everyField('jurisdiction_settings') }
+	);
+	if (source == null || source.approval_id != null)
+		refuse('The jurisdiction settings version to clone does not exist.');
+	const under = {
+		where: { settings_id: { eq: source.id }, approval_id: { isNull: true } },
+		all: true
+	} as const;
+	const [schemes, leave, loan, claim, adhoc, allowance] = await Promise.all([
+		ctx.read('statutory_contributions', {
+			...under,
+			select: everyField('statutory_contributions')
+		}),
+		ctx.read('leave_catalogue', { ...under, select: everyField('leave_catalogue') }),
+		ctx.read('loan_catalogue', { ...under, select: everyField('loan_catalogue') }),
+		ctx.read('claim_catalogue', { ...under, select: everyField('claim_catalogue') }),
+		ctx.read('adhoc_catalogue', { ...under, select: everyField('adhoc_catalogue') }),
+		ctx.read('allowance_catalogue', { ...under, select: everyField('allowance_catalogue') })
+	]);
 	return {
-		name,
-		write: {
-			...root,
-			name,
-			sealed_at: null,
-			voided_at: null,
-			void_reason: null,
-			cloned_from_id: source.id,
-			effective_range: { start: `${options.starts_on}T00:00:00.000Z`, end: null },
-			work_rules: root.work_rules,
-			contribution_settings: { create: schemes.map(cloneRow) },
-			leave_catalogue_settings: { create: catalogueLeaves.map(cloneRow) },
-			loan_catalogue_settings: { create: loanCatalogue.map(cloneRow) },
-			claim_catalogue_settings: { create: claimCatalogue.map(cloneRow) },
-			adhoc_catalogue_settings: { create: adhocCatalogue.map(cloneRow) },
-			allowance_catalogue_settings: { create: allowanceCatalogue.map(cloneRow) }
-		}
+		source,
+		schemes: schemes.rows,
+		catalogueLeaves: leave.rows,
+		loanCatalogue: loan.rows,
+		claimCatalogue: claim.rows,
+		adhocCatalogue: adhoc.rows,
+		allowanceCatalogue: allowance.rows
 	};
 }
 
-/** What a clone reports: the draft's id and its provenance. */
-type SettingsDraftCreated = Readonly<{
-	id: string;
-	code: string;
-	cloned_from_id: string;
-}>;
+/** A stored row as a nested create accepts it: without the runtime's columns. */
+const cloneRow = (row: object): Record<string, unknown> =>
+	Object.fromEntries(Object.entries(row).filter(([column]) => !SYSTEM.has(column)));
 
-/** Writes the draft in one nested write; the committed row carries the draft's id. */
-export const createSettingsDraft = (
-	api: SettingsCloneApi,
+/**
+ * The write that creates the draft, pure over the tree. Nothing carries an id: the runtime assigns the draft's own and
+ * every child's. Scheme rows keep their codes under new ids; a scheme's base names catalogue rows by family and code,
+ * so the clone carries every declaration unchanged.
+ */
+export function settingsDraftWrite(
+	tree: SettingsVersionTree,
+	options: Readonly<{ starts_on: string; name?: string | null | undefined }>,
+	refuse: Refuse
+): Readonly<{ name: string; write: SettingsDraftWrite }> {
+	const { source } = tree;
+	const sourceStart = governed(source.effective_range)?.from ?? '';
+	if (sourceStart !== '' && options.starts_on <= sourceStart)
+		refuse(`A new version starts after ${describeVersion(source)} begins (${sourceStart}).`);
+	// The predecessor's change note describes the predecessor; the drafter writes this one.
+	const { change_summary: _summary, ...root } = cloneRow(source);
+	const name = options.name ?? `${source.code} from ${options.starts_on}`;
+	const children: Record<Family, readonly object[]> = {
+		statutory_contributions: tree.schemes,
+		leave_catalogue: tree.catalogueLeaves,
+		loan_catalogue: tree.loanCatalogue,
+		claim_catalogue: tree.claimCatalogue,
+		adhoc_catalogue: tree.adhocCatalogue,
+		allowance_catalogue: tree.allowanceCatalogue
+	};
+	const write = {
+		...root,
+		name,
+		sealed_at: null,
+		voided_at: null,
+		void_reason: null,
+		cloned_from_id: source.id,
+		effective_range: { from: options.starts_on, to: null },
+		...Object.fromEntries(
+			FAMILIES.map((family) => [family, { create: children[family].map(cloneRow) }])
+		)
+	};
+	return { name, write: write as SettingsDraftWrite };
+}
+
+/** What a clone reports: the draft's id and its provenance. */
+type SettingsDraftCreated = Readonly<{ id: string; code: string; cloned_from_id: string }>;
+
+/** Writes the draft in one nested write; the committed records carry the draft's id. */
+export async function createSettingsDraft(
+	ctx: { readonly act: Act },
 	tree: SettingsVersionTree,
 	draft: Readonly<{ name: string; write: SettingsDraftWrite }>
-): Effect.Effect<SettingsDraftCreated> =>
-	Effect.map(api.collection.jurisdiction_settings.create(draft.write), (created) => ({
-		id: created.id,
-		code: tree.source.code,
-		cloned_from_id: tree.source.id
-	}));
-
-/** The three steps as one: the Settings timeline's New version. */
-export const cloneSettingsVersion = (
-	api: SettingsCloneApi,
-	settingsId: string,
-	options: SettingsDraftOptions
-): Effect.Effect<SettingsDraftCreated> =>
-	Effect.gen(function* () {
-		const tree = yield* readSettingsVersionTree(api, settingsId);
-		const draft = settingsDraftWrite(tree, options);
-		return yield* createSettingsDraft(api, tree, draft);
-	});
+): Promise<SettingsDraftCreated> {
+	const outcome = await ctx.act('jurisdiction_settings.create', draft.write);
+	const created = outcome.records.find((record) => record.collection === 'jurisdiction_settings');
+	return { id: created?.id ?? '', code: tree.source.code, cloned_from_id: tree.source.id };
+}

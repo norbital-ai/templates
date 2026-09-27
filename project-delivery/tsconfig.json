@@ -1,4 +1,8 @@
 {
 	"extends": "./.norbital/tsconfig.json",
-	"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "node_modules", ".norbital/dist"]
+	"compilerOptions": {
+		"lib": ["ES2024", "DOM", "DOM.Iterable"],
+		"types": ["vite/client", "node"]
+	},
+	"exclude": ["node_modules", ".norbital/dist"]
 }

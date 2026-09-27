@@ -30,7 +30,7 @@ import {
 	settingsVersions
 } from './fixtures/statutory-world.ts';
 import { computedEntitlement } from '../src/lib/leave/entitlement.ts';
-import type { PersonContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import type { PersonContext } from '../src/lib/payroll/run/eligibility.ts';
 
 const PERIODS = ['2025-12', '2026-01', '2026-04', '2026-10'] as const;
 
@@ -212,7 +212,7 @@ const weeklyConversion = (month: string, paidRestDays: boolean) => {
 			world.employment_terms.push({
 				...current,
 				id: 'f5000000-0000-4000-8000-000000000001',
-				base_salary: { ...current.base_salary, value: 3_500 },
+				base_salary: 3_500,
 				effective_range: { start: '2015-01-01', end: week.wednesday }
 			});
 			current.effective_range = { start: week.wednesday, end: null };

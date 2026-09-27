@@ -15,9 +15,8 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { memoryPayrollApi, refusalMessage } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { payrollWorld, refusalMessage } from './fixtures/memory-payroll-api.ts';
 import { capturesOf, settle as settleSource } from './helpers/settlement.ts';
 import {
 	COMPANY_ID,
@@ -40,9 +39,7 @@ const BEFORE = {
 const cents = (value) => Math.round(value * 100) / 100;
 
 async function build(world, period) {
-	const prepared = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-	);
+	const prepared = gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period });
 	return { prepared, built: buildPayrollRun(prepared) };
 }
 
@@ -296,7 +293,7 @@ const PUB_TAX_EMPLOYEE = `round_cent((${PUB_TAX_SCALED} - scheme.year_to_date.em
 
 test('the tax projection over twenty-four half payslips lands where twelve monthly ones did', async () => {
 	const world = createSemiMonthlyPayrollWorld();
-	world.employment_terms[0].base_salary = { value: SEMI_MONTHLY_BASE, currency: 'MYR' };
+	world.employment_terms[0].base_salary = SEMI_MONTHLY_BASE;
 	clearAllowances(world);
 	world.statutory_contributions.push({
 		id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa9',

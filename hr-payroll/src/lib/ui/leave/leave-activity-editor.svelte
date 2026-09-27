@@ -6,23 +6,24 @@
 	 * of its fields. The picker below is therefore a control over the field set, and the classifier
 	 * both this form and the approval flow read is `leaveActivityOf`.
 	 */
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Input } from '@norbital-ai/ui/input';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { formatCalendarDate } from '../../ui/display-formatters.js';
+	import Labelled from '../Labelled.svelte';
+	import { t } from '../t.js';
+	import { fromStore } from 'svelte/store';
+	import { bolt } from '$bolt';
+	import type { Id } from '@norbital-ai/bolt';
+	import { PlainDate } from '@norbital-ai/std/date';
+	import { Combobox, DateInput, Input } from '@norbital-ai/ui';
+	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import HalfDayRangePicker, {
 		type HalfDayRange,
 		type LeaveDayAvailability
 	} from '../../ui/leave/half-day-range-picker.svelte';
 	import { todayKey } from '../../ui/calendar.js';
 	import { leaveWindowOf } from '../../leave/entitlement.js';
-	import { addDays } from '../../../collections/payroll_runs/lib/dates.js';
+	import { addDays } from '../../../lib/payroll/run/dates.js';
 	import { numberFrom } from '../../ui/renderer-input.js';
-	import { client } from '../../workspace-client.js';
-	import type { RemoteQuery } from '@norbital-ai/std/collection';
-	import type { LeaveDayPreview, LeavePreview, PreviewLeaveInput } from '../../leave/preview.js';
+	import { plain } from '../../wire.js';
+	import type { LeaveDayPreview, LeavePreview } from '../../leave/preview.js';
 	import {
 		defaultTimeOffFields,
 		emptyActivityFields,
@@ -32,18 +33,18 @@
 		type LeaveEntryActivity
 	} from '../../leave/activity-fields.js';
 	import { timeOffRangeOf } from '../../leave/activity.js';
+	import * as Predicate from 'effect/Predicate';
 
 	type Props = {
 		readonly values: Readonly<Record<string, unknown>>;
 		readonly onValuesChange: (patch: LeaveEntryActivity) => void;
 		readonly disabled: boolean;
 		readonly selfService: boolean;
-		readonly employmentId: string | null;
-		readonly catalogueId: string | null;
+		readonly employmentId: Id<'employments'> | null;
+		readonly catalogueId: Id<'leave_catalogue'> | null;
 	};
 	let { values, onValuesChange, disabled, selfService, employmentId, catalogueId }: Props =
 		$props();
-	const { t } = useI18n<TenantI18nKeys>();
 	const fields = $derived(normaliseLeaveDays(values as LeaveEntryActivity));
 	const activity = $derived(leaveActivityOf(fields));
 	const range = $derived(timeOffRangeOf(fields));
@@ -53,7 +54,7 @@
 		)
 	);
 	let calendarMonth = $state(todayKey().slice(0, 7));
-	const previewInput = $derived.by((): PreviewLeaveInput | null => {
+	const previewInput = $derived.by(() => {
 		if (disabled || activity !== 'TIME_OFF' || employmentId == null || catalogueId == null)
 			return null;
 		if (range == null) return null;
@@ -61,56 +62,81 @@
 			employment_id: employmentId,
 			catalogue_id: catalogueId,
 			calendar_month: calendarMonth,
-			range
+			range: {
+				start: { ...range.start, date: PlainDate(range.start.date) },
+				end: { ...range.end, date: PlainDate(range.end.date) }
+			}
 		};
 	});
-	const previewQuery = $derived(
+	const previewLive = $derived(
 		previewInput == null
 			? null
-			: (client.invoke.preview_leave(previewInput) as RemoteQuery<LeavePreview>)
+			: bolt.live(bolt.query('leave_entries.preview_leave', previewInput), {
+					on: ['leave_entries', 'work_days', 'leave_catalogue']
+				})
 	);
-	const preview = $derived(previewQuery?.current);
+	const previewStore = $derived(previewLive == null ? null : fromStore(previewLive));
+	// The query answers `json`: its shape is `LeavePreview`, asserted where it enters.
+	const preview = $derived(previewStore?.current as LeavePreview | undefined);
 	const disabledReason = $derived.by(() => {
 		if (disabled) return null;
 		if (employmentId == null) return t('component.leave_picker_disabled_no_employment');
 		if (catalogueId == null) return t('component.leave_picker_disabled_no_catalogue_leave');
-		if (previewQuery?.error) return previewQuery.error.message;
-		if (previewQuery?.loading && preview == null)
-			return t('component.leave_picker_loading_schedule');
+		if (previewLive?.error) return previewLive.error.message;
+		if (previewLive != null && preview == null) return t('component.leave_picker_loading_schedule');
 		return null;
 	});
-	const originalsQuery = $derived(
-		activity === 'REVERSAL' && employmentId != null
-			? client.db.leave_entries.findMany({
-					where: {
-						employment_id: { eq: employmentId },
-						approval_id: { isNull: true },
-						as_adjustment_entry: { eq: false },
-						...(disabled
-							? { id: { eq: fields.reversal_of_id ?? '' } }
-							: { leave_original_reversals: { none: { approval_id: { isNull: true } } } })
-					},
-					columns: { id: true, reference: true, leave_code: true, summary: true },
-					orderBy: { effective_on: 'desc' },
-					limit: 2_000
-				})
+	/** The reversed entry a held reversal names; the form's value is text, asserted where it enters. */
+	const reversed = $derived(
+		fields.reversal_of_id == null || fields.reversal_of_id === ''
+			? null
+			: (fields.reversal_of_id as Id<'leave_entries'>)
+	);
+	/**
+	 * The entries a reversal may name: this person's own settled ones no settled reversal already undid. A locked
+	 * reversal reads only the entry it names (none yet: nothing to read).
+	 */
+	const originalsLive = $derived(
+		activity === 'REVERSAL' && employmentId != null && (!disabled || reversed != null)
+			? bolt.live(
+					bolt.read('leave_entries', {
+						where: {
+							employment_id: { eq: employmentId },
+							approval_id: { isNull: true },
+							as_adjustment_entry: { eq: false },
+							...(disabled && reversed != null
+								? { id: { eq: reversed } }
+								: { reversals: { none: { approval_id: { isNull: true } } } })
+						},
+						select: { reference: true, leave_code: true, summary: true },
+						orderBy: { effective_on: 'desc' },
+						all: true
+					})
+				)
 			: null
 	);
-	const originalOptions = $derived(
-		(originalsQuery?.current ?? [])
-			.filter((row) => disabled || row.leave_code === catalogue?.code)
-			.map((row) => ({ value: row.id, label: `${row.reference} · ${row.summary}` }))
-	);
-	const catalogueQuery = $derived(
+	const originals = $derived(originalsLive == null ? null : fromStore(originalsLive));
+	const catalogueStore = $derived(
 		disabled || catalogueId == null
 			? null
-			: client.db.leave_catalogue.findFirst({
-					where: { id: { eq: catalogueId } },
-					with: { leave_catalogue_settings: { columns: { payroll: true } } }
-				})
+			: fromStore(
+					bolt.live(
+						bolt.get('leave_catalogue', catalogueId, {
+							code: true,
+							unit: true,
+							entitlement: true
+						})
+					)
+				)
 	);
-
-	const catalogue = $derived(catalogueQuery?.current);
+	const catalogue = $derived(
+		catalogueStore?.current == null ? undefined : plain(catalogueStore.current)
+	);
+	const originalOptions = $derived(
+		(originals?.current?.rows ?? [])
+			.filter((row) => disabled || row.leave_code === catalogue?.code)
+			.map((row) => ({ value: row.id, label: `${row.reference} · ${row.summary ?? ''}` }))
+	);
 
 	function reasonCopy(day: LeaveDayPreview): string | undefined {
 		switch (day.reason_code) {
@@ -155,7 +181,7 @@
 	function selectKind(kind: LeaveActivityKind | null): void {
 		if (!kind || kind === activity) return;
 		const on = todayKey();
-		const period = catalogueQuery?.current?.entitlement ?? 1;
+		const period = catalogue?.entitlement ?? 1;
 		const window = leaveWindowOf(on, period);
 		const common = { effective_on: on, reason: null };
 		switch (kind) {
@@ -218,33 +244,27 @@
 			days: null
 		});
 	}
-	const persistedDays = $derived(typeof fields.days === 'number' ? fields.days : null);
+	const persistedDays = $derived(Predicate.isNumber(fields.days) ? fields.days : null);
 </script>
 
 {#snippet dateField(label: string, value: string, change: (value: string) => void)}
-	<label class="text-sm font-medium"
-		><Stack gap="xs"
-			>{label}<Input
-				type="date"
-				{value}
-				{disabled}
-				oninput={(event) => change(event.currentTarget.value)}
-			/></Stack
-		></label
-	>
+	<Labelled {label} class="text-sm font-medium">
+		<DateInput value={value || null} {disabled} onChange={(next) => change(next ?? '')} />
+	</Labelled>
 {/snippet}
 
 <Grid gap="sm" minimum="compact">
 	{#if !selfService}
-		<Column span="all"
-			><Combobox
+		<Column span="all">
+			<Combobox
+				class="w-full"
 				options={kinds}
 				value={activity}
 				{disabled}
-				searchable={false}
-				onValueChange={selectKind}
-			/></Column
-		>
+				aria-label={t('leave.activity')}
+				onChange={selectKind}
+			/>
+		</Column>
 	{/if}
 	{#if activity === 'TIME_OFF'}
 		<Column span="all">
@@ -270,60 +290,48 @@
 				</p>{/if}
 		</Column>
 		{#if catalogue?.unit === 'HOUR'}
-			<label class="text-sm font-medium"
-				><Stack gap="xs">
-					{t('leave.hours')}
-					<Input
-						type="number"
-						step="0.5"
-						min="0.5"
-						value={fields.hours ?? ''}
-						{disabled}
-						oninput={(event) => emit({ hours: numberFrom(event.currentTarget.value, 0) || null })}
-					/>
-				</Stack></label
-			>
+			<Labelled label={t('leave.hours')} class="text-sm font-medium">
+				<Input
+					type="number"
+					step="0.5"
+					min="0.5"
+					value={fields.hours ?? ''}
+					{disabled}
+					oninput={(event) => emit({ hours: numberFrom(event.currentTarget.value, 0) || null })}
+				/>
+			</Labelled>
 		{/if}
 		{#if catalogue?.entitlement?.availability === 'PER_EVENT'}
 			<!-- A grant per event: what happened, to whom, which child, when — the bands read these. -->
-			<label class="text-sm font-medium"
-				><Stack gap="xs">
-					{t('leave.event_kind')}
-					<Input
-						value={fields.event_kind ?? ''}
-						{disabled}
-						placeholder="BIRTH"
-						oninput={(event) =>
-							emit({ event_kind: event.currentTarget.value.trim().toUpperCase() || null })}
-					/>
-				</Stack></label
-			>
-			<label class="text-sm font-medium"
-				><Stack gap="xs">
-					{t('leave.event_relationship')}
-					<Input
-						value={fields.event_relationship ?? ''}
-						{disabled}
-						placeholder="SPOUSE"
-						oninput={(event) =>
-							emit({ event_relationship: event.currentTarget.value.trim().toUpperCase() || null })}
-					/>
-				</Stack></label
-			>
-			<label class="text-sm font-medium"
-				><Stack gap="xs">
-					{t('leave.event_child_index')}
-					<Input
-						type="number"
-						step="1"
-						min="1"
-						value={fields.event_child_index ?? ''}
-						{disabled}
-						oninput={(event) =>
-							emit({ event_child_index: numberFrom(event.currentTarget.value, 0) || null })}
-					/>
-				</Stack></label
-			>
+			<Labelled label={t('leave.event_kind')} class="text-sm font-medium">
+				<Input
+					value={fields.event_kind ?? ''}
+					{disabled}
+					placeholder="BIRTH"
+					oninput={(event) =>
+						emit({ event_kind: event.currentTarget.value.trim().toUpperCase() || null })}
+				/>
+			</Labelled>
+			<Labelled label={t('leave.event_relationship')} class="text-sm font-medium">
+				<Input
+					value={fields.event_relationship ?? ''}
+					{disabled}
+					placeholder="SPOUSE"
+					oninput={(event) =>
+						emit({ event_relationship: event.currentTarget.value.trim().toUpperCase() || null })}
+				/>
+			</Labelled>
+			<Labelled label={t('leave.event_child_index')} class="text-sm font-medium">
+				<Input
+					type="number"
+					step="1"
+					min="1"
+					value={fields.event_child_index ?? ''}
+					{disabled}
+					oninput={(event) =>
+						emit({ event_child_index: numberFrom(event.currentTarget.value, 0) || null })}
+				/>
+			</Labelled>
 			{@render dateField(t('leave.event_date'), fields.event_date ?? '', (event_date) => {
 				emit({ event_date: event_date || null });
 			})}
@@ -373,42 +381,36 @@
 				emit({ to_date });
 			})}
 		{:else if activity === 'REVERSAL'}
-			<label class="text-sm font-medium"
-				><Stack gap="xs"
-					>{t('leave.original_entry')}
-					<Combobox
-						options={originalOptions}
-						value={fields.reversal_of_id || null}
-						{disabled}
-						onValueChange={(reversal_of_id) => {
-							if (reversal_of_id) emit({ reversal_of_id });
-						}}
-					/>
-				</Stack></label
-			>
-			{#if originalsQuery?.error}<p class="text-sm text-destructive" role="alert">
-					{originalsQuery.error.message}
+			<Labelled label={t('leave.original_entry')} class="text-sm font-medium">
+				<Combobox
+					class="w-full"
+					placeholder="—"
+					options={originalOptions}
+					value={reversed}
+					{disabled}
+					onChange={(next) => next != null && emit({ reversal_of_id: next })}
+				/>
+			</Labelled>
+			{#if originalsLive?.error}<p class="text-sm text-destructive" role="alert">
+					{originalsLive.error.message}
 				</p>{/if}
 			<Column span="all"><p class="text-meta">{t('leave.reversal_hint')}</p></Column>
 		{/if}
 		{#if activity !== 'REVERSAL'}
-			<label class="text-sm font-medium"
-				><Stack gap="xs"
-					>{t('component.days')}
-					<Input
-						type="number"
-						step="0.5"
-						min={activity === 'ADJUSTMENT' ? undefined : 0.5}
-						value={fields.days ?? ''}
-						{disabled}
-						oninput={(event) => {
-							const days = numberFrom(event.currentTarget.value, 0);
-							if (activity === 'ENCASHMENT') emit({ days, encash_days: days });
-							else emit({ days });
-						}}
-					/>
-				</Stack></label
-			>
+			<Labelled label={t('component.days')} class="text-sm font-medium">
+				<Input
+					type="number"
+					step="0.5"
+					min={activity === 'ADJUSTMENT' ? undefined : 0.5}
+					value={fields.days ?? ''}
+					{disabled}
+					oninput={(event) => {
+						const days = numberFrom(event.currentTarget.value, 0);
+						if (activity === 'ENCASHMENT') emit({ days, encash_days: days });
+						else emit({ days });
+					}}
+				/>
+			</Labelled>
 		{/if}
 		{#if activity === 'ENCASHMENT' || activity === 'REVERSAL'}
 			{@render dateField(t('leave.due_on'), fields.due_on ?? '', (due_on) => {
@@ -420,15 +422,12 @@
 		{/if}
 	{/if}
 	<Column span="all"
-		><label class="text-sm font-medium"
-			><Stack gap="xs">
-				{t('renderer.leave_activity.reason')}
-				<Input
-					value={fields.reason ?? ''}
-					{disabled}
-					oninput={(event) => emit({ reason: event.currentTarget.value.trim() || null })}
-				/>
-			</Stack></label
-		></Column
+		><Labelled label={t('renderer.leave_activity.reason')} class="text-sm font-medium">
+			<Input
+				value={fields.reason ?? ''}
+				{disabled}
+				oninput={(event) => emit({ reason: event.currentTarget.value.trim() || null })}
+			/>
+		</Labelled></Column
 	>
 </Grid>

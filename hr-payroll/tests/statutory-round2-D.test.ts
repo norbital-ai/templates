@@ -16,15 +16,17 @@ import {
 	buildStatutory,
 	COMPANY_ID,
 	leaveCatalogue,
+	settingsVersions,
+	settingsIdOn,
 	type BuiltPayslip,
 	type Lineage
 } from './fixtures/statutory-world.ts';
 import { computedEntitlement, leaveWindowOf } from '../src/lib/leave/entitlement.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
 
-const SG_2026 = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+const SG_2026 = settingsIdOn('SG', '2026-01-15');
 
 const workLines = (slip: BuiltPayslip) =>
 	slip.adjustments
@@ -279,10 +281,10 @@ test('MY round 2 — s.60A(7): twelve hours of work a day are twelve worked hour
 //   Labor Code arts.298–299 (separation pay by authorised cause).
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-const PH_2026 = 'bb5137fd-d7fd-4a26-8eae-77211521f892';
+const PH_2026 = settingsIdOn('PH', '2026-01-02');
 // The version governing 31 January 2026 since RR 29-2025 split January on the 6th: a separation
 // row must come from the catalogue in force on the final service day.
-const PH_2026_JAN6 = 'b585862c-5438-5a97-a36d-44e55ceb5498';
+const PH_2026_JAN6 = settingsIdOn('PH', '2026-01-31');
 
 test('PH round 2 — a double holiday is 200% unworked and 300% worked; the second day needs the workday before', () => {
 	// ₱21,750 a month on the 261 factor is ₱1,000 a day (21,750 × 12 ÷ 261) and ₱125 an hour;
@@ -503,7 +505,7 @@ test('TW round 2 — a part-timer holds 特別休假 and sick leave by hours; th
 	//   sick: 20 ÷ 40 × 30 × 8 = 120 hours ÷ 8 = 15 days.
 	//   20 hours over five days (4 a day) — the full-timer's days on shorter hours — keeps 15
 	//   (the guideline's proviso): 20 ÷ 40 × 15 × 8 = 60 hours ÷ 4 = 15.
-	const TW_2026 = '1fcfa66f-40da-5792-b925-7c2fcaa8f92c';
+	const TW_2026 = settingsIdOn('TW', '2026-01-15');
 	const half = { hours: 20, days: 2.5 };
 	const five = { hours: 20, days: 5 };
 	assert.equal(
@@ -523,12 +525,11 @@ test('TW round 2 — a part-timer holds 特別休假 and sick leave by hours; th
 test('MY round 2 — a part-timer’s annual and sick leave are reg.7–8’s own ladders', () => {
 	// reg.7(1): 6 days under two years, 8 from two to under five, 11 from five; reg.8(1): 10,
 	// 13, 15. The windows are calendar years; a 1 January hire has whole years.
-	const MY_2026 = 'b6d75df0-74b0-5e56-84c0-8be5ff398c0d';
 	const week = { hours: 20, days: 5 };
-	for (const [code, id] of [
-		['MY', MY_2026],
-		['MY-nihon', 'f65bb7cb-b8eb-563e-9ee3-fda47351ed31']
-	] as const) {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const id = settingsVersions(code).find(
+			(row) => row.voided_at == null && String(row.effective_range.start).startsWith('2026-07')
+		)!.id;
 		const at = (leave: string, hire: string) =>
 			entitlement(code, id, leave, 'PART_TIME', week, hire, '2026-12-31');
 		assert.deepEqual(

@@ -6,6 +6,7 @@ import {
 	type SheetCell,
 	type WorkbookGrids
 } from './workbook-rows.js';
+import * as Predicate from 'effect/Predicate';
 
 const HOLIDAYS_SHEET_NAME = 'Holidays';
 const README_SHEET_NAME = 'read me first';
@@ -31,7 +32,7 @@ type HolidayWorkbookRow = {
 function isIgnoredSheet(name: string, grid: readonly (readonly SheetCell[])[]): boolean {
 	if (name.trim().toLowerCase() === README_SHEET_NAME) return true;
 	return grid.every((row) =>
-		row.every((cell) => cell == null || (typeof cell === 'string' && cell.trim() === ''))
+		row.every((cell) => cell == null || (Predicate.isString(cell) && cell.trim() === ''))
 	);
 }
 

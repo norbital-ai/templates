@@ -1,36 +1,42 @@
 /**
  * Sealing a draft settings version: the rows one write carries.
  *
- * The predecessor — the sealed, live version that starts before the draft — ends where the draft
- * begins; the draft seals with its end at the next sealed version's start, open where there is
- * none. One batch, because the collection reads the batch to see the predecessor ended: two
- * writes would leave a shortened predecessor and an unsealed draft if the seal refused.
+ * The predecessor — the sealed, live version that starts before the draft — ends the day before the
+ * draft begins; the draft seals with its end the day before the next sealed version, open where there
+ * is none. One batch, because the collection reads the batch to see the predecessor ended: two writes
+ * would leave a shortened predecessor and an unsealed draft if the seal refused.
  */
 
-import { readRange, type StoredRange } from '../collections/payroll_runs/lib/effective.js';
+import type { Id, Instant } from '@norbital-ai/bolt';
+import { PlainDate } from '@norbital-ai/std/date';
+import { addDays } from '../lib/payroll/run/dates.js';
+import { governed } from './jurisdiction_settings.js';
 
 type VersionRow = {
-	readonly id: string;
+	readonly id: Id<'jurisdiction_settings'>;
 	readonly effective_range: unknown;
 	readonly sealed_at: string | null;
 	readonly voided_at: string | null;
 };
 
-type SealWrite = {
-	readonly id: string;
-	readonly effective_range: StoredRange;
-	readonly sealed_at?: string;
+/** One update of the seal's batch: `{ target, set }`, as `ctx.act('jurisdiction_settings.update', …)` takes it. */
+export type SealWrite = {
+	readonly target: Id<'jurisdiction_settings'>;
+	readonly set: {
+		readonly effective_range: { from: PlainDate; to: PlainDate | null };
+		readonly sealed_at?: Instant;
+	};
 };
 
 /** The sealed, live neighbours a draft slots between, by start day. */
 export function sealNeighbours<T extends VersionRow>(
 	draft: T,
 	lineage: readonly T[]
-): { readonly before?: T; readonly after?: T } {
-	const start = readRange(draft.effective_range)?.start ?? '';
+): { readonly before: T | undefined; readonly after: T | undefined } {
+	const start = governed(draft.effective_range)?.from ?? '';
 	const live = lineage
 		.filter((row) => row.id !== draft.id && row.sealed_at != null && row.voided_at == null)
-		.map((row) => ({ row, start: readRange(row.effective_range)?.start ?? '' }))
+		.map((row) => ({ row, start: governed(row.effective_range)?.from ?? '' }))
 		.filter((entry) => entry.start !== '');
 	const before = live
 		.filter((entry) => entry.start < start)
@@ -44,22 +50,36 @@ export function sealNeighbours<T extends VersionRow>(
 export function sealWrites<T extends VersionRow>(
 	draft: T,
 	lineage: readonly T[],
-	sealedAt: string
+	sealedAt: Instant
 ): readonly SealWrite[] {
-	const start = readRange(draft.effective_range)?.start ?? '';
+	const start = governed(draft.effective_range)?.from ?? '';
 	const { before, after } = sealNeighbours(draft, lineage);
 	const predecessor =
 		before == null
 			? []
 			: [
 					{
-						id: before.id,
-						effective_range: { start: readRange(before.effective_range)!.start, end: start }
+						target: before.id,
+						set: {
+							effective_range: {
+								from: PlainDate(governed(before.effective_range)!.from),
+								to: PlainDate(addDays(start, -1))
+							}
+						}
 					}
 				];
-	const successorStart = after == null ? null : readRange(after.effective_range)!.start;
+	const successorStart = after == null ? null : governed(after.effective_range)!.from;
 	return [
 		...predecessor,
-		{ id: draft.id, effective_range: { start, end: successorStart }, sealed_at: sealedAt }
+		{
+			target: draft.id,
+			set: {
+				effective_range: {
+					from: PlainDate(start),
+					to: successorStart == null ? null : PlainDate(addDays(successorStart, -1))
+				},
+				sealed_at: sealedAt
+			}
+		}
 	];
 }

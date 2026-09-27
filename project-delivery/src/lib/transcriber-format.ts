@@ -9,3 +9,7 @@ export function formatDuration(totalSeconds: number): string {
 	const seconds = total % 60;
 	return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
+
+/** A thrown value's message: an `Error`'s own, anything else as text. */
+export const getErrorMessage = (error: unknown): string =>
+	String(error instanceof Error ? error.message : error);

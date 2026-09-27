@@ -256,7 +256,7 @@ applicable law and documented facts.
 Approval makes an entry eligible for payroll; it does not establish that the ordinary day rate
 is the correct statutory conversion basis. Jurisdiction-specific valuation, final-pay deadlines,
 tax-clearance holds and corrections after a request is raised remain subject to the
-[compliance matrix](compliance-matrix.md#release-blockers).
+[jurisdiction obligation registers](inventory/README.md).
 
 Before approval, HR reconciles attendance, approved leave and pending applications through the
 last service date. Reject an incorrect held request and record the corrected transaction with

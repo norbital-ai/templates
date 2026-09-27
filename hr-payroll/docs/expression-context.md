@@ -60,10 +60,14 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
-| `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
+| `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
+| `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
 | `employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
 | `employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
+| `employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
+| `employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
+| `employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -96,10 +100,15 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `terms.notice_days` | Notice days the contract states, 0 when none |
 | `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
+| `terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
+| `terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
 | `terms.working_days_per_week` | Roster-measured working week, days |
-| `children.count` | Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions |
+| `children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `children.under(n)` | Children under n completed years |
 | `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
+| `children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
+| `children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
@@ -133,7 +142,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `event.date` | The day of the event, or empty |
 | `event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `event.child_age` | The named child’s completed years, -1 when none is named |
-| `event.child_shared_weeks` | The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded |
+| `event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
@@ -184,10 +193,14 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
-| `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
+| `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
+| `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
 | `person.employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
 | `person.employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
+| `person.employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
+| `person.employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
+| `person.employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -220,10 +233,15 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
+| `person.terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
+| `person.terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
-| `person.children.count` | Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions |
+| `person.children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `person.children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
+| `person.children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
+| `person.children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
@@ -257,7 +275,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.event.date` | The day of the event, or empty |
 | `person.event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `person.event.child_age` | The named child’s completed years, -1 when none is named |
-| `person.event.child_shared_weeks` | The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded |
+| `person.event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `person.event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
@@ -272,6 +290,18 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `entry.quantity` | Recorded quantity |
 | `entry.event_date` | The day the entry belongs to |
 | `entry.period` | Pay period key the entry settles in |
+| `entry.medical.due_on` | Date treatment reimbursement becomes payable |
+| `entry.medical.incurred_on` | Date reimbursed expense was incurred |
+| `entry.medical.amount_incurred` | Actual treatment expense |
+| `entry.medical.patient` | Treatment patient relationship |
+| `entry.medical.relationship_from` | First day of the patient relationship |
+| `entry.medical.relationship_through` | Last day of the patient relationship, or empty |
+| `entry.medical.relationship_recognised` | Whether the patient relationship is legally recognised |
+| `entry.medical.treatment` | Medical, dental, dental hygiene or TCM treatment |
+| `entry.medical.treatment_received` | Whether treatment has already been received |
+| `entry.medical.treatment_necessary` | Practitioner-certified necessity |
+| `entry.medical.solely_aesthetic` | Treatment is solely aesthetic |
+| `entry.medical.practitioner_qualified` | Local registration or legal foreign qualification |
 | `entry.window.start` | Standing allowance window start |
 | `entry.window.end` | Standing allowance window end |
 | `entry.captures.remaining` | Amount still to settle |
@@ -313,7 +343,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 
 Used by: work bands, breaks, limits and the night premium — one priced person-day.
 
-Bare names: `date`, `day_type`, `worked_hours`, `normal_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `emergency_cause`, `time_off_in_lieu`, `ordinary_hour`, `day_wage`, `hours`.
+Bare names: `date`, `day_type`, `worked_hours`, `normal_hours`, `comparable_full_time_daily_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `emergency_cause`, `time_off_in_lieu`, `ordinary_hour`, `day_wage`, `hours`.
 
 Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`.
 
@@ -339,10 +369,14 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
-| `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
+| `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
+| `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
 | `person.employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
 | `person.employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
+| `person.employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
+| `person.employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
+| `person.employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -375,10 +409,15 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
+| `person.terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
+| `person.terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
-| `person.children.count` | Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions |
+| `person.children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `person.children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
+| `person.children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
+| `person.children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
@@ -412,7 +451,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.event.date` | The day of the event, or empty |
 | `person.event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `person.event.child_age` | The named child’s completed years, -1 when none is named |
-| `person.event.child_shared_weeks` | The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded |
+| `person.event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `person.event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
@@ -425,6 +464,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `day_type` | ORDINARY \| REST_DAY \| PUBLIC_HOLIDAY \| SPECIAL_HOLIDAY \| OFF_DAY |
 | `worked_hours` | Net worked hours |
 | `normal_hours` | The scheduled normal hours |
+| `comparable_full_time_daily_hours` | Similar full-time employee’s normal hours for this date, or the terms’ usual day |
 | `hours_beyond_normal` | Worked hours past the normal day |
 | `hours_from_start_fraction` | Worked share of a normal day, 0..1 |
 | `overtime_hours` | Payable overtime hours: the approved hours plus the day type’s clock-derived premium |
@@ -487,10 +527,14 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
-| `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
+| `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
+| `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
 | `person.employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
 | `person.employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
+| `person.employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
+| `person.employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
+| `person.employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -523,10 +567,15 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
+| `person.terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
+| `person.terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
-| `person.children.count` | Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions |
+| `person.children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `person.children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
+| `person.children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
+| `person.children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
@@ -560,7 +609,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.event.date` | The day of the event, or empty |
 | `person.event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `person.event.child_age` | The named child’s completed years, -1 when none is named |
-| `person.event.child_shared_weeks` | The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded |
+| `person.event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `person.event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
@@ -579,13 +628,15 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `period.last_of_year` | This period closes the tax year, or is a leaver’s last |
 | `period.days_employed` | Days of the pay month the employment covered, in the proration basis’s units (the payslip’s proration segments summed) |
 | `period.days_in_month` | Calendar days of the pay month |
+| `period.year` | Calendar year of the pay period |
 | `year.start` | First day of the tax year |
 | `year.end` | Last day of the tax year |
 | `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
 | `year.earned.ABSENCE` | Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned |
 | `scheme.code` | The scheme code |
-| `scheme.assessment_period` | PAY_PERIOD \| MONTH |
+| `scheme.assessment_period` | PAY_PERIOD \| MONTH \| MONTH_TO_DATE |
+| `scheme.registration_status` | REGISTERED, NOT_REGISTERED or UNDECLARED when no effective statutory declaration exists |
 | `scheme.year_to_date.base` | Base already charged this tax year: this employer’s earlier slips plus what an earlier employer declared on the fact (`opening`) |
 | `scheme.year_to_date.ordinary` | The ordinary part of the base already charged this tax year, where the scheme states `ordinary_on` |
 | `scheme.year_to_date.employee` | Employee amount already charged this tax year |
@@ -695,10 +746,14 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
-| `person.employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
+| `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
+| `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
 | `person.employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
 | `person.employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
+| `person.employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
+| `person.employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
+| `person.employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -731,10 +786,15 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
+| `person.terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
+| `person.terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
 | `person.terms.working_days_per_week` | Roster-measured working week, days |
-| `person.children.count` | Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions |
+| `person.children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `person.children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
+| `person.children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
+| `person.children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
 | `person.children.citizens` | Children recorded as citizens |
 | `person.children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `person.children.citizens_under(n)` | Of them, those under n completed years |
@@ -768,7 +828,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.event.date` | The day of the event, or empty |
 | `person.event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `person.event.child_age` | The named child’s completed years, -1 when none is named |
-| `person.event.child_shared_weeks` | The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded |
+| `person.event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `person.event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
@@ -787,13 +847,15 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `period.last_of_year` | This period closes the tax year, or is a leaver’s last |
 | `period.days_employed` | Days of the pay month the employment covered, in the proration basis’s units (the payslip’s proration segments summed) |
 | `period.days_in_month` | Calendar days of the pay month |
+| `period.year` | Calendar year of the pay period |
 | `year.start` | First day of the tax year |
 | `year.end` | Last day of the tax year |
 | `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
 | `year.earned.ABSENCE` | Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned |
 | `scheme.code` | The scheme code |
-| `scheme.assessment_period` | PAY_PERIOD \| MONTH |
+| `scheme.assessment_period` | PAY_PERIOD \| MONTH \| MONTH_TO_DATE |
+| `scheme.registration_status` | REGISTERED, NOT_REGISTERED or UNDECLARED when no effective statutory declaration exists |
 | `scheme.year_to_date.base` | Base already charged this tax year: this employer’s earlier slips plus what an earlier employer declared on the fact (`opening`) |
 | `scheme.year_to_date.ordinary` | The ordinary part of the base already charged this tax year, where the scheme states `ordinary_on` |
 | `scheme.year_to_date.employee` | Employee amount already charged this tax year |
@@ -883,10 +945,14 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
-| `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
+| `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
+| `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
 | `employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
 | `employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
+| `employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
+| `employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
+| `employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -919,10 +985,15 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `terms.notice_days` | Notice days the contract states, 0 when none |
 | `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
+| `terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
+| `terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
 | `terms.working_days_per_week` | Roster-measured working week, days |
-| `children.count` | Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions |
+| `children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `children.under(n)` | Children under n completed years |
 | `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
+| `children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
+| `children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
@@ -956,7 +1027,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `event.date` | The day of the event, or empty |
 | `event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `event.child_age` | The named child’s completed years, -1 when none is named |
-| `event.child_shared_weeks` | The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded |
+| `event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
@@ -1013,10 +1084,14 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
-| `employment.service_days` | Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days) |
+| `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
+| `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
 | `employment.service_months_exact` | Completed months plus the part month as a share of its days, for a pro-rata part year |
 | `employment.service_years` | Completed years since the stint began; a leaver counts through the exit day |
+| `employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
+| `employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
+| `employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
@@ -1049,10 +1124,15 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `terms.notice_days` | Notice days the contract states, 0 when none |
 | `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
+| `terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
+| `terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
 | `terms.working_days_per_week` | Roster-measured working week, days |
-| `children.count` | Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions |
+| `children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `children.under(n)` | Children under n completed years |
 | `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
+| `children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
+| `children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
 | `children.citizens` | Children recorded as citizens |
 | `children.births` | Confinements: the children’s distinct dates of birth, twins one (SG EA s.76(4): no pay where 2+ living children were born in more than one previous confinement) |
 | `children.citizens_under(n)` | Of them, those under n completed years |
@@ -1086,7 +1166,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `event.date` | The day of the event, or empty |
 | `event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `event.child_age` | The named child’s completed years, -1 when none is named |
-| `event.child_shared_weeks` | The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded |
+| `event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |

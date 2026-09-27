@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { monthlyWageAverage } from '../src/lib/payroll/contribution.ts';
-import { earnedAverage } from '../src/collections/payroll_runs/lib/contribute.ts';
+import {
+	configuredMonthlyWageAverage,
+	monthlyWageAverage
+} from '../src/lib/payroll/contribution.ts';
+import { earnedAverage } from '../src/lib/payroll/run/contribute.ts';
 import { adhocCatalogue, contributionSchemes } from './fixtures/statutory-world.ts';
 
 const terms = (start: string, end: string | null, value: number) =>
-	({ base_salary: { value, currency: 'VND' }, effective_range: { start, end } }) as never;
+	({ base_salary: value, currency: 'VND', effective_range: { start, end } }) as never;
 
 test('the six-month average of the contractual wage reads the terms in force on the first of each month (VN Decree 145 art.8(5))', () => {
 	// Hired 1 Jan 2025 on 20,000,000; raised to 26,000,000 from 1 Nov 2025; leaving 31 Jan 2026.
@@ -20,12 +23,33 @@ test('the six-month average of the contractual wage reads the terms in force on 
 	} as never;
 	const configuration = { catalogueComponents: [] } as never;
 	assert.equal(monthlyWageAverage(bundle, configuration, '2026-01-31', 6), 23_000_000);
+	assert.equal(
+		configuredMonthlyWageAverage(
+			bundle,
+			{
+				...configuration,
+				jurisdiction: { payroll: { separation_wage_average_months: 3 } }
+			} as never,
+			'2026-01-31'
+		),
+		26_000_000
+	);
 	// An employment younger than the window averages the months it has: hired 1 Dec 2025.
 	const young = {
 		...bundle,
 		employment: { effective_range: { start: '2025-12-01', end: null } }
 	} as never;
 	assert.equal(monthlyWageAverage(young, configuration, '2026-01-31', 6), 26_000_000);
+	assert.throws(
+		() =>
+			monthlyWageAverage(
+				{ ...bundle, termsHistory: [terms('2025-11-01', null, 26_000_000)] } as never,
+				configuration,
+				'2026-01-31',
+				6
+			),
+		/contractual wage terms.*2025-10-01/
+	);
 	// The VN severance and job-loss classes measure on it.
 	for (const row of adhocCatalogue('VN'))
 		if (row.code === 'SEVERANCE_ALLOWANCE' || row.code === 'JOB_LOSS_ALLOWANCE')

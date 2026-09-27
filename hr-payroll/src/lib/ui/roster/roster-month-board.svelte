@@ -27,24 +27,24 @@
 	live inside their scrollport.
 -->
 <script lang="ts" module>
+	import type { Id } from '@norbital-ai/bolt';
+	import type { PlainDate } from '@norbital-ai/std/date';
 	/**
 	 * One end of a swap: the person-day a cell stands for.
 	 *
 	 * Exported so `+scheduling.svelte` can hold the armed source in its own state and hand it back
 	 * through `swapSource` — the board draws the gesture, the app performs the transaction.
 	 */
-	export type BoardCell = { readonly employmentId: string; readonly date: string };
+	export type BoardCell = { readonly employmentId: Id<'employments'>; readonly date: PlainDate };
 </script>
 
 <script lang="ts">
-	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { t } from '../t.js';
+	import { Icon as IconWrapper } from '@norbital-ai/ui';
 	import { Number as EffectNumber } from 'effect';
 	import { Bound, Cluster, Cover, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Skeleton } from '@norbital-ai/ui/skeleton';
-	import { cn } from '@norbital-ai/ui/utils';
-	import { createVirtualizer } from '@norbital-ai/ui/utils/virtualizer.svelte';
+	import Skeleton from '../skeleton.svelte';
+	import { cn } from '@norbital-ai/ui';
 	import {
 		CONFLICT_PRESENTATION,
 		DAY_MARK_KEY,
@@ -63,11 +63,9 @@
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
 	import RosterSlot from './roster-slot.svelte';
 	import type { SettlementClaim } from '../../scheduling/lock.js';
-	import { decodeNumber } from '@norbital-ai/std/json';
+	import { decodeNumber } from '../../wire.js';
 
-	type Person = { readonly id: string; readonly number: string; readonly name: string };
-
-	const { t } = useI18n<TenantI18nKeys>();
+	type Person = { readonly id: Id<'employments'>; readonly number: string; readonly name: string };
 
 	let {
 		month,
@@ -115,7 +113,7 @@
 		 * months with no draft roster — the sheet is the only surface that can say why a day refuses a
 		 * write, so a board that withheld it on locked days withheld the explanation as well.
 		 */
-		onSelectDay?: (employmentId: string, date: string) => void;
+		onSelectDay?: (employmentId: Id<'employments'>, date: PlainDate) => void;
 		/**
 		 * Whether the PLAN may be written in this month — a draft roster exists.
 		 *
@@ -151,18 +149,10 @@
 	function handleBoardHeaderWheel(event: WheelEvent): void {
 		scrollBodyByWheel(boardElement, event);
 	}
-	const rowVirtualizer = createVirtualizer({
-		count: () => people.length,
-		scrollElement: () => boardElement,
-		estimateSize: () => 45,
-		overscan: 4,
-		getItemKey: (index) => people[index]?.id ?? index
-	});
-	const virtualRows = $derived(rowVirtualizer.virtualItems);
-	const topSpacer = $derived(virtualRows[0]?.start ?? 0);
-	const bottomSpacer = $derived(
-		Math.max(0, rowVirtualizer.totalSize - (virtualRows.at(-1)?.end ?? 0))
-	);
+	// ponytail: every person row renders; virtualise again if a company's board reaches thousands of rows
+	const virtualRows = $derived(people.map((person, index) => ({ index, key: person.id ?? index })));
+	const topSpacer = 0;
+	const bottomSpacer = 0;
 
 	const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
@@ -173,7 +163,7 @@
 
 	/** Draw a boundary only when the real cut-off starts in this month; never clamp it to day one. */
 	const cutoffStartsAt = $derived(
-		cutoff != null && days.includes(cutoff.start) ? cutoff.start : null
+		cutoff != null && days.some((day) => day === cutoff.start) ? cutoff.start : null
 	);
 
 	/** The ladder in climbing order, so the legend and the rail cannot fall out of step. */
@@ -253,7 +243,7 @@
 	const activeCellKey = $derived.by(() => {
 		if (requestedCellKey) {
 			const [personId, date] = requestedCellKey.split(':');
-			if (people.some((person) => person.id === personId) && days.includes(date ?? '')) {
+			if (people.some((person) => person.id === personId) && days.some((day) => day === date)) {
 				return requestedCellKey;
 			}
 		}
@@ -267,7 +257,6 @@
 		const date = days[nextDay];
 		if (person == null || date == null) return;
 		requestedCellKey = personDayKey(person.id, date);
-		rowVirtualizer.scrollToIndex(nextPerson, { align: 'auto' });
 		requestAnimationFrame(() => {
 			boardElement
 				?.querySelector<HTMLElement>(`[data-roster-cell="${nextPerson}:${nextDay}"]`)

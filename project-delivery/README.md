@@ -29,11 +29,10 @@ Requires Node 26 or newer and pnpm. Run commands inside this directory:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm sync
+pnpm check
 pnpm lint
 pnpm test
-pnpm test:e2e
 ```
 
-The template pins its Norbital packages. Its committed migrations are schema history; keep them
-when adding fields. Use the realm's local package overlay when testing unpublished package changes.
+The template pins its Norbital packages. Use the realm's local package overlay when testing
+unpublished package changes.

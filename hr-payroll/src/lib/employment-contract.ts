@@ -1,13 +1,10 @@
-import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
-import {
-	coversDate,
-	readRange,
-	type StoredRange
-} from '../collections/payroll_runs/lib/effective.js';
+import type { Id, Row, TransformCtx } from '@norbital-ai/bolt';
+import { refuse } from './refuse.js';
+import type { WorkspaceRow } from './rows.js';
+import { scalarFacts } from './payroll/run/eligibility.js';
+import { coversDate, readRange, type StoredRange } from '../lib/payroll/run/effective.js';
 import { dateKey } from './iso-day.js';
-import type { WorkspaceRow } from '$bolt/types.js';
-import type { LeaveCharge } from '../datatypes/leave_charges/+definition.js';
+import type { LeaveCharge } from './datatypes/leave_charges.js';
 import {
 	leaveActivityOf,
 	normaliseLeaveDays,
@@ -26,13 +23,6 @@ const CONTRACT_INPUT_SOURCES = [
 ] as const;
 
 type ContractScoped = { readonly employment_id?: string | null };
-type ContractReader = {
-	readonly findMany: (query: {
-		readonly where: { readonly employment_id: { readonly in: ReadonlyArray<string> } };
-		readonly columns: { readonly employment_id: true; readonly approval_id: true };
-		readonly limit: number;
-	}) => Effect.Effect<ReadonlyArray<{ employment_id: string; approval_id: string | null }>>;
-};
 
 const LABEL: Readonly<Record<(typeof CONTRACT_INPUT_SOURCES)[number], string>> = {
 	employment_terms: 'employment terms',
@@ -45,9 +35,8 @@ const LABEL: Readonly<Record<(typeof CONTRACT_INPUT_SOURCES)[number], string>> =
 	payslips: 'a payslip'
 };
 
-const LIMIT = 20_000;
-
-type ContractReadDb = Pick<CollectionTransformDatabase, (typeof CONTRACT_INPUT_SOURCES)[number]>;
+/** The transform's reads as the workspace (`ctx.db`). */
+type Db = Pick<TransformCtx<'employments'>, 'db'>['db'];
 
 /** What references each contract: the first sealing consumer, and whether one awaits approval. */
 type ContractReferences = ReadonlyMap<
@@ -56,68 +45,65 @@ type ContractReferences = ReadonlyMap<
 >;
 
 /**
- * A contract is sealed by the rows that reference it. There is no separate seal log any more: a
- * contract whose every consumer has been removed is editable again (2026-09-09 inlining). One
- * wave: the eight source reads, together, for every contract the batch names.
+ * A contract is sealed by the rows that reference it: a contract whose every consumer has been removed is editable
+ * again. One wave: the eight source reads, together, for every contract the batch names.
  */
-export function contractReferences(
-	db: ContractReadDb,
+export async function contractReferences(
+	db: Db,
 	employmentIds: ReadonlyArray<string>
-): Effect.Effect<ContractReferences> {
-	const ids = [...new Set(employmentIds)];
-	if (ids.length === 0) return Effect.succeed(new Map());
-	return Effect.map(
-		Effect.all(
-			CONTRACT_INPUT_SOURCES.map((source) =>
-				// Eight collections, one shape: the union of their clients is not callable, the reader is.
-				(db[source] as unknown as ContractReader).findMany({
-					where: { employment_id: { in: ids } },
-					columns: { employment_id: true, approval_id: true },
-					limit: LIMIT
-				})
-			),
-			{ concurrency: 'unbounded' }
-		),
-		(results) => {
-			const references = new Map<string, { sealedBy: string | null; pending: boolean }>();
-			for (const [index, rows] of results.entries()) {
-				const source = CONTRACT_INPUT_SOURCES[index]!;
-				for (const row of rows) {
-					const entry = references.get(row.employment_id) ?? { sealedBy: null, pending: false };
-					entry.sealedBy ??= LABEL[source];
-					if (row.approval_id != null) entry.pending = true;
-					references.set(row.employment_id, entry);
-				}
-			}
-			return references;
-		}
+): Promise<ContractReferences> {
+	const ids = [...new Set(employmentIds)] as Id<'employments'>[];
+	if (ids.length === 0) return new Map();
+	const results = await Promise.all(
+		CONTRACT_INPUT_SOURCES.map((source) =>
+			db.read(source, { where: { employment_id: { in: ids } }, all: true })
+		)
 	);
+	const references = new Map<string, { sealedBy: string | null; pending: boolean }>();
+	for (const [index, page] of results.entries()) {
+		const source = CONTRACT_INPUT_SOURCES[index]!;
+		for (const row of page.rows as readonly {
+			employment_id: string;
+			approval_id: string | null;
+		}[]) {
+			const entry = references.get(row.employment_id) ?? { sealedBy: null, pending: false };
+			entry.sealedBy ??= LABEL[source];
+			if (row.approval_id != null) entry.pending = true;
+			references.set(row.employment_id, entry);
+		}
+	}
+	return references;
 }
 
-/** Refuses changing a contract that any consumer names. */
-export function assertContractUnreferenced(
+/** Why a contract that a consumer names cannot change, or null. */
+export function contractReferenceFault(
 	references: ContractReferences,
 	employmentId: string
-): void {
+): string | null {
 	const entry = references.get(employmentId);
 	if (entry?.sealedBy != null)
-		refuse(
-			`This employment contract is sealed by ${entry.sealedBy}. Record its departure; create a new contract for a rehire.`
-		);
+		return `This employment contract is sealed by ${entry.sealedBy}. Record its departure; create a new contract for a rehire.`;
 	if (entry?.pending)
-		refuse(
-			'An event awaiting approval references this employment contract. Resolve it before changing the contract.'
-		);
+		return 'An event awaiting approval references this employment contract. Resolve it before changing the contract.';
+	return null;
 }
 
-/** The two rules every employee event obeys: it names a contract, and it never changes contract. */
-export function boundToContract<T extends ContractScoped>(input: T, existing?: ContractScoped): T {
+/** The two rules every employee event obeys: it names a contract, and it never changes contract. The refusal, or null. */
+export function contractBindingFault(
+	input: ContractScoped,
+	existing?: ContractScoped
+): string | null {
 	const employmentId = input.employment_id ?? existing?.employment_id;
-	if (!employmentId) refuse('An employee event must reference an employment contract.');
+	if (!employmentId) return 'An employee event must reference an employment contract.';
 	if (existing != null && employmentId !== existing.employment_id)
-		refuse(
-			'An existing event cannot move to another employment contract. Reverse it and create a new event.'
-		);
+		return 'An existing event cannot move to another employment contract. Reverse it and create a new event.';
+	return null;
+}
+
+/** `contractBindingFault` as a refusal, for a family's transform. */
+export function boundToContract<T extends ContractScoped>(input: T, existing?: ContractScoped): T {
+	const fault = contractBindingFault(input, existing);
+	if (fault != null) refuse(fault);
 	return input;
 }
 
@@ -151,85 +137,52 @@ export function leaveTermsThrough(
 }
 
 /**
- * The latest date on which each contract's terms were consumed, read off the consumers themselves:
- * Work consumes its work date, approved Leave its charge or debit valuation date, a committed
- * payslip its `terms_through`. Held proposals protect the same dates until resolved. One wave for
- * every contract the batch names.
+ * The latest date on which each contract's terms were consumed, read off the consumers themselves: Work consumes its
+ * work date, approved Leave its charge or debit valuation date, a committed payslip its `terms_through`. Held
+ * proposals protect the same dates until resolved. One wave for every contract the batch names.
  */
-export function consumedTermsThrough(
-	db: Pick<CollectionTransformDatabase, 'employments' | 'work_days' | 'leave_entries' | 'payslips'>,
+export async function consumedTermsThrough(
+	db: Db,
 	employmentIds: ReadonlyArray<string>
-): Effect.Effect<ReadonlyMap<string, string>> {
-	const ids = [...new Set(employmentIds)];
-	if (ids.length === 0) return Effect.succeed(new Map());
+): Promise<ReadonlyMap<string, string>> {
+	const ids = [...new Set(employmentIds)] as Id<'employments'>[];
+	if (ids.length === 0) return new Map();
 	const where = { employment_id: { in: ids } };
-	return Effect.map(
-		Effect.all(
-			[
-				db.employments.findMany({
-					where: { id: { in: ids } },
-					columns: { id: true, effective_range: true },
-					limit: ids.length
-				}),
-				db.work_days.findMany({
-					where,
-					columns: { employment_id: true, work_date: true },
-					limit: LIMIT
-				}),
-				db.leave_entries.findMany({
-					where,
-					columns: {
-						employment_id: true,
-						from_date: true,
-						to_date: true,
-						days: true,
-						encash_days: true,
-						as_adjustment_entry: true,
-						effective_on: true,
-						destination_from: true,
-						charges: true
-					},
-					limit: LIMIT
-				}),
-				db.payslips.findMany({
-					where,
-					columns: { employment_id: true, terms_through: true },
-					limit: LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		),
-		([employments, work, leave, payslips]) => {
-			if (work.length >= LIMIT || leave.length >= LIMIT || payslips.length >= LIMIT)
-				refuse('Too many inputs to verify employment term history.');
-			const exitOf = new Map(
-				employments.map((row) => {
-					const exit = readRange(row.effective_range)?.end;
-					return [row.id, exit == null ? null : dateKey(exit)] as const;
-				})
-			);
-			const through = new Map<string, string>();
-			const note = (employmentId: string, date: string | null) => {
-				if (date == null || date === '') return;
-				const known = through.get(employmentId);
-				if (known == null || date > known) through.set(employmentId, date);
-			};
-			for (const row of work) note(row.employment_id, dateKey(row.work_date));
-			for (const row of leave) {
-				if (row.charges == null) continue;
-				note(
-					row.employment_id,
-					leaveTermsThrough(row, row.charges, exitOf.get(row.employment_id) ?? null)
-				);
-			}
-			for (const row of payslips) note(row.employment_id, dateKey(row.terms_through));
-			return through;
-		}
+	const [employments, work, leave, payslips] = await Promise.all([
+		db.read('employments', { where: { id: { in: ids } }, all: true }),
+		db.read('work_days', { where, all: true }),
+		db.read('leave_entries', { where, all: true }),
+		db.read('payslips', { where, all: true })
+	]);
+	const exitOf = new Map(
+		employments.rows.map((row) => {
+			const exit = readRange(row.effective_range)?.end;
+			return [row.id as string, exit == null ? null : dateKey(exit)] as const;
+		})
 	);
+	const through = new Map<string, string>();
+	const note = (employmentId: string, date: string | null) => {
+		if (date == null || date === '') return;
+		const known = through.get(employmentId);
+		if (known == null || date > known) through.set(employmentId, date);
+	};
+	for (const row of work.rows) note(row.employment_id, dateKey(String(row.work_date)));
+	for (const row of leave.rows) {
+		const fields = row as LeaveEntryActivity & {
+			charges: readonly LeaveCharge[] | null;
+		};
+		if (fields.charges == null) continue;
+		note(
+			row.employment_id,
+			leaveTermsThrough(fields, fields.charges, exitOf.get(row.employment_id) ?? null)
+		);
+	}
+	for (const row of payslips.rows) note(row.employment_id, dateKey(String(row.terms_through)));
+	return through;
 }
 
 /** The child facts whose legal span holds on `date`; a null span is born → ongoing. */
-export function childrenOn<T extends { readonly effective_range: unknown }>(
+export function childrenOn<T extends { readonly effective_range?: unknown }>(
 	children: readonly T[],
 	date: string
 ) {
@@ -246,8 +199,8 @@ export function serviceStart(employment: { readonly effective_range: StoredRange
 /** The stint as the person contexts read it: first day, last day of work and why it ended. */
 export function stint(employment: {
 	readonly effective_range: StoredRange | null;
-	readonly exit_reason?: string | null;
-	readonly exit_facts?: Readonly<Record<string, string | number | boolean>> | null;
+	readonly exit_reason?: string | null | undefined;
+	readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
 }): {
 	service_start: string;
 	exit_date: string | null;
@@ -259,7 +212,7 @@ export function stint(employment: {
 		service_start: serviceStart(employment),
 		exit_date: end == null ? null : dateKey(end),
 		exit_reason: employment.exit_reason ?? null,
-		exit_facts: employment.exit_facts ?? {}
+		exit_facts: scalarFacts(employment.exit_facts)
 	};
 }
 
@@ -271,52 +224,39 @@ export function resolveEmployment<T extends { readonly effective_range: unknown 
 
 export type ResolvedEmployment = ReturnType<typeof resolveEmployment<WorkspaceRow<'employments'>>>;
 
-export type ContractCandidate = Partial<
-	Pick<
-		WorkspaceRow<'employments'>,
-		'id' | 'employee_id' | 'company_id' | 'effective_range' | 'contract_number'
-	>
->;
+export type ContractCandidate = {
+	readonly id?: string | undefined;
+	readonly employee_id?: string | null | undefined;
+	readonly company_id?: string | null | undefined;
+	readonly effective_range?: unknown | undefined;
+};
 
-/** The next rolling contract number for a person at an entity: one past the highest on record. */
-export function nextContractNumber(
-	candidate: Pick<ContractCandidate, 'employee_id' | 'company_id'>,
-	others: readonly ContractCandidate[]
-): number {
-	let highest = 0;
-	for (const other of others)
-		if (
-			other.employee_id === candidate.employee_id &&
-			other.company_id === candidate.company_id &&
-			typeof other.contract_number === 'number' &&
-			other.contract_number > highest
-		)
-			highest = other.contract_number;
-	return highest + 1;
-}
-
-/** Inclusive service windows are exclusive only within the same person/entity pair. */
-export function assertContractDoesNotOverlap(
+/**
+ * Inclusive service windows are exclusive only within the same person/entity pair (the `noOverlap` holds it too; this
+ * is the sentence). The refusal, or null.
+ */
+export function contractOverlapFault(
 	candidate: ContractCandidate,
 	others: readonly ContractCandidate[]
-) {
+): string | null {
 	const serviceWindow = (row: ContractCandidate) => {
 		const range = readRange(row.effective_range);
-		if (!row.employee_id || !row.company_id || !range)
-			refuse('A contract needs an employee profile, legal entity and service period.');
-		const start = dateKey(range.start);
-		const end = range.end == null ? '9999-12-31' : dateKey(range.end);
-		if (end < start) refuse('A contract cannot end before its service starts.');
-		return { start, end };
+		if (!row.employee_id || !row.company_id || !range) return null;
+		return {
+			start: dateKey(range.start),
+			end: range.end == null ? '9999-12-31' : dateKey(range.end)
+		};
 	};
 	const window = serviceWindow(candidate);
+	if (window == null)
+		return 'A contract needs an employee profile, legal entity and service period.';
+	if (window.end < window.start) return 'A contract cannot end before its service starts.';
 	for (const other of others) {
 		if (other.employee_id !== candidate.employee_id || other.company_id !== candidate.company_id)
 			continue;
 		const otherWindow = serviceWindow(other);
-		if (window.start <= otherWindow.end && otherWindow.start <= window.end)
-			refuse(
-				'This employee already has an active employment contract in this legal entity during those dates. End that contract before the next one starts.'
-			);
+		if (otherWindow != null && window.start <= otherWindow.end && otherWindow.start <= window.end)
+			return 'This employee already has an active employment contract in this legal entity during those dates. End that contract before the next one starts.';
 	}
+	return null;
 }

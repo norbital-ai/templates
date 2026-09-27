@@ -161,12 +161,11 @@ allowedCurrencies })` from `@norbital-ai/bolt/authoring`.
 - **i18n.** The workspace ships English and Chinese catalogs with exactly the same keys. App
   metadata in `<svelte:head>` stays static English; the sidebar label and page copy localize via
   the catalogs.
-- **Seed data.** The workspace ships no `+seed.ts`. Fixture rows (projects, jobs, workers,
-  permits, RFIs, defects, claims, the BIM matrix, documents) are loaded by the host's construction
-  seed plan from the seed bank, while the committed `assets/` files — including the sample IFC model
-  — ship inside the compiled artifact and are served at
-  `/__bolt/request/api/template-seed-assets/construction/...`, which is what the project record's
-  viewer uses.
+- **Seed data.** `seed/seed.ts` reads the seed bank's `construction` tree (projects, jobs, workers,
+  permits, RFIs, defects, claims, the BIM matrix, documents) into the sample pack, while the committed
+  `assets/` files — including the sample IFC model — ship inside the compiled artifact and are served
+  at `/assets/...`; the seed rewrites the bank's `/api/template-seed-assets/construction/` document URLs
+  there, which is what the project record's viewer loads.
 
 Use a collection transform for non-negotiable server rules, a custom type when a reusable field needs its
 own validation and renderer, and a collection representation only when schema-derived UI is

@@ -5,11 +5,12 @@ import {
 	compileEligibility,
 	personContext,
 	isEligible
-} from '../src/collections/payroll_runs/lib/eligibility.ts';
+} from '../src/lib/payroll/run/eligibility.ts';
 import { capSubjects } from '../src/lib/component_entry_cap_subject.ts';
 import { leaveRules, readLeaveContext } from '../src/lib/leave/context.ts';
 import { annualWindow, id, leaveContext } from './helpers/manual-leave-context.ts';
 import { source } from './helpers/page-source.ts';
+import { memoryDb } from './helpers/ctx.ts';
 
 const restriction =
 	'employee.citizenship == "CITIZEN" || employee.citizenship == "PERMANENT_RESIDENT"';
@@ -81,30 +82,37 @@ test('Leave uses residency history from the terms effective on each eligibility 
 	);
 });
 
-test('claim caps use the same effective contract standing as Leave and payroll', () => {
+test('claim caps use the same effective contract standing as Leave and payroll', async () => {
 	const terms = [
-		{ residency_status: 'FOREIGNER', effective_range: { start: '2025-01-01', end: '2026-06-30' } },
-		{ residency_status: 'CITIZEN', effective_range: { start: '2026-07-01', end: null } }
-	];
-	// One nested read: the person, the entity and the terms ride the employment.
-	const db = {
-		employments: {
-			findMany: () =>
-				Effect.succeed([
-					{
-						id: id(1),
-						employee_id: id(2),
-						company_id: id(3),
-						employee_number: 'E1',
-						effective_range: { start: '2025-01-01', end: null },
-						employment_employee: { gender: 'MALE', nationality: 'MY', children: [] },
-						employment_company: { region: 'I' },
-						term_employment: terms
-					}
-				])
+		{
+			employment_id: id(1),
+			residency_status: 'FOREIGNER',
+			effective_range: { from: '2025-01-01', to: '2026-06-30' }
+		},
+		{
+			employment_id: id(1),
+			residency_status: 'CITIZEN',
+			effective_range: { from: '2026-07-01', to: null }
 		}
-	};
-	const subjectOf = Effect.runSync(capSubjects(db as never, [id(1)]));
+	];
+	// The employment, then the person and the entity it names; the terms by the employment.
+	const subjectOf = await capSubjects(
+		memoryDb({
+			employments: [
+				{
+					id: id(1),
+					employee_id: id(2),
+					company_id: id(3),
+					employee_number: 'E1',
+					effective_range: { from: '2025-01-01', to: null }
+				}
+			],
+			employees: [{ id: id(2), gender: 'MALE', nationality: 'MY', children: [] }],
+			companies: [{ id: id(3), region: 'I' }],
+			employment_terms: terms
+		}),
+		[id(1)]
+	);
 	assert.equal(subjectOf(id(1), '2026-06-30')?.subject.employee.citizenship, 'FOREIGNER');
 	assert.equal(subjectOf(id(1), '2026-07-01')?.subject.employee.citizenship, 'CITIZEN');
 	assert.equal(subjectOf(id(1), '2026-07-01')?.subject.company.region, 'I');
@@ -147,54 +155,24 @@ test('the grammar reads standing, family facts and the company region; a fact it
 	assert.match(compileEligibility('company.name == "X"') ?? '', /company\.region/);
 });
 
-test('Leave preparation selects residency on terms and never requests the removed employee column', () => {
+test('Leave preparation reads residency off the contract terms', async () => {
 	const context = leaveContext();
-	context.terms[0]!.residency_status = 'CITIZEN';
-	// The person and the entity ride the employment read, nested under it.
-	const rows: Record<string, readonly unknown[]> = {
-		employments: context.employments.map((row) => ({
-			...row,
-			effective_range: { start: row.effective_range?.start ?? '2025-01-01', end: null },
-			employment_employee: context.employees.find((person) => person.id === row.employee_id),
-			employment_company: context.companies.find((company) => company.id === row.company_id)
-		})),
-		employment_terms: context.terms,
-		jurisdiction_settings: context.versions,
-		leave_catalogue: context.catalogues
-	};
-	const columns = new Map<string, Record<string, boolean>>();
-	const db = new Proxy(
-		{},
-		{
-			get: (_target, collection: string) => ({
-				findMany: (query: {
-					columns?: Record<string, boolean>;
-					with?: Record<string, { columns?: Record<string, boolean> }>;
-				}) => {
-					columns.set(collection, query.columns ?? {});
-					for (const [relation, nested] of Object.entries(query.with ?? {}))
-						columns.set(relation, nested.columns ?? {});
-					return Effect.succeed(rows[collection] ?? []);
-				}
-			})
-		}
+	const result = await readLeaveContext(
+		memoryDb({
+			employments: context.employments,
+			employees: context.employees,
+			companies: context.companies,
+			employment_terms: context.terms.map((row) => ({ ...row, residency_status: 'CITIZEN' })),
+			jurisdiction_settings: context.versions,
+			leave_catalogue: context.catalogues
+		}),
+		[id(1)]
 	);
-	const result = Effect.runSync(readLeaveContext({ db } as never, [id(1)]));
 	assert.equal(result.terms[0]?.residency_status, 'CITIZEN');
-	assert.equal(columns.get('employment_terms')?.residency_status, true);
-	assert.equal(columns.get('employment_employee')?.residency_status, undefined);
+	assert.equal(
+		leaveRules(result, id(1), id(7)).personOn('2026-06-01').employee.citizenship,
+		'CITIZEN'
+	);
 });
 
-test('residency is entered on contract terms and is absent from the personal model and form', () => {
-	assert.doesNotMatch(source('collections/employees/+model.ts'), /residency_status/);
-	assert.doesNotMatch(
-		source('collections/employees/+representation.svelte'),
-		/name="residency_status"/
-	);
-	assert.match(
-		source('collections/employment_terms/+model.ts'),
-		/residency_status: enums\(\['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER'\]\)/
-	);
-	// The terms fields are one composition, shared by the terms record and the contract detail.
-	assert.match(source('lib/ui/contract/terms-fields.svelte'), /name="residency_status"/);
-});
+// Residency lives on the contract terms, never on the person: `record-forms.test.ts`.

@@ -1,122 +1,106 @@
-import { childrenOn, resolveEmployment, type ResolvedEmployment } from '../employment-contract.js';
-import { Effect } from 'effect';
-import { refuse, type Api } from '@norbital-ai/bolt/authoring';
-import type { WorkspaceSchema } from '$bolt/types.js';
-import type { WorkspaceRow } from '../../collections/leave_entries/$types.js';
+import { resolveEmployment } from '../employment-contract.js';
+import { refuse } from '../refuse.js';
+import { readAll, type Reads } from '../reads.js';
+import type { StoredRange } from '../../lib/payroll/run/effective.js';
 import type { LeaveWindow } from './entitlement.js';
 import { withPendingLeaveEntries, type LeaveActivity } from './pending.js';
 import { activeTimeOff } from './activity.js';
 import { normaliseLeaveDays } from './activity-fields.js';
 import { computedEntitlement, leaveWindowOf } from './entitlement.js';
-import { dateKey, dayInstant } from '../iso-day.js';
+import { dateKey } from '../iso-day.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import type { CompanyFactRevision } from '../declared-facts.js';
-import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import { addDays, daysBetween } from '../../collections/payroll_runs/lib/dates.js';
+import { coversDate } from '../../lib/payroll/run/effective.js';
+import { addDays, daysBetween } from '../../lib/payroll/run/dates.js';
 import { rosterCodeKind } from '../scheduling/roster-code.js';
 import { patternDaysPerWeek, patternWorkload } from '../scheduling/work-pattern.js';
-import { decodeNumber } from '@norbital-ai/std/json';
+import { decodeNumber } from '../wire.js';
 import { resolveCompanyFacts } from '../declared-facts.js';
-import { personFactsOn } from '../payroll/facts.js';
+import { personFactsForVersion } from '../payroll/facts.js';
 import {
 	isEligible,
 	personContext,
 	type PersonContext,
 	type PersonInput
-} from '../../collections/payroll_runs/lib/eligibility.js';
+} from '../../lib/payroll/run/eligibility.js';
+import type { WorkspaceRow } from '../rows.js';
+import type { HolidayRow } from '../holiday-calendar.js';
+import type { FactKey } from '../datatypes/fact_keys.js';
+import type { LeaveEntitlement } from '../datatypes/leave_entitlement.js';
+import type { PayrollSettings } from '../datatypes/payroll_settings.js';
+import type { PayslipAdjustment } from '../datatypes/payslip_adjustments.js';
+import type { RosterCodeVariant } from '../datatypes/roster_code_variant.js';
+import type { StatutoryFactStatus } from '../datatypes/statutory_fact_status.js';
+import type { WorkPattern } from '../datatypes/work_pattern.js';
 
-type ReadTables =
-	| 'employments'
-	| 'employees'
-	| 'companies'
-	| 'company_facts'
-	| 'jurisdiction_settings'
-	| 'statutory_contributions'
-	| 'leave_catalogue'
-	| 'employment_terms'
-	| 'work_days'
-	| 'shift_patterns'
-	| 'shift_definitions'
-	| 'jurisdiction_holidays'
-	| 'payroll_runs'
-	| 'payslips'
-	| 'employment_statutory_facts';
-export type LeaveReadApi = {
-	db: { [K in ReadTables | 'leave_entries']: Pick<Api<WorkspaceSchema>['db'][K], 'findMany'> };
-};
-const LIMIT = 20_000;
-function complete<T>(rows: readonly T[], name: string): readonly T[] {
-	if (rows.length >= LIMIT)
-		refuse(`The ${name} read reached its safety ceiling; leave cannot be verified.`);
-	return rows;
-}
+/** A 0.0.1 `period` of dates as stored: `{ from, to }`, both inclusive (`effective.ts` reads either shape). */
+type Period = { readonly from: string; readonly to: string | null };
 
 export type LeaveContext = {
-	employments: (Pick<
-		ResolvedEmployment,
-		'id' | 'employee_id' | 'company_id' | 'effective_range'
-	> & {
-		readonly exit_reason?: string | null;
-		readonly exit_facts?: Readonly<Record<string, string | number | boolean>> | null;
-	})[];
-	companies: (Pick<
-		WorkspaceRow<'companies'>,
-		'id' | 'settings_code' | 'region' | 'pay_frequency'
-	> & {
-		readonly facts?: WorkspaceRow<'companies'>['facts'] | null;
+	employments: {
+		readonly id: string;
+		readonly employee_id: string;
+		readonly company_id: string;
+		readonly effective_range: StoredRange | null;
+		readonly exit_reason?: string | null | undefined;
+		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
+	}[];
+	companies: {
+		readonly id: string;
+		readonly settings_code: string;
+		readonly region: string | null;
+		readonly pay_frequency: string;
+		readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 		/** Dated entity fact revisions, so a leave rule reads the facts of its own date. */
-		readonly fact_revisions?: readonly CompanyFactRevision[];
-	})[];
-	employees: Pick<
-		WorkspaceRow<'employees'>,
-		| 'id'
-		| 'gender'
-		| 'date_of_birth'
-		| 'nationality'
-		| 'marital_status'
-		| 'solo_parent'
-		| 'disabled'
-		| 'race'
-		| 'religion'
-		| 'children'
-	>[];
-	terms: Pick<
-		WorkspaceRow<'employment_terms'>,
-		| 'id'
-		| 'employment_id'
-		| 'effective_range'
-		| 'shift_pattern_id'
-		| 'ordinary_hours_per_week'
-		| 'employment_type'
-		| 'residency_status'
-		| 'work_classification'
-		| 'base_salary'
-		| 'statutory_work_category'
-		| 'department'
-		| 'payroll_group'
-		| 'paid_rest_days'
-		| 'grade'
-		| 'residency_since'
-		| 'pay_frequency'
-		| 'pass_type'
-		| 'tax_residency'
-		| 'notice_days'
-	>[];
+		readonly fact_revisions?: readonly CompanyFactRevision[] | undefined;
+	}[];
+	employees: {
+		readonly id: string;
+		readonly gender: string | null;
+		readonly date_of_birth: string | null;
+		readonly nationality: string | null;
+		readonly marital_status: string | null;
+		readonly solo_parent: boolean;
+		readonly disabled: boolean;
+		readonly race: string | null;
+		readonly religion: string | null;
+		readonly children: WorkspaceRow<'employees'>['children'];
+	}[];
+	terms: {
+		readonly id: string;
+		readonly employment_id: string;
+		readonly effective_range: Period | StoredRange;
+		readonly shift_pattern_id: string | null;
+		readonly ordinary_hours_per_week: number | null;
+		readonly employment_type: string;
+		readonly residency_status: string | null;
+		readonly work_classification: string | null;
+		readonly base_salary: number;
+		readonly currency: string;
+		readonly statutory_work_category: string | null;
+		readonly department: string | null;
+		readonly payroll_group: string | null;
+		readonly paid_rest_days: boolean;
+		readonly grade: string | null;
+		readonly residency_since: string | null;
+		readonly pay_frequency: string;
+		readonly pass_type: string | null;
+		readonly tax_residency: string | null;
+		readonly notice_days: number | null;
+	}[];
 	/** The lineage's scheme codes, so `facts.<CODE>` reads false rather than failing for an unregistered one. */
-	schemeCodes?: string[];
-	schemes?: Array<{
-		id: string;
-		code: string;
-		elections: WorkspaceRow<'statutory_contributions'>['elections'];
-	}>;
+	schemeCodes?: string[] | undefined;
+	schemes?:
+		| Array<{ id: string; code: string; settings_id: string; elections: readonly FactKey[] }>
+		| undefined;
 	/** Statutory facts by employee, with the scheme's code resolved: what `person.facts.<CODE>` reads; absent is none. */
 	facts?: {
 		employee_id: string;
 		employment_id: string | null;
 		statutory_contribution_id: string;
 		code: string;
-		effective_range: WorkspaceRow<'employment_statutory_facts'>['effective_range'];
-		status: WorkspaceRow<'employment_statutory_facts'>['status'];
+		effective_range: Period | StoredRange;
+		status: StatutoryFactStatus;
 	}[];
 	entries: LeaveActivity[];
 	/**
@@ -136,502 +120,304 @@ export type LeaveContext = {
 	> & {
 		readonly employee_id: string;
 	})[];
-	versions: Pick<
-		WorkspaceRow<'jurisdiction_settings'>,
-		| 'id'
-		| 'code'
-		| 'payroll'
-		| 'jurisdiction_code'
-		| 'sealed_at'
-		| 'voided_at'
-		| 'effective_range'
-		| 'approval_id'
-		| 'facts'
-		| 'exit_facts'
-	>[];
-	catalogues: Pick<
-		WorkspaceRow<'leave_catalogue'>,
-		| 'id'
-		| 'settings_id'
-		| 'code'
-		| 'name'
-		| 'eligibility'
-		| 'entitlement'
-		| 'evidence_after_days'
-		| 'is_npl'
-		| 'can_encash'
-		| 'encash_on_exit'
-		| 'pay_fraction'
-		| 'paid_by'
-		| 'consumes_code'
-		| 'unit'
-	>[];
-	holidays: Pick<
-		WorkspaceRow<'jurisdiction_holidays'>,
-		'id' | 'company_id' | 'date' | 'name' | 'kind' | 'replaces' | 'given_to' | 'published_at'
-	>[];
-	workDays: Pick<
-		WorkspaceRow<'work_days'>,
-		'id' | 'employment_id' | 'work_date' | 'shift_definition_id'
-	>[];
+	versions: {
+		readonly id: string;
+		readonly code: string;
+		readonly payroll: PayrollSettings;
+		readonly jurisdiction_code: string;
+		readonly sealed_at: string | null;
+		readonly voided_at: string | null;
+		readonly effective_range: Period | StoredRange;
+		readonly approval_id: string | null;
+		readonly facts: readonly FactKey[];
+		readonly exit_facts: readonly FactKey[];
+	}[];
+	catalogues: {
+		readonly id: string;
+		readonly settings_id: string;
+		readonly code: string;
+		readonly name: string;
+		readonly eligibility: string;
+		readonly entitlement: LeaveEntitlement;
+		readonly evidence_after_days: number | null;
+		readonly is_npl: boolean;
+		readonly can_encash: boolean;
+		readonly encash_on_exit: boolean;
+		readonly pay_fraction: string;
+		readonly paid_by: 'EMPLOYER' | 'FUND';
+		readonly consumes_code: string | null;
+		readonly unit: 'DAY' | 'HOUR';
+	}[];
+	holidays: HolidayRow[];
+	workDays: {
+		readonly id: string;
+		readonly employment_id: string;
+		readonly work_date: string;
+		readonly shift_definition_id: string | null;
+	}[];
 	/**
 	 * Rostered days read and found empty — absent without leave — by employment and day, over
 	 * the twelve months before the window; what `employment.absent_days_12m` counts. Absent is
 	 * none counted.
 	 */
-	absences?: { employment_id: string; work_date: string }[];
-	runs: Pick<
-		WorkspaceRow<'payroll_runs'>,
-		'id' | 'company_id' | 'period' | 'attendance_from' | 'attendance_to'
-	>[];
-	patterns: Pick<WorkspaceRow<'shift_patterns'>, 'id' | 'code' | 'pattern' | 'effective_range'>[];
-	shifts: Pick<
-		WorkspaceRow<'shift_definitions'>,
-		'id' | 'company_id' | 'code' | 'variant' | 'effective_range'
-	>[];
-	payslips: Pick<
-		WorkspaceRow<'payslips'>,
-		'id' | 'payroll_run_id' | 'employment_id' | 'currency' | 'paid_at' | 'adjustments'
-	>[];
+	absences?: { employment_id: string; work_date: string }[] | undefined;
+	runs: {
+		readonly id: string;
+		readonly company_id: string;
+		readonly period: string;
+		readonly attendance_from: string;
+		readonly attendance_to: string;
+	}[];
+	patterns: {
+		readonly id: string;
+		readonly code: string;
+		readonly pattern: WorkPattern;
+		readonly effective_range: Period | StoredRange;
+	}[];
+	shifts: {
+		readonly id: string;
+		readonly company_id: string;
+		readonly code: string;
+		readonly variant: RosterCodeVariant;
+		readonly effective_range: Period | StoredRange;
+	}[];
+	payslips: {
+		readonly id: string;
+		readonly payroll_run_id: string;
+		readonly employment_id: string;
+		readonly currency: string;
+		readonly paid_at: string | null;
+		readonly adjustments: readonly PayslipAdjustment[];
+	}[];
 };
 
+type Stored<T> = T & { readonly approval_id: string | null };
+const unique = (values: readonly string[]): string[] => [...new Set(values)];
+const settled = { approval_id: { isNull: true } } as const;
+
 /**
- * One batched, guarded read of employment history and manual activity, in two waves. No balance
- * rows or writes.
+ * One batched read of employment history and manual activity, as the workspace (a transform's
+ * `ctx.db`) or as the caller (a query's or automation's `ctx`), in three waves. No writes.
  *
- * Wave 1 is keyed by the employment ids alone: the employments with their person and entity
- * nested, their terms, every leave entry (held proposals included), the window's work days and
- * every settings version. Wave 2 is keyed by what wave 1 named — the lineage's catalogues, the
- * entities' runs, roster vocabulary and holidays, and the payslips that settled a reversed entry.
+ * Wave 1 is keyed by the employment ids alone: the employments, their terms, every leave entry
+ * (held proposals included), the window's work days and every settings version. Wave 2 is keyed
+ * by what wave 1 named: the people, the entities and their dated facts, runs, roster vocabulary,
+ * holidays, the payslips that settled a reversed entry, the people's other employments, their
+ * statutory facts and the year of absences before the window. Wave 3 is the lineage's catalogues
+ * and schemes (the lineage is the entities' settings code) and the other employments' time off.
  */
-export function readLeaveContext(
-	api: LeaveReadApi,
+export async function readLeaveContext(
+	reads: Reads,
 	employmentIds: readonly string[],
 	window?: LeaveWindow,
 	includeSettlements = false
-): Effect.Effect<LeaveContext> {
-	return Effect.gen(function* () {
-		const ids = [...new Set(employmentIds)];
-		const [employmentRows, terms, allEntries, workDays, versions] = yield* Effect.all(
-			[
-				api.db.employments.findMany({
-					where: { id: { in: ids }, approval_id: { isNull: true } },
-					columns: {
-						id: true,
-						employee_id: true,
-						company_id: true,
-						effective_range: true,
-						exit_reason: true,
-						exit_facts: true
-					},
-					with: {
-						employment_employee: {
-							columns: {
-								id: true,
-								gender: true,
-								date_of_birth: true,
-								nationality: true,
-								marital_status: true,
-								solo_parent: true,
-								disabled: true,
-								race: true,
-								religion: true,
-								children: true
-							}
-						},
-						employment_company: {
-							columns: {
-								id: true,
-								settings_code: true,
-								region: true,
-								pay_frequency: true,
-								facts: true
-							},
-							with: {
-								// The entity's dated facts in the same wave; a leave rule reads the revision
-								// in force on its own date.
-								company_fact_company: {
-									where: { approval_id: { isNull: true } },
-									columns: { facts: true, effective_range: true },
-									limit: LIMIT
-								}
-							}
-						}
-					},
-					limit: LIMIT
+): Promise<LeaveContext> {
+	const ids = unique(employmentIds);
+	const [employmentRows, terms, allEntries, workDayRows, versionRows] = await Promise.all([
+		readAll<Stored<LeaveContext['employments'][number]> & { readonly effective_range: Period }>(
+			reads,
+			'employments',
+			{ id: { in: ids }, ...settled }
+		),
+		readAll<LeaveContext['terms'][number]>(reads, 'employment_terms', {
+			employment_id: { in: ids },
+			...settled
+		}),
+		readAll<LeaveActivity>(reads, 'leave_entries', { employment_id: { in: ids } }),
+		window == null
+			? []
+			: readAll<LeaveContext['workDays'][number]>(reads, 'work_days', {
+					employment_id: { in: ids },
+					work_date: { gte: window.start, lte: window.end },
+					...settled
 				}),
-				api.db.employment_terms.findMany({
-					where: { employment_id: { in: ids }, approval_id: { isNull: true } },
-					columns: {
-						id: true,
-						employment_id: true,
-						effective_range: true,
-						shift_pattern_id: true,
-						ordinary_hours_per_week: true,
-						employment_type: true,
-						residency_status: true,
-						work_classification: true,
-						base_salary: true,
-						statutory_work_category: true,
-						department: true,
-						payroll_group: true,
-						paid_rest_days: true,
-						grade: true,
-						residency_since: true,
-						pay_frequency: true,
-						pass_type: true,
-						tax_residency: true,
-						notice_days: true
-					},
-					limit: LIMIT
+		readAll<LeaveContext['versions'][number]>(reads, 'jurisdiction_settings', settled, undefined, {
+			id: true,
+			code: true,
+			payroll: true,
+			jurisdiction_code: true,
+			sealed_at: true,
+			voided_at: true,
+			effective_range: true,
+			approval_id: true,
+			facts: true,
+			exit_facts: true
+		})
+	]);
+	const employments = employmentRows.map((row) => ({
+		...resolveEmployment({
+			id: row.id,
+			employee_id: row.employee_id,
+			company_id: row.company_id,
+			effective_range: row.effective_range
+		}),
+		exit_reason: row.exit_reason ?? null,
+		exit_facts: row.exit_facts ?? null
+	}));
+	const companyIds = unique(employments.map((row) => row.company_id));
+	const employeeIds = unique(employments.map((row) => row.employee_id));
+	const stored = allEntries.filter((row) => row.approval_id == null).map(normaliseLeaveDays);
+	// A settled entry names its payslip directly. The payslip's stored adjustments are the
+	// frozen evidence a reversal negates.
+	const settlingIds = unique(
+		stored.flatMap((row) => (row.payslip_id == null ? [] : [row.payslip_id]))
+	);
+	const [
+		employees,
+		companyRows,
+		factRevisions,
+		runs,
+		patterns,
+		shifts,
+		holidays,
+		payslips,
+		siblings,
+		factRows,
+		emptyDays
+	] = await Promise.all([
+		readAll<LeaveContext['employees'][number]>(reads, 'employees', { id: { in: employeeIds } }),
+		readAll<LeaveContext['companies'][number]>(reads, 'companies', { id: { in: companyIds } }),
+		// The entity's dated facts; a leave rule reads the revision in force on its own date.
+		readAll<CompanyFactRevision & { readonly company_id: string }>(reads, 'company_facts', {
+			company_id: { in: companyIds },
+			...settled
+		}),
+		readAll<LeaveContext['runs'][number]>(reads, 'payroll_runs', {
+			company_id: { in: companyIds },
+			...settled
+		}),
+		// The roster vocabulary belongs to the entity, which the employment read names.
+		window == null
+			? []
+			: readAll<LeaveContext['patterns'][number]>(reads, 'shift_patterns', {
+					company_id: { in: companyIds },
+					...settled
 				}),
-				api.db.leave_entries.findMany({
-					where: { employment_id: { in: ids } },
-					columns: {
-						id: true,
-						employment_id: true,
-						catalogue_id: true,
-						leave_code: true,
-						reference: true,
-						from_date: true,
-						to_date: true,
-						half_day_start: true,
-						half_day_end: true,
-						days: true,
-						encash_days: true,
-						as_adjustment_entry: true,
-						reversal_of_id: true,
-						effective_on: true,
-						due_on: true,
-						destination_from: true,
-						destination_to: true,
-						available_from: true,
-						expires_on: true,
-						reason: true,
-						charges: true,
-						allocations: true,
-						approval_id: true,
-						payslip_id: true,
-						event_kind: true,
-						event_relationship: true,
-						event_date: true
-					},
-					limit: LIMIT
+		window == null
+			? []
+			: readAll<LeaveContext['shifts'][number]>(reads, 'shift_definitions', {
+					company_id: { in: companyIds },
+					...settled
 				}),
-				api.db.work_days.findMany({
-					where: {
-						employment_id: { in: window == null ? [] : ids },
-						...(window == null
-							? {}
-							: { work_date: { gte: dayInstant(window.start), lte: dayInstant(window.end) } }),
-						approval_id: { isNull: true }
-					},
-					columns: { id: true, employment_id: true, work_date: true, shift_definition_id: true },
-					limit: LIMIT
+		// The entities of the employments in scope, not their jurisdictions: a holiday belongs to
+		// the employer that observes it.
+		window == null
+			? []
+			: readAll<LeaveContext['holidays'][number]>(reads, 'jurisdiction_holidays', {
+					company_id: { in: companyIds },
+					date: { gte: window.start, lte: window.end },
+					published_at: { isNull: false },
+					...settled
 				}),
-				api.db.jurisdiction_settings.findMany({
-					where: { approval_id: { isNull: true } },
-					columns: {
-						id: true,
-						code: true,
-						jurisdiction_code: true,
-						sealed_at: true,
-						payroll: true,
-						voided_at: true,
-						effective_range: true,
-						approval_id: true,
-						facts: true,
-						exit_facts: true
-					},
-					limit: LIMIT
+		!includeSettlements || settlingIds.length === 0
+			? []
+			: readAll<LeaveContext['payslips'][number]>(reads, 'payslips', {
+					id: { in: settlingIds },
+					...settled
+				}),
+		// The people's other employments here, for what a lifetime counts (MY s.60FA(2): five
+		// confinements; SG GPCL: 42 days a child) across a rehire.
+		readAll<{ readonly id: string; readonly employee_id: string }>(reads, 'employments', {
+			employee_id: { in: employeeIds },
+			...settled
+		}),
+		readAll<Omit<NonNullable<LeaveContext['facts']>[number], 'code'>>(
+			reads,
+			'employment_statutory_facts',
+			{ employee_id: { in: employeeIds }, ...settled }
+		),
+		// The year before the window: rostered days found empty, for a forfeiture rule that counts
+		// unauthorised absence (MY s.60E(1)(b)).
+		window == null
+			? []
+			: readAll<
+					LeaveContext['workDays'][number] & {
+						readonly worked_intervals: readonly unknown[] | null;
+					}
+				>(reads, 'work_days', {
+					employment_id: { in: ids },
+					work_date: { gte: addDays(window.end, -366), lte: window.end },
+					...settled
 				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		for (const [rows, name] of [
-			[employmentRows, 'employments'],
-			[terms, 'terms'],
-			[allEntries, 'leave entries'],
-			[workDays, 'workdays'],
-			[versions, 'settings versions']
-		] as const)
-			complete<unknown>(rows, name);
-		const employments = employmentRows.map((row) => ({
-			...resolveEmployment({
-				id: row.id,
-				employee_id: row.employee_id,
-				company_id: row.company_id,
-				effective_range: row.effective_range
-			}),
-			exit_reason: row.exit_reason,
-			exit_facts: row.exit_facts
-		}));
-		const companies = [
-			...new Map(
-				employmentRows.flatMap((row) =>
-					row.employment_company == null
-						? []
-						: [[row.employment_company.id, row.employment_company] as const]
-				)
-			).values()
-		];
-		const employees = [
-			...new Map(
-				employmentRows.flatMap((row) =>
-					row.employment_employee == null
-						? []
-						: [[row.employment_employee.id, row.employment_employee] as const]
-				)
-			).values()
-		];
-		const companyIds = [...new Set(employments.map((row) => row.company_id))];
-		const companiesWithRevisions = companies.map((row) => ({
-			...row,
-			fact_revisions: row.company_fact_company ?? []
-		}));
-		const settingsCodes = new Set(companies.map((row) => row.settings_code));
-		const lineage = versions.filter((row) => settingsCodes.has(row.code));
-		const stored = allEntries.filter((row) => row.approval_id == null).map(normaliseLeaveDays);
-		// A settled entry names its payslip directly. The payslip's stored adjustments are the
-		// frozen evidence a reversal negates.
-		const settlingIds = [
-			...new Set(stored.flatMap((row) => (row.payslip_id == null ? [] : [row.payslip_id])))
-		];
-		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
-		const [
-			catalogues,
-			runs,
-			patterns,
-			shifts,
-			holidays,
-			payslips,
-			siblings,
-			schemes,
-			factRows,
-			emptyDays
-		] = yield* Effect.all(
-			[
-				api.db.leave_catalogue.findMany({
-					where: {
-						settings_id: { in: lineage.map((row) => row.id) },
-						approval_id: { isNull: true }
-					},
-					columns: {
-						id: true,
-						settings_id: true,
-						code: true,
-						name: true,
-						eligibility: true,
-						entitlement: true,
-						evidence_after_days: true,
-						is_npl: true,
-						can_encash: true,
-						encash_on_exit: true,
-						pay_fraction: true,
-						paid_by: true,
-						consumes_code: true,
-						unit: true
-					},
-					limit: LIMIT
-				}),
-				api.db.payroll_runs.findMany({
-					where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
-					columns: {
-						id: true,
-						company_id: true,
-						period: true,
-						attendance_from: true,
-						attendance_to: true
-					},
-					limit: LIMIT
-				}),
-				// The roster vocabulary belongs to the entity, which the employment read names.
-				window == null || settingsCodes.size === 0
-					? Effect.succeed([])
-					: api.db.shift_patterns.findMany({
-							where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
-							columns: { id: true, code: true, pattern: true, effective_range: true },
-							limit: LIMIT
-						}),
-				window == null || settingsCodes.size === 0
-					? Effect.succeed([])
-					: api.db.shift_definitions.findMany({
-							where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
-							columns: {
-								id: true,
-								company_id: true,
-								code: true,
-								variant: true,
-								effective_range: true
-							},
-							limit: LIMIT
-						}),
-				api.db.jurisdiction_holidays.findMany({
-					where: {
-						// The entities of the employments in scope, not their jurisdictions: a holiday
-						// belongs to the employer that observes it.
-						company_id: { in: window == null ? [] : companyIds },
-						...(window == null
-							? {}
-							: { date: { gte: dayInstant(window.start), lte: dayInstant(window.end) } }),
-						published_at: { isNotNull: true },
-						approval_id: { isNull: true }
-					},
-					columns: {
-						id: true,
-						company_id: true,
-						date: true,
-						name: true,
-						kind: true,
-						replaces: true,
-						given_to: true,
-						published_at: true
-					},
-					limit: LIMIT
-				}),
-				!includeSettlements || settlingIds.length === 0
-					? Effect.succeed([])
-					: api.db.payslips.findMany({
-							where: { id: { in: settlingIds }, approval_id: { isNull: true } },
-							columns: {
-								id: true,
-								payroll_run_id: true,
-								employment_id: true,
-								currency: true,
-								paid_at: true,
-								adjustments: true
-							},
-							limit: LIMIT
-						}),
-				// The people's other employments here, for what a lifetime counts (MY s.60FA(2):
-				// five confinements; SG GPCL: 42 days a child) across a rehire.
-				api.db.employments.findMany({
-					where: { employee_id: { in: employeeIds }, approval_id: { isNull: true } },
-					columns: { id: true, employee_id: true },
-					limit: LIMIT
-				}),
-				// The lineage's schemes name the codes a rule reads a fact under (`facts.SI.since_months`).
-				api.db.statutory_contributions.findMany({
-					where: {
-						settings_id: { in: lineage.map((row) => row.id) },
-						approval_id: { isNull: true }
-					},
-					columns: { id: true, code: true, elections: true },
-					limit: LIMIT
-				}),
-				api.db.employment_statutory_facts.findMany({
-					where: { employee_id: { in: employeeIds }, approval_id: { isNull: true } },
-					columns: {
-						employee_id: true,
-						employment_id: true,
-						statutory_contribution_id: true,
-						effective_range: true,
-						status: true
-					},
-					limit: LIMIT
-				}),
-				// The year before the window: days read and found empty, for a forfeiture rule
-				// that counts unauthorised absence (MY s.60E(1)(b)).
-				window == null
-					? Effect.succeed([])
-					: api.db.work_days.findMany({
-							where: {
-								employment_id: { in: ids },
-								work_date: {
-									gte: dayInstant(addDays(window.end, -366)),
-									lte: dayInstant(window.end)
-								},
-								worked_intervals: { eq: [] },
-								approval_id: { isNull: true }
-							},
-							columns: { employment_id: true, work_date: true, shift_definition_id: true },
-							limit: LIMIT
-						})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		const workCodeIds = new Set(
-			shifts.filter((row) => rosterCodeKind(row.variant) === 'WORK').map((row) => row.id)
-		);
-		const absences = emptyDays.flatMap((row) =>
-			row.shift_definition_id != null && workCodeIds.has(row.shift_definition_id)
-				? [{ employment_id: row.employment_id, work_date: dateKey(row.work_date) }]
-				: []
-		);
-		const codeOfScheme = new Map(schemes.map((row) => [row.id, row.code]));
-		const facts = factRows.flatMap((row) => {
-			const code = codeOfScheme.get(row.statutory_contribution_id);
-			return code == null
-				? []
-				: [
-						{
-							employee_id: row.employee_id,
-							employment_id: row.employment_id,
-							statutory_contribution_id: row.statutory_contribution_id,
-							code,
-							effective_range: row.effective_range,
-							status: row.status
-						}
-					];
-		});
-		for (const [rows, name] of [
-			[catalogues, 'leave catalogues'],
-			[runs, 'payroll runs'],
-			[patterns, 'shift patterns'],
-			[shifts, 'shift definitions'],
-			[holidays, 'holidays'],
-			[payslips, 'settling payslips']
-		] as const)
-			complete<unknown>(rows, name);
-		const entries = withPendingLeaveEntries(
-			allEntries.filter((row) => row.approval_id != null).map(normaliseLeaveDays),
-			stored
-		);
-		const inScope = new Set(ids);
-		const others = siblings.filter(
-			(row) => !inScope.has(row.id) && employeeIds.includes(row.employee_id)
-		);
-		const employeeOf = new Map(others.map((row) => [row.id, row.employee_id]));
-		const priorEntries =
-			others.length === 0
-				? []
-				: (yield* api.db.leave_entries.findMany({
-						where: {
-							employment_id: { in: others.map((row) => row.id) },
-							approval_id: { isNull: true }
-						},
-						columns: {
-							id: true,
-							employment_id: true,
-							leave_code: true,
-							charges: true,
-							as_adjustment_entry: true,
-							reversal_of_id: true,
-							approval_id: true
-						},
-						limit: LIMIT
-					})).map((row) => ({ ...row, employee_id: employeeOf.get(row.employment_id) ?? '' }));
-		return {
-			employments,
-			priorEntries,
-			companies: companiesWithRevisions,
-			employees,
-			terms,
-			schemeCodes: [...new Set(codeOfScheme.values())],
-			schemes,
-			facts,
-			absences,
-			entries,
-			versions: lineage,
-			catalogues,
-			holidays,
-			workDays,
-			runs,
-			patterns,
-			shifts,
-			payslips
-		};
+	]);
+	const companies = companyRows.map((row) => ({
+		...row,
+		fact_revisions: factRevisions.filter((revision) => revision.company_id === row.id)
+	}));
+	const settingsCodes = new Set(companies.map((row) => row.settings_code));
+	const lineage = versionRows.filter((row) => settingsCodes.has(row.code));
+	const lineageIds = lineage.map((row) => row.id);
+	const inScope = new Set(ids);
+	const others = siblings.filter((row) => !inScope.has(row.id));
+	const employeeOf = new Map(others.map((row) => [row.id, row.employee_id]));
+	const [catalogues, schemes, priorRows] = await Promise.all([
+		readAll<LeaveContext['catalogues'][number]>(reads, 'leave_catalogue', {
+			settings_id: { in: lineageIds },
+			...settled
+		}),
+		// The lineage's schemes name the codes a rule reads a fact under (`facts.SI.since_months`). Only the four fields
+		// leave reads, in one crossing: whole rows carry the rule tables and page 4 to a crossing past the budget.
+		readAll<NonNullable<LeaveContext['schemes']>[number]>(
+			reads,
+			'statutory_contributions',
+			{ settings_id: { in: lineageIds }, ...settled },
+			undefined,
+			{ id: true, code: true, settings_id: true, elections: true }
+		),
+		others.length === 0
+			? []
+			: readAll<LeaveActivity>(reads, 'leave_entries', {
+					employment_id: { in: others.map((row) => row.id) },
+					...settled
+				})
+	]);
+	const workCodeIds = new Set(
+		shifts.filter((row) => rosterCodeKind(row.variant) === 'WORK').map((row) => row.id)
+	);
+	const absences = emptyDays.flatMap((row) =>
+		(row.worked_intervals ?? []).length === 0 &&
+		row.shift_definition_id != null &&
+		workCodeIds.has(row.shift_definition_id)
+			? [{ employment_id: row.employment_id, work_date: dateKey(row.work_date) }]
+			: []
+	);
+	const codeOfScheme = new Map(schemes.map((row) => [row.id, row.code]));
+	const facts = factRows.flatMap((row) => {
+		const code = codeOfScheme.get(row.statutory_contribution_id);
+		return code == null ? [] : [{ ...row, code }];
 	});
+	const entries = withPendingLeaveEntries(
+		allEntries.filter((row) => row.approval_id != null).map(normaliseLeaveDays),
+		stored
+	);
+	return {
+		employments,
+		priorEntries: priorRows.map((row) => ({
+			...normaliseLeaveDays(row),
+			employee_id: employeeOf.get(row.employment_id) ?? ''
+		})),
+		companies,
+		employees,
+		terms,
+		schemeCodes: [...new Set(codeOfScheme.values())],
+		schemes: schemes.map(({ id, code, settings_id, elections }) => ({
+			id,
+			code,
+			settings_id,
+			elections
+		})),
+		facts,
+		absences,
+		entries,
+		versions: lineage,
+		catalogues,
+		holidays,
+		workDays: workDayRows,
+		runs,
+		patterns,
+		shifts,
+		payslips
+	};
 }
 
 /** Per-context caches shared by every leave type of an employment (see `personOn`). */
@@ -745,6 +531,9 @@ export function personAt(
 	if (!company) refuse('The employing company is not available.');
 	const employee = context.employees.find((row) => row.id === employment.employee_id);
 	if (!employee) refuse('The employee is not available.');
+	const lineage = context.versions.filter((row) => row.code === company.settings_code);
+	const settings = settingsInForce(lineage, company.settings_code, date);
+	const versionIds = new Set(lineage.map((row) => row.id));
 	const terms = context.terms.filter((row) => row.employment_id === employmentId);
 	const range = employment.effective_range;
 	const yearBefore = addDays(date, -365);
@@ -758,12 +547,12 @@ export function personAt(
 			? null
 			: {
 					ordinary_hours_per_week:
-						decodeNumber(term.ordinary_hours_per_week ?? 0) ||
+						(term.ordinary_hours_per_week ?? 0) ||
 						(patternWorkload(pattern, shiftById)?.average_weekly_paid_minutes ?? 0) / 60,
 					working_days_per_week: patternDaysPerWeek(pattern, shiftById)
 				};
 	return personContext({
-		event,
+		event: event ?? null,
 		employee,
 		employment: {
 			service_start: range == null ? '' : dateKey(range.start),
@@ -778,17 +567,15 @@ export function personAt(
 		leaveSpans: leaveSpans(context, employmentId),
 		terms: term,
 		week,
-		children: childrenOn(
-			(employee.children ?? []).filter((_, index) => childIndex == null || index === childIndex),
-			date
+		children: (employee.children ?? []).filter(
+			(_, index) => childIndex == null || index === childIndex
 		),
 		company: {
 			...company,
-			facts: resolveCompanyFacts(
-				settingsInForce(context.versions, company.settings_code, date)?.facts ?? [],
-				company,
-				{ asOf: date, revisions: company.fact_revisions ?? [] }
-			)
+			facts: resolveCompanyFacts(settings?.facts ?? [], company, {
+				asOf: date,
+				revisions: company.fact_revisions ?? []
+			})
 		},
 		facts:
 			context.schemes == null
@@ -809,9 +596,10 @@ export function personAt(
 								since: fact.status?.kind === 'REGISTERED' ? (fact.status.since ?? null) : null
 							}))
 					]
-				: personFactsOn(
+				: personFactsForVersion(
 						(context.facts ?? []).filter((fact) => fact.employee_id === employee.id),
-						context.schemes,
+						context.schemes.filter((scheme) => versionIds.has(scheme.settings_id)),
+						settings?.id ?? '',
 						date,
 						employmentId
 					),

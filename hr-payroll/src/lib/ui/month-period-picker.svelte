@@ -1,10 +1,9 @@
 <script lang="ts">
+	import { t } from './t.js';
 	import { Inline } from '@norbital-ai/ui/layout';
-	import { MonthPicker } from '@norbital-ai/ui/month-picker';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { periodHalf, periodMonth } from '../../collections/payroll_runs/lib/dates.js';
-	import { weeklyInstalments } from '../../collections/payroll_runs/lib/period.js';
+	import { MonthInput } from '@norbital-ai/ui';
+	import { periodHalf, periodMonth } from '../../lib/payroll/run/dates.js';
+	import { weeklyInstalments } from '../../lib/payroll/run/period.js';
 
 	let {
 		month,
@@ -12,8 +11,7 @@
 		halves = false,
 		weeks = false,
 		ariaLabel = undefined,
-		disabled = false,
-		class: className = 'w-auto min-w-[12rem]'
+		disabled = false
 	}: {
 		/** The selected period in the entity's grammar: `YYYY-MM`, or `YYYY-MM-1` / `-2`. */
 		month: string;
@@ -25,10 +23,8 @@
 		/** Defaults to the roster month label; the event pages name their pay period instead. */
 		ariaLabel?: string;
 		disabled?: boolean;
-		class?: string;
 	} = $props();
 
-	const { t } = useI18n<TenantI18nKeys>();
 	const half = $derived(periodHalf(month) ?? 1);
 	const monthWeeks = $derived(weeks ? weeklyInstalments(periodMonth(month)) : []);
 </script>
@@ -49,19 +45,20 @@
 {/snippet}
 
 <Inline gap="sm" data-month-picker>
-	<MonthPicker
+	<span class="sr-only">{ariaLabel ?? t('app.scheduling.month_picker')}</span>
+	<MonthInput
 		value={periodMonth(month)}
-		onValueChange={(next) =>
+		onChange={(next) => {
+			if (next == null) return;
 			onMonthChange(
 				halves
 					? `${next}-${half}`
 					: weeks
 						? `${next}-${Math.min(half, weeklyInstalments(next).length)}`
 						: next
-			)}
-		ariaLabel={ariaLabel ?? t('app.scheduling.month_picker')}
+			);
+		}}
 		{disabled}
-		class={className}
 	/>
 	{#if weeks}
 		<Inline

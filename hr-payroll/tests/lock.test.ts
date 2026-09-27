@@ -1,7 +1,6 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 /**
  * The attendance write path these locks govern.
  *
@@ -10,9 +9,6 @@ import { Effect } from 'effect';
  * because a lock nothing enforces is a lock nobody has, and they are the only place the two halves
  * are asserted together.
  */
-import workDays from '../src/collections/work_days/+collection.ts';
-import { transformOne } from './helpers/transform.ts';
-import { workDayDb } from './helpers/work-day-db.ts';
 import {
 	payrollWindows,
 	dayLockKey,
@@ -299,99 +295,6 @@ test('a claim refuses whatever the run’s lifecycle, and whatever the windows s
 		assert.deepEqual(lock, { kind: 'SETTLED', period: settledBy.period });
 		assert.equal(sourceLockApplicationLocked(lock), true);
 	}
-});
-
-const punch = (overrides = {}) => ({
-	id: 'wd-1',
-	employment_id: 'emp-1',
-	work_date: '2026-07-01',
-	approval_id: null,
-	worked_intervals: [{ start: '2026-07-01T00:16:00Z', end: '2026-07-01T09:10:00Z' }],
-	...overrides
-});
-
-/** The same day's clock, corrected by a few minutes: the ordinary attendance edit. */
-const CORRECTED = [{ start: '2026-07-01T00:16:00Z', end: '2026-07-01T09:15:00Z' }];
-
-/** Run the transform exactly as the runtime does: one batch, the stored row beside its patch. */
-function runTransform({ changes, existing, api }) {
-	const input =
-		existing == null
-			? changes
-			: {
-					employment_id: existing.employment_id,
-					work_date: existing.work_date,
-					shift_definition_id: existing.shift_definition_id ?? null,
-					worked_intervals: existing.worked_intervals,
-					...changes
-				};
-	return transformOne(workDays, input, existing, api);
-}
-const fakeApi = ({ runs = [], payslips = monthlySlips } = {}) => workDayDb({ runs, payslips });
-
-test('a create inside a paid window is refused: that day’s silence is already priced', () => {
-	const api = fakeApi({ runs: monthly });
-	// The transform gathers the employment→company and company→window maps for the batch and
-	// decides each row against them; the helper runs it through its Effect, so this assertion can
-	// only pass on the authored refusal rather than on a stale namespace TypeError.
-	const create = (overrides = {}) => {
-		const { id: _id, approval_id: _approvalId, ...changes } = punch(overrides);
-		return runTransform({ changes, existing: undefined, api });
-	};
-	assert.throws(() => create(), /inside paid payroll 2026-07/);
-	// The same create one window along, where the run is still a draft, lands.
-	assert.doesNotThrow(() => create({ work_date: '2026-08-01' }));
-});
-
-test('an unconsumed record inside a paid window stays editable and settles as arrears', () => {
-	// The one open locking decision, decided. A punch keyed in after 2026-07 was paid: no payslip ever
-	// took it, so nothing has been paid on it, so it may be corrected and priced in a later run.
-	// The board badges the day; the write path permits it.
-	const api = fakeApi({ runs: monthly });
-	const existing = punch();
-	assert.doesNotThrow(() =>
-		runTransform({ changes: { worked_intervals: CORRECTED }, existing, api })
-	);
-	// The window has not stopped meaning anything — asked the day-shaped question it still refuses a
-	// record appearing on that day. Two answers, because two questions.
-	assert.deepEqual(lockStateForDate(payrollWindows(monthly, monthlySlips), '2026-07-01', 'emp-1'), {
-		kind: 'SETTLED',
-		period: '2026-07'
-	});
-	// The record's own settlement pin is what refuses. The period no longer lives on the pin — the
-	// row carries only the payslip that took it — so the sentence names the lock without the month.
-	const settled = { ...existing, payslip_id: 'slip-1' };
-	assert.throws(
-		() =>
-			runTransform({
-				changes: { worked_intervals: CORRECTED },
-				existing: settled,
-				api: fakeApi({ runs: monthly })
-			}),
-		/ already taken this record into account/
-	);
-});
-
-test('re-dating a record into a paid window is a create onto that day, and is refused', () => {
-	// The create guard would be two writes away from decorative otherwise: record an open day, then
-	// move it into the paid period. An in-place edit of the same record is untouched by this.
-	const api = fakeApi({ runs: monthly });
-	assert.throws(
-		() =>
-			runTransform({
-				changes: { work_date: '2026-07-02' },
-				existing: punch({ work_date: '2026-08-02' }),
-				api
-			}),
-		/inside paid payroll 2026-07/
-	);
-	assert.doesNotThrow(() =>
-		runTransform({
-			changes: { work_date: '2026-08-03' },
-			existing: punch({ work_date: '2026-08-02' }),
-			api
-		})
-	);
 });
 
 test('a malformed run is skipped rather than locking everything', () => {

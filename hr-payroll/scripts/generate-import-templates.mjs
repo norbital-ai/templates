@@ -3,7 +3,7 @@
  * `IMPORT_TEMPLATE_DIR`): the scheduling workbook (Roster, Time entries and Overtime sheets) and
  * the holidays workbook.
  *
- * The sheets mirror exactly what the reader in `src/collections/work_days/lib` accepts as the
+ * The sheets mirror exactly what the reader in `src/data/collection/work_days/lib` accepts as the
  * designed layout — one entity × one month. The Roster sheet is the plan as a month grid: a person
  * down the side and a calendar day across the top, cells carrying a company roster code (or the
  * reserved `PH` token). The Time entries sheet is the attendance as one person-day per row, with a

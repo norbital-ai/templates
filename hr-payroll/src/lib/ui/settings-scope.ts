@@ -7,7 +7,8 @@
  * version is the one in force on a day, as one relationship predicate on the child query rather
  * than a second query for the versions.
  */
-import { dateKey, dayInstant } from '../iso-day.js';
+import { PlainDate } from '@norbital-ai/std/date';
+import { dateKey } from '../iso-day.js';
 
 /** Every version of the lineage, draft, sealed and voided alike: what a code-to-name map reads. */
 export function onLineage(code: string) {
@@ -15,18 +16,16 @@ export function onLineage(code: string) {
 }
 
 /**
- * The sealed, unvoided version of the lineage whose range contains a day. `contains_date` reads
- * the range end inclusively, so on the one day a successor begins both it and its predecessor
- * match; the engine's half-open pick decides that day, and a picker listing both for it is the
- * price of one query instead of two. `day` may be a stored range bound (a leaver's `effective_range`
+ * The sealed, unvoided version of the lineage whose period contains a day (both ends inclusive,
+ * so exactly one version of a sealed lineage matches). `day` may be a stored range bound (a leaver's `effective_range`
  * end is the last millisecond of the day in the payroll zone); it is read as its business day.
  */
 export function inForceSettings(code: string, day: string) {
 	return {
 		code: { eq: code },
 		approval_id: { isNull: true },
-		sealed_at: { isNotNull: true },
+		sealed_at: { isNull: false },
 		voided_at: { isNull: true },
-		effective_range: { contains_date: dayInstant(dateKey(day)) }
+		effective_range: { contains: PlainDate(dateKey(day)) }
 	} as const;
 }

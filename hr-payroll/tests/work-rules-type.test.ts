@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Schema } from 'effect';
-import { workRulesValueSchema } from '../src/datatypes/work_rules/+definition.ts';
+import { workRulesValueSchema } from '../src/lib/datatypes/work_rules.ts';
 
 const decode = Schema.decodeUnknownSync(workRulesValueSchema);
 

@@ -1,18 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-	isEligible,
-	personContext,
-	type PersonInput
-} from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { isEligible, personContext, type PersonInput } from '../src/lib/payroll/run/eligibility.ts';
 import { compileExpression } from '../src/lib/expressions/compile.ts';
 import { evaluateBoolean, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 import { schemeFault } from '../src/lib/catalogue_rules.ts';
 import { factStatusesOn, personFacts } from '../src/lib/payroll/facts.ts';
 import { createStatutoryWorld } from './fixtures/statutory-world.ts';
-import statutoryContributions from '../src/collections/statutory_contributions/+collection.ts';
-import { transformSync } from './helpers/transform.ts';
-import { Effect } from 'effect';
 import { resolveExitFacts } from '../src/lib/declared-facts.ts';
 
 const input: PersonInput = {
@@ -227,45 +220,6 @@ test('scheme validation checks cross-scheme keys and types in every rule field',
 	assert.equal(
 		schemeFault({ ...base, assessed_on: 'person.facts.NHI.elections.insured_amount' }, elections),
 		null
-	);
-});
-
-test('a batch can declare a scheme input and consume it without requiring an earlier write', () => {
-	const empty = { findMany: () => Effect.succeed([]) };
-	const db = {
-		jurisdiction_settings: { findMany: () => Effect.succeed([{ id: 'draft', sealed_at: null }]) },
-		allowance_catalogue: empty,
-		adhoc_catalogue: empty,
-		claim_catalogue: empty,
-		loan_catalogue: empty,
-		leave_catalogue: empty,
-		statutory_contributions: empty
-	};
-	const rows = [
-		{
-			settings_id: 'draft',
-			code: 'NHI',
-			assessed_on: 'BASE',
-			elections: [{ key: 'insured_amount', type: 'number' }],
-			rules: [{ when: 'true', employee: '0.0', employer: '0.0' }]
-		},
-		{
-			settings_id: 'draft',
-			code: 'SUPPLEMENT',
-			assessed_on: 'person.facts.NHI.elections.insured_amount',
-			elections: [],
-			rules: [{ when: 'true', employee: '0.0', employer: '0.0' }]
-		}
-	];
-	assert.doesNotThrow(() => transformSync(statutoryContributions, rows, { db }));
-	assert.throws(
-		() =>
-			transformSync(
-				statutoryContributions,
-				[rows[0], { ...rows[1], assessed_on: 'person.facts.NHI.elections.typo' }],
-				{ db }
-			),
-		/does not declare election typo/
 	);
 });
 

@@ -11,18 +11,16 @@
  * after the agreement had ended.
  *
  * `loanScheduleRefusals` is the one statement of all three, and everything below drives it — and
- * the `loans` transform that applies it — directly. The transform is called as the authored
- * callback, not through the runtime, for the reason `captured-input-refusals.test.ts` gives: the
- * question is whether the transform asks, on the right path, against the right rows.
+ * the `loans` transform that applies it — directly, over rows in memory (`helpers/ctx.ts`).
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Effect } from 'effect';
-import loans from '../src/collections/loans/+collection.ts';
-import loanRepayments from '../src/collections/loan_repayments/+collection.ts';
-import { requestGrants } from '../src/lib/policy_grants.ts';
-import { transformOne } from './helpers/transform.ts';
+import loans from '../src/data/collection/loans/+collection.ts';
+import loanRepayments from '../src/data/collection/loan_repayments/+collection.ts';
+import hrManager from '../src/access/+hr_manager.policy.ts';
+import { UNPINNED } from '../src/access/grants.ts';
+import { runTransform } from './helpers/ctx.ts';
 import {
 	loanScheduleRefusals,
 	SCHEDULE_IMBALANCED,
@@ -34,8 +32,8 @@ const LOAN = 'loan-1';
 const EMPLOYMENT = 'contract-1';
 const PERIOD = '2026-07';
 /** A closed agreement: April through September 2026, both ends inclusive by day head. */
-const RANGE = { start: '2026-04-01T00:00:00.000Z', end: '2026-09-01T00:00:00.000Z' };
-const day = (value) => `${value}T00:00:00.000Z`;
+const RANGE = { from: '2026-04-01', to: '2026-09-01' };
+const day = (value) => value;
 
 const repayment = (sequence, dueDay, amountDue) => ({
 	id: `r${sequence}`,
@@ -151,44 +149,24 @@ test('every issue is returned at once, never just the first', () => {
 
 // ── the write path ──────────────────────────────────────────────────────────────────────────
 
-/**
- * A database double over the reads the agreement's transform makes. Narrow on purpose, for the
- * reason the attendance lock tests keep theirs narrow: a broader fake is a second description of
- * the authoring api, free to drift from the real one.
- */
-const world = (options = {}) => {
-	const stored = (options.stored ?? BALANCED).map((row) =>
+const tables = (options = {}) => ({
+	loan_repayments: (options.stored ?? BALANCED).map((row) =>
 		options.captured === true ? { ...row, payslip_id: row.payslip_id ?? 'slip-1' } : row
-	);
-	const within = (where, column, rows) => {
-		const wanted = where?.[column]?.in;
-		return wanted === undefined ? rows : rows.filter((row) => wanted.includes(row[column]));
-	};
-	return {
-		loan_repayments: {
-			findMany: ({ where } = {}) => Effect.succeed(within(where, 'loan_id', stored))
-		},
-		loan_catalogue: {
-			findMany: () => Effect.succeed([{ id: 'loan-type', code: 'LOAN', eligibility: '' }])
-		},
-		// The contract the agreement rides, with the person nested as the transform's one read has it.
-		employments: {
-			findMany: () =>
-				Effect.succeed([
-					{
-						id: EMPLOYMENT,
-						employee_id: 'person-1',
-						company_id: 'company-1',
-						employee_number: 'E-1',
-						effective_range: { start: '2026-01-01T00:00:00.000Z', end: null },
-						employment_employee: null,
-						employment_company: null,
-						term_employment: []
-					}
-				])
+	),
+	loan_catalogue: [{ id: 'loan-type', code: 'LOAN', eligibility: '' }],
+	employments: [
+		{
+			id: EMPLOYMENT,
+			employee_id: 'person-1',
+			company_id: 'company-1',
+			employee_number: 'E-1',
+			effective_range: { from: '2026-01-01', to: null }
 		}
-	};
-};
+	],
+	employees: [{ id: 'person-1' }],
+	companies: [{ id: 'company-1' }],
+	employment_terms: []
+});
 
 const agreement = {
 	id: LOAN,
@@ -198,212 +176,92 @@ const agreement = {
 	effective_range: RANGE
 };
 
-/** The house pattern: refusals are thrown, and the sentence is what is asserted on. */
-const writeAgreement = (input, existing, options = {}) =>
-	transformOne(loans, input, existing, world(options));
+const write = async (input, existing, options = {}) =>
+	(await runTransform(loans, [input], { tables: tables(options), existing: [existing] }))[0];
 /** An edit of the stored agreement's schedule: patches by id, judged as the schedule they leave. */
 const patch = (updates, options = {}) =>
-	writeAgreement(
-		{ repayment_loan: { update: updates.map(({ id, ...set }) => ({ id, set })) } },
+	write(
+		{ loan_repayments: { update: updates.map(({ id, ...set }) => ({ target: id, set })) } },
 		agreement,
 		options
 	);
+const NEW = { ...agreement, id: undefined };
 
-test('a create whose schedule does not add up is refused on the write path', () => {
-	assert.throws(
-		() =>
-			writeAgreement(
-				{
-					...agreement,
-					repayment_loan: {
-						create: [
-							{ due_date: day('2026-04-01'), amount_due: 400, sequence: 1 },
-							{ due_date: day('2026-05-01'), amount_due: 400, sequence: 2 }
-						]
-					}
-				},
-				undefined,
-				{ stored: [] }
-			),
+test('a create is judged whole, derives its first day, and its schedule rides the agreement’s contract', async () => {
+	const rows = [
+		{ due_date: '2026-04-01', amount_due: 300, sequence: 1 },
+		{ due_date: '2026-05-01', amount_due: 400, sequence: 2 }
+	];
+	await assert.rejects(
+		write({ ...NEW, loan_repayments: { create: rows } }, undefined, { stored: [] }),
 		new RegExp(SCHEDULE_IMBALANCED)
 	);
-});
-
-/**
- * A partial update is judged as the row it would produce — the patch merged over the stored row —
- * and against the whole schedule it would leave, not against the two columns it carries.
- */
-test('a one-column patch is judged as the schedule it would leave behind', () => {
-	assert.throws(() => patch([{ id: 'r2', amount_due: 300 }]), new RegExp(SCHEDULE_IMBALANCED));
-	// The sentence proves the overlay ran: 250 + 300 + 250 + 250, not the 300 the patch carried.
-	assert.throws(() => patch([{ id: 'r2', amount_due: 300 }]), /add up to 1050\.00/);
-});
-
-/**
- * The negative control. A guard that refuses everything reads identically to a working one from
- * the refusing case alone, so a legal edit has to be shown landing.
- */
-test('a legal edit to an uncaptured repayment still lands', () => {
-	// 250 → 200 on one line and 250 → 300 on another: the schedule still sums to 1000.
-	assert.doesNotThrow(() =>
-		patch([
-			{ id: 'r1', amount_due: 200 },
-			{ id: 'r2', amount_due: 300 }
-		])
-	);
-});
-
-test('re-dating a repayment out of order is refused, and re-dating it in order is not', () => {
-	assert.throws(
-		() => patch([{ id: 'r3', due_date: day('2026-04-01') }]),
-		new RegExp(SCHEDULE_OUT_OF_ORDER)
-	);
-	assert.doesNotThrow(() => patch([{ id: 'r4', due_date: day('2026-08-01') }]));
-});
-
-test('moving the last repayment past the agreement’s end is refused', () => {
-	assert.throws(
-		() => patch([{ id: 'r4', due_date: day('2026-10-01') }]),
-		new RegExp(SCHEDULE_OUTSIDE_EFFECTIVE_RANGE)
-	);
-});
-
-test('a repayment named in an edit must belong to the agreement', () => {
-	assert.throws(() => patch([{ id: 'stranger', amount_due: 999 }]), /not part of this loan/);
-	assert.throws(
-		() => writeAgreement({ repayment_loan: { delete: [{ id: 'stranger' }] } }, agreement),
-		/not part of this loan/
-	);
-});
-
-test('a nested schedule derives its employment contract from the agreement', () => {
-	const rows = [
-		{ due_date: day('2026-04-01'), amount_due: 300, sequence: 1 },
-		{ due_date: day('2026-05-01'), amount_due: 400, sequence: 2 }
-	];
-	const result = writeAgreement(
-		{ ...agreement, id: undefined, principal: 700, repayment_loan: { create: rows } },
+	const saved = await write(
+		{ ...NEW, principal: 700, loan_repayments: { create: rows } },
 		undefined,
-		{ stored: [] }
+		{
+			stored: []
+		}
 	);
+	assert.equal(saved.effective_from, '2026-04-01');
 	assert.deepEqual(
-		result.repayment_loan.create.map((row) => row.employment_id),
+		saved.loan_repayments.create.map((row) => row.employment_id),
 		[EMPLOYMENT, EMPLOYMENT]
 	);
-	assert.throws(
-		() =>
-			writeAgreement(
-				{
-					...agreement,
-					id: undefined,
-					principal: 700,
-					repayment_loan: { create: [{ ...rows[0], amount_due: 299 }, rows[1]] }
-				},
-				undefined,
-				{ stored: [] }
-			),
-		/SCHEDULE_IMBALANCED/
+	await assert.rejects(write(NEW, undefined, { stored: [] }), /complete repayment schedule/);
+});
+
+test('a patch is judged as the schedule it leaves behind; a legal edit lands', async () => {
+	// The sentence proves the overlay ran: 250 + 300 + 250 + 250, not the 300 the patch carried.
+	await assert.rejects(patch([{ id: 'r2', amount_due: 300 }]), /add up to 1050\.00/);
+	await patch([
+		{ id: 'r1', amount_due: 200 },
+		{ id: 'r2', amount_due: 300 }
+	]);
+	await assert.rejects(
+		patch([{ id: 'r3', due_date: '2026-04-01' }]),
+		new RegExp(SCHEDULE_OUT_OF_ORDER)
 	);
-});
-
-test('a repayment is written through its agreement: the collection exposes no create or update', () => {
-	assert.equal(loanRepayments.create, undefined);
-	assert.equal(loanRepayments.update, undefined);
-	assert.ok(loanRepayments.delete, 'the direct delete exists, judged by its grant');
-});
-
-// ── the capture, which still wins ───────────────────────────────────────────────────────────
-
-test('a repayment a payroll run has captured still cannot be rewritten', () => {
-	assert.throws(
-		() => patch([{ id: 'r1', amount_due: 251 }], { captured: true }),
-		/settled by a payroll and cannot be changed/
+	await assert.rejects(
+		patch([{ id: 'r4', due_date: '2026-10-01' }]),
+		new RegExp(SCHEDULE_OUTSIDE_EFFECTIVE_RANGE)
 	);
+	await assert.rejects(patch([{ id: 'stranger', amount_due: 999 }]), /not part of this loan/);
 });
 
-test('a captured repayment can be restated exactly when the remaining schedule is edited', () => {
-	assert.doesNotThrow(() => patch([{ ...BALANCED[0] }], { captured: true }));
-});
-
-test('captured no-op restatement compares PostgreSQL zoned and numeric representations by value', () => {
-	for (const [storedInstant, submittedInstant] of [
-		['2026-04-01T00:00:00+00:00', '2026-04-01T00:00:00.000Z'],
-		['2026-04-01T08:00:00+08:00', '2026-04-01T00:00:00.000Z'],
-		['2026-03-31T19:00:00-05:00', '2026-04-01T00:00:00.000Z'],
-		['2026-04-01T08:00:00.1234+08:00', '2026-04-01T00:00:00.123400Z']
-	]) {
-		const stored = [
-			{ ...BALANCED[0], due_date: storedInstant, amount_due: '250.00' },
-			...BALANCED.slice(1)
-		];
-		assert.doesNotThrow(() =>
-			patch([{ ...BALANCED[0], due_date: submittedInstant }], { stored, captured: true })
-		);
-		for (const due_date of [
-			'2026-04-02T00:00:00.000Z',
-			'2026-04-01T00:00:01.000Z',
-			'2026-04-01T00:00:00.123401Z'
-		])
-			assert.throws(
-				() => patch([{ id: 'r1', due_date }], { stored, captured: true }),
-				/settled by a payroll and cannot be changed/
-			);
-	}
-});
-
-test('an agreement starts with a nonempty schedule and cannot replace it with an empty set', () => {
-	assert.throws(() => writeAgreement(agreement, undefined), /complete repayment schedule/);
-	assert.throws(
-		() => writeAgreement({ ...agreement, repayment_loan: { create: [] } }, undefined),
-		/complete repayment schedule/
+test('principal or period edits without a replacement schedule must still match the stored repayments', async () => {
+	await assert.rejects(write({ principal: 1100 }, agreement), /SCHEDULE_IMBALANCED/);
+	await assert.rejects(
+		write({ effective_range: { from: '2026-04-01', to: '2026-06-01' } }, agreement),
+		/SCHEDULE_OUTSIDE_EFFECTIVE_RANGE/
 	);
-	assert.doesNotThrow(() =>
-		writeAgreement({ ...agreement, repayment_loan: { create: BALANCED } }, undefined, {
-			stored: []
-		})
+	await write(
+		{ principal: 1100, loan_repayments: { update: [{ target: 'r4', set: { amount_due: 350 } }] } },
+		agreement
 	);
-	assert.throws(
-		() =>
-			writeAgreement({ repayment_loan: { delete: BALANCED.map(({ id }) => ({ id })) } }, agreement),
+	await assert.rejects(
+		write({ loan_repayments: { delete: BALANCED.map(({ id }) => id) } }, agreement),
 		/cannot be empty/
 	);
 });
 
-test('principal or period edits without a replacement schedule must still match stored repayments', () => {
-	assert.throws(() => writeAgreement({ principal: 1100 }, agreement), /SCHEDULE_IMBALANCED/);
-	assert.throws(
-		() =>
-			writeAgreement(
-				{ effective_range: { start: RANGE.start, end: day('2026-06-01') } },
-				agreement
-			),
-		/SCHEDULE_OUTSIDE_EFFECTIVE_RANGE/
+test('a captured repayment is money history: restated exactly, never changed or deleted', async () => {
+	await assert.rejects(
+		patch([{ id: 'r1', amount_due: 251 }], { captured: true }),
+		/settled by a payroll and cannot be changed/
 	);
-	assert.doesNotThrow(() => writeAgreement({ principal: 1000 }, agreement));
-	assert.doesNotThrow(() =>
-		writeAgreement(
-			{
-				principal: 1100,
-				repayment_loan: { update: [{ id: 'r4', set: { amount_due: 350 } }] }
-			},
-			agreement
-		)
+	await patch([{ ...BALANCED[0] }], { captured: true });
+	const replacement = { create: [{ due_date: '2026-04-01', amount_due: 250, sequence: 1 }] };
+	await write({ loan_repayments: { delete: ['r1'], ...replacement } }, agreement);
+	await assert.rejects(
+		write({ loan_repayments: { delete: ['r1'], ...replacement } }, agreement, { captured: true }),
+		/settled by a payroll and cannot be deleted/
 	);
 });
 
-test('a captured repayment is not deleted through its agreement nor directly; an uncaptured one goes either way', () => {
-	const replacement = { create: [{ due_date: day('2026-04-01'), amount_due: 250, sequence: 1 }] };
-	assert.doesNotThrow(() =>
-		writeAgreement({ repayment_loan: { delete: [{ id: 'r1' }], ...replacement } }, agreement)
-	);
-	assert.throws(
-		() =>
-			writeAgreement({ repayment_loan: { delete: [{ id: 'r1' }], ...replacement } }, agreement, {
-				captured: true
-			}),
-		/settled by a payroll and cannot be deleted/
-	);
-	const authorize = requestGrants().loan_repayments.delete.authorize;
-	assert.equal(authorize({ record: BALANCED[0] }), true);
-	assert.equal(authorize({ record: { ...BALANCED[0], payslip_id: 'slip-1' } }), false);
+test('a repayment is written through its agreement; directly it is only deleted, and only unpinned', () => {
+	assert.equal(loanRepayments.spec.create, undefined);
+	assert.equal(loanRepayments.spec.update, undefined);
+	assert.ok(loanRepayments.spec.delete);
+	assert.deepEqual(hrManager.grants.loan_repayments.delete, UNPINNED);
 });

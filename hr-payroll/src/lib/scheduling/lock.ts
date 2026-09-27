@@ -1,64 +1,30 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import type { WorkspaceRow } from '$bolt/types.js';
+import { refuse } from '../refuse.js';
 import { dateKey } from '../iso-day.js';
+import * as Predicate from 'effect/Predicate';
 
 /**
- * The lock state of one person's calendar day, derived from the payroll that covers it.
+ * The lock state of one person's calendar day, derived from the payroll that covers it: untouched,
+ * inside a draft window, or inside a window already paid (no new record may appear; corrections are
+ * adjustment entries in a later run). Nothing is stored, so the board and the transforms agree.
  *
- * A day is either untouched, inside a draft assessment window (mutable, but on its way to being
- * settled), or inside a window whose payment has already happened (no *new* record may appear —
- * corrections arrive as adjustment entries in a later draft). Nothing about *this* is stored: the
- * day lock is arithmetic over `payroll_runs` windows and the payslips inside them, so the same
- * derived state drives the board's stripes and the transforms' refusals, and the two can never
- * disagree.
- *
- * ────────────────────────────────────────────────────────────────────────────────────────────────
- * THE LOCK IS THE PAYSLIP'S, NOT THE RUN'S.
- *
- * A run is the container its payslips arrive in and nothing more. Payment is recorded on the slip
- * (`payslips.paid_at`), so whether January is closed is a question about *this person's* January
- * payslip — not about whether every colleague's has been paid. A window is therefore settled *for
- * an employment*, and every question below takes the employment it is being asked about.
- *
- * Both halves of that matter. A person whose slip is paid is locked even though the run still reads
- * DRAFT because a colleague is held; and a person whose slip is held stays open even though
- * everyone around them has been paid. Asking the run gave the wrong answer in both directions the
- * moment payment stopped moving as a block.
- * ────────────────────────────────────────────────────────────────────────────────────────────────
- *
- * It is a question about **days**, and it used to be asked about records too. That was the mistake:
- * a record is settled because a payslip consumed it, not because it happens to be dated inside a
- * paid window, and the two answers differ for every draft run that has already produced payslips.
- * The record-level answer is a `payslip_adjustments` row naming the record, and it reaches
- * `sourceLock` below as `settledBy`. See `src/collections/payslip_adjustments/+model.ts`.
- *
- * The division of labour is worth stating in one line, because every guard in the workspace is one
- * side of it:
- *
- *     a RECORD is governed by the claim held over it;
- *     a DAY WITH NO RECORD is governed by the window, because there is no claim to ask —
- *     and a paid run has already priced that day's silence as absence.
- *
- * So the window arithmetic below answers exactly one write-side question — "may a record appear on
- * this day at all?" — and never "may this record change?". An existing record dated inside a paid
- * window that no run ever consumed stays editable and settles as arrears in a later run; that is
- * the second direction the old inference got wrong.
- *
- * `period` can name a whole month (`2026-08`) or half of one (`2026-08-1`, `2026-08-2`), matching
- * the company's pay grid. The board and the transforms only need the windows; they never interpret the
- * grid itself.
+ * The lock is the payslip's, not the run's: a window is settled for an employment when that
+ * person's slip is paid. A record is governed by the payslip that consumed it (`settledBy`); a day
+ * with no record is governed by the window — "may a record appear here?", never "may it change?".
+ * `period` is a month (`2026-08`) or a half (`2026-08-1`).
  */
 
-type PayrollRunLike = Pick<
-	WorkspaceRow<'payroll_runs'>,
-	'period' | 'attendance_from' | 'attendance_to'
-> & { readonly id?: string | undefined };
+type PayrollRunLike = {
+	readonly id?: string | undefined;
+	readonly period: string;
+	readonly attendance_from: string;
+	readonly attendance_to: string;
+};
 
 /** The payslips a window's settlement is read from: one per person, paid or not. */
 type PayslipLike = {
 	readonly payroll_run_id?: string | undefined;
 	readonly employment_id: string;
-	readonly paid_at?: unknown;
+	readonly paid_at?: unknown | undefined;
 };
 
 /** One run's assessment window, reduced to the arithmetic the day questions need. */
@@ -226,24 +192,9 @@ type SourceLockFacts = {
 };
 
 /**
- * Whether "the date is behind us" is a lock **on this collection**, stated by the caller.
- *
- * One collection says no and the others say yes, and the difference is not a preference. An expense
- * claim describes an event a person approved; editing one after its dates have gone by rewrites the
- * record of something that already either happened or did not, so that screen freezes the row and
- * offers a correction event instead. Attendance is the opposite shape entirely: a punch is *always*
- * recorded about a day that has passed — yesterday's clock-in, last week's missed swipe, a whole
- * month backfilled from a turnstile export. Freezing on a passed date there greys out every row a
- * controller has any reason to touch, which is the defect
- * `docs/scheduling.md` names under locking.
- *
- * The shape is a named policy rather than a boolean, and the two arms carry different fields, for
- * one reason: a call site must not be able to read as ambiguous. `datePassed: 'IS_NOT_A_LOCK'`
- * says what the caller decided in the caller's own words, and the arm forbids `today` outright —
- * a caller cannot both declare the date irrelevant and go on handing this function today's date.
- * The `'FREEZES'` arm is the one you get by saying nothing, so the collections that always froze
- * keep freezing without being touched; opting *out* is the change, and the change is the thing
- * that has to be visible.
+ * Whether a passed date locks this collection, stated by the caller: a claim freezes once its dates
+ * pass (a correction is a new event), attendance never does — a punch is always about a past day
+ * (`docs/scheduling.md`). `'IS_NOT_A_LOCK'` forbids passing `today`; `'FREEZES'` is the default.
  */
 type SourceLockInput = SourceLockFacts &
 	(
@@ -272,7 +223,7 @@ type SourceLockI18nParams =
 /** The strongest lock that applies to this source record. */
 export function sourceLock(input: SourceLockInput): SourceLock {
 	const approvalId = input.approvalId;
-	if (typeof approvalId === 'string' && approvalId.length > 0) {
+	if (Predicate.isString(approvalId) && approvalId.length > 0) {
 		return { kind: 'PENDING_APPROVAL' };
 	}
 	/**
@@ -406,7 +357,7 @@ export function sourceLockRecordMetadata(
 
 /** The claim a settled source carries, read off its own row. The period is read through the slip. */
 function settledClaim(row: {
-	readonly payslip_id?: string | null;
+	readonly payslip_id?: string | null | undefined;
 }): { readonly period: string | null } | undefined {
 	return row.payslip_id == null ? undefined : { period: null };
 }
@@ -434,22 +385,10 @@ export function assertNotCaptured(
 }
 
 /**
- * The plan half of a person-day is frozen once attendance has been recorded on it.
- *
- * The lock ladder above governs a record against payroll and approval. This is the rung it did not
- * have, and the owner's rule stated plainly: a work day may be shifted while nobody has clocked in
- * against it, and not afterwards. The reason is not tidiness — the plan is what the punch was
- * *measured against*. Day type, paid minutes, the overtime threshold and every rest-break figure
- * come off the roster code, so changing the code under a recorded punch retro-scores attendance
- * that already happened, silently and with no trace that the number moved.
- *
- * It reads the stored intervals, never the incoming ones: the question is whether attendance was
- * already on this day before this write, not whether the write brings some. That is what lets the
- * kiosk keep punching — a punch writes `worked_intervals` and never touches the
- * plan — and what lets HR correct a punch on a planned day.
- *
- * `null` is "no attendance was recorded"; `[]` is "the day was reviewed and produced nothing",
- * which is a statement somebody made about the day and is therefore just as much a lock.
+ * The plan half of a person-day is frozen once attendance is recorded on it (owner's rule): day
+ * type, paid minutes and overtime thresholds come off the roster code, so changing it would
+ * retro-score a punch. It reads the stored intervals, so the kiosk and HR may still punch; `[]` (a
+ * reviewed empty day) locks like any attendance, `null` does not.
  */
 export const attendanceRecorded = (intervals: unknown): boolean => Array.isArray(intervals);
 

@@ -19,7 +19,7 @@ import {
 	periodHalf,
 	periodMonth,
 	shiftPeriod
-} from '../src/collections/payroll_runs/lib/dates.ts';
+} from '../src/lib/payroll/run/dates.ts';
 import {
 	cadenceWindow,
 	defaultPayPeriod,
@@ -31,7 +31,7 @@ import {
 	closesTaxYear,
 	taxYearFirstPeriod,
 	taxYearOf
-} from '../src/collections/payroll_runs/lib/period.ts';
+} from '../src/lib/payroll/run/period.ts';
 
 /** Monthly 21st→20th, plus semi-monthly 1–15 paid on the 15th and 16–end paid at the period end. */
 const PH_SEMI = { name: 'Omni Plus PH', pay_cutoff_day: 21, pay_frequency: 'SEMI_MONTHLY' };

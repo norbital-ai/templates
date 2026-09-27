@@ -19,6 +19,8 @@
  */
 
 import { formatDuration } from './transcriber-format';
+import { getErrorMessage } from './transcriber-format';
+import * as Predicate from './guards.js';
 
 const MODULE_URL =
 	'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.min.js';
@@ -61,12 +63,12 @@ function reportProgress(message) {
 function modelProgressCallback(label) {
 	return (info) => {
 		if (!info) return;
-		if (info.status === 'progress' && typeof info.progress === 'number') {
+		if (info.status === 'progress' && Predicate.isNumber(info.progress)) {
 			const file = info.file ? ` (${info.file})` : '';
 			reportProgress(`${label}${file}: ${Math.round(info.progress)}%`);
 		} else if (info.status === 'ready' || info.status === 'done') {
 			reportProgress(`${label}: ready`);
-		} else if (typeof info.status === 'string') {
+		} else if (Predicate.isString(info.status)) {
 			reportProgress(`${label}: ${info.status}`);
 		}
 	};
@@ -119,8 +121,8 @@ async function getDiarization() {
 function resolveWordSpan(chunk, previousEnd, clipDuration) {
 	const raw = Array.isArray(chunk.timestamp) ? chunk.timestamp : [null, null];
 	let [start, end] = raw;
-	start = typeof start === 'number' && Number.isFinite(start) ? start : previousEnd;
-	end = typeof end === 'number' && Number.isFinite(end) ? end : Math.max(start, clipDuration);
+	start = Predicate.isNumber(start) && Number.isFinite(start) ? start : previousEnd;
+	end = Predicate.isNumber(end) && Number.isFinite(end) ? end : Math.max(start, clipDuration);
 	if (end < start) end = start;
 	return { start, end };
 }
@@ -189,7 +191,7 @@ self.onmessage = async (event) => {
 		});
 
 		const chunks = Array.isArray(asrResult?.chunks) ? asrResult.chunks : [];
-		const transcriptText = typeof asrResult?.text === 'string' ? asrResult.text.trim() : '';
+		const transcriptText = Predicate.isString(asrResult?.text) ? asrResult.text.trim() : '';
 		if (chunks.length === 0 || !transcriptText) {
 			self.postMessage({ type: 'complete', markdown: '' });
 			return;
@@ -208,7 +210,7 @@ self.onmessage = async (event) => {
 			// Keep the chunk's original text as Whisper produced it: space-delimited languages
 			// already carry their own separating space, and CJK output has none between
 			// characters. Only the emptiness check needs a trimmed copy.
-			const rawText = typeof chunk.text === 'string' ? chunk.text : '';
+			const rawText = Predicate.isString(chunk.text) ? chunk.text : '';
 			if (!rawText.trim()) continue;
 			const { start, end } = resolveWordSpan(chunk, previousEnd, clipDuration);
 			previousEnd = end;
@@ -220,7 +222,7 @@ self.onmessage = async (event) => {
 		reportProgress('Preparing transcript\u2026');
 		self.postMessage({ type: 'complete', markdown: toMarkdown(lines) });
 	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
+		const message = getErrorMessage(error);
 		self.postMessage({ type: 'error', message });
 	}
 };

@@ -25,7 +25,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Effect } from 'effect';
 import { createServer } from 'vite';
-import { stubApi as tableStub } from './lib/stub-api.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const viteResource = Effect.acquireRelease(
@@ -299,48 +298,23 @@ const PAYSLIPS = [
 		]
 	}
 ];
-function matches(row, where = {}) {
-	return Object.entries(where).every(([column, condition]) => {
-		if (condition == null) return true;
-		const value = row[column];
-		return Object.entries(condition).every(([operator, operand]) => {
-			switch (operator) {
-				case 'eq':
-					return String(value) === String(operand);
-				case 'in':
-					return operand.map(String).includes(String(value));
-				case 'isNull':
-					return (value == null) === operand;
-				case 'gte':
-					return String(value) >= String(operand);
-				case 'lte':
-					return String(value) <= String(operand);
-				case 'lt':
-					return String(value) < String(operand);
-				case 'gt':
-					return value != null && value > operand;
-				default:
-					throw new Error(`The stub does not implement ${operator} on ${column}.`);
-			}
-		});
-	});
-}
-
-/** A stand-in for the workspace tables the export readers resolve names against. */
-const stubApi = (tables) => tableStub(tables, matches);
-
 Effect.runPromise(
 	Effect.scoped(
 		Effect.gen(function* () {
 			const vite = yield* viteResource;
 			const { loadRunExports } = yield* Effect.tryPromise(() =>
-				vite.ssrLoadModule('/src/collections/payroll_runs/lib/export-data.ts')
+				vite.ssrLoadModule('/src/lib/payroll/run/export-data.ts')
 			);
 			const { workbookRows } = yield* Effect.tryPromise(() =>
-				vite.ssrLoadModule('/src/collections/payroll_runs/lib/report.ts')
+				vite.ssrLoadModule('/src/lib/payroll/run/report.ts')
+			);
+			// The tables the export reads, answered as `ctx.read` answers the automation.
+			const { memoryDb } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/tests/helpers/ctx.ts')
 			);
 
-			const api = stubApi({
+			const reads = memoryDb({
+				payroll_runs: [RUN],
 				payslips: PAYSLIPS,
 				companies: [{ id: 'company:1', workbook_layout: 'VENDOR' }],
 				employments: EMPLOYMENTS,
@@ -364,7 +338,7 @@ Effect.runPromise(
 				statutory_contributions: []
 			});
 
-			const [run] = yield* loadRunExports(api, [RUN]);
+			const [run] = yield* Effect.promise(() => loadRunExports(reads, [RUN]));
 			assert.equal(run.period, '2026-03');
 			assert.equal(run.payDate, '2026-03-28');
 			assert.equal(run.payslips.length, 2);

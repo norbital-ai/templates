@@ -53,10 +53,9 @@
 	manager" is the state this reader can act on and the one they opened the calendar for.
 -->
 <script lang="ts">
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Button } from '@norbital-ai/ui/button';
-	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
+	import { t, type MessageKey } from '../t.js';
+	import { Button } from '@norbital-ai/ui';
+	import { Icon as IconWrapper } from '@norbital-ai/ui';
 	import {
 		Bound,
 		Cluster,
@@ -67,8 +66,8 @@
 		Scroll,
 		Stack
 	} from '@norbital-ai/ui/layout';
-	import { Skeleton } from '@norbital-ai/ui/skeleton';
-	import { cn } from '@norbital-ai/ui/utils';
+	import Skeleton from '../skeleton.svelte';
+	import { cn } from '@norbital-ai/ui';
 	import MonthPeriodPicker from '../month-period-picker.svelte';
 	import { formatDurationHours } from '../display-formatters.js';
 	import { sourceLockReason, type SourceLock } from '../../scheduling/lock.js';
@@ -83,9 +82,7 @@
 	} from './roster-month.js';
 	import RosterSlot from './roster-slot.svelte';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
-	import { decodeNumber } from '@norbital-ai/std/json';
-
-	const { t } = useI18n<TenantI18nKeys>();
+	import { decodeNumber } from '../../wire.js';
 
 	/**
 	 * The clock boundaries of a day's punches, as the caller read them off the stored intervals.
@@ -174,7 +171,7 @@
 		'roster.weekday_fri',
 		'roster.weekday_sat',
 		'roster.weekday_sun'
-	] as const satisfies readonly TenantI18nKeys[];
+	] as const satisfies readonly string[];
 
 	const weeks = $derived.by(() => {
 		const first = days[0];
@@ -228,7 +225,7 @@
 	const RUNG_PRESENTATION: Record<
 		LockRung,
 		{
-			readonly labelKey: TenantI18nKeys;
+			readonly labelKey: MessageKey;
 			readonly railClass: string;
 			readonly lockKind: 'none' | 'system' | 'application';
 		}

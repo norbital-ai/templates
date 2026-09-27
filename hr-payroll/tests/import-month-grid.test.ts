@@ -7,13 +7,12 @@ import {
 	expandTimeMonthGrid,
 	isLongFormImportHeaders,
 	isMonthGridImportHeaders
-} from '../src/collections/work_days/import-month-grid.ts';
-import { calendarDaysInMonth, isYearMonth } from '../src/lib/period.ts';
+} from '../src/data/collection/work_days/lib/import-month-grid.ts';
+import { isYearMonth } from '../src/lib/period.ts';
+import { schedulingImportPayload } from '../src/data/collection/work_days/lib/import-workbook.ts';
+import { WorkbookImportError } from '../src/lib/workbook-rows.ts';
 
-test('May 2026 has 31 calendar days', () => {
-	assert.equal(calendarDaysInMonth('2026-05').length, 31);
-	assert.equal(calendarDaysInMonth('2026-05')[0], '2026-05-01');
-	assert.equal(calendarDaysInMonth('2026-05').at(-1), '2026-05-31');
+test('a payroll month is YYYY-MM', () => {
 	assert.equal(isYearMonth('2026-05'), true);
 	assert.equal(isYearMonth('2026-13'), false);
 });
@@ -129,4 +128,28 @@ test('an overtime cell that is not a half-hour step between 0 and 24 refuses the
 	assert.throws(() => read(-1), /cannot be negative/);
 	assert.throws(() => read(25), /cannot exceed the 24 hours/);
 	assert.throws(() => read('three'), /is not a number of hours/);
+});
+
+test('the workbook reader refuses a slashed work_date by name, before any write', () => {
+	const grids = new Map([
+		[
+			'Settings',
+			[
+				['Setting', 'Value'],
+				['legal_entity', 'Public Fixture Co'],
+				['month', '2026-05']
+			]
+		],
+		[
+			'Roster',
+			[
+				['employee_number', 'work_date', 'shift_code'],
+				['PUB-EMP-0001', '04/05/2026', 'OFF']
+			]
+		]
+	]);
+	assert.throws(
+		() => schedulingImportPayload(grids),
+		(error) => error instanceof WorkbookImportError && /04\/05\/2026/.test(error.message)
+	);
 });

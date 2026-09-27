@@ -19,7 +19,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { computedEntitlement, leaveWindowOf } from '../src/lib/leave/entitlement.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import {
 	assessStatutory,
 	buildStatutory,
@@ -28,12 +28,13 @@ import {
 	expectStatutorySkipped,
 	leaveCatalogue,
 	settingsVersions,
+	settingsIdOn,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
 
-const SG_2026 = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+const SG_2026 = settingsIdOn('SG', '2026-01-15');
 
 /** "Nil" in the tables: a total wage of $50 or less carries no CPF — a zero row or no row. */
 const expectNil = (book: ReturnType<typeof assessStatutory>, key: string) => {
@@ -595,7 +596,7 @@ test('SG audit — s.88(1)(c): a holiday on a non-working day is paid at the gro
 	]);
 });
 
-test('SG audit — Fourth Schedule: the hourly basic rate is 12 × monthly ÷ (52 × 44), whatever the contract’s week [LAW; engine differs]', () => {
+test('SG audit — Fourth Schedule: the hourly basic rate is 12 × monthly ÷ (52 × 44), whatever the full-time contract’s week', () => {
 	// EA s.38(6) with the Fourth Schedule, items 1 and 2 (monthly-rated workman and non-workman):
 	// hourly basic rate = 12 × monthly basic rate of pay ÷ (52 × 44). The schedule has no variant
 	// for a contract of fewer than 44 hours, and MOM caps a non-workman's rate at "the salary level
@@ -603,9 +604,7 @@ test('SG audit — Fourth Schedule: the hourly basic rate is 12 × monthly ÷ (5
 	// 52 × 40 divisor would exceed (12 × 2,600 ÷ 2,080 = 15.00).
 	// $2,288 on the fixture's 40-hour, five-day week: 12 × 2,288 ÷ 2,288 = 12.00 an hour; two
 	// hours past the shift at s.38(4)'s 1.5×: 2 × 12.00 × 1.5 = 36.00.
-	// The engine builds the hour on the contract's 40 hours (13.20 → 39.60): more than the statute
-	// requires, so never an underpayment, but not the Fourth Schedule's figure. Left failing on
-	// purpose (goldens hold the law); see the audit report for the engine change.
+	// The sealed 44-hour divisor prices a full-time 40-hour contract on the statute's week.
 	const { slips } = buildStatutory(
 		{
 			code: 'SG',

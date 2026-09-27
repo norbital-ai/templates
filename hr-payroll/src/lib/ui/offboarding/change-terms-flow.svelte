@@ -1,181 +1,104 @@
 <script lang="ts">
+	import terms from '../../../data/model/employment_terms/+model.ts';
+	import Labelled from '../Labelled.svelte';
+	import { t } from '../t.js';
+	import { everyField } from '../../every-field.js';
 	/**
 	 * Amend an active employment's terms: the form opens prefilled from the terms in force, with a
 	 * new effective start. Submit closes the previous row the day before, through the transform's
 	 * amendment rule, then creates the successor — never by editing a consumed row.
 	 */
-	import { Effect } from 'effect';
-	import { client } from '../../workspace-client.js';
-	import { getErrorMessage } from '@norbital-ai/std/error';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Button } from '@norbital-ai/ui/button';
-	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
-	import { Input } from '@norbital-ai/ui/input';
+	import type { Id } from '@norbital-ai/bolt';
+	import { bolt } from '$bolt';
+	import { PlainDate } from '@norbital-ai/std/date';
+	import { untrack } from 'svelte';
+	import { Button, Combobox, DateInput, Input } from '@norbital-ai/ui';
 	import { Cluster, Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import ContractAllowancesEditor from '../contract-allowances-editor.svelte';
-	import type { ContractAllowance } from '../../../datatypes/contract_allowances/+definition.js';
 	import { toast } from 'svelte-sonner';
-	import { dateKey, dayInstant } from '../../iso-day.js';
-	import { endOfDayInstant, todayKey } from '../calendar.js';
+	import { todayKey } from '../calendar.js';
+	import { live, liveRows } from '../live.svelte.js';
 	import { numberFrom } from '../renderer-input.js';
-	import { coversDate, readRange } from '../../../collections/payroll_runs/lib/effective.js';
+	import { coversDate } from '../../../lib/payroll/run/effective.js';
 	import FormSection from '../form-section.svelte';
 	import {
 		buildChangeTermsWrites,
 		previousDay,
 		type ChangeTermsFacts
 	} from './change-terms-submit.js';
+	import { getErrorMessage } from '../../refuse.js';
 
 	let {
 		employment,
 		onclose
 	}: {
-		employment: { readonly id: string; readonly company_id: string };
+		employment: { readonly id: Id<'employments'>; readonly company_id: Id<'companies'> };
 		onclose: () => void;
 	} = $props();
-	const { t } = useI18n<TenantI18nKeys>();
 	const today = todayKey();
 
-	const termsQuery = $derived(
-		client.db.employment_terms.findMany({
+	const termsQuery = liveRows(() =>
+		bolt.read('employment_terms', {
+			select: everyField('employment_terms'),
 			where: { employment_id: { eq: employment.id }, approval_id: { isNull: true } },
-			columns: {
-				id: true,
-				residency_status: true,
-				residency_since: true,
-				base_salary: true,
-				allowances: true,
-				pay_frequency: true,
-				work_classification: true,
-				statutory_work_category: true,
-				employment_type: true,
-				department: true,
-				job_title: true,
-				payroll_group: true,
-				grade: true,
-				ordinary_hours_per_week: true,
-				shift_pattern_id: true,
-				pass_type: true,
-				tax_residency: true,
-				notice_days: true,
-				paid_rest_days: true,
-				effective_range: true
-			},
-			limit: 100
+			all: true
 		})
 	);
-	type TermsRow = {
-		readonly id: string;
-		readonly residency_status: string | null;
-		readonly residency_since: string | null;
-		readonly base_salary: { readonly value: number; readonly currency: string };
-		readonly allowances: readonly ContractAllowance[];
-		readonly pay_frequency: string;
-		readonly work_classification: string;
-		readonly statutory_work_category: string;
-		readonly employment_type: string;
-		readonly department: string | null;
-		readonly job_title: string | null;
-		readonly payroll_group: string | null;
-		readonly grade: string | null;
-		readonly ordinary_hours_per_week: number | null;
-		readonly shift_pattern_id: string | null;
-		readonly pass_type: string | null;
-		readonly tax_residency: string | null;
-		readonly notice_days: number | null;
-		readonly paid_rest_days: boolean;
-		readonly effective_range: unknown;
-	};
-	const inForce = $derived.by((): TermsRow | null => {
-		for (const row of (termsQuery?.current ?? []) as readonly TermsRow[])
-			if (coversDate(row.effective_range, today)) return row;
-		return null;
-	});
+	const inForce = $derived(
+		(termsQuery.current ?? []).find((row) => coversDate(row.effective_range, today)) ?? null
+	);
 	// The patterns belong to the employing entity, like its roster codes: the flow already knows
 	// which entity it is changing terms for.
-	const patternsQuery = $derived(
-		client.db.shift_patterns.findMany({
+	const patternsQuery = liveRows(() =>
+		bolt.read('shift_patterns', {
 			where: { company_id: { eq: employment.company_id }, approval_id: { isNull: true } },
-			columns: { id: true, code: true, name: true },
+			select: { code: true, name: true },
 			orderBy: { code: 'asc' },
-			limit: 500
+			all: true
 		})
 	);
+	const company = live(() => bolt.get('companies', employment.company_id, { settings_code: true }));
 
-	const companyQuery = $derived(
-		client.db.companies.findFirst({
-			where: { id: { eq: employment.company_id } },
-			columns: { settings_code: true }
-		})
-	);
-
-	let draftFor = $state<string | null>(null);
-	let newStart = $state(today);
-	let baseSalaryValue = $state('');
-	let baseSalaryCurrency = $state('');
-	let allowances = $state<readonly ContractAllowance[]>([]);
-	let payFrequency = $state('');
-	let employmentType = $state('');
-	let residencyStatus = $state('');
-	let residencySince = $state('');
-	let workClassification = $state('');
-	let statutoryWorkCategory = $state('');
-	let department = $state('');
-	let jobTitle = $state('');
-	let payrollGroup = $state('');
-	let grade = $state('');
-	let shiftPatternId = $state('');
+	/**
+	 * The form, prefilled from the terms in force: seeded again only when another row comes into force (a live
+	 * re-read of the same row keeps what the person typed), and edited as a whole value.
+	 */
+	const inForceId = $derived(inForce?.id);
+	let draft = $derived.by(() => {
+		void inForceId;
+		return untrack(() => ({
+			newStart: today as string | null,
+			baseSalary: inForce == null ? '' : String(inForce.base_salary),
+			allowances: inForce?.allowances ?? [],
+			payFrequency: inForce?.pay_frequency ?? null,
+			employmentType: inForce?.employment_type ?? null,
+			residencyStatus: inForce?.residency_status ?? null,
+			residencySince: (inForce?.residency_since ?? null) as string | null,
+			workClassification: inForce?.work_classification ?? null,
+			statutoryWorkCategory: inForce?.statutory_work_category ?? null,
+			department: inForce?.department ?? '',
+			jobTitle: inForce?.job_title ?? '',
+			payrollGroup: inForce?.payroll_group ?? '',
+			grade: inForce?.grade ?? '',
+			shiftPatternId: inForce?.shift_pattern_id ?? null
+		}));
+	});
+	const edit = (patch: Partial<typeof draft>) => (draft = { ...draft, ...patch });
 	let formError = $state<string | null>(null);
 	let submitting = $state(false);
-	$effect(() => {
-		const row = inForce;
-		if (row == null || draftFor === row.id) return;
-		draftFor = row.id;
-		newStart = today;
-		baseSalaryValue = String(row.base_salary.value);
-		baseSalaryCurrency = row.base_salary.currency;
-		allowances = row.allowances ?? [];
-		payFrequency = row.pay_frequency;
-		employmentType = row.employment_type;
-		residencyStatus = row.residency_status ?? '';
-		residencySince = row.residency_since == null ? '' : dateKey(row.residency_since);
-		workClassification = row.work_classification;
-		statutoryWorkCategory = row.statutory_work_category;
-		department = row.department ?? '';
-		jobTitle = row.job_title ?? '';
-		payrollGroup = row.payroll_group ?? '';
-		grade = row.grade ?? '';
-		shiftPatternId = row.shift_pattern_id ?? '';
-		formError = null;
-	});
 
-	const PAY_FREQUENCIES = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'].map((value) => ({
-		value,
-		label: value
-	}));
-	const EMPLOYMENT_TYPES = ['PERMANENT', 'CONTRACT', 'PROBATION', 'INTERN', 'CONSULTANT'].map(
-		(value) => ({ value, label: value })
-	);
-	const RESIDENCY_STATUSES = ['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER'].map((value) => ({
-		value,
-		label: value
-	}));
-	const WORK_CLASSIFICATIONS = ['EA_COVERED', 'NON_EA', 'MANAGERIAL'].map((value) => ({
-		value,
-		label: value
-	}));
-	const STATUTORY_WORK_CATEGORIES = [
-		'NON_MANUAL',
-		'MANUAL_LABOUR',
-		'MANUAL_LABOUR_SUPERVISOR',
-		'COMMERCIAL_VEHICLE_OPERATOR',
-		'VESSEL_WORK'
-	].map((value) => ({ value, label: value }));
+	// The model's own enums: a value the model admits is a value the flow offers.
+	const optionsOf = <V extends string>(values: readonly V[]) =>
+		values.map((value) => ({ value, label: value }));
+	const PAY_FREQUENCIES = optionsOf(terms.fields.pay_frequency.values);
+	const EMPLOYMENT_TYPES = optionsOf(terms.fields.employment_type.values);
+	const RESIDENCY_STATUSES = optionsOf(terms.fields.residency_status.values);
+	const WORK_CLASSIFICATIONS = optionsOf(terms.fields.work_classification.values);
+	const STATUTORY_WORK_CATEGORIES = optionsOf(terms.fields.statutory_work_category.values);
 	const patternOptions = $derived(
-		(patternsQuery?.current ?? []).map((pattern) => ({
-			value: String(pattern.id),
-			label: [pattern.code, pattern.name].filter(Boolean).join(' · ') || String(pattern.id)
+		(patternsQuery.current ?? []).map((pattern) => ({
+			value: pattern.id,
+			label: [pattern.code, pattern.name].filter(Boolean).join(' · ') || pattern.id
 		}))
 	);
 
@@ -188,39 +111,46 @@
 	function draftWrites(): DraftedChange | null {
 		formError = null;
 		const row = inForce;
-		if (row == null) {
+		if (row == null || draft.newStart == null) {
 			formError = t('offboarding.no_terms_in_force');
 			return null;
 		}
-		const range = readRange(row.effective_range);
-		if (range == null) {
-			formError = t('offboarding.no_terms_in_force');
-			return null;
-		}
-		const salary = numberFrom(baseSalaryValue, Number.NaN);
+		const salary = numberFrom(draft.baseSalary, Number.NaN);
 		if (!Number.isFinite(salary) || salary < 0) {
 			formError = t('offboarding.need_valid_salary');
 			return null;
 		}
-		if (shiftPatternId === '') {
+		if (draft.shiftPatternId == null) {
 			formError = t('offboarding.need_pattern');
 			return null;
 		}
+		const { payFrequency, workClassification, statutoryWorkCategory, employmentType } = draft;
+		if (
+			payFrequency == null ||
+			workClassification == null ||
+			statutoryWorkCategory == null ||
+			employmentType == null
+		) {
+			formError = t('offboarding.no_terms_in_force');
+			return null;
+		}
+		const text = (value: string) => (value.trim() === '' ? null : value.trim());
 		const facts: ChangeTermsFacts = {
-			residency_status: residencyStatus === '' ? null : residencyStatus,
-			residency_since: residencySince === '' ? null : dayInstant(residencySince),
-			base_salary: { value: salary, currency: baseSalaryCurrency.toUpperCase() },
-			allowances,
+			residency_status: draft.residencyStatus,
+			residency_since: draft.residencySince == null ? null : PlainDate(draft.residencySince),
+			currency: row.currency,
+			base_salary: salary,
+			allowances: draft.allowances,
 			pay_frequency: payFrequency,
 			work_classification: workClassification,
 			statutory_work_category: statutoryWorkCategory,
 			employment_type: employmentType,
-			department: department.trim() === '' ? null : department.trim(),
-			job_title: jobTitle.trim() === '' ? null : jobTitle.trim(),
-			payroll_group: payrollGroup.trim() === '' ? null : payrollGroup.trim(),
-			grade: grade.trim() === '' ? null : grade.trim(),
+			department: text(draft.department),
+			job_title: text(draft.jobTitle),
+			payroll_group: text(draft.payrollGroup),
+			grade: text(draft.grade),
 			ordinary_hours_per_week: row.ordinary_hours_per_week,
-			shift_pattern_id: shiftPatternId,
+			shift_pattern_id: draft.shiftPatternId,
 			// Carried unchanged: the successor keeps the pass, tax residency, notice and paid-day basis of the row it replaces.
 			pass_type: row.pass_type,
 			tax_residency: row.tax_residency,
@@ -231,9 +161,9 @@
 			return buildChangeTermsWrites({
 				previousId: row.id,
 				employmentId: employment.id,
-				previousStart: range.start,
-				closeEnd: endOfDayInstant(previousDay(newStart)),
-				newStart: dayInstant(newStart),
+				previousStart: row.effective_range.from,
+				closeEnd: previousDay(draft.newStart),
+				newStart: draft.newStart,
 				facts
 			});
 		} catch (error) {
@@ -243,36 +173,13 @@
 	}
 </script>
 
-{#snippet select(
-	label: string,
-	value: string,
-	change: (value: string) => void,
-	options: readonly { value: string; label: string }[],
-	allowEmpty: boolean
-)}
-	<label class="text-sm font-medium"
-		><Stack gap="xs"
-			>{label}<select
-				class="border-input bg-background h-8 rounded-md border px-3 text-sm"
-				{value}
-				onchange={(event) => change(event.currentTarget.value)}
-			>
-				{#if allowEmpty}<option value=""></option>{/if}
-				{#each options as option}<option value={option.value}>{option.label}</option>{/each}
-			</select></Stack
-		></label
-	>
-{/snippet}
-
 {#snippet text(label: string, value: string, change: (value: string) => void)}
-	<label class="text-sm font-medium"
-		><Stack gap="xs"
-			>{label}<Input {value} oninput={(event) => change(event.currentTarget.value)} /></Stack
-		></label
-	>
+	<Labelled {label} class="text-sm font-medium">
+		<Input {value} oninput={(event) => change(event.currentTarget.value)} />
+	</Labelled>
 {/snippet}
 
-{#if termsQuery?.loading}
+{#if termsQuery.loading}
 	<p class="text-meta">{t('component.loading')}</p>
 {:else if inForce == null}
 	<Stack gap="sm">
@@ -290,26 +197,24 @@
 			hint={t('component.terms_section_pay_hint')}
 		>
 			<Grid gap="sm" minimum="compact">
-				{@render text(
-					t('component.base_salary'),
-					baseSalaryValue,
-					(value) => (baseSalaryValue = value)
+				{@render text(t('component.base_salary'), draft.baseSalary, (baseSalary) =>
+					edit({ baseSalary })
 				)}
-				{@render select(
-					t('component.pay_frequency'),
-					payFrequency,
-					(value) => (payFrequency = value),
-					PAY_FREQUENCIES,
-					false
-				)}
+				<Labelled label={t('component.pay_frequency')} class="text-sm font-medium">
+					<Combobox
+						options={PAY_FREQUENCIES}
+						value={draft.payFrequency}
+						onChange={(payFrequency) => edit({ payFrequency })}
+					/>
+				</Labelled>
 				<Column span="all">
 					<Stack gap="xs">
 						<span class="text-sm font-medium">{t('component.allowances')}</span>
 						<ContractAllowancesEditor
-							value={allowances}
-							settingsCode={companyQuery?.current?.settings_code ?? undefined}
-							firstDay={newStart}
-							onValueChange={(next) => (allowances = next)}
+							value={draft.allowances}
+							settingsCode={company.current?.settings_code}
+							firstDay={draft.newStart ?? undefined}
+							onValueChange={(allowances) => edit({ allowances })}
 						/>
 					</Stack>
 				</Column>
@@ -321,58 +226,55 @@
 			hint={t('component.shift_assignment_hint')}
 		>
 			<Grid gap="sm" minimum="compact">
-				{@render select(
-					t('component.shift_pattern'),
-					shiftPatternId,
-					(value) => (shiftPatternId = value),
-					patternOptions,
-					true
-				)}
+				<Labelled label={t('component.shift_pattern')} class="text-sm font-medium">
+					<Combobox
+						options={patternOptions}
+						value={draft.shiftPatternId}
+						clearable
+						onChange={(shiftPatternId) => edit({ shiftPatternId })}
+					/>
+				</Labelled>
 			</Grid>
 		</FormSection>
 
 		<FormSection title={t('component.standing')} hint={t('component.terms_section_standing_hint')}>
 			<Grid gap="sm" minimum="compact">
-				{@render select(
-					t('component.employment_type'),
-					employmentType,
-					(value) => (employmentType = value),
-					EMPLOYMENT_TYPES,
-					false
-				)}
-				{@render select(
-					t('component.residency_status'),
-					residencyStatus,
-					(value) => (residencyStatus = value),
-					RESIDENCY_STATUSES,
-					true
-				)}
-				<label class="text-sm font-medium"
-					><Stack gap="xs"
-						>{t('component.residency_since')}<Input
-							type="date"
-							value={residencySince}
-							oninput={(event) => {
-								residencySince = event.currentTarget.value;
-							}}
-						/></Stack
-					></label
-				>
-				{@render select(
-					t('component.classification'),
-					workClassification,
-					(value) => (workClassification = value),
-					WORK_CLASSIFICATIONS,
-					false
-				)}
-				{@render select(
-					t('component.statutory_work_category'),
-					statutoryWorkCategory,
-					(value) => (statutoryWorkCategory = value),
-					STATUTORY_WORK_CATEGORIES,
-					false
-				)}
-				{@render text(t('component.grade'), grade, (value) => (grade = value))}
+				<Labelled label={t('component.employment_type')} class="text-sm font-medium">
+					<Combobox
+						options={EMPLOYMENT_TYPES}
+						value={draft.employmentType}
+						onChange={(employmentType) => edit({ employmentType })}
+					/>
+				</Labelled>
+				<Labelled label={t('component.residency_status')} class="text-sm font-medium">
+					<Combobox
+						options={RESIDENCY_STATUSES}
+						value={draft.residencyStatus}
+						clearable
+						onChange={(residencyStatus) => edit({ residencyStatus })}
+					/>
+				</Labelled>
+				<Labelled label={t('component.residency_since')} class="text-sm font-medium">
+					<DateInput
+						value={draft.residencySince}
+						onChange={(residencySince) => edit({ residencySince })}
+					/>
+				</Labelled>
+				<Labelled label={t('component.classification')} class="text-sm font-medium">
+					<Combobox
+						options={WORK_CLASSIFICATIONS}
+						value={draft.workClassification}
+						onChange={(workClassification) => edit({ workClassification })}
+					/>
+				</Labelled>
+				<Labelled label={t('component.statutory_work_category')} class="text-sm font-medium">
+					<Combobox
+						options={STATUTORY_WORK_CATEGORIES}
+						value={draft.statutoryWorkCategory}
+						onChange={(statutoryWorkCategory) => edit({ statutoryWorkCategory })}
+					/>
+				</Labelled>
+				{@render text(t('component.grade'), draft.grade, (grade) => edit({ grade }))}
 			</Grid>
 		</FormSection>
 
@@ -381,29 +283,21 @@
 			hint={t('component.terms_section_organisation_hint')}
 		>
 			<Grid gap="sm" minimum="compact">
-				{@render text(t('component.job_title'), jobTitle, (value) => (jobTitle = value))}
-				{@render text(t('component.department'), department, (value) => (department = value))}
-				{@render text(
-					t('component.payroll_group'),
-					payrollGroup,
-					(value) => (payrollGroup = value)
+				{@render text(t('component.job_title'), draft.jobTitle, (jobTitle) => edit({ jobTitle }))}
+				{@render text(t('component.department'), draft.department, (department) =>
+					edit({ department })
+				)}
+				{@render text(t('component.payroll_group'), draft.payrollGroup, (payrollGroup) =>
+					edit({ payrollGroup })
 				)}
 			</Grid>
 		</FormSection>
 
 		<FormSection title={t('component.section_period')} hint={t('offboarding.new_start_hint')}>
 			<Grid gap="sm" minimum="compact">
-				<label class="text-sm font-medium"
-					><Stack gap="xs"
-						>{t('offboarding.new_start')}<Input
-							type="date"
-							value={newStart}
-							oninput={(event) => {
-								newStart = event.currentTarget.value;
-							}}
-						/></Stack
-					></label
-				>
+				<Labelled label={t('offboarding.new_start')} class="text-sm font-medium">
+					<DateInput value={draft.newStart} onChange={(newStart) => edit({ newStart })} />
+				</Labelled>
 			</Grid>
 		</FormSection>
 
@@ -414,35 +308,31 @@
 			>
 			<Button
 				type="button"
-				disabled={submitting || newStart === ''}
+				disabled={submitting || draft.newStart == null}
 				onclick={() => {
 					const writes = draftWrites();
 					if (writes == null) return;
 					submitting = true;
-					Effect.runFork(
-						submitCollectionMutation(() =>
-							client.collection.employment_terms
-								.update(writes.close.id, { effective_range: writes.close.effective_range })
-								.then(() => client.collection.employment_terms.create(writes.create))
-						).pipe(
-							Effect.tap((result) =>
-								Effect.sync(() => {
-									toast.success(
-										result.kind === 'pendingApproval'
-											? t('offboarding.terms_pending')
-											: t('offboarding.terms_submitted')
-									);
-									onclose();
-								})
-							),
-							Effect.catch((cause) =>
-								Effect.sync(() => {
-									formError = getErrorMessage(cause);
-									submitting = false;
-								})
-							)
-						)
-					);
+					// Close the row in force first: its amendment rule refuses a close that would uncover consumed dates.
+					void (async () => {
+						const closed = await bolt.act('employment_terms.update', writes.close);
+						const created =
+							closed.kind === 'committed' || closed.kind === 'pendingApproval'
+								? await bolt.act('employment_terms.create', writes.create)
+								: closed;
+						if (created.kind === 'committed' || created.kind === 'pendingApproval') {
+							toast.success(
+								created.kind === 'pendingApproval'
+									? t('offboarding.terms_pending')
+									: t('offboarding.terms_submitted')
+							);
+							onclose();
+							return;
+						}
+						formError =
+							'message' in created ? String(created.message) : t('offboarding.save_terms');
+						submitting = false;
+					})();
 				}}>{t('offboarding.save_terms')}</Button
 			>
 		</Cluster>

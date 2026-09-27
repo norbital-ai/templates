@@ -7,11 +7,10 @@
 	 * A readonly matrix renders the expression as text: a disabled input is a muted form control,
 	 * and a display surface is neither.
 	 */
-	import type { MatrixCellRendererProps, MatrixRow } from '@norbital-ai/ui/data-renderer/matrix';
-	import { Input } from '@norbital-ai/ui/input';
+	import { t } from './t.js';
+	import type { MatrixCellRendererProps, MatrixRow } from './grid.svelte';
+	import { Input } from '@norbital-ai/ui';
 	import { Inline } from '@norbital-ai/ui/layout';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import ExpressionFields from './expression-fields.svelte';
 	import type { ExpressionSite, ExpressionType } from '../expressions/contexts.js';
 
@@ -20,11 +19,8 @@
 	const site = $derived((field.options?.site ?? 'work_day') as ExpressionSite);
 	const type = $derived((field.options?.type ?? 'money') as ExpressionType);
 	const text = $derived(value == null ? '' : String(value));
-	const { t } = useI18n<TenantI18nKeys>();
 	/** One fixed-height line, so the contract rides the input's title. */
-	const contract = $derived(
-		`${t(`expression.returns.${type}` as TenantI18nKeys)} · ${t(`expression.site.${site}` as TenantI18nKeys)}`
-	);
+	const contract = $derived(`${t(`expression.returns.${type}`)} · ${t(`expression.site.${site}`)}`);
 </script>
 
 {#if mode === 'display'}

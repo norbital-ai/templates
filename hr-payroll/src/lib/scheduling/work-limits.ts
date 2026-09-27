@@ -1,51 +1,39 @@
 /**
- * The schedule-time limit arithmetic: how planned overtime splits at the statutory limits, and the
- * roster-plan ceilings a shift or pattern is refused on.
- *
- * Planned overtime is two keyed figures (owner's rule, 2026-09-23): `approved_overtime_hours`, the
- * overtime within every statutory limit that bounds it (`splitsOvertime`), and `incentive_hours`,
- * anything beyond. A direct write keys both and is refused where a day's approved hours pass the
- * headroom its limits leave (`overtimeHeadroom`); nothing moves hours between the two. Only the
- * import (and the seed preparation) splits a total at the limits (`splitPlannedOvertime`), by the
- * same counting. What also refuses is the roster plan itself — a shift whose own paid hours or
- * spread-over are above a TOTAL_WORK_HOURS or SPREAD_HOURS limit (`projectedLimitBreaches`) —
- * because a shift's hours are not overtime. This module is that arithmetic, pure, so the
- * `work_days` transform, the import, the `shift_patterns` transform and the day sheet quote the
- * same sentence.
- *
- * The projection is the pattern cycle plus the roster overlay: every date in the window resolves to
- * the roster code an explicit row names, else the code the pattern projects. A plan's paid minutes
- * are the net worked hours a limit is measured in; a CLOCK_HOURS day limit is evaluated against the
- * granted break exactly as the priced context evaluates it, so a twelve-hour clock day less a
- * one-hour break is eleven net worked hours.
+ * The schedule-time limit arithmetic, pure, so the `work_days` and `shift_patterns` transforms, the
+ * import and the day sheet quote one sentence. Planned overtime is two keyed figures (owner's rule,
+ * 2026-09-23): `approved_overtime_hours` within every limit that bounds it, `incentive_hours`
+ * beyond; a direct write is refused past the headroom (`overtimeHeadroom`), and only the import
+ * splits a total (`splitPlannedOvertime`). A shift whose own hours or spread-over pass a
+ * TOTAL_WORK_HOURS or SPREAD_HOURS limit is refused (`projectedLimitBreaches`). The projection is
+ * the pattern cycle plus the roster overlay, measured in net worked minutes.
  */
 
 import {
 	isRestLimit,
 	type WorkHoursLimit as WorkLimit,
 	type WorkLimit as AnyWorkLimit
-} from '../../datatypes/work_rules/+definition.js';
-import { addDays, monthBounds, weekStart } from '../../collections/payroll_runs/lib/dates.js';
+} from '../datatypes/work_rules.js';
+import { addDays, monthBounds, weekStart } from '../../lib/payroll/run/dates.js';
 import {
 	isEligible,
 	personContext,
 	type PersonContext,
 	type PersonInput
-} from '../../collections/payroll_runs/lib/eligibility.js';
-import { attendanceWindow, defaultPayPeriod } from '../../collections/payroll_runs/lib/period.js';
-import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
-import type { ShiftDefinition } from '../../collections/payroll_runs/lib/configuration.js';
-import type { WorkRules } from '../../datatypes/work_rules/+definition.js';
+} from '../../lib/payroll/run/eligibility.js';
+import { attendanceWindow, defaultPayPeriod } from '../../lib/payroll/run/period.js';
+import { resolveSchedule } from '../../lib/payroll/run/schedule.js';
+import type { ShiftDefinition } from '../../lib/payroll/run/configuration.js';
+import type { WorkRules } from '../datatypes/work_rules.js';
 import { resolveHolidays, type HolidayRow } from '../holiday-calendar.js';
 import type { ShiftPatternLike } from './work-pattern.js';
 import { rosterCodeKind, workWindow } from './roster-code.js';
-import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
+import type { RosterCodeVariant } from '../datatypes/roster_code_variant.js';
 import { workDayHolds } from '../payroll/work-bands.js';
 import {
 	classifyWageComparand,
 	deriveStatutoryWages
-} from '../../collections/payroll_runs/lib/statutory-wages.js';
-import { decodeNumber } from '@norbital-ai/std/json';
+} from '../../lib/payroll/run/statutory-wages.js';
+import { decodeNumber } from '../wire.js';
 
 /**
  * The limits that govern one person: every unconditional limit, and every conditional one whose
@@ -88,7 +76,7 @@ export type SchedulePlanDay = {
 	/** Clock span the code's window covers, break included. Zero for a non-working day. */
 	readonly spread_hours: number;
 	/** A REST code marked the statutory rest day (TW 例假), for a limit's day predicates. */
-	readonly statutory_rest?: boolean;
+	readonly statutory_rest?: boolean | undefined;
 };
 
 /** The roster-code facts a plan resolves to; `work_days` and `shift_patterns` both carry them. */
@@ -97,7 +85,7 @@ export type RosterCodeFacts = {
 	readonly paid_minutes: number;
 	readonly break_minutes: number;
 	readonly spread_hours: number;
-	readonly statutory_rest?: boolean;
+	readonly statutory_rest?: boolean | undefined;
 };
 
 /** A roster code's facts, as the projection reads them; null where a WORK code states no window. */
@@ -252,11 +240,11 @@ type OvertimeSplitDay = SchedulePlanDay & {
 	/** The day's total planned overtime, in half-hour steps: approved plus incentive. */
 	readonly total_overtime_hours: number;
 	/** A stored day the split does not re-split: the approved hours it keeps, counted as they stand. */
-	readonly fixed_overtime_hours?: number;
+	readonly fixed_overtime_hours?: number | undefined;
 	/** `work_days.emergency_cause`: the hours sit outside every ceiling (TW 勞基法 §32(4)). */
-	readonly emergency?: boolean;
+	readonly emergency?: boolean | undefined;
 	/** The person observes a company holiday on the date (`observedHolidayDates`). */
-	readonly holiday?: boolean;
+	readonly holiday?: boolean | undefined;
 };
 
 /**
@@ -275,28 +263,17 @@ export const assessmentWindow = (
 	attendanceWindow(assessmentPeriod(date, cutoffDay), cutoffDay);
 
 /**
- * The overtime caps of a limit set, as the split and the headroom both read them. Every limit that
- * bounds overtime caps it (`splitsOvertime`); for each, which of a day's planned overtime it does not
- * count, what the day itself leaves under a DAY cap, and the period bucket a longer cap fills —
+ * The overtime caps of a limit set, as the split and the headroom read them:
  *
- *   DAY   TOTAL_WORK_HOURS          evaluated maximum (a CLOCK_HOURS figure less the break) less
- *                                   the plan's paid hours
+ *   DAY   TOTAL_WORK_HOURS          the maximum (a CLOCK_HOURS figure less the break) less the plan
  *   DAY   (ALL_)OVERTIME_HOURS      the maximum
- *   WEEK… TOTAL_WORK_HOURS          the maximum less every planned hour of the period and the
- *                                   approved hours in it
- *   WEEK… (ALL_)OVERTIME_HOURS      the maximum less the approved hours in it
+ *   WEEK… TOTAL_WORK_HOURS          the maximum less the period's planned and approved hours
+ *   WEEK… (ALL_)OVERTIME_HOURS      the maximum less the period's approved hours
  *
- * Which days a limit counts, for every period alike, is per the limit's measure and day predicates:
- * TOTAL_WORK_HOURS and ALL_OVERTIME_HOURS count every day (MY s.60A(7), SG s.38(8), TW §32(2): the
- * hours of work in any one day); OVERTIME_HOURS is the regulated overtime of an ordinary or off
- * day, so a REST day or a holiday neither consumes nor is bounded by it (ID PP 35/2021 art.26(2)
- * puts rest-day and holiday overtime outside the four hours a day and eighteen a week; VN
- * art.107(2)(b)'s four hours are the working day's) — unless the limit's `counts_day_when` holds on
- * it, which counts all of the day's overtime, or its `counts_beyond_normal_when`, which counts what
- * lies past the day's normal hours (TW 勞基法 §36(3), and past eight on a 例假 or holiday). The
- * predicates are read as the ceiling report reads them (`workDayHolds`). A MONTH is the assessment
- * month of `cutoffDay` (default 1, the calendar month); a WEEK runs Monday to Sunday; a QUARTER or
- * YEAR is the calendar's.
+ * TOTAL_WORK_HOURS and ALL_OVERTIME_HOURS count every day (MY s.60A(7), SG s.38(8), TW §32(2));
+ * OVERTIME_HOURS skips rest days and holidays (ID PP 35/2021 art.26(2), VN art.107(2)(b)) unless
+ * `counts_day_when` holds (all of the day's overtime) or `counts_beyond_normal_when` (past the
+ * normal hours: TW 勞基法 §36(3)). A MONTH is the `cutoffDay` month, a WEEK Monday–Sunday.
  */
 function overtimeCaps(limits: readonly WorkLimit[], cutoffDay: number) {
 	const caps = limits.filter(splitsOvertime);
@@ -308,7 +285,7 @@ function overtimeCaps(limits: readonly WorkLimit[], cutoffDay: number) {
 	// day, as every lineage with a limit resolves it (`holiday_rest_precedence` REST_DAY or
 	// SUBSTITUTE). ponytail: no person here — a day predicate reading `person` sees a blank one;
 	// pass the person through when a lineage's predicate needs it.
-	const holds = (expression: string | undefined, day: OvertimeDay): boolean =>
+	const holds = (expression: string | null | undefined, day: OvertimeDay): boolean =>
 		(expression ?? '').trim() !== '' &&
 		workDayHolds({
 			work: { limits },
@@ -377,8 +354,8 @@ function overtimeCaps(limits: readonly WorkLimit[], cutoffDay: number) {
 /** One day the caps read: its plan, and the overtime the arithmetic weighs on it. */
 type OvertimeDay = SchedulePlanDay & {
 	readonly overtime: number;
-	readonly emergency?: boolean;
-	readonly holiday?: boolean;
+	readonly emergency?: boolean | undefined;
+	readonly holiday?: boolean | undefined;
 };
 
 const floorHalf = (hours: number): number => Math.floor(Math.max(0, hours) * 2 + 1e-9) / 2;
@@ -401,7 +378,7 @@ export function splitPlannedOvertime(options: {
 	readonly days: readonly OvertimeSplitDay[];
 	readonly limits: readonly WorkLimit[];
 	/** The company's `pay_cutoff_day`: the day the assessment month opens. */
-	readonly cutoffDay?: number;
+	readonly cutoffDay?: number | undefined;
 }): ReadonlyMap<string, OvertimeSplit> {
 	const { caps, plannedHours, uncounted, dayLeft, bucket } = overtimeCaps(
 		options.limits,
@@ -461,9 +438,9 @@ export function splitPlannedOvertime(options: {
 type HeadroomDay = SchedulePlanDay & {
 	readonly approved_overtime_hours: number;
 	/** `work_days.emergency_cause`: the hours sit outside every ceiling (TW 勞基法 §32(4)). */
-	readonly emergency?: boolean;
+	readonly emergency?: boolean | undefined;
 	/** The person observes a company holiday on the date (`observedHolidayDates`). */
-	readonly holiday?: boolean;
+	readonly holiday?: boolean | undefined;
 };
 
 /** The most approved overtime a day can hold, and the limit that binds it. */
@@ -494,7 +471,7 @@ type OvertimeBreach = {
 export function overtimeHeadroom(options: {
 	readonly days: readonly HeadroomDay[];
 	readonly limits: readonly WorkLimit[];
-	readonly cutoffDay?: number;
+	readonly cutoffDay?: number | undefined;
 }): {
 	readonly maximum: ReadonlyMap<string, OvertimeMaximum | null>;
 	readonly breaches: readonly OvertimeBreach[];
@@ -661,13 +638,14 @@ export function observedHolidays(options: {
 type AllowanceClass = {
 	readonly destination: string | null;
 	readonly direction: string | null;
+	readonly counts_toward?: readonly string[] | null;
 };
 
 /**
  * Whether the version's overtime rule (`work.overtime_when`) covers a person, read before a run.
  * The wage it compares is the one payroll derives (`deriveStatutoryWages`): the contract's basic
- * salary plus every allowance the contract lists whose class is a cash payment for work
- * (`classifyWageComparand`), each at its contractual monthly amount. `allowanceClass` resolves a
+ * salary plus every allowance the contract lists whose class is marked for the applicable wage
+ * comparand (`classifyWageComparand`), each at its contractual monthly amount. `allowanceClass` resolves a
  * listed allowance's catalogue row; one it cannot resolve counts nothing, as payroll counts a class
  * the period's version no longer offers. Ad hoc payments and claims are the run's own and are not
  * known before it: a person carried past a wage ceiling by them alone is named by the run's warning.
@@ -679,30 +657,17 @@ export function overtimeEntitled(
 ): boolean {
 	const when = (overtimeWhen ?? '').trim();
 	if (when === '') return true;
-	const terms = person.terms as
-		| {
-				readonly base_salary?: { value?: unknown; currency?: unknown } | null;
-				readonly allowances?: unknown;
-		  }
-		| null
-		| undefined;
-	const salary = terms?.base_salary;
-	const listed = Array.isArray(terms?.allowances)
-		? (terms.allowances as readonly { readonly catalogue_id: string; readonly amount: unknown }[])
-		: [];
+	const { terms } = person;
 	const wages = deriveStatutoryWages({
-		baseSalary: {
-			value: Number(salary?.value ?? 0) || 0,
-			currency: String(salary?.currency ?? '')
-		},
-		payments: listed.flatMap((row) => {
+		baseSalary: { value: (terms?.base_salary ?? 0) || 0, currency: terms?.currency ?? '' },
+		payments: (terms?.allowances ?? []).flatMap((row) => {
 			const row_class = allowanceClass(row.catalogue_id);
 			return row_class == null
 				? []
 				: [
 						{
 							category: classifyWageComparand({ ...row_class, definition: { source: 'ENTRY' } }),
-							amount: decodeNumber(row.amount)
+							amount: row.amount
 						}
 					];
 		})
@@ -722,7 +687,7 @@ export function projectedLimitBreaches(options: {
 	readonly changedDates: ReadonlySet<string>;
 	readonly planByDate: ReadonlyMap<string, SchedulePlanDay>;
 	readonly limits: readonly WorkLimit[];
-	readonly authority?: string | null;
+	readonly authority?: string | null | undefined;
 }): LimitBreach[] {
 	const limits = options.limits.filter(
 		(limit) => limit.measure === 'TOTAL_WORK_HOURS' || limit.measure === 'SPREAD_HOURS'

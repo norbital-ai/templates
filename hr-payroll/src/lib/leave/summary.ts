@@ -1,4 +1,4 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
+import { refuse } from '../refuse.js';
 import { leavePool, leaveRules, type LeaveContext } from './context.js';
 import { leaveWindowOf } from './entitlement.js';
 import { leaveBalanceAt } from './balance.js';

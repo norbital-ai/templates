@@ -1,6 +1,6 @@
 # Job assignments import CSV
 
-The dispatch board's **Import** pipeline (the toolbar's operations menu) reads a CSV in this
+The dispatch page's **Import** button (the `job_assignments.import_work_orders` action) reads a CSV or xlsx in this
 shape and creates one job assignment per row. The first row is the header; column order does not
 matter and blank cells are ignored.
 

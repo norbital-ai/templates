@@ -14,7 +14,6 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	assessStatutory,
 	buildStatutory,
@@ -27,15 +26,19 @@ import {
 } from './fixtures/statutory-world.ts';
 import { readLawFile } from './fixtures/law-file.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
-import {
-	absenceDayRate,
-	ordinaryDivisorDays
-} from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
+import { absenceDayRate, ordinaryDivisorDays } from '../src/lib/payroll/run/ordinary-rate.ts';
 import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
-import { leaveCatalogue, settingsVersions } from './fixtures/statutory-world.ts';
+import {
+	adhocCatalogue,
+	allowanceCatalogue,
+	leaveCatalogue,
+	rowIn,
+	settingsIdOn,
+	settingsVersions
+} from './fixtures/statutory-world.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
 
 const PH_PEOPLE = [
@@ -190,13 +193,13 @@ test('Philippines — the rice subsidy is de minimis and outside withholding (RR
 	// ₱2,000 under RR 11-2018 on the December 2025 version), so the monthly table reads
 	// 32,000 + 2,700 − (1,750 + 800 + 200) = 31,950: 15% × (31,950 − 20,833) = 1,667.55 — the
 	// entity's own cell. With the subsidy inside the base it withheld 1,862.55.
-	const MEAL = {
-		'2026-01': '874b6d04-8bf1-4d59-b4c4-18daf98a98e5',
-		'2025-12': '89df9fab-45d9-585a-b243-4ddadcf1d0c4'
-	};
+	// the rows of the version in force when each period opens, by code (versions are reissued; ids are not the law)
+	const row = (code: string, period: string) =>
+		rowIn(allowanceCatalogue('PH'), settingsIdOn('PH', `${period}-01`), code);
+	const MEAL = { '2026-01': row('meal', '2026-01'), '2025-12': row('meal', '2025-12') };
 	const TRANSPORT = {
-		'2026-01': '92e2ca4a-bd53-42f5-8b62-84e892da9954',
-		'2025-12': 'a3fbd97a-0b76-546d-bc4c-e56ac46dc4ce'
+		'2026-01': row('transport', '2026-01'),
+		'2025-12': row('transport', '2025-12')
 	};
 	for (const period of ['2026-01', '2025-12'] as const) {
 		const book = assessStatutory(
@@ -609,7 +612,11 @@ test('Philippines — the salary-based schemes are monthly schedules, not per-pe
 // `annual_exempt`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const THIRTEENTH_MONTH_ID = '4fddc3cc-7bf8-42c4-8f43-7d9ef87605d6';
+const THIRTEENTH_MONTH_ID = rowIn(
+	adhocCatalogue('PH'),
+	settingsIdOn('PH', '2026-12-15'),
+	'THIRTEENTH_MONTH_PAY'
+);
 
 function payslipsOf(
 	options: Parameters<typeof createStatutoryWorld>[0],
@@ -630,13 +637,11 @@ function payslipsOf(
 			as_adjustment_entry: false,
 			approval_id: null
 		});
-	const prepared = Effect.runSync(
-		gatherPayrollRun({
-			api: memoryPayrollApi(world),
-			companyId: COMPANY_ID,
-			period: options.period
-		})
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: options.period
+	});
 	const built = buildPayrollRun(prepared);
 	const slips = built.payslip_payroll_run;
 	return (key: string) => {
@@ -701,7 +706,12 @@ test('Philippines — 13th month pay keyed for December is a twelfth of the year
 // the law: 5% of 15,650 split, 391.25 each.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const OPSPH006_ALLOWANCE = '1f36debb-0b79-4aab-966e-aae5251b1026';
+// the entity's `allowance` row in the version that opens January 2026 (versions are reissued; the code is the law's name)
+const OPSPH006_ALLOWANCE = rowIn(
+	allowanceCatalogue('PH'),
+	settingsIdOn('PH', '2026-01-01'),
+	'allowance'
+);
 
 /**
  * OPSPH006 in January 2026; `firstHalf` seeds the mid-month payslip as settled (its own lines,
@@ -837,7 +847,7 @@ test('Philippines — the entity may carry the month’s premiums on the end-mon
 const rankAndFile = personContext({
 	employee: null,
 	employment: { service_start: '2020-01-01' },
-	terms: { base_salary: { value: 30_000, currency: 'PHP' }, paid_rest_days: true },
+	terms: { base_salary: 30_000, currency: 'PHP', paid_rest_days: true },
 	week: { ordinary_hours_per_week: 40, working_days_per_week: 5 },
 	asOf: '2026-06-30'
 });
@@ -934,7 +944,7 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 				person: personContext({
 					employee: null,
 					employment: { service_start: '2020-01-01' },
-					terms: { base_salary: { value: 30_000, currency: 'PHP' }, paid_rest_days },
+					terms: { base_salary: 30_000, currency: 'PHP', paid_rest_days },
 					week: { ordinary_hours_per_week: hours, working_days_per_week: days },
 					asOf: '2026-06-30'
 				})
@@ -960,7 +970,7 @@ test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
 				person: personContext({
 					employee: null,
 					employment: { service_start: '2020-01-01' },
-					terms: { base_salary: { value: 30_000, currency: 'PHP' }, paid_rest_days },
+					terms: { base_salary: 30_000, currency: 'PHP', paid_rest_days },
 					week: { ordinary_hours_per_week: hours, working_days_per_week: days },
 					asOf: '2026-02-28'
 				}),
@@ -1043,10 +1053,10 @@ test('Philippines — the statutory leave ladder on every version', () => {
 // The fixed factor caps the month, and "no work, no pay" reaches the allowance.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PH_2026 = 'bb5137fd-d7fd-4a26-8eae-77211521f892';
+const PH_2026 = settingsIdOn('PH', '2026-01-02');
 // The version governing 31 January 2026 since RR 29-2025 split January on the 6th: a separation
 // row must come from the catalogue in force on the final service day.
-const PH_2026_JAN6 = 'b585862c-5438-5a97-a36d-44e55ceb5498';
+const PH_2026_JAN6 = settingsIdOn('PH', '2026-01-31');
 
 test('Philippines — a salary change mid-month is one month of pay, never more (DOLE Handbook ch.2 §E)', () => {
 	// January 2026 holds 22 Monday-to-Friday working days — 17 to the 23rd and 5 from the 24th —
@@ -1064,7 +1074,8 @@ test('Philippines — a salary change mid-month is one month of pay, never more 
 			world.employment_terms.push({
 				...term,
 				id: 'b0000000-0000-4000-8000-0000000000ff',
-				base_salary: { value: 21_000, currency: 'PHP' },
+				base_salary: 21_000,
+				currency: 'PHP',
 				effective_range: { start: '2026-01-24', end: null }
 			});
 		}

@@ -57,23 +57,32 @@ test('a missing clip is silence: the narrator marks it and moves on without any 
 	void played;
 });
 
-/**
- * `vite.config.ts` imports `KIOSK_REQUIRED_MODELS` rather than restating it, so the build cannot
- * ship a different set from the one the kiosk refuses to start without. A guard that read the
- * plugin's own literal list used to stand here; the import deleted the duplication and the guard
- * with it, which is the better outcome — there is no longer a second list to disagree.
- */
-test('the model base resolves beside this chunk and names every enabled model', () => {
-	// In the built bundle the chunk lives under `assets/` and the models one level up; under Node the
-	// same expression resolves relative to the source file, so only the shape is asserted here.
-	assert.ok(KIOSK_MODEL_BASE.endsWith('/models/human/'), KIOSK_MODEL_BASE);
-	assert.ok(!KIOSK_MODEL_BASE.startsWith('/__bolt/static/'), 'no absolute, unversioned path');
+/** The release ships exactly the models the kiosk refuses to start without, from the served `assets/`. */
+test('the model base is the served assets and every enabled model ships there', () => {
+	assert.equal(KIOSK_MODEL_BASE, '/assets/models/human/');
 	assert.deepEqual([...KIOSK_REQUIRED_MODELS].toSorted(), [
 		'blazeface',
 		'facemesh',
 		'faceres',
 		'iris'
 	]);
+	for (const model of KIOSK_REQUIRED_MODELS)
+		for (const suffix of ['.json', '.bin'])
+			assert.ok(
+				existsSync(
+					fileURLToPath(new URL(`../assets/models/human/${model}${suffix}`, import.meta.url))
+				),
+				`${model}${suffix}`
+			);
+	for (const file of [
+		'minifasnet.onnx',
+		'ort-wasm-simd-threaded.wasm',
+		'ort-wasm-simd-threaded.mjs'
+	])
+		assert.ok(
+			existsSync(fileURLToPath(new URL(`../assets/models/${file}`, import.meta.url))),
+			file
+		);
 });
 
 /**

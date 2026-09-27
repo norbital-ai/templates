@@ -32,7 +32,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateFamilies } from '../src/lib/payroll/families.ts';
 import { claimRequest } from '../src/lib/payroll/money.ts';
-import { decodeNumber } from '@norbital-ai/std/json';
+import { decodeNumber } from '../src/lib/wire.ts';
 import { workPayItems } from '../src/lib/payroll/work-lines.ts';
 
 const WORK_CODE = '00000000-0000-4000-8000-00000000c001';
@@ -287,7 +287,8 @@ const clock = (date, from, to, approved = 0) => {
 const terms = (overrides = {}) => ({
 	id: 'terms-1',
 	employment_id: 'emp-1',
-	base_salary: { value: 3451, currency: 'MYR' },
+	base_salary: 3451,
+	currency: 'MYR',
 	pay_frequency: 'MONTHLY',
 	shift_pattern_id: 'pattern-1',
 	statutory_work_category: 'NON_MANUAL',
@@ -970,12 +971,14 @@ test('a mid-month raise is two recorded proration segments, summing to one month
 		terms: [
 			terms({
 				id: 'terms-old',
-				base_salary: { value: 4000, currency: 'MYR' },
+				base_salary: 4000,
+				currency: 'MYR',
 				effective_range: { start: '2020-01-01', end: '2026-03-15' }
 			}),
 			terms({
 				id: 'terms-new',
-				base_salary: { value: 4600, currency: 'MYR' },
+				base_salary: 4600,
+				currency: 'MYR',
 				effective_range: { start: '2026-03-16', end: null }
 			})
 		]
@@ -1050,12 +1053,14 @@ test('two overlapping terms that both cover a whole month stay one segment and o
 			terms: [
 				terms({
 					id: 'terms-overlap-a',
-					base_salary: { value: 1927, currency: 'MYR' },
+					base_salary: 1927,
+					currency: 'MYR',
 					effective_range: { start: '2023-02-24', end: null }
 				}),
 				terms({
 					id: 'terms-overlap-b',
-					base_salary: { value: 1927, currency: 'MYR' },
+					base_salary: 1927,
+					currency: 'MYR',
 					effective_range: { start: '2024-01-01', end: '9999-12-31' }
 				})
 			]

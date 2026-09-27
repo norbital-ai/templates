@@ -8,20 +8,12 @@
  * open.
  */
 
-import { Number as EffectNumber, Result } from 'effect';
-import { formatDateISO, isCalendarDate } from '@norbital-ai/std/date';
-import {
-	addDays,
-	monthDays,
-	periodHalf,
-	periodMonth,
-	shiftPeriod
-} from '../../collections/payroll_runs/lib/dates.js';
-import { weeklyInstalments } from '../../collections/payroll_runs/lib/period.js';
+import { PlainDate, days, monthOf } from '@norbital-ai/std/date';
+import { isCalendarDate } from '../iso-day.js';
+import { periodHalf, periodMonth, shiftPeriod } from '../../lib/payroll/run/dates.js';
+import { weeklyInstalments } from '../../lib/payroll/run/period.js';
 
-import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
-
-import { PAYROLL_TIME_ZONE, calendarDateInTimeZone, dayInstant } from '../iso-day.js';
+import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../iso-day.js';
 import { offsetMinutesAt } from '../timezone.js';
 
 /**
@@ -37,42 +29,8 @@ import { offsetMinutesAt } from '../timezone.js';
  * every day it selects yesterday's rate row, so a transform could price against a different day
  * than the client had displayed.
  */
-export function todayKey(now: Date = new Date()): string {
-	return calendarDateInTimeZone(now, PAYROLL_TIME_ZONE);
-}
-
-/**
- * The condition an effective-dated list opens on: the versions in force today.
- *
- * Seeded into `CollectionTable`'s own filter builder rather than baked into `query.where`, so it
- * reads as a chip beside every other condition and the operator can drop it to see superseded rows.
- * Clearing it is remembered per view, so it does not come back on the next load.
- *
- * The operand is a **calendar day**, not `todayInstant()`. That is not an inconsistency with the
- * `where` clauses elsewhere on these pages: the filter builder edits `contains_date` with a date
- * picker and `collectionFilterClause` converts the chosen day to an instant on its way to the wire,
- * so handing it an instant here would double-convert. A `where` clause has no such step and still
- * needs `todayInstant()`.
- */
-export function inForceTodayFilter(): readonly CollectionInitialFilter[] {
-	return [{ field: 'effective_range', operator: 'contains_date', value: todayKey() }];
-}
-
-/**
- * The condition a *person* list opens on: someone with an employment in force today.
- *
- * People is a list of `employees`, and effective dating lives on `employments`, so the chip filters
- * across the relation. A relation condition is existential — it selects a person who has *some*
- * employment in force — which is why the surrounding `query.where` still scopes the list to the
- * employees of the selected entity. One consequence worth knowing: somebody who left this entity
- * but is currently employed by another company in the workspace satisfies the chip, because "has an
- * employment in force" and "has an employment here" are two conditions and a relation filter cannot
- * insist that one employment satisfies both.
- */
-export function employedTodayFilter(): readonly CollectionInitialFilter[] {
-	return [
-		{ field: 'employment_employee.effective_range', operator: 'contains_date', value: todayKey() }
-	];
+export function todayKey(now: Date = new Date()): PlainDate {
+	return PlainDate(calendarDateInTimeZone(now, PAYROLL_TIME_ZONE));
 }
 
 /**
@@ -96,36 +54,9 @@ export function startOfDayInstant(calendarDate: string, timeZone: string): strin
 	return new Date(utcMidnight.getTime() - offsetMs(firstPass)).toISOString();
 }
 
-/**
- * The closed end of an effective range on `calendarDate`: the last millisecond of that day in
- * the payroll zone, `2026-06-30T15:59:59.999Z` for 30 June in Kuala Lumpur — the seed bank's
- * convention. A range's start is the day's stored form (`dayInstant`). `contains_date` compares
- * the bound texts, so an end at the zone's *start* of the last day (`T16:00:00.000Z` of the day
- * before) put every leaver out of force on their last day in every list, while the engine, which
- * resolves the bound to a day, still paid it.
- */
-export function endOfDayInstant(calendarDate: string): string {
-	return new Date(
-		Date.parse(startOfDayInstant(addDays(calendarDate, 1), PAYROLL_TIME_ZONE)) - 1
-	).toISOString();
-}
-
-/** Recover the calendar-day key selected by a platform day picker in the viewer's timezone. */
-export function calendarDayFromPickerInstant(value: string, pickerTimeZone: string): string {
-	const instant = new Date(value);
-	if (Number.isNaN(instant.getTime())) throw new Error(`"${value}" is not a valid instant.`);
-	return calendarDateInTimeZone(instant, pickerTimeZone);
-}
-
-/** The canonical range shape accepted by a day-precision platform picker. */
-interface DayPickerInstantRange {
-	readonly start: string;
-	readonly end?: string;
-}
-
 /** Number of days in the `YYYY-MM` month. */
 export function daysInMonth(period: string): number {
-	return monthDays(`${period}-01`);
+	return days(monthOf(`${period}-01`));
 }
 
 /** The first and last day of the month a period pays for: `1–15`, `16–28`, or the whole month. */
@@ -164,22 +95,7 @@ export function periodInCompanyGrammar(
 	}
 	if (payFrequency !== 'SEMI_MONTHLY') return month;
 	if (periodHalf(period) != null && (periodHalf(period) ?? 0) <= 2) return period;
-	return `${month}-${Number(today.slice(8, 10)) <= 15 ? 1 : 2}`;
-}
-
-/**
- * A `start`..`end` day window as the instants a day-precision column is filtered by: the stored
- * form of `start`, and of the day after `end` as the exclusive bound. A bare `YYYY-MM-DD` bound is
- * cast in the querying session's own zone — midnight Singapore here, midnight UTC on a deployed
- * host — and drops the boundary day: a 31 January row stored at UTC midnight is past
- * `lte: '2026-01-31'` on a UTC+8 host. Every day column is stored as its UTC midnight
- * (`dayInstant`), so these bounds are exact.
- */
-export function dayWindowInstantBounds(window: { readonly start: string; readonly end: string }): {
-	readonly start: string;
-	readonly end: string;
-} {
-	return { start: dayInstant(window.start), end: dayInstant(addDays(window.end, 1)) };
+	return `${month}-${Number.parseInt(today.slice(8, 10), 10) <= 15 ? 1 : 2}`;
 }
 
 /**
@@ -223,22 +139,4 @@ export function periodWindow(count: number, ahead: number): string[] {
 	return Array.from({ length: count }, (_value, index) =>
 		shiftPeriod(current, ahead - count + 1 + index)
 	);
-}
-
-/**
- * "Now", as the instant a `contains_date` filter wants: today's stored form. A range starting
- * today starts at this very instant, so the row is in force on its first day here as it is in the
- * engine.
- */
-export function todayInstant(): string {
-	return dayInstant(todayKey());
-}
-
-/** Inclusive stored instants of a `YYYY-MM` month's first and last day, for a day-column query. */
-export function monthWorkDateInstantBounds(month: string): {
-	readonly start: string;
-	readonly end: string;
-} {
-	const lastDay = String(daysInMonth(month)).padStart(2, '0');
-	return { start: dayInstant(`${month}-01`), end: dayInstant(`${month}-${lastDay}`) };
 }

@@ -5,7 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { orderSchemes, producedMentions } from '../src/collections/payroll_runs/lib/mentions.ts';
+import { orderSchemes, producedMentions } from '../src/lib/payroll/run/mentions.ts';
 
 test('ordinary bases and conditional requirements participate in dependency ordering', () => {
 	for (const extra of [

@@ -12,28 +12,26 @@
 
 import { readdirSync } from 'node:fs';
 import { readLawFile } from './law-file.ts';
+import { isInForceCandidate, settingsInForce } from '../../src/lib/jurisdiction_settings.ts';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
-import { Effect } from 'effect';
 import {
 	buildPayrollRun,
 	gatherPayrollRun,
 	type PreparedRun
-} from '../../src/collections/payroll_runs/lib/engine.ts';
+} from '../../src/lib/payroll/run/engine.ts';
 import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
 import { prepareWorkContext } from '../../src/lib/payroll/work.ts';
-import {
-	dailyWorkedHours,
-	nightWindowHours
-} from '../../src/collections/payroll_runs/lib/overtime.ts';
+import { dailyWorkedHours, nightWindowHours } from '../../src/lib/payroll/run/overtime.ts';
 import { derivedBreakMinutes, restBreakAssessment } from '../../src/lib/scheduling/rest-break.ts';
-import { roundMinute } from '../../src/collections/payroll_runs/lib/rounding.ts';
+import { roundMinute } from '../../src/lib/payroll/run/rounding.ts';
+import { addDays, completedYears, inclusiveDays } from '../../src/lib/payroll/run/dates.ts';
 import { offsetMinutesFor } from '../../src/lib/timezone.ts';
 import { applicableLimits, splitPlannedOvertime } from '../../src/lib/scheduling/work-limits.ts';
-import { decodeNumber } from '@norbital-ai/std/json';
-import type { PayslipProration } from '../../src/datatypes/payslip_proration/+definition.ts';
-import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
+import { decodeNumber } from '../../src/lib/wire.ts';
+import type { PayslipProration } from '../../src/lib/datatypes/payslip_proration.ts';
+import { payrollWorld, type PayrollWorld } from './memory-payroll-api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** The template's public seed: the jurisdiction law the reset pipeline loads, read in place. */
@@ -53,11 +51,26 @@ export const LINEAGES = readdirSync(jurisdictionRoot, { withFileTypes: true })
 export type Lineage = 'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID';
 
 function law(code: Lineage, file: string, options?: { optional: true }): any[] {
-	return readLawFile(resolve(jurisdictionRoot, code, file), options);
+	const rows = readLawFile(resolve(jurisdictionRoot, code, file), options);
+	if (file === 'jurisdiction_settings') return rows.filter(isInForceCandidate);
+	const versions = new Set(law(code, 'jurisdiction_settings').map((row) => row.id));
+	return rows.filter((row) => versions.has(row.settings_id));
 }
 
+/** The operative timeline; voided snapshots remain in the raw seed for historical inspection. */
 export const settingsVersions = (code: Lineage) => law(code, 'jurisdiction_settings');
+export const settingsIdOn = (code: Lineage, day: string) =>
+	settingsInForce(settingsVersions(code), code, day)?.id ??
+	assert.fail(`No sealed ${code} settings on ${day}`);
 export const leaveCatalogue = (code: Lineage) => law(code, 'leave_catalogue');
+/** A catalogue row of the version in force: tests name law by code and day, never by a version's id (versions are reissued). */
+export const rowIn = (
+	rows: readonly { id: string; settings_id: string; code: string }[],
+	settingsId: string,
+	code: string
+) =>
+	rows.find((row) => row.settings_id === settingsId && row.code === code)?.id ??
+	assert.fail(`No ${code} in ${settingsId}`);
 /** The bank omits a column at its model default; the database fills it, so the world does too. */
 export const contributionSchemes = (code: Lineage) =>
 	law(code, 'statutory_contributions').map((row) => ({
@@ -67,6 +80,7 @@ export const contributionSchemes = (code: Lineage) =>
 	}));
 export const allowanceCatalogue = (code: Lineage) =>
 	law(code, 'allowance_catalogue', { optional: true });
+export const claimCatalogue = (code: Lineage) => law(code, 'claim_catalogue', { optional: true });
 export const adhocCatalogue = (code: Lineage) => law(code, 'adhoc_catalogue', { optional: true });
 
 export const COMPANY_ID = 'c0000000-0000-4000-8000-000000000001';
@@ -104,6 +118,9 @@ export type Person = {
 	/** `employment.classification`; `EA_COVERED` unless stated. */
 	readonly work_classification?: string;
 	readonly hire_date?: string;
+	/** The worksite's region under the 31 December 2025 VN minimum-wage order. */
+	readonly minimum_wage_2025_region?: string | null;
+	readonly minimum_wage_2026_area_reclassified?: boolean | null;
 	/** The last employed day; the fixture closes the employment and its terms on it. */
 	readonly exit_date?: string;
 	/** `employments.exit_reason`, the separation bands' gate. */
@@ -136,7 +153,7 @@ export type Person = {
 					readonly half_count: number;
 					readonly reference: string;
 				}>;
-				/** An earlier employer's figures for a tax year (MY TP3, PH 2316). */
+				/** Imported year figures, with employer origin when the scheme's ceiling is per employer. */
 				readonly opening?: ReadonlyArray<{
 					readonly year: string;
 					readonly base: number;
@@ -144,6 +161,12 @@ export type Person = {
 					readonly employer: number;
 					readonly rebate?: number;
 					readonly ordinary?: number | null;
+					readonly origin?: 'CURRENT_EMPLOYER' | 'OTHER_EMPLOYER' | 'APPROVED_RELATED_EMPLOYER';
+					readonly board_approval_reference?: string;
+					readonly employers_related?: boolean;
+					readonly employee_informed?: boolean;
+					readonly terms_unchanged?: boolean;
+					readonly transferred_employee?: boolean;
 					readonly months?: number | null;
 					readonly reference: string;
 				}>;
@@ -153,6 +176,9 @@ export type Person = {
 	/** The cadence the contract is paid on; `MONTHLY` unless stated. */
 	readonly pay_frequency?: 'MONTHLY' | 'SEMI_MONTHLY' | 'WEEKLY' | 'DAILY' | 'HOURLY';
 	readonly employment_type?: string;
+	readonly ordinary_hours_per_week?: number;
+	readonly comparable_full_time_daily_hours?: number | null;
+	readonly comparable_full_time_presence?: 'PRESENT' | 'ABSENT' | null;
 	readonly pass_type?: string | null;
 	readonly tax_residency?: string | null;
 	readonly disabled?: boolean;
@@ -213,17 +239,54 @@ function childrenOf(count: number, period: string) {
  * leaving the country, no misconduct, a resignation with no notice question settled either way
  * (MY: not without notice; SG: notice not served). A test that turns on one states it.
  */
-function exitFactsFor(code: Lineage, person: Person): { exit_facts?: Record<string, boolean> } {
+function exitFactsFor(
+	code: Lineage,
+	person: Person
+): { exit_facts?: Record<string, string | number | boolean> } {
 	const reason = person.exit_reason;
-	const facts: Record<string, boolean> = {};
+	const facts: Record<string, string | number | boolean> = {};
 	if (code === 'MY' || code === 'MY-nihon') {
+		facts.notice_termination_party =
+			reason === 'RESIGNATION'
+				? 'EMPLOYEE'
+				: ['REDUNDANCY', 'RETRENCHMENT', 'UNILATERAL', 'DISMISSAL'].includes(reason ?? '')
+					? 'EMPLOYER'
+					: 'NEITHER';
+		facts.notice_approved_apprenticeship = false;
+		facts.notice_exception = 'NONE';
+		facts.notice_structural_ground = 'NONE';
+		facts.notice_exception_reference = 'Synthetic departure evidence';
+		// Synthetic employer departures without notice or waiver; notice probes override these.
+		if (['REDUNDANCY', 'RETRENCHMENT', 'UNILATERAL', 'DISMISSAL'].includes(reason ?? '')) {
+			facts.notice_given = false;
+			facts.notice_waived_days = 0;
+		}
 		if (person.citizenship === 'CITIZEN' && reason !== 'RETIREMENT' && reason !== 'DEATH')
 			facts.leaving_malaysia = false;
-		if (reason === 'RESIGNATION') facts.terminated_without_notice = false;
+		if (reason === 'RESIGNATION') {
+			facts.terminated_without_notice = false;
+			if (person.exit_date != null) {
+				// Synthetic ordinary resignations discharge notice. For a very short stint the
+				// employer expressly waives what could not have been served; probes override it.
+				const hire = person.hire_date ?? '2015-01-01';
+				const earliest = addDays(person.exit_date, -55);
+				const given = hire > earliest ? hire : earliest;
+				const years = completedYears(hire, given);
+				const days =
+					person.employment_type === 'DOMESTIC' ? 14 : years < 2 ? 28 : years < 5 ? 42 : 56;
+				facts.notice_given = true;
+				facts.notice_given_on = given;
+				facts.notice_waived_days = Math.max(0, days - inclusiveDays(given, person.exit_date));
+			}
+		}
 	}
 	if (code === 'SG') {
 		if (person.citizenship === 'PERMANENT_RESIDENT') facts.leaving_singapore = false;
 		if (reason === 'RESIGNATION') facts.notice_served = false;
+		if (person.citizenship === 'FOREIGNER' && person.exit_date != null)
+			facts.clearance_awareness_on = person.exit_date;
+		if (['DISMISSAL', 'REDUNDANCY', 'RETRENCHMENT', 'UNILATERAL'].includes(reason ?? ''))
+			facts.final_pay_not_possible = false;
 	}
 	if ((code === 'MY' || code === 'MY-nihon' || code === 'SG') && reason === 'DISMISSAL')
 		facts.misconduct_dismissal = false;
@@ -242,6 +305,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		(_, index) => ({
 			key: `PAD-${index}`,
 			wage: 1,
+			citizenship: 'CITIZEN',
 			registrations: Object.fromEntries(
 				schemes.map((scheme) => [scheme.code, { kind: 'NOT_REGISTERED' }])
 			)
@@ -303,8 +367,36 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	const terms = people.map((person, index) => ({
 		id: `b0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 		employment_id: employmentIds[index]!,
-		base_salary: { value: person.wage, currency: versions[0]!.payroll.currency },
+		base_salary: person.wage,
+		currency: versions[0]!.payroll.currency,
 		pay_frequency: person.pay_frequency ?? 'MONTHLY',
+		minimum_wage_2025_region:
+			code === 'VN'
+				? person.minimum_wage_2025_region === undefined
+					? (options.region ?? null)
+					: person.minimum_wage_2025_region
+				: null,
+		minimum_wage_2026_area_reclassified:
+			code === 'VN'
+				? person.minimum_wage_2026_area_reclassified === undefined
+					? false
+					: person.minimum_wage_2026_area_reclassified
+				: null,
+		ordinary_hours_per_week:
+			person.ordinary_hours_per_week ??
+			(code === 'TW' && person.employment_type === 'PART_TIME' ? 20 : null),
+		comparable_full_time_daily_hours:
+			person.comparable_full_time_daily_hours === undefined
+				? code === 'SG' && person.employment_type === 'PART_TIME'
+					? 9
+					: null
+				: person.comparable_full_time_daily_hours,
+		comparable_full_time_presence:
+			person.comparable_full_time_presence === undefined
+				? code === 'SG' && person.employment_type === 'PART_TIME'
+					? 'PRESENT'
+					: null
+				: person.comparable_full_time_presence,
 		work_classification: person.work_classification ?? 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
 		employment_type: person.employment_type ?? 'PERMANENT',
@@ -396,6 +488,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			const declared = person.registrations?.[scheme.code];
 			const insuredAmount = taiwanInsuredAmount(person, scheme.code);
 			const employmentScoped =
+				(code === 'SG' && scheme.code === 'SDL') ||
 				declared?.scope === 'EMPLOYMENT' ||
 				(declared?.scope !== 'PERSON' &&
 					scheme.elections.some(
@@ -422,6 +515,15 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 					rate_override: declared?.rate_override ?? null,
 					elections: {
 						...(insuredAmount == null ? {} : { insured_amount: insuredAmount }),
+						...(code === 'SG' && scheme.code === 'SDL'
+							? {
+									sdl_service_scope: 'SINGAPORE_SERVICE',
+									sdl_household_role: 'NONE',
+									sdl_wholly_exclusive: false,
+									sdl_nonbusiness: false,
+									sdl_student_class: 'NONE'
+								}
+							: {}),
 						// Synthetic unpaid-leave cases explicitly state whether continuation was agreed.
 						...(code === 'VN' && scheme.code === 'SI' ? { continue_si_unpaid: false } : {}),
 						// Synthetic VN and ID cases declare what those versions require of every employee:
@@ -431,6 +533,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 						...(code === 'VN' && scheme.code === 'UNION_DUES' ? { union_member: false } : {}),
 						...(code === 'ID' && scheme.code === 'PPH21'
 							? {
+									recipient_class: 'REGULAR_EMPLOYEE',
 									ptkp_marital_status: person.marital_status ?? 'SINGLE',
 									ptkp_dependants: person.children ?? 0,
 									no_tax_id: false
@@ -489,13 +592,29 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				risk_class: options.riskClass ?? null,
 				// PH declares both establishment-size exemptions as required entity facts.
 				facts:
-					code === 'PH'
+					code === 'MY' || code === 'MY-nihon'
 						? {
-								small_establishment: false,
-								retirement_exempt_establishment: false,
+								hrd_scope: 'PART_I',
+								hrd_registration_class:
+									people.filter((person) => person.citizenship === 'CITIZEN').length >= 10
+										? 'COMPULSORY'
+										: people.filter((person) => person.citizenship === 'CITIZEN').length >= 5
+											? 'OPTIONAL'
+											: 'NOT_REGISTERED',
+								hrd_form2_count: people.filter((person) => person.citizenship === 'CITIZEN').length,
+								hrd_optional_last_high_year: 0,
+								hrd_education_schedule_code: 'NONE',
 								...options.companyFacts
 							}
-						: (options.companyFacts ?? {}),
+						: code === 'PH'
+							? {
+									small_establishment: false,
+									retirement_exempt_establishment: false,
+									...options.companyFacts
+								}
+							: code === 'SG'
+								? { sdl_individual_employer: false, ...options.companyFacts }
+								: (options.companyFacts ?? {}),
 				effective_range: RANGE,
 				approval_id: null
 			}
@@ -503,7 +622,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		jurisdiction_settings: versions,
 		statutory_contributions: schemes,
 		loan_catalogue: [],
-		claim_catalogue: [],
+		claim_catalogue: claimCatalogue(code),
 		allowance_catalogue: allowanceCatalogue(code),
 		adhoc_catalogue: adhocCatalogue(code),
 		shift_definitions: [
@@ -580,10 +699,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 // whole pipeline, not just `contribute()`.
 //
 // `assessStatutoryUnvalidated` runs GATHER, MEASURE, ACCUMULATE and CONTRIBUTE only. It
-// exists for the lineage whose sealed seed trips a validation blocker (ID `PPH21` — see
-// `tests/statutory-golden-id.test.ts`). The figures are what the engine computes; the
-// blocker's relief linkage is computationally inert on a `PERCENT` award, so they are what
-// a corrected seed would build. The run as a whole does not build until that correction.
+// isolates a formula when the complete run correctly refuses its synthetic inputs (for example,
+// a VN full-time contract below the wage floor). Its figures are calculation-only evidence;
+// they do not prove that a payable run or saved payslip exists.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type StatutoryCharge = {
@@ -668,13 +786,11 @@ export function assessStatutory(
 ): StatutoryBook {
 	const world = createStatutoryWorld(options);
 	prepareWorld?.(world, options.period);
-	const prepared = Effect.runSync(
-		gatherPayrollRun({
-			api: memoryPayrollApi(world),
-			companyId: COMPANY_ID,
-			period: options.period
-		})
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: options.period
+	});
 	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
 	const built = buildPayrollRun(prepared);
 	const book = indexStatutory(
@@ -827,13 +943,11 @@ export function buildStatutory(
 } {
 	const world = createStatutoryWorld(options);
 	prepareWorld?.(world, options.period);
-	const prepared = Effect.runSync(
-		gatherPayrollRun({
-			api: memoryPayrollApi(world),
-			companyId: COMPANY_ID,
-			period: options.period
-		})
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: options.period
+	});
 	keyClockOverruns(prepared);
 	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
 	const built = buildPayrollRun(prepared);
@@ -873,22 +987,20 @@ export function assessStatutoryUnvalidated(
 ): StatutoryBook {
 	const world = createStatutoryWorld(options);
 	prepareWorld?.(world, options.period);
-	const prepared = Effect.runSync(
-		gatherPayrollRun({
-			api: memoryPayrollApi(world),
-			companyId: COMPANY_ID,
-			period: options.period
-		})
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: options.period
+	});
 	keyClockOverruns(prepared);
 	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
-	const { measuredContracts, chargesByEmployment } = calculateFamilyAssessments({
+	const { measuredContracts, chargesByEmployment, companyCharges } = calculateFamilyAssessments({
 		configuration: prepared.configuration,
 		gathered: prepared.gathered,
 		window: prepared.window,
 		period: options.period
 	});
-	return indexStatutory(
+	const book = indexStatutory(
 		world.employments,
 		measuredContracts.map((contract) => ({
 			employmentId: contract.employment.id,
@@ -901,6 +1013,22 @@ export function assessStatutoryUnvalidated(
 			}))
 		}))
 	);
+	if (companyCharges.length > 0)
+		book.set(
+			COMPANY,
+			new Map(
+				companyCharges.map((charge) => [
+					charge.contribution.row.code,
+					{
+						base: charge.base,
+						employee: charge.employee,
+						employer: charge.employer,
+						band: charge.ruleReference
+					}
+				])
+			)
+		);
+	return book;
 }
 
 /** The scheme's charge for that person, or a failure naming what the run did produce. */

@@ -1,8 +1,16 @@
 import { parseDate } from '@internationalized/date';
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { isCalendarDate } from '@norbital-ai/std/date';
+import { isCalendarDate } from './iso-day.js';
 import { Effect, Schema } from 'effect';
-import type { HolidayImportRow } from './holiday-rows.js';
+import { refuse } from './refuse.js';
+
+/** A holiday as an import proposes it: a Google event's day. */
+export type HolidayImportRow = {
+	readonly company_id: string;
+	readonly date: string;
+	readonly name: string;
+	readonly replaces: string | null;
+	readonly source: string | null;
+};
 
 /** One Google event, read whole: every day it covers inside the year, or none when cancelled. */
 type GoogleHolidayEvent = {

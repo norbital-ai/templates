@@ -22,11 +22,17 @@ const MY_WAGES = ['EIS', 'HRDF', 'SKBBK', 'SOCSO'];
 const MY_ADDITIONAL_EPF = ['EPF.ADDITIONAL', 'EPF_NON_CITIZEN.ADDITIONAL', 'EPF_PR.ADDITIONAL'];
 const PH_SSS = ['SSS', 'SSS_EC', 'SSS_MPF'];
 const ID_BPJS = ['JHT', 'JKK', 'JKM', 'JKP', 'JP', 'KESEHATAN'];
+const RESERVED_WAGE_MARKS = new Set(['WAGES', 'FIRST_SCHEDULE_WAGES']);
 
 const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	// CPF Act s.2: every allowance is wages; a bonus is Additional Wages. SHG funds and SDL read total wages.
 	// EA s.11(1) salary in lieu of notice: not CPF wages (CPF Board), so outside the SHG funds; SDL Act s.2 wages.
 	SG: {
+		DAMAGE_RECOVERY: [],
+		APPROVED_DAMAGE_RECOVERY: [],
+		ACCOMMODATION_RECOVERY: [],
+		AMENITIES_RECOVERY: [],
+		COOPERATIVE_DUES: [],
 		bonus: ['CDAC', 'CPF.ADDITIONAL', 'ECF', 'MBMF', 'SDL', 'SINDA'],
 		SALARY_IN_LIEU_OF_NOTICE: ['SDL']
 	},
@@ -38,13 +44,15 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		BACKPAY_ADD_WAGES: ['EIS', 'PCB.ADDITIONAL', 'SKBBK', 'SOCSO'],
 		BPAYBS: [...MY_WAGES, ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
 		NOTICE_IN_LIEU: ['PCB.ADDITIONAL'],
-		ONCALL: [...MY_WAGES, ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
+		NOTICE_INDEMNITY: [],
+		ONCALL: [...MY_WAGES, ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL', 'FIRST_SCHEDULE_WAGES'],
 		SUA: [
 			...MY_WAGES,
 			'EPF.ORDINARY',
 			'EPF_NON_CITIZEN.ORDINARY',
 			'EPF_PR.ORDINARY',
-			'PCB.ORDINARY'
+			'PCB.ORDINARY',
+			'FIRST_SCHEDULE_WAGES'
 		],
 		TERMINATION_BENEFIT: []
 	},
@@ -99,24 +107,24 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	},
 	// PP 44/45/46 2015, Perpres 82/2018: upah pokok + tunjangan tetap; PMK 168/2023 regular vs irregular income.
 	ID: {
-		BACK_PAY_SALARY: ['PPH21.ADDITIONAL', 'PPH26'],
-		BONUS_THR: ['PPH21.ADDITIONAL', 'PPH26'],
-		CAR_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH26'],
-		CLAWBACK_OVERTIME: ['PPH21.ADDITIONAL', 'PPH26'],
+		BACK_PAY_SALARY: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
+		BONUS_THR: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
+		CAR_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH21_DAILY', 'PPH26'],
+		CLAWBACK_OVERTIME: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
 		COMPENSATION: [],
 		DEDUCTION: [],
-		HOUSE_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH26'],
+		HOUSE_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH21_DAILY', 'PPH26'],
 		KESEHATAN_TERMINATION_MONTH_EMPLOYEE: [],
-		KESEHATAN_TERMINATION_MONTH_EMPLOYER: ['PPH21.ADDITIONAL', 'PPH26'],
-		MEDICAL_ALLOWANCE: ['PPH21.ADDITIONAL', 'PPH26'],
+		KESEHATAN_TERMINATION_MONTH_EMPLOYER: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
+		MEDICAL_ALLOWANCE: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
 		PESANGON: [],
 		PENSION_OFFSET: [],
 		// PP 68/2009 art.1 angka 4: paid when the PKWT ends (PP 35/2021 art.15(2)), so it is uang
 		// pesangon at the final rates (PPH21_FINAL_SEVERANCE reads it by code); only PPh 26 by membership.
 		PKWT_COMPENSATION: ['PPH26'],
-		RETROACTIVE_PAY: ['PPH21.ADDITIONAL', 'PPH26'],
-		SPECIAL_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH26'],
-		THR: ['PPH21.ADDITIONAL', 'PPH26'],
+		RETROACTIVE_PAY: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
+		SPECIAL_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH21_DAILY', 'PPH26'],
+		THR: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
 		// PP 68/2009 art.1 angka 4: uang pesangon is any payment, under whatever name, made in connection
 		// with the end of service, so uang pisah carries the final severance rates like pesangon;
 		// only a non-resident's enters PPh 26.
@@ -170,7 +178,9 @@ for (const lineage of LINEAGES) {
 					);
 					return [
 						row.code,
-						expected[row.code].filter((entry) => parts.has(entry.split('.')[0])).sort()
+						expected[row.code]
+							.filter((entry) => parts.has(entry.split('.')[0]) || RESERVED_WAGE_MARKS.has(entry))
+							.sort()
 					];
 				})
 			);
@@ -185,6 +195,7 @@ for (const lineage of LINEAGES) {
 			// Every membership names a scheme of the same version, and a part the scheme declares.
 			for (const row of rows)
 				for (const entry of row.counts_toward) {
+					if (RESERVED_WAGE_MARKS.has(entry)) continue;
 					const [code, part] = entry.split('.');
 					assert.ok(parts.has(code), `${lineage} ${version.code} ${row.code} → ${entry}`);
 					if (part !== undefined)

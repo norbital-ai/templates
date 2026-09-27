@@ -18,19 +18,16 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { selectRule } from '../src/collections/payroll_runs/lib/contribute.ts';
+import { selectRule } from '../src/lib/payroll/run/contribute.ts';
 import {
 	accumulatePayslip,
 	type AccumulatedPayslip,
 	type ReservedLine
-} from '../src/collections/payroll_runs/lib/accumulate.ts';
-import { contribute, contributeCompany } from '../src/collections/payroll_runs/lib/contribute.ts';
-import {
-	personContext,
-	type PersonContext
-} from '../src/collections/payroll_runs/lib/eligibility.ts';
+} from '../src/lib/payroll/run/accumulate.ts';
+import { contribute, contributeCompany } from '../src/lib/payroll/run/contribute.ts';
+import { personContext, type PersonContext } from '../src/lib/payroll/run/eligibility.ts';
 import { runtimeExpressionEngine } from '../src/lib/expressions/evaluate.ts';
-import type { ContributionConfig } from '../src/collections/payroll_runs/lib/configuration.ts';
+import type { ContributionConfig } from '../src/lib/payroll/run/configuration.ts';
 
 const engine = runtimeExpressionEngine({ minimumWage: (region) => (region === 'I' ? 2500 : 0) });
 
@@ -158,6 +155,32 @@ const charge = (
 		minimumWage: null,
 		...over
 	});
+
+test('registration status does not erase a version-declared liability or its required facts', () => {
+	const scheme = schemeOf('DUTY', [percent('base > 0.0', 5, 5)], {
+		unregistered_action: 'ASSESS'
+	});
+	const facts = new Map([
+		[scheme.row.id, { kind: 'NOT_REGISTERED' as const, reason: 'Registration pending' }]
+	]);
+	const assessed = charge([scheme], 3000, { facts })[0]!;
+	assert.deepEqual([assessed.employee, assessed.employer], [150, 150]);
+	assert.ok(assessed.warnings?.some((line) => line.includes('registration incomplete')));
+	const skipped = charge(
+		[{ ...scheme, row: { ...scheme.row, unregistered_action: 'SKIP' } }],
+		3000,
+		{ facts }
+	)[0]!;
+	assert.deepEqual([skipped.employee, skipped.employer], [0, 0]);
+	const needsDeclaration = {
+		...scheme,
+		row: {
+			...scheme.row,
+			elections: [{ key: 'declaration', type: 'number' as const, required: true }]
+		}
+	};
+	assert.throws(() => charge([needsDeclaration], 3000, { facts }), /declaration is required/);
+});
 
 test('thirty-day insurance coverage preserves gaps, month-end continuation and terminated February cover', () => {
 	const scheme = schemeOf('COVER', [band('true', 'coverage_days_30(scheme.since, 0)', '0.0')]);

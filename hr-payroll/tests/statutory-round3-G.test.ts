@@ -54,8 +54,10 @@ for (const code of ['MY', 'MY-nihon'] as const satisfies readonly Lineage[]) {
 		//   Additional P = 226,958.35 + 16,849.32 = 243,807.67 → (143,807.67 × 25%) + 9,400 =
 		//     45,351.9175. Step 4: 45,351.9175 − 41,139.60 = 4,212.3175 → 4,212.31 → 4,212.35.
 		//   Step 5: 3,428.30 + 4,212.35 = 7,640.65.
-		const versionId = settingsVersions(code).find((version) =>
-			String(version.effective_range.start).startsWith('2025-12')
+		const versionId = settingsVersions(code).find(
+			(version) =>
+				String(version.effective_range.start) <= '2026-01-31' &&
+				(version.effective_range.end == null || String(version.effective_range.end) > '2026-01-31')
 		)!.id;
 		const { slips } = buildStatutory(
 			{

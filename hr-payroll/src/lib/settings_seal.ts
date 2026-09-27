@@ -1,5 +1,5 @@
-import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
+import { refuse } from './refuse.js';
+import { readAll, type Reads } from './reads.js';
 import { describeVersion } from './jurisdiction_settings.js';
 
 /**
@@ -20,20 +20,13 @@ export type SealedVersion = Readonly<{
 }>;
 
 /** One read for the whole batch: every version the inputs and their stored rows name. */
-export function versionsById(
-	db: Pick<CollectionTransformDatabase, 'jurisdiction_settings'>,
+export async function versionsById(
+	reads: Reads,
 	settingsIds: ReadonlyArray<unknown>
-): Effect.Effect<ReadonlyMap<string, SealedVersion>> {
+): Promise<ReadonlyMap<string, SealedVersion>> {
 	const ids = [...new Set(settingsIds.filter((id): id is string => id != null && id !== ''))];
-	if (ids.length === 0) return Effect.succeed(new Map());
-	return Effect.map(
-		db.jurisdiction_settings.findMany({
-			where: { id: { in: ids } },
-			columns: { id: true, code: true, name: true, sealed_at: true },
-			limit: ids.length
-		}),
-		(rows) => new Map(rows.map((row) => [row.id, row]))
-	);
+	const rows = await readAll<SealedVersion>(reads, 'jurisdiction_settings', { id: { in: ids } });
+	return new Map(rows.map((row) => [row.id, row]));
 }
 
 /** Refuses when the version is missing or sealed. A row with no parent yet passes. */

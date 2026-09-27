@@ -14,7 +14,17 @@
 			}
 		],
 		"name": "House allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	},
 	{
 		"id": "e7d90a91-ff8d-4873-9fbb-a4a8a7fa3a5e",
@@ -31,7 +41,17 @@
 			}
 		],
 		"name": "Car allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	},
 	{
 		"id": "3dd7a56d-7bad-4c80-b552-b931af25192f",
@@ -48,7 +68,17 @@
 			}
 		],
 		"name": "House allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	},
 	{
 		"id": "6759dc65-0c5f-4402-9983-419278c9805f",
@@ -65,7 +95,17 @@
 			}
 		],
 		"name": "Car allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	},
 	{
 		"id": "348397d4-973a-463d-9fad-1456791553f1",
@@ -82,7 +122,17 @@
 			}
 		],
 		"name": "House allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	},
 	{
 		"id": "f6bb6383-61fe-4513-8e2c-43b0f19b647c",
@@ -99,7 +149,17 @@
 			}
 		],
 		"name": "Car allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	},
 	{
 		"id": "da1a2235-06f1-46fd-897f-dde0c94021a6",
@@ -116,7 +176,17 @@
 			}
 		],
 		"name": "Special allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	},
 	{
 		"id": "5b47d1b1-b1b5-4c04-87db-47805c7080cc",
@@ -133,7 +203,17 @@
 			}
 		],
 		"name": "Special allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	},
 	{
 		"id": "3bcb7e73-42de-4be6-8293-b4a81c7b46fa",
@@ -150,6 +230,16 @@
 			}
 		],
 		"name": "Special allowance",
-		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"]
+		"counts_toward": [
+			"JHT",
+			"JKK",
+			"JKM",
+			"JKP",
+			"JP",
+			"KESEHATAN",
+			"PPH21.ORDINARY",
+			"PPH26",
+			"PPH21_DAILY"
+		]
 	}
 ]

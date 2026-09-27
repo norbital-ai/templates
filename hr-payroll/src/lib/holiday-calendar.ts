@@ -1,7 +1,7 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { isCalendarDate } from '@norbital-ai/std/date';
-import type { WorkspaceRow } from '../collections/jurisdiction_holidays/$types.js';
-import { HOLIDAY_KINDS, type HolidaySnapshot } from '../datatypes/holiday_snapshots/+definition.js';
+import { refuse } from './refuse.js';
+import { isCalendarDate } from './iso-day.js';
+import type { WorkspaceRow } from './rows.js';
+import { HOLIDAY_KINDS, type HolidaySnapshot } from './datatypes/holiday_snapshots.js';
 import { dateKey } from './iso-day.js';
 
 /** What a consumer reads off a holiday row; the snapshot is the same columns, dates as day keys. */
@@ -21,7 +21,7 @@ function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
 		replaces: row.replaces == null ? null : dateKey(row.replaces),
 		given_to:
 			row.given_to === 'ONLY_IF_OFF_ON_REPLACED_DATE' ? 'ONLY_IF_OFF_ON_REPLACED_DATE' : 'EVERYONE',
-		published_at: row.published_at ?? ''
+		published_at: row.published_at == null ? '' : row.published_at
 	};
 }
 
@@ -49,4 +49,36 @@ export function resolveHolidays(
 		holidays.set(date, holidaySnapshot(row));
 	}
 	return holidays;
+}
+
+/** One classified day: the holiday it was read against, or none. */
+export type PreparedHolidayInput = {
+	readonly company_id: string;
+	readonly date: string;
+	readonly holiday_id: string | null;
+};
+
+/** Classifies every requested day against what the entity's calendar publishes at the point of running. */
+export function resolveHolidayInputs(
+	rows: readonly HolidayRow[],
+	companyId: string,
+	dates: readonly string[]
+): {
+	readonly holidays: ReadonlyMap<string, HolidaySnapshot>;
+	readonly snapshots: readonly HolidaySnapshot[];
+	readonly inputs: readonly PreparedHolidayInput[];
+} {
+	const ordered = [...new Set(dates.map(dateKey))].sort();
+	if (!ordered.length) return { holidays: new Map(), snapshots: [], inputs: [] };
+	const holidays = new Map(resolveHolidays(rows, companyId, ordered[0]!, ordered.at(-1)!));
+	const inputs = ordered.map((date) => ({
+		company_id: companyId,
+		date,
+		holiday_id: holidays.get(date)?.id ?? null
+	}));
+	return {
+		holidays,
+		snapshots: [...holidays.values()].toSorted((a, b) => a.date.localeCompare(b.date)),
+		inputs
+	};
 }

@@ -1,13 +1,9 @@
-import { Effect } from 'effect';
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { decodeNumber } from '@norbital-ai/std/json';
-import type {
-	CatalogueComponent,
-	Configuration
-} from '../../collections/payroll_runs/lib/configuration.js';
-import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
-import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
+import { refuse } from '../refuse.js';
+import { decodeNumber } from '../wire.js';
+import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
+import type { RunIssue } from '../../lib/payroll/run/validate.js';
+import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
+import type { WorkspaceRow } from '../rows.js';
 type Loan = WorkspaceRow<'loans'>;
 /**
  * The loan catalogue row as a pay line, keeping the two columns only a loan has: what kind of debt
@@ -19,18 +15,15 @@ type LoanComponent = CatalogueComponent &
 /** A loan with the catalogue row it was agreed against — the revision it pins, read at GATHER. */
 export type PreparedLoan = Loan & { readonly catalogueComponent: LoanComponent };
 export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
-import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
+import { defaultPayPeriod, type PayCadence } from '../../lib/payroll/run/period.js';
 import { dateKey } from '../iso-day.js';
-import { cents } from '../../collections/payroll_runs/lib/rounding.js';
-import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
-import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
-import type { Settlement } from '../../collections/payroll_runs/lib/settle.js';
-import {
-	PAGE_LIMIT,
-	type PayrollReadApi,
-	type ReadLog
-} from '../../collections/payroll_runs/lib/api.js';
-import { live } from '../../collections/payroll_runs/lib/effective.js';
+import { monthBounds, shiftPeriod } from '../../lib/payroll/run/dates.js';
+import { cents } from '../../lib/payroll/run/rounding.js';
+import { isEligible, type PersonContext } from '../../lib/payroll/run/eligibility.js';
+import { employmentDates } from '../../lib/payroll/run/settlement.js';
+import type { Settlement } from '../../lib/payroll/run/settle.js';
+import type { PayrollWorld } from './world.js';
+import { live } from '../../lib/payroll/run/effective.js';
 import {
 	settlementBucket,
 	type MeasuredAdjustment,
@@ -128,10 +121,7 @@ export function validateLoanRecoveries(options: {
 					(repayment) => repayment.loan_id === loan.id && repayment.payslip_id == null
 				);
 				if (remaining.length <= 1) continue;
-				const balance = remaining.reduce(
-					(sum, repayment) => sum + cents(decodeNumber(repayment.amount_due)),
-					0
-				);
+				const balance = remaining.reduce((sum, repayment) => sum + cents(repayment.amount_due), 0);
 				issues.push({
 					code: 'LOAN_OUTSTANDING_AT_EXIT',
 					severity: 'WARNING',
@@ -156,12 +146,12 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 	// nothing about the money depends on it, but a payslip whose row order moved between two
 	// identical builds would look like a change.
 	const dueRepayments = [...options.bundle.loanRepayments].toSorted(
-		(left, right) =>
-			String(left.due_date).localeCompare(String(right.due_date)) || left.sequence - right.sequence
+		(left, right) => left.due_date.localeCompare(right.due_date) || left.sequence - right.sequence
 	);
 	/** One repayment entry per agreement per payslip; the earliest outstanding is the one taken. */
 	const takenLoanIds = new Set<string>();
 	for (const repayment of dueRepayments) {
+		if (repayment.payslip_id != null) continue;
 		// Present by construction: the bundle's repayments are gathered from these very loans.
 		const loan = loanById.get(repayment.loan_id)!;
 		const component = loanRecoveryComponent(loan, currentByCode);
@@ -182,7 +172,7 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		 * agreement ends with the employment — so only `GOVERNMENT` is exempt, and it stays owed.
 		 */
 		if (component.loan_type === 'GOVERNMENT' && isFinalPayslip(options.bundle)) continue;
-		const due = dateKey(repayment.due_date) || String(repayment.due_date).slice(0, 10);
+		const due = dateKey(repayment.due_date) || repayment.due_date.slice(0, 10);
 		/**
 		 * Due by now, not due exactly now — and one instalment to a payslip, whole.
 		 *
@@ -193,10 +183,56 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		 * monthly plan stays monthly when runs resume after a gap.
 		 */
 		if (defaultPayPeriod(due, options.cutoffDay, options.cadence) > options.period) continue;
-		if (repayment.payslip_id != null) continue;
 		if (takenLoanIds.has(repayment.loan_id)) continue;
+		if (component.destination !== 'NET' || component.direction !== 'SUBTRACT')
+			refuse(
+				`${options.bundle.employment.employee_number}: ${component.code} must recover from net pay (NET / SUBTRACT), preserving gross wages and deduction limits.`
+			);
+		const advance = options.configuration.jurisdiction.payroll.deduction_ceiling?.advance_recovery;
+		if (advance?.codes.includes(component.code)) {
+			if (advance.first_full_period) {
+				const disbursed = dateKey(loan.disbursed_on);
+				if (!disbursed)
+					refuse(
+						`${options.bundle.employment.employee_number}: ${component.code} requires its actual disbursement date before payroll recovery.`
+					);
+				const { hire } = employmentDates(options.bundle.employment);
+				if (disbursed < hire) {
+					if (advance.unrecoverable_before_employment_codes?.includes(component.code))
+						refuse(
+							`${options.bundle.employment.employee_number}: ${component.code} paid before employment cannot be recovered from salary.`
+						);
+					if (hire > options.bundle.window.salary.start)
+						refuse(
+							`${options.bundle.employment.employee_number}: ${component.code} paid before employment may begin recovery only with the first completed salary period. Move this instalment to that period.`
+						);
+				}
+			}
+			const schedule = dueRepayments.filter((row) => row.loan_id === loan.id);
+			const first = dateKey(schedule[0]!.due_date);
+			const anniversaryMonth = shiftPeriod(first.slice(0, 7), advance.months);
+			const anniversary = `${anniversaryMonth}-${first.slice(8)}`;
+			const monthEnd = monthBounds(anniversaryMonth).end;
+			const deadline = anniversary < monthEnd ? anniversary : monthEnd;
+			if (
+				dateKey(schedule.at(-1)!.due_date) > deadline ||
+				dateKey(options.bundle.window.payDate) > deadline
+			)
+				refuse(
+					`${options.bundle.employment.employee_number}: ${component.code} advance recovery exceeds ${advance.months} months from its first instalment (${first}). Revise the recovery arrangement before payroll.`
+				);
+		}
+		if (
+			options.configuration.jurisdiction.payroll.deduction_ceiling?.approved_loan_extension?.codes.includes(
+				component.code
+			) &&
+			!loan.approval_reference?.trim()
+		)
+			refuse(
+				`${options.bundle.employment.employee_number}: ${component.code} requires the authority's written permission in the loan approval reference before payroll recovery.`
+			);
 		takenLoanIds.add(repayment.loan_id);
-		const amount = cents(decodeNumber(repayment.amount_due));
+		const amount = cents(repayment.amount_due);
 		recoveries.push({
 			input: { family: 'LOAN_REPAYMENT', id: repayment.id },
 			catalogueComponent: component,
@@ -246,8 +282,7 @@ export function loanShortfallIssues(options: {
 	for (const shortfall of options.settlement.shortfalls) {
 		const component = agreedById.get(shortfall.componentCatalogueId);
 		if (component == null) continue;
-		const floor =
-			component.minimum_repayment == null ? null : decodeNumber(component.minimum_repayment);
+		const floor = component.minimum_repayment == null ? null : component.minimum_repayment;
 		const taken = takenByComponent.get(shortfall.componentCatalogueId) ?? 0;
 		const short = cents(shortfall.amount);
 		issues.push(
@@ -288,70 +323,38 @@ export function loanShortfallIssues(options: {
  * revision a money request was raised against.
  */
 export function prepareLoanPayroll(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
+	readonly world: PayrollWorld;
 	readonly employmentIds: readonly string[];
-	readonly configuration: Configuration;
 }) {
-	return Effect.gen(function* () {
-		const rows = yield* options.api.db.loans.findMany({
-			where: { employment_id: { in: [...options.employmentIds] }, approval_id: { isNull: true } },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(rows, 'loans');
-		const rawLoans = live(rows);
-		const [catalogueRows, repayments] = yield* Effect.all(
-			[
-				rawLoans.length === 0
-					? Effect.succeed([])
-					: options.api.db.loan_catalogue.findMany({
-							where: {
-								id: { in: [...new Set(rawLoans.map((row) => row.loan_catalogue_id))] },
-								approval_id: { isNull: true }
-							},
-							limit: PAGE_LIMIT
-						}),
-				rawLoans.length === 0
-					? Effect.succeed([])
-					: options.api.db.loan_repayments.findMany({
-							// A linked repayment belongs to the slip that recovered it, paid or draft.
-							where: {
-								loan_id: { in: rawLoans.map((row) => row.id) },
-								payslip_id: { isNull: true }
-							},
-							limit: PAGE_LIMIT
-						})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		options.api.reads.assertComplete(catalogueRows, 'agreed loan catalogue');
-		options.api.reads.assertComplete(repayments, 'loan repayments');
-		const agreedById = new Map(live(catalogueRows).map((row) => [row.id, loanComponent(row)]));
-		const loans = rawLoans.map((loan): PreparedLoan => {
-			const catalogueComponent = agreedById.get(loan.loan_catalogue_id);
-			if (catalogueComponent == null)
-				refuse('A loan must reference an approved row of the loan catalogue it was agreed under.');
-			return { ...loan, catalogueComponent };
-		});
-		return {
-			loansByEmployment: Map.groupBy(loans, (row) => row.employment_id),
-			repaymentsByLoan: Map.groupBy(live(repayments), (row) => row.loan_id)
-		};
+	const employmentIds = new Set(options.employmentIds);
+	const rawLoans = live(options.world.loans).filter((row) => employmentIds.has(row.employment_id));
+	const catalogueIds = new Set(rawLoans.map((row) => row.loan_catalogue_id));
+	const loanIds = new Set(rawLoans.map((row) => row.id));
+	const agreedById = new Map(
+		live(options.world.loan_catalogue)
+			.filter((row) => catalogueIds.has(row.id))
+			.map((row) => [row.id, loanComponent(row)])
+	);
+	const loans = rawLoans.map((loan): PreparedLoan => {
+		const catalogueComponent = agreedById.get(loan.loan_catalogue_id);
+		if (catalogueComponent == null)
+			refuse('A loan must reference an approved row of the loan catalogue it was agreed under.');
+		return { ...loan, catalogueComponent };
 	});
+	return {
+		loansByEmployment: Map.groupBy(loans, (row) => row.employment_id),
+		// Settled rows also establish the start of a statutory recovery time limit.
+		repaymentsByLoan: Map.groupBy(
+			live(options.world.loan_repayments).filter((row) => loanIds.has(row.loan_id)),
+			(row) => row.loan_id
+		)
+	};
 }
 
-export function prepareLoanCatalogue(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly settingsId: string;
-}) {
-	return Effect.gen(function* () {
-		const rows = yield* options.api.db.loan_catalogue.findMany({
-			where: { settings_id: { eq: options.settingsId }, approval_id: { isNull: true } },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(rows, 'loan catalogue');
-		return live(rows).map((row) => loanComponent(row));
-	});
-}
+export const prepareLoanCatalogue = (world: PayrollWorld, settingsId: string) =>
+	live(world.loan_catalogue)
+		.filter((row) => row.settings_id === settingsId)
+		.map((row) => loanComponent(row));
 
 /** One stored catalogue row as the engine's pay line; a loan recovery is never anything else. */
 const loanComponent = (row: WorkspaceRow<'loan_catalogue'>): LoanComponent => ({
@@ -359,7 +362,7 @@ const loanComponent = (row: WorkspaceRow<'loan_catalogue'>): LoanComponent => ({
 	family: 'LOAN' as const,
 	// The enum columns arrive as text at the database boundary; the model constrains them to the
 	// landing vocabulary, so the engine restates it once here.
-	destination: row.destination as SettlementDestination,
-	direction: row.direction as SettlementDirection | null,
+	destination: row.destination,
+	direction: row.direction,
 	definition: { source: 'ENTRY' as const }
 });

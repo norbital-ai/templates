@@ -1,197 +1,179 @@
 <script lang="ts">
+	import { t } from '../t.js';
+	import { everyField } from '../../every-field.js';
 	/**
-	 * One person's statutory standing, a form per scheme the jurisdiction declares.
-	 *
-	 * This was a table of rows with a "New Employment Statutory Fact" dialog behind it: to record a
-	 * standing you had to know the collection existed, and the page never showed which schemes the
-	 * version expects. The version in force on the page's lineage names them — code, authority and
-	 * the keys each scheme reads — so the tab renders one section per scheme, holding that scheme's
-	 * form. The controls inside a scheme are the same the record sheet uses: the status renderer
-	 * reads the scheme's declared `elections` and draws one control per declared key, so a
-	 * jurisdiction that needs `voluntary_rate` or `non_resident` gets it without new code here.
-	 *
-	 * A scheme with a standing in force is an edit of that row; one without is a new dated fact,
-	 * which is how a successor closes its predecessor. Where the page carries no lineage, the
-	 * person's recorded facts are shown instead of nothing.
+	 * One person's statutory standing, a form per scheme the jurisdiction declares. The version in force on the page's
+	 * lineage names the schemes — code, authority and the keys each reads — so the tab renders one section per scheme;
+	 * the status renderer draws one control per declared election. A scheme with a standing in force is an edit of that
+	 * row; one without is a new dated fact, which is how a successor closes its predecessor. Where the page carries no
+	 * lineage, the person's recorded facts are shown instead of nothing.
 	 */
-	import { client } from '../../workspace-client.js';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import type { WorkspaceRow } from '$bolt/types.js';
-	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { getCollectionRecordScope } from '@norbital-ai/ui/collection-runtime';
+	import { bolt } from '$bolt';
+	import type { Id } from '@norbital-ai/bolt';
+	import { Field, Form, Picker } from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { hrCreateScope, employmentRelationOptions } from '../create-scope.js';
-	import { inForceSettings } from '../settings-scope.js';
+	import { coversDate } from '../../../lib/payroll/run/effective.js';
+	import StatutoryFactStatusRenderer from '../../../data/custom_field/statutory_fact_status/+renderer.svelte';
 	import { todayKey } from '../calendar.js';
-	import { coversDate } from '../../../collections/payroll_runs/lib/effective.js';
-	import StatutoryFactStatusRenderer from '../../../datatypes/statutory_fact_status/+renderer.svelte';
-	import EffectiveRangeRenderer from '../effective-range-renderer.svelte';
+	import { hrCreateScope } from '../create-scope.js';
 	import FormSection from '../form-section.svelte';
+	import { liveRows } from '../live.svelte.js';
+	import { inForceSettings } from '../settings-scope.js';
+	import * as Predicate from 'effect/Predicate';
 
-	type Scheme = WorkspaceRow<'statutory_contributions'>;
-	type Fact = WorkspaceRow<'employment_statutory_facts'>;
-
-	// The record the surface was mounted for is framework knowledge: a representation may not hand a
-	// system column to a child, so the scope supplies the person instead of a prop.
-	const recordScope = getCollectionRecordScope();
-	const employeeId = $derived(recordScope?.() ?? null);
-	const { t } = useI18n<TenantI18nKeys>();
 	const scope = hrCreateScope();
+	const employeeId = $derived(scope?.employeeId?.() ?? null);
+	const companyId = $derived(scope?.companyId());
 	const today = todayKey();
 	const settingsCode = $derived(scope?.settingsCode());
-	const versionQuery = $derived(
+	// Schemes reach their version through `settings_id`: the version in force today on the page's lineage.
+	const schemesRows = liveRows(() =>
 		settingsCode == null
 			? null
-			: client.db.jurisdiction_settings.findFirst({
-					where: inForceSettings(settingsCode, today),
-					columns: { id: true }
-				})
-	);
-	const versionId = $derived(versionQuery?.current?.id ?? null);
-	const schemesQuery = $derived(
-		versionId == null
-			? null
-			: client.db.statutory_contributions.findMany({
-					where: { settings_id: { eq: versionId }, approval_id: { isNull: true } },
-					columns: {
-						id: true,
+			: bolt.read('statutory_contributions', {
+					where: {
+						settings_id: { is: inForceSettings(settingsCode, today) },
+						approval_id: { isNull: true }
+					},
+					select: {
 						code: true,
 						name: true,
 						short_name: true,
 						authority: true,
-						listing_order: true,
-						listing_group: true
+						listing_order: true
 					},
-					limit: 200
+					all: true
 				})
 	);
-	const factsQuery = $derived(
+	const factRows = liveRows(() =>
 		employeeId == null
 			? null
-			: client.db.employment_statutory_facts.findMany({
+			: bolt.read('employment_statutory_facts', {
+					select: everyField('employment_statutory_facts'),
 					where: { employee_id: { eq: employeeId } },
-					limit: 200
+					all: true
 				})
 	);
-	const facts = $derived(factsQuery?.current ?? []);
+	const facts = $derived(factRows.current ?? []);
 	const schemes = $derived(
-		(schemesQuery?.current ?? []).toSorted(
+		(schemesRows.current ?? []).toSorted(
 			(left, right) =>
 				(left.listing_order ?? Number.POSITIVE_INFINITY) -
-					(right.listing_order ?? Number.POSITIVE_INFINITY) ||
-				String(left.code).localeCompare(String(right.code))
+					(right.listing_order ?? Number.POSITIVE_INFINITY) || left.code.localeCompare(right.code)
 		)
 	);
 	/** The standing in force today, or none: a new fact is a new period, not a second line. */
-	const standingFor = (schemeId: string): Fact | null =>
+	const standingFor = (schemeId: Id<'statutory_contributions'>) =>
 		facts.find(
 			(fact) =>
 				fact.statutory_contribution_id === schemeId && coversDate(fact.effective_range, today)
 		) ?? null;
-	const schemeLabelOf = (scheme: Scheme): string => scheme.short_name ?? scheme.name ?? scheme.code;
 	const factSections = $derived(
-		schemes.length > 0 ? schemes.map((scheme) => ({ scheme, fact: standingFor(scheme.id) })) : []
+		schemes.map((scheme) => ({ scheme, fact: standingFor(scheme.id) }))
 	);
 	const orphanFacts = $derived(schemes.length === 0 ? facts : []);
+	const text = (value: unknown) => (Predicate.isString(value) ? value : null);
+	const statusView = (field: {
+		name: string;
+		value: unknown;
+		disabled: boolean;
+		onChange(next: never): void;
+	}) => ({
+		mode: 'edit' as const,
+		name: field.name,
+		value: field.value as never,
+		disabled: field.disabled,
+		onChange: field.onChange
+	});
 </script>
 
 <Stack gap="lg">
 	<p class="text-meta">{t('component.statutory_registrations_description')}</p>
-	{#if schemesQuery?.loading || factsQuery?.loading}
+	{#if schemesRows.loading || factRows.loading}
 		<p class="text-meta">{t('component.loading')}</p>
 	{:else if factSections.length > 0}
 		{#each factSections as { scheme, fact } (scheme.id)}
 			<FormSection
-				title={schemeLabelOf(scheme)}
+				title={scheme.short_name ?? scheme.name ?? scheme.code}
 				hint={scheme.authority ?? t('component.fact_section_registration_hint')}
 			>
-				<CollectionForm
-					{client}
-					collection="employment_statutory_facts"
-					defaultValues={fact ?? {
-						employee_id: employeeId ?? '',
-						statutory_contribution_id: scheme.id,
-						effective_range: { start: today, end: null },
-						status: { kind: 'REGISTERED', reference_number: '', rate_override: null }
-					}}
-					submitLabel={fact == null
+				<Form
+					of="employment_statutory_facts"
+					mode={fact == null ? 'create' : 'update'}
+					{...fact == null ? {} : { id: fact.id, record: fact }}
+					values={fact == null
+						? {
+								...(employeeId == null ? {} : { employee_id: employeeId }),
+								statutory_contribution_id: scheme.id,
+								effective_range: { from: today, to: null },
+								status: { kind: 'REGISTERED', reference_number: '', rate_override: null }
+							}
+						: {}}
+					submit={fact == null
 						? t('component.record_registration')
 						: t('component.save_registration')}
 				>
-					{#snippet children({ Field, form })}
+					{#snippet children(form)}
 						<Grid gap="md" minimum="panel">
-							<Field name="employee_id" hidden />
-							<Field
-								name="employment_id"
-								label={t('component.fact_employment')}
-								relationOptions={{
-									...employmentRelationOptions(scope?.companyId()),
-									where: {
-										...(scope?.companyId() ? { company_id: { eq: scope.companyId()! } } : {}),
-										...(employeeId == null ? {} : { employee_id: { eq: employeeId } })
-									}
-								}}
-							/>
-							<Field
-								name="effective_range"
-								renderer={EffectiveRangeRenderer}
-								label={t('component.effective_period')}
-							/>
-							<Field name="statutory_contribution_id" hidden />
-							<!-- The scheme's own declarations are the tall half; it gets the full width so
-							     its fields lay out in a row instead of a squeezed column. -->
+							<Field name="employment_id" label={t('component.fact_employment')}>
+								{#snippet editor(field)}
+									<Picker
+										of="employments"
+										label={['employee_number']}
+										where={{
+											...(companyId ? { company_id: { eq: companyId } } : {}),
+											...(employeeId == null ? {} : { employee_id: { eq: employeeId } })
+										}}
+										value={text(field.value)}
+										onChange={field.onChange}
+										disabled={field.disabled}
+									/>
+								{/snippet}
+							</Field>
+							<Field name="effective_range" label={t('component.effective_period')} />
+							<!-- The scheme's own declarations are the tall half: full width, so they lay out in a row. -->
 							<Column span="all">
-								<Field
-									name="status"
-									label={t('component.status')}
-									renderer={StatutoryFactStatusRenderer}
-									rendererProps={{ schemeId: scheme.id }}
-								/>
+								<Field name="status" label={t('component.status')}>
+									{#snippet editor(field)}
+										<StatutoryFactStatusRenderer view={statusView(field)} schemeId={scheme.id} />
+									{/snippet}
+								</Field>
 							</Column>
-							{#if form.values().employment_id == null || form.values().employment_id === ''}
+							{#if form.get('employment_id') == null || form.get('employment_id') === ''}
 								<Column span="all">
-									<p class="text-xs text-muted-foreground">
-										{t('component.fact_employment_hint')}
-									</p>
+									<p class="text-xs text-muted-foreground">{t('component.fact_employment_hint')}</p>
 								</Column>
 							{/if}
 						</Grid>
 					{/snippet}
-				</CollectionForm>
+				</Form>
 			</FormSection>
 		{/each}
 	{:else if orphanFacts.length > 0}
 		<!-- No lineage in context: show what the person has, so a fact never disappears from view. -->
 		{#each orphanFacts as fact (fact.id)}
-			<FormSection title={String(fact.summary ?? t('component.statutory_facts'))}>
-				<CollectionForm
-					{client}
-					collection="employment_statutory_facts"
-					defaultValues={fact}
-					submitLabel={t('component.save_registration')}
+			<FormSection title={fact.summary || t('component.statutory_facts')}>
+				<Form
+					of="employment_statutory_facts"
+					mode="update"
+					id={fact.id}
+					record={fact}
+					submit={t('component.save_registration')}
 				>
-					{#snippet children({ Field })}
-						<Grid gap="md" minimum="panel">
-							<Field name="employee_id" hidden />
-							<Field name="employment_id" hidden />
-							<Field name="statutory_contribution_id" hidden />
-							<Column span="all">
-								<Field
-									name="status"
-									label={t('component.status')}
-									renderer={StatutoryFactStatusRenderer}
-									rendererProps={{ schemeId: fact.statutory_contribution_id }}
-								/>
-							</Column>
-							<Field
-								name="effective_range"
-								renderer={EffectiveRangeRenderer}
-								label={t('component.effective_period')}
-							/>
-						</Grid>
-					{/snippet}
-				</CollectionForm>
+					<Grid gap="md" minimum="panel">
+						<Column span="all">
+							<Field name="status" label={t('component.status')}>
+								{#snippet editor(field)}
+									<StatutoryFactStatusRenderer
+										view={statusView(field)}
+										schemeId={fact.statutory_contribution_id}
+									/>
+								{/snippet}
+							</Field>
+						</Column>
+						<Field name="effective_range" label={t('component.effective_period')} />
+					</Grid>
+				</Form>
 			</FormSection>
 		{/each}
 	{:else}

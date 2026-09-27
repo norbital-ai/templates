@@ -14,10 +14,9 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import { createStatutoryWorld, COMPANY_ID, leaveCatalogue } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { leaveEncashmentRate } from '../src/lib/leave/encashment-rate.ts';
 
 const id = (n: number) => `a5000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -37,7 +36,7 @@ function rate(
 	});
 	const terms = world.employment_terms[0]!;
 	terms.pay_frequency = frequency;
-	terms.base_salary = { ...terms.base_salary, value: wage } as never;
+	terms.base_salary = wage as never;
 	if (options.facts) world.companies[0]!.facts = options.facts;
 	const version = world.jurisdiction_settings.find(
 		(row) =>
@@ -76,9 +75,11 @@ function rate(
 		payslip_id: null,
 		as_adjustment_entry: false
 	} as never);
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-06' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-06'
+	});
 	const bundle = prepared.gathered.bundles[0]!;
 	return leaveEncashmentRate({
 		bundle,

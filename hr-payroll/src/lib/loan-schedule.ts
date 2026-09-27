@@ -1,10 +1,10 @@
-import { decodeNumber } from '@norbital-ai/std/json';
-import { coversDate } from '../collections/payroll_runs/lib/effective.js';
-import { dateKey, dayInstant } from './iso-day.js';
+import { decodeNumber } from './wire.js';
+import { coversDate, readRange } from '../lib/payroll/run/effective.js';
+import { dateKey } from './iso-day.js';
 
 /**
  * One repayment line on the loan form. The matrix owns this draft; submit maps it onto the
- * nested `repayment_loan` actions. Amounts are never rewritten here. A new line starts empty
+ * nested `loan_repayments` actions. Amounts are never rewritten here. A new line starts empty
  * (`null`), which the schedule balance refuses before the write can.
  *
  * `sequence` is a stored key — `unique(loan_id, sequence)`, and the engine recovers repayments in
@@ -46,36 +46,21 @@ type LoanScheduleRefusal = {
 
 /** One repayment as the invariants see it: an amount, a day, and the position that orders them. */
 type LoanScheduleRow = {
-	readonly due_date?: unknown;
-	readonly amount_due?: unknown;
-	readonly sequence?: unknown;
+	readonly due_date?: unknown | undefined;
+	readonly amount_due?: unknown | undefined;
+	readonly sequence?: unknown | undefined;
 };
 
 /**
- * Everything wrong with a repayment schedule, in one pass — the one statement of what a loan's
- * plan has to be, shared by the loans form and the `loan_repayments` transform.
- *
- * Three invariants, and they are the schedule's whole contract:
- *
- * 1. **The amounts sum to the principal**, to the cent (`LOAN_SCHEDULE_TOLERANCE`).
- * 2. **`due_date` strictly increases along `sequence`.** Strictly: two instalments on one day are
- *    one instalment, and `sequence` would be deciding which of them the engine recovers first.
- * 3. **The last repayment falls inside `effective_range`** — an agreement does not collect after
- *    it has ended. Judged with `coversDate`, the day-head comparison the rest of this workspace
- *    reads a stored range with, so a repayment dated ON the period's end day is inside it. That is
- *    the same boundary `loanInstalmentDays` generates against (`if (day > to) break`), and the two
- *    disagreeing would mean the generator produced a schedule its own rules refuse.
- *
- * Every issue is returned, never just the first: a form marks all of them at once, and a write
- * refusal that names one problem at a time is a write refusal an importer meets three times.
- *
- * `principal` and `effectiveRange` are each judged only when stated. A caller that does not know
- * one of them — the loans form before a principal is typed, a transform that cannot see the agreement —
- * gets the invariants it *can* be told about rather than a refusal about a fact nobody supplied.
+ * Everything wrong with a repayment schedule, shared by the loans form and the transform: the
+ * amounts sum to the principal (to the cent), `due_date` strictly increases along `sequence`, and
+ * the last repayment falls inside `effective_range` (`coversDate`, the boundary
+ * `loanInstalmentDays` generates against). Every issue is returned at once; `principal` and
+ * `effectiveRange` are judged only when stated.
  */
 export function loanScheduleRefusals(input: {
-	readonly principal?: unknown;
-	readonly effectiveRange?: unknown;
+	readonly principal?: unknown | undefined;
+	readonly effectiveRange?: unknown | undefined;
 	readonly rows: readonly LoanScheduleRow[];
 }): readonly LoanScheduleRefusal[] {
 	const refusals: LoanScheduleRefusal[] = [];
@@ -119,17 +104,14 @@ export function loanScheduleRefusals(input: {
 
 	const last = days.at(-1);
 	if (input.effectiveRange != null && last !== undefined) {
-		const range = input.effectiveRange as {
-			readonly start?: string | null;
-			readonly end?: string | null;
-		};
-		if (!coversDate(range, last.day))
+		const range = readRange(input.effectiveRange);
+		if (!coversDate(input.effectiveRange, last.day))
 			refusals.push({
 				code: SCHEDULE_OUTSIDE_EFFECTIVE_RANGE,
 				message:
 					`${SCHEDULE_OUTSIDE_EFFECTIVE_RANGE}: the last repayment comes due ${last.day}, ` +
-					`outside the agreement's effective period (${dateKey(range.start) || '—'} to ` +
-					`${dateKey(range.end) || '∞'}). An agreement does not collect after it has ended.`
+					`outside the agreement's effective period (${dateKey(range?.start) || '—'} to ` +
+					`${dateKey(range?.end) || '∞'}). An agreement does not collect after it has ended.`
 			});
 	}
 
@@ -207,10 +189,10 @@ export function loanScheduleActions(
 ): {
 	readonly create?: ReadonlyArray<{ due_date?: string; amount_due?: number; sequence: number }>;
 	readonly update?: ReadonlyArray<{
-		id: string;
+		target: string;
 		set: { due_date?: string; amount_due?: number; sequence: number };
 	}>;
-	readonly delete?: ReadonlyArray<{ id: string }>;
+	readonly delete?: ReadonlyArray<string>;
 } {
 	const ordered = loanScheduleOrdered(rows);
 	const values = (row: LoanRepaymentDraft) => ({
@@ -222,8 +204,8 @@ export function loanScheduleActions(
 	const create = ordered.filter((row) => !storedIds.has(row.id)).map(values);
 	const update = ordered
 		.filter((row) => storedIds.has(row.id))
-		.map((row) => ({ id: row.id, set: values(row) }));
-	const remove = [...storedIds].filter((id) => !named.has(id)).map((id) => ({ id }));
+		.map((row) => ({ target: row.id, set: values(row) }));
+	const remove = [...storedIds].filter((id) => !named.has(id));
 	// Only the actions taken are named: a create declares `create` alone on the nested relation,
 	// and an empty `update` key is still an update action it refuses.
 	return {
@@ -255,9 +237,9 @@ function shiftDayByMonths(day: string, months: number): string {
  * agreement.
  */
 export function loanInstalmentDays(range: unknown): readonly string[] {
-	if (range == null || typeof range !== 'object') return [];
-	const from = dateKey(Reflect.get(range, 'start') as string | null | undefined);
-	const to = dateKey(Reflect.get(range, 'end') as string | null | undefined);
+	const period = readRange(range);
+	const from = dateKey(period?.start);
+	const to = dateKey(period?.end);
 	if (from === '' || to === '' || to < from) return [];
 	const days: string[] = [];
 	for (let month = 0; month < 600; month += 1) {
@@ -288,21 +270,10 @@ export function canGenerateLoanSchedule(
 }
 
 /**
- * An equal-instalment schedule across the loan's effective period.
- *
- * Three things it deliberately does not do:
- *
- * - It does not mint new ids for lines that already exist. An unlocked line keeps its `id` and is
- *   re-dated and re-priced in place, so regenerating does not orphan a row the database already
- *   holds and the nested write updates rather than deletes-and-inserts.
- * - It does not touch a locked line. A repayment a payslip has captured is history; its date and
- *   amount stand, its month is skipped, and only the residual principal is spread over what is
- *   left. Regenerating a fully captured schedule is therefore a no-op, not a refusal.
- * - It does not produce fractions. Instalments are whole currency units and the last one carries
- *   the remainder, which is what the operator does by hand: 167 × 5 + 165 = 1000. Rounding is up,
- *   so the tail shrinks rather than grows — a loan is recovered slightly faster, never slower. On a
- *   principal too small to round up across the period (7 over 6 months) rounding up would leave the
- *   last instalment negative, so that case rounds down instead.
+ * An equal-instalment schedule across the loan's effective period. Existing unlocked lines keep
+ * their ids; locked (captured) lines stand and only the residual is spread. Instalments are whole
+ * units rounded up, the last carrying the remainder (167 × 5 + 165 = 1000); where rounding up would
+ * make the last negative (7 over 6 months) it rounds down.
  */
 export function generateLoanSchedule(input: {
 	readonly principal: unknown;
@@ -330,7 +301,7 @@ export function generateLoanSchedule(input: {
 			: roundedUp;
 	const generated = openDays.map((day, index) => ({
 		id: reusable[index]?.id ?? crypto.randomUUID(),
-		due_date: dayInstant(day),
+		due_date: day,
 		amount_due:
 			index === openDays.length - 1 ? residual - instalment * (openDays.length - 1) : instalment,
 		sequence: 0

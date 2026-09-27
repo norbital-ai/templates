@@ -27,6 +27,11 @@ test('every site compiles expressions over its own context', () => {
 			'money'
 		],
 		['work_day', 'day_type == "PUBLIC_HOLIDAY" && night_hours > 0.0', 'boolean'],
+		[
+			'work_day',
+			'hours_beyond_normal < comparable_full_time_daily_hours - normal_hours ? hours_beyond_normal : comparable_full_time_daily_hours - normal_hours',
+			'hours'
+		],
 		['assessment', 'BASE + ALLOWANCES + ADHOC + CLAIMS - ABSENCE', 'money'],
 		['assessment', 'BASE + year.ALLOWANCES - ABSENCE', 'money'],
 		['assessment', "code('BPAYBS') + annual_exempt(100.0, 0.0, 90000.0)", 'money'],
@@ -94,29 +99,10 @@ test('unknown members, undeclared identifiers, bad syntax and wrong types are re
 });
 
 test('every declared path in the catalogue compiles as a value', () => {
-	const isFunction = (path: string) =>
-		[
-			'under',
-			'citizens_under',
-			'classed',
-			'unclassed_under',
-			'born_on',
-			'age_on',
-			'birthday',
-			'age_months_on',
-			'taken',
-			'days',
-			'balance',
-			'minimum_wage',
-			'earned_monthly_average',
-			'average_daily_wage',
-			'average_monthly_wage',
-			'service_months_net'
-		].includes(path.split('.').at(-1) ?? '');
 	for (const context of Object.values(EXPRESSION_CONTEXTS))
 		for (const field of context.fields) {
 			const path = field.path.replace(/\(.*$/, '').replace(/<.*$/, '').trim();
-			if (isFunction(path) || field.path.includes('<')) continue;
+			if (field.path.includes('(') || field.path.includes('<')) continue;
 			const expression = `${path} != null`;
 			assert.equal(
 				compileExpression({ expression, site: context.site, type: 'boolean' }),

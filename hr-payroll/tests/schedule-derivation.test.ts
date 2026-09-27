@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveSchedule } from '../src/collections/payroll_runs/lib/schedule.ts';
+import { resolveSchedule } from '../src/lib/payroll/run/schedule.ts';
 
 const range = { start: '2020-01-01', end: null };
 const DAY_ID = '00000000-0000-4000-8000-000000000001';

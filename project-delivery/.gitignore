@@ -1,14 +1,8 @@
 node_modules/
 
-# Generated workspace state. Migrations and doctor configuration are authored and stay tracked;
-# everything else under .norbital is regenerable output and must never be committed.
-.norbital/*
-!.norbital/migrations/
-!.norbital/migrations/**
-!.norbital/config/
-!.norbital/config/**
+# Generated workspace state (bolt check, build, test); never committed.
+.norbital/
 
-.pi/
 .svelte-check/
 .tmp/
 .vite/

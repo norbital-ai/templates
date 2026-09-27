@@ -5,7 +5,7 @@ activity and calculation rules. Payroll combines monetary results, applies Contr
 one result graph. Catalogue content is the policy; there is no separate policy object for each
 business action.
 
-This document describes the implementation. Verification is specific to the tested source and fixtures. See the [compliance matrix](compliance-matrix.md) for legal coverage and unresolved release requirements. Local verification does not establish deployment status.
+This document describes the implementation. Verification is specific to the tested source and fixtures. See the [jurisdiction obligation registers](inventory/README.md) for legal coverage and unresolved release requirements. Local verification does not establish deployment status.
 
 ## Identity and family ownership
 
@@ -65,9 +65,10 @@ entries that cite it. A wrong version can be voided through its supported path; 
 `lib/jurisdiction_settings.ts` resolves effective versions consistently.
 
 `new_settings_version` clones the chosen version and its owned rows, remapping dependent references.
-`statutory_drift` checks configured research sources monthly and may propose a draft with review
-notes and retrieval evidence. It cannot seal its proposal or edit sealed rules. Unreachable sources
-remain visible in the outcome; a failed retrieval is not evidence that the law is unchanged.
+`statutory_drift` researches every lineage's version in force monthly, all lineages in parallel: one
+agentic model call each, given its goal, its official sources and the version's rows, reading pages
+itself with `web_read`. Reported changes (each with source URL and quote) become one unsealed draft;
+it cannot seal its proposal or edit sealed rules.
 
 A version is identified by its snapshot id `<code>_<index>`, counting from the lineage's oldest
 version (`MY_1`, `MY_2`, …), so a successor extends the roll without renumbering an id an operator
@@ -636,6 +637,37 @@ unknown producer or a loop when the rule is written. There is no `sequence` colu
 producers is pool state read at the mention, not an order to declare. `minimum_wage(region)` reads
 the company's region's wage in `jurisdiction_settings.work_rules.wages.by_region`; a company in a region the
 version names no wage for stops the run under such a scheme.
+
+`MONTH_TO_DATE` assesses actual accumulated receipts at each cut-off and subtracts the
+month's previously settled withholding. It never scales the first payment into an estimate or
+waits for the company's `FIRST`/`SPLIT`/`LAST` contribution setting. Producer premiums are the
+amounts charged so far. Indonesia PPh 21 uses this span, including non-employee service fees.
+
+A rule with `per_unit: true` selects on the pay-period context, then evaluates its employee and
+employer formulas separately with `base = payment.gross / payment.units`. Each result is multiplied
+by that payment's units and the results are summed. Thresholds belong in those formulas, since
+`when` selects the rule before the payments are split. The employment-bound registration stores
+`unit_assessments: [{period, gross, units, reference}]`: one unit for a daily payment; actual worked
+days for a weekly/piecework payment. References must be distinct, units positive whole numbers,
+and the current period's gross must reconcile to payroll's assessed gross. Missing or inconsistent
+payments refuse calculation. This mode requires `PAY_PERIOD`, no ordinary split, rate override,
+period deduction/rebate or changing coverage standing inside the period.
+
+Indonesia declares `recipient_class` separately from `employment_type`. Full-time fixed-term
+employees receiving regular income remain `REGULAR_EMPLOYEE`; `NON_PERMANENT_MONTHLY` uses TER
+without Article 15 final-period reconciliation. `NON_PERMANENT_NON_MONTHLY` selects `PPH21_DAILY`
+and its daily/average-daily payment records. `NON_EMPLOYEE` uses Article 17 on half of eligible
+gross; `service_kind` distinguishes other services, catering and gross medical patient fees.
+Only evidenced other-service pass-throughs enter `SERVICE_COSTS` deduction claims. Irregular
+commissioners use monthly TER; activity participants, former-employee irregular payments and
+active pension withdrawals use Article 17 on full gross. The source tests cover the amount rules;
+a newly built host artifact is still required for the complete saved-payment workflow.
+
+The eligible-employer DTP flag refers to the statutory KLU/reference-date conditions. For regular
+employees, `dtp_reference_gross` and `dtp_reference_year` record the statutory reference month's
+fixed regular pay. Later raises/cuts do not reset eligibility. Non-permanent wages use current
+monthly gross or each payment's daily average; tax identity and `other_pph21_incentive` control
+eligibility separately. Authority reporting and incentive documentation remain employer obligations.
 
 The employment's standing with a scheme is one `employment_statutory_facts` row: `NOT_REGISTERED`
 with a reason (charges zero, feeds no relief) or `REGISTERED` with the reference number, an

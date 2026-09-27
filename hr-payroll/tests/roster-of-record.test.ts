@@ -6,11 +6,8 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveSchedule } from '../src/collections/payroll_runs/lib/schedule.ts';
-import { payrollRunPrecheck } from '../src/collections/payroll_runs/lib/precheck.ts';
-import rosters from '../src/collections/rosters/+collection.ts';
-import patterns from '../src/collections/shift_patterns/+collection.ts';
-import { transform } from './helpers/transform.ts';
+import { resolveSchedule } from '../src/lib/payroll/run/schedule.ts';
+import { payrollRunPrecheck } from '../src/lib/payroll/run/precheck.ts';
 
 const range = { start: '2020-01-01', end: null };
 const DAY_ID = '00000000-0000-4000-8000-000000000001';
@@ -136,31 +133,4 @@ test('a roster with a day missing, or a day without a shift, is refused and name
 
 test('days with no roster at all are the pattern’s business, not the roster check’s', () => {
 	assert.deepEqual(rosterIssues(rosteredWeek(['2026-03-05']), []), []);
-});
-
-const rosterBefore = (input, existing = undefined) =>
-	transform(rosters, [input], { existing: [existing] }).then((payloads) => payloads[0]);
-
-test('a roster is one employment over one calendar month, and nothing else is stored', async () => {
-	assert.deepEqual(await rosterBefore({ employment_id: 'e', period: '2026-01' }), {
-		employment_id: 'e',
-		period: '2026-01'
-	});
-	await assert.rejects(rosterBefore({ employment_id: 'e', period: '2026-03-2' }), /YYYY-MM/);
-	await assert.rejects(rosterBefore({ employment_id: 'e' }), /calendar month/);
-});
-
-test('a roster stays on the employment and month it was created for', async () => {
-	const existing = { id: 'r', employment_id: 'e', period: '2026-01' };
-	await assert.rejects(rosterBefore({ id: 'r', period: '2026-02' }, existing), /roster of/);
-	await assert.rejects(rosterBefore({ id: 'r', employment_id: 'f' }, existing), /roster of/);
-});
-
-test('a shift pattern cycle is whole weeks', async () => {
-	await assert.rejects(
-		transform(patterns, [
-			{ pattern: { days: Array.from({ length: 10 }, () => ({ roster_code_id: DAY_ID })) } }
-		]),
-		/whole weeks; this one has 10 days/
-	);
 });

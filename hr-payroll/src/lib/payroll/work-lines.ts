@@ -7,8 +7,8 @@
  * scheme's own declaration; nothing here names one.
  */
 
-import type { CatalogueComponent } from '../../collections/payroll_runs/lib/configuration.js';
-import type { WorkRules } from '../../datatypes/work_rules/+definition.js';
+import type { CatalogueComponent } from '../../lib/payroll/run/configuration.js';
+import type { WorkRules } from '../datatypes/work_rules.js';
 import { INCENTIVE_LINE, OVERTIME_LINE } from './work-bands.js';
 import { splitsOvertime } from '../scheduling/work-limits.js';
 
@@ -23,8 +23,8 @@ function item(options: {
 	readonly settingsId: string;
 	readonly code: string;
 	readonly output: string;
-	readonly absence?: boolean;
-	readonly display?: boolean;
+	readonly absence?: boolean | undefined;
+	readonly display?: boolean | undefined;
 	readonly definition: CatalogueComponent['definition'];
 }): CatalogueComponent {
 	return {

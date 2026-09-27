@@ -25,11 +25,13 @@ import test from 'node:test';
 import {
 	COMPANY,
 	assessStatutory,
+	assessStatutoryUnvalidated,
 	buildStatutory,
 	expectStatutory,
 	expectStatutorySkipped,
 	assertEveryVersionPriced,
 	settingsVersions,
+	settingsIdOn,
 	contributionSchemes,
 	COMPANY_ID,
 	type BuiltPayslip
@@ -129,11 +131,12 @@ test('Vietnam — SI, HI, UI and the union fee under the 1 January 2026 version'
 	assert.equal(book.get('VN-20M')!.get('UNION_FEE'), undefined);
 });
 
-test('Vietnam — the contribution floor is the reference level (Law 41/2024 art.31(1)(đ))', () => {
+test('Vietnam — the contribution floor is the reference level (calculation-only; Law 41/2024 art.31(1)(đ))', () => {
 	// A wage under 2,340,000 contributes on 2,340,000 for SI, HI, the union fee and, since Law
 	// 41/2024 art.31(1)(đ) makes the UI base the SI base, UI too. 2,340,000 × 8% = 187,200, × 17.5%
 	// = 409,500, × 1.5% = 35,100, × 3% = 70,200, × 2% = 46,800, × 1% = 23,400.
-	const january = assessStatutory({
+	// The payable run refuses this under-minimum full-time contract; price the insurance formula alone.
+	const january = assessStatutoryUnvalidated({
 		code: 'VN',
 		period: '2026-01',
 		region: 'I',
@@ -146,7 +149,7 @@ test('Vietnam — the contribution floor is the reference level (Law 41/2024 art
 	expectStatutory(january, 'VN-2M', 'PIT', 0, 0);
 	// From 1 July 2026 the floor is 2,530,000: × 8% = 202,400, × 17.5% = 442,750, × 1.5% = 37,950,
 	// × 3% = 75,900, × 2% = 50,600.
-	const july = assessStatutory({
+	const july = assessStatutoryUnvalidated({
 		code: 'VN',
 		period: '2026-07',
 		region: 'I',
@@ -406,7 +409,7 @@ test('Vietnam — the đồng above the ceiling is charged on the ceiling', () =
 // hourly rate is a round 100,000: 22 working days × 8 h × 100,000 = 17,600,000 for January 2026.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-const VN_2026_JAN = 'b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8';
+const VN_2026_JAN = settingsIdOn('VN', '2026-01-15');
 const holiday = (date: string, name: string) => ({
 	id: `holiday-${date}`,
 	company_id: COMPANY_ID,
@@ -1031,8 +1034,8 @@ test('Vietnam — a part-timer under the floor and a trainee are outside compuls
 	expectStatutory(book, 'VN-PT-FLOOR', 'UI', 23_400, 23_400);
 });
 
-test('Vietnam — union dues below the floor are 0.5% of the floored SI salary (Decision 61/QĐ-TLĐ)', () => {
-	const book = assessStatutory({
+test('Vietnam — union dues below the floor are 0.5% of the floored SI salary (calculation-only; Decision 61/QĐ-TLĐ)', () => {
+	const book = assessStatutoryUnvalidated({
 		code: 'VN',
 		period: '2026-01',
 		region: 'I',
@@ -1150,6 +1153,7 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 			{
 				key: 'VN-2M-SMALL',
 				wage: 4_000_000,
+				employment_type: 'PART_TIME',
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
 				exit_date: '2026-02-28'
@@ -1193,6 +1197,7 @@ test('Vietnam — the 2,000,000 short-contract threshold holds through December 
 			{
 				key: 'VN-DEC-4M',
 				wage: 4_000_000,
+				employment_type: 'PART_TIME',
 				citizenship: 'CITIZEN',
 				hire_date: '2025-11-01',
 				exit_date: '2025-12-31'

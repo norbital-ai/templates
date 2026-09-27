@@ -20,13 +20,25 @@ test('SG: a resignation is due within seven days and the warning names s.23(2)',
 	assert.match(late, /2026-01-17/);
 });
 
-test('SG: an employer termination is due within three days, not seven (s.22)', () => {
+test('SG: an employer termination is due on the last day unless same-day payment is impossible (s.22)', () => {
 	const late = warningsFor('SG', 'REDUNDANCY', '2026-01-10').find((warning) =>
 		warning.includes('FINAL_PAY_LATE')
 	);
 	assert.ok(late);
-	assert.match(late, /2026-01-13/);
+	assert.match(late, /by 2026-01-10/);
 	assert.match(late, /s\.22/);
+	const exceptional = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [{ key: 'LEAVER', wage: 6000, exit_date: '2026-01-10', exit_reason: 'REDUNDANCY' }]
+		},
+		(world) => {
+			world.employments[0]!.exit_facts.final_pay_not_possible = true;
+		}
+	).warnings.find((warning) => warning.includes('FINAL_PAY_LATE'));
+	// 11 January is Sunday; 12–14 January are the three eligible days after the exit.
+	assert.match(exceptional!, /by 2026-01-14/);
 });
 
 test('PH: the thirty-day final-pay window holds through the month-end run', () => {

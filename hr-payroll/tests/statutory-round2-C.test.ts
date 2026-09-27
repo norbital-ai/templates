@@ -398,8 +398,21 @@ test('TW — the non-resident 6% band ends at one and a half times the minimum w
 			period,
 			riskClass: '1',
 			people: [
-				{ key: 'AT', wage: at, citizenship: 'FOREIGNER', tax_residency: 'NON_RESIDENT' },
-				{ key: 'ABOVE', wage: above, citizenship: 'FOREIGNER', tax_residency: 'NON_RESIDENT' }
+				// a foreigner with no foreign-spouse or PR-professional class is outside EI (就業保險法 §5)
+				{
+					key: 'AT',
+					wage: at,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				},
+				{
+					key: 'ABOVE',
+					wage: above,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				}
 			]
 		});
 		expectStatutory(book, 'AT', 'INCOME_TAX_NON_RESIDENT', atTax, 0);

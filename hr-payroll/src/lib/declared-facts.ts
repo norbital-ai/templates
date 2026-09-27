@@ -1,9 +1,10 @@
-import { isEligible, type PersonContext } from '../collections/payroll_runs/lib/eligibility.js';
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { factValueFault, type FactKey } from '../datatypes/fact_keys/+definition.js';
-import { coversDate } from '../collections/payroll_runs/lib/effective.js';
+import { isEligible, scalarFacts, type PersonContext } from '../lib/payroll/run/eligibility.js';
+import { refuse } from './refuse.js';
+import { factScalar, factValueFault, type FactKey } from './datatypes/fact_keys.js';
+import { coversDate } from '../lib/payroll/run/effective.js';
 import { EMPTY_OF } from './expressions/compile.js';
 import { evaluateBoolean, expressionEngine } from './expressions/evaluate.js';
+import * as Predicate from 'effect/Predicate';
 
 /** Validate supplied values without inventing a declaration for missing data. */
 export function factValuesFault(
@@ -16,7 +17,7 @@ export function factValuesFault(
 		const value = Object.hasOwn(values, field.key) ? values[field.key] : undefined;
 		if (
 			complete &&
-			(value === undefined || (typeof value === 'string' && value.trim() === '')) &&
+			(value === undefined || (Predicate.isString(value) && value.trim() === '')) &&
 			(field.required || (field.required_when != null && when?.(field.required_when)))
 		)
 			return `${field.label?.trim() || field.key} is required before calculation.`;
@@ -45,7 +46,7 @@ export function requireFactValues(
 
 /** One dated revision of an entity's declared facts. */
 export type CompanyFactRevision = {
-	readonly facts: Readonly<Record<string, string | number | boolean>>;
+	readonly facts: Readonly<Record<string, unknown>>;
 	readonly effective_range: unknown;
 };
 
@@ -58,22 +59,22 @@ export type CompanyFactRevision = {
 export function resolveCompanyFacts(
 	fields: readonly FactKey[],
 	company: {
-		readonly name?: string;
+		readonly name?: string | undefined;
 		readonly settings_code: string;
 		readonly region: string | null;
 		readonly pay_frequency: string;
-		readonly facts?: Readonly<Record<string, string | number | boolean>> | null;
+		readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 	},
 	options?: {
-		readonly asOf?: string;
-		readonly revisions?: readonly CompanyFactRevision[];
+		readonly asOf?: string | undefined;
+		readonly revisions?: readonly CompanyFactRevision[] | undefined;
 	}
 ): Record<string, string | number | boolean> {
 	const revision =
 		options?.asOf == null
 			? undefined
 			: (options.revisions ?? []).find((row) => coversDate(row.effective_range, options.asOf!));
-	const raw = revision?.facts ?? company.facts ?? {};
+	const raw = scalarFacts(revision?.facts ?? company.facts);
 	const scope = company.name ?? company.settings_code;
 	const facts = resolveFactValues(fields, raw, scope);
 	const context = {
@@ -104,8 +105,8 @@ export function resolveFactValues(
 		fields.map((field) => [
 			field.key,
 			Object.hasOwn(values, field.key)
-				? values[field.key]
-				: (field.default_value ?? EMPTY_OF[field.type])
+				? values[field.key]!
+				: (factScalar(field.default_value) ?? EMPTY_OF[field.type])
 		])
 	);
 }

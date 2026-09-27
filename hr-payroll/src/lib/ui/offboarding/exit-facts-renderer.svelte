@@ -1,46 +1,52 @@
 <script lang="ts">
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import type { RendererProps } from '../../../datatypes/entity_facts/$types.js';
-	import EntityFactsRenderer from '../../../datatypes/entity_facts/+renderer.svelte';
-	import { client } from '../../workspace-client.js';
+	import { t } from '../t.js';
+	/** A departure's declared facts, edited against the version of the entity's lineage in force on the last day. */
+	import { bolt } from '$bolt';
+	import type { Id } from '@norbital-ai/bolt';
+	import type { CustomFieldView } from '@norbital-ai/ui';
+	import EntityFactsRenderer from '../../../data/custom_field/entity_facts/+renderer.svelte';
 	import { settingsInForce } from '../../jurisdiction_settings.js';
+	import { live, liveRows } from '../live.svelte.js';
 	import { inForceSettings } from '../settings-scope.js';
 
-	let props: RendererProps & { companyId: string; lastDay: string | null } = $props();
-	const { t } = useI18n<TenantI18nKeys>();
-	const companyQuery = $derived(
-		client.db.companies.findFirst({
-			where: { id: { eq: props.companyId } },
-			columns: { settings_code: true }
-		})
-	);
-	const settingsCode = $derived(companyQuery.current?.settings_code);
-	const versionsQuery = $derived(
-		settingsCode && props.lastDay
-			? client.db.jurisdiction_settings.findMany({
-					where: inForceSettings(settingsCode, props.lastDay),
-					columns: {
-						id: true,
+	let {
+		view,
+		companyId,
+		lastDay
+	}: {
+		view: CustomFieldView<{ readonly [key: string]: string | number | boolean }>;
+		companyId: Id<'companies'>;
+		lastDay: string | null;
+	} = $props();
+	const company = live(() => bolt.get('companies', companyId, { settings_code: true }));
+	const settingsCode = $derived(company.current?.settings_code);
+	const versions = liveRows(() =>
+		settingsCode && lastDay
+			? bolt.read('jurisdiction_settings', {
+					// the version in force's exit declarations only: whole rows run to megabytes, past a live view
+					select: {
 						code: true,
+						name: true,
 						sealed_at: true,
 						voided_at: true,
+						approval_id: true,
 						effective_range: true,
 						exit_facts: true
 					},
-					limit: 100
+					where: inForceSettings(settingsCode, lastDay),
+					all: true
 				})
 			: null
 	);
 	const version = $derived(
-		settingsInForce(versionsQuery?.current ?? [], settingsCode ?? '', props.lastDay ?? '')
+		settingsInForce(versions.current ?? [], settingsCode ?? '', lastDay ?? '')
 	);
 </script>
 
-{#if companyQuery.loading || versionsQuery?.loading}
+{#if company.loading || versions.loading}
 	<p class="text-meta">{t('component.loading')}</p>
-{:else if props.lastDay != null && version == null}
+{:else if lastDay != null && version == null}
 	<p class="text-sm text-destructive" role="alert">{t('offboarding.inputs_unavailable')}</p>
 {:else}
-	<EntityFactsRenderer {...props} declarations={version?.exit_facts ?? []} />
+	<EntityFactsRenderer {view} declarations={version?.exit_facts ?? []} />
 {/if}

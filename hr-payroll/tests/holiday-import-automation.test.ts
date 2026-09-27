@@ -1,15 +1,12 @@
+// @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { runHolidayImport } from '../src/automations/+holiday_import.ts';
+import holidayImport from '../src/automation/+holiday_import.automation.ts';
 import { holidaySources } from '../src/lib/holiday-import.ts';
 
 /**
- * The source is the entity's, not a settings version's.
- *
- * It used to hang off `jurisdiction_settings` and the reader had to rank sealed/voided/effective
- * versions to decide which one's source was in force. An entity has exactly one, and two entities
- * in a country each get their own read — which is the point of an entity-owned calendar.
+ * The source is the entity's, not a settings version's: two entities in a country each get their own read. The
+ * automation's own body runs over a fake `ctx`; reads answer in wire form, as the engine does.
  */
 const company = {
 	id: '11111111-1111-4111-8111-111111111111',
@@ -17,7 +14,7 @@ const company = {
 	settings_code: 'TEST',
 	holiday_source: { calendar_id: 'public-holidays', time_zone: 'Asia/Singapore', enabled: true }
 };
-const event = (id: string, date: string, next: string, summary = 'Festival') => ({
+const event = (id, date, next, summary = 'Festival') => ({
 	id,
 	etag: 'one',
 	summary,
@@ -25,41 +22,39 @@ const event = (id: string, date: string, next: string, summary = 'Festival') => 
 	end: { date: next }
 });
 
-const harness = (
-	pages: ReadonlyArray<unknown>,
-	existing: ReadonlyArray<{ company_id: string; date: string }> = []
-) => {
-	const calls: string[] = [];
-	const writes: Record<string, unknown>[] = [];
-	const api = {
-		progress: () => Effect.void,
-		connection: {
-			get: (request: { query: { pageToken?: string } }) => {
-				calls.push(request.query.pageToken ?? 'first');
-				assert.equal(writes.length, 0, 'every page is read before a row is written');
-				const index = request.query.pageToken == null ? 0 : Number(request.query.pageToken);
-				return Effect.succeed({ status: 200, headers: {}, body: pages[index] });
-			}
-		},
-		db: {
-			companies: { findMany: () => Effect.succeed([company]) },
-			jurisdiction_holidays: { findMany: () => Effect.succeed(existing) }
-		},
-		collection: {
-			jurisdiction_holidays: {
-				createMany: (rows: Record<string, unknown>[]) =>
-					Effect.sync(() => {
-						writes.push(...rows);
-						return rows;
-					})
-			}
+const harness = (pages, existing = [], http) => {
+	const calls = [];
+	const writes = [];
+	const ctx = {
+		todayIn: () => '2026-09-25',
+		progress: async () => {},
+		read: async (collection) => ({
+			rows:
+				collection === 'companies'
+					? [company]
+					: existing.map((row) => ({ ...row, date: { $d: row.date } })),
+			next: null
+		}),
+		http: () => ({
+			get:
+				http ??
+				(async (_path, request) => {
+					calls.push(request.query.pageToken ?? 'first');
+					assert.equal(writes.length, 0, 'every page is read before a row is written');
+					return pages[request.query.pageToken == null ? 0 : Number(request.query.pageToken)];
+				})
+		}),
+		act: async (callable, rows) => {
+			assert.equal(callable, 'jurisdiction_holidays.create');
+			writes.push(...rows);
+			return { kind: 'committed', output: undefined, records: [] };
 		}
-	} as unknown as Parameters<typeof runHolidayImport>[0];
-	return { api, calls, writes };
+	};
+	return { run: (input) => holidayImport.body(input, ctx), calls, writes };
 };
 
 test('the annual job reads every page, adds the days the entity lacks, and never publishes', async () => {
-	const { api, calls, writes } = harness(
+	const { run, calls, writes } = harness(
 		[
 			{ kind: 'calendar#events', items: [], nextPageToken: '1' },
 			{
@@ -73,9 +68,7 @@ test('the annual job reads every page, adds the days the entity lacks, and never
 		],
 		[{ company_id: '11111111-1111-4111-8111-111111111111', date: '2027-02-02' }]
 	);
-	const result = await Effect.runPromise(
-		runHolidayImport(api, { company_id: '11111111-1111-4111-8111-111111111111', year: 2027 })
-	);
+	const result = await run({ company_id: '11111111-1111-4111-8111-111111111111', year: 2027 });
 	assert.deepEqual(calls, ['first', '1']);
 	assert.deepEqual(
 		writes.map((row) => [row.date, row.name, row.published_at]),
@@ -97,24 +90,15 @@ test('a named entity imports even when its source is disabled; a provider failur
 		1,
 		'a named entity runs regardless'
 	);
-	const { api, writes } = harness([]);
-	(api as { connection: unknown }).connection = {
-		get: () => Effect.succeed({ status: 503, headers: {}, body: {} })
-	};
+	const failing = harness([], [], async () => {
+		throw { kind: 'upstream', status: 503, message: 'HTTP 503' };
+	});
+	await assert.rejects(failing.run({ company_id: company.id, year: 2027 }), {
+		message: 'HTTP 503'
+	});
+	assert.equal(failing.writes.length, 0);
 	await assert.rejects(
-		Effect.runPromise(
-			runHolidayImport(api, { company_id: '11111111-1111-4111-8111-111111111111', year: 2027 })
-		),
-		/HTTP 503/
-	);
-	assert.equal(writes.length, 0);
-	await assert.rejects(
-		Effect.runPromise(
-			runHolidayImport(harness([]).api, {
-				company_id: '22222222-2222-4222-8222-222222222222',
-				year: 2027
-			})
-		),
+		harness([]).run({ company_id: '22222222-2222-4222-8222-222222222222', year: 2027 }),
 		/No Google holiday calendar is known for this entity/
 	);
 });

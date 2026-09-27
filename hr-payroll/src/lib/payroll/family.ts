@@ -1,4 +1,4 @@
-import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
+import type { CatalogueBand } from '../datatypes/catalogue_band.js';
 
 /** Where a line settles. `EMPLOYER` and `DISPLAY` carry no direction. */
 export type SettlementDestination = 'PAY' | 'NET' | 'EMPLOYER' | 'DISPLAY';
@@ -53,44 +53,44 @@ export function settlementBucket(
 /** Metadata carried by a family result. Consumers do not need its calculation definition. */
 export type FamilyPayItem = {
 	readonly id: string;
-	readonly catalogue_id?: string;
-	readonly output?: string;
+	readonly catalogue_id?: string | undefined;
+	readonly output?: string | undefined;
 	readonly settings_id: string;
 	readonly code: string;
-	readonly name?: string | null;
+	readonly name?: string | null | undefined;
 	/** How the line settles: destination × direction is its bucket. */
 	readonly destination: SettlementDestination;
 	readonly direction: SettlementDirection | null;
 	/** The ordered bands a catalogue prices its entries with; empty for engine-priced Work lines. */
 	readonly bands: readonly CatalogueBand[];
 	readonly eligibility: string;
+	readonly evidence?: 'NONE' | 'OPTIONAL' | 'REQUIRED' | undefined;
+	/** Optional entry-level admission rule. A false result refuses rather than consuming a request. */
+	readonly qualifies_when?: string | null | undefined;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ADHOC' | 'ALLOWANCE' | 'LOAN';
-	/** The schemes (and parts, `CPF.ADDITIONAL`) this class counts toward; absent (a work line) is none. */
-	readonly counts_toward?: readonly string[];
+	/** The schemes/parts and reserved wage-definition marks this class counts toward. */
+	readonly counts_toward?: readonly string[] | undefined;
 	/**
 	 * Whether an unpaid day comes off this allowance class; absent follows the version's
 	 * `payroll.allowance_npl_prorates`, and false marks a class the statute excludes from the
 	 * deduction's wage (SG's travel, food and housing allowances; MY's travelling allowance).
 	 */
-	readonly npl_prorates?: boolean | null;
+	readonly npl_prorates?: boolean | null | undefined;
 };
 
-import type { InLieuSlice } from '../../datatypes/payroll_trace/+definition.js';
-import type {
-	CatalogueComponent,
-	Configuration
-} from '../../collections/payroll_runs/lib/configuration.js';
-import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
+import type { InLieuSlice } from '../datatypes/payroll_trace.js';
+import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
+import type { RunIssue } from '../../lib/payroll/run/validate.js';
+import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
 import type { PreparedPayRequest, PayRequest, PayRequestFamily } from './money.js';
-import type { PayslipBase } from '../../datatypes/payslip_base/+definition.js';
-import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
+import type { PayslipBase } from '../datatypes/payslip_base.js';
+import type { PayslipProration } from '../datatypes/payslip_proration.js';
 import type { SettledLeaveCapture } from '../leave/payroll.js';
-import type { IsoDate } from '../../collections/payroll_runs/lib/dates.js';
-import type { DailyOvertime } from '../../collections/payroll_runs/lib/overtime.js';
-import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
-import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
-import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import type { IsoDate } from '../../lib/payroll/run/dates.js';
+import type { DailyOvertime } from '../../lib/payroll/run/overtime.js';
+import type { ScheduledDay } from '../../lib/payroll/run/schedule.js';
+import type { PayrollWindow } from '../../lib/payroll/run/period.js';
+import type { PersonContext } from '../../lib/payroll/run/eligibility.js';
 
 /**
  * What a measured amount looks like to the steps that price the whole payslip.
@@ -229,18 +229,20 @@ export type MeasuredEmployment = {
 	/** Regulated ordinary/off-day OT by calendar month; rest days and PH are excluded. */
 	readonly calendarMonthOvertimeHours: ReadonlyMap<string, number>;
 	/** Every hour beyond the normal day by calendar month, rest days and holidays included (reported only). */
-	readonly calendarMonthAllOvertimeHours?: ReadonlyMap<string, number>;
+	readonly calendarMonthAllOvertimeHours?: ReadonlyMap<string, number> | undefined;
 	/** Limit key → its own count by calendar month, for a limit whose `counts_day_when` adds whole days. */
-	readonly calendarMonthLimitHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	readonly calendarMonthLimitHours?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 	/**
 	 * The overtime this payslip settles (its attendance window), as each month, quarter and year
 	 * limit counts it: limit key → calendar month → hours, `''` the regulated count.
 	 */
-	readonly settledOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	readonly settledOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 	/** The in-lieu slices this payslip credited and paid, for the trace a later run reads. */
-	readonly inLieuSlices?: readonly InLieuSlice[];
+	readonly inLieuSlices?: readonly InLieuSlice[] | undefined;
 	readonly currency: string;
 	readonly schedule: ReadonlyMap<IsoDate, ScheduledDay>;
+	/** Normal scheduled days in any calendar month this run measured, independent of leave. */
+	readonly normalWorkingDaysIn?: ((window: PayRange) => number) | undefined;
 	/** The version's limits that govern this person, the conditional ones (`limits[].when`) judged. */
 	readonly limits: Configuration['limits'];
 	/** The pay month's scheduled working days — what `person.period.working_days` reads. */
@@ -256,16 +258,18 @@ export type MeasuredEmployment = {
 	/** Attendance-window dates with overtime or night-window hours — what `person.period.overtime_days` reads. */
 	readonly periodOvertimeDays: number;
 	/** Calendar-month eligibility counts, independent of this payroll's wage window. */
-	readonly monthlyContributionDays?: {
-		readonly employed: number;
-		readonly unpaid: number;
-		readonly fullyUnpaid: number;
-		readonly leaveDays: Readonly<Record<string, number>>;
-		readonly fullLeaveDays: Readonly<Record<string, number>>;
-		readonly leavePay: Readonly<Record<string, number>>;
-		readonly working: number;
-		readonly overtimeDays: number;
-	};
+	readonly monthlyContributionDays?:
+		| {
+				readonly employed: number;
+				readonly unpaid: number;
+				readonly fullyUnpaid: number;
+				readonly leaveDays: Readonly<Record<string, number>>;
+				readonly fullLeaveDays: Readonly<Record<string, number>>;
+				readonly leavePay: Readonly<Record<string, number>>;
+				readonly working: number;
+				readonly overtimeDays: number;
+		  }
+		| undefined;
 	/** The contract's week as the run resolved it — what `terms.ordinary_hours_per_week` and the monthly basic read. */
 	readonly week: {
 		readonly ordinary_hours_per_week: number;
@@ -289,16 +293,16 @@ export type MeasureEmploymentOptions = {
 	/** component code → what earlier payslips of this employee earned this tax year. */
 	readonly yearEarned: ReadonlyMap<string, number>;
 	/** Calculate a deferred period's wages without settling manual money again. */
-	readonly deferredWagesOnly?: boolean;
+	readonly deferredWagesOnly?: boolean | undefined;
 	/**
 	 * Overtime earlier payslips settled, as each limit counts it: limit key → calendar month →
 	 * hours, `''` the regulated count the monthly funnel reads.
 	 */
-	readonly priorOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	readonly priorOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 	/** The in-lieu slices earlier payslips credited and paid (TW 勞基法 §32-1). */
-	readonly priorInLieu?: readonly InLieuSlice[];
+	readonly priorInLieu?: readonly InLieuSlice[] | undefined;
 	/** calendar month → code → what earlier payslips filed; a pay request's person reads it. */
-	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 };
 
 export type Measurement = {
@@ -349,7 +353,7 @@ export type MeasureComponentOptions = {
 	};
 	readonly subject: PersonContext;
 	/** calendar month → code → what earlier payslips filed; a pay request's person reads it. */
-	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 	/**
 	 * Where a measurement says why it produced nothing.
 	 *

@@ -134,7 +134,10 @@ test('TW audit — the §56 reserve includes old-system migrant workers, ten-yea
 					pass_type: 'WORK_PERMIT',
 					tax_residency: 'RESIDENT',
 					hire_date: hire,
-					registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } }
+					registrations: {
+						LABOR_PENSION: { kind: 'NOT_REGISTERED' },
+						EI: { kind: 'NOT_REGISTERED' }
+					}
 				}
 			]
 		});
@@ -253,8 +256,20 @@ test('TW audit — non-resident 6% / 18% boundary in 2025 and 2026', () => {
 			period,
 			riskClass: '1',
 			people: [
-				{ key: 'AT', wage: at, citizenship: 'FOREIGNER', tax_residency: 'NON_RESIDENT' },
-				{ key: 'ABOVE', wage: above, citizenship: 'FOREIGNER', tax_residency: 'NON_RESIDENT' }
+				{
+					key: 'AT',
+					wage: at,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				},
+				{
+					key: 'ABOVE',
+					wage: above,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				}
 			]
 		});
 		expectStatutory(book, 'AT', 'INCOME_TAX_NON_RESIDENT', low, 0);
@@ -391,6 +406,106 @@ test('TW audit — an hourly rate is held to the hourly minimum wage', () => {
 				`${period} ${key}`
 			);
 	}
+});
+
+test('TW audit — a monthly part-timer uses the monthly minimum pro rata to contracted hours', () => {
+	// MOL part-time guidance §6(2)(1): 29,500 × 20/40 = 14,750 in 2026, not the separately
+	// published hourly 196 × 20 × 52/12 = 16,986.67. A monthly contract at 14,750 complies.
+	const { warnings } = buildStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		region: 'Taiwan',
+		people: [
+			{
+				key: 'PT-14749',
+				wage: 14_749,
+				pay_frequency: 'MONTHLY',
+				employment_type: 'PART_TIME',
+				ordinary_hours_per_week: 20,
+				citizenship: 'CITIZEN'
+			},
+			{
+				key: 'PT-14750',
+				wage: 14_750,
+				pay_frequency: 'MONTHLY',
+				employment_type: 'PART_TIME',
+				ordinary_hours_per_week: 20,
+				citizenship: 'CITIZEN'
+			}
+		]
+	});
+	assert.equal(
+		warnings.some((line) => line.startsWith('MINIMUM_WAGE_BELOW') && line.includes('PT-14749 ')),
+		true
+	);
+	assert.equal(
+		warnings.some((line) => line.startsWith('MINIMUM_WAGE_BELOW') && line.includes('PT-14750 ')),
+		false
+	);
+});
+
+test('TW audit — a daily part-timer uses the hourly minimum for the contracted day', () => {
+	// MOL part-time guidance §6(2)(1): 4 hours × NT$196 = NT$784 a day in 2026.
+	const { warnings } = buildStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		region: 'Taiwan',
+		people: [
+			{
+				key: 'D-783',
+				wage: 783,
+				pay_frequency: 'DAILY',
+				employment_type: 'PART_TIME',
+				ordinary_hours_per_week: 20,
+				citizenship: 'CITIZEN'
+			},
+			{
+				key: 'D-784',
+				wage: 784,
+				pay_frequency: 'DAILY',
+				employment_type: 'PART_TIME',
+				ordinary_hours_per_week: 20,
+				citizenship: 'CITIZEN'
+			}
+		]
+	});
+	assert.equal(
+		warnings.some((line) => line.startsWith('MINIMUM_WAGE_BELOW') && line.includes('D-783 ')),
+		true
+	);
+	assert.equal(
+		warnings.some((line) => line.startsWith('MINIMUM_WAGE_BELOW') && line.includes('D-784 ')),
+		false
+	);
+});
+
+test('TW audit — missing part-time contract hours refuse instead of erasing the minimum', () => {
+	assert.throws(
+		() =>
+			buildStatutory(
+				{
+					code: 'TW',
+					period: '2026-01',
+					riskClass: '1',
+					region: 'Taiwan',
+					people: [
+						{
+							key: 'PT-NO-HOURS',
+							wage: 10_000,
+							pay_frequency: 'MONTHLY',
+							employment_type: 'PART_TIME',
+							citizenship: 'CITIZEN'
+						}
+					]
+				},
+				(world) => {
+					world.employment_terms[0]!.ordinary_hours_per_week = null;
+				}
+			),
+		/contracted weekly hours are required for the part-time monthly minimum wage/
+	);
 });
 
 // ─── 勞退條例 §11–§12, 勞基法 §16–§17: severance and notice pay ───────────────────────────────────

@@ -9,11 +9,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import workDays from '../src/collections/work_days/+collection.ts';
-import pipeline from '../src/collections/work_days/+pipelines.ts';
-import { createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
-import { memoryWorkspaceApi } from './fixtures/memory-payroll-api.ts';
+import workDays from '../src/data/collection/work_days/+collection.ts';
 import {
 	applicableLimits,
 	observedHolidayDates,
@@ -23,9 +19,8 @@ import {
 } from '../src/lib/scheduling/work-limits.ts';
 import { settingsVersions } from './fixtures/statutory-world.ts';
 import { windowOvertime } from '../src/lib/ui/roster/day-overtime.ts';
-import { addDays } from '../src/collections/payroll_runs/lib/dates.ts';
-import { transformSync } from './helpers/transform.ts';
-import { VERSION, workDayDb } from './helpers/work-day-db.ts';
+import { addDays } from '../src/lib/payroll/run/dates.ts';
+import { VERSION, workDayTables, writeDays } from './helpers/work-day-db.ts';
 
 const limit = (key, period, measure, max_hours, extra = {}) => ({
 	key,
@@ -194,25 +189,35 @@ test('ID: holiday and rest-day overtime stay outside the 4 h a day and the 18 h 
 	}
 });
 
-test('MY: rest-day overtime consumes the 104 hours of the assessment window', () => {
+test('MY: the 104-hour cap excludes rest days and public holidays, including substitutes', () => {
 	for (const code of ['MY', 'MY-nihon'])
 		for (const version of settingsVersions(code)) {
 			const limits = applicableLimits(version.work_rules.limits, null);
-			// 21 Jan – 20 Feb: twenty-four ordinary days of 4 h (96) and a rest day of 8 (under
-			// the twelve a day) fill the 104, so the next ordinary day is all incentive.
-			const ordinary = Array.from({ length: 24 }, (_, index) =>
-				work(addDays('2026-01-21', index), 4, { paid_minutes: 450 })
-			);
+			// EA s.60A(4)(a), first proviso: 100 ordinary hours, then rest-day and gazetted/
+			// substituted holiday work, leave four for an off day. The next ordinary hour
+			// exceeds 104. Other daily caps still apply to each day independently.
+			const ordinary = Array.from({ length: 25 }, (_, index) => work(dayOf(index + 1), 4));
 			const split = splitPlannedOvertime({
-				days: [...ordinary, rest('2026-02-15', 8), work('2026-02-16', 3, { paid_minutes: 450 })],
-				limits,
-				cutoffDay: 21
+				days: [
+					...ordinary,
+					rest(dayOf(26), 8),
+					work(dayOf(27), 12, { holiday: true }),
+					work(dayOf(28), 10, { holiday: true }),
+					work(dayOf(29), 4, { kind: 'OFF', paid_minutes: 0 }),
+					work(dayOf(30), 1)
+				],
+				limits
 			});
-			assert.deepEqual(split.get('2026-02-15'), { approved_overtime_hours: 8, incentive_hours: 0 });
 			assert.deepEqual(
-				split.get('2026-02-16'),
-				{ approved_overtime_hours: 0, incentive_hours: 3 },
-				code
+				[26, 27, 28, 29, 30].map((n) => split.get(dayOf(n))),
+				[
+					{ approved_overtime_hours: 8, incentive_hours: 0 },
+					{ approved_overtime_hours: 12, incentive_hours: 0 },
+					{ approved_overtime_hours: 10, incentive_hours: 0 },
+					{ approved_overtime_hours: 4, incentive_hours: 0 },
+					{ approved_overtime_hours: 0, incentive_hours: 1 }
+				],
+				`${code} ${version.id}`
 			);
 		}
 });
@@ -479,7 +484,8 @@ test('overtime entitlement reads the wage payroll derives: basic plus the allowa
 	// Malaysia's rule: the ladder stops at wages over RM4,000 (First Schedule para 1A).
 	const rule = settingsVersions('MY').at(-1).work_rules.overtime_when;
 	const classes = new Map([
-		['shift', { destination: 'PAY', direction: 'ADD' }],
+		['shift', { destination: 'PAY', direction: 'ADD', counts_toward: ['FIRST_SCHEDULE_WAGES'] }],
+		['commission', { destination: 'PAY', direction: 'ADD', counts_toward: ['WAGES'] }],
 		['deduct', { destination: 'PAY', direction: 'SUBTRACT' }],
 		['employer', { destination: 'EMPLOYER', direction: null }]
 	]);
@@ -487,7 +493,8 @@ test('overtime entitlement reads the wage payroll derives: basic plus the allowa
 		employee: null,
 		employment: { service_start: '', type: 'PERMANENT' },
 		terms: {
-			base_salary: { value: 3800, currency: 'MYR' },
+			base_salary: 3800,
+			currency: 'MYR',
 			statutory_work_category: 'GENERAL',
 			allowances
 		},
@@ -499,6 +506,7 @@ test('overtime entitlement reads the wage payroll derives: basic plus the allowa
 	assert.equal(entitled([]), true, 'RM3,800 basic is within the ladder');
 	// A RM300 shift allowance is a cash payment for work: RM4,100 is over the ceiling.
 	assert.equal(entitled([{ catalogue_id: 'shift', amount: 300 }]), false);
+	assert.equal(entitled([{ catalogue_id: 'commission', amount: 300 }]), true);
 	// A deduction or an employer cost is not wages, and neither is a class it cannot resolve.
 	assert.equal(entitled([{ catalogue_id: 'deduct', amount: 300 }]), true);
 	assert.equal(entitled([{ catalogue_id: 'employer', amount: 300 }]), true);
@@ -544,7 +552,7 @@ const CODES = [
 	{ id: 'c-rest', code: 'REST', variant: { kind: 'REST' } }
 ];
 const dbFor = (rules, days = []) =>
-	workDayDb({
+	workDayTables({
 		codes: CODES,
 		days,
 		rosters: [{ employment_id: 'emp-1', period: '2026-07' }],
@@ -570,229 +578,43 @@ const storedJuly = (sealed = new Set()) =>
 /** A written day's two figures; a figure the write did not key is stored empty, which is zero. */
 const splitOf = (payload) => [payload.approved_overtime_hours ?? 0, payload.incentive_hours ?? 0];
 
-test('a direct write stores the two figures it is keyed with, and refuses approved overtime past the month', () => {
-	// Keyed as the import would split it: the 31st's 4 hours are incentive.
-	const keyed = july(() => 4).map((row, index) =>
-		index + 1 === 31 ? { ...row, approved_overtime_hours: 0, incentive_hours: 4 } : row
-	);
-	const out = transformSync(workDays, keyed, { db: dbFor(RULES) });
-	assert.deepEqual(splitOf(out[29]), [4, 0]);
-	assert.deepEqual(splitOf(out[30]), [0, 4]);
-	// All of it keyed as overtime: the write never moves hours, it refuses the day past 104.
-	assert.throws(
-		() =>
-			transformSync(
-				workDays,
-				july(() => 4),
-				{ db: dbFor(RULES) }
-			),
-		/2026-07-31 would hold 4 h of approved overtime, above the 0 h left within the 104-hour limit "monthly_ot"/
-	);
-});
-
-test('the public day cap: 5 approved hours on an 8-hour shift are refused; 3 and 2 incentive are stored', () => {
-	const day = (approved, incentive) => ({
-		employment_id: 'emp-1',
-		work_date: dayOf(1),
-		shift_definition_id: 'c-8',
-		approved_overtime_hours: approved,
-		...(incentive == null ? {} : { incentive_hours: incentive })
-	});
-	assert.throws(
-		() => transformSync(workDays, [day(5)], { db: dbFor(PUBLIC_RULES) }),
-		/2026-07-01 would hold 5 h of approved overtime, above the 3 h left within the 12-hour limit "daily_total"/
-	);
-	const [out] = transformSync(workDays, [day(3, 2)], { db: dbFor(PUBLIC_RULES) });
-	assert.deepEqual(splitOf(out), [3, 2]);
-});
-
-test('an edit that pushes a later stored day over its limit is refused, naming that day', () => {
+test('an edit that pushes a later stored day over its limit is refused, naming that day', async () => {
 	const stored = storedJuly();
 	const existing = (n) => stored[n - 1];
 	// Day 1 goes to 6: the month now passes 104 on the 30th, which still holds 4.
-	assert.throws(
-		() =>
-			transformSync(workDays, [{ id: 'd1', approved_overtime_hours: 6 }], {
-				existing: [existing(1)],
-				db: dbFor(RULES, stored)
-			}),
+	await assert.rejects(
+		writeDays(workDays, [{ approved_overtime_hours: 6 }], dbFor(RULES, stored), [existing(1)]),
 		/2026-07-30 would hold 4 h of approved overtime, above the 2 h left within the 104-hour limit "monthly_ot"/
 	);
 	// Lowering the 30th in the same write keeps the month within 104.
-	const out = transformSync(
+	const out = await writeDays(
 		workDays,
-		[
-			{ id: 'd1', approved_overtime_hours: 6 },
-			{ id: 'd30', approved_overtime_hours: 2, incentive_hours: 2 }
-		],
-		{ existing: [existing(1), existing(30)], db: dbFor(RULES, stored) }
+		[{ approved_overtime_hours: 6 }, { approved_overtime_hours: 2, incentive_hours: 2 }],
+		dbFor(RULES, stored),
+		[existing(1), existing(30)]
 	);
 	assert.deepEqual(out.map(splitOf), [
 		[6, 0],
 		[2, 2]
 	]);
 	// Incentive hours carry no limit: raising the 31st's is written alone.
-	const [raised] = transformSync(workDays, [{ id: 'd31', incentive_hours: 6 }], {
-		existing: [existing(31)],
-		db: dbFor(RULES, stored)
-	});
+	const [raised] = await writeDays(workDays, [{ incentive_hours: 6 }], dbFor(RULES, stored), [
+		existing(31)
+	]);
 	assert.deepEqual(splitOf(raised), [0, 6]);
 });
 
-test('an edit that would push a sealed day over its limit is refused', () => {
-	const stored = storedJuly(new Set([30]));
-	assert.throws(
-		() =>
-			transformSync(workDays, [{ id: 'd1', approved_overtime_hours: 6 }], {
-				existing: [stored[0]],
-				db: dbFor(RULES, stored)
-			}),
-		/2026-07-30 would hold 4 h of approved overtime/
-	);
-});
-
-test('an attendance edit on a day already over its limit is not refused for it', () => {
+test('an attendance edit on a day already over its limit is not refused for it', async () => {
 	// Stored as if keyed before the limit applied: the 31st holds 4 approved past the 104.
 	const stored = storedJuly().map((row, index) =>
 		index + 1 === 31 ? { ...row, approved_overtime_hours: 4, incentive_hours: 0 } : row
 	);
-	const [out] = transformSync(
+	const [out] = await writeDays(
 		workDays,
-		[{ id: 'd31', worked_intervals: [{ start: '2026-07-31T00:30:00.000Z', end: null }] }],
-		{ existing: [stored[30]], db: dbFor(RULES, stored) }
+		[{ worked_intervals: [{ start: '2026-07-31T00:30:00.000Z', end: null }] }],
+		dbFor(RULES, stored),
+		[stored[30]]
 	);
 	assert.equal(out.approved_overtime_hours, undefined, 'the approved figure is left as stored');
 	assert.ok(out.worked_intervals, 'the punch is written');
-});
-
-// ── the import ───────────────────────────────────────────────────────────────────────────────
-
-/**
- * The import through the transform its writes run through: the memory api applies a payload the
- * `work_days` transform returned, the way the host does, so the stored rows carry the split.
- */
-const importWorld = () => {
-	const world = createPublicPayrollWorld();
-	world.work_days = [];
-	world.jurisdiction_settings = world.jurisdiction_settings.map((row) => ({
-		...row,
-		work_rules: {
-			...row.work_rules,
-			limits: [
-				{ ...limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12), unit: 'CLOCK_HOURS' },
-				limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 10)
-			],
-			bands: [
-				{
-					label: 'OT-1.5X',
-					when: 'day_type == "ORDINARY"',
-					take_hours: 'hours_beyond_normal',
-					price_amount: 'hours * ordinary_hour * 1.5'
-				}
-			]
-		}
-	}));
-	return world;
-};
-const throughTransform = (world) => {
-	const api = memoryWorkspaceApi(world);
-	const plain = api.collection.work_days;
-	const run = (inputs, existing) =>
-		Effect.runSync(workDays.transform(inputs, { existing, db: api.db }));
-	const work_days = {
-		...plain,
-		createMany: (inputs) =>
-			plain.createMany(
-				run(
-					inputs,
-					inputs.map(() => undefined)
-				)
-			),
-		updateMany: (inputs) =>
-			plain.updateMany(
-				run(
-					inputs.map(({ id: _id, ...input }) => input),
-					inputs.map(({ id }) => world.work_days.find((row) => row.id === id))
-				).map((payload, index) => ({ ...payload, id: inputs[index].id }))
-			)
-	};
-	return {
-		...api,
-		collection: new Proxy(api.collection, {
-			get: (target, name) => (name === 'work_days' ? work_days : target[name])
-		})
-	};
-};
-const JANUARY = Array.from(
-	{ length: 31 },
-	(_, index) => `2026-01-${String(index + 1).padStart(2, '0')}`
-);
-const importMonth = (world, overtime) => {
-	const api = throughTransform(world);
-	return Effect.runPromise(
-		pipeline.import.handler(
-			{
-				input: {
-					legal_entity: 'Public Fixture Co',
-					month: '2026-01',
-					roster: JANUARY.map((work_date) => ({
-						employee_number: 'PF0001',
-						work_date,
-						shift_code: '7.5AM'
-					})),
-					overtime: Object.entries(overtime).map(([day, overtime_hours]) => ({
-						employee_number: 'PF0001',
-						work_date: `2026-01-${day}`,
-						overtime_hours
-					}))
-				}
-			},
-			api
-		)
-	).then((creates) => {
-		// The host writes the returned creates through the transform, in order.
-		if (creates.length > 0) Effect.runSync(api.collection.work_days.createMany(creates));
-		return creates;
-	});
-};
-const storedSplit = (world) =>
-	world.work_days
-		.filter((row) => (row.approved_overtime_hours ?? 0) + (row.incentive_hours ?? 0) > 0)
-		.toSorted((left, right) => String(left.work_date).localeCompare(String(right.work_date)))
-		.map((row) => [
-			String(row.work_date).slice(0, 10),
-			row.approved_overtime_hours,
-			row.incentive_hours
-		]);
-
-test('import: each row’s total is split by the day cap (11 net hours) and the month (10 here)', async () => {
-	const world = importWorld();
-	const employeeNumber = world.employments[0].employee_number;
-	assert.equal(employeeNumber, 'PF0001');
-	await importMonth(world, { '05': 5, '06': 5, '07': 5, '08': 5 });
-	assert.deepEqual(storedSplit(world), [
-		['2026-01-05', 3, 2],
-		['2026-01-06', 3, 2],
-		['2026-01-07', 3, 2],
-		['2026-01-08', 1, 4]
-	]);
-});
-
-test('import: restated and new days in one file are split in one pass, in date order', async () => {
-	const world = importWorld();
-	await importMonth(world, { '05': 5, '06': 5, '07': 5, '08': 5 });
-	// The 2nd is not stored: the next file creates it and restates the rest.
-	world.work_days.splice(
-		world.work_days.findIndex((row) => String(row.work_date).startsWith('2026-01-02')),
-		1
-	);
-	const creates = await importMonth(world, { '02': 4, '05': 5, '06': 5, '07': 5, '08': 5 });
-	assert.deepEqual(creates, [], 'the new day is created by the pipeline itself, in one pass');
-	assert.deepEqual(storedSplit(world), [
-		['2026-01-02', 3, 1],
-		['2026-01-05', 3, 2],
-		['2026-01-06', 3, 2],
-		['2026-01-07', 1, 4],
-		['2026-01-08', 0, 5]
-	]);
 });

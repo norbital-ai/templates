@@ -13,7 +13,6 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	assessStatutory,
 	assessStatutoryUnvalidated,
@@ -26,8 +25,8 @@ import {
 	type Person
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 
 const world = (period: string, people: Person[], riskClass = 'II', region = 'DKI Jakarta') => ({
 	code: 'ID' as const,
@@ -449,9 +448,7 @@ test('ID audit — the December 2025 version measures a Christian leaver against
 			approval_id: null
 		});
 	const built = buildPayrollRun(
-		Effect.runSync(
-			gatherPayrollRun({ api: memoryPayrollApi(w), companyId: COMPANY_ID, period: '2025-12' })
-		)
+		gatherPayrollRun({ world: payrollWorld(w), companyId: COMPANY_ID, period: '2025-12' })
 	);
 	const paid = (key: string) => {
 		const employment = w.employments.find((row) => row.employee_number === key)!;

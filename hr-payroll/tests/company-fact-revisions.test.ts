@@ -1,16 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	COMPANY_ID,
 	createStatutoryWorld,
 	type StatutoryBook
 } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { resolveCompanyFacts } from '../src/lib/declared-facts.ts';
-import revisions from '../src/collections/company_facts/+collection.ts';
-import { transformOne } from './helpers/transform.ts';
 
 const range = (start: string, end: string | null) => ({
 	start: `${start}T00:00:00.000Z`,
@@ -63,9 +60,11 @@ test('a dated revision prices the run from its own date', () => {
 		}
 	] as never;
 	const employerSi = (period: string): number => {
-		const prepared = Effect.runSync(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-		);
+		const prepared = gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period
+		});
 		const slip = buildPayrollRun(prepared).payslip_payroll_run[0]!;
 		return slip.statutory.find((row) => row.scheme_code === 'SI')!.employer_amount;
 	};
@@ -74,45 +73,51 @@ test('a dated revision prices the run from its own date', () => {
 	assert.equal(employerSi('2026-02'), 1_730_000);
 });
 
-test('a revision cannot declare a key its lineage does not', () => {
-	const company = { id: 'c1', settings_code: 'SG' };
-	const version = {
-		id: 'v1',
-		code: 'SG',
-		facts: [{ key: 'sector', type: 'string' }],
-		sealed_at: '2026-01-01T00:00:00.000Z',
-		voided_at: null,
-		approval_id: null
-	};
-	const db = {
-		companies: { findMany: () => Effect.succeed([company]) },
-		jurisdiction_settings: { findMany: () => Effect.succeed([version]) }
-	};
-	const saved = transformOne(
-		revisions,
+test('a dated HRD employer fact retains the optional 1% rate through December', () => {
+	const world = createStatutoryWorld({
+		code: 'MY',
+		period: '2026-08',
+		people: [{ key: 'P', wage: 3000, citizenship: 'CITIZEN' }],
+		companyFacts: {
+			hrd_scope: 'PART_I',
+			hrd_registration_class: 'OPTIONAL',
+			hrd_form2_count: 8,
+			hrd_optional_last_high_year: 0
+		}
+	});
+	world.company_facts = [
 		{
-			company_id: 'c1',
-			facts: { sector: 'manufacturing' },
-			effective_range: range('2026-01-01', null)
-		},
-		undefined,
-		db
-	);
-	assert.deepEqual(saved.facts, { sector: 'manufacturing' });
-	assert.throws(
-		() =>
-			transformOne(
-				revisions,
-				{
-					company_id: 'c1',
-					facts: { overtime_consent: true },
-					effective_range: range('2026-01-01', null)
-				},
-				undefined,
-				db
-			),
-		/does not declare the entity fact overtime_consent/
-	);
+			id: 'c0a00000-0000-4000-8000-000000000002',
+			company_id: COMPANY_ID,
+			facts: {
+				hrd_scope: 'PART_I',
+				hrd_registration_class: 'OPTIONAL',
+				hrd_form2_count: 8,
+				hrd_optional_last_high_year: 2026,
+				hrd_education_schedule_code: 'NONE'
+			},
+			effective_range: range('2026-09-01', null),
+			approval_id: null
+		}
+	] as never;
+	for (const [period, expected] of [
+		['2026-08', 15],
+		['2026-09', 30],
+		['2026-12', 30],
+		['2027-01', 15]
+	] as const) {
+		const prepared = gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period
+		});
+		const slip = buildPayrollRun(prepared).payslip_payroll_run[0]!;
+		assert.equal(
+			slip.statutory.find((row) => row.scheme_code === 'HRDF')?.employer_amount,
+			expected,
+			period
+		);
+	}
 });
 
-export type { StatutoryBook };
+// The revision write's refusals (declared keys, valid values): `entity-facts.test.ts`.

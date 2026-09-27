@@ -8,9 +8,9 @@
  */
 export type SchemeListing = {
 	readonly scheme_code: string;
-	readonly label?: string | null;
-	readonly listing_order?: number | null;
-	readonly listing_group?: string | null;
+	readonly label?: string | null | undefined;
+	readonly listing_order?: number | null | undefined;
+	readonly listing_group?: string | null | undefined;
 };
 
 /** What the payslip prints for the charge: the row's short name, else its code. */

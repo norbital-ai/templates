@@ -7,7 +7,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { WorkLimit } from '../src/datatypes/work_rules/+definition.ts';
+import type { WorkLimit } from '../src/lib/datatypes/work_rules.ts';
 import {
 	evaluatedLimits,
 	plannedDay,

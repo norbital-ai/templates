@@ -1,4 +1,4 @@
-import type { StatutoryDeductionClaim } from '../datatypes/statutory_fact_status/+definition.js';
+import type { StatutoryDeductionClaim } from './datatypes/statutory_fact_status.js';
 
 export const DEDUCTION_TOTAL_KEYS = [
 	'deductions',
@@ -31,8 +31,8 @@ export function deductionTotals(
 	};
 	const start = yearStart.slice(0, 7);
 	const month = period.slice(0, 7);
-	const previous = `${Number(start.slice(0, 4)) - 1}${start.slice(4)}`;
-	const earlier = `${Number(start.slice(0, 4)) - 2}${start.slice(4)}`;
+	const previous = `${Number.parseInt(start.slice(0, 4), 10) - 1}${start.slice(4)}`;
+	const earlier = `${Number.parseInt(start.slice(0, 4), 10) - 2}${start.slice(4)}`;
 	const add = (target: Record<string, number>, claim: StatutoryDeductionClaim) => {
 		target[claim.category] = (target[claim.category] ?? 0) + claim.amount;
 	};

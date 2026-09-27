@@ -8,16 +8,16 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readRange } from '../src/collections/payroll_runs/lib/effective.ts';
+import { readRange } from '../src/lib/payroll/run/effective.ts';
 import { inForceSettings } from '../src/lib/ui/settings-scope.ts';
 
 test('inForceSettings reads a closed range end as its business day', () => {
 	const lastDay = readRange({ start: '2024-01-01', end: '2030-12-31T15:59:59.999Z' })?.end;
 	assert.equal(lastDay, '2030-12-31T15:59:59.999Z');
 	assert.deepEqual(inForceSettings('SG-opssg', lastDay!).effective_range, {
-		contains_date: '2030-12-31T00:00:00.000Z'
+		contains: '2030-12-31'
 	});
 	assert.deepEqual(inForceSettings('SG-opssg', '2030-12-31').effective_range, {
-		contains_date: '2030-12-31T00:00:00.000Z'
+		contains: '2030-12-31'
 	});
 });

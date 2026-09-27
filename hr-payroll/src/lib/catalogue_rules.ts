@@ -14,13 +14,14 @@
  * reserved line, so `code(...)` names the money catalogues only.
  */
 
-import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
-import { compileEligibility } from '../collections/payroll_runs/lib/eligibility.js';
+import { refuse } from './refuse.js';
+import { readAll, type Reads } from './reads.js';
+import { compileEligibility } from '../lib/payroll/run/eligibility.js';
 import { refuseUnlessDraftOnBoth, versionsById, type SealedVersion } from './settings_seal.js';
 import { assessedOnMentions, compileExpression, type DeclaredKey } from './expressions/compile.js';
 import { openKeyMentions } from './expressions/contexts.js';
 import { WAGES } from './expressions/person-functions.js';
+import { FIRST_SCHEDULE_WAGES } from './payroll/run/statutory-wages.js';
 
 const CATALOGUE_FAMILIES = ['ALLOWANCE', 'ADHOC', 'CLAIM', 'LOAN'] as const;
 /** `code('X')` may also name a leave row's encashment line, `<code>_ENCASHMENT`. */
@@ -28,9 +29,10 @@ const CODE_FAMILIES = [...CATALOGUE_FAMILIES, 'LEAVE'] as const;
 type CatalogueFamily = (typeof CODE_FAMILIES)[number];
 
 type CatalogueRowLike = {
-	readonly settings_id?: unknown;
-	readonly code?: unknown;
-	readonly eligibility?: string | null;
+	readonly settings_id?: unknown | undefined;
+	readonly code?: unknown | undefined;
+	readonly eligibility?: string | null | undefined;
+	readonly qualifies_when?: string | null | undefined;
 };
 
 /** settings version id → family → code → name. */
@@ -39,66 +41,43 @@ type CatalogueCodes = ReadonlyMap<
 	ReadonlyMap<CatalogueFamily, ReadonlyMap<string, string>>
 >;
 
+type CodeRow = {
+	readonly settings_id: string;
+	readonly code: string;
+	readonly name: string | null;
+};
+
 /**
- * The money catalogue codes of every version named, in one wave: the family reads issued
- * together. A transform reads this beside the versions it checks, so a formula's mentions are
- * judged without a read of their own.
+ * The money catalogue codes of every version, from each family's rows (read together, one wave): a transform reads
+ * them beside the versions it checks, so a formula's mentions are judged without a read of their own.
  */
-export function catalogueCodesByVersion(
-	db: Pick<
-		CollectionTransformDatabase,
-		| 'allowance_catalogue'
-		| 'adhoc_catalogue'
-		| 'claim_catalogue'
-		| 'loan_catalogue'
-		| 'leave_catalogue'
-	>,
-	settingsIds: ReadonlyArray<unknown>
-): Effect.Effect<CatalogueCodes> {
-	const ids = [...new Set(settingsIds.filter((id): id is string => id != null && id !== ''))];
-	if (ids.length === 0) return Effect.succeed(new Map());
-	const query = {
-		where: { settings_id: { in: ids }, approval_id: { isNull: true } },
-		columns: { settings_id: true, code: true, name: true },
-		limit: 5000
-	} as const;
-	return Effect.map(
-		Effect.all(
-			[
-				db.allowance_catalogue.findMany(query),
-				db.adhoc_catalogue.findMany(query),
-				db.claim_catalogue.findMany(query),
-				db.loan_catalogue.findMany(query),
-				db.leave_catalogue.findMany(query)
-			],
-			{ concurrency: 'unbounded' }
-		),
-		([allowances, adhoc, claims, loans, leaves]) => {
-			const byVersion = new Map<string, Map<CatalogueFamily, Map<string, string>>>();
-			const file = (
-				family: CatalogueFamily,
-				rows: ReadonlyArray<{ settings_id: string; code: string; name: string | null }>
-			) => {
-				for (const row of rows) {
-					const families =
-						byVersion.get(row.settings_id) ?? new Map<CatalogueFamily, Map<string, string>>();
-					const codes = families.get(family) ?? new Map<string, string>();
-					codes.set(row.code, row.name ?? '');
-					families.set(family, codes);
-					byVersion.set(row.settings_id, families);
-				}
-			};
-			file('ALLOWANCE', allowances);
-			file('ADHOC', adhoc);
-			file('CLAIM', claims);
-			file('LOAN', loans);
-			file(
-				'LEAVE',
-				leaves.map((row) => ({ ...row, code: `${row.code}_ENCASHMENT` }))
-			);
-			return byVersion;
+export function catalogueCodes(families: {
+	readonly allowances: readonly CodeRow[];
+	readonly adhoc: readonly CodeRow[];
+	readonly claims: readonly CodeRow[];
+	readonly loans: readonly CodeRow[];
+	readonly leaves: readonly CodeRow[];
+}): CatalogueCodes {
+	const byVersion = new Map<string, Map<CatalogueFamily, Map<string, string>>>();
+	const file = (family: CatalogueFamily, rows: readonly CodeRow[]) => {
+		for (const row of rows) {
+			const known =
+				byVersion.get(row.settings_id) ?? new Map<CatalogueFamily, Map<string, string>>();
+			const codes = known.get(family) ?? new Map<string, string>();
+			codes.set(row.code, row.name ?? '');
+			known.set(family, codes);
+			byVersion.set(row.settings_id, known);
 		}
+	};
+	file('ALLOWANCE', families.allowances);
+	file('ADHOC', families.adhoc);
+	file('CLAIM', families.claims);
+	file('LOAN', families.loans);
+	file(
+		'LEAVE',
+		families.leaves.map((row) => ({ ...row, code: `${row.code}_ENCASHMENT` }))
 	);
+	return byVersion;
 }
 
 /**
@@ -112,7 +91,18 @@ export function refuseUnknownAssessedOnMentions(
 	expression: string,
 	what: string
 ): void {
-	if (settingsId == null || settingsId === '') return;
+	const fault = assessedOnMentionFault(catalogues, settingsId, expression, what);
+	if (fault != null) refuse(fault);
+}
+
+/** `refuseUnknownAssessedOnMentions` as a value: the refusal, or null. */
+export function assessedOnMentionFault(
+	catalogues: CatalogueCodes,
+	settingsId: unknown,
+	expression: string,
+	what: string
+): string | null {
+	if (settingsId == null || settingsId === '') return null;
 	const families = catalogues.get(String(settingsId));
 	const rowsOf = (family: CatalogueFamily): ReadonlyMap<string, string> =>
 		families?.get(family) ?? new Map();
@@ -120,16 +110,17 @@ export function refuseUnknownAssessedOnMentions(
 	for (const code of [...mentions.codes, ...mentions.yearEarned]) {
 		const carrying = CODE_FAMILIES.filter((family) => rowsOf(family).has(code));
 		if (carrying.length === 0)
-			refuse(
+			return (
 				`${what} names ${code}, which is not a row of its settings version. Add the row to that ` +
-					'version first, or take it out of the formula.'
+				'version first, or take it out of the formula.'
 			);
 		if (carrying.length > 1)
-			refuse(
+			return (
 				`${what} names ${code} with code('${code}'), but ${carrying.join(' and ')} both carry it ` +
-					'in this version. Give one of them another code.'
+				'in this version. Give one of them another code.'
 			);
 	}
+	return null;
 }
 
 /**
@@ -143,18 +134,28 @@ export function schemeFault(
 			readonly when: string;
 			readonly employee: string;
 			readonly employer: string;
-			readonly rebate?: string;
-			readonly deduction?: string;
+			readonly rebate?: string | null | undefined;
+			readonly deduction?: string | null | undefined;
+			readonly per_unit?: boolean | null | undefined;
 		}[];
+		readonly assessment_period?: string | null | undefined;
+		readonly assessment_scope?: string | null | undefined;
 		readonly assessed_on: string;
-		readonly ordinary_on?: string;
+		readonly ordinary_on?: string | undefined;
 		readonly elections: readonly DeclaredKey[];
 		/** The parts the scheme splits its base into; a formula's `<PART>.<WORD>` must name one. */
-		readonly parts?: readonly string[];
+		readonly parts?: readonly string[] | undefined;
 	},
 	schemeElections?: Readonly<Record<string, readonly DeclaredKey[]>>
 ): string | null {
 	const { rules, assessed_on: assessedOn, elections } = scheme;
+	if (
+		rules.some((rule) => rule.per_unit) &&
+		((scheme.assessment_period != null && scheme.assessment_period !== 'PAY_PERIOD') ||
+			scheme.assessment_scope === 'COMPANY' ||
+			(scheme.ordinary_on ?? '').trim() !== '')
+	)
+		return 'Per-unit rules require a PAY_PERIOD employment scheme without an ordinary split.';
 	for (const field of elections) {
 		for (const [kind, expression] of [
 			['requirement', field.required_when],
@@ -283,6 +284,14 @@ export const admitCatalogueRow = <TInput extends CatalogueRowLike>(
 	);
 	const problem = compileEligibility(row.eligibility);
 	if (problem != null) refuse(problem);
+	if ((row.qualifies_when ?? '').trim() !== '') {
+		const qualification = compileExpression({
+			expression: row.qualifies_when!,
+			site: 'entry',
+			type: 'boolean'
+		});
+		if (qualification != null) refuse(`Claim qualification: ${qualification}`);
+	}
 	return input;
 };
 
@@ -296,57 +305,69 @@ export function refuseUnknownMemberships(
 	countsToward: readonly string[] | null | undefined,
 	what: string
 ): void {
-	if (schemes == null) return;
+	const fault = membershipFault(schemes, countsToward, what);
+	if (fault != null) refuse(fault);
+}
+
+/** `refuseUnknownMemberships` as a value: the refusal, or null. */
+export function membershipFault(
+	schemes: ReadonlyMap<string, readonly string[]> | undefined,
+	countsToward: readonly string[] | null | undefined,
+	what: string
+): string | null {
+	if (schemes == null) return null;
 	for (const membership of countsToward ?? []) {
 		// Not a scheme: the reserved mark that files a regular pay class into the earnings history.
-		if (membership === WAGES) continue;
+		if (membership === WAGES || membership === FIRST_SCHEDULE_WAGES) continue;
 		const [scheme, part, ...rest] = membership.split('.');
 		const declared = scheme == null ? undefined : schemes.get(scheme);
 		if (declared == null)
-			refuse(
+			return (
 				`${what} counts toward ${membership}, but the version has no scheme ${scheme}. ` +
-					'Add the scheme to the version first, or take it off the class.'
+				'Add the scheme to the version first, or take it off the class.'
 			);
 		if (rest.length > 0)
-			refuse(`${what} counts toward ${membership}, which is not scheme or scheme.PART.`);
+			return `${what} counts toward ${membership}, which is not scheme or scheme.PART.`;
 		if (part != null && !declared.includes(part))
-			refuse(
+			return (
 				`${what} counts toward ${membership}, but scheme ${scheme} declares no part ${part}` +
-					(declared.length === 0
-						? '; it has one base, so name it as just ' + scheme + '.'
-						: `; its parts are ${declared.join(', ')}.`)
+				(declared.length === 0
+					? '; it has one base, so name it as just ' + scheme + '.'
+					: `; its parts are ${declared.join(', ')}.`)
 			);
 		if (part == null && declared.length > 0)
-			refuse(
+			return (
 				`${what} counts toward ${scheme}, which splits its base into ${declared.join(' and ')}: ` +
-					`name the part, ${scheme}.${declared[0]}.`
+				`name the part, ${scheme}.${declared[0]}.`
 			);
 	}
+	return null;
 }
 
-/** scheme code → declared parts, per settings version, in one read. */
-function schemePartsByVersion(
-	db: Pick<CollectionTransformDatabase, 'statutory_contributions'>,
+/** scheme code → declared parts, per settings version, in one paged read. */
+async function schemePartsByVersion(
+	reads: Reads,
 	settingsIds: ReadonlyArray<unknown>
-): Effect.Effect<ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>> {
+): Promise<ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>> {
 	const ids = [...new Set(settingsIds.filter((id): id is string => id != null && id !== ''))];
-	if (ids.length === 0) return Effect.succeed(new Map());
-	return Effect.map(
-		db.statutory_contributions.findMany({
-			where: { settings_id: { in: ids }, approval_id: { isNull: true } },
-			columns: { settings_id: true, code: true, parts: true },
-			limit: 5000
-		}),
-		(rows) => {
-			const byVersion = new Map<string, Map<string, readonly string[]>>();
-			for (const row of rows) {
-				const schemes = byVersion.get(row.settings_id) ?? new Map<string, readonly string[]>();
-				schemes.set(row.code, row.parts ?? []);
-				byVersion.set(row.settings_id, schemes);
-			}
-			return byVersion;
-		}
+	const rows = await readAll<{
+		settings_id: string;
+		code: string;
+		parts: readonly string[] | null;
+	}>(
+		reads,
+		'statutory_contributions',
+		{ settings_id: { in: ids }, approval_id: { isNull: true } },
+		// a lineage's statutory tables exceed one crossing's 4 MiB answer: 4 rows a crossing
+		4
 	);
+	const byVersion = new Map<string, Map<string, readonly string[]>>();
+	for (const row of rows) {
+		const schemes = byVersion.get(row.settings_id) ?? new Map<string, readonly string[]>();
+		schemes.set(row.code, row.parts ?? []);
+		byVersion.set(row.settings_id, schemes);
+	}
+	return byVersion;
 }
 
 /**
@@ -354,36 +375,30 @@ function schemePartsByVersion(
  * versions and their schemes read in one wave, then each row admitted and its `counts_toward`
  * checked against its own version. `noun` names the row in a refusal.
  */
-export const catalogueTransform =
-	(noun: string) =>
-	<TInput extends CatalogueRowLike & { readonly counts_toward?: readonly string[] | null }>(
-		inputs: ReadonlyArray<TInput>,
-		{
-			existing,
-			db
-		}: Readonly<{
-			existing: ReadonlyArray<CatalogueRowLike | undefined>;
-			db: CollectionTransformDatabase;
-		}>
-	): Effect.Effect<TInput[]> => {
-		const settingsIds = [
-			...inputs.map((input) => input.settings_id),
-			...existing.map((row) => row?.settings_id)
-		];
-		return Effect.map(
-			Effect.all([versionsById(db, settingsIds), schemePartsByVersion(db, settingsIds)], {
-				concurrency: 'unbounded'
-			}),
-			([versions, schemes]) =>
-				inputs.map((input, index) => {
-					const row = { ...existing[index], ...input };
-					if (input.counts_toward !== undefined)
-						refuseUnknownMemberships(
-							row.settings_id == null ? undefined : schemes.get(String(row.settings_id)),
-							input.counts_toward,
-							`${noun} ${String(row.code ?? '')}`
-						);
-					return admitCatalogueRow(versions, input, existing[index], noun);
-				})
-		);
-	};
+export async function admitCatalogueRows<
+	TInput extends CatalogueRowLike & { readonly counts_toward?: readonly string[] | null }
+>(
+	noun: string,
+	inputs: ReadonlyArray<TInput>,
+	existing: ReadonlyArray<CatalogueRowLike | undefined>,
+	reads: Reads
+): Promise<TInput[]> {
+	const settingsIds = [
+		...inputs.map((input) => input.settings_id),
+		...existing.map((row) => row?.settings_id)
+	];
+	const [versions, schemes] = await Promise.all([
+		versionsById(reads, settingsIds),
+		schemePartsByVersion(reads, settingsIds)
+	]);
+	return inputs.map((input, index) => {
+		const row = { ...existing[index], ...input };
+		if (input.counts_toward !== undefined)
+			refuseUnknownMemberships(
+				row.settings_id == null ? undefined : schemes.get(String(row.settings_id)),
+				input.counts_toward,
+				`${noun} ${String(row.code ?? '')}`
+			);
+		return admitCatalogueRow(versions, input, existing[index], noun);
+	});
+}

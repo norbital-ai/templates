@@ -1,5 +1,5 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import type { LeaveAllocation } from '../../datatypes/leave_allocations/+definition.js';
+import { refuse } from '../refuse.js';
+import type { LeaveAllocation } from '../datatypes/leave_allocations.js';
 import type { LeaveWindow } from './entitlement.js';
 import type { LeaveEntryActivity } from './activity-fields.js';
 
@@ -9,7 +9,7 @@ export type LeaveBalanceEntry = LeaveEntryActivity & {
 	readonly allocations: readonly LeaveAllocation[];
 	readonly approval_id: string | null;
 	/** The entry's own leave code; an allocation without a `pool` draws from it. */
-	readonly leave_code?: string;
+	readonly leave_code?: string | undefined;
 };
 
 /**
@@ -56,7 +56,7 @@ const carryCredit = (
 		? {
 				id: entry.id,
 				// A stored numeric arrives as a string; the credit adds it to consumed days.
-				days: Number(entry.days ?? 0),
+				days: entry.days ?? 0,
 				available: entry.available_from,
 				expires: entry.expires_on,
 				window: { start: entry.destination_from, end: entry.destination_to }
@@ -164,7 +164,7 @@ export function leaveBalanceAt(options: {
 	readonly date: string;
 	readonly entitlementAt: EntitlementAt;
 	/** The pool measured, where the entries are those of another row drawing from it. */
-	readonly pool?: string;
+	readonly pool?: string | undefined;
 }) {
 	const { entries, window, date, entitlementAt } = options;
 	const all = allocationsIn(entries, window, options.pool);
@@ -202,9 +202,9 @@ export function allocateLeaveDays(options: {
 	readonly date: string;
 	readonly days: number;
 	readonly entitlementAt: EntitlementAt;
-	readonly basis?: 'available' | 'earned';
+	readonly basis?: 'available' | 'earned' | undefined;
 	/** The pool drawn from where it is another row's; the allocations carry it. */
-	readonly pool?: string;
+	readonly pool?: string | undefined;
 }): LeaveAllocation[] {
 	const { entries, window, date, days, entitlementAt } = options;
 	if (!Number.isFinite(days) || days <= 0 || date < window.start || date > window.end)

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveHolidayInputs } from '../src/lib/holiday-inputs.ts';
+import { resolveHolidayInputs } from '../src/lib/holiday-calendar.ts';
 
 const festival = {
 	id: 'festival',

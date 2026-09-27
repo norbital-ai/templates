@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { assessContributions } from '../src/lib/payroll/contribution.ts';
-import { contribute } from '../src/collections/payroll_runs/lib/contribute.ts';
-import type { ContributionConfig } from '../src/collections/payroll_runs/lib/configuration.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
-import { accumulatePayslip } from '../src/collections/payroll_runs/lib/accumulate.ts';
+import { contribute } from '../src/lib/payroll/run/contribute.ts';
+import type { ContributionConfig } from '../src/lib/payroll/run/configuration.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
+import { accumulatePayslip } from '../src/lib/payroll/run/accumulate.ts';
 
 /** A person with nothing recorded: every scheme and rule without a predicate covers them. */
 const NOBODY = personContext({

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertPayrollPeriodAvailable } from '../src/collections/payroll_runs/lib/period.ts';
-import payrollRuns from '../src/collections/payroll_runs/+collection.ts';
+import { assertPayrollPeriodAvailable } from '../src/lib/payroll/run/period.ts';
+import payrollRuns from '../src/data/collection/payroll_runs/+collection.ts';
 
 test('a company cannot create a second payroll for a draft or paid period', () => {
 	for (const lifecycle of ['DRAFT', 'PAID'])
@@ -43,6 +43,7 @@ test('a skipped period is refused: the run must stand on the one before it', () 
 
 test('payroll creation accepts company and period and nothing else', () => {
 	// The declared input is the whole of what a caller may submit; every other column is derived.
-	assert.deepEqual(Object.keys(payrollRuns.create.input.columns), ['company_id', 'period']);
-	assert.equal(payrollRuns.create.input.with, undefined);
+	assert.deepEqual(payrollRuns.spec.create.input.columns, ['company_id', 'period']);
+	assert.equal(payrollRuns.spec.create.input.with, undefined);
+	assert.equal(payrollRuns.spec.update, undefined, 'a run is frozen once built');
 });

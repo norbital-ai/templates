@@ -22,7 +22,7 @@ import {
 	evaluateNumberOver,
 	isEligible,
 	personContext
-} from '../src/collections/payroll_runs/lib/eligibility.ts';
+} from '../src/lib/payroll/run/eligibility.ts';
 import {
 	LINEAGES,
 	contributionSchemes,
@@ -187,7 +187,7 @@ const MARRIED_MALE = { gender: 'MALE', marital_status: 'MARRIED' } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // Malaysia, and Nihon Pigment's fork of it — Employment Act 1955 ss.60E, 60F, 37 and 60FA.
-// Both lineages carry five sealed versions (SKBBK phases from 2028-06-01 and 2031-06-01 change no
+// Both lineages carry six active sealed versions (SKBBK phases from 2028-06-01 and 2031-06-01 change no
 // leave row) and the leave ladder does not move across any seam.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -224,9 +224,8 @@ for (const lineage of ['MY', 'MY-nihon'] as const)
 				null,
 				null
 			]);
-			// s.37(2)(a)(i): the maternity allowance needs ninety days' employment in the four
-			// months before confinement — days, not three months: a joiner ninety days before the
-			// birth is paid, one at eighty-nine is not.
+			// s.37(2)(a): ninety days with this employer in the nine months before confinement,
+			// plus some employment in the four months before it. The charged day cannot move either window.
 			const maternity = leaveCatalogue(lineage).find(
 				(row) =>
 					row.settings_id === settingsVersions(lineage)[version]!.id &&
@@ -242,7 +241,8 @@ for (const lineage of ['MY', 'MY-nihon'] as const)
 							solo_parent: null,
 							disabled: null
 						},
-						employment: { service_start: '2026-01-01' },
+						employment: { service_start: days === 90 ? '2026-01-01' : '2026-01-02' },
+						servicePeriods: [{ start: days === 90 ? '2026-01-01' : '2026-01-02', end: null }],
 						terms: {
 							residency_status: 'CITIZEN',
 							work_classification: 'EA_COVERED',
@@ -250,9 +250,9 @@ for (const lineage of ['MY', 'MY-nihon'] as const)
 							statutory_work_category: null
 						},
 						children: [],
-						event: BIRTH,
+						event: { ...BIRTH, date: '2026-04-01' },
 						facts: [],
-						asOf: `2026-0${days === 90 ? '3-31' : '3-30'}`
+						asOf: '2026-05-03'
 					}),
 					leave: { month_index: 1, day_index: 1, days: 98 }
 				});

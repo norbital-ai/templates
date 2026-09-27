@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	assessStatutory,
 	buildStatutory,
@@ -8,8 +7,8 @@ import {
 	createStatutoryWorld,
 	leaveCatalogue
 } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { gatherPayrollRun, buildPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { gatherPayrollRun, buildPayrollRun } from '../src/lib/payroll/run/engine.ts';
 
 const uuid = (n: number) => `d1000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
@@ -363,13 +362,11 @@ function contractualCashOut(conversion: string) {
 }
 
 function cashAmount(world: ReturnType<typeof contractualCashOut>) {
-	const prepared = Effect.runSync(
-		gatherPayrollRun({
-			api: memoryPayrollApi(world),
-			companyId: world.companies[0]!.id,
-			period: '2026-03'
-		})
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: world.companies[0]!.id,
+		period: '2026-03'
+	});
 	return buildPayrollRun(prepared).payslip_payroll_run[0]!.adjustments.find(
 		(row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT'
 	)!.amount;
@@ -393,7 +390,8 @@ test('ID contractual cash-out retains conversion-date salary and explicit allowa
 		...prior,
 		id: uuid(101),
 		effective_range: { start: '2026-03-01', end: null },
-		base_salary: { currency: 'IDR', value: 12_000_000 },
+		base_salary: 12_000_000,
+		currency: 'IDR',
 		allowances: []
 	} as never);
 	assert.equal(cashAmount(world), 350_000);

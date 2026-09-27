@@ -1,4 +1,5 @@
 import { stableJson } from './jurisdiction_settings.js';
+import * as Predicate from 'effect/Predicate';
 
 /**
  * Snapshot diff: what one jurisdiction settings version changes against another.
@@ -35,23 +36,26 @@ const PROVENANCE = new Set([
 	'approval_id',
 	'created_at',
 	'updated_at',
-	'row_version'
+	'created_by',
+	'updated_by',
+	'revision'
 ]);
 
 /** Root scalars worth comparing; name and source lists are identity and provenance, not the law. */
 const ROOT_DIFF_FIELDS = ['payroll', 'work_rules'] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-	value != null && typeof value === 'object' && !Array.isArray(value);
+	Predicate.isObjectOrArray(value) && !Array.isArray(value);
 
-const asRecord = (row: object): Record<string, unknown> => row as Record<string, unknown>;
+/** One field of a row, read as a property. */
+const cell = (row: object, field: string): unknown => Reflect.get(row, field);
 
 const stripped = (row: object): Record<string, unknown> =>
-	Object.fromEntries(Object.entries(asRecord(row)).filter(([key]) => !PROVENANCE.has(key)));
+	Object.fromEntries(Object.entries(row).filter(([key]) => !PROVENANCE.has(key)));
 
 const display = (value: unknown): string | number | boolean | null => {
 	if (value == null) return null;
-	if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+	if (Predicate.isString(value) || Predicate.isNumber(value) || Predicate.isBoolean(value))
 		return value;
 	return JSON.stringify(value) ?? String(value);
 };
@@ -84,7 +88,7 @@ export function diffSettingsRoot(
 	const changes: LeafChange[] = [];
 	if (previous == null || proposed == null) return changes;
 	for (const field of ROOT_DIFF_FIELDS)
-		walk(asRecord(previous)[field], asRecord(proposed)[field], field, changes);
+		walk(cell(previous, field), cell(proposed, field), field, changes);
 	return changes;
 }
 
@@ -102,7 +106,7 @@ export function formatLeafPath(path: string): string {
 			const indexed = segment.match(/^(.*)\[(\d+)\]$/);
 			if (indexed == null || indexed[1] == null || indexed[2] == null) return humanize(segment);
 			const base = indexed[1].endsWith('s') ? indexed[1].slice(0, -1) : indexed[1];
-			return `${humanize(base)} ${Number(indexed[2]) + 1}`;
+			return `${humanize(base)} ${Number.parseInt(indexed[2], 10) + 1}`;
 		})
 		.join(' · ');
 }
@@ -119,11 +123,11 @@ export function diffCollection(
 	const single =
 		previous.length === 1 &&
 		proposed.length === 1 &&
-		asRecord(previous[0]!).code == null &&
-		asRecord(proposed[0]!).code == null;
+		cell(previous[0]!, 'code') == null &&
+		cell(proposed[0]!, 'code') == null;
 	const keyOf = (row: object): string =>
-		single ? 'regime' : String(asRecord(row).code ?? asRecord(row).id ?? '');
-	const nameOf = (row: object): string => String(asRecord(row).name ?? asRecord(row).code ?? '');
+		single ? 'regime' : String(cell(row, 'code') ?? cell(row, 'id') ?? '');
+	const nameOf = (row: object): string => String(cell(row, 'name') ?? cell(row, 'code') ?? '');
 
 	const before = new Map(previous.map((row) => [keyOf(row), row]));
 	const after = new Map(proposed.map((row) => [keyOf(row), row]));

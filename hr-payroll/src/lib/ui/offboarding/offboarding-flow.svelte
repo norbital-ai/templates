@@ -6,24 +6,19 @@
 	 * automation then raises the leaver's unused encashable balance as a held `ENCASHMENT` for the
 	 * HR Manager to approve or reject, so this form settles no leave itself.
 	 */
-	import { Effect } from 'effect';
-	import { client } from '../../workspace-client.js';
-	import { getErrorMessage } from '@norbital-ai/std/error';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import type { WorkspaceRow } from '$bolt/types.js';
-	import { Button } from '@norbital-ai/ui/button';
-	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
-	import { Input } from '@norbital-ai/ui/input';
+	import Labelled from '../Labelled.svelte';
+	import { bolt } from '$bolt';
+	import { t } from '../t.js';
+	import type { Id } from '@norbital-ai/bolt';
+	import { PlainDate } from '@norbital-ai/std/date';
+	import { Button, Combobox, DateInput, Input } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
-	import { dateKey } from '../../iso-day.js';
-	import { endOfDayInstant, todayKey } from '../calendar.js';
+	import { todayKey } from '../calendar.js';
 	import FormSection from '../form-section.svelte';
 	import ExitFactsRenderer from './exit-facts-renderer.svelte';
 
-	type ExitReason = NonNullable<WorkspaceRow<'employments'>['exit_reason']>;
-	const EXIT_REASONS: readonly ExitReason[] = [
+	const EXIT_REASONS = [
 		'RESIGNATION',
 		'DISMISSAL',
 		'REDUNDANCY',
@@ -33,84 +28,69 @@
 		'END_OF_CONTRACT',
 		'MUTUAL',
 		'DEATH'
-	];
+	] as const;
+	type ExitReason = (typeof EXIT_REASONS)[number];
 
 	let {
 		employment,
 		onclose
 	}: {
 		employment: {
-			readonly id: string;
-			readonly range_start: string;
-			readonly company_id: string;
+			readonly id: Id<'employments'>;
+			readonly range_start: PlainDate;
+			readonly company_id: Id<'companies'>;
 			readonly employee_number: unknown;
 		};
 		onclose: () => void;
 	} = $props();
-	const { t } = useI18n<TenantI18nKeys>();
-	const startDay = $derived(dateKey(employment.range_start));
+	const startDay = $derived(employment.range_start);
 
-	let lastDay = $state(todayKey());
-	let exitReason = $state<ExitReason | ''>('');
+	let lastDay = $state<string | null>(todayKey());
+	let exitReason = $state<ExitReason | null>(null);
 	let note = $state('');
-	let exitFacts = $state<NonNullable<WorkspaceRow<'employments'>['exit_facts']>>({});
+	let exitFacts = $state<{ readonly [key: string]: string | number | boolean }>({});
 	let stepError = $state<string | null>(null);
 	let submitting = $state(false);
 
-	const lastDayValid = $derived(lastDay !== '' && lastDay >= startDay);
+	const lastDayValid = $derived(lastDay != null && lastDay >= startDay);
 </script>
 
 <Stack gap="lg">
 	<FormSection first title={t('offboarding.step_last_day')} hint={t('offboarding.last_day_hint')}>
 		<Stack gap="sm">
-			<label class="text-sm font-medium"
-				><Stack gap="xs"
-					>{t('offboarding.last_day')}<Input
-						type="date"
-						value={lastDay}
-						min={startDay}
-						oninput={(event) => {
-							lastDay = event.currentTarget.value;
-						}}
-					/></Stack
-				></label
-			>
-			<label class="text-sm font-medium"
-				><Stack gap="xs"
-					>{t('component.exit_reason')}<select
-						class="border-input bg-background h-8 rounded-md border px-3 text-sm"
-						value={exitReason}
-						onchange={(event) => {
-							exitReason = event.currentTarget.value as ExitReason | '';
-						}}
-					>
-						<option value=""></option>
-						{#each EXIT_REASONS as reason (reason)}<option value={reason}>{reason}</option>{/each}
-					</select></Stack
-				></label
-			>
-			<label class="text-sm font-medium"
-				><Stack gap="xs"
-					>{t('offboarding.note')}<Input
-						value={note}
-						oninput={(event) => {
-							note = event.currentTarget.value;
-						}}
-					/></Stack
-				></label
-			>
+			<Labelled label={t('offboarding.last_day')} class="text-sm font-medium">
+				<DateInput value={lastDay} min={startDay} onChange={(next) => (lastDay = next)} />
+			</Labelled>
+			<Labelled label={t('component.exit_reason')} class="text-sm font-medium">
+				<Combobox
+					clearable
+					options={EXIT_REASONS.map((reason) => ({ value: reason, label: reason }))}
+					value={exitReason}
+					onChange={(next) => (exitReason = next)}
+				/>
+			</Labelled>
+			<Labelled label={t('offboarding.note')} class="text-sm font-medium">
+				<Input
+					value={note}
+					oninput={(event) => {
+						note = event.currentTarget.value;
+					}}
+				/>
+			</Labelled>
 			<p class="text-meta">{t('offboarding.leave_hint')}</p>
 			<FormSection title={t('component.exit_facts')} hint={t('component.exit_facts_hint')}>
 				<ExitFactsRenderer
-					mode="edit"
-					field={{ name: 'exit_facts', type: 'entity_facts' }}
-					value={exitFacts}
-					disabled={submitting}
-					companyId={employment.company_id}
-					lastDay={lastDay || null}
-					onValueChange={(value) => {
-						exitFacts = value ?? {};
+					view={{
+						mode: 'edit',
+						name: 'exit_facts',
+						value: exitFacts,
+						disabled: submitting,
+						onChange: (value) => {
+							exitFacts = value ?? {};
+						}
 					}}
+					companyId={employment.company_id}
+					{lastDay}
 				/>
 			</FormSection>
 		</Stack>
@@ -121,42 +101,35 @@
 			type="button"
 			disabled={submitting || !lastDayValid}
 			onclick={() => {
-				if (!lastDayValid) {
+				if (lastDay == null || !lastDayValid) {
 					stepError = t('offboarding.need_last_day', { hire: startDay });
 					return;
 				}
 				stepError = null;
 				submitting = true;
-				Effect.runFork(
-					submitCollectionMutation(() =>
-						client.collection.employments.update(employment.id, {
-							effective_range: {
-								start: employment.range_start,
-								end: endOfDayInstant(lastDay)
-							},
-							exit_reason: exitReason === '' ? null : exitReason,
+				void bolt
+					.act('employments.update', {
+						target: employment.id,
+						set: {
+							effective_range: { from: startDay, to: PlainDate(lastDay) },
+							exit_reason: exitReason,
 							exit_facts: exitFacts,
 							comments: note.trim() === '' ? null : note.trim()
-						})
-					).pipe(
-						Effect.tap((result) =>
-							Effect.sync(() => {
-								toast.success(
-									result.kind === 'pendingApproval'
-										? t('offboarding.pending')
-										: t('offboarding.submitted')
-								);
-								onclose();
-							})
-						),
-						Effect.catch((cause) =>
-							Effect.sync(() => {
-								stepError = getErrorMessage(cause);
-								submitting = false;
-							})
-						)
-					)
-				);
+						}
+					})
+					.then((outcome) => {
+						if (outcome.kind === 'committed' || outcome.kind === 'pendingApproval') {
+							toast.success(
+								outcome.kind === 'pendingApproval'
+									? t('offboarding.pending')
+									: t('offboarding.submitted')
+							);
+							onclose();
+							return;
+						}
+						stepError = 'message' in outcome ? String(outcome.message) : t('offboarding.submit');
+						submitting = false;
+					});
 			}}>{t('offboarding.submit')}</Button
 		>
 	</Cluster>

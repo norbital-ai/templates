@@ -10,21 +10,16 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import {
 	createPublicPayrollWorld,
 	COMPANY_ID,
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 
 const build = async (world, period = '2026-01') =>
-	buildPayrollRun(
-		await Effect.runPromise(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-		)
-	);
+	buildPayrollRun(gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period }));
 
 test('an allowance paid is not reported as skipped', async () => {
 	const built = await build(createPublicPayrollWorld());

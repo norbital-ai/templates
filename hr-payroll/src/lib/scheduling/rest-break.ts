@@ -1,12 +1,12 @@
-import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
-import { decodeNumber } from '@norbital-ai/std/json';
+import type { PersonContext } from '../../lib/payroll/run/eligibility.js';
+import { decodeNumber } from '../wire.js';
 import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expressions/evaluate.js';
 
 /** The CEL break rule one settings version carries. */
 export type BreakRuleLike = {
 	readonly when: string;
 	readonly owed_minutes: string;
-	readonly counts_as_worked_time: boolean | null;
+	readonly counts_as_worked_time?: boolean | null | undefined;
 };
 
 /** The rule that governed one day, with its obligation evaluated. */
@@ -17,27 +17,13 @@ type SelectedBreakRule = {
 };
 
 /**
- * Whether a working day satisfied the rest break its jurisdiction owes, derived from the punches.
+ * Whether a working day satisfied its jurisdiction's rest break, from the punches: every statute in
+ * `work_rules.breaks` is a consecutive-hours rule, so the input is intervals and a break total,
+ * never overtime (a break shorter than the minimum does not interrupt the hours: EA 1955
+ * s.60A(1)(i)). Pure, so the day sheet, the roster gate and the transform quote one number.
  *
- * The premise this module deliberately does **not** encode is "if someone works N hours of overtime
- * they must take a break". Every statute transcribed in `work_rules.breaks` is a
- * **consecutive-hours** rule, and overtime is merely the usual way a person crosses the trigger on
- * the far side of a shift. A function of overtime hours would answer wrongly for a ten-hour split
- * shift with no overtime at all, and could not express the Employment Act 1955 s.60A(1) proviso (i)
- * subtlety that a break shorter than the statutory minimum does not interrupt the consecutive
- * hours. So the input is intervals and a break total, never a derived overtime figure.
- *
- * Pure, like `lock.ts` and for the identical reason: a badge on the day sheet, a roster publish
- * gate and a `work_days` transform must quote the same number, and the only way to guarantee
- * that is for all three to call one function over inputs each of them reads for itself.
- *
- * It produces a **compliance assessment with a citation, never a priced quantity.** No caller may
- * turn `shortfallMinutes` into money. `counts_as_worked_time` is null for Malaysia because
- * s.60A(1)(a) calls the period "leisure" and is silent on payment, and pricing off a null is
- * inventing law; `docs/architecture.md` records the paid/unpaid question as unresolved from primary
- * text. Where a shortfall must reach money the honest route is an explicit, dated company policy
- * that imputes a break — never a default buried in the overtime engine, which this module does not
- * touch and does not feed.
+ * A compliance assessment, never money: MY s.60A(1)(a) is silent on paying the break
+ * (`counts_as_worked_time` null), so no caller prices `shortfallMinutes`.
  */
 
 const MINUTE_MS = 60_000;
@@ -160,9 +146,9 @@ export function selectBreakRule(
 		readonly overtimeHours: number;
 		readonly continuousAttendance: boolean;
 		/** Hours inside the night window; 0 where none is declared or the caller has not measured it. */
-		readonly nightHours?: number;
+		readonly nightHours?: number | undefined;
 		/** The person the day belongs to, for a rule that turns on them or their entity's facts. */
-		readonly person?: PersonContext | null;
+		readonly person?: PersonContext | null | undefined;
 	}
 ): SelectedBreakRule | null {
 	const context = {
@@ -179,7 +165,7 @@ export function selectBreakRule(
 		return {
 			when: rule.when,
 			minimum_minutes: Number.isFinite(owed) ? owed : null,
-			counts_as_worked_time: rule.counts_as_worked_time
+			counts_as_worked_time: rule.counts_as_worked_time ?? null
 		};
 	}
 	return null;

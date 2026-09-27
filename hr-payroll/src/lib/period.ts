@@ -7,17 +7,9 @@
  * reads. The month arithmetic itself lives in the engine's `dates.ts`.
  */
 
-import { daysBetween, monthBounds } from '../collections/payroll_runs/lib/dates.js';
-
 /** `YYYY-MM` for a payroll month. */
 export function isYearMonth(value: string): boolean {
 	return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
-}
-
-/** Every calendar day of a `YYYY-MM` month, in order. */
-export function calendarDaysInMonth(month: string): readonly string[] {
-	const { start, end } = monthBounds(month);
-	return daysBetween(start, end);
 }
 
 /**
