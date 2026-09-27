@@ -690,10 +690,14 @@ const verifyTemplates = (filter?: string): void => {
 			// The suite runs here rather than only on a developer's machine: a projection installs the
 			// published packages a tenant installs, so this is the one place a test proves the template
 			// against what actually ships. A suite over the seed bank runs locally; here its unit half does.
-			const scripts = readJson(path.join(destination, 'package.json'))['scripts'] as Record<
-				string,
-				string
-			>;
+			const manifest = readJson(path.join(destination, 'package.json'));
+			const scripts = manifest['scripts'] as Record<string, string>;
+			// a suite that drives a browser brings the one its own playwright pins
+			if (
+				(manifest['devDependencies'] as Record<string, string> | undefined)?.['playwright'] !==
+				undefined
+			)
+				pnpm('playwright', ['exec', 'playwright', 'install', 'chromium-headless-shell']);
 			if (!scripts['test']!.includes('--bank')) pnpm('test', ['test']);
 			else if (scripts['test:node'] !== undefined) pnpm('test:node', ['test:node']);
 			else console.log(`${template.slug}: its suite reads the seed bank; the local gate runs it.`);
