@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@norbital-ai/bolt':
-        specifier: 0.0.121
-        version: 0.0.121(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
+        specifier: 0.0.122
+        version: 0.0.122(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
       '@norbital-ai/std':
-        specifier: 0.0.121
-        version: 0.0.121(effect@4.0.0-rc.112)
+        specifier: 0.0.122
+        version: 0.0.122(effect@4.0.0-rc.112)
       '@norbital-ai/ui':
-        specifier: 0.0.121
-        version: 0.0.121(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
+        specifier: 0.0.122
+        version: 0.0.122(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
       svelte:
         specifier: ^5.57.1
         version: 5.57.1
@@ -25,8 +25,8 @@ importers:
         version: 8.2.2(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0)
     devDependencies:
       '@norbital-ai/bolt-server':
-        specifier: 0.0.121
-        version: 0.0.121(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
+        specifier: 0.0.122
+        version: 0.0.122(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.3.1
         version: 7.3.1(svelte@5.57.1)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0))
@@ -487,25 +487,25 @@ packages:
     resolution: {integrity: sha512-/SaLcvlqGWdm0HSCWMgHu7cjJiQXfP8/mOY+6dUyV9flQz7sPBBZ+ed2zYtoukojPmxOaL7bm+d/G4GeWWoN7g==}
     engines: {node: '>= 10'}
 
-  '@norbital-ai/bolt-server@0.0.121':
-    resolution: {integrity: sha512-wNGUPEVnyxElU1tl0blSzzaBUJF5lIQLs47FJ/DvRRNNerpJOnlxs1cGPNJLrOCvOEQFuzTacQW8fY28FOJVQg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.121/004fb74e261999990b41ea9cec14a286cf063ec7}
+  '@norbital-ai/bolt-server@0.0.122':
+    resolution: {integrity: sha512-FUmG7L/I5KRtvOxn9eaiZskjec8iQAXCzjD/opg8h8ozr+6GSwqk3hH0xAjWxjDfIowrn3Rp+tlNJTBSfYZ2mg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.122/0965001a83e38fe0cde3ae35edc3dd621a5c27ff}
 
-  '@norbital-ai/bolt@0.0.121':
-    resolution: {integrity: sha512-QtoI5elS6A8TQH+I8zY4JSn5LXjgcR4o7c75CcYrcxG/93IAapj0or1hSFbGWeHFlSEhTbqy3RtXS/HyHpTlAg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.121/2d61e08acd8ad5efa6e77f240862121c3142ceb8}
+  '@norbital-ai/bolt@0.0.122':
+    resolution: {integrity: sha512-Wrd9sQhoaew01h94cjxUOSV7MKxZ15jambdMBtL+TCfLqwGHbSFo1CoeUctZv+Mc1OoW6trcJD+fqJu+OwOOcw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.122/afca875d6ed0d895fa531ab7e8c6436ef99ff025}
     hasBin: true
     peerDependencies:
       svelte: ^5.0.0
 
-  '@norbital-ai/doctor@0.0.121':
-    resolution: {integrity: sha512-voyNbnCjSkgPTHjAOtOG2bZk+uH/GwYWNpRa1Uf558BAs96o7g+fSW92SVQ8DIv65pt3FvQsxDrTed91+mia/A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.121/93db7b0c4c54b64ff7e1dcff322fb9e575fb6ff4}
+  '@norbital-ai/doctor@0.0.122':
+    resolution: {integrity: sha512-wEWhBKFXXxLj0S8u+r5TwsWT8TeaWSE58gVK+gRQkcDf04Trded6M748d4cJ7tFDac8stDoSg26QZlpE7V2avQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.122/20fb8e934c495d7fdcb4a9ee6e11cd3fe7815636}
 
-  '@norbital-ai/std@0.0.121':
-    resolution: {integrity: sha512-7qv4/cbyD3oo9UNDFSZEhsS0cY7F02x2kMhce1p14kf74GvTCfdpYg4ZShIJQOu5ZtbJqNiAkfvCacRPG73dWA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.121/50887b2f5979b1b476bf7fa984786ac11e3d8fa9}
+  '@norbital-ai/std@0.0.122':
+    resolution: {integrity: sha512-BWzLsQq+MGbwxQZDcH1SX8pAgf1U3XwZ94pduKHnp8Xm2/ciOG1x9PApLYmVPsogV8PwC9vGPkxU5S95zs3drw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.122/24768260d930ce829b54dafcbf5dd04eb1908079}
     peerDependencies:
       effect: 4.0.0-rc.112
 
-  '@norbital-ai/ui@0.0.121':
-    resolution: {integrity: sha512-q2qW9VsGM7+L6/0UeCbwmAhkAVMo3f9y0Jof3z5paRWQLY+fgo/i3Hk6s9HgS/Cc2slL3uMfmWMv3j+2hapouA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.121/f3f3713ab6c690be29a363459e734b2e2869dadc}
+  '@norbital-ai/ui@0.0.122':
+    resolution: {integrity: sha512-ZkcEbrW4g+qYPRHwTO45o+w4Qfgk4ctXVnPA9rRFyMdF/0ELd/JF7SnZCrn+FvyT4/utdLGILReG6To6iYfmNg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.122/528acb6c219352494529bb26857b4f41071ab48e}
     peerDependencies:
       svelte: ^5.56.10
 
@@ -2721,9 +2721,9 @@ snapshots:
       '@napi-rs/canvas-win32-x64-msvc': 1.0.8
     optional: true
 
-  '@norbital-ai/bolt-server@0.0.121(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
+  '@norbital-ai/bolt-server@0.0.122(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
     dependencies:
-      '@norbital-ai/bolt': 0.0.121(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
+      '@norbital-ai/bolt': 0.0.122(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
       exceljs: 4.4.0
       mammoth: 1.12.2
       pdfjs-dist: 6.3.289
@@ -2757,15 +2757,15 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/bolt@0.0.121(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
+  '@norbital-ai/bolt@0.0.122(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
     dependencies:
       '@electric-sql/pglite': 0.5.8
       '@electric-sql/pglite-pgvector': 0.0.6(@electric-sql/pglite@0.5.8)
       '@jridgewell/trace-mapping': 0.3.31
       '@modelcontextprotocol/client': 2.0.0
-      '@norbital-ai/doctor': 0.0.121
-      '@norbital-ai/std': 0.0.121(effect@4.0.0-rc.112)
-      '@norbital-ai/ui': 0.0.121(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
+      '@norbital-ai/doctor': 0.0.122
+      '@norbital-ai/std': 0.0.122(effect@4.0.0-rc.112)
+      '@norbital-ai/ui': 0.0.122(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
       '@sveltejs/vite-plugin-svelte': 7.3.1(svelte@5.57.1)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0))
       '@tailwindcss/vite': 4.3.3(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0))
       '@xyflow/svelte': 1.6.3(svelte@5.57.1)
@@ -2797,18 +2797,18 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/doctor@0.0.121':
+  '@norbital-ai/doctor@0.0.122':
     dependencies:
       effect: 4.0.0-rc.112
       typescript: 6.0.3
       yaml: 2.9.0
 
-  '@norbital-ai/std@0.0.121(effect@4.0.0-rc.112)':
+  '@norbital-ai/std@0.0.122(effect@4.0.0-rc.112)':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
       effect: 4.0.0-rc.112
 
-  '@norbital-ai/ui@0.0.121(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)':
+  '@norbital-ai/ui@0.0.122(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)':
     dependencies:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/lang-json': 6.0.2
@@ -2820,7 +2820,7 @@ snapshots:
       '@iconify/svelte': 5.2.2(svelte@5.57.1)
       '@internationalized/date': 3.12.4
       '@lezer/highlight': 1.2.3
-      '@norbital-ai/std': 0.0.121(effect@4.0.0-rc.112)
+      '@norbital-ai/std': 0.0.122(effect@4.0.0-rc.112)
       '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
       bits-ui: 2.19.0(@internationalized/date@3.12.4)(svelte@5.57.1)
       clsx: 2.1.1
