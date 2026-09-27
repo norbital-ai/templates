@@ -18,9 +18,9 @@
 		"@iconify/svelte": "^5.2.2",
 		"@internationalized/date": "^3.12.3",
 		"@marcbachmann/cel-js": "8.0.0",
-		"@norbital-ai/bolt": "0.0.116",
-		"@norbital-ai/std": "0.0.116",
-		"@norbital-ai/ui": "0.0.116",
+		"@norbital-ai/bolt": "0.0.118",
+		"@norbital-ai/std": "0.0.118",
+		"@norbital-ai/ui": "0.0.118",
 		"@vladmandic/human": "3.3.6",
 		"effect": "4.0.0-rc.112",
 		"exceljs": "4.4.0",
@@ -31,8 +31,8 @@
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.116",
-		"@norbital-ai/doctor": "0.0.116",
+		"@norbital-ai/bolt-server": "0.0.118",
+		"@norbital-ai/doctor": "0.0.118",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^26.4.0",
 		"@typescript/native": "npm:typescript@7.0.2",
