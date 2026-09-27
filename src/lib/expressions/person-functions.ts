@@ -2,8 +2,8 @@
  * Map-receiver functions over the person: `employee.age_on(date)` and `leave.taken(code)`, beside
  * the children's in `child-under.ts`. Registered on both engines.
  */
-import { isCalendarDate } from '@norbital-ai/std/date';
-import { decodeNumber } from '@norbital-ai/std/json';
+import { isCalendarDate } from '../iso-day.js';
+import { decodeNumber } from '../wire.js';
 import {
 	addDays,
 	completedMonths,
@@ -12,7 +12,50 @@ import {
 	monthBounds,
 	monthDay,
 	shiftPeriod
-} from '../../collections/payroll_runs/lib/dates.js';
+} from '../../lib/payroll/run/dates.js';
+
+/** Distinct days with this employer in the calendar months immediately before an event. */
+export function serviceDaysBefore(employment: unknown, date: unknown, months: unknown): bigint {
+	const day = String(date ?? '').slice(0, 10);
+	if (day === '') {
+		if (String((employment as { service_start?: unknown }).service_start ?? '') === '') return 0n;
+		throw new Error('Service history needs the event date.');
+	}
+	const count = Number(months);
+	if (!isCalendarDate(day) || !Number.isInteger(count) || count <= 0)
+		throw new Error('Service history needs a valid event date and positive whole-month window.');
+	const periods = (
+		employment as {
+			service_periods?: readonly { readonly start: string; readonly end: string | null }[] | null;
+		}
+	).service_periods;
+	if (periods == null)
+		throw new Error('Service history with this employer is required for event eligibility.');
+	for (const period of periods)
+		if (
+			!isCalendarDate(period.start) ||
+			(period.end != null && (!isCalendarDate(period.end) || period.end < period.start))
+		)
+			throw new Error('Service history has an invalid employment period.');
+	const bounds = monthBounds(shiftPeriod(day.slice(0, 7), -count));
+	const from = `${bounds.start.slice(0, 7)}-${String(Math.min(Number(day.slice(8)), Number(bounds.end.slice(8)))).padStart(2, '0')}`;
+	const through = addDays(day, -1);
+	const spans = periods
+		.map((period) => ({
+			start: period.start > from ? period.start : from,
+			end: period.end != null && period.end < through ? period.end : through
+		}))
+		.filter((period) => period.start <= period.end)
+		.toSorted((a, b) => a.start.localeCompare(b.start));
+	let days = 0;
+	let last = '';
+	for (const span of spans) {
+		const start = last !== '' && span.start <= last ? addDays(last, 1) : span.start;
+		if (start <= span.end) days += inclusiveDays(start, span.end);
+		if (span.end > last) last = span.end;
+	}
+	return BigInt(days);
+}
 
 /** The person's birth date and the day asked about, or null where either is missing or the day precedes the birth. */
 function birthAndDay(employee: unknown, date: unknown): [string, string] | null {

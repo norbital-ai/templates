@@ -6,8 +6,8 @@ import {
 	assertLeaveWindow
 } from '../src/lib/leave/entitlement.ts';
 import { leaveRules } from '../src/lib/leave/context.ts';
-import type { LeaveEntitlement } from '../src/datatypes/leave_entitlement/+definition.ts';
-import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.ts';
+import type { LeaveEntitlement } from '../src/lib/datatypes/leave_entitlement.ts';
+import { leaveEntitlementSchema } from '../src/lib/datatypes/leave_entitlement.ts';
 import {
 	annualWindow,
 	id,
@@ -16,7 +16,7 @@ import {
 	timeOff
 } from './helpers/manual-leave-context.ts';
 import { leaveBalanceSummaries } from '../src/lib/leave/summary.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 
 const rule: LeaveEntitlement = {
 	availability: 'UPFRONT',

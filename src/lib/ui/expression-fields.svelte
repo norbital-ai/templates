@@ -12,10 +12,9 @@
 	 * expression it is checking, a compile fault stays on the page as the same sentence the write
 	 * transform would refuse with.
 	 */
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { t } from './t.js';
 	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import * as Popover from '@norbital-ai/ui/popover';
+	import { Popover } from '@norbital-ai/ui';
 	import {
 		EXPRESSION_CONTEXTS,
 		type ExpressionSite,
@@ -38,7 +37,6 @@
 	};
 
 	let { site, expression, type, inline = false, mode = 'popover' }: Props = $props();
-	const { t } = useI18n<TenantI18nKeys>();
 	const context = $derived(EXPRESSION_CONTEXTS[site]);
 	const fault = $derived(
 		expression == null || type == null ? null : compileExpression({ expression, site, type })

@@ -16,14 +16,11 @@ import {
 	personAsOf
 } from '../src/lib/eligible-types.ts';
 
-const range = (start: string, end = '9999-12-31') => ({
-	start: `${start}T00:00:00.000Z`,
-	end: `${end}T00:00:00.000Z`
-});
+const range = (from: string, to: string | null = null) => ({ from, to });
 
 const facts = {
 	effective_range: range('2024-03-01'),
-	employment_employee: {
+	employee_id: {
 		gender: 'F',
 		date_of_birth: '1990-05-10',
 		nationality: 'MY',
@@ -37,8 +34,8 @@ const facts = {
 			}
 		]
 	},
-	employment_company: { region: 'KL' },
-	term_employment: [
+	company_id: { region: 'KL' },
+	employment_terms: [
 		{ effective_range: range('2024-03-01', '2025-12-31'), department: 'FINANCE', grade: 'G2' },
 		{ effective_range: range('2026-01-01'), department: 'LOGISTICS', grade: 'G3' }
 	]

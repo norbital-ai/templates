@@ -206,7 +206,8 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			{
 				id: TERMS_ID,
 				employment_id: EMPLOYMENT_ID,
-				base_salary: { value: 3451, currency: 'MYR' },
+				base_salary: 3451,
+				currency: 'MYR',
 				pay_frequency: 'MONTHLY',
 				work_classification: 'EA_COVERED',
 				statutory_work_category: 'NON_MANUAL',

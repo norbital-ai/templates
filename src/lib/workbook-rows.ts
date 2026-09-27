@@ -1,25 +1,13 @@
 /**
- * Reading an operator's workbook into the JSON an import pipeline declares.
- *
- * The platform does not parse files. `import_data` is arbitrary structured JSON and the browser
- * posts JSON, so turning a spreadsheet into rows is the workspace's job and happens before anything
- * is sent. These helpers are the shared half of that: they know nothing about rosters or punches,
- * only about grids, headers and cells.
- *
- * ────────────────────────────────────────────────────────────────────────────────────────────────
- * WHY EVERY COMPLAINT IS COLLECTED BEFORE ANY IS RAISED.
- *
- * The platform writes an import in ONE transaction and has no per-row rejection: either the whole
- * file lands or none of it does. A reader that threw on the first bad cell would make the operator
- * discover their file one defect per upload. So a run gathers every problem it can see, names the
- * spreadsheet row each belongs to, and refuses once with the list — which is the same shape the
- * server's own refusals take.
- * ────────────────────────────────────────────────────────────────────────────────────────────────
+ * Reading an operator's workbook into the JSON an import declares (the platform parses no files).
+ * An import is one transaction with no per-row rejection, so every problem is collected with its
+ * spreadsheet row and refused once as a list, as the server refuses.
  */
 
 import { Schema } from 'effect';
-import { isCalendarDate, isClockTime } from '@norbital-ai/std/date';
-import { decodeNumber } from '@norbital-ai/std/json';
+import { isCalendarDate, isClockTime } from './iso-day.js';
+import { decodeNumber } from './wire.js';
+import * as Predicate from 'effect/Predicate';
 const cellErrorValueSchema = Schema.Struct({ error: Schema.Unknown });
 const cellFormulaResultSchema = Schema.Struct({ result: Schema.Unknown });
 const cellRichTextValueSchema = Schema.Struct({
@@ -76,11 +64,11 @@ export class WorkbookImportError extends Error {
  */
 function normalizeCellValue(value: unknown): SheetCell {
 	if (value == null) return null;
-	if (typeof value === 'string') return value;
-	if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-	if (typeof value === 'boolean') return value;
+	if (Predicate.isString(value)) return value;
+	if (Predicate.isNumber(value)) return Number.isFinite(value) ? value : null;
+	if (Predicate.isBoolean(value)) return value;
 	if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-	if (typeof value !== 'object') return null;
+	if (!Predicate.isObjectOrArray(value)) return null;
 
 	// Decode the wrapper shapes ExcelJS can return against one explicit boundary vocabulary.
 	if (isCellErrorValue(value)) return null;
@@ -218,7 +206,7 @@ function headerKey(value: SheetCell): string {
 }
 
 function isBlank(cell: SheetCell): boolean {
-	return cell == null || (typeof cell === 'string' && cell.trim() === '');
+	return cell == null || (Predicate.isString(cell) && cell.trim() === '');
 }
 
 function sheetKey(name: string): string {
@@ -390,7 +378,7 @@ export class RowReader {
 		const cell = this.raw(column);
 		if (isBlank(cell)) return undefined;
 		if (cell instanceof Date) return `${pad(cell.getUTCHours())}:${pad(cell.getUTCMinutes())}`;
-		if (typeof cell === 'number') {
+		if (Predicate.isNumber(cell)) {
 			if (cell < 0 || cell >= 1) return this.reject(column, 'a local time as HH:mm');
 			const minutes = Math.round(cell * MINUTES_PER_DAY);
 			return `${pad(Math.floor(minutes / 60) % 24)}:${pad(minutes % 60)}`;
@@ -404,7 +392,7 @@ export class RowReader {
 	wholeNumber(column: string): number | undefined {
 		const cell = this.raw(column);
 		if (isBlank(cell)) return undefined;
-		const value = typeof cell === 'number' ? cell : decodeNumber(String(cell).trim());
+		const value = Predicate.isNumber(cell) ? cell : decodeNumber(String(cell).trim());
 		if (!Number.isInteger(value) || value < 0) {
 			return this.reject(column, 'a whole number of minutes, zero or more');
 		}

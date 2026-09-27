@@ -13,16 +13,15 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { loanShortfallIssues } from '../src/lib/payroll/loan.ts';
-import { blockers } from '../src/collections/payroll_runs/lib/validate.ts';
+import { blockers } from '../src/lib/payroll/run/validate.ts';
 import {
 	createPublicPayrollWorld,
 	COMPANY_ID,
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { clearAllowances } from './fixtures/contract-allowances.ts';
 
 /** A world whose one employment leaves inside the run period and owes one instalment. */
@@ -73,11 +72,7 @@ function leaverOwing(loanType) {
 }
 
 const build = async (world, period) =>
-	buildPayrollRun(
-		await Effect.runPromise(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-		)
-	);
+	buildPayrollRun(gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period }));
 
 test('a staff loan is recovered out of the final payslip', async () => {
 	const built = await build(leaverOwing('STAFF'), '2026-02');

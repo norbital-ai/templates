@@ -1,16 +1,16 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
+import { refuse } from '../refuse.js';
+import { fromMinorUnits, toMinorUnits } from '../payroll/run/rounding.js';
 import type { LeaveActivity } from './pending.js';
-import type { LeaveAllocation } from '../../datatypes/leave_allocations/+definition.js';
-import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
-import { addDays, daysBetween, monthDay } from '../../collections/payroll_runs/lib/dates.js';
-import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
+import type { LeaveAllocation } from '../datatypes/leave_allocations.js';
+import type { LeaveCharge } from '../datatypes/leave_charges.js';
+import { addDays, daysBetween, monthDay } from '../../lib/payroll/run/dates.js';
+import { coversDate } from '../../lib/payroll/run/effective.js';
 import { dateKey } from '../iso-day.js';
 import { pointNumber, type HalfDayRange } from '../half-day.js';
 import { resolveHolidays } from '../holiday-calendar.js';
 import { patternAnchor, patternRosterCodeId, termPatternRow } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow, workWindowHalves } from '../scheduling/roster-code.js';
-import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
+import type { RosterCodeVariant } from '../datatypes/roster_code_variant.js';
 import { payrollWindows, lockStateForDate } from '../scheduling/lock.js';
 import {
 	allocateLeaveDays,
@@ -19,16 +19,14 @@ import {
 } from './balance.js';
 import { assertLeaveWindow, grantedDays, leaveWindowOf, type LeaveWindow } from './entitlement.js';
 import { leavePool, leaveRules, type LeaveContext } from './context.js';
-import {
-	evaluatePersonNumber,
-	isEligible
-} from '../../collections/payroll_runs/lib/eligibility.js';
+import { evaluatePersonNumber, isEligible } from '../../lib/payroll/run/eligibility.js';
 import {
 	emptyActivityFields,
 	leaveActivityOf,
 	type LeaveActivityKind,
 	type LeaveEntryActivity
 } from './activity-fields.js';
+import * as Predicate from 'effect/Predicate';
 
 export type LeaveSubmission = LeaveEntryActivity & {
 	readonly employment_id: string;
@@ -146,8 +144,8 @@ export function measureLeaveDay(
 }
 
 function activityDateOf(entry: LeaveActivity): string | null {
-	if (leaveActivityOf(entry) === 'TIME_OFF') return entry.from_date;
-	return entry.effective_on;
+	if (leaveActivityOf(entry) === 'TIME_OFF') return entry.from_date ?? null;
+	return entry.effective_on ?? null;
 }
 
 /** Complete entry planning is pure over the guarded preparation reads, including batch reservations. */
@@ -164,10 +162,10 @@ export function planLeaveActivity(
 		input.event_kind == null && input.event_relationship == null && input.event_child_index == null
 			? undefined
 			: {
-					kind: input.event_kind,
-					relationship: input.event_relationship,
-					child_index: input.event_child_index,
-					date: input.event_date
+					kind: input.event_kind ?? null,
+					relationship: input.event_relationship ?? null,
+					child_index: input.event_child_index ?? null,
+					date: input.event_date ?? null
 				}
 	);
 	if (!input.reference.trim()) refuse('A leave entry needs a unique supporting reference.');
@@ -276,6 +274,7 @@ export function planLeaveActivity(
 			(row) => row.id === input.employment_id
 		)?.employee_id;
 		return activeTimeOff(
+			// repository-health:allow R3b -- a prior entry carries the fields `activeTimeOff` reads, not a whole activity
 			(context.priorEntries ?? []).filter(
 				(row) => row.employee_id === employeeId && row.leave_code === rules.selected.code
 			) as unknown as LeaveActivity[]
@@ -291,9 +290,9 @@ export function planLeaveActivity(
 	const rollingFrom = (date: string, months: number): string =>
 		addDays(
 			monthDay(
-				Number(date.slice(0, 4)),
-				Number(date.slice(5, 7)) - 1 - months,
-				Number(date.slice(8, 10))
+				Number.parseInt(date.slice(0, 4), 10),
+				Number.parseInt(date.slice(5, 7), 10) - 1 - months,
+				Number.parseInt(date.slice(8, 10), 10)
 			),
 			1
 		);
@@ -352,10 +351,9 @@ export function planLeaveActivity(
 		const first = charged[0]!.date;
 		const buckets = rules.children.flatMap((_, child) =>
 			caps.map((cap) => ({
-				room:
-					typeof cap.days === 'string'
-						? Math.max(0, evaluatePersonNumber(cap.days, rules.childPersonOn(first, child)))
-						: cap.days,
+				room: Predicate.isString(cap.days)
+					? Math.max(0, evaluatePersonNumber(cap.days, rules.childPersonOn(first, child)))
+					: cap.days,
 				holds: (window: LeaveWindow) =>
 					[window.start, window.end].some((date) =>
 						isEligible(cap.eligibility, rules.childPersonOn(date, child))
@@ -394,10 +392,9 @@ export function planLeaveActivity(
 		}
 		if (rule.lifetime_days == null) return;
 		const person = rules.personOn(first.date);
-		const cap =
-			typeof rule.lifetime_days === 'string'
-				? Math.max(0, evaluatePersonNumber(rule.lifetime_days, person))
-				: rule.lifetime_days;
+		const cap = Predicate.isString(rule.lifetime_days)
+			? Math.max(0, evaluatePersonNumber(rule.lifetime_days, person))
+			: rule.lifetime_days;
 		const own = activeTimeOff(sameLeave).filter((row) => row.leave_code === rules.selected.code);
 		const taken = [...own, ...priorTimeOff()]
 			.flatMap((row) => row.charges)

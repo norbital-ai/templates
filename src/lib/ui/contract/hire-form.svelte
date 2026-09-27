@@ -1,17 +1,15 @@
 <script lang="ts">
 	/**
-	 * The hire: one employment contract for a person at an entity. The employments record shows
-	 * it when opened with no record; the person's own profile opens it from the Employment
-	 * contracts tab with the person prefilled. The first terms row follows on the contract
+	 * The hire: one employment contract for a person at an entity. The employments record shows it when opened with no
+	 * record; the person's own profile opens it with the person prefilled. The first terms row follows on the contract
 	 * itself (`ContractDetail`), where a contract with no terms offers its first revision.
 	 */
-	import { CollectionForm } from '@norbital-ai/ui/collection-form';
+	import { t } from '../t.js';
+	import { Field, Form } from '@norbital-ai/ui';
+	import { Picker } from '@norbital-ai/ui';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { client } from '../../workspace-client.js';
-	import EffectiveRangeRenderer from '../effective-range-renderer.svelte';
 	import { hrCreateScope } from '../create-scope.js';
+	import * as Predicate from 'effect/Predicate';
 
 	let {
 		askCompany = false,
@@ -21,69 +19,59 @@
 		readonly askCompany?: boolean;
 		readonly onDone?: () => void;
 	} = $props();
-	/**
-	 * Who and where come from the page's scope, not props: a person's profile scopes the person,
-	 * an entity's page scopes the entity, and the framework keeps system ids out of authored props.
-	 */
+	/** Who and where come from the page's scope: a person's profile scopes the person, an entity's page the entity. */
 	const scope = hrCreateScope();
 	const employeeId = $derived(scope?.employeeId?.());
 	const companyId = $derived(askCompany ? undefined : scope?.companyId());
-	const { t } = useI18n<TenantI18nKeys>();
-	const defaults = $derived({
+	const values = $derived({
 		...(employeeId == null ? {} : { employee_id: employeeId }),
 		...(companyId == null ? {} : { company_id: companyId })
 	});
+	const text = (value: unknown) => (Predicate.isString(value) ? value : null);
 </script>
 
-<CollectionForm
-	{client}
-	collection="employments"
-	defaultValues={Object.keys(defaults).length === 0 ? undefined : defaults}
-	submitLabel={t('component.create_employment')}
-	onAfterSubmit={onDone}
+<Form
+	of="employments"
+	mode="create"
+	{values}
+	submit={t('component.create_employment')}
+	onOutcome={(outcome) => {
+		if (outcome.kind === 'committed' || outcome.kind === 'pendingApproval') onDone?.();
+	}}
 >
-	{#snippet children({ Field })}
-		<Grid gap="md" minimum="panel">
-			{#if employeeId != null}
-				<Field name="employee_id" hidden />
-			{:else}
-				<Field
-					name="employee_id"
-					label={t('component.person')}
-					relationOptions={{
-						label: (person) =>
-							person.name != null && person.name !== '' ? String(person.name) : '—',
-						orderBy: { name: 'asc' },
-						limit: 10_000
-					}}
-				/>
-			{/if}
-			{#if companyId != null}
-				<Field name="company_id" hidden />
-			{:else}
-				<Field
-					name="company_id"
-					label={t('component.legal_entity')}
-					relationOptions={{
-						label: (company) =>
-							company.name != null && company.name !== '' ? String(company.name) : '—',
-						orderBy: { name: 'asc' },
-						limit: 500
-					}}
-				/>
-			{/if}
-			<Field name="employee_number" label={t('component.employee_number')} />
-			<Column span="all"><Field name="bank" label={t('component.pay_destination')} /></Column>
-			<Column span="all">
-				<Field
-					name="effective_range"
-					renderer={EffectiveRangeRenderer}
-					label={t('component.effective_period')}
-				/>
-			</Column>
-			<Field name="exit_reason" hidden />
-			<Field name="exit_facts" hidden />
-			<Field name="comments" hidden />
-		</Grid>
-	{/snippet}
-</CollectionForm>
+	<Grid gap="md" minimum="panel">
+		{#if employeeId == null}
+			<Field name="employee_id" label={t('component.person')}>
+				{#snippet editor(field)}
+					<Picker
+						of="employees"
+						label={['name']}
+						orderBy={{ name: 'asc' }}
+						value={text(field.value)}
+						onChange={field.onChange}
+						disabled={field.disabled}
+					/>
+				{/snippet}
+			</Field>
+		{/if}
+		{#if companyId == null}
+			<Field name="company_id" label={t('component.legal_entity')}>
+				{#snippet editor(field)}
+					<Picker
+						of="companies"
+						label={['name']}
+						orderBy={{ name: 'asc' }}
+						value={text(field.value)}
+						onChange={field.onChange}
+						disabled={field.disabled}
+					/>
+				{/snippet}
+			</Field>
+		{/if}
+		<Field name="employee_number" label={t('component.employee_number')} />
+		<Column span="all"><Field name="bank" label={t('component.pay_destination')} /></Column>
+		<Column span="all"
+			><Field name="effective_range" label={t('component.effective_period')} /></Column
+		>
+	</Grid>
+</Form>

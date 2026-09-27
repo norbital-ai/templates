@@ -1,6 +1,8 @@
 import Human from '@vladmandic/human';
 import {
 	KIOSK_ANALYSE_HEIGHT,
+	KIOSK_CAPTURE_HEIGHT,
+	KIOSK_CAPTURE_WIDTH,
 	KIOSK_ANALYSE_WIDTH,
 	KIOSK_DETECTOR_SCALE,
 	KIOSK_MIN_FACE_PX,
@@ -11,11 +13,12 @@ import type { KioskSample } from './sample.js';
 import type { FrameSize } from './silhouette.js';
 
 type FaceCandidate = Readonly<{
-	readonly box?: readonly [number, number, number, number];
-	readonly embedding?: number[];
+	readonly box?: readonly [number, number, number, number] | undefined;
+	readonly embedding?: number[] | undefined;
 	readonly score: number;
 	/** Head pose in radians, from the mesh; absent until the mesh graph has run on this face. */
-	readonly rotation?: Readonly<{ angle: Readonly<{ yaw: number; pitch: number }> }> | null;
+	readonly rotation?:
+		Readonly<{ angle: Readonly<{ yaw: number; pitch: number }> }> | null | undefined;
 }>;
 
 const engineConfig = (backend: 'webgl' | 'wasm', enrollment: boolean) => ({
@@ -101,6 +104,20 @@ export const missingFaceModels = (engine: Human): string[] => {
 			!loaded.has(name)
 	);
 };
+
+/** The camera at the capture size; the kiosk asks for the user-facing one, the enrolment requires it. */
+export const openCamera = (facingMode: ConstrainDOMString): Promise<MediaStream> =>
+	navigator.mediaDevices.getUserMedia({
+		video: {
+			facingMode,
+			width: { ideal: KIOSK_CAPTURE_WIDTH },
+			height: { ideal: KIOSK_CAPTURE_HEIGHT }
+		},
+		audio: false
+	});
+
+export const closeCamera = (stream: MediaStream | null): void =>
+	stream?.getTracks().forEach((track) => track.stop());
 
 /**
  * Puts a live stream on a video node and starts playback. Both camera surfaces — the

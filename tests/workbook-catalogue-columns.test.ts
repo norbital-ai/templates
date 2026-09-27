@@ -10,7 +10,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { outputGroups, workbookRows } from '../src/collections/payroll_runs/lib/report.ts';
+import { outputGroups, workbookRows } from '../src/lib/payroll/run/report.ts';
 
 const line = (overrides) => ({
 	componentCode: 'UNUSED',

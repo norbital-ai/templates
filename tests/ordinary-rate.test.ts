@@ -1,15 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { gatherPayrollRun, buildPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { accumulatePayslip } from '../src/collections/payroll_runs/lib/accumulate.ts';
+import { gatherPayrollRun, buildPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { accumulatePayslip } from '../src/lib/payroll/run/accumulate.ts';
 import { COMPANY_ID, createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import {
-	ordinaryDivisorDays,
-	ordinaryHourlyRate
-} from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { ordinaryDivisorDays, ordinaryHourlyRate } from '../src/lib/payroll/run/ordinary-rate.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 
 test('the ordinary rate divisor is one expression over the person; period.working_days is the month’s', () => {
 	const expression =
@@ -25,10 +21,10 @@ test('the ordinary rate divisor is one expression over the person; period.workin
 		});
 	const divisor = (terms: Record<string, unknown>, workingDays?: number) =>
 		ordinaryDivisorDays({ expression, person: person(terms, workingDays), employeeNumber: 'E1' });
-	assert.equal(divisor({ base_salary: { value: 3451 } }), 22);
+	assert.equal(divisor({ base_salary: 3451 }), 22);
 	// A statute stated in hours is hours over the contract's normal daily hours: 173 / 8.
-	assert.equal(divisor({ base_salary: { value: 30000 }, grade: 'M1' }), 21.625);
-	assert.equal(divisor({ base_salary: { value: 30000 } }), 26);
+	assert.equal(divisor({ base_salary: 30000, grade: 'M1' }), 21.625);
+	assert.equal(divisor({ base_salary: 30000 }), 26);
 	// The divisor is what prices an hour: 3,451 / 22 / 8.
 	const terms = {
 		base_salary: { value: 3451, currency: 'MYR' },
@@ -38,10 +34,7 @@ test('the ordinary rate divisor is one expression over the person; period.workin
 	} as const;
 	assert.equal(ordinaryHourlyRate(terms, 22), 3451 / 22 / 8);
 	// A month with no working days under a WORKING_DAYS divisor stops the run by name.
-	assert.throws(
-		() => divisor({ base_salary: { value: 3451 } }, 0),
-		/must be a positive number of days/
-	);
+	assert.throws(() => divisor({ base_salary: 3451 }, 0), /must be a positive number of days/);
 	assert.throws(
 		() => ordinaryDivisorDays({ expression: '', person: person({}) }),
 		/no ordinary rate divisor/
@@ -50,9 +43,11 @@ test('the ordinary rate divisor is one expression over the person; period.workin
 
 test('Work uses the version’s own rules, and its pay items settle under them', async () => {
 	const world = createPublicPayrollWorld();
-	const prepared = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-01'
+	});
 	const payslips = buildPayrollRun(prepared).payslip_payroll_run;
 	assert.equal(payslips.length, 1);
 	assert.equal(payslips[0].base.find((row) => row.component_code === 'BASIC')?.amount, 3451);
@@ -79,9 +74,11 @@ test('Contribution reads the scheme’s formula: salary adds, absence reduces, s
 		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }],
 		assessed_on: 'BASE - ABSENCE'
 	});
-	const { configuration } = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-	);
+	const { configuration } = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-01'
+	});
 	const items = configuration.catalogueComponents
 		.filter((row) => row.family === 'WORK')
 		.map((row) => ({
@@ -125,9 +122,7 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 	}
 	const build = async () =>
 		buildPayrollRun(
-			await Effect.runPromise(
-				gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-			)
+			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
 		);
 	assert.equal((await build()).payslip_payroll_run.length, 1);
 

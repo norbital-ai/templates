@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	assessStatutory,
+	assessStatutoryUnvalidated,
 	buildStatutory,
 	expectStatutory,
 	expectStatutorySkipped,
@@ -166,7 +167,8 @@ test('VN audit — union dues are 0.5% of the SI salary, capped at 10% of the ba
 	});
 	expectStatutory(july, 'D60', 'UNION_DUES', 253_000, 0);
 	// December 2025: a 2,000,000 wage is insured on the 2,340,000 floor: × 0.5% = 11,700.
-	const december = assessStatutory({
+	// Calculation-only: the payment guard correctly refuses this under-floor full-time contract.
+	const december = assessStatutoryUnvalidated({
 		code: 'VN',
 		period: '2025-12',
 		region: 'I',
@@ -225,6 +227,8 @@ test('VN audit — the 10% flat withholding threshold is 2,000,000 in 2025 and 5
 	const short = (key: string, wage: number, hire: string, exit: string) => ({
 		key,
 		wage,
+		// Reduced-hours contracts isolate the withholding threshold from a full-time wage-floor breach.
+		employment_type: 'PART_TIME',
 		citizenship: 'CITIZEN',
 		hire_date: hire,
 		exit_date: exit
@@ -395,24 +399,26 @@ test('VN audit — the final settlement is due in 14 working days, 30 days only 
 	}
 });
 
-// ─── Open gap, left failing: the hourly minimum wage ───────────────────────────────────────────
+// ─── Hourly minimum wage ────────────────────────────────────────────────────────────────────────
 
-test('VN audit (open gap) — an hourly worker paid the hourly minimum is not below the minimum wage (Decree 293/2025 art.3(1)(b))', () => {
-	// Decree 293/2025: Region I 25,500 an hour is the floor for hourly-paid work. 25,500 is lawful;
-	// 25,000 is not. The engine compares every contract with the MONTHLY table only
-	// (`minimumWageIssues`, src/lib/payroll/contribution.ts): the version carries no hourly column, so
-	// the lawful 25,500 is reported "contracted at 25500 a month, below … 5310000" (observed
-	// 2026-09-23). Left failing until the wages order carries its hourly table.
-	const { warnings } = buildStatutory({
-		code: 'VN',
-		period: '2026-01',
-		region: 'I',
-		people: [
-			{ key: 'H-LAWFUL', wage: 25_500, citizenship: 'CITIZEN', pay_frequency: 'HOURLY' },
-			{ key: 'H-UNDER', wage: 25_000, citizenship: 'CITIZEN', pay_frequency: 'HOURLY' }
-		]
-	});
-	const below = warnings.filter((warning) => warning.startsWith('MINIMUM_WAGE_BELOW'));
-	assert.equal(below.filter((warning) => warning.includes('H-LAWFUL')).length, 0);
-	assert.equal(below.filter((warning) => warning.includes('H-UNDER')).length, 1);
+test('VN audit — the hourly floor settles at 25,500 and refuses 25,000 (Decree 293/2025 art.4(2))', () => {
+	assert.equal(
+		buildStatutory({
+			code: 'VN',
+			period: '2026-01',
+			region: 'I',
+			people: [{ key: 'H-LAWFUL', wage: 25_500, citizenship: 'CITIZEN', pay_frequency: 'HOURLY' }]
+		}).slips.has('H-LAWFUL'),
+		true
+	);
+	assert.throws(
+		() =>
+			buildStatutory({
+				code: 'VN',
+				period: '2026-01',
+				region: 'I',
+				people: [{ key: 'H-UNDER', wage: 25_000, citizenship: 'CITIZEN', pay_frequency: 'HOURLY' }]
+			}),
+		/MINIMUM_WAGE_BELOW: H-UNDER is contracted at 25000 an hour/
+	);
 });

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateKey } from '../src/lib/iso-day.ts';
-import { requiredDateKey } from '../src/collections/payroll_runs/lib/dates.ts';
-import { coversDate } from '../src/collections/payroll_runs/lib/effective.ts';
+import { requiredDateKey } from '../src/lib/payroll/run/dates.ts';
+import { coversDate } from '../src/lib/payroll/run/effective.ts';
 import { formatCalendarDate, formatCalendarInstant } from '../src/lib/ui/display-formatters.ts';
 import { offsetMinutesFor } from '../src/lib/timezone.ts';
 

@@ -7,22 +7,19 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { countryOf, coversDay, settingsInForce } from '../src/lib/jurisdiction_settings.ts';
 import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 
 const prepare = (world, period = '2026-01') =>
-	Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-	);
+	gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period });
 
 test('a period no sealed version covers is refused naming the company, its lineage and the period', async () => {
 	const world = createPublicPayrollWorld();
 	world.jurisdiction_settings[0].effective_range = { start: '2020-01-01', end: '2025-12-31' };
-	await assert.rejects(
-		prepare(world),
+	assert.throws(
+		() => prepare(world),
 		(error) =>
 			/Public Fixture Co operates under jurisdiction settings PF, which has no sealed version covering 2026-01-31/.test(
 				error.message
@@ -35,14 +32,14 @@ test('a period no sealed version covers is refused naming the company, its linea
 test('a draft never governs, whatever its range says', async () => {
 	const world = createPublicPayrollWorld();
 	world.jurisdiction_settings[0].sealed_at = null;
-	await assert.rejects(prepare(world), /has no sealed version covering/);
+	assert.throws(() => prepare(world), /has no sealed version covering/);
 });
 
 test('a voided version never governs again', async () => {
 	const world = createPublicPayrollWorld();
 	world.jurisdiction_settings[0].voided_at = '2026-01-15T00:00:00.000Z';
 	world.jurisdiction_settings[0].void_reason = 'wrong divisor';
-	await assert.rejects(prepare(world), /has no sealed version covering/);
+	assert.throws(() => prepare(world), /has no sealed version covering/);
 });
 
 test('the sealed version covering the period end is the one picked, and the run cites it', async () => {

@@ -16,7 +16,6 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	buildStatutory,
 	createStatutoryWorld,
@@ -24,8 +23,8 @@ import {
 	leaveCatalogue,
 	settingsVersions
 } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { gatherPayrollRun, buildPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { gatherPayrollRun, buildPayrollRun } from '../src/lib/payroll/run/engine.ts';
 
 const uuid = (n: number) => `a4000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
@@ -80,9 +79,11 @@ function cashOut(facts: Record<string, string | number>, houseAllowance = 0) {
 		payslip_id: null,
 		as_adjustment_entry: false
 	} as never);
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-06' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-06'
+	});
 	return () =>
 		buildPayrollRun(prepared).payslip_payroll_run[0]!.adjustments.find(
 			(row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT'

@@ -21,15 +21,15 @@ import { gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { assessStatutory, settingsVersions } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
-import { ordinaryDivisorDays } from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
+import { ordinaryDivisorDays } from '../src/lib/payroll/run/ordinary-rate.ts';
 import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
 
 const person = (paid_rest_days: boolean, payroll_group: string | null = null) =>
 	personContext({
 		employee: null,
 		employment: { service_start: '2020-01-01' },
-		terms: { base_salary: { value: 30_000, currency: 'PHP' }, paid_rest_days, payroll_group },
+		terms: { base_salary: 30_000, currency: 'PHP', paid_rest_days, payroll_group },
 		week: { ordinary_hours_per_week: 40, working_days_per_week: 5 },
 		asOf: '2026-06-30'
 	});

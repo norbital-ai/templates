@@ -18,7 +18,7 @@ import {
 	entryLimitRefusal,
 	resolveEntryLimit,
 	type LimitSibling
-} from '../src/collections/payroll_runs/lib/entry-cap.ts';
+} from '../src/lib/payroll/run/entry-cap.ts';
 
 const COMPONENT = { family: 'CLAIM', code: 'MEDICAL' };
 const EMPLOYMENT = 'employment-1';

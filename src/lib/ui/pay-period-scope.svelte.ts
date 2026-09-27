@@ -5,13 +5,13 @@
  * one — and each needs the period, whether halves are offered, and the dates whose entries settle
  * in it. One owner, so the four pages cannot drift.
  */
-import { decodeNumber } from '@norbital-ai/std/json';
-import { payPeriodWindow } from '../../collections/payroll_runs/lib/period.js';
-import { dayWindowInstantBounds, periodInCompanyGrammar, todayKey } from './calendar.js';
+import { PlainDate } from '@norbital-ai/std/date';
+import { payPeriodWindow } from '../../lib/payroll/run/period.js';
+import { periodInCompanyGrammar, todayKey } from './calendar.js';
 
 type PayGridCompany = {
 	readonly pay_frequency: string;
-	readonly pay_cutoff_day: unknown;
+	readonly pay_cutoff_day: number | null;
 };
 
 export function createPayPeriodScope(company: () => PayGridCompany | null | undefined) {
@@ -21,22 +21,18 @@ export function createPayPeriodScope(company: () => PayGridCompany | null | unde
 		const row = company();
 		if (row == null) return null;
 		try {
-			return payPeriodWindow(period, {
+			const { start, end } = payPeriodWindow(period, {
 				pay_frequency: row.pay_frequency,
-				pay_cutoff_day: decodeNumber(row.pay_cutoff_day)
+				pay_cutoff_day: row.pay_cutoff_day ?? 0
 			});
+			return { start: PlainDate(start), end: PlainDate(end) };
 		} catch {
 			return null;
 		}
 	});
-	const bounds = $derived(window == null ? null : dayWindowInstantBounds(window));
 	return {
 		get period() {
 			return period;
-		},
-		/** The window as query instants: inclusive `start`, exclusive `end`. Filter with gte / lt. */
-		get bounds() {
-			return bounds;
 		},
 		get halves() {
 			return company()?.pay_frequency === 'SEMI_MONTHLY';
@@ -44,7 +40,7 @@ export function createPayPeriodScope(company: () => PayGridCompany | null | unde
 		get weeks() {
 			return company()?.pay_frequency === 'WEEKLY';
 		},
-		/** The `start`..`end` days whose entries settle in the period, or null without an entity. */
+		/** The `start`..`end` days (both inclusive) whose entries settle in the period, or null without an entity. */
 		get window() {
 			return window;
 		},

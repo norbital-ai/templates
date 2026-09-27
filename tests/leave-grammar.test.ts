@@ -647,18 +647,21 @@ test('a part-paid row deducts the unpaid share, a fund-paid row the whole day, a
 			entry(82, rows.PAID, ['2026-04-03'])
 		],
 		catalogues: Object.values(rows),
-		captures: []
+		captures: [],
+		schemes: []
 	};
 	const prepared = withLeaveDeductionEligibility(gathered, {
 		employment: context.employments[0]!,
+		servicePeriods: [{ start: '2026-01-01', end: null }],
 		employee: employee as never,
-		company: {
-			id: id(3),
-			name: 'Fixture',
-			settings_code: 'TEST',
-			region: null,
-			facts: {}
+		configuration: {
+			company: { id: id(3), name: 'Fixture', settings_code: 'TEST', region: null, facts: {} },
+			recordedCompanyFacts: {},
+			companyFactRevisions: [],
+			lineageVersions: context.versions,
+			contributions: []
 		} as never,
+		statutoryFacts: [],
 		terms: [term as never]
 	});
 	assert.deepEqual(prepared.deductionShare, {

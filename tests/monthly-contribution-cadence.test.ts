@@ -1,17 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { COMPANY_ID, createStatutoryWorld } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { COMPANY_ID, createStatutoryWorld, settingsIdOn } from './fixtures/statutory-world.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { addUnpaidWorkingDays } from './fixtures/unpaid-leave.ts';
-import { weeklyInstalments } from '../src/collections/payroll_runs/lib/period.ts';
+import { weeklyInstalments } from '../src/lib/payroll/run/period.ts';
 
 function settlePeriod(world: PayrollWorld, period: string) {
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-	);
+	const prepared = gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period });
 	const built = buildPayrollRun(prepared);
 	world.payroll_runs.push({
 		id: period,
@@ -90,7 +87,7 @@ for (const cutoff of ['FIRST', 'SPLIT', 'LAST'])
 			});
 			world.companies[0]!.semi_monthly_statutory_cutoff = cutoff;
 			const bonus = world.adhoc_catalogue!.find(
-				(row) => row.code === 'bonus' && row.settings_id === '1fcfa66f-40da-5792-b925-7c2fcaa8f92c'
+				(row) => row.code === 'bonus' && row.settings_id === settingsIdOn('TW', '2026-01-15')
 			)!;
 			for (const [index, date] of ['2026-01-10', '2026-01-20'].entries())
 				world.adhoc_requests!.push({
@@ -326,8 +323,7 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 			if (code === 'SG')
 				for (const world of [monthly, split]) {
 					const bonus = world.adhoc_catalogue!.find(
-						(row) =>
-							row.code === 'bonus' && row.settings_id === 'e363af9a-a034-59f7-84bf-5052f57ecae5'
+						(row) => row.code === 'bonus' && row.settings_id === settingsIdOn('SG', '2026-01-15')
 					)!;
 					world.adhoc_requests!.push({
 						id: 'd0000000-0000-4000-8000-0000000000b1',
@@ -413,9 +409,11 @@ for (const [wage, expected] of [
 		world.companies[0]!.semi_monthly_statutory_cutoff = 'SPLIT';
 		const totals = new Map<string, [number, number]>();
 		for (const period of ['2026-02-1', '2026-02-2']) {
-			const prepared = Effect.runSync(
-				gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-			);
+			const prepared = gatherPayrollRun({
+				world: payrollWorld(world),
+				companyId: COMPANY_ID,
+				period
+			});
 			const built = buildPayrollRun(prepared);
 			world.payroll_runs.push({ id: period, company_id: COMPANY_ID, period });
 			for (const slip of built.payslip_payroll_run) {

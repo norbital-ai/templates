@@ -21,10 +21,134 @@ import {
 	expectStatutorySkipped,
 	assertEveryVersionPriced,
 	leaveCatalogue,
+	settingsVersions,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
+
+const sgSettingsId = (date: string) =>
+	settingsVersions('SG').find(
+		(row) =>
+			row.effective_range.start.slice(0, 10) <= date &&
+			(row.effective_range.end == null || date < row.effective_range.end.slice(0, 10))
+	)!.id;
+
+test('Singapore — an unrelated employer does not consume this employer’s CPF AW ceiling, while an approved related transfer does', () => {
+	const versions = {
+		'2025-12': sgSettingsId('2025-12-15'),
+		'2026-12': sgSettingsId('2026-12-15')
+	};
+	type Opening = {
+		readonly year: string;
+		readonly base: number;
+		readonly ordinary?: number;
+		readonly employee: number;
+		readonly employer: number;
+		readonly reference: string;
+		readonly origin?: 'CURRENT_EMPLOYER' | 'OTHER_EMPLOYER' | 'APPROVED_RELATED_EMPLOYER';
+		readonly board_approval_reference?: string;
+		readonly employers_related?: boolean;
+		readonly employee_informed?: boolean;
+		readonly terms_unchanged?: boolean;
+		readonly transferred_employee?: boolean;
+	};
+	const charge = (period: '2025-12' | '2026-12', opening?: readonly Opening[]) => {
+		const wage = period === '2025-12' ? 7400 : 8000;
+		const { slips } = buildStatutory(
+			{
+				code: 'SG',
+				period,
+				people: [
+					{
+						key: 'CPF-AW-TRANSFER',
+						wage,
+						age: 30,
+						citizenship: 'CITIZEN',
+						hire_date: `${period.slice(0, 4)}-01-01`,
+						...(opening == null ? {} : { registrations: { CPF: { kind: 'REGISTERED', opening } } })
+					}
+				]
+			},
+			(world) => {
+				const bonus = world.adhoc_catalogue!.find(
+					(row) => row.code === 'bonus' && row.settings_id === versions[period]
+				)!;
+				world.adhoc_requests!.push({
+					id: 'd0000000-0000-4000-8000-0000000000d1',
+					employment_id: world.employments[0]!.id,
+					catalogue_id: bonus.id,
+					amount: 20_000,
+					event_date: `${period}-15`,
+					pay_period: null,
+					payslip_id: null,
+					reason: 'December bonus',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		);
+		const cpf = slips.get('CPF-AW-TRANSFER')!.statutory.find((row) => row.scheme_code === 'CPF')!;
+		return [cpf.base_amount, cpf.employee_amount, cpf.employer_amount];
+	};
+	for (const [period, full] of [
+		['2025-12', [27_400, 5480, 4658]],
+		['2026-12', [28_000, 5600, 4760]]
+	] as const) {
+		const prior: Opening = {
+			year: period.slice(0, 4),
+			base: 90_000,
+			ordinary: 90_000,
+			employee: 18_000,
+			employer: 15_300,
+			reference: 'Employer CPF statement'
+		};
+		assert.deepEqual(charge(period), full);
+		assert.deepEqual(
+			charge(period, [
+				{ ...prior, base: 0, ordinary: 0, employee: 0, employer: 0, origin: 'CURRENT_EMPLOYER' }
+			]),
+			full
+		);
+		assert.deepEqual(charge(period, [{ ...prior, origin: 'OTHER_EMPLOYER' }]), full);
+		assert.deepEqual(
+			charge(period, [{ ...prior, origin: 'CURRENT_EMPLOYER' }]),
+			[12_000, 2400, 2040]
+		);
+		assert.deepEqual(
+			charge(period, [
+				{ ...prior, base: 45_000, ordinary: 45_000, origin: 'CURRENT_EMPLOYER' },
+				{ ...prior, base: 45_000, ordinary: 45_000, origin: 'CURRENT_EMPLOYER' }
+			]),
+			[12_000, 2400, 2040]
+		);
+		assert.deepEqual(
+			charge(period, [
+				{
+					...prior,
+					origin: 'APPROVED_RELATED_EMPLOYER',
+					board_approval_reference: 'CPF-BOARD-APPROVAL',
+					employers_related: true,
+					employee_informed: true,
+					terms_unchanged: true,
+					transferred_employee: true
+				}
+			]),
+			[12_000, 2400, 2040]
+		);
+		assert.throws(() => charge(period, [prior]), /classify each opening/);
+		const { ordinary: _ordinary, ...withoutOrdinary } = prior;
+		assert.throws(
+			() => charge(period, [{ ...withoutOrdinary, origin: 'CURRENT_EMPLOYER' }]),
+			/requires the ordinary wage/
+		);
+		assert.throws(
+			() => charge(period, [{ ...prior, origin: 'APPROVED_RELATED_EMPLOYER' }]),
+			/Board approval and transfer conditions/
+		);
+	}
+});
 
 test('Singapore — CPF across the age ladder and the ordinary-wage ceiling', () => {
 	const book = assessStatutory({
@@ -383,7 +507,8 @@ const punch = (
 	date: string,
 	start: string,
 	end: string,
-	requestedBy: 'EMPLOYER' | 'EMPLOYEE' | null = null
+	requestedBy: 'EMPLOYER' | 'EMPLOYEE' | null = null,
+	comparableHours: number | null = null
 ) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
 	world.work_days.push({
@@ -392,6 +517,7 @@ const punch = (
 		work_date: date,
 		shift_definition_id: null,
 		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		comparable_full_time_daily_hours: comparableHours,
 		requested_by: requestedBy,
 		approval_id: null
 	});
@@ -602,7 +728,7 @@ test('Singapore — the normal day is nine hours on a five-day week (s.38(1)), a
 });
 
 test('Singapore — a bonus is an Additional Wage under the 102,000 ceiling, and an Employment Pass holder is inside SINDA', () => {
-	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const SG_VERSION = sgSettingsId('2026-01-15');
 	const { slips } = buildStatutory(
 		{
 			code: 'SG',
@@ -666,7 +792,7 @@ test('Singapore — a bonus is an Additional Wage under the 102,000 ceiling, and
 });
 
 test('Singapore — the AW ceiling is a running annual figure: OW to date, this month included, and AW already subject', () => {
-	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const SG_VERSION = sgSettingsId('2026-02-15');
 	// January stood: OW 6,000, AW 96,000 subject (the golden above). A 10,000 bonus in February:
 	// the room is 102,000 − (6,000 + 6,000) − 96,000 = −6,000 → nothing more is subject, and the
 	// base is February's OW alone.
@@ -915,7 +1041,7 @@ test('Singapore — a standing allowance is wages: prorated like the salary, and
 	// CPF Act 1953 s.2: "wages" is all remuneration in money, allowances included; the SDL Order
 	// and the self-help-group schedules read total wages. March 2026 has 22 working days; a $440
 	// transport allowance is $20 a working day on the same WORKING_DAYS basis as the salary.
-	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const SG_VERSION = sgSettingsId('2026-03-15');
 	const TRANSPORT = 'c1c1c1c1-0000-4000-8000-000000000011';
 	const { slips, allowances } = buildStatutory(
 		{
@@ -993,7 +1119,7 @@ test('Singapore — the lineage carries a no-pay leave row, and a day of it come
 	// working days in the month. February 2026 has 20; one day of $3,300 is $165.00 off, and CPF
 	// reads the reduced wage (3,135: 627 / 1,159.95 → 1,160 / 533). The row is the bank's own
 	// `UNPAID_LEAVE`, one per sealed version, so no operator has to invent it.
-	const version = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const version = sgSettingsId('2026-02-15');
 	const rows = leaveCatalogue('SG').filter((row) => row.settings_id === version);
 	const npl = rows.find((row) => row.code === 'UNPAID_LEAVE')!;
 	assert.ok(npl, 'the SG lineage carries an UNPAID_LEAVE row');
@@ -1072,7 +1198,7 @@ test('every sealed version of `SG` is priced by a golden here', () => {
 });
 
 test('Singapore — December trues the AW ceiling up on the year’s actual OW (CPF Board, AW ceiling examples, Step 2)', () => {
-	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const SG_VERSION = sgSettingsId('2026-12-15');
 	// January: OW 8,000 (the ceiling) and a 150,000 bonus. The Step 1 estimate took the year's OW
 	// as 8,000 × 12 = 96,000, so 6,000 of the bonus was subject. The OW then fell to 6,000, and by
 	// November the year's OW stood at 8,000 + 6,000 × 10 = 68,000 with 6,000 of AW subject
@@ -1158,7 +1284,7 @@ test('Singapore — a five-hour contracted day is half a day (s.20A(2)), but a p
 });
 
 test('Singapore — the AW estimate takes the monthly OW for the payslips remaining, not a joiner’s prorated month (CPF Board, Step 1)', () => {
-	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const SG_VERSION = sgSettingsId('2026-02-15');
 	// A joiner on Monday 16 February at 8,000 works ten of the month's twenty days: OW 4,000. A
 	// 100,000 sign-on bonus is an Additional Wage; the Board estimates the year's OW as the
 	// monthly OW (8,000, at the ceiling) over the eleven payslips left in the year — 88,000, so
@@ -1194,7 +1320,7 @@ test('Singapore — the AW estimate takes the monthly OW for the payslips remain
 });
 
 test('Singapore — a December true-up never goes below zero: an over-contribution is the Board’s refund, not a payslip credit', () => {
-	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const SG_VERSION = sgSettingsId('2026-12-15');
 	// January: OW 6,000 and a 100,000 bonus, estimated on 6,000 × 12 = 72,000 — 30,000 subject.
 	// The OW then rose to 8,000: by November the year's OW is 6,000 + 8,000 × 10 = 86,000 (base
 	// 116,000). December's OW is 8,000: the year's OW 94,000 leaves 8,000 of ceiling, so only
@@ -1274,6 +1400,118 @@ test('Singapore — a part-timer’s hours beyond their own day up to a full-tim
 		['2026-01-05', 'PT-1.0X', 5, 60],
 		['2026-01-05', 'PT-1.5X', 1, 18]
 	]);
+});
+
+test('Singapore — part-time overtime uses the dated comparable day and absent fallback', () => {
+	// MOM's regulation 5 example: hours 5–8 at the basic hourly rate and hour 9 at 1.5×.
+	const SHORT_ID = 'c0000000-0000-4000-8000-0000000000f2';
+	const run = (
+		comparable: number | null,
+		end = '18:00',
+		presence: 'PRESENT' | 'ABSENT' | null = 'PRESENT',
+		dayComparable: number | null = null
+	) =>
+		buildStatutory(
+			{
+				code: 'SG',
+				period: '2026-01',
+				people: [
+					{
+						key: 'SG-PT-8',
+						wage: 1040,
+						citizenship: 'CITIZEN',
+						employment_type: 'PART_TIME',
+						comparable_full_time_daily_hours: comparable,
+						comparable_full_time_presence: presence
+					}
+				]
+			},
+			(world) => {
+				world.shift_definitions.push({
+					...world.shift_definitions[0]!,
+					id: SHORT_ID,
+					code: 'HALF',
+					name: 'Half day',
+					variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 }
+				});
+				const pattern = world.shift_patterns[0]!;
+				pattern.pattern.days = pattern.pattern.days.map((day: { roster_code_id: string }) =>
+					day.roster_code_id === world.shift_definitions[0]!.id ? { roster_code_id: SHORT_ID } : day
+				);
+				punch(world, 'SG-PT-8', '2026-01-05', '09:00', end, null, dayComparable);
+			}
+		);
+	assert.deepEqual(workLines(run(8).slips.get('SG-PT-8')!), [
+		['2026-01-05', 'PT-1.0X', 4, 48],
+		['2026-01-05', 'PT-1.5X', 1, 18]
+	]);
+	assert.deepEqual(workLines(run(9, '18:00', 'PRESENT', 8).slips.get('SG-PT-8')!), [
+		['2026-01-05', 'PT-1.0X', 4, 48],
+		['2026-01-05', 'PT-1.5X', 1, 18]
+	]);
+	assert.deepEqual(workLines(run(null, '18:00', 'PRESENT', 8).slips.get('SG-PT-8')!), [
+		['2026-01-05', 'PT-1.0X', 4, 48],
+		['2026-01-05', 'PT-1.5X', 1, 18]
+	]);
+	assert.deepEqual(workLines(run(8, '19:00').slips.get('SG-PT-8')!), [
+		['2026-01-05', 'PT-1.0X', 4, 48],
+		['2026-01-05', 'PT-1.5X', 2, 36]
+	]);
+	assert.deepEqual(workLines(run(null, '18:00', 'ABSENT').slips.get('SG-PT-8')!), [
+		['2026-01-05', 'PT-1.0X', 4, 48],
+		['2026-01-05', 'PT-1.5X', 1, 18]
+	]);
+	assert.throws(() => run(null), /comparable full-time employee’s normal daily hours are required/);
+	assert.throws(
+		() => run(8, '18:00', null),
+		/comparable full-time employee’s normal daily hours are required/
+	);
+	assert.throws(
+		() => run(8, '18:00', 'ABSENT'),
+		/declared absence of a comparable full-time employee conflicts/
+	);
+	assert.throws(
+		() => run(null, '18:00', 'ABSENT', 8),
+		/declared absence of a comparable full-time employee conflicts/
+	);
+});
+
+test('Singapore — a PART_TIME label on a 40-hour contract refuses before pricing the hourly rate', () => {
+	assert.throws(
+		() =>
+			buildStatutory({
+				code: 'SG',
+				period: '2026-01',
+				people: [
+					{ key: 'SG-MISLABEL', wage: 1040, citizenship: 'CITIZEN', employment_type: 'PART_TIME' }
+				]
+			}),
+		/part-time status conflicts with contracted weekly hours/
+	);
+});
+
+test('Singapore — the sealed part-time boundary is below 35 contracted hours', () => {
+	const run = (type: 'PART_TIME' | 'PERMANENT', hours: number) =>
+		buildStatutory(
+			{
+				code: 'SG',
+				period: '2026-01',
+				people: [{ key: 'SG-BOUNDARY', wage: 1040, citizenship: 'CITIZEN', employment_type: type }]
+			},
+			(world) => {
+				world.employment_terms[0]!.ordinary_hours_per_week = hours;
+			}
+		);
+	assert.doesNotThrow(() => run('PART_TIME', 34.5));
+	assert.doesNotThrow(() => run('PERMANENT', 35));
+	assert.throws(
+		() => run('PERMANENT', 20),
+		/part-time status conflicts with contracted weekly hours/
+	);
+	assert.throws(
+		() => run('PART_TIME', 35),
+		/part-time status conflicts with contracted weekly hours/
+	);
 });
 
 test('Singapore — cash allowances, expense refunds, overtime and leave conversion use their distinct wage bases', () => {

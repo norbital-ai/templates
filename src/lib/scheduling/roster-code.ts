@@ -1,13 +1,11 @@
-import { Effect, Schema } from 'effect';
-import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
-import { rosterCodeVariantValueSchema } from '../../datatypes/roster_code_variant/+definition.js';
+import type { RosterCodeVariant } from '../datatypes/roster_code_variant.js';
 
 const MINUTES_PER_DAY = 24 * 60;
 
 export type RosterCodeLike = {
 	readonly id?: string | undefined;
 	readonly code: string;
-	readonly variant: Schema.Schema.Type<typeof rosterCodeVariantValueSchema>;
+	readonly variant: RosterCodeVariant;
 };
 
 export type WorkWindow = {
@@ -23,7 +21,7 @@ export type WorkWindow = {
 export function clockMinutes(value: string): number {
 	const match = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/.exec(value);
 	if (match == null) throw new Error(`"${value}" is not a wall-clock time.`);
-	return Number(match[1]) * 60 + Number(match[2]);
+	return Number.parseInt(match[1]!, 10) * 60 + Number.parseInt(match[2]!, 10);
 }
 
 /**
@@ -86,12 +84,12 @@ function clockFromMinutes(minutes: number): string {
 export function workWindowHalves(
 	value: RosterCodeVariant | null | undefined
 ): { readonly span: string; readonly first: string; readonly second: string } | null {
-	const window = Effect.runSync(
-		Effect.orElseSucceed(
-			Effect.try(() => workWindow(value)),
-			() => null
-		)
-	);
+	let window: WorkWindow | null;
+	try {
+		window = workWindow(value);
+	} catch {
+		return null;
+	}
 	if (window == null) return null;
 	const start = clockMinutes(window.start_time);
 	const midpoint = clockFromMinutes(start + Math.floor(window.elapsed_minutes / 2));

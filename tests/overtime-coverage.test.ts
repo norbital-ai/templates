@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	classifyWageComparand,
-	deriveStatutoryWages
-} from '../src/collections/payroll_runs/lib/statutory-wages.ts';
+	deriveStatutoryWages,
+	FIRST_SCHEDULE_WAGES
+} from '../src/lib/payroll/run/statutory-wages.ts';
 import {
 	compileEligibility,
 	isEligible,
 	personContext
-} from '../src/collections/payroll_runs/lib/eligibility.ts';
+} from '../src/lib/payroll/run/eligibility.ts';
 
 /**
  * Who the overtime ladder covers is the version's own `overtime_when`, a boolean over the person
@@ -78,23 +79,29 @@ test('an unclassified person falls through to the wage test', () => {
 
 // ── the comparand: s.2 wages, classified from the component model ────────────────────────────
 
-const component = (destination, direction, source) => ({
+const component = (destination, direction, source, counts_toward = []) => ({
 	destination,
 	direction,
-	definition: source == null ? null : { source }
+	definition: source == null ? null : { source },
+	counts_toward
 });
 
 test('the comparand classification is the statute read against what a component can say', () => {
-	// s.2: basic wages AND all other cash payments for work done; para 3 lessens that by overtime
-	// payment. The catalogue spine names the first two: the schedule source is the contracted basic
-	// wage and a PAY/ADD line is any other cash payment. Para 3's overtime exclusion needs no
-	// category, because overtime is not a component at all — it is derived from the clocks and the
-	// ladder, so it is never in the set being classified and cannot enter the comparand to begin with.
+	// Section 2 cash wages are broader than the First Schedule paragraph 3 comparand. A catalogue
+	// must explicitly mark a cash class for this comparand; WAGES alone is not enough for commission.
 	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'SCHEDULE')), 'BASIC_WAGES');
-	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'ENTRY')), 'CASH_FOR_WORK');
+	assert.equal(
+		classifyWageComparand(component('PAY', 'ADD', 'ENTRY', [FIRST_SCHEDULE_WAGES])),
+		'CASH_FOR_WORK'
+	);
+	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'ENTRY', ['WAGES'])), 'NOT_WAGES');
+	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('NET', 'ADD', 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('NET', 'SUBTRACT', 'ENTRY')), 'NOT_WAGES');
-	assert.equal(classifyWageComparand(component('PAY', 'SUBTRACT', 'ENTRY')), 'NOT_WAGES');
+	assert.equal(
+		classifyWageComparand(component('PAY', 'SUBTRACT', 'ENTRY', [FIRST_SCHEDULE_WAGES])),
+		'NOT_WAGES'
+	);
 	assert.equal(classifyWageComparand(component('DISPLAY', null, 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('EMPLOYER', null, 'ENTRY')), 'NOT_WAGES');
 });

@@ -46,8 +46,8 @@ test('keeps authored amounts on write and assigns a new line after the last sequ
 	assert.equal(next.amount_due, null);
 	assert.deepEqual(loanScheduleActions([...stored, next], new Set(['r1', 'gone'])), {
 		create: [{ sequence: 2 }],
-		update: [{ id: 'r1', set: { due_date: '2026-01-15', amount_due: 700, sequence: 1 } }],
-		delete: [{ id: 'gone' }]
+		update: [{ target: 'r1', set: { due_date: '2026-01-15', amount_due: 700, sequence: 1 } }],
+		delete: ['gone']
 	});
 });
 

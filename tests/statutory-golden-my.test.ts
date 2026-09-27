@@ -205,7 +205,7 @@ test('Malaysia — declared relief categories remain separate from recorded fami
 	expectStatutory(book, 'MY-UNCLASSED', 'PCB', 109.9, 0);
 });
 
-test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
+test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the January 2026 law', () => {
 	const book = assessStatutory({
 		code: 'MY',
 		period: '2026-01',
@@ -281,10 +281,8 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
 	expectStatutory(book, 'MY-PR-60', 'EPF_PR', 281, 306);
 	expectStatutorySkipped(book, 'MY-PR-60', 'EPF');
 	// Part F — a non-citizen, 2% each on the wage as it stands, no bracket table and no ceiling.
-	// Part F para 2: "the total contribution which includes cents shall be rounded to the next
-	// ringgit" — 4% × 5,001 = 200.04 → 201; the employee's 100.02 → 101 and the employer carries
-	// the rest, 100. Two separate round-ups would over-collect a ringgit.
-	expectStatutory(book, 'MY-FOREIGN', 'EPF_NON_CITIZEN', 101, 100);
+	// Specific KWSP foreign-worker FAQ: 5,001 × 2% = 100.02 → 101 for each share.
+	expectStatutory(book, 'MY-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
 	// EPF Act First Schedule para (13): at seventy-five the person is outside the Act — no Part F
 	// row at all, not a zero one.
 	expectStatutorySkipped(book, 'MY-FOREIGN-75', 'EPF_NON_CITIZEN');
@@ -550,8 +548,8 @@ test('Malaysia — a non-resident PCB override is a flat 30% without resident re
 	// The redundant matching override does not replace that declaration. 5,001×30%=1,500.30.
 	expectStatutory(book, 'MY-NR', 'PCB', 1500.3, 0);
 	// The rest of the statute prices them as the foreign worker they are: Part F EPF, 2% each,
-	// the total rounded up (201) and split 101 / 100.
-	expectStatutory(book, 'MY-NR', 'EPF_NON_CITIZEN', 101, 100);
+	// each share rounded up independently to 101.
+	expectStatutory(book, 'MY-NR', 'EPF_NON_CITIZEN', 101, 101);
 });
 
 test('MY-nihon prices the same statute as MY', () => {
@@ -623,7 +621,7 @@ test('MY-nihon carries Malaysia’s two later sealed versions, SKBBK seams and a
 	expectStatutory(july, 'N-5001', 'EPF', 561, 612);
 	expectStatutory(july, 'N-5001', 'SOCSO', 25.25, 88.35);
 	expectStatutory(july, 'N-5001', 'EIS', 10.1, 10.1);
-	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 101, 100);
+	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
 });
 
 test('Malaysia — the Third Schedule brackets a wage in tens, then twenties, then hundreds', () => {
@@ -1045,7 +1043,8 @@ test('MY overtime uses the salary on the worked day across a mid-month pay rise'
 			world.employment_terms.push({
 				...old,
 				id: 'b0000000-0000-4000-8000-000000001234',
-				base_salary: { value: 3120, currency: 'MYR' },
+				base_salary: 3120,
+				currency: 'MYR',
 				effective_range: { start: '2026-01-10', end: null }
 			});
 			old.effective_range = { start: '2015-01-01', end: '2026-01-09T23:59:59.999Z' };
@@ -1276,7 +1275,8 @@ test('Malaysia — the normal day is at most nine hours under the s.60A(1) provi
 				employment_id: daily.id,
 				period: { start: '2025-12-01T00:00:00.000Z', end: '2025-12-31T00:00:00.000Z' },
 				normal_wages: null,
-				ordinary_wages: { currency: 'MYR', value: 2600 },
+				currency: 'MYR',
+				ordinary_wages: 2600,
 				ordinary_days: 26,
 				due_on: '2026-01-07',
 				paid_on: null,
@@ -1322,6 +1322,20 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			26.65,
 			0
 		);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — December 2025 non-citizen EPF Part F rounds each 2% share up`, () => {
+		// KWSP's Part F example: RM1,751 × 2% = RM35.02, rounded up separately
+		// for worker and employer to RM36 each, effective since October 2025.
+		const book = assessStatutory({
+			code,
+			period: '2025-12',
+			people: [
+				{ key: 'DEC-FOREIGN', wage: 1751, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
+			]
+		});
+		expectStatutory(book, 'DEC-FOREIGN', 'EPF_NON_CITIZEN', 36, 36);
 	});
 
 test('every sealed version of `MY` and `MY-nihon` is priced by a golden here', () => {
@@ -1591,8 +1605,10 @@ test('Malaysia — the termination benefit counts a part year to the nearest mon
 				(row) =>
 					row.code === 'TERMINATION_BENEFIT' &&
 					row.settings_id ===
-						settingsVersions('MY').find((v) =>
-							String(v.effective_range.start).startsWith('2025-12')
+						settingsVersions('MY').find(
+							(v) =>
+								String(v.effective_range.start) <= '2026-01-31' &&
+								(v.effective_range.end == null || String(v.effective_range.end) > '2026-01-31')
 						)!.id
 			)!;
 			const employment = world.employments.find((row) => row.employee_number === 'MY-REDUNDANT')!;

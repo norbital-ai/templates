@@ -1,41 +1,26 @@
+import { PlainDate } from '@norbital-ai/std/date';
+import type { MessageKey, t } from '../t.js';
 /**
- * One person-day, assembled from every source that has an opinion about it.
- *
- * A `work_days` row says what was *planned* and whether the person *appeared*; leave and the
- * holiday calendar say why an empty day is empty. Shown separately these are screens nobody
- * cross-references, which is how a rostered shift with no attendance stays invisible until payroll.
- * Merged into one cell they answer the question an operator actually has: is this day settled, and
- * if not, what is wrong with it.
- *
- * The plan and the clock used to be two collections and are one row now, which is why there is one
- * index below where there were two. Their absence still means two different things: a day with no
- * `shift_definition_id` carries no plan, and a day whose `worked_intervals` is NULL has no
- * attendance at all — an empty array is a day that was read and had nothing worked.
- *
- * A public holiday is NOT one of those answers. It is a property of the calendar rather than of one
- * person's roster — `work_days` has no holiday arm for the same reason — so it is carried here
- * as an overlay on the date and drawn as a column of the board, leaving each cell free to keep
- * saying what that person's day is. A holiday that replaced the cell would hide whether the person
- * was rostered to work it and whether they turned up, which is precisely what an operator needs to
- * know about a holiday.
- *
- * Display only. Nothing here prices anything — the payroll engine resolves day types itself from the
- * same rows, and `docs/architecture.md` is the authority on how.
+ * One person-day, assembled from every source that has an opinion about it: the `work_days` row
+ * (plan and clock; no `shift_definition_id` is no plan, NULL `worked_intervals` no attendance, `[]`
+ * read and empty), leave, and the holiday calendar — drawn as a column overlay, so the cell still
+ * says whether the person was rostered and turned up. Display only; payroll resolves day types
+ * itself (`docs/architecture.md`).
  */
 
-import { Schema } from 'effect';
-import { leaveChargesValueSchema } from '../../../datatypes/leave_charges/+definition.js';
+import type { LeaveCharge } from '../../datatypes/leave_charges.js';
 import { periodDayRange, startOfDayInstant } from '../calendar.js';
-import { periodMonth } from '../../../collections/payroll_runs/lib/dates.js';
+import { periodMonth } from '../../../lib/payroll/run/dates.js';
+import { coversDate, readRange } from '../../../lib/payroll/run/effective.js';
 import { PAYROLL_TIME_ZONE, dateKey } from '../../iso-day.js';
-import { formatDateISO } from '@norbital-ai/std/date';
-import { decodeNumber } from '@norbital-ai/std/json';
+import { formatDateISO } from '../../iso-day.js';
+import { decodeNumber } from '../../wire.js';
 
 import { attendanceBoundary, workedMinutes } from '../../attendance.js';
 import { derivedBreakMinutes } from '../../scheduling/rest-break.js';
-import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
-import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
-import { rosterCodeVariantValueSchema } from '../../../datatypes/roster_code_variant/+definition.js';
+type WorkedInterval = { readonly start: string; readonly end: string | null };
+import type { WorkPattern } from '../../datatypes/work_pattern.js';
+import type { RosterCodeVariant } from '../../datatypes/roster_code_variant.js';
 import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
 import {
 	patternAnchor,
@@ -48,11 +33,10 @@ import {
 	type SettlementClaim,
 	type SourceLock
 } from '../../scheduling/lock.js';
-import type { I18nApi } from '@norbital-ai/ui/i18n';
-import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
 /** The translation callback a display helper takes, so it stays locale-reactive at the call site. */
-export type Translator = I18nApi<TenantI18nKeys>['t'];
+/** A message catalogue lookup: `bolt.t`, or a test's stand-in. */
+export type Translator = typeof t;
 
 /**
  * The key every person-day map in this module is written and read by.
@@ -208,22 +192,18 @@ export type DayFacts = {
 /** A stored instant as every board data source reads it: one ISO-string record shape. */
 type CalendarInstant = string;
 
-/** The one effective-range shape every effective-dated row carries. */
-type EffectiveRangeLike = {
-	readonly start?: CalendarInstant | undefined;
-	readonly end?: CalendarInstant | null | undefined;
-};
-
 type EmploymentMonthLike = {
 	readonly id: string;
-	readonly effective_range: EffectiveRangeLike | null;
+	/** A stored period: 0.0.1 `{ from, to }` or the bank's `{ start, end }` (`readRange` reads both). */
+	readonly effective_range: unknown;
 };
 
 /** The named pattern as it rides an `employment_terms` read: `with: { term_shift_pattern }`. */
 type ShiftPatternLike = {
 	readonly id: string;
 	readonly code: string;
-	readonly pattern: Schema.Schema.Type<typeof workPatternValueSchema>;
+	readonly pattern: WorkPattern;
+	readonly effective_range?: unknown | undefined;
 };
 
 /**
@@ -235,13 +215,14 @@ type EmploymentTermLike = {
 	readonly employment_id: string;
 	readonly shift_pattern_id: string | null;
 	readonly term_shift_pattern?: ShiftPatternLike | null | undefined;
-	readonly effective_range: EffectiveRangeLike | null;
+	/** A stored period: 0.0.1 `{ from, to }` or the bank's `{ start, end }` (`readRange` reads both). */
+	readonly effective_range: unknown;
 };
 
 /** A roster code as the board needs it: the display code and the variant it stands for. */
 type RosterCodeDisplayLike = {
 	readonly code: string;
-	readonly variant: Schema.Schema.Type<typeof rosterCodeVariantValueSchema>;
+	readonly variant: RosterCodeVariant;
 };
 
 /**
@@ -292,7 +273,7 @@ type LeaveRequestLike = {
 	readonly to_date: CalendarInstant | null;
 	readonly half_day_start: boolean | null;
 	readonly half_day_end: boolean | null;
-	readonly charges: Schema.Schema.Type<typeof leaveChargesValueSchema>;
+	readonly charges: readonly LeaveCharge[];
 };
 
 export type HolidayLike = {
@@ -312,23 +293,24 @@ export type HolidayLike = {
  * Every calendar day of a period, in order: the whole `YYYY-MM` month, or the 1st–15th / 16th–end
  * half a `-1` / `-2` suffix names. The board reads the entity's pay cycle, so its days do too.
  */
-export function monthDays(period: string): string[] {
+export function monthDays(period: string): PlainDate[] {
 	const month = periodMonth(period);
 	const { from, to } = periodDayRange(period);
-	return Array.from(
-		{ length: to - from + 1 },
-		(_value, index) => `${month}-${String(from + index).padStart(2, '0')}`
+	return Array.from({ length: to - from + 1 }, (_value, index) =>
+		PlainDate(`${month}-${String(from + index).padStart(2, '0')}`)
 	);
 }
 
 /** True when the employment exists for at least one calendar day in the selected month. */
 export function employmentOverlapsMonth(employment: EmploymentMonthLike, month: string): boolean {
 	const days = monthDays(month);
-	const start = employment.effective_range?.start;
+	const start = readRange(employment.effective_range)?.start;
 	if (start == null) return false;
 	const employmentStart = formatDateISO(start);
 	const employmentEnd =
-		employment.effective_range?.end == null ? null : formatDateISO(employment.effective_range.end);
+		readRange(employment.effective_range)?.end == null
+			? null
+			: formatDateISO(readRange(employment.effective_range)!.end!);
 	return (
 		employmentStart <= days[days.length - 1]! &&
 		(employmentEnd == null || employmentEnd >= days[0]!)
@@ -349,16 +331,16 @@ export function employmentMonthEmptyReason(
 	if (
 		employments.every(
 			(employment) =>
-				employment.effective_range?.end != null &&
-				formatDateISO(employment.effective_range.end) < first
+				readRange(employment.effective_range)?.end != null &&
+				formatDateISO(readRange(employment.effective_range)!.end!) < first
 		)
 	)
 		return 'ENDED';
 	if (
 		employments.every(
 			(employment) =>
-				employment.effective_range?.start != null &&
-				formatDateISO(employment.effective_range.start) > last
+				readRange(employment.effective_range)?.start != null &&
+				formatDateISO(readRange(employment.effective_range)!.start) > last
 		)
 	)
 		return 'NOT_STARTED';
@@ -383,14 +365,8 @@ function holidayAppliesToEveryone(holiday: Pick<HolidayLike, 'given_to'>): boole
 }
 
 /** Whether an effective-dated row covers a calendar day. Shared with the app's swap logic. */
-export function termCovers(
-	term: { readonly effective_range: { start?: string; end?: string | null } | null },
-	date: string
-): boolean {
-	if (term.effective_range?.start == null) return false;
-	const start = formatDateISO(term.effective_range.start);
-	const end = term.effective_range.end == null ? null : formatDateISO(term.effective_range.end);
-	return date >= start && (end == null || date <= end);
+export function termCovers(term: { readonly effective_range: unknown }, date: string): boolean {
+	return coversDate(term.effective_range, date);
 }
 
 function activeTerm(
@@ -462,7 +438,7 @@ type BuildRosterMonthOptions = {
 	readonly locks: ReadonlyMap<string, DayLock>;
 	readonly today: string;
 	/** The entity's business timezone (the version in force's `payroll.timezone`); clocks are read in it. */
-	readonly timeZone?: string;
+	readonly timeZone?: string | undefined;
 	/**
 	 * Each person's observed holidays, as payroll resolves them (`observedHolidays`). Where a person
 	 * has an entry, their cells read it — so a SUBSTITUTE carry and the rest-day precedence show as
@@ -700,13 +676,13 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
 	for (const employment of options.employments) {
 		const employmentId = employment.id;
 		const employmentStart =
-			employment.effective_range?.start == null
+			readRange(employment.effective_range)?.start == null
 				? null
-				: formatDateISO(employment.effective_range.start);
+				: formatDateISO(readRange(employment.effective_range)!.start);
 		const employmentEnd =
-			employment.effective_range?.end == null
+			readRange(employment.effective_range)?.end == null
 				? null
-				: formatDateISO(employment.effective_range.end);
+				: formatDateISO(readRange(employment.effective_range)!.end!);
 		for (const date of days) {
 			facts.set(
 				personDayKey(employmentId, date),
@@ -725,42 +701,14 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
 	return facts;
 }
 
-/* ────────────────────────────────────────────────────────────────────────────────────────────────
- * THE COLOUR BUDGET, and why it is three.
- *
- * Every status used to own a hue: amber unrostered, blue not-started, red exited, brand planned,
- * green attended, amber open, red absent, blue leave, grey rest, grey off. Ten fills, none of which
- * means anything until you have read the swatch that names it — so the board could not be read
- * without looking away from it, and the strip that named them ran to three wrapped lines. Colour was
- * being spent on IDENTITY, which is the one job a letter does better: `R`, `O`, `L` and a shift code
- * are already the words for those days, and a glyph needs no key at all.
- *
- * So identity moved onto channels that carry it for free:
- *
- *   GLYPH     which kind of day this is — `statusGlyph` / `planGlyph`, unchanged.
- *   DENSITY   one neutral at three strengths: outside the employment (faintest), a non-working day,
- *             a working day (no fill at all, so the month's working shape is what stands out).
- *   SHAPE     a dashed inset outline means "nothing has been assigned here" — an absence drawn as
- *             an absence of ink, which no fill can say.
- *
- * and colour was left to the facts that are genuinely about ALARM or OWNERSHIP rather than about
- * identity:
- *
- *   ATTENTION (warning)     a clock still running: somebody must close it.
- *   AWOL      (destructive) a reviewed-empty row on a WORK day: the person was expected and did
- *                           not appear, and payroll will dock the day. The owner asked for this in
- *                           the destructive colour, and a conflict dot shares the hue because both
- *                           are "this day is wrong", which is rare enough to be worth one red.
- *   PAYROLL   (brand)       the lock rail and the public-holiday column. Both are "something other
- *                           than the roster owns this", drawn on two channels that never collide.
- *
- * The three LAYERS of a day travel on SHAPE, never on colour (`resolveCellLayers` says which are
- * present): the base projection is muted text inside a dashed outline, an override is solid text
- * with a corner mark, and time entries are a bar under the code. A status therefore contributes AT
- * MOST a neutral density here. Anything louder is a separate table (`CONFLICT_PRESENTATION`,
- * `LOCK_RAIL_PRESENTATION`, `HOLIDAY_PRESENTATION`), because those axes cross a status rather than
- * replacing it: a day can be attended, on a holiday, and locked.
- * ──────────────────────────────────────────────────────────────────────────────────────────────── */
+/*
+ * The colour budget is three. Identity rides on glyph (`statusGlyph` / `planGlyph`), density (one
+ * neutral at three strengths) and shape (a dashed outline for nothing assigned). Colour is kept for
+ * alarm and ownership: a running clock (warning), AWOL on a work day and conflicts (destructive,
+ * the owner's call), and the payroll lock rail and holiday column (brand). A day's layers travel on
+ * shape (`resolveCellLayers`); the crossing axes are separate tables (`CONFLICT_PRESENTATION`,
+ * `LOCK_RAIL_PRESENTATION`, `HOLIDAY_PRESENTATION`).
+ */
 
 /**
  * How each status reads, and how loudly.
@@ -773,7 +721,7 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
  */
 const STATUS_PRESENTATION: Record<
 	DayStatus,
-	{ readonly labelKey: TenantI18nKeys; readonly className: string }
+	{ readonly labelKey: MessageKey; readonly className: string }
 > = {
 	/**
 	 * No fill and no outline: a hole in the plan, drawn as a hole. A fill would say something had
@@ -820,48 +768,33 @@ const STATUS_PRESENTATION: Record<
  * character `statusGlyph` / `planGlyph` / `actualMark` emit, so the two cannot drift without this
  * list being edited too.
  */
-export const DAY_MARK_KEY: readonly { readonly mark: string; readonly labelKey: TenantI18nKeys }[] =
-	[
-		{ mark: '·', labelKey: 'roster.unrostered' },
-		{ mark: '▪', labelKey: 'roster.layer_override' },
-		{ mark: '▬', labelKey: 'roster.layer_clocked' },
-		{ mark: 'R', labelKey: 'roster.rest_day' },
-		{ mark: 'O', labelKey: 'roster.off_day' },
-		{ mark: 'L', labelKey: 'roster.leave' },
-		{ mark: 'l', labelKey: 'roster.pending_leave' },
-		{ mark: 'OT', labelKey: 'roster.planned_ot' },
-		{ mark: '✓', labelKey: 'roster.attended' },
-		{ mark: '!', labelKey: 'roster.absent' },
-		{ mark: '⧗', labelKey: 'roster.open_punch' },
-		{ mark: '⚑', labelKey: 'roster.conflict' },
-		{ mark: '×', labelKey: 'roster.employment_ended' },
-		{ mark: '—', labelKey: 'roster.before_employment' }
-	];
+export const DAY_MARK_KEY: readonly { readonly mark: string; readonly labelKey: MessageKey }[] = [
+	{ mark: '·', labelKey: 'roster.unrostered' },
+	{ mark: '▪', labelKey: 'roster.layer_override' },
+	{ mark: '▬', labelKey: 'roster.layer_clocked' },
+	{ mark: 'R', labelKey: 'roster.rest_day' },
+	{ mark: 'O', labelKey: 'roster.off_day' },
+	{ mark: 'L', labelKey: 'roster.leave' },
+	{ mark: 'l', labelKey: 'roster.pending_leave' },
+	{ mark: 'OT', labelKey: 'roster.planned_ot' },
+	{ mark: '✓', labelKey: 'roster.attended' },
+	{ mark: '!', labelKey: 'roster.absent' },
+	{ mark: '⧗', labelKey: 'roster.open_punch' },
+	{ mark: '⚑', labelKey: 'roster.conflict' },
+	{ mark: '×', labelKey: 'roster.employment_ended' },
+	{ mark: '—', labelKey: 'roster.before_employment' }
+];
 
 /**
- * The lock ladder, as one channel with four values and nothing else on it.
- *
- * A cell already spends its fill on `STATUS_PRESENTATION` and its background tint on the holiday
- * overlay, so lock state cannot be another fill without one of those three facts going missing.
- * It is drawn as a left rail instead: a channel nothing else uses, which is what makes "why can't
- * I click this" have exactly one place to look.
- *
- * The rungs are ordered by how permanent they are, and they come from two different sources on
- * purpose:
+ * The lock ladder, drawn as a left rail (the fill and tint are spent on status and holidays), in
+ * order of permanence:
  *
  *   OPEN          nothing covers the day.
- *   IN_DRAFT_RUN  the day falls inside a DRAFT run's assessment window. Advisory only — a draft is
- *                 rebuilt from the records, so editing one is ordinary work, not a violation.
- *   CONSUMED      a `payslip_adjustments` row claims *this person-day*. Stored, exact, and
- *                 released only by deleting the payslip — and so the run — that holds it. A run
- *                 that read the day and priced it at nothing still wrote that row, with amount 0.
- *   PAID          a PAID run's window covers the day. Permanent; corrections are adjustments.
+ *   IN_DRAFT_RUN  a DRAFT run's window covers it; advisory, a draft is rebuilt from the records.
+ *   CONSUMED      a payslip claims this person-day; released only by deleting that payslip.
+ *   PAID          a PAID run's window covers the day; corrections are adjustments.
  *
- * `CONSUMED` reads a claim over a record and `PAID` reads arithmetic over a day, and that is the
- * distinction `src/lib/scheduling/lock.ts` and `payslip_adjustments/+model.ts` both argue at length:
- * a record is settled because a payslip took it, not because of the date it carries. A day with no
- * record at all has no claim to ask, so the window is the only answer available for it — which is
- * why the two live on one ladder rather than in two places.
+ * CONSUMED is a claim over a record, PAID arithmetic over a day (see `lib/scheduling/lock.ts`).
  */
 export type LockRung = 'OPEN' | 'IN_DRAFT_RUN' | 'CONSUMED' | 'PAID';
 
@@ -923,7 +856,7 @@ export function lockRungSourceLock(
 export const LOCK_RAIL_PRESENTATION: Record<
 	LockRung,
 	{
-		readonly labelKey: TenantI18nKeys;
+		readonly labelKey: MessageKey;
 		/** Applied to the cell; an empty string means the rung draws no rail at all. */
 		readonly railClassName: string;
 		/** Shown beside the plan glyph on the rungs that refuse a write. */
@@ -948,26 +881,12 @@ export const LOCK_RAIL_PRESENTATION: Record<
 	}
 };
 
-/* ────────────────────────────────────────────────────────────────────────────────────────────────
- * CLOCK TIMES ON A WORK DATE, and why they are measured from the start of the day rather than
- * converted through the browser.
- *
- * A punch is an instant; an operator edits a wall clock. Between the two sits a timezone, and the
- * one wrong answer — appending `Z` to a local reading — is the error `dates-and-time.md` names
- * outright, because east of Greenwich it silently moves the punch into the previous day.
- *
- * So the anchor is `startOfDayInstant(workDate, PAYROLL_TIME_ZONE)`: the exact instant the work
- * date begins in the business zone, resolved through `Intl` by `calendar.ts`. Every end of every
- * interval is then held as MINUTES FROM THAT ANCHOR. Reading is exact subtraction and needs no
- * timezone logic at all; writing is exact addition. A night shift that ends at 02:00 the next
- * morning is 1560 minutes, which is the same way a roster code's own window models an `end_time`
- * that is not after its `start_time`, so the plan band and the actual band count in one unit.
- *
- * The zone is the entity's: the version in force's `payroll.timezone`, handed to the board and the
- * day sheet, so a Jakarta punch reads as Jakarta wall time on a Jakarta entity. The one assumption
- * is that no daylight-saving transition falls inside the work date, which holds for every
- * jurisdiction the seed bank carries.
- * ──────────────────────────────────────────────────────────────────────────────────────────────── */
+/*
+ * Clock times on a work date are minutes from `startOfDayInstant(workDate, zone)` — never a local
+ * reading with `Z` appended (`dates-and-time.md`), which moves an eastern punch into the previous
+ * day. A night shift ending 02:00 next morning is 1560 minutes, as a roster code's window counts.
+ * The zone is the entity's `payroll.timezone`; no seeded jurisdiction has a DST change inside a day.
+ */
 
 /** Minutes in a calendar day, which is also the offset a punch on the following morning carries. */
 export const DAY_MINUTES = 1440;
@@ -1165,7 +1084,7 @@ export function assessAttendanceDraft(
 }
 
 /** The catalog key explaining a refused draft, so the sheet and any future caller say one thing. */
-export const ATTENDANCE_DRAFT_PROBLEM_KEY: Record<AttendanceDraftProblem, TenantI18nKeys> = {
+export const ATTENDANCE_DRAFT_PROBLEM_KEY: Record<AttendanceDraftProblem, MessageKey> = {
 	NO_INTERVALS: 'roster.day_sheet_problem_no_intervals',
 	OUT_OF_ORDER: 'roster.day_sheet_problem_out_of_order',
 	OPEN_NOT_LAST: 'roster.day_sheet_problem_open_not_last',
@@ -1181,7 +1100,7 @@ export const ATTENDANCE_DRAFT_PROBLEM_KEY: Record<AttendanceDraftProblem, Tenant
  */
 export const HOLIDAY_PRESENTATION: {
 	readonly mark: string;
-	readonly labelKey: TenantI18nKeys;
+	readonly labelKey: MessageKey;
 	readonly className: string;
 	readonly headerClassName: string;
 } = {
@@ -1258,7 +1177,7 @@ function statusGlyph(day: DayFacts): string {
  */
 export const CONFLICT_PRESENTATION: Record<
 	ConflictKind,
-	{ readonly labelKey: TenantI18nKeys; readonly className: string; readonly mark: string }
+	{ readonly labelKey: MessageKey; readonly className: string; readonly mark: string }
 > = {
 	PENDING_LEAVE_OVERLAP: {
 		labelKey: 'roster.conflict_pending_leave',

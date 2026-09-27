@@ -303,5 +303,1652 @@
 		],
 		"name": "Medical claim",
 		"counts_toward": []
+	},
+	{
+		"id": "4cf765fc-3e05-5770-8ed1-6e2d25119ae7",
+		"settings_id": "c81bdefc-8989-552b-8dd9-6f7d526f78c0",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "7fbaaf9b-fe2a-5575-82aa-2fb660092832",
+		"settings_id": "c81bdefc-8989-552b-8dd9-6f7d526f78c0",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "4365dfd9-daa0-54d8-9070-8772e5e32907",
+		"settings_id": "c81bdefc-8989-552b-8dd9-6f7d526f78c0",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "70370d35-9066-52f0-befc-c5969d85310c",
+		"settings_id": "a05eb872-f113-57f8-8882-7fe7ad14618d",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "b41e96f9-96d2-5ab2-a9d8-339dde934118",
+		"settings_id": "a05eb872-f113-57f8-8882-7fe7ad14618d",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "e0f9f677-84d5-5c2f-9b2e-ba6d37be6a42",
+		"settings_id": "a05eb872-f113-57f8-8882-7fe7ad14618d",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "ed6eac53-7140-5d33-818a-64d866a8be36",
+		"settings_id": "cbebbaf7-3ac7-5ca3-8706-9c6824f460c0",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "90a42e15-d330-5d0c-b0ef-72184041d246",
+		"settings_id": "cbebbaf7-3ac7-5ca3-8706-9c6824f460c0",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "cb5726c5-5b5a-5248-a42d-0ae81e14bbd1",
+		"settings_id": "cbebbaf7-3ac7-5ca3-8706-9c6824f460c0",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "5c1c8c1f-98ec-5448-8393-8f5d26086a0e",
+		"settings_id": "c11c1eff-0426-55c1-92a7-f6d96ebf173f",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "48a86962-3f91-5ca1-961e-6b4f9ee857a4",
+		"settings_id": "c11c1eff-0426-55c1-92a7-f6d96ebf173f",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "0aff5339-c30a-55a6-9998-cb1cbbad734d",
+		"settings_id": "c11c1eff-0426-55c1-92a7-f6d96ebf173f",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "85bf29ae-ecad-52a3-826f-fc43e6d1a848",
+		"settings_id": "d3ff4e21-3e8d-504b-bec5-ed8bf38acaea",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "9a94a595-f274-5922-966b-9e0f9caaa6f1",
+		"settings_id": "d3ff4e21-3e8d-504b-bec5-ed8bf38acaea",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "9cbb96db-ba27-52f2-a0e3-777115179f06",
+		"settings_id": "d3ff4e21-3e8d-504b-bec5-ed8bf38acaea",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "4816a4e6-1787-5017-8d5b-659cee9643aa",
+		"settings_id": "35faf87f-93c3-5440-aade-87af5d43c182",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "ae949fb4-772b-566e-b743-dab0e570b6cc",
+		"settings_id": "35faf87f-93c3-5440-aade-87af5d43c182",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "cbf25dff-1b38-53db-b044-dd1c19d9f976",
+		"settings_id": "35faf87f-93c3-5440-aade-87af5d43c182",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "b8255812-9e3f-5ec6-a012-b191f57bcc64",
+		"settings_id": "59735b13-938a-51e4-90d1-3637cd8c06ed",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "b9349920-9c57-53d3-b7fc-82e32d8e6c37",
+		"settings_id": "59735b13-938a-51e4-90d1-3637cd8c06ed",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "ae2c1dd9-7edd-582a-916b-82354576cd82",
+		"settings_id": "59735b13-938a-51e4-90d1-3637cd8c06ed",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "3f3faa3e-dbf9-5775-9df5-30f1166909ff",
+		"settings_id": "5fd0ec0f-6b20-5115-ad21-42a273bc9e4c",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "3c681167-6698-58eb-9f8b-5fa192121581",
+		"settings_id": "5fd0ec0f-6b20-5115-ad21-42a273bc9e4c",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "66d5eb7b-c121-5db5-96f9-b50875c25ad4",
+		"settings_id": "5fd0ec0f-6b20-5115-ad21-42a273bc9e4c",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "a415c245-50ea-5d8b-9a30-c10d6eff4a9a",
+		"settings_id": "28ab8ffa-2a81-50e3-b464-d9f0fc53962c",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "4029b8c8-11d2-5c9c-b8ba-e5b6810a0e4b",
+		"settings_id": "28ab8ffa-2a81-50e3-b464-d9f0fc53962c",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "1e3a2fb6-7f19-5e4c-b695-6da743aeb18e",
+		"settings_id": "28ab8ffa-2a81-50e3-b464-d9f0fc53962c",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "5c910c83-24e8-5be0-ad88-d492c7efb5d2",
+		"settings_id": "66406508-e252-59b9-80a2-41d7635a685e",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "af61b5e6-5d53-5cda-9281-ae671d03621b",
+		"settings_id": "66406508-e252-59b9-80a2-41d7635a685e",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "76c0115a-2e03-5cc8-b7ff-c2c2e2f23955",
+		"settings_id": "66406508-e252-59b9-80a2-41d7635a685e",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "4f2e9df1-860b-5982-b583-68504f55c540",
+		"settings_id": "648c28e0-5033-5f32-a0d8-4b8b26c82fb8",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "3ab91d10-89b0-5964-8b10-fbf12978aabe",
+		"settings_id": "648c28e0-5033-5f32-a0d8-4b8b26c82fb8",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "e3bf6387-da00-5c3d-86b4-91e8c2c43051",
+		"settings_id": "648c28e0-5033-5f32-a0d8-4b8b26c82fb8",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "53296557-387d-5960-9fd5-0637ba205b27",
+		"settings_id": "3b37e308-77c2-53d5-89d8-c746ffdf9775",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "99172c2c-689a-5d3c-979a-63da4d731ec3",
+		"settings_id": "3b37e308-77c2-53d5-89d8-c746ffdf9775",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "f7e6bdf5-f36f-5668-a6a9-59c64a4f1633",
+		"settings_id": "3b37e308-77c2-53d5-89d8-c746ffdf9775",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "8df2ebe4-8f8f-57cc-a1d9-585bf612915a",
+		"settings_id": "45422407-4e48-5f7f-9412-c7a079c64967",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "e397bc67-e2c5-5004-8f3c-f156c89435a0",
+		"settings_id": "45422407-4e48-5f7f-9412-c7a079c64967",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "f0148638-ce3f-5ef1-8f71-4bebbab4a8a6",
+		"settings_id": "45422407-4e48-5f7f-9412-c7a079c64967",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "53928c94-577c-5eef-a081-19220f7cd0b9",
+		"settings_id": "14117c4e-9b42-5a31-865c-d4b3faf4e801",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "c7bf558e-e475-5dd8-ab10-6c4dd731b6c9",
+		"settings_id": "14117c4e-9b42-5a31-865c-d4b3faf4e801",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "5ce1aa75-6946-51b4-a745-57b3976ce00e",
+		"settings_id": "14117c4e-9b42-5a31-865c-d4b3faf4e801",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "15273dda-1d20-570d-af06-c270c276dbf9",
+		"settings_id": "c5cc44a9-8d10-555a-a7f6-c3051c479a5f",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "f75efd48-2603-5261-a5ec-6a005de64d5a",
+		"settings_id": "c5cc44a9-8d10-555a-a7f6-c3051c479a5f",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "029caf7a-2d69-5847-99be-6acaac4fc3bb",
+		"settings_id": "c5cc44a9-8d10-555a-a7f6-c3051c479a5f",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "c05ab194-9224-5080-beff-3c10456860c5",
+		"settings_id": "9d058811-6b07-5f9e-a7f9-dd854a39d846",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "15157018-f95c-500b-8b91-4ad7601f8d21",
+		"settings_id": "9d058811-6b07-5f9e-a7f9-dd854a39d846",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "076f2ce2-4c11-5221-8646-132f31dbba2b",
+		"settings_id": "9d058811-6b07-5f9e-a7f9-dd854a39d846",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "33f1980c-a8de-59b4-8641-f7794063ab21",
+		"settings_id": "829203dc-74e0-518d-aff3-2d5bfd6366a8",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "1e5bc98a-9ca3-5a80-bcfc-3b8a28462735",
+		"settings_id": "829203dc-74e0-518d-aff3-2d5bfd6366a8",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "32ee2272-6c8c-5fdd-8887-8719607fa821",
+		"settings_id": "829203dc-74e0-518d-aff3-2d5bfd6366a8",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "20536610-26c5-5551-862e-2a6ca958a61b",
+		"settings_id": "d73d893d-3bf8-5f8c-9dbf-ceed0e5c7091",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "44371772-5ada-521d-aedb-ed18b081cad6",
+		"settings_id": "d73d893d-3bf8-5f8c-9dbf-ceed0e5c7091",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "da9803e7-3fb3-52a1-b9e9-d658aeff1542",
+		"settings_id": "d73d893d-3bf8-5f8c-9dbf-ceed0e5c7091",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "121e8fb5-0eea-57f0-8a5c-f5a682e99594",
+		"settings_id": "0ea96d2a-7395-54c3-a445-5b68d4022c3b",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "1f1d14fd-1e1d-55ea-8155-fbea0c313fae",
+		"settings_id": "0ea96d2a-7395-54c3-a445-5b68d4022c3b",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "12a39ec2-99ff-5827-ae8a-f36708273c52",
+		"settings_id": "0ea96d2a-7395-54c3-a445-5b68d4022c3b",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "1dc08540-0b7c-51d8-994a-4c11e10ac2f0",
+		"settings_id": "c0bba218-eb4c-5140-b0c8-8a4db84fa90c",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "4df060bc-671b-5b47-b139-3bfbcee4f001",
+		"settings_id": "c0bba218-eb4c-5140-b0c8-8a4db84fa90c",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "33db6096-d2c5-551f-b136-c701fd06d7bd",
+		"settings_id": "c0bba218-eb4c-5140-b0c8-8a4db84fa90c",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "ebb6b44e-5c3f-533a-aa69-6cb3b1b10b3d",
+		"settings_id": "2d3a434c-e258-5029-b21c-fcbc19da7edf",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "b6b68f8b-2547-515c-825d-c0b1ee47c5ab",
+		"settings_id": "2d3a434c-e258-5029-b21c-fcbc19da7edf",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "38581c2d-2562-507d-b898-cc60a8bab2cf",
+		"settings_id": "2d3a434c-e258-5029-b21c-fcbc19da7edf",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "7b37aa4a-0c88-4401-9dd3-ee0090e0cb4d",
+		"settings_id": "3966e0dc-fcb5-4c64-861b-eff220fbece1",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "1380495f-c148-4c76-aa04-3cfec0568547",
+		"settings_id": "3966e0dc-fcb5-4c64-861b-eff220fbece1",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "93c2498c-a9f2-4784-9ee7-e4fe49baae58",
+		"settings_id": "3966e0dc-fcb5-4c64-861b-eff220fbece1",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "5c992f92-1316-4f21-996a-b8c52a326b94",
+		"settings_id": "23d8cff2-b0ac-4ea4-a596-94d3a14ce3e7",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "7f416898-8d6e-4ccb-82ed-6bf3d0192d8b",
+		"settings_id": "23d8cff2-b0ac-4ea4-a596-94d3a14ce3e7",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "7dabf201-a2f4-4e43-a406-5e3c5523c9db",
+		"settings_id": "23d8cff2-b0ac-4ea4-a596-94d3a14ce3e7",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "4460d6f7-00e1-419b-9f80-1b15cd210f0a",
+		"settings_id": "98f3396e-29fb-4c4c-9bb1-3945167cf3d2",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "bf024161-c4af-4442-b213-372ad2b85cbb",
+		"settings_id": "98f3396e-29fb-4c4c-9bb1-3945167cf3d2",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "78732030-c28c-49c1-af51-5d9fb63b7ef3",
+		"settings_id": "98f3396e-29fb-4c4c-9bb1-3945167cf3d2",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "372fca6c-b59f-4a0e-9ec6-b14595643afe",
+		"settings_id": "719fa415-44b1-4e04-bb5f-6f90083ca6f7",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "82729931-9ac4-4944-becc-d2d537fba018",
+		"settings_id": "719fa415-44b1-4e04-bb5f-6f90083ca6f7",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "2f100e48-dfb0-449c-be52-8fe646cdd116",
+		"settings_id": "719fa415-44b1-4e04-bb5f-6f90083ca6f7",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "8a319ab1-4a66-4cb0-b83f-6928f4c38363",
+		"settings_id": "9e5ca3f5-a71c-4fbe-9fb5-2ec2e77661f9",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "7e8721eb-56b9-425f-b430-b71bb11d725e",
+		"settings_id": "9e5ca3f5-a71c-4fbe-9fb5-2ec2e77661f9",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "be6bca07-8ad3-4ec4-be8f-b76df61a6c3c",
+		"settings_id": "9e5ca3f5-a71c-4fbe-9fb5-2ec2e77661f9",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "47d1b354-6b86-41fb-aff2-107526bd7a6a",
+		"settings_id": "eeab8f80-bceb-4cf1-9133-47f8e076dc04",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
+		"id": "f6ccc3df-8d0c-4ef7-a603-f08c58f971ca",
+		"settings_id": "eeab8f80-bceb-4cf1-9133-47f8e076dc04",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "148cd802-d341-468b-a14c-797a88b9c725",
+		"settings_id": "eeab8f80-bceb-4cf1-9133-47f8e076dc04",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "ALLOW",
+					"amount": "576.0"
+				}
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
 	}
 ]

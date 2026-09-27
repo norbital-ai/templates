@@ -26,43 +26,30 @@
 	records why a fixed viewport-derived height is not the way to do that.
 -->
 <script lang="ts">
-	import { isSettledId, PAYROLL_TIME_ZONE, dateKey, dayInstant } from '../../iso-day.js';
+	import Labelled from '../Labelled.svelte';
+	import { t } from '../t.js';
+	import { everyField } from '../../every-field.js';
+	import { isSettledId, dateKey } from '../../iso-day.js';
 	import { resolveEmployment } from '../../employment-contract.js';
 	import { settingsInForce } from '../../jurisdiction_settings.js';
-	import { PATTERN_WITH, patternAnchor, termPatternRow } from '../../scheduling/work-pattern.js';
+	import { patternAnchor, termPatternRow } from '../../scheduling/work-pattern.js';
 	import { observedHolidays } from '../../scheduling/work-limits.js';
-	import { coversDate } from '../../../collections/payroll_runs/lib/effective.js';
-	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../holiday-calendar.js';
-	import { onLineage } from '../settings-scope.js';
-	import { client } from '../../workspace-client.js';
-	import { Effect, Number as EffectNumber } from 'effect';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import type { WorkspaceRow } from '$bolt/types.js';
-	import {
-		CollectionForm,
-		type CollectionFormController,
-		type CollectionFormSemantic
-	} from '@norbital-ai/ui/collection-form';
-	import { Button } from '@norbital-ai/ui/button';
-	import { Input } from '@norbital-ai/ui/input';
-	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
-	import * as Dialog from '@norbital-ai/ui/dialog';
-	import { Inline, Stack } from '@norbital-ai/ui/layout';
-	import {
-		createCollectionRouteKey,
-		getCollectionNavigationContext
-	} from '@norbital-ai/ui/collection-navigation';
+	import { coversDate } from '../../../lib/payroll/run/effective.js';
+	import { Number as EffectNumber } from 'effect';
+	import { bolt } from '$bolt';
+	import { Alert, Button, Dialog, TimeRangeInput, type TimeRange } from '@norbital-ai/ui';
+	import { Stack } from '@norbital-ai/ui/layout';
+	import { openRecord } from '@norbital-ai/ui';
+	import type { Id } from '@norbital-ai/bolt';
+	import { Instant, PlainDate } from '@norbital-ai/std/date';
+	import { live } from '../live.svelte.js';
+	import { monthSources } from './month-sources.svelte.js';
 	import RosterMonthCalendar from './roster-month-calendar.svelte';
 	import { employeeMissingPunchReportable } from './employee-reportability.js';
 	import { formatCalendarDate, formatDurationHours } from '../display-formatters.js';
-	import { monthWorkDateInstantBounds, todayKey } from '../calendar.js';
-	import {
-		addDays,
-		monthBounds,
-		shiftPeriod
-	} from '../../../collections/payroll_runs/lib/dates.js';
-	import { decodeNumber } from '@norbital-ai/std/json';
+	import { todayKey } from '../calendar.js';
+	import { addDays, monthBounds, shiftPeriod } from '../../../lib/payroll/run/dates.js';
+	import { decodeNumber } from '../../wire.js';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
 		DAY_MINUTES,
@@ -80,48 +67,20 @@
 	import { attendanceBoundary } from '../../attendance.js';
 	import { sourceLock, type DayLock, type SourceLock } from '../../scheduling/lock.js';
 
-	/** Every catalogue read on these surfaces skips rows still held under an approval request. */
-	const approved = { approval_id: { isNull: true } } as const;
-
 	/**
-	 * NO `payroll_runs` QUERY LIVES HERE, AND NONE MAY BE ADDED.
-	 *
-	 * An employee has no `read` grant on `payroll_runs` — see `src/access/policies/+employee.ts` —
-	 * and that is the owner's ruling, not an oversight: only the HR controller, the HR manager and
-	 * the L1 manager see the runs. Employee Self-Service used to ask anyway and build
-	 * `payrollWindows` from the result. The result was always empty, and an empty window list is
-	 * indistinguishable from "this company has never run payroll", so every window-derived lock on
-	 * that screen quietly answered `NONE` while looking like a working lock. A lock that can never
-	 * engage is worse than no lock: it reads as "nothing is holding this day" to the one person who
-	 * most needs to be told otherwise.
-	 *
-	 * So the window axis is gone from this surface entirely, and every `sourceLock` call below
-	 * passes `windows: []` as a stated fact rather than as an accident of an unreadable query. What
-	 * an employee can honestly know about a lock is exactly two things, and both are readable:
-	 *
-	 *   - PENDING  — `approval_id` on their own row. The platform's own stamp.
-	 *   - CONSUMED — the row's own `payslip_id`, naming the payslip that took the record. Granted by
-	 *                `settlementLedgerGrants()`, exact, stored, per-record. It is strictly better
-	 *                than the window inference it replaces: the window guessed from a date, this
-	 *                names the period.
-	 *
-	 * The day-axis rungs the board draws — "in a draft run", "paid" — are not computable here and
-	 * are not drawn; see the ladder note in `roster-month-calendar.svelte`.
-	 *
-	 * The record's read-only use of this component is HR reading the same record axis; the ruling
-	 * above is about the surface's grants, and HR sees no more here than the employee does.
+	 * No `payroll_runs` query lives here: an employee has no read grant on it (owner's ruling), and an
+	 * unreadable window list would make every window lock silently answer NONE. `sourceLock` gets
+	 * `windows: []`; what an employee can know is PENDING (`approval_id`) and CONSUMED (`payslip_id`).
 	 */
 	/** No window means no day lock on this surface: it is stated once instead of mapped over the month. */
 	const NO_DAY_LOCKS: ReadonlyMap<string, DayLock> = new Map();
-
-	const { t } = useI18n<TenantI18nKeys>();
 
 	let {
 		employmentId,
 		selfService = false
 	}: {
 		/** The contract the month is drawn for. Null or undefined draws nothing: there is no month to scope. */
-		employmentId: string | null | undefined;
+		employmentId: Id<'employments'> | null | undefined;
 		/** Offer the day record sheet and the report-missing-punch flow (Employee Self-Service only). */
 		selfService?: boolean;
 	} = $props();
@@ -136,194 +95,60 @@
 	 * one row. A by-id read is scoped by the reader's own policy: the employee sees their contract,
 	 * HR sees the one they opened.
 	 * ────────────────────────────────────────────────────────────────────────────────────────────── */
-	const employmentQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.employments.findFirst({
-					where: { ...approved, id: { eq: employmentId } }
-				})
+	const employmentQuery = live(() =>
+		employmentId == null ? null : bolt.get('employments', employmentId, everyField('employments'))
 	);
 	const activeEmployment = $derived(
-		employmentQuery?.current == null ? null : resolveEmployment(employmentQuery.current)
+		employmentQuery.current == null || employmentQuery.current.approval_id != null
+			? null
+			: resolveEmployment(employmentQuery.current)
 	);
-	const companyQuery = $derived(
+	const companyQuery = live(() =>
 		activeEmployment == null
 			? null
-			: client.db.companies.findFirst({
-					where: { id: { eq: activeEmployment.company_id } }
-				})
+			: bolt.get('companies', activeEmployment.company_id, everyField('companies'))
 	);
 
-	/* ──────────────────────────────────────────────────────────────────────────────────────────────
-	 * THE MONTH
-	 *
-	 * The controller's board and this calendar are one derived fact table drawn at two densities.
-	 * Every query below is the board's query with `company_id` swapped for `employment_id`, which is
-	 * why they are roughly 1/300th of its size and why none of them needed a policy change: the
-	 * `employee` policy already scopes `work_days`, `leave_entries` and
-	 * `employment_terms` to the reader's own employments, and `employeeReferenceGrants` already hands
-	 * them the company-wide calendars — holidays and shift definitions — that a personal
-	 * schedule is meaningless without.
-	 *
-	 * ONE THING IS DELIBERATELY ABSENT, and it is a ruling rather than a gap: `payroll_runs` is not
-	 * readable by an employee, so this calendar has no day axis at all. It draws the record axis —
-	 * pending, and consumed-by-payslip from the row's own `payslip_id` — and nothing else. See the note above
-	 * `NO_DAY_LOCKS`, and the ladder note in `roster-month-calendar.svelte` for why a rung that
-	 * could never light was removed instead of being left dark.
-	 * ────────────────────────────────────────────────────────────────────────────────────────────── */
+	/*
+	 * The month: the controller board's queries with `company_id` swapped for `employment_id`, scoped
+	 * by the employee policy. No day-lock axis — `payroll_runs` is not readable by an employee (see
+	 * `NO_DAY_LOCKS`); the record axis is pending and consumed (`payslip_id`).
+	 */
 
 	let scheduleMonth = $state(todayKey().slice(0, 7));
-	const scheduleMonthStart = $derived(`${scheduleMonth}-01`);
-	const scheduleMonthEnd = $derived(monthBounds(scheduleMonth).end);
-	const scheduleWorkDateBounds = $derived(monthWorkDateInstantBounds(scheduleMonth));
+	const scheduleMonthStart = $derived(PlainDate(`${scheduleMonth}-01`));
+	const scheduleMonthEnd = $derived(PlainDate(monthBounds(scheduleMonth).end));
 
 	function selectScheduleMonth(nextMonth: string): void {
 		if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(nextMonth)) return;
 		scheduleMonth = nextMonth;
 	}
 
-	/**
-	 * A month for one person is at most thirty-one rows per collection, so none of these narrow their
-	 * columns. The board narrows its own because it asks for three hundred people at once; here a
-	 * column list would only be a second place to forget a field when `DayFacts` grows one.
-	 */
-	/**
-	 * Deliberately NOT filtered to approved rows, which is the one place this query differs from the
-	 * board's.
-	 *
-	 * A punch the reader reported themselves carries `approval_id` until a manager settles it, and
-	 * it is invisible to every approved-only query — including the one that feeds `buildRosterMonth`.
-	 * Filtering here would hide the employee's own submission from the employee, which is precisely
-	 * the most important state on this screen.
-	 *
-	 * The plan and the punch were two queries and are one, because they are one row. What the split
-	 * used to do — approved rows become facts, pending ones become the PENDING rung — is done by
-	 * `scheduleFactWorkDays` below, on the CLOCK rather than on the row: a pending submission must
-	 * not read as attendance, and the plan on that same row must not disappear with it.
-	 */
-	const scheduleWorkDaysQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.work_days.findMany({
-					where: {
-						employment_id: { eq: employmentId },
-						work_date: { gte: scheduleWorkDateBounds.start, lte: scheduleWorkDateBounds.end }
-					},
-					limit: 200
-				})
-	);
-	/** Requests are stored once at `from_date`, so the window is widened to catch one spanning in. */
-	const scheduleLeaveQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.leave_entries.findMany({
-					where: {
-						...approved,
-						employment_id: { eq: employmentId },
-						// Time off is the activity whose charges are its dated days.
-						charges: { ne: [] },
-						leave_original_reversals: { none: { approval_id: { isNull: true } } },
-						from_date: { lte: scheduleWorkDateBounds.end },
-						to_date: { gte: scheduleWorkDateBounds.start }
-					},
-					with: { leave_entry_leave_catalogue: { columns: { code: true } } },
-					limit: 200
-				})
-	);
-	const schedulePendingLeaveQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.leave_entries.findMany({
-					where: {
-						approval_id: { isNotNull: true },
-						employment_id: { eq: employmentId },
-						charges: { ne: [] },
-						leave_original_reversals: { none: { approval_id: { isNull: true } } },
-						from_date: { lte: scheduleWorkDateBounds.end },
-						to_date: { gte: scheduleWorkDateBounds.start }
-					},
-					with: { leave_entry_leave_catalogue: { columns: { code: true } } },
-					limit: 200
-				})
-	);
-	/** The leave codes the calendar labels, carried by the request rows themselves. */
-	type LabelledRequest = WorkspaceRow<'leave_entries'> & {
-		readonly leave_entry_leave_catalogue?: Pick<WorkspaceRow<'leave_catalogue'>, 'code'> | null;
-	};
-	const leaveCodeById = $derived(
-		new Map(
-			[
-				...((scheduleLeaveQuery?.current ?? []) as LabelledRequest[]),
-				...((schedulePendingLeaveQuery?.current ?? []) as LabelledRequest[])
-			].flatMap((request) =>
-				request.leave_entry_leave_catalogue == null
-					? []
-					: [[request.catalogue_id, request.leave_entry_leave_catalogue.code] as const]
-			)
-		)
-	);
-	const activeSettingsCode = $derived(companyQuery?.current?.settings_code ?? null);
-	const scheduleCalendarSettingsQuery = $derived(
-		activeSettingsCode == null
-			? null
-			: client.db.jurisdiction_settings.findMany({
-					where: onLineage(activeSettingsCode),
-					limit: HOLIDAY_QUERY_LIMIT
-				})
-	);
-	// The calendar is the employing entity's, which the active employment already names — not the
-	// settings lineage's, which cannot tell two entities of one country apart.
+	const activeSettingsCode = $derived(companyQuery.current?.settings_code ?? null);
+	// The calendar is the employing entity's, which the active employment already names.
 	const scheduleCalendarCompanyId = $derived(activeEmployment?.company_id ?? null);
-	const scheduleHolidaysQuery = $derived(
-		scheduleCalendarCompanyId == null
-			? null
-			: client.db.jurisdiction_holidays.findMany({
-					where: {
-						...approved,
-						company_id: { eq: scheduleCalendarCompanyId },
-						// A month either side: payroll resolves each assessment window whole, and a
-						// holiday before the month can carry into it (`observedHolidays`).
-						date: {
-							gte: dayInstant(addDays(scheduleMonthStart, -31)),
-							lte: dayInstant(addDays(scheduleMonthEnd, 31))
-						},
-						published_at: { isNotNull: true }
-					},
-					limit: HOLIDAY_QUERY_LIMIT
-				})
-	);
-	const scheduleCalendarResolution = $derived(
-		holidayView({
-			settingsCount: scheduleCalendarSettingsQuery?.current?.length,
-			jurisdiction: scheduleCalendarCompanyId,
-			rows: scheduleHolidaysQuery?.current,
-			start: scheduleMonthStart,
-			end: scheduleMonthEnd,
-			noJurisdiction: t('holiday_calendar.no_jurisdiction'),
-			truncated: t('holiday_calendar.truncated')
-		})
-	);
+	/**
+	 * The board's reads, scoped to this one contract. Person-days held under an approval are read too: a punch the reader
+	 * reported themselves carries `approval_id` until a manager settles it, and hiding it would hide the employee's own
+	 * submission from the employee, which is the most important state on this screen. The plan and the punch are one row;
+	 * what the split used to do is done by `scheduleFactWorkDays` below, on the CLOCK rather than on the row.
+	 */
+	const reads = monthSources({
+		companyId: () => scheduleCalendarCompanyId,
+		settingsCode: () => activeSettingsCode,
+		employmentIds: () => (employmentId == null ? [] : [employmentId]),
+		start: () => scheduleMonthStart,
+		end: () => scheduleMonthEnd,
+		rosterPeriods: () => [
+			shiftPeriod(scheduleMonth, -1),
+			scheduleMonth,
+			shiftPeriod(scheduleMonth, 1)
+		],
+		held: true
+	});
+	const leaveCodeById = $derived(reads.leaveCodeById);
 
-	const scheduleShiftsQuery = $derived(
-		scheduleCalendarCompanyId == null
-			? null
-			: client.db.shift_definitions.findMany({
-					where: { ...approved, company_id: { eq: scheduleCalendarCompanyId } },
-					limit: 500
-				})
-	);
-	const scheduleTermsQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.employment_terms.findMany({
-					where: { ...approved, employment_id: { eq: employmentId } },
-					// The base rides the terms read: the named pattern, through the row, no second query.
-					with: { term_shift_pattern: PATTERN_WITH },
-					limit: 100
-				})
-	);
-
-	const scheduleWorkDays = $derived(scheduleWorkDaysQuery?.current ?? []);
+	const scheduleWorkDays = $derived(reads.workDays.current ?? []);
 	/**
 	 * The month as FACTS, with an unapproved clock masked out of it.
 	 *
@@ -354,24 +179,16 @@
 	 * than an access denial. `settlementLedgerGrants()` puts this read on the `employee` policy
 	 * deliberately — see `src/lib/policy_grants.ts`.
 	 */
-	const scheduleSettlementsQuery = $derived.by(() => {
-		const ids = scheduleWorkDays.map((row) => row.id).filter(isSettledId);
-		if (ids.length === 0) return null;
-		return client.db.work_days.findMany({
-			where: { id: { in: ids }, payslip_id: { isNull: false } },
-			columns: { id: true, payslip_id: true },
-			limit: 200
-		});
-	});
 	const settlementByWorkDayId = $derived(
-		new Map((scheduleSettlementsQuery?.current ?? []).map((row) => [row.id, { period: '' }]))
+		new Map(
+			scheduleWorkDays
+				.filter((row) => row.payslip_id != null)
+				.map((row) => [row.id, { period: '' }])
+		)
 	);
 
-	const scheduleHolidays = $derived(scheduleCalendarResolution.holidays);
+	const scheduleHolidays = $derived(reads.calendar.holidays);
 	const scheduleHolidayNames = $derived(holidaysByDate(scheduleHolidays));
-	const scheduleRosterCodesById = $derived(
-		new Map((scheduleShiftsQuery?.current ?? []).map((code) => [code.id, code]))
-	);
 
 	/**
 	 * The attendance window past which a silent working day reads as `ABSENT` rather than `PLANNED`.
@@ -388,7 +205,7 @@
 	 * actually keeps the two from disagreeing about which days are exceptions.
 	 */
 	const scheduleCutoff = $derived.by(() => {
-		const cutoffDay = companyQuery?.current?.pay_cutoff_day;
+		const cutoffDay = companyQuery.current?.pay_cutoff_day;
 		if (cutoffDay == null) return null;
 		const day = String(
 			EffectNumber.clamp({ minimum: 1, maximum: 28 })(decodeNumber(cutoffDay))
@@ -399,37 +216,6 @@
 		};
 	});
 
-	/** The employing entity's clock: the version in force's payroll timezone, else the default. */
-	const scheduleTimeZone = $derived.by(() => {
-		if (activeSettingsCode == null) return PAYROLL_TIME_ZONE;
-		try {
-			return (
-				settingsInForce(
-					scheduleCalendarSettingsQuery?.current ?? [],
-					activeSettingsCode,
-					scheduleMonthStart
-				)?.payroll.timezone ?? PAYROLL_TIME_ZONE
-			);
-		} catch {
-			return PAYROLL_TIME_ZONE;
-		}
-	});
-	/** The months of roster of record around the month: a pattern yields to one inside it. */
-	const scheduleRostersQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.rosters.findMany({
-					where: {
-						...approved,
-						employment_id: { eq: employmentId },
-						period: {
-							in: [shiftPeriod(scheduleMonth, -1), scheduleMonth, shiftPeriod(scheduleMonth, 1)]
-						}
-					},
-					columns: { employment_id: true, period: true },
-					limit: 3
-				})
-	);
 	/**
 	 * The person's observed holidays, as payroll resolves them (`observedHolidays`): a SUBSTITUTE
 	 * carry lands on their next working day and a rest-day precedence keeps the rest day. Read only
@@ -437,25 +223,25 @@
 	 * (self-service masks the plan) keeps the calendar overlay rather than a half-resolved answer.
 	 */
 	const scheduleObservedHolidays = $derived.by(() => {
-		const company = companyQuery?.current;
+		const company = companyQuery.current;
 		if (
 			employmentId == null ||
 			company == null ||
 			activeSettingsCode == null ||
-			scheduleRostersQuery?.error != null ||
-			scheduleRostersQuery?.current === undefined
+			reads.rosters.error != null ||
+			reads.rosters.current === undefined
 		)
 			return undefined;
 		try {
-			const terms = scheduleTermsQuery?.current ?? [];
+			const terms = reads.terms;
 			const observed = observedHolidays({
 				dates: monthDays(scheduleMonth),
 				cutoffDay: decodeNumber(company.pay_cutoff_day ?? 1),
 				companyId: company.id,
-				holidays: scheduleHolidaysQuery?.current ?? [],
-				codes: scheduleShiftsQuery?.current ?? [],
+				holidays: reads.holidays.current ?? [],
+				codes: reads.shifts.current ?? [],
 				precedence: settingsInForce(
-					scheduleCalendarSettingsQuery?.current ?? [],
+					reads.settings.current ?? [],
 					activeSettingsCode,
 					scheduleMonthStart
 				)?.work_rules?.holiday_rest_precedence,
@@ -463,7 +249,7 @@
 					work_date: dateKey(day.work_date),
 					shift_definition_id: day.shift_definition_id ?? null
 				})),
-				rosterPeriods: scheduleRostersQuery.current.map((row) => row.period),
+				rosterPeriods: reads.rosters.current.map((row) => row.period),
 				patternOn: (date) => {
 					const term = terms.find((row) => coversDate(row.effective_range, date));
 					const row = term == null ? null : termPatternRow(term);
@@ -478,19 +264,19 @@
 	const scheduleFacts = $derived(
 		buildRosterMonth({
 			month: scheduleMonth,
-			timeZone: scheduleTimeZone,
+			timeZone: reads.timeZone,
 			employments: activeEmployment == null ? [] : [activeEmployment],
-			employmentTerms: scheduleTermsQuery?.current ?? [],
+			employmentTerms: reads.terms,
 			workDays: scheduleFactWorkDays,
-			leaveRequests: scheduleLeaveQuery?.current ?? [],
-			pendingLeaveRequests: schedulePendingLeaveQuery?.current ?? [],
+			leaveRequests: (reads.leave.current ?? []).filter((row) => row.approval_id == null),
+			pendingLeaveRequests: (reads.leave.current ?? []).filter((row) => row.approval_id != null),
 			holidays: scheduleHolidays,
-			rosterCodesById: scheduleRosterCodesById,
+			rosterCodesById: reads.shiftsById,
 			leaveCodeById,
 			cutoff: scheduleCutoff,
 			locks: NO_DAY_LOCKS,
 			today,
-			observedHolidays: scheduleObservedHolidays
+			...(scheduleObservedHolidays == null ? {} : { observedHolidays: scheduleObservedHolidays })
 		})
 	);
 
@@ -500,23 +286,11 @@
 	}
 
 	/**
-	 * What holds one attendance record — and, deliberately, nothing about what day it falls on.
-	 *
-	 * This is the §2.2/§8.4 correction, and it is the same call `work_days/+collection.ts` makes on
-	 * its update and delete paths, argument for argument, so the screen and the write path cannot
-	 * disagree about a row:
-	 *
-	 *   - `datePassed: 'IS_NOT_A_LOCK'` — this used to pass `today`, which meant `DATE_PASSED` fired
-	 *     on every historical row. On an employee's own calendar that greys out every day they have
-	 *     actually worked, which is every day worth looking at. A passed date never protected
-	 *     anything: consumption by payroll is what protects a record, and consumption is stored.
-	 *   - `dates: []` — with no date-shaped lock asked for, there is no date-shaped question left.
-	 *
-	 * What is left is the settlement claim and `PENDING_APPROVAL` — which is the whole point on this
-	 * screen. An employee's reported punch carries `approval_id` until a manager settles it,
-	 * and that is the rung the calendar draws as "waiting on your manager".
+	 * What holds one attendance record, never its date — the same call the `work_days` write path makes
+	 * (§2.2/§8.4): `datePassed: 'IS_NOT_A_LOCK'` and `dates: []`, leaving the settlement claim and
+	 * PENDING_APPROVAL ("waiting on your manager").
 	 */
-	function attendanceRowLock(row: WorkspaceRow<'work_days'>): SourceLock {
+	function attendanceRowLock(row: (typeof scheduleWorkDays)[number]): SourceLock {
 		return sourceLock({
 			existing: true,
 			approvalId: row.approval_id,
@@ -552,47 +326,22 @@
 				first:
 					first == null
 						? null
-						: dayMinutesToClock(minutesFromDayStart(first, date, scheduleTimeZone)),
+						: dayMinutesToClock(minutesFromDayStart(first, date, reads.timeZone)),
 				last:
-					last == null ? null : dayMinutesToClock(minutesFromDayStart(last, date, scheduleTimeZone))
+					last == null ? null : dayMinutesToClock(minutesFromDayStart(last, date, reads.timeZone))
 			});
 		}
 		return windows;
 	});
 
 	/**
-	 * Where "report a missing punch" is offered, which is exactly where the write path would accept
-	 * it. Each clause names a refusal that already exists rather than inventing a rule:
+	 * Where "report a missing punch" is offered: exactly where the write path would accept it — an
+	 * ACTIVE, past day with no attendance, no pending report, no settlement claim and no full-day leave
+	 * (a half day stays reportable). A roster-only day is reportable (the grant masks the report to
+	 * `worked_intervals`), and so is an unpunched rest day.
 	 *
-	 *   - not `ACTIVE`        — the day is outside the employment; there is nothing to report about it
-	 *   - in the future       — a punch that has not happened yet is not a missing punch
-	 *   - attendance exists    — a second report would overwrite an answer already recorded
-	 *   - already pending     — the platform holds their first report; a second would queue behind it
-	 *   - already settled     — the readable settlement claim says payroll consumed this exact row
-	 *   - full-day leave      — `assertDayNotOwnedByLeave`: one writer wins the day. A HALF day is
-	 *                           still reportable, because the transform only refuses full coverage
-	 *
-	 * A roster-only person-day is deliberately NOT a blocker. The employee `mutate.existing` grant is
-	 * scoped to their own employment and masked to `worked_intervals`, so a report
-	 * changes the clock on that row while leaving the plan intact. A day with no row uses `mutate.new`.
-	 *
-	 * ONE REFUSAL IS DELIBERATELY NOT PRE-CHECKED HERE, AND MUST NOT BE ADDED.
-	 *
-	 * `assertNotSettled` in `work_days/+collection.ts` refuses a punch reported on a day a
-	 * paid run has already priced as silence. Deciding that on the client needs the run's window,
-	 * and an employee has no `read` grant on `payroll_runs` — by ruling, not by omission. There is no
-	 * honest way to pre-disable this button, and every dishonest way is worse than not trying:
-	 * inferring the period from a payslip guesses, and greying the day out on a stale or absent fact
-	 * tells somebody they may not do a thing they may in fact do.
-	 *
-	 * So the write goes to the server and the server refuses it. That refusal is a sentence already
-	 * written for a human — it names the period and says to ask for an adjustment entry — and
-	 * `submit` surfaces it verbatim. Attempt-and-explain is the correct pattern whenever the
-	 * client is not permitted to hold the data the decision needs; the cost is one round trip on a
-	 * rare day, and the alternative is a lie drawn in the UI.
-	 *
-	 * A rest day with no punch stays reportable on purpose: being called in and forgetting to clock
-	 * is the ordinary case for one, and the table this screen replaces let an employee file it.
+	 * The paid-window refusal (`assertNotSettled`) is not pre-checked: an employee cannot read
+	 * `payroll_runs` (by ruling), so the server refuses and `submit` shows its sentence verbatim.
 	 */
 	function scheduleReportable(day: DayFacts): boolean {
 		return employeeMissingPunchReportable(day, today, schedulePendingDates, settlementByWorkDayId);
@@ -609,12 +358,12 @@
 	const scheduleSources = $derived([
 		{ label: t('component.employment'), query: employmentQuery },
 		{ label: t('component.company'), query: companyQuery },
-		{ label: t('app.hr_employee.source_person_days'), query: scheduleWorkDaysQuery },
-		{ label: t('app.hr_employee.source_leave'), query: scheduleLeaveQuery },
-		{ label: t('holiday_calendar.jurisdiction'), query: scheduleCalendarSettingsQuery },
-		{ label: t('app.hr_employee.source_holidays'), query: scheduleHolidaysQuery },
-		{ label: t('app.hr_employee.source_shifts'), query: scheduleShiftsQuery },
-		{ label: t('app.hr_employee.source_terms'), query: scheduleTermsQuery }
+		{ label: t('app.hr_employee.source_person_days'), query: reads.workDays },
+		{ label: t('app.hr_employee.source_leave'), query: reads.leave },
+		{ label: t('holiday_calendar.jurisdiction'), query: reads.settings },
+		{ label: t('app.hr_employee.source_holidays'), query: reads.holidays },
+		{ label: t('app.hr_employee.source_shifts'), query: reads.shifts },
+		{ label: t('app.hr_employee.source_terms'), query: reads.termRows }
 	]);
 	/**
 	 * Named sources rather than an OR of `loading` flags, for the reason the board records: a gate
@@ -622,41 +371,24 @@
 	 * skeleton forever with nothing on screen saying why.
 	 */
 	const scheduleErrors = $derived([
-		...(scheduleCalendarResolution.error == null ? [] : [scheduleCalendarResolution.error]),
+		...(reads.calendar.error == null ? [] : [reads.calendar.error]),
 		...scheduleSources.flatMap((source) =>
-			source.query?.error ? [`${source.label}: ${source.query.error.message}`] : []
+			source.query.error ? [`${source.label}: ${source.query.error}`] : []
 		)
 	]);
 	const scheduleLoading = $derived(
-		scheduleErrors.length === 0 &&
-			scheduleSources.some((source) => source.query != null && source.query.current === undefined)
+		scheduleErrors.length === 0 && scheduleSources.some((source) => source.query.loading)
 	);
 
 	/* ── The day detail, and the one write this surface offers ─────────────────────────────────── */
 
-	/** The frame this surface opens records in, so its sheet reads through this surface's client. */
-	const scheduleRouteKey = createCollectionRouteKey({ view: 'schedule' });
 	/**
-	 * Captured at initialisation, like every context read. A click handler runs long after the
-	 * component mounted, and `getContext` outside initialisation throws rather than answering.
-	 */
-	const detailNavigation = getCollectionNavigationContext();
-
-	/**
-	 * A day with a stored row opens the workspace's own record sidesheet for it — the same surface
-	 * every collection table opens, rendering `work_days/+representation.svelte` and carrying the
-	 * lock seal in its header. A day with no row has nothing to open: the report chip beside it is
-	 * the one write an employee has there, and it creates the row through its own dialog.
+	 * A day with a stored row opens the workspace's own record sheet for it — the same surface every collection table
+	 * opens. A day with no row has nothing to open: the report chip beside it is the one write an employee has there.
 	 */
 	function openDaySheet(_employmentId: string, date: string): void {
 		const stored = scheduleFactWorkDays.find((row) => dateKey(row.work_date) === date);
-		const recordId = stored?.id;
-		if (recordId == null || !isSettledId(recordId)) return;
-		detailNavigation?.open({
-			collectionName: 'work_days',
-			recordId,
-			routeKey: scheduleRouteKey
-		});
+		if (stored?.id != null && isSettledId(stored.id)) openRecord('work_days', stored.id);
 	}
 
 	/**
@@ -667,24 +399,24 @@
 	 */
 	const report = $state<{
 		open: boolean;
-		date: string | null;
-		startClock: string;
-		endClock: string;
+		date: PlainDate | null;
+		clock: TimeRange;
 	}>({
 		open: false,
 		date: null,
-		startClock: '',
-		endClock: ''
+		clock: { start: null, end: null }
 	});
 
 	function openReport(_employmentId: string, date: string): void {
 		const day = scheduleDay(date);
-		report.date = date;
+		report.date = PlainDate(date);
 		// Seeded from the roster's own window so the common case is one confirmation, and editable
 		// because a missing punch is often exactly the day somebody did NOT work their shift. A day
 		// with no planned window seeds empty rather than guessing one.
-		report.startClock = day?.shiftStart?.slice(0, 5) ?? '';
-		report.endClock = day?.shiftEnd?.slice(0, 5) ?? '';
+		report.clock = {
+			start: day?.shiftStart?.slice(0, 5) ?? null,
+			end: day?.shiftEnd?.slice(0, 5) ?? null
+		};
 		report.open = true;
 	}
 
@@ -697,16 +429,16 @@
 	const reportDraft = $derived.by(() => {
 		const date = report.date;
 		if (date == null) return null;
-		const start = clockToDayMinutes(report.startClock, 0);
-		const end = clockToDayMinutes(report.endClock, 0);
+		const start = clockToDayMinutes(report.clock.start ?? '', 0);
+		const end = clockToDayMinutes(report.clock.end ?? '', 0);
 		if (start == null || end == null) return null;
 		// An end at or before the start belongs to the next morning — the same way a roster code's
 		// own window models a night shift, so the plan band and this draft count in one unit.
 		const crossesMidnight = end <= start;
 		const intervals: readonly IntervalDraft[] = [
 			{
-				start: instantFromDayStart(date, start, scheduleTimeZone),
-				end: instantFromDayStart(date, crossesMidnight ? end + DAY_MINUTES : end, scheduleTimeZone)
+				start: instantFromDayStart(date, start, reads.timeZone),
+				end: instantFromDayStart(date, crossesMidnight ? end + DAY_MINUTES : end, reads.timeZone)
 			}
 		];
 		return {
@@ -723,59 +455,49 @@
 	});
 
 	/**
-	 * Update the stored row when one exists, create it when none does. Minimal like the day
-	 * sheet's: only the routing is seeded, and the draft is pushed via `setValues` as the clocks
-	 * are typed, so an untouched dialog cannot submit anything.
+	 * The report's write: the stored row's clock is updated when the day has a row, else the person-day is created. Either
+	 * is held under `approval_id` by the grant's approval route; a refusal (a paid period, full-day leave) is the
+	 * server's sentence, shown verbatim.
 	 */
 	const reportWorkDayId = $derived(
-		report.date == null ? null : (scheduleDay(report.date)?.workDayId ?? null)
+		scheduleWorkDays.find((row) => report.date != null && dateKey(row.work_date) === report.date)
+			?.id ?? null
 	);
-	const reportDefaults = $derived(
-		employmentId == null || report.date == null
-			? undefined
-			: reportWorkDayId == null
-				? { employment_id: employmentId, work_date: report.date }
-				: { id: reportWorkDayId }
-	);
-
-	/** Mirror the draft into the form; the time inputs are custom composition. */
-	function presetReport(form: CollectionFormController): void {
+	let reportRefusal = $state<string | null>(null);
+	let reportPending = $state(false);
+	async function submitReport(): Promise<void> {
 		const draft = reportDraft;
-		if (draft == null || employmentId == null) return;
-		form.setValues({
-			employment_id: employmentId,
-			work_date: draft.date,
-			worked_intervals: draft.intervals.map((interval) => ({
-				start: interval.start,
-				end: interval.end
-			}))
-		});
+		if (draft == null || employmentId == null || reportProblem != null) return;
+		const worked_intervals = draft.intervals.map((interval) => ({
+			start: Instant(interval.start),
+			end: interval.end == null ? null : Instant(interval.end)
+		}));
+		reportPending = true;
+		const outcome =
+			reportWorkDayId == null
+				? await bolt.act('work_days.create', {
+						employment_id: employmentId,
+						work_date: draft.date,
+						worked_intervals
+					})
+				: await bolt.act('work_days.update', {
+						target: reportWorkDayId,
+						set: { worked_intervals }
+					});
+		reportPending = false;
+		if (outcome.kind === 'committed' || outcome.kind === 'pendingApproval') {
+			reportRefusal = null;
+			report.open = false;
+		} else reportRefusal = outcome.kind === 'refused' ? outcome.message : t('component.error');
 	}
-
-	/**
-	 * The same assessment the dialog previews, re-run over the form values at submit time, so the
-	 * framework Save beside the custom one cannot land a draft the preview refused.
-	 */
-	const reportSemantic: CollectionFormSemantic = (values) =>
-		Effect.sync(() => {
-			const intervals = values.worked_intervals;
-			if (!Array.isArray(intervals))
-				return [{ message: t('app.hr_employee.report_punch_needs_times') }];
-			const problem = assessAttendanceDraft(
-				intervals as { start: string; end: string | null }[],
-				report.date == null ? null : scheduleDay(report.date)?.shiftBreakMinutes
-			).problem;
-			if (problem != null) return [{ message: t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]) }];
-			return;
-		});
 </script>
 
 {#if employmentId != null}
 	{#if scheduleErrors.length > 0}
-		<Alert variant="destructive">
-			<AlertTitle>{t('app.hr_employee.schedule_failed')}</AlertTitle>
-			<AlertDescription>{scheduleErrors.join(' · ')}</AlertDescription>
-		</Alert>
+		<Alert.Root variant="destructive">
+			<Alert.Title>{t('app.hr_employee.schedule_failed')}</Alert.Title>
+			<Alert.Description>{scheduleErrors.join(' · ')}</Alert.Description>
+		</Alert.Root>
 	{:else}
 		<RosterMonthCalendar
 			month={scheduleMonth}
@@ -787,8 +509,7 @@
 			entryLocks={scheduleEntryLocks}
 			punchWindows={schedulePunchWindows}
 			reportableDates={scheduleReportableDates}
-			onSelectDay={selfService ? openDaySheet : undefined}
-			onReportDay={selfService ? openReport : undefined}
+			{...selfService ? { onSelectDay: openDaySheet, onReportDay: openReport } : {}}
 			onMonthChange={selectScheduleMonth}
 		/>
 	{/if}
@@ -813,103 +534,56 @@
 				</Dialog.Description>
 			</Dialog.Header>
 			{#key report.date}
-				<CollectionForm
-					{client}
-					collection="work_days"
-					defaultValues={reportDefaults}
-					submitLabel={t('app.hr_employee.report_punch_submit')}
-					semantic={reportSemantic}
-					onAfterSubmit={() => {
-						report.open = false;
-					}}
-				>
-					{#snippet children({ Field, form })}
-						<Field name="employment_id" hidden />
-						<Field name="work_date" hidden />
-						<Field name="shift_definition_id" hidden />
-						<Field name="worked_intervals" hidden />
-						<Stack gap="sm">
-							<Inline gap="sm" align="end">
-								<label class="flex-1 text-sm font-medium">
-									<Stack gap="xs">
-										{t('app.hr_employee.report_punch_start')}
-										<Input
-											type="time"
-											value={report.startClock}
-											disabled={client.collection.work_days.pending > 0}
-											oninput={(event) => {
-												report.startClock = event.currentTarget.value;
-												presetReport(form);
-											}}
-										/>
-									</Stack>
-								</label>
-								<label class="flex-1 text-sm font-medium">
-									<Stack gap="xs">
-										{t('app.hr_employee.report_punch_end')}
-										<Input
-											type="time"
-											value={report.endClock}
-											disabled={client.collection.work_days.pending > 0}
-											oninput={(event) => {
-												report.endClock = event.currentTarget.value;
-												presetReport(form);
-											}}
-										/>
-									</Stack>
-								</label>
-							</Inline>
+				<Stack gap="sm">
+					<Labelled
+						label={`${t('app.hr_employee.report_punch_start')} – ${t('app.hr_employee.report_punch_end')}`}
+						class="text-sm font-medium"
+					>
+						<TimeRangeInput
+							value={report.clock}
+							disabled={reportPending}
+							onChange={(clock) => (report.clock = clock)}
+						/>
+					</Labelled>
 
-							<!--
-								What will actually be recorded, spelled out before the submit rather than after the
-								refusal. The break line is the one that earns this panel: it is derived from the
-								reported interval, and a break nobody could see would leave somebody wondering why
-								a twenty-minute call-in was paid as nothing.
-							-->
-							{#if reportDraft != null}
-								<Stack gap="none" class="rounded-md border bg-muted/20 p-3 text-sm">
-									<p class="font-medium">{t('app.hr_employee.report_punch_preview')}</p>
-									<p>
-										{t('app.hr_employee.report_punch_preview_worked', {
-											hours: formatDurationHours(reportDraft.assessment.workedMinutes ?? 0, t)
-										})}
-									</p>
-									<p>
-										{t('app.hr_employee.report_punch_preview_break', {
-											minutes: reportDraft.assessment.breakMinutes
-										})}
-									</p>
-									{#if reportDraft.crossesMidnight}
-										<p class="text-muted-foreground">
-											{t('app.hr_employee.report_punch_crosses_midnight')}
-										</p>
-									{/if}
-								</Stack>
+					<!--
+						What will actually be recorded, spelled out before the submit rather than after the
+						refusal. The break line is the one that earns this panel: it is derived from the
+						reported interval, and a break nobody could see would leave somebody wondering why
+						a twenty-minute call-in was paid as nothing.
+					-->
+					{#if reportDraft != null}
+						<Stack gap="none" class="rounded-md border bg-muted/20 p-3 text-sm">
+							<p class="font-medium">{t('app.hr_employee.report_punch_preview')}</p>
+							<p>
+								{t('app.hr_employee.report_punch_preview_worked', {
+									hours: formatDurationHours(reportDraft.assessment.workedMinutes ?? 0, t)
+								})}
+							</p>
+							<p>
+								{t('app.hr_employee.report_punch_preview_break', {
+									minutes: reportDraft.assessment.breakMinutes
+								})}
+							</p>
+							{#if reportDraft.crossesMidnight}
+								<p class="text-muted-foreground">
+									{t('app.hr_employee.report_punch_crosses_midnight')}
+								</p>
 							{/if}
-
-							{#if reportProblem != null}
-								<p class="text-sm text-destructive">{reportProblem}</p>
-							{/if}
-							<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
-							<!--
-								The submit stays disabled on the preview's own refusal, with the sentence
-								beside it. The draft is pushed on every keystroke, so this native submit
-								carries current values; the preset is belt-and-braces for the same reason.
-								The framework footer below offers the same submit as framework chrome, and
-								the semantic gate refuses it there with the same sentence.
-							-->
-							<Button
-								type="submit"
-								disabled={reportProblem != null}
-								onclick={() => {
-									presetReport(form);
-								}}
-							>
-								{t('app.hr_employee.report_punch_submit')}
-							</Button>
 						</Stack>
-					{/snippet}
-				</CollectionForm>
+					{/if}
+
+					{#if reportProblem != null}
+						<p class="text-sm text-destructive">{reportProblem}</p>
+					{/if}
+					<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
+					{#if reportRefusal != null}<p class="text-sm text-destructive" role="alert">
+							{reportRefusal}
+						</p>{/if}
+					<Button disabled={reportProblem != null || reportPending} onclick={submitReport}>
+						{t('app.hr_employee.report_punch_submit')}
+					</Button>
+				</Stack>
 			{/key}
 		</Dialog.Content>
 	</Dialog.Root>

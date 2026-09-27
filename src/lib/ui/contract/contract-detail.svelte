@@ -1,202 +1,174 @@
 <script lang="ts">
+	import { t } from '../t.js';
+	import { everyField } from '../../every-field.js';
 	/**
-	 * One employment contract, whole: the stint (entity, employee number, contract number, bank,
-	 * dates, departure) and the terms in force on it (pay, shift assignment, standing,
-	 * organisation, dates), with every earlier or later revision listed beneath.
-	 *
-	 * It opens read-only and shows every field in display mode; Edit turns the same two forms
-	 * editable in place. There is no shorter read view: what the reader sees is exactly what the
-	 * editor can change. Save leaves edit mode with the committed values still mounted; Cancel bumps
-	 * an epoch and remounts both forms from the rows as stored. Consumed terms refuse a change of
-	 * facts at the transform — a revision is the contract's own Change terms flow.
+	 * One employment contract, whole: the stint (entity, employee number, contract number, bank, dates, departure) and
+	 * the terms in force on it (pay, shift assignment, standing, organisation, dates), with every earlier or later
+	 * revision listed beneath. Consumed terms refuse a change of facts at the transform — a revision is the contract's
+	 * own Change terms flow — and a sealed contract takes only its departure.
 	 */
-	import { client } from '../../workspace-client.js';
-	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import type { WorkspaceRow } from '$bolt/types.js';
-	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { Button } from '@norbital-ai/ui/button';
+	import { bolt } from '$bolt';
+	import { fromStore } from 'svelte/store';
 	import Icon from '@iconify/svelte';
-	import { coversDate, readRange } from '../../../collections/payroll_runs/lib/effective.js';
+	import type { Id, Row } from '@norbital-ai/bolt';
+	import { Field, Form, Picker } from '@norbital-ai/ui';
+	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { coversDate } from '../../../lib/payroll/run/effective.js';
 	import { todayKey } from '../calendar.js';
 	import { formatTermsDates } from '../display-formatters.js';
 	import FormSection from '../form-section.svelte';
+	import ExitFactsRenderer from '../offboarding/exit-facts-renderer.svelte';
 	import { contractSeal } from './contract-seal.svelte.js';
 	import TermsFields from './terms-fields.svelte';
-	import EffectiveRangeRenderer from '../effective-range-renderer.svelte';
-	import ExitFactsRenderer from '../offboarding/exit-facts-renderer.svelte';
+	import * as Predicate from 'effect/Predicate';
 
 	let {
 		record,
-		editing = $bindable(false),
 		scopedCompanyId,
 		contracts = true,
 		sealNotice = true
 	}: {
-		record: WorkspaceRow<'employments'>;
-		/** Edit mode, toggled by the record shell's header actions. */
-		editing?: boolean;
-		/** The entity the page is scoped to: its picker is prefilled and hidden. */
-		scopedCompanyId?: string | undefined;
-		/** Whether the terms in force and the other revisions follow the stint; the employment record lists them on their own tab. */
+		record: Row<'employments'>;
+		/** The entity the page is scoped to: its picker is not offered. */
+		scopedCompanyId?: Id<'companies'> | undefined;
+		/** Whether the terms in force and the other revisions follow the stint. */
 		contracts?: boolean;
-		/** Whether the seal is stated here; the employment record states it in its sheet header instead. */
+		/** Whether the seal is stated here; the employment record states it in its header instead. */
 		sealNotice?: boolean;
 	} = $props();
-	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	const today = todayKey();
-
 	const seal = contractSeal(() => record.id);
-	const sealed = $derived(seal.sealed);
-	const sealLoading = $derived(seal.loading);
-
-	const termsQuery = $derived(
-		client.db.employment_terms.findMany({
-			where: { employment_id: { eq: record.id }, approval_id: { isNull: true } },
-			orderBy: { created_at: 'asc' },
-			limit: 100
-		})
+	const lastDay = $derived(record.effective_range.to);
+	// Read as Bolt hands it (decimals stay `Decimal`): the in-force revision is the terms form's `record`.
+	const terms = $derived(
+		fromStore(
+			bolt.live(
+				bolt.read('employment_terms', {
+					select: everyField('employment_terms'),
+					where: { employment_id: { eq: record.id }, approval_id: { isNull: true } },
+					all: true
+				})
+			)
+		)
 	);
 	/** Every revision, earliest start first. */
 	const revisions = $derived(
-		(termsQuery.current ?? []).toSorted((left, right) => {
-			const from = readRange(left.effective_range)?.start ?? '';
-			const to = readRange(right.effective_range)?.start ?? '';
-			return from.localeCompare(to);
-		})
+		(terms.current?.rows ?? []).toSorted((left, right) =>
+			left.effective_range.from.localeCompare(right.effective_range.from)
+		)
 	);
 	/** The revision in force today, else the latest one — a leaver's last terms, a joiner's first. */
 	const inForce = $derived(
 		revisions.find((row) => coversDate(row.effective_range, today)) ?? revisions.at(-1)
 	);
 	const otherRevisions = $derived(revisions.filter((row) => row.id !== inForce?.id));
+	const text = (value: unknown) => (Predicate.isString(value) ? value : null);
 </script>
 
 <Stack gap="md">
-	{#if sealed && sealNotice}
-		<!-- The seal is a fact about this contract, not an action: it stays in the body; Edit and
-		     Cancel ride the record shell's header with the other actions. -->
+	{#if seal.sealed && sealNotice}
 		<Inline gap="xs" align="center" class="text-meta">
 			<Icon icon="lucide:lock-keyhole" class="size-4" />
 			<span>{t('component.employment_sealed')}</span>
 		</Inline>
 	{/if}
-	<CollectionForm
-		{client}
-		collection="employments"
-		disabled={sealLoading}
-		readonly={!editing}
-		defaultValues={record}
-		submitLabel={t('component.save_employment')}
-		onAfterSubmit={() => {
-			editing = false;
-		}}
+	<Form
+		of="employments"
+		mode="update"
+		id={record.id}
+		{record}
+		submit={t('component.save_employment')}
 	>
-		{#snippet children({ Field })}
-			<FormSection first title={t('component.employment')} hint={t('component.contract_hint')}>
-				<Grid gap="md" minimum="panel">
-					<Field
-						name="employee_id"
-						label={t('component.person')}
-						disabled={sealed}
-						relationOptions={{
-							label: (person) =>
-								person.name != null && person.name !== '' ? String(person.name) : '—',
-							orderBy: { name: 'asc' },
-							limit: 10_000
-						}}
-					/>
-					{#if scopedCompanyId != null}
-						<Field name="company_id" hidden />
-					{:else}
-						<Field
-							name="company_id"
-							label={t('component.legal_entity')}
-							disabled={sealed}
-							relationOptions={{
-								label: (company) =>
-									company.name != null && company.name !== '' ? String(company.name) : '—',
-								orderBy: { name: 'asc' },
-								limit: 500
-							}}
+		<FormSection first title={t('component.employment')} hint={t('component.contract_hint')}>
+			<Grid gap="md" minimum="panel">
+				<Field name="employee_id" label={t('component.person')} readonly={seal.sealed}>
+					{#snippet editor(field)}
+						<Picker
+							of="employees"
+							label={['name']}
+							orderBy={{ name: 'asc' }}
+							value={text(field.value)}
+							onChange={field.onChange}
+							disabled={field.disabled}
 						/>
-					{/if}
-					<Field name="employee_number" label={t('component.employee_number')} disabled={sealed} />
-					<!-- The stint's rolling number is the transform's, shown and never written. -->
-					<Stack gap="xs">
-						<span class="text-sm font-medium">{t('component.contract_number')}</span>
-						<span class="text-sm text-muted-foreground">{record.contract_number}</span>
-					</Stack>
-					<Column span="all">
-						<Field name="bank" label={t('component.pay_destination')} disabled={sealed} />
-					</Column>
-					<Column span="all">
-						<Field
-							name="effective_range"
-							renderer={EffectiveRangeRenderer}
-							label={t('component.effective_period')}
-							disabled={sealed}
-						/>
-					</Column>
-					<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
-					<Column span="all"><Field name="exit_reason" label={t('component.exit_reason')} /></Column
-					>
-					<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
+					{/snippet}
+				</Field>
+				{#if scopedCompanyId == null}
+					<Field name="company_id" label={t('component.legal_entity')} readonly={seal.sealed}>
+						{#snippet editor(field)}
+							<Picker
+								of="companies"
+								label={['name']}
+								orderBy={{ name: 'asc' }}
+								value={text(field.value)}
+								onChange={field.onChange}
+								disabled={field.disabled}
+							/>
+						{/snippet}
+					</Field>
+				{/if}
+				<Field name="employee_number" label={t('component.employee_number')} />
+				<!-- The stint's rolling number is the platform's sequence, shown and never written. -->
+				<Field name="contract_number" label={t('component.contract_number')} readonly />
+				<Column span="all"><Field name="bank" label={t('component.pay_destination')} /></Column>
+				<Column span="all"
+					><Field name="effective_range" label={t('component.effective_period')} /></Column
+				>
+				<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
+				<Column span="all"><Field name="exit_reason" label={t('component.exit_reason')} /></Column>
+				<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
+				{#if lastDay != null}
 					<Column span="all">
 						<Field
 							name="exit_facts"
 							label={t('component.exit_facts')}
-							description={t('component.exit_facts_hint')}
-							renderer={ExitFactsRenderer}
-							rendererProps={{
-								companyId: record.company_id,
-								lastDay: readRange(record.effective_range)?.end ?? null
-							}}
-							hidden={readRange(record.effective_range)?.end == null}
-						/>
+							help={t('component.exit_facts_hint')}
+						>
+							{#snippet editor(field)}
+								<ExitFactsRenderer
+									view={{
+										mode: 'edit',
+										name: field.name,
+										value: field.value as never,
+										disabled: field.disabled,
+										onChange: field.onChange as never
+									}}
+									companyId={record.company_id}
+									{lastDay}
+								/>
+							{/snippet}
+						</Field>
 					</Column>
-				</Grid>
-			</FormSection>
-		{/snippet}
-	</CollectionForm>
+				{/if}
+			</Grid>
+		</FormSection>
+	</Form>
 	{#if !contracts}
 		<!-- The employment record lists its contracts on their own tab. -->
-	{:else if termsQuery.loading}
+	{:else if terms.current === undefined}
 		<p class="text-meta">{t('component.loading')}</p>
 	{:else if inForce == null}
 		<!-- A contract with no terms yet: the same form, empty, creates its first revision. -->
-		<CollectionForm
-			{client}
-			collection="employment_terms"
-			readonly={!editing}
-			defaultValues={{ employment_id: record.id }}
-			submitLabel={t('component.create_terms')}
-			onAfterSubmit={() => {
-				editing = false;
-			}}
+		<Form
+			of="employment_terms"
+			mode="create"
+			values={{ employment_id: record.id }}
+			submit={t('component.create_terms')}
 		>
-			{#snippet children({ Field })}
-				<TermsFields {Field} employmentScoped {scopedCompanyId} />
-			{/snippet}
-		</CollectionForm>
+			<TermsFields employmentScoped {scopedCompanyId} />
+		</Form>
 	{:else}
-		<CollectionForm
-			{client}
-			collection="employment_terms"
-			readonly={!editing}
-			defaultValues={inForce}
-			submitLabel={t('component.save_terms')}
-			onAfterSubmit={() => {
-				editing = false;
-			}}
+		<Form
+			of="employment_terms"
+			mode="update"
+			id={inForce.id}
+			record={inForce}
+			submit={t('component.save_terms')}
 		>
-			{#snippet children({ Field })}
-				<TermsFields {Field} employmentScoped {scopedCompanyId} />
-			{/snippet}
-		</CollectionForm>
+			<TermsFields employmentScoped {scopedCompanyId} />
+		</Form>
 	{/if}
-	{#if otherRevisions.length > 0}
+	{#if contracts && otherRevisions.length > 0}
 		<FormSection title={t('component.terms_revisions')} hint={t('component.terms_revisions_hint')}>
 			<ul class="text-sm">
 				{#each otherRevisions as revision (revision.id)}

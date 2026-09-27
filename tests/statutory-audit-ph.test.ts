@@ -8,8 +8,8 @@
  *   https://www.sss.gov.ph/sss-contribution-table/ — MSC ₱5,000–₱35,000 in ₱500 steps, EE 5% /
  *   ER 10%; Regular SS to MSC ₱20,000, MPF (WISP) on the MSC above it; EC ₱10 below MSC ₱15,000,
  *   ₱30 from it. Compensation below ₱5,250 → MSC ₱5,000; ₱34,750 and over → MSC ₱35,000.
- * - PhilHealth Advisory 2026-0042 (5% of monthly income, ₱500 minimum, ₱5,000 at ₱100,000):
- *   https://www.philhealth.gov.ph/advisories/2026/PA2026-0042.pdf
+ * - PhilHealth Advisory 2025-0002 (5% of monthly basic salary, ₱10,000 floor, ₱100,000 ceiling):
+ *   https://www.philhealth.gov.ph/advisories/2025/PA2025-0002.pdf
  * - HDMF Circular 460: 1% EE / 2% ER to ₱1,500, 2% / 2% above, fund salary cap ₱10,000.
  * - RA 10361 s.30: a kasambahay under ₱5,000 a month pays nothing; the employer pays both shares.
  * - BIR RR 11-2018 Annex E (2023 onward), monthly column: ≤20,833 → 0; 20,833–33,333 → 15% over
@@ -29,29 +29,108 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	assessStatutory,
 	buildStatutory,
+	contributionSchemes,
 	createStatutoryWorld,
-	COMPANY_ID
+	COMPANY_ID,
+	settingsIdOn,
+	settingsVersions,
+	adhocCatalogue,
+	rowIn
 } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
+import { statutoryFactStatusFault } from '../src/lib/datatypes/statutory_fact_status.ts';
 
 /** One period per sealed version: 2025-12-01, 2026-01-01, 2026-04-01, 2026-09-26. */
 const VERSION_PERIODS = ['2025-12', '2026-01', '2026-04', '2026-10'] as const;
-const PH_2026 = 'bb5137fd-d7fd-4a26-8eae-77211521f892';
+const PH_2026 = settingsIdOn('PH', '2026-01-02');
 // The version governing 31 January 2026 since RR 29-2025 split January on the 6th: a separation
 // row must come from the catalogue in force on the final service day.
-const PH_2026_JAN6 = 'b585862c-5438-5a97-a36d-44e55ceb5498';
+const PH_2026_JAN6 = settingsIdOn('PH', '2026-01-31');
 
 /** [employee, employer] of one scheme; a scheme the person is outside reads as nothing owed. */
 const owed = (book, key: string, code: string): [number, number] => {
 	const row = book.get(key)?.get(code);
 	return row == null ? [0, 0] : [row.employee, row.employer];
 };
+
+test('PH audit — all six mandatory schemes assess liability despite missing registration', () => {
+	const versions = settingsVersions('PH');
+	assert.equal(versions.length, 6);
+	const schemes = contributionSchemes('PH');
+	assert.equal(schemes.length, 36);
+	for (const scheme of schemes)
+		assert.equal(scheme.unregistered_action, 'ASSESS', scheme.settings_id);
+	const run = (wage: number, unregistered: readonly string[]) =>
+		buildStatutory(
+			{
+				code: 'PH',
+				period: '2026-07',
+				people: [{ key: 'P', wage, hire_date: '2026-07-01', tax_residency: 'RESIDENT' }]
+			},
+			unregistered.length > 0
+				? (world) => {
+						const selected = new Set(
+							world.statutory_contributions
+								.filter((row) => unregistered.includes(row.code))
+								.map((row) => row.id)
+						);
+						for (const fact of world.employment_statutory_facts)
+							if (selected.has(fact.statutory_contribution_id)) {
+								fact.status = {
+									kind: 'NOT_REGISTERED',
+									reason: 'Employee registration remains incomplete'
+								};
+								assert.equal(statutoryFactStatusFault(fact.status), undefined);
+							}
+					}
+				: undefined
+		);
+	const codes = ['SSS', 'SSS_MPF', 'SSS_EC', 'PHIC', 'HDMF', 'WTAX'];
+	for (const wage of [20_000, 30_000]) {
+		const registered = run(wage, []).slips.get('P')!;
+		if (wage === 30_000)
+			assert.deepEqual(
+				Object.fromEntries(
+					registered.statutory.map((row) => [
+						row.scheme_code,
+						[row.employee_amount, row.employer_amount]
+					])
+				),
+				{
+					SSS: [1000, 2000],
+					SSS_MPF: [500, 1000],
+					SSS_EC: [0, 30],
+					PHIC: [750, 750],
+					HDMF: [200, 200],
+					WTAX: [1007.55, 0]
+				}
+			);
+		for (const missing of [...codes.map((code) => [code]), codes]) {
+			const built = run(wage, missing);
+			const unregistered = built.slips.get('P')!;
+			const amounts = (slip) =>
+				Object.fromEntries(
+					slip.statutory.map((row) => [row.scheme_code, [row.employee_amount, row.employer_amount]])
+				);
+			assert.deepEqual(amounts(unregistered), amounts(registered), `${wage}: ${missing}`);
+			assert.equal(unregistered.net_amount, registered.net_amount);
+			if (wage === 30_000)
+				for (const code of missing)
+					assert.ok(
+						built.warnings.some((line) => line.includes(`${code}: registration incomplete`))
+					);
+		}
+		assert.equal(
+			registered.statutory.find((row) => row.scheme_code === 'WTAX')?.employee_amount ?? 0,
+			wage === 30_000 ? 1007.55 : 0
+		);
+	}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SSS, EC and MPF at every bracket seam that moves a figure, on every version.
@@ -210,7 +289,7 @@ test('PH audit 2026-02: a rice subsidy over the RR 29-2025 ceiling stays exempt 
 	// exclusion, so with nothing else in the pool the ₱100 excess is still exempt.
 	// 40,000: SSS 1,750 (MSC 35,000), PhilHealth 1,000, Pag-IBIG 200 → 37,050 →
 	// 1,875 + 20% × (37,050 − 33,333) = 1,875 + 743.40 = 2,618.40 — as if no subsidy were paid.
-	const MEAL_2026 = '874b6d04-8bf1-4d59-b4c4-18daf98a98e5';
+	const MEAL_2026 = '121a89c9-8987-5e83-bc3d-435ca473968a';
 	const book = assessStatutory(
 		{ code: 'PH', period: '2026-02', people: [{ key: 'R-40000', wage: 40_000 }] },
 		(world) =>
@@ -229,7 +308,11 @@ test('PH audit 2026-02: a rice subsidy over the RR 29-2025 ceiling stays exempt 
 // 13th month at the ₱90,000 line, and its base (PD 851 Revised Guidelines; Handbook ch.13 §C–D).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const THIRTEENTH_MONTH_2026 = '4fddc3cc-7bf8-42c4-8f43-7d9ef87605d6';
+const THIRTEENTH_MONTH_2026 = rowIn(
+	adhocCatalogue('PH'),
+	settingsIdOn('PH', '2026-12-15'),
+	'THIRTEENTH_MONTH_PAY'
+);
 
 function decemberWith13th(people, prepare?: (world) => void) {
 	const world = createStatutoryWorld({ code: 'PH', period: '2026-12', people });
@@ -248,9 +331,11 @@ function decemberWith13th(people, prepare?: (world) => void) {
 			approval_id: null
 		});
 	prepare?.(world);
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-12' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-12'
+	});
 	const built = buildPayrollRun(prepared);
 	return (key: string) => {
 		const employment = world.employments.find((row) => row.employee_number === key)!;
@@ -284,7 +369,7 @@ test('PH audit 2026-12: the 13th month is a twelfth of the basic salary actually
 	const slip = decemberWith13th([{ key: 'X-LWOP', wage: 30_000 }], (world) => {
 		world.leave_catalogue.push({
 			id: NPL,
-			settings_id: '288c7099-5797-59d8-9944-85197f09b4fb',
+			settings_id: settingsIdOn('PH', '2026-12-15'),
 			code: 'LEAVE_WITHOUT_PAY',
 			name: 'Leave without pay',
 			eligibility: '',
@@ -558,8 +643,6 @@ test('PH audit 2026-01: retirement pay is 22.5 days a year, six months counting 
 // ─────────────────────────────────────────────────────────────────────────────
 // The sealed data itself: wage floors and the obligation register.
 // ─────────────────────────────────────────────────────────────────────────────
-
-import { settingsVersions } from './fixtures/statutory-world.ts';
 
 test('PH audit: wage-order floors are the daily rate × 313 ÷ 12 on each version, by area and sector', () => {
 	// Wage Order NCR-26 (18 Jul 2025): ₱695 non-agriculture, ₱658 agriculture / retail-service of

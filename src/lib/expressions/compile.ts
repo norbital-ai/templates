@@ -13,7 +13,7 @@
  */
 
 import { DEDUCTION_TOTAL_KEYS } from '../statutory-deductions.js';
-import type { FactKey } from '../../datatypes/fact_keys/+definition.js';
+import type { FactKey } from '../datatypes/fact_keys.js';
 import { programFor } from './evaluate.js';
 import {
 	CATALOGUE_WORDS,
@@ -24,6 +24,7 @@ import {
 	type ExpressionSite,
 	type ExpressionType
 } from './contexts.js';
+import * as Predicate from 'effect/Predicate';
 
 const KEYWORDS = new Set(['true', 'false', 'null', 'in']);
 
@@ -63,8 +64,8 @@ const BARE = /(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)(?![.\w(])/g;
 function withParts(context: ExpressionContext, parts: readonly string[]): ExpressionContext {
 	if (parts.length === 0 || context.site !== 'assessment') return context;
 	const words = Object.fromEntries(CATALOGUE_WORDS.map((word) => [word, 0]));
-	const blank = structuredClone(context.blank) as Record<string, unknown>;
-	const year = { ...((blank.year ?? {}) as Record<string, unknown>) };
+	const blank = structuredClone(context.blank);
+	const year: Record<string, unknown> = { ...(Predicate.isObject(blank.year) ? blank.year : {}) };
 	for (const part of parts) {
 		blank[part] = { ...words };
 		year[part] = { ...words };
@@ -162,7 +163,8 @@ function openKeyBlank(
 ): Record<string, unknown> {
 	const blank = structuredClone(context.blank) as Record<string, any>;
 	const zeroMap = (parent: Record<string, unknown>, key: string, mentions: readonly string[]) => {
-		const existing = (parent[key] ?? {}) as Record<string, unknown>;
+		const current = parent[key];
+		const existing: Record<string, unknown> = Predicate.isObject(current) ? current : {};
 		for (const mention of mentions) if (!(mention in existing)) existing[mention] = 0;
 		parent[key] = existing;
 	};
@@ -257,7 +259,7 @@ function openKeyBlank(
 
 function describe(value: unknown): string {
 	if (Array.isArray(value)) return 'a list';
-	if (typeof value === 'bigint') return 'a number';
+	if (Predicate.isBigInt(value)) return 'a number';
 	return typeof value;
 }
 
@@ -270,17 +272,29 @@ function describe(value: unknown): string {
  * does not (a datatype's own filter, a live field) checks the members and stops there, because a
  * value of a guessed type would refuse a well-typed rule; the scheme write compiles it fully.
  */
-export function compileExpression(options: {
+export function compileExpression(options: Parameters<typeof compileOnce>[0]): string | null {
+	// a pure judgement of its options, asked again for every row of every version a write or a seed replays
+	const key = JSON.stringify(options);
+	const known = judged.get(key);
+	if (known !== undefined) return known;
+	const fault = compileOnce(options);
+	if (judged.size >= 5_000) judged.clear();
+	judged.set(key, fault);
+	return fault;
+}
+const judged = new Map<string, string | null>();
+
+function compileOnce(options: {
 	readonly expression: string | null | undefined;
 	readonly site: ExpressionSite;
 	readonly type: ExpressionType;
-	readonly elections?: readonly DeclaredKey[];
-	readonly facts?: readonly DeclaredKey[];
+	readonly elections?: readonly DeclaredKey[] | undefined;
+	readonly facts?: readonly DeclaredKey[] | undefined;
 	/** All scheme declarations in the governing version, for reads of another scheme's facts. */
-	readonly schemeElections?: Readonly<Record<string, readonly DeclaredKey[]>>;
-	readonly exitFacts?: readonly DeclaredKey[];
+	readonly schemeElections?: Readonly<Record<string, readonly DeclaredKey[]>> | undefined;
+	readonly exitFacts?: readonly DeclaredKey[] | undefined;
 	/** The scheme's declared parts, each a root of the catalogue words: `ORDINARY.ALLOWANCES`. */
-	readonly parts?: readonly string[];
+	readonly parts?: readonly string[] | undefined;
 }): string | null {
 	const expression = (options.expression ?? '').trim();
 	if (expression === '') return null;
@@ -372,8 +386,8 @@ export function compileExpression(options: {
 	// `evaluateNumber` converts it — so the check is on the value's kind, not its representation.
 	const ok =
 		options.type === 'boolean'
-			? typeof value === 'boolean'
-			: typeof value === 'number' || typeof value === 'bigint';
+			? Predicate.isBoolean(value)
+			: Predicate.isNumber(value) || Predicate.isBigInt(value);
 	if (!ok)
 		return (
 			`The ${options.site} expression must produce ${RETURNS[options.type]}; ` +
@@ -388,7 +402,7 @@ type AstNode = {
 };
 
 const isNode = (value: unknown): value is AstNode =>
-	typeof value === 'object' && value != null && 'op' in value;
+	Predicate.isObjectOrArray(value) && 'op' in value;
 
 /**
  * The property chain of a member access, or null where the node is not one. Shared with
@@ -396,10 +410,10 @@ const isNode = (value: unknown): value is AstNode =>
  */
 export function memberChain(node: unknown): readonly string[] | null {
 	if (!isNode(node)) return null;
-	if (node.op === 'id' && typeof node.args === 'string') return [node.args];
+	if (node.op === 'id' && Predicate.isString(node.args)) return [node.args];
 	if (node.op !== '.' && node.op !== '.?') return null;
 	const [object, property] = node.args as [unknown, unknown];
-	if (typeof property !== 'string') return null;
+	if (!Predicate.isString(property)) return null;
 	const chain = memberChain(object);
 	return chain == null ? null : [...chain, property];
 }
@@ -427,7 +441,7 @@ const RESERVED_LINES = new Set(
 
 function stringsOf(node: unknown): string[] {
 	if (!isNode(node)) return [];
-	if (node.op === 'value' && typeof node.args === 'string') return [node.args];
+	if (node.op === 'value' && Predicate.isString(node.args)) return [node.args];
 	if (node.op === 'list') return (node.args as unknown[]).flatMap(stringsOf);
 	return [];
 }
@@ -442,10 +456,10 @@ function walkAssessedOn(
 	}
 ): void {
 	if (!isNode(node)) return;
-	if (node.op === 'id' && typeof node.args === 'string' && RESERVED_LINES.has(node.args)) {
+	if (node.op === 'id' && Predicate.isString(node.args) && RESERVED_LINES.has(node.args)) {
 		if (!mentions.reserved.includes(node.args)) mentions.reserved.push(node.args);
 	}
-	if (node.op === 'id' && typeof node.args === 'string' && isCatalogueWord(node.args)) {
+	if (node.op === 'id' && Predicate.isString(node.args) && isCatalogueWord(node.args)) {
 		if (!mentions.words.includes(node.args)) mentions.words.push(node.args);
 	}
 	if (node.op === 'call') {

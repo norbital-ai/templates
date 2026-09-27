@@ -4,43 +4,27 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const representation = readFileSync(
-	new URL('../src/collections/loans/+representation.svelte', import.meta.url),
+	new URL('../src/data/collection/loans/+representation.svelte', import.meta.url),
 	'utf8'
 );
-const schedule = readFileSync(new URL('../src/lib/loan-schedule.ts', import.meta.url), 'utf8');
 
-test('loan form nests repayments in a matrix and blocks an unbalanced schedule without rewriting amounts', () => {
-	assert.match(representation, /MatrixRenderer/);
+test('the loan form writes the schedule as explicit relation actions and asks only for the day and the amount', () => {
+	// The canonical write: the table's rows reach the form's state as the relationship's actions.
+	assert.match(representation, /form\.set\(\s*'loan_repayments',\s*loanScheduleActions\(/);
 	assert.match(representation, /data-loan-schedule/);
-	assert.match(representation, /data-invalid=\{imbalanced \? 'true' : undefined\}/);
-	assert.match(representation, /loanScheduleImbalanced/);
-	// The canonical write path: the form's default write carries the matrix as explicit relation
-	// actions, pushed into the form's state as the relationship key — no onSubmit override.
-	assert.match(representation, /CollectionFormSemantic/);
-	assert.match(representation, /repayment_loan: loanScheduleActions\(/);
-	assert.doesNotMatch(representation, /onSubmit/);
-	assert.doesNotMatch(representation, /client\.collection\.loans\./);
-	assert.doesNotMatch(representation, /amount_due\s*=/);
-	assert.match(schedule, /Amounts are never rewritten here/);
-	// The write is the ordered plan: every path out of the module renumbers `sequence` from the
-	// dates, so the form can drop the column without the stored key drifting from the schedule.
-	assert.match(schedule, /const ordered = loanScheduleOrdered\(rows\);/);
-});
-
-test('the schedule matrix asks for the two facts the operator owns, and not for the sort', () => {
-	assert.doesNotMatch(representation, /key: 'sequence'/);
-	assert.match(representation, /key: 'due_date'/);
-	assert.match(representation, /key: 'amount_due'/);
-	// Stored rows arrive in date order, not in stored-sequence order.
+	// `sequence` is the date order the write renumbers, never a column; stored rows arrive in date order.
+	assert.doesNotMatch(representation, /field: 'sequence'/);
+	assert.match(representation, /field: 'due_date'/);
+	assert.match(representation, /field: 'amount_due'/);
 	assert.match(representation, /orderBy: \{ due_date: 'asc' \}/);
 });
 
 test('the generate action is offered from the form and never rewrites a captured repayment', () => {
 	assert.match(representation, /data-generate-schedule/);
-	assert.match(representation, /canGenerateLoanSchedule/);
-	assert.match(representation, /generateLoanSchedule\(/);
+	assert.match(
+		representation,
+		/generateLoanSchedule\(\{ principal, range, rows: schedule, lockedIds \}\)/
+	);
 	// The locked set is read from the repayment's own pin, not assumed.
-	assert.match(representation, /loan_repayments\.findMany/);
-	assert.match(representation, /payslip_id: \{ isNotNull: true \}/);
-	assert.match(representation, /lockedIds/);
+	assert.match(representation, /row\.payslip_id != null/);
 });

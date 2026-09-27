@@ -1,5 +1,6 @@
 import { resolveHolidays, type HolidayRow } from '../holiday-calendar.js';
-import type { HolidaySnapshot } from '../../datatypes/holiday_snapshots/+definition.js';
+import type { HolidaySnapshot } from '../datatypes/holiday_snapshots.js';
+import { getErrorMessage } from '../refuse.js';
 
 export const HOLIDAY_QUERY_LIMIT = 200;
 
@@ -29,6 +30,6 @@ export function holidayView(input: {
 			error: null
 		};
 	} catch (error) {
-		return { holidays: [], error: error instanceof Error ? error.message : String(error) };
+		return { holidays: [], error: getErrorMessage(error) };
 	}
 }

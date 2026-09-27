@@ -5,33 +5,31 @@
 
 	export type LeaveDayAvailability = {
 		readonly eligible: boolean;
-		readonly firstHalfAvailable?: boolean;
-		readonly secondHalfAvailable?: boolean;
-		readonly reason?: string;
+		readonly firstHalfAvailable?: boolean | undefined;
+		readonly secondHalfAvailable?: boolean | undefined;
+		readonly reason?: string | undefined;
 		/**
 		 * One character drawn on an excluded day so the exclusion reads at a glance: `R` rest,
 		 * `O` off, `H` holiday, `L` another leave, `🔒` paid payroll.
 		 */
-		readonly reasonMark?: string;
-		readonly shiftLabel?: string;
-		readonly firstHalfLabel?: string;
-		readonly secondHalfLabel?: string;
+		readonly reasonMark?: string | undefined;
+		readonly shiftLabel?: string | undefined;
+		readonly firstHalfLabel?: string | undefined;
+		readonly secondHalfLabel?: string | undefined;
 	};
 </script>
 
 <script lang="ts">
+	import { t } from '../t.js';
 	import Icon from '@iconify/svelte';
-	import { Button } from '@norbital-ai/ui/button';
+	import { Button, Popover, cn } from '@norbital-ai/ui';
 	import { Bound, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import * as Popover from '@norbital-ai/ui/popover';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { cn } from '@norbital-ai/ui/utils';
 	import { pointAt, pointNumber, type DayHalf, type HalfDayPoint } from '../../../lib/half-day.js';
-	import { daysBetween } from '../../../collections/payroll_runs/lib/dates.js';
+	import { daysBetween } from '../../../lib/payroll/run/dates.js';
 	import { leaveCalendarGrid } from '../../leave/calendar-grid.js';
 	import { todayKey } from '../calendar.js';
-	import { decodeNumber } from '@norbital-ai/std/json';
+	import { decodeNumber } from '../../wire.js';
+	import * as Predicate from 'effect/Predicate';
 
 	type Props = {
 		value: HalfDayRange | null;
@@ -56,7 +54,6 @@
 		visibleMonth = $bindable(today.slice(0, 7)),
 		onValueChange
 	}: Props = $props();
-	const { t } = useI18n<TenantI18nKeys>();
 
 	let open = $state(false);
 	let anchor = $state<HalfDayPoint | null>(null);
@@ -98,7 +95,7 @@
 	}
 
 	function availabilityFor(date: string): LeaveDayAvailability {
-		return typeof availability === 'function'
+		return Predicate.isFunction(availability)
 			? availability(date)
 			: (availability[date] ?? { eligible: true });
 	}

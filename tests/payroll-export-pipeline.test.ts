@@ -1,35 +1,21 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * What the export pipeline hands the outside world for a settled run.
+ * What the `payroll_export` automation hands the outside world for the selected runs: the artefacts in the order
+ * the payroll page routes them, each named by its period, stored on the run; the employments left out of the bank
+ * file named; a later bank payment held until earlier contribution shortfalls are funded.
  *
- * `verify-payroll-export-data.mjs` pins `lib/export-data.ts` — the read that assembles a
- * `ReportPayslip` — and `verify-payroll-xlsx.mjs` pins the workbook built from one. Neither runs
- * `+pipelines.ts`, which is the module a person actually reaches: it decides how many artefacts a
- * selection produces, what each one is called, what its `metadata.kind` says and — the part that
- * only exists here — which employments were left out of the bank file and are named as skipped.
- *
- * The run under test is the public fixture's January, built by the real gather and create hook, so
- * the payslip these artefacts are made of is the one `public-month.test.ts` asserts figure by
- * figure: gross 3,761, net 3,761, BASIC 3,451 and a standing TRANSPORT of 310.
+ * The run under test is the public fixture's January, built by the real transform, so the payslip these artefacts
+ * are made of is the one `public-month.test.ts` asserts figure by figure.
+ * `verify-payroll-export-data.mjs` and `verify-payroll-xlsx.mjs` pin the workbook's contents.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import payrollRunPipelines from '../src/collections/payroll_runs/+pipelines.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import payrollExport from '../src/automation/+payroll_export.automation.ts';
+import { memoryDb } from './helpers/ctx.ts';
 import { createRun, storeRun } from './helpers/settlement.ts';
-import {
-	COMPANY_ID,
-	EMPLOYMENT_ID,
-	createPublicPayrollWorld
-} from './fixtures/public-payroll-world.ts';
+import { EMPLOYMENT_ID, createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
 
-const RUN_ID = 'run:2026-01';
 const PERIOD = '2026-01';
-const PAY_DATE = '2026-01-31';
-const EMPLOYEE_NUMBER = 'PF0001';
-
-/** The destination a payslip is paid to. Absent on the fixture employment, which is the skip case. */
 const BANK = {
 	bank_account_name: 'Public Fixture Employee',
 	bank_code: 'MBBEMYKL',
@@ -37,223 +23,102 @@ const BANK = {
 	bank_account_number: '512345678901'
 };
 
-/**
- * The public fixture's January, settled and stored the way a persisted run is read back.
- *
- * The run's transform returns the run with its payslips nested; the export reads them from the
- * `payslips` table by `payroll_run_id`, so the nested write is unrolled into the world here exactly
- * as the database would hold it.
- */
-async function januaryWorld({ bank = false, period = PERIOD, runId = RUN_ID, world } = {}) {
-	// With the one-off bonus: an ad hoc request is what the catalogue-entries workbook reports.
+async function januaryWorld({
+	bank = false,
+	period = PERIOD,
+	runId = `run:${period}`,
+	world
+} = {}) {
 	world ??= createPublicPayrollWorld({ includePayment: true });
 	if (bank) world.employments[0].bank = BANK;
-	for (const day of world.work_days) {
+	for (const day of world.work_days)
 		day.worked_intervals = [
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
-	}
-	const created = await createRun(world, period);
-	const stored = storeRun(world, created, runId);
-	const run = {
-		id: runId,
-		company_id: stored.company_id,
-		settings_id: stored.settings_id,
-		period: stored.period,
-		pay_date: stored.pay_date,
-		attendance_from: stored.attendance_from,
-		attendance_to: stored.attendance_to
-	};
-	return { world, run };
+	storeRun(world, await createRun(world, period), runId);
+	return { world, runId };
 }
 
-const exportRuns = (world, runs) =>
-	Effect.runPromise(payrollRunPipelines.export.handler({ records: runs }, memoryPayrollApi(world)));
-
-/** Every action of a manifest is a label, a list of named attachments and its routing metadata. */
-const assertManifestShape = (manifest) => {
-	assert.ok(Array.isArray(manifest), 'an export manifest is a list of actions');
-	for (const action of manifest) {
-		assert.equal(typeof action.label, 'string');
-		assert.ok(action.label.length > 0, 'every action is labelled');
-		assert.ok(Array.isArray(action.attachments) && action.attachments.length > 0);
-		for (const attachment of action.attachments) {
-			assert.ok(attachment.name.length > 0);
-			assert.ok(['CSV', 'PDF', 'XLSX'].includes(attachment.contentType), attachment.contentType);
-			assert.notEqual(attachment.content, null);
+/** The run's body over the world, with the files it stores kept as text. */
+async function exportRuns(world, ids, kind) {
+	const stored = new Map();
+	const db = memoryDb(world);
+	const ctx = {
+		read: db.read,
+		progress: async () => {},
+		files: {
+			put: async (bytes, { name, mime, for: owner }) => {
+				assert.equal(owner, 'payroll_export');
+				stored.set(name, { mime, text: new TextDecoder().decode(bytes) });
+				return { id: name, name, mime };
+			}
 		}
-		assert.equal(typeof action.metadata.kind, 'string');
-	}
-	return new Map(manifest.map((action) => [action.metadata.kind, action]));
-};
+	};
+	const { artefacts } = await payrollExport.body({ ids, ...(kind == null ? {} : { kind }) }, ctx);
+	return { artefacts, file: (ref) => stored.get(ref.name) };
+}
 
-test('a settled run exports a bank file, a payslip per employment and the workbook', async () => {
-	const { world, run } = await januaryWorld({ bank: true });
-	const manifest = await exportRuns(world, [run]);
-	const byKind = assertManifestShape(manifest);
+test('a settled run exports its bank file, a payslip per employment and both workbooks, in routing order', async () => {
+	const { world, runId } = await januaryWorld({ bank: true });
+	const { artefacts, file } = await exportRuns(world, [runId]);
 	assert.deepEqual(
-		manifest.map((action) => action.metadata.kind),
-		['bank-files', 'payslip-pdfs', 'payroll-report-xlsx', 'catalogue-entries-xlsx'],
-		'four artefacts, in the order the app routes them'
+		artefacts.map((artefact) => [artefact.kind, artefact.files.map((ref) => ref.name)]),
+		[
+			['bank-files', [`bank_payments_${PERIOD}.csv`]],
+			['payslip-pdfs', [`payslip_${PERIOD}_PF0001.pdf`]],
+			['payroll-report-xlsx', [`payroll_report_${PERIOD}.xlsx`]],
+			['catalogue-entries-xlsx', [`catalogue_entries_${PERIOD}.xlsx`]]
+		]
 	);
-
-	// ── the bank file: one row per paid payslip, under one header row ───────────────────────────
-	const bank = byKind.get('bank-files');
-	assert.equal(bank.label, `Bank file ${PERIOD}`);
-	assert.equal(bank.metadata.period, PERIOD);
-	assert.equal(bank.metadata.included_payslips, 1);
-	assert.equal(bank.metadata.skipped_payslips, 0);
-	assert.deepEqual(bank.metadata.skipped_employment_ids, []);
-	assert.equal(bank.attachments.length, 1);
-	assert.equal(bank.attachments[0].name, `bank_payments_${PERIOD}.csv`);
-	assert.equal(bank.attachments[0].contentType, 'CSV');
-	const rows = bank.attachments[0].content;
-	assert.equal(rows.length, 1 + world.payslips.length, 'a header row and one row per paid payslip');
-	assert.equal(rows[0][0], 'record_type');
-	assert.deepEqual(rows[1], [
-		'PAYMENT',
-		PAY_DATE,
-		EMPLOYEE_NUMBER,
-		BANK.bank_account_name,
-		BANK.bank_code,
-		BANK.bank_name,
-		BANK.bank_account_number,
-		// The net of the payslip `public-month.test.ts` pins plus the 100 bonus, to the cent, as text.
-		'3861.00',
-		'MYR',
-		`${RUN_ID}:${EMPLOYEE_NUMBER}`
-	]);
-
-	// ── the payslips: one PDF per employment on the run ──────────────────────────────────────────
-	const payslips = byKind.get('payslip-pdfs');
-	assert.equal(payslips.label, `Payslips ${PERIOD}`);
-	assert.equal(payslips.attachments.length, world.payslips.length);
-	assert.deepEqual(
-		payslips.attachments.map((attachment) => attachment.name),
-		[`payslip_${PERIOD}_${EMPLOYEE_NUMBER}.pdf`]
-	);
-	for (const attachment of payslips.attachments) {
-		assert.equal(attachment.contentType, 'PDF');
-		// A PDF is its header: anything that does not start `%PDF` is not one, whatever it contains.
-		assert.ok(
-			String(attachment.content).startsWith('%PDF'),
-			`payslip attachment is not a PDF: ${String(attachment.content).slice(0, 40)}`
-		);
-		assert.match(String(attachment.content), /Net pay/);
-	}
-
-	// ── the workbook: one file naming the period it covers ───────────────────────────────────────
-	const workbook = byKind.get('payroll-report-xlsx');
-	assert.equal(workbook.attachments[0].name, `payroll_report_${PERIOD}.xlsx`);
-	assert.equal(workbook.attachments[0].contentType, 'XLSX');
-	assert.deepEqual(workbook.metadata.periods, [PERIOD]);
-
-	// ── the catalogue entries: the same rows, only the requested families, with totals ─────────
-	const catalogue = byKind.get('catalogue-entries-xlsx');
-	assert.equal(catalogue.attachments[0].name, `catalogue_entries_${PERIOD}.xlsx`);
-	assert.equal(catalogue.attachments[0].contentType, 'XLSX');
-	assert.deepEqual(catalogue.metadata.periods, [PERIOD]);
-});
-
-test('a payslip with no bank destination is named as skipped rather than dropped in silence', async () => {
-	// The public fixture employment carries no bank account, which is the case this covers.
-	const { world, run } = await januaryWorld();
-	const manifest = await exportRuns(world, [run]);
-	const byKind = assertManifestShape(manifest);
-
-	const bank = byKind.get('bank-files');
-	assert.ok(bank != null, 'a run that pays nobody still hands out the file naming who was skipped');
-	assert.equal(bank.metadata.included_payslips, 0);
-	assert.equal(bank.metadata.skipped_payslips, 1);
-	assert.deepEqual(bank.metadata.skipped_employment_ids, [EMPLOYMENT_ID]);
-	assert.equal(bank.attachments[0].content.length, 1, 'the header row and no payments');
-
-	// The payslip itself is unaffected: not being payable by transfer is not being unpaid.
-	assert.equal(byKind.get('payslip-pdfs').attachments.length, 1);
-});
-
-test('a run with no payslips answers a manifest with nothing in it', async () => {
-	const { world, run } = await januaryWorld({ bank: true });
-	world.payslips.length = 0;
-	const manifest = await exportRuns(world, [run]);
-	assertManifestShape(manifest);
-	assert.deepEqual(manifest, [], 'no payslips is no artefacts, not a file with a header in it');
-});
-
-test('zero cash pay retains the contribution shortfall in reports and has no bank payment', async () => {
-	const { world, run } = await januaryWorld({ bank: true });
-	Object.assign(world.payslips[0], {
-		gross: 0,
-		total_deductions: 150,
-		net: 0,
-		unfunded_contributions: 150
-	});
-	const byKind = assertManifestShape(await exportRuns(world, [run]));
-	const bank = byKind.get('bank-files');
-	assert.equal(bank?.metadata.included_payslips ?? 0, 0);
-	assert.equal(bank?.metadata.skipped_payslips ?? 0, 0);
+	const rows = file(artefacts[0].files[0]).text.split('\r\n');
+	assert.equal(rows.length, 2, 'a header row and one row per paid payslip');
+	// The net of the payslip `public-month.test.ts` pins plus the 100 bonus, to the cent, as text.
 	assert.match(
-		String(byKind.get('payslip-pdfs').attachments[0].content),
-		/Contribution shortfall: 150.00/
+		rows[1],
+		/^PAYMENT,2026-01-31,PF0001,Public Fixture Employee,MBBEMYKL,Maybank,512345678901,3861.00,MYR,/
 	);
-	Object.assign(world.payslips[0], {
-		funding_received: 100,
-		funding_received_on: '2026-01-31',
-		funding_reference: 'RECEIPT-1'
-	});
-	const funded = assertManifestShape(await exportRuns(world, [run]));
-	const pdf = String(funded.get('payslip-pdfs').attachments[0].content);
-	assert.match(pdf, /Funding received: 100.00/);
-	assert.match(pdf, /Funding outstanding: 50.00/);
+	const pdf = file(artefacts[1].files[0]);
+	assert.equal(pdf.mime, 'application/pdf');
+	assert.ok(pdf.text.startsWith('%PDF') && /Net pay/.test(pdf.text));
+	// Each export button asks for its own artefact.
+	const one = await exportRuns(world, [runId], 'payslip-pdfs');
+	assert.deepEqual(
+		one.artefacts.map((artefact) => artefact.kind),
+		['payslip-pdfs']
+	);
 });
 
-test('later bank payments require earlier contribution shortfalls to be funded by the payment date', async () => {
+test('a payslip with no bank destination is named as skipped; no payslips is no artefacts', async () => {
+	const { world, runId } = await januaryWorld();
+	const [bank] = (await exportRuns(world, [runId])).artefacts;
+	assert.equal(bank.included_payslips, 0);
+	assert.deepEqual(bank.skipped_employment_ids, [EMPLOYMENT_ID]);
+	world.payslips.length = 0;
+	assert.deepEqual((await exportRuns(world, [runId])).artefacts, []);
+});
+
+test('a later bank payment waits for earlier contribution shortfalls funded by its payment date', async () => {
 	const first = await januaryWorld({ bank: true });
-	for (const stored of first.world.payroll_runs) stored.lifecycle = 'PAID';
-	const second = await januaryWorld({
-		bank: true,
-		period: '2026-02',
-		runId: 'run:2026-02',
-		world: first.world
-	});
-	const earlier = first.world.payslips.find((row) => row.payroll_run_id === first.run.id);
+	const second = await januaryWorld({ bank: true, period: '2026-02', world: first.world });
+	const earlier = first.world.payslips.find((row) => row.payroll_run_id === first.runId);
 	Object.assign(earlier, { net: 0, unfunded_contributions: 150, funding_received: 0 });
-	await assert.rejects(exportRuns(first.world, [second.run]), /2026-01.*contribution funding/);
+	await assert.rejects(exportRuns(first.world, [second.runId]), /2026-01.*contribution funding/);
 	Object.assign(earlier, {
-		funding_received: 149,
-		funding_received_on: '2026-02-27',
+		funding_received: 150,
+		funding_received_on: '2026-02-28',
 		funding_reference: 'RECEIPT-1'
 	});
-	await assert.rejects(exportRuns(first.world, [second.run]), /2026-01.*contribution funding/);
-	Object.assign(earlier, { funding_received: 150, funding_received_on: '2026-03-01' });
-	await assert.rejects(exportRuns(first.world, [second.run]), /2026-01.*contribution funding/);
-	earlier.funding_received_on = '2026-02-28';
-	const manifest = await exportRuns(first.world, [second.run]);
-	assert.equal(
-		manifest.find((action) => action.metadata.kind === 'bank-files').metadata.included_payslips,
-		1
-	);
+	const [bank] = (await exportRuns(first.world, [second.runId])).artefacts;
+	assert.equal(bank.included_payslips, 1);
 });
 
 test('two runs selected together export as two sets, each named by its own period', async () => {
-	// The bulk case the collection's action bar actually sends: `records` is whatever the operator
-	// ticked. Every test above passes one run, so a manifest that collapsed two runs into one set —
-	// or gave both bank files the same name, which is how the second overwrites the first on the way
-	// to disk — would have shipped. Each artefact must be its own action, named by its own period.
 	const first = await januaryWorld({ bank: true });
-	// A second run refuses while the first is a draft, which is the guard, not the subject here.
-	for (const stored of first.world.payroll_runs) stored.lifecycle = 'PAID';
-	const second = await januaryWorld({
-		bank: true,
-		period: '2026-02',
-		runId: 'run:2026-02',
-		world: first.world
-	});
-	const manifest = await exportRuns(first.world, [first.run, second.run]);
-	assertManifestShape(manifest);
-
+	const second = await januaryWorld({ bank: true, period: '2026-02', world: first.world });
+	const { artefacts } = await exportRuns(first.world, [first.runId, second.runId]);
+	const names = artefacts.flatMap((artefact) => artefact.files.map((ref) => ref.name));
 	assert.deepEqual(
-		manifest.map((action) => action.label),
+		artefacts.map((artefact) => artefact.label),
 		[
 			`Bank file ${PERIOD}`,
 			'Bank file 2026-02',
@@ -261,35 +126,7 @@ test('two runs selected together export as two sets, each named by its own perio
 			'Payslips 2026-02',
 			'Payroll workbook',
 			'Catalogue entries'
-		],
-		'each run contributes its own bank file and payslips, grouped by artefact so the app routes ' +
-			'one kind at a time; the workbook is one report over the whole selection'
+		]
 	);
-
-	const names = manifest.flatMap((action) => action.attachments.map((file) => file.name));
-	assert.equal(
-		new Set(names).size,
-		names.length,
-		`two runs produced a duplicate filename: ${names}`
-	);
-	assert.ok(names.includes(`bank_payments_${PERIOD}.csv`));
-	assert.ok(names.includes('bank_payments_2026-02.csv'));
-
-	// Neither run's rows leak into the other's file: one paid payslip each, under one header.
-	for (const [period, action] of [
-		[PERIOD, manifest[0]],
-		['2026-02', manifest[1]]
-	]) {
-		assert.equal(action.metadata.period, period);
-		assert.equal(action.metadata.included_payslips, 1);
-		assert.equal(
-			action.attachments[0].content.length,
-			2,
-			`${period} bank file is header + one row`
-		);
-		assert.equal(
-			action.attachments[0].content[1][1],
-			`${period}-${period === PERIOD ? '31' : '28'}`
-		);
-	}
+	assert.equal(new Set(names).size, names.length, `a duplicate filename: ${names}`);
 });

@@ -12,7 +12,7 @@ const offsets = new Map<string, number>();
 
 /** Minutes east of UTC `timezone` is at the instant `at`. */
 export function offsetMinutesAt(timezone: string, at: Date): number {
-	if (typeof timezone !== 'string' || timezone.trim() === '')
+	if (timezone.trim() === '')
 		throw new TypeError(
 			'A jurisdiction timezone is required to price a day; an absent zone must not fall back ' +
 				'to the host clock.'
@@ -38,7 +38,7 @@ export function offsetMinutesAt(timezone: string, at: Date): number {
 		throw new TypeError(`Not an IANA time zone: ${timezone}.`, { cause });
 	}
 	const part = (type: Intl.DateTimeFormatPartTypes): number =>
-		Number(parts.find((value) => value.type === type)?.value ?? Number.NaN);
+		Number.parseInt(parts.find((value) => value.type === type)?.value ?? '', 10);
 	const asUtc = Date.UTC(
 		part('year'),
 		part('month') - 1,

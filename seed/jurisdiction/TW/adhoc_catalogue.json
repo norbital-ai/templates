@@ -136,5 +136,511 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "88cf620e-f2c0-573d-876f-0db5e888eb01",
+		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "6d473444-6954-55ec-97a5-69c22d8fbe16",
+		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "7efc2891-0d61-5d3c-90b9-0908311d8c11",
+		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "85028681-5c76-5c02-a42d-861c4a7dd6a6",
+		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "facb52c2-7546-5b42-bba7-0ffad1cc845b",
+		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7e46f4d3-f0f4-5e6a-a8f7-5599eb565375",
+		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "1635b150-f889-58be-b32c-c03200dbc594",
+		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "2916fa9a-226c-571a-a2ae-dd1993c2007c",
+		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "1de23785-8e56-55e0-926c-a15259c40493",
+		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "025b2b1f-5e09-5ec7-bc5f-17d68062acad",
+		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "8081860d-ba94-5329-970a-7cf3115ff460",
+		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "edfa0fd4-7679-520d-88d9-302ee3c06a83",
+		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "b3cbcd7e-4d80-570a-b92a-a9a3c289fdc1",
+		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d432735a-d6a2-51f4-b0df-34d86e4bc201",
+		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "0f919101-ee89-5d66-adf1-1c0d7413d50e",
+		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e54f0497-2df3-54e7-ac44-3d0d01827815",
+		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "a34410f2-1f4c-51fb-9e43-4f0c82097fd5",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7b6bdb5f-ce88-5b8e-bb56-ee9e2e67b8c6",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "35ec658b-0ff4-5e31-b797-2895974d544f",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "5bdd99aa-d683-5483-8a50-0d1514b0aa21",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "2b5f0506-2f91-571d-89f6-5ab7b166d6d3",
+		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION_RESERVE",
+			"NHI_SUPPLEMENT",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "66afc276-938a-56e9-82ff-03b68d292afb",
+		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費及預告期間工資 (severance and notice pay)",
+		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. The same line carries 勞基法 §16(3) notice pay for §11 and §13-proviso terminations: unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 89年台財稅第831604301號 for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_reason REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). Applied 2026-09-23 (round 2): 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"eligibility": "(employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"])",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_unit((\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage * 30.0 : person.employment.average_monthly_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) * (up_to_unit(person.employment.exit_facts.old_system_service_months) / 12.0 + (0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0 > 6.0 ? 6.0 : 0.5 * (person.employment.service_months_exact > person.employment.exit_facts.old_system_service_months ? person.employment.service_months_exact - person.employment.exit_facts.old_system_service_months : 0.0) / 12.0)) + (person.employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"] ? ((person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) > person.employment.exit_facts.notice_days_given ? (person.employment.service_months >= 36.0 ? 30.0 : person.employment.service_months >= 12.0 ? 20.0 : person.employment.service_months >= 3.0 ? 10.0 : 0.0) - person.employment.exit_facts.notice_days_given : 0.0) * ((person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) > (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"])) ? (person.terms.pay_frequency == \"HOURLY\" ? person.terms.basic_salary * person.terms.ordinary_hours_per_week / person.terms.working_days_per_week + person.terms.fixed_allowances / 30.0 : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary + person.terms.fixed_allowances / 30.0 : person.terms.monthly_wage / 30.0) : (\"average_daily_wage\" in person.employment.exit_fact_keys ? person.employment.exit_facts.average_daily_wage : person.employment.average_daily_wage(6, [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"OCCUPATIONAL_INJURY_LEAVE\", \"PARENTAL_LEAVE\"], [\"MATERNITY_LEAVE\", \"MENSTRUAL_LEAVE\", \"FAMILY_CARE_LEAVE\"]))) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "SEPARATION"
 	}
 ]

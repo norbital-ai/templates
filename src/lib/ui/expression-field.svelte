@@ -9,10 +9,9 @@
 	 * writer needs is part of the field's description tooltip (`descriptionExtra`), not a link
 	 * under the input, so the control keeps one shape everywhere.
 	 */
-	import { CodeEditor } from '@norbital-ai/ui/code-editor';
-	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { t } from './t.js';
+	import { CodeEditor } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { compileExpression } from '../expressions/compile.js';
 	import type { ExpressionSite, ExpressionType } from '../expressions/contexts.js';
 
@@ -43,15 +42,10 @@
 		onValueChange,
 		row
 	}: Props = $props();
-	const { t } = useI18n<TenantI18nKeys>();
 	const text = $derived(value == null ? '' : String(value));
 	/** The contract under the input: what it returns, over which site, and what empty means. */
 	const contract = $derived(
-		[
-			t(`expression.returns.${type}` as TenantI18nKeys),
-			t(`expression.site.${site}` as TenantI18nKeys),
-			empty
-		]
+		[t(`expression.returns.${type}`), t(`expression.site.${site}`), empty]
 			.filter((part) => part != null && part !== '')
 			.join(' · ')
 	);
@@ -68,14 +62,12 @@
 		<span class="block min-w-0 font-mono text-xs break-words">{text === '' ? '—' : text}</span>
 	{:else}
 		<CodeEditor
-			class="text-xs"
-			value={text}
 			language="javascript"
+			value={text}
 			readonly={disabled}
 			invalid={fault != null}
-			minHeight="2.25rem"
-			ariaLabel={placeholder ?? contract}
-			onValueChange={(next) => onValueChange?.(next)}
+			aria-label={placeholder ?? contract}
+			onChange={(next) => onValueChange?.(next)}
 		/>
 		<p class="text-meta">{contract}</p>
 		{#if fault != null}

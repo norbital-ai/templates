@@ -1,15 +1,10 @@
-import { decodeNumber } from '@norbital-ai/std/json';
-import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
-import {
-	addDays,
-	daysBetween,
-	monthBounds,
-	monthKey
-} from '../../collections/payroll_runs/lib/dates.js';
-import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import { decodeNumber } from '../wire.js';
+import type { Configuration } from '../../lib/payroll/run/configuration.js';
+import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
+import { addDays, daysBetween, monthBounds, monthKey } from '../../lib/payroll/run/dates.js';
+import { personContext } from '../../lib/payroll/run/eligibility.js';
 import { resolveCompanyFacts } from '../declared-facts.js';
-import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
+import { employmentDates } from '../../lib/payroll/run/settlement.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { stint } from '../employment-contract.js';
 import { evaluateNumber, expressionEngine } from '../expressions/evaluate.js';
@@ -39,7 +34,7 @@ export function leaveEncashmentRate(options: {
 	readonly configuration: Configuration;
 	readonly entry: LeaveActivity;
 	/** Consumed dated wage history, recorded for the payslip capture. */
-	readonly referenceWageIds?: Set<string>;
+	readonly referenceWageIds?: Set<string> | undefined;
 }): number {
 	const { bundle, configuration, entry } = options;
 	if (!entry.effective_on) throw new Error('Leave cash-out requires a conversion date.');
@@ -73,7 +68,7 @@ export function leaveEncashmentRate(options: {
 				allocation.days < 0 && (allocation.pool == null || allocation.pool === entry.leave_code)
 		);
 		const days = debits.reduce((sum, allocation) => sum - allocation.days, 0);
-		if (Math.abs(days - decodeNumber(entry.encash_days ?? 0)) > 0.000001 || !(days > 0))
+		if (Math.abs(days - (entry.encash_days ?? 0)) > 0.000001 || !(days > 0))
 			throw new Error('Leave cash-out allocations do not match the days being valued.');
 		let total = 0;
 		for (const allocation of debits) {
@@ -122,7 +117,7 @@ export function leaveEncashmentRate(options: {
 	const terms = termsAt(bundle, referenceDate);
 	if (!rule.pay_frequencies.some((frequency) => frequency === terms.pay_frequency))
 		throw new Error(`Leave cash-out has no verified ${terms.pay_frequency} valuation rule.`);
-	if (terms.base_salary.currency !== configuration.jurisdiction.payroll.currency)
+	if (terms.currency !== configuration.jurisdiction.payroll.currency)
 		throw new Error('Leave cash-out reference salary currency differs from payroll.');
 	// A rule that refers to dated wage history prices the day from the record, not the contract:
 	// the qualifying allowances are already inside the recorded ordinary earnings (MY s.60I(1C)),
@@ -131,6 +126,8 @@ export function leaveEncashmentRate(options: {
 	if (reference != null && reference.pay_frequencies.some((code) => code === terms.pay_frequency)) {
 		const currency = configuration.jurisdiction.payroll.currency;
 		if (reference.reference === 'LATEST_DUE_MONTH') {
+			if (reference.daily_divisor == null)
+				throw new Error('Latest-month normal-wage reference requires a sealed daily divisor.');
 			// A leave-year end is inclusive, so the boundary is the next day; termination and
 			// conversion retain their legal event boundary.
 			const boundary =
@@ -151,17 +148,14 @@ export function leaveEncashmentRate(options: {
 				id: `payslips:${month.payslips.join(',')}`,
 				period: { start: month.start, end: month.end },
 				// An unclassified allowance refuses below, once this month is the one selected.
-				normal_wages: {
-					currency,
-					value:
-						Object.entries(month.contract).reduce(
-							(sum, [code, amount]) =>
-								rule.exclude_allowances.includes(code) ? sum : sum + amount,
-							0
-						) +
-						month.regular -
-						month.absence
-				},
+				currency,
+				normal_wages:
+					Object.entries(month.contract).reduce(
+						(sum, [code, amount]) => (rule.exclude_allowances.includes(code) ? sum : sum + amount),
+						0
+					) +
+					month.regular -
+					month.absence,
 				ordinary_wages: null,
 				ordinary_days: null,
 				due_on: monthBounds(month.month).end,
@@ -180,7 +174,8 @@ export function leaveEncashmentRate(options: {
 					)
 				],
 				boundary,
-				currency
+				currency,
+				dailyDivisor: reference.daily_divisor
 			});
 			const selected = (bundle.payslipWageMonths ?? []).find(
 				(month) => `payslips:${month.payslips.join(',')}` === prior.row.id
@@ -206,10 +201,9 @@ export function leaveEncashmentRate(options: {
 	const pattern = patternRow.pattern;
 	const daysPerWeek = patternDaysPerWeek(pattern, configuration.shiftById);
 	const workload = patternWorkload(pattern, configuration.shiftById);
-	const hoursPerWeek = decodeNumber(
+	const hoursPerWeek =
 		terms.ordinary_hours_per_week ??
-			(workload == null ? 0 : workload.average_weekly_paid_minutes / 60)
-	);
+		(workload == null ? 0 : workload.average_weekly_paid_minutes / 60);
 	if (!(daysPerWeek > 0))
 		throw new Error('Leave cash-out requires positive contractual working days.');
 	if (terms.pay_frequency === 'HOURLY' && !(hoursPerWeek > 0))
@@ -224,7 +218,7 @@ export function leaveEncashmentRate(options: {
 				throw new Error(
 					`Leave cash-out requires a wage-base classification for allowance ${code ?? allowance.catalogue_id}.`
 				);
-			return sum + (rule.include_allowances.includes(code) ? decodeNumber(allowance.amount) : 0);
+			return sum + (rule.include_allowances.includes(code) ? allowance.amount : 0);
 		}, 0);
 	const fixedAllowances = fixedAllowancesFor(terms);
 	if (
@@ -236,8 +230,8 @@ export function leaveEncashmentRate(options: {
 			const prior = termsAt(bundle, date);
 			if (
 				(prior.pay_frequency !== 'MONTHLY' && prior.pay_frequency !== 'SEMI_MONTHLY') ||
-				prior.base_salary.currency !== terms.base_salary.currency ||
-				decodeNumber(prior.base_salary.value) !== decodeNumber(terms.base_salary.value) ||
+				prior.currency !== terms.currency ||
+				prior.base_salary !== terms.base_salary ||
 				fixedAllowancesFor(prior) !== fixedAllowances
 			)
 				throw new Error(
@@ -286,11 +280,7 @@ export function leaveEncashmentRate(options: {
 		period: { working_days: workingDays },
 		asOf: referenceDate
 	});
-	const rate = evaluateNumber(
-		expressionEngine,
-		rule.day_amount,
-		person as unknown as Record<string, unknown>
-	);
+	const rate = evaluateNumber(expressionEngine, rule.day_amount, person);
 	if (!Number.isFinite(rate) || rate < 0)
 		throw new Error('Leave cash-out daily pay must be finite and nonnegative.');
 	// Preserve the quotient. The completed award rounds once in the payroll currency.

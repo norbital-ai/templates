@@ -8,7 +8,7 @@
  * hours by hand, and the transform refuses an approved figure above it.
  */
 
-import { addDays } from '../../../collections/payroll_runs/lib/dates.js';
+import { addDays } from '../../../lib/payroll/run/dates.js';
 import {
 	overtimeHeadroom,
 	plannedDay,

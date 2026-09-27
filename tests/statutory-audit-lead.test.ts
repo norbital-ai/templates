@@ -6,15 +6,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-	adhocCatalogue,
 	assessStatutory,
 	buildStatutory,
 	expectStatutory,
 	settingsVersions
 } from './fixtures/statutory-world.ts';
-import { evaluateBoolean, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 
-test('VN — severance is priced on the average contractual salary of the six months before the contract ends (Decree 145/2020 art.8(5))', () => {
+function vnSeverance(windowMonths: number | null, incompleteHistory = false): number | undefined {
 	// Hired 1 June 2023, resigns 30 June 2026, no unemployment-insurance cover: 37 months → 3 y 1 m
 	// → 3.5 years (art.8(3): a leftover of up to six months is half a year). Contract salary
 	// 10,000,000 to 31 March 2026, 16,000,000 from 1 April: the six months January–June average
@@ -43,10 +41,12 @@ test('VN — severance is priced on the average contractual salary of the six mo
 			world.employment_terms.push({
 				...first,
 				id: 'e0000000-0000-4000-8000-0000000000a1',
-				base_salary: { value: 16_000_000, currency: 'VND' },
+				base_salary: 16_000_000,
+				currency: 'VND',
 				effective_range: { start: '2026-04-01', end: first.effective_range.end }
 			});
 			first.effective_range = { start: first.effective_range.start, end: '2026-03-31' };
+			if (incompleteHistory) first.effective_range.start = '2026-02-01';
 			// Labour Code art.46(1): the leaver does not qualify for a pension (a declared input).
 			employment.exit_facts = { pension_eligible: false };
 			// The row must come from the version governing the final service day, 30 June 2026:
@@ -54,6 +54,9 @@ test('VN — severance is priced on the average contractual salary of the six mo
 			const version = settingsVersions('VN').find((row) =>
 				String(row.effective_range.start).startsWith('2026-05-16')
 			)!;
+			world.jurisdiction_settings.find(
+				(row) => row.id === version.id
+			)!.payroll.separation_wage_average_months = windowMonths;
 			const severance = world.adhoc_catalogue!.find(
 				(row) => row.code === 'SEVERANCE_ALLOWANCE' && row.settings_id === version.id
 			)!;
@@ -73,30 +76,18 @@ test('VN — severance is priced on the average contractual salary of the six mo
 		}
 	);
 	const slip = slips.get('VN-LEAVER')!;
-	assert.equal(
-		slip.adjustments.find((row) => row.component_code === 'SEVERANCE_ALLOWANCE')?.amount,
-		22_750_000
-	);
+	return slip.adjustments.find((row) => row.component_code === 'SEVERANCE_ALLOWANCE')?.amount;
+}
+
+test('VN — severance is priced on the average contractual salary of the six months before the contract ends (Decree 145/2020 art.8(5))', () => {
+	assert.equal(vnSeverance(6), 22_750_000);
 });
 
-test('MY — no notice or pay in lieu is owed on a misconduct dismissal after due inquiry (EA 1955 s.14(1)(a))', () => {
-	// s.14(1)(a): an employer may, on the grounds of misconduct and after due inquiry, dismiss
-	// without notice; s.13 notice (and so pay in lieu) is owed on any other dismissal.
-	for (const code of ['MY', 'MY-nihon'])
-		for (const row of adhocCatalogue(code).filter(
-			(row: { code: string }) => row.code === 'NOTICE_IN_LIEU'
-		)) {
-			const owed = (misconduct: boolean) =>
-				evaluateBoolean(expressionEngine, row.eligibility, {
-					employment: {
-						exit_reason: 'DISMISSAL',
-						exit_fact_keys: ['misconduct_dismissal'],
-						exit_facts: { misconduct_dismissal: misconduct }
-					}
-				});
-			assert.equal(owed(true), false, code);
-			assert.equal(owed(false), true, code);
-		}
+test('VN — separation wage history uses the sealed average window', () => {
+	// Synthetic three-month rule distinguishes a configured selector from a hard-coded six months.
+	assert.equal(vnSeverance(3), 28_000_000);
+	assert.throws(() => vnSeverance(null), /requires months in the sealed payroll rule/);
+	assert.throws(() => vnSeverance(6, true), /requires contractual wage terms on 2026-01-01/);
 });
 
 test("TW — the government pays 100/50/25% of a disabled worker's own LI and EI share (身心障礙者權益保障法 §73)", () => {

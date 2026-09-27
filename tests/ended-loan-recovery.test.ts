@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import {
 	createPublicPayrollWorld,
 	COMPANY_ID,
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { capturesOf, settle } from './helpers/settlement.ts';
 import { clearAllowances } from './fixtures/contract-allowances.ts';
 
@@ -53,13 +52,11 @@ test('an ended contract recovers its due loan from later manual payments without
 		approval_id: null
 	});
 	const prepare = (period: string) =>
-		Effect.runPromise(
-			gatherPayrollRun({
-				api: memoryPayrollApi(world),
-				companyId: COMPANY_ID,
-				period
-			})
-		);
+		gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period
+		});
 	const persist = (
 		slip: ReturnType<typeof buildPayrollRun>['payslip_payroll_run'][number],
 		period: string

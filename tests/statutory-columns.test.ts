@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { statutoryColumn } from '../src/collections/payroll_runs/lib/report.ts';
+import { statutoryColumn } from '../src/lib/payroll/run/report.ts';
 
 test('a statutory column is named from the charge’s listing, so a tenant-authored scheme exports too', () => {
 	assert.equal(statutoryColumn({ scheme_code: 'EPF' }, 'employee'), 'epfEmployee');

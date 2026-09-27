@@ -215,7 +215,7 @@
 				"type": "boolean",
 				"label": "Eligible PPh21 DTP sector",
 				"default_value": false,
-				"description": "PMK 10/2025 (as amended by PMK 105/2025) art.3: PPh 21 is government-borne only for an employer whose business classification (KLU) is listed in the regulation’s annex. Unrecorded is not listed: the tax is withheld."
+				"description": "Employer meets the eligible principal KLU and registration/reference-date conditions of PMK 10/2025 as amended by PMK 72/2025 (2025), or PMK 105/2025 art.3 (2026). Confirm from the DJP record, not merely the current industry label. Employee tax identity, reference-month pay and other incentives are separate PPH21 declarations."
 			},
 			{
 				"key": "leave_cash_out_day_divisor",
@@ -839,7 +839,7 @@
 				"type": "boolean",
 				"label": "Eligible PPh21 DTP sector",
 				"default_value": false,
-				"description": "PMK 10/2025 (as amended by PMK 105/2025) art.3: PPh 21 is government-borne only for an employer whose business classification (KLU) is listed in the regulation’s annex. Unrecorded is not listed: the tax is withheld."
+				"description": "Employer meets the eligible principal KLU and registration/reference-date conditions of PMK 10/2025 as amended by PMK 72/2025 (2025), or PMK 105/2025 art.3 (2026). Confirm from the DJP record, not merely the current industry label. Employee tax identity, reference-month pay and other incentives are separate PPH21 declarations."
 			},
 			{
 				"key": "leave_cash_out_day_divisor",
@@ -1463,7 +1463,7 @@
 				"type": "boolean",
 				"label": "Eligible PPh21 DTP sector",
 				"default_value": false,
-				"description": "PMK 10/2025 (as amended by PMK 105/2025) art.3: PPh 21 is government-borne only for an employer whose business classification (KLU) is listed in the regulation’s annex. Unrecorded is not listed: the tax is withheld."
+				"description": "Employer meets the eligible principal KLU and registration/reference-date conditions of PMK 10/2025 as amended by PMK 72/2025 (2025), or PMK 105/2025 art.3 (2026). Confirm from the DJP record, not merely the current industry label. Employee tax identity, reference-month pay and other incentives are separate PPH21 declarations."
 			},
 			{
 				"key": "leave_cash_out_day_divisor",

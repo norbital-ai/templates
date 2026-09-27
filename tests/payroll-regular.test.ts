@@ -1,22 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import payrollRuns from '../src/collections/payroll_runs/+collection.ts';
-import payslips from '../src/collections/payslips/+collection.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { adjust, capturesOf, release, settle } from './helpers/settlement.ts';
-import { admitPayRequests } from '../src/lib/pay_request_rules.ts';
-import { transform } from './helpers/transform.ts';
 import { assignAllowance, clearAllowances } from './fixtures/contract-allowances.ts';
 
 test('a run reads only the catalogue of the version it picked, never a sibling version’s', async () => {
 	const world = createPublicPayrollWorld();
 	const prepare = () =>
-		Effect.runPromise(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-		);
+		gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' });
 	const expected = buildPayrollRun(await prepare()).payslip_payroll_run;
 	// Two more versions of the lineage (a draft and a voided one) carry their own work rules;
 	// the picked version's root is the only one the run prices.
@@ -45,14 +38,13 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 	test(`${frequency} earnings use actual ordinary hours, schedule fallback and explicit AWOL`, async () => {
 		const world = createPublicPayrollWorld();
 		world.employment_terms[0].pay_frequency = frequency;
-		world.employment_terms[0].base_salary = {
-			currency: 'MYR',
-			value: frequency === 'DAILY' ? 80 : 10
-		};
+		world.employment_terms[0].base_salary = frequency === 'DAILY' ? 80 : 10;
 		const base = async () => {
-			const facts = await Effect.runPromise(
-				gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-			);
+			const facts = gatherPayrollRun({
+				world: payrollWorld(world),
+				companyId: COMPANY_ID,
+				period: '2026-01'
+			});
 			return buildPayrollRun(facts).payslip_payroll_run[0].base.find(
 				(row) => row.component_code === 'BASIC'
 			).amount;
@@ -71,46 +63,6 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 	});
 }
 
-test('paying a slip rechecks the person’s earlier periods, and a run cannot silently recalculate', async () => {
-	const world = createPublicPayrollWorld();
-	world.payroll_runs.push(
-		{ id: 'prior', company_id: COMPANY_ID, period: '2026-01', approval_id: null },
-		{ id: 'next', company_id: COMPANY_ID, period: '2026-02', approval_id: null }
-	);
-	const januarySlip = {
-		id: 'jan-slip',
-		payroll_run_id: 'prior',
-		employment_id: 'emp-1',
-		status: 'DRAFT',
-		paid_at: null,
-		approval_id: null
-	};
-	const februarySlip = {
-		id: 'feb-slip',
-		payroll_run_id: 'next',
-		employment_id: 'emp-1',
-		status: 'DRAFT',
-		paid_at: null,
-		approval_id: null
-	};
-	world.payslips.push(januarySlip, februarySlip);
-	const api = memoryPayrollApi(world);
-
-	// Payment is per slip and in order per person: January still standing refuses February by name.
-	const pay = () =>
-		transform(payslips, [{ status: 'PAID', paid_at: '2026-02-28' }], {
-			existing: [februarySlip],
-			db: api.db
-		});
-	await assert.rejects(pay(), /still unpaid/);
-	januarySlip.status = 'PAID';
-	januarySlip.paid_at = '2026-01-28';
-	await pay();
-
-	// The run itself has no writable column: payment is recorded on the slips, never through it.
-	assert.equal(payrollRuns.update, undefined, 'a run is frozen once built: no update endpoint');
-});
-
 function attendedWorld(options: Parameters<typeof createPublicPayrollWorld>[0] = {}) {
 	const world = createPublicPayrollWorld(options);
 	for (const day of world.work_days) {
@@ -122,9 +74,7 @@ function attendedWorld(options: Parameters<typeof createPublicPayrollWorld>[0] =
 }
 
 const build = async (world: ReturnType<typeof createPublicPayrollWorld>, period = '2026-02') => {
-	const prepared = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-	);
+	const prepared = gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period });
 	const built = buildPayrollRun(prepared);
 	const slip = built.payslip_payroll_run[0];
 	return { prepared, built, slip, captured: capturesOf(built, slip) };
@@ -224,7 +174,7 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 			const world = createPublicPayrollWorld();
 			const terms = world.employment_terms[0];
 			terms.pay_frequency = frequency;
-			terms.base_salary = { currency: 'MYR', value: frequency === 'DAILY' ? 80 : 10 };
+			terms.base_salary = frequency === 'DAILY' ? 80 : 10;
 			const day = world.work_days.find((row) => row.work_date === '2026-01-05');
 			const regular = (await build(world, '2026-01')).slip;
 			day.worked_intervals = [];

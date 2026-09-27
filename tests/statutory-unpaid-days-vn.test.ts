@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import { buildStatutory, createStatutoryWorld, COMPANY_ID } from './fixtures/statutory-world.ts';
 import { addUnpaidWorkingDays } from './fixtures/unpaid-leave.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 
 // BHXH letter 371/BHXH-QLT, 7 July 2025, section 1.2: a paid half-day is a working day.
 // https://cdn.thuvienphapluat.vn/uploads/Hoidapphapluat/2025/LNMT/Thang_7/250707/QLT-%C4%90VSDL%C4%90.pdf
@@ -109,9 +108,11 @@ for (const cutoff of ['FIRST', 'SPLIT', 'LAST'])
 		}
 		const amounts = new Map<string, number>();
 		for (const period of ['2026-01-1', '2026-01-2']) {
-			const prepared = Effect.runSync(
-				gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-			);
+			const prepared = gatherPayrollRun({
+				world: payrollWorld(world),
+				companyId: COMPANY_ID,
+				period
+			});
 			const built = buildPayrollRun(prepared);
 			world.payroll_runs.push({
 				id: period,

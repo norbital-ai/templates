@@ -1,7 +1,7 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { isCalendarDate } from '@norbital-ai/std/date';
+import { refuse } from '../refuse.js';
+import { isCalendarDate } from '../iso-day.js';
 import { Schema } from 'effect';
-import type { LeaveEntitlement } from '../../datatypes/leave_entitlement/+definition.js';
+import type { LeaveEntitlement } from '../datatypes/leave_entitlement.js';
 import { calendarDay } from '../iso-day.js';
 import {
 	addDays,
@@ -9,13 +9,14 @@ import {
 	inclusiveDays,
 	monthBounds,
 	monthDay
-} from '../../collections/payroll_runs/lib/dates.js';
-import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
+} from '../../lib/payroll/run/dates.js';
+import { roundHalfDay } from '../../lib/payroll/run/rounding.js';
 import {
 	evaluatePersonNumber,
 	isEligible,
 	type PersonContext
-} from '../../collections/payroll_runs/lib/eligibility.js';
+} from '../../lib/payroll/run/eligibility.js';
+import * as Predicate from 'effect/Predicate';
 
 /** One inclusive window of leave days: the annual period a credit belongs to. */
 export const leaveWindowSchema = Schema.Struct({ start: calendarDay, end: calendarDay });
@@ -26,16 +27,18 @@ export function leaveWindowOf(
 	date: string,
 	period: number | Pick<LeaveEntitlement, 'year_start_month' | 'availability' | 'proration'>
 ): LeaveWindow {
-	const startMonth = typeof period === 'number' ? period : period.year_start_month;
+	const startMonth = Predicate.isNumber(period) ? period : period.year_start_month;
 	if (!isCalendarDate(date) || !Number.isInteger(startMonth) || startMonth < 1 || startMonth > 12)
 		refuse('A leave window needs a valid date and annual starting month.');
 	if (
-		typeof period !== 'number' &&
+		!Predicate.isNumber(period) &&
 		period.availability === 'MONTHLY' &&
 		period.proration === 'NONE'
 	)
 		return monthBounds(date.slice(0, 7));
-	const year = Number(date.slice(0, 4)) - (Number(date.slice(5, 7)) < startMonth ? 1 : 0);
+	const year =
+		Number.parseInt(date.slice(0, 4), 10) -
+		(Number.parseInt(date.slice(5, 7), 10) < startMonth ? 1 : 0);
 	const start = monthDay(year, startMonth - 1, 1);
 	return { start, end: addDays(monthDay(year + 1, startMonth - 1, 1), -1) };
 }
@@ -62,10 +65,9 @@ export function grantedDays(
 ): number {
 	const band = rule.bands.find((candidate) => isEligible(candidate.eligibility, person));
 	if (band == null) return 0;
-	const days =
-		typeof band.days === 'string'
-			? Math.max(0, evaluatePersonNumber(band.days, person))
-			: band.days;
+	const days = Predicate.isString(band.days)
+		? Math.max(0, evaluatePersonNumber(band.days, person))
+		: band.days;
 	const scale = (rule.scale ?? '').trim();
 	return scale === '' ? days : days * Math.max(0, evaluatePersonNumber(scale, person));
 }
@@ -171,15 +173,15 @@ export function computedEntitlement(options: {
 				let complete = 0;
 				for (let month = 0; month < 12; month += 1) {
 					const from = monthDay(
-						Number(start.slice(0, 4)),
-						Number(start.slice(5, 7)) - 1 + month,
-						Number(start.slice(8, 10))
+						Number.parseInt(start.slice(0, 4), 10),
+						Number.parseInt(start.slice(5, 7), 10) - 1 + month,
+						Number.parseInt(start.slice(8, 10), 10)
 					);
 					const until = addDays(
 						monthDay(
-							Number(start.slice(0, 4)),
-							Number(start.slice(5, 7)) + month,
-							Number(start.slice(8, 10))
+							Number.parseInt(start.slice(0, 4), 10),
+							Number.parseInt(start.slice(5, 7), 10) + month,
+							Number.parseInt(start.slice(8, 10), 10)
 						),
 						-1
 					);

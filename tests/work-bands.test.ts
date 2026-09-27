@@ -11,8 +11,8 @@ import {
 	type WorkBandRates,
 	type WorkBandRow
 } from '../src/lib/payroll/work-bands.ts';
-import type { WorkRules } from '../src/datatypes/work_rules/+definition.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import type { WorkRules } from '../src/lib/datatypes/work_rules.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 
 const person = personContext({
 	employee: null,

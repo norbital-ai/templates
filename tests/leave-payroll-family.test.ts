@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Schema } from 'effect';
 import {
 	calculateLeavePayroll,
 	hasLeavePayment,
@@ -9,9 +8,9 @@ import {
 	unpaidLeaveDays,
 	type PreparedLeavePayroll
 } from '../src/lib/leave/payroll.ts';
-import { leavePayItemsValueSchema } from '../src/datatypes/leave_pay_items/+definition.ts';
+import leavePayItems from '../src/data/custom_field/leave_pay_items/+definition.ts';
 import type { LeaveActivity } from '../src/lib/leave/pending.ts';
-import type { LeaveCharge } from '../src/datatypes/leave_charges/+definition.ts';
+import type { LeaveCharge } from '../src/lib/datatypes/leave_charges.ts';
 import type { LeaveEntryActivity } from '../src/lib/leave/activity-fields.ts';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -173,9 +172,7 @@ test('cross-year unpaid leave settles exact dated halves once, with each periodâ
 	const second = calculate(next, january, 120);
 	assert.equal(second.captures[0]!.gross_amount.value, -60);
 	assert.equal(second.adjustments[0]!.quantity, 0.5);
-	Schema.decodeUnknownSync(leavePayItemsValueSchema)(second.captures[0]!.pay_items, {
-		onExcessProperty: 'error'
-	});
+	assert.equal(leavePayItems.check?.(second.captures[0]!.pay_items), undefined);
 	assert.equal(calculate(next, december).captures.length, 0);
 });
 

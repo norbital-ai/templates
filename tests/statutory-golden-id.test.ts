@@ -22,7 +22,6 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	assessStatutory,
 	assessStatutoryUnvalidated,
@@ -36,10 +35,10 @@ import {
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { ordinaryDivisorDays } from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { ordinaryDivisorDays } from '../src/lib/payroll/run/ordinary-rate.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { restBreakAssessment } from '../src/lib/scheduling/rest-break.ts';
 import { settingsVersions, leaveCatalogue } from './fixtures/statutory-world.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
@@ -658,9 +657,11 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 			as_adjustment_entry: false,
 			approval_id: null
 		});
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-03' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-03'
+	});
 	const built = buildPayrollRun(prepared);
 	const slips = built.payslip_payroll_run;
 	const slip = (key: string) => {
@@ -728,7 +729,7 @@ test('Indonesia — the overtime hour is 1/173 of the monthly wage (PP 35/2021 P
 			const person = personContext({
 				employee: null,
 				employment: { service_start: '2020-01-01' },
-				terms: { base_salary: { value: 17_300_000, currency: 'IDR' } },
+				terms: { base_salary: 17_300_000, currency: 'IDR' },
 				week: { ordinary_hours_per_week: hours, working_days_per_week: days },
 				asOf: '2026-06-30'
 			});

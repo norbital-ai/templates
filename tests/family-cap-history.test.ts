@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import { admitPayRequests, type PayRequestGuard } from '../src/lib/pay_request_rules.ts';
 import { payRequestTerms } from '../src/lib/component_entry_cap_subject.ts';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import {
 	createPublicPayrollWorld,
 	COMPANY_ID,
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { adjust, capturesOf, settle } from './helpers/settlement.ts';
 import { clearAllowances } from './fixtures/contract-allowances.ts';
+import { memoryDb } from './helpers/ctx.ts';
 
 type Family = 'claim' | 'allowance';
 /**
@@ -81,14 +81,7 @@ const guardFor = (family: Family): PayRequestGuard => ({
 });
 
 const admit = (family: Family, world: PayrollWorld, candidate: Record<string, unknown>) =>
-	Effect.runPromise(
-		admitPayRequests(
-			guardFor(family),
-			memoryPayrollApi(world).db as never,
-			[candidate],
-			[undefined]
-		)
-	);
+	admitPayRequests(guardFor(family), memoryDb(world) as never, [candidate], [undefined]);
 
 /** File a period's payslip as paid: the run row, the slip, and the ad hoc requests it pinned. */
 const pay = (world: PayrollWorld, built: Awaited<ReturnType<typeof build>>, period: string) => {
@@ -105,13 +98,11 @@ const pay = (world: PayrollWorld, built: Awaited<ReturnType<typeof build>>, peri
 };
 const build = async (world: PayrollWorld, period = '2026-02') =>
 	buildPayrollRun(
-		await Effect.runPromise(
-			gatherPayrollRun({
-				api: memoryPayrollApi(world) as never,
-				companyId: COMPANY_ID,
-				period
-			})
-		)
+		gatherPayrollRun({
+			world: payrollWorld(world) as never,
+			companyId: COMPANY_ID,
+			period
+		})
 	);
 
 test('claim cap spans catalogue revisions of the same code', async () => {

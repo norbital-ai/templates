@@ -11,7 +11,7 @@ import test from 'node:test';
 import {
 	rosteredWorkCodeMaps,
 	validateRosteredExpectations
-} from '../src/collections/payroll_runs/lib/validate.ts';
+} from '../src/lib/payroll/run/validate.ts';
 
 const codes = [
 	{

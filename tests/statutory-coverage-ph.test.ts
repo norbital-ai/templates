@@ -10,6 +10,7 @@ import {
 // covered member's contribution. Initial coverage ends on the 60th birthday.
 // https://www.sss.gov.ph/employees/
 // https://www.sss.gov.ph/pay-contribution/
+// https://www.sss.gov.ph/wp-content/uploads/2022/04/IRR-RA11199-SS-Act-of-2018_2.pdf
 for (const period of ['2025-12', '2026-01', '2026-04', '2026-10']) {
 	test(`PH ${period}: SSS and MPF use first liability across employers and the exact 60th birthday`, () => {
 		const people = ['2023-06-14', '2023-06-15', '2023-06-16'].map((first, index) => ({
@@ -28,7 +29,7 @@ for (const period of ['2025-12', '2026-01', '2026-04', '2026-10']) {
 		expectStatutorySkipped(book, 'FIRST-2', 'SSS_MPF');
 	});
 
-	test(`PH ${period}: MPF cannot charge an employee outside SSS membership`, () => {
+	test(`PH ${period}: incomplete SSS registration does not waive compulsory SS or MPF`, () => {
 		const book = assessStatutory({
 			code: 'PH',
 			period,
@@ -40,8 +41,8 @@ for (const period of ['2025-12', '2026-01', '2026-04', '2026-10']) {
 				}
 			]
 		});
-		expectStatutory(book, 'NO-SSS', 'SSS', 0, 0);
-		expectStatutorySkipped(book, 'NO-SSS', 'SSS_MPF');
+		expectStatutory(book, 'NO-SSS', 'SSS', 1000, 2000);
+		expectStatutory(book, 'NO-SSS', 'SSS_MPF', 500, 1000);
 	});
 }
 

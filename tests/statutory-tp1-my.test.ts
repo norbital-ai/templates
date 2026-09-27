@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Schema } from 'effect';
-import { payrollTraceValueSchema } from '../src/datatypes/payroll_trace/+definition.ts';
 import {
 	assessStatutory,
 	buildStatutory,
@@ -158,7 +156,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				[pcb.employee_amount, pcb.employer_amount],
 				[voluntary === 0 ? 315.4 : 598.75, 0]
 			);
-			const trace = Schema.decodeUnknownSync(payrollTraceValueSchema)(built.trace);
+			const trace = built.trace;
 			const tracedTax = trace[0]!.schemes.find((row) => row.scheme_code === 'PCB')!;
 			assert.equal(tracedTax.ordinary_amount, 2000);
 			const relief = tracedTax.reads.find((row) => row.code === 'EPF')!;

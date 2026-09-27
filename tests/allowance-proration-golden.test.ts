@@ -11,14 +11,20 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildStatutory, type Person } from './fixtures/statutory-world.ts';
+import {
+	allowanceCatalogue,
+	buildStatutory,
+	rowIn,
+	settingsIdOn,
+	type Person
+} from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
 
-const PH_VERSION = 'bb5137fd-d7fd-4a26-8eae-77211521f892';
-const PH_TRANSPORT = '92e2ca4a-bd53-42f5-8b62-84e892da9954';
-const PH_UNPAID_LEAVE = '6c4dfeaa-e449-4057-a5cd-1f7292c23777';
-const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+const PH_VERSION = settingsIdOn('PH', '2026-01-14');
+const PH_TRANSPORT = rowIn(allowanceCatalogue('PH'), PH_VERSION, 'transport');
+const PH_UNPAID_LEAVE = 'c1c1c1c1-0000-4000-8000-000000000003';
+const SG_VERSION = settingsIdOn('SG', '2026-01-15');
 const SG_TRANSPORT = 'c1c1c1c1-0000-4000-8000-000000000001';
 const SG_UNPAID_LEAVE = 'c1c1c1c1-0000-4000-8000-000000000002';
 

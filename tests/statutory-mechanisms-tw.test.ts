@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	assessStatutory,
 	buildStatutory,
@@ -9,8 +8,8 @@ import {
 	expectStatutory,
 	type Person
 } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 
 const insuredCodes = ['LI', 'EI', 'NHI', 'OCC_INJURY', 'LABOR_PENSION', 'WAGE_ARREARS_BASE'];
 
@@ -179,9 +178,7 @@ test('Taiwan — deferred joining wages retain the joining month insurance liabi
 	});
 	const build = (period: string) =>
 		buildPayrollRun(
-			Effect.runSync(
-				gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-			)
+			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period })
 		);
 	const january = build('2026-01');
 	const slip = january.payslip_payroll_run[0];

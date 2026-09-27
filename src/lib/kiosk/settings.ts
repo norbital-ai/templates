@@ -1,3 +1,5 @@
+import * as Predicate from 'effect/Predicate';
+
 /**
  * Kiosk settings: the preferences of the one device on the wall.
  *
@@ -15,7 +17,7 @@ const KIOSK_SETTINGS_DEFAULTS: KioskSettings = { voiceEnabled: true };
 
 const storage = (): Storage | null => {
 	try {
-		return typeof localStorage === 'undefined' ? null : localStorage;
+		return typeof globalThis.localStorage === 'undefined' ? null : localStorage;
 	} catch {
 		return null;
 	}
@@ -26,9 +28,9 @@ export const readKioskSettings = (): KioskSettings => {
 		const raw = storage()?.getItem(STORAGE_KEY) ?? null;
 		if (raw === null) return KIOSK_SETTINGS_DEFAULTS;
 		const parsed: unknown = JSON.parse(raw);
-		if (parsed === null || typeof parsed !== 'object') return KIOSK_SETTINGS_DEFAULTS;
+		if (!Predicate.isObjectOrArray(parsed)) return KIOSK_SETTINGS_DEFAULTS;
 		const voiceEnabled = Reflect.get(parsed, 'voiceEnabled');
-		return { voiceEnabled: typeof voiceEnabled === 'boolean' ? voiceEnabled : true };
+		return { voiceEnabled: Predicate.isBoolean(voiceEnabled) ? voiceEnabled : true };
 	} catch {
 		return KIOSK_SETTINGS_DEFAULTS;
 	}

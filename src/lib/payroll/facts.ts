@@ -2,26 +2,29 @@
  * The employment's statutory facts as the person and scheme sites read them: which schemes it is
  * registered with, and since when.
  */
-import type { PersonInput } from '../../collections/payroll_runs/lib/eligibility.js';
-import type { StatutoryFactStatus } from '../../collections/payroll_runs/lib/contribute.js';
-import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
-import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import type { IsoDate } from '../../collections/payroll_runs/lib/dates.js';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
-import { refuse } from '@norbital-ai/bolt/authoring';
+import type { PersonInput } from '../../lib/payroll/run/eligibility.js';
+import type { StatutoryFactStatus } from '../../lib/payroll/run/contribute.js';
+import type { Configuration } from '../../lib/payroll/run/configuration.js';
+import { coversDate, readRange } from '../../lib/payroll/run/effective.js';
+import type { IsoDate } from '../../lib/payroll/run/dates.js';
+import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
+import { refuse } from '../refuse.js';
 import { resolveFactValues } from '../declared-facts.js';
 import { stableJson } from '../jurisdiction_settings.js';
-import { factScopeFault, type FactKey } from '../../datatypes/fact_keys/+definition.js';
+import { factScopeFault, type FactKey } from '../datatypes/fact_keys.js';
 import { dateKey } from '../iso-day.js';
+import * as Predicate from 'effect/Predicate';
 
-type FactRow = Pick<
-	EmploymentBundle['statutoryFacts'][number],
-	'employment_id' | 'statutory_contribution_id' | 'status' | 'effective_range'
->;
+type FactRow = Pick<EmploymentBundle['statutoryFacts'][number], 'status'> & {
+	readonly employment_id: string | null;
+	readonly statutory_contribution_id: string;
+	/** A stored period in either shape `readRange` reads. */
+	readonly effective_range: unknown;
+};
 
 /** A change that lowers the declaration: a dependant count, an enrolment going off. */
 function isReduction(previous: unknown, next: unknown): boolean {
-	if (typeof previous === 'number' && typeof next === 'number') return next < previous;
+	if (Predicate.isNumber(previous) && Predicate.isNumber(next)) return next < previous;
 	return previous === true && next === false;
 }
 
@@ -53,13 +56,13 @@ function deferredElections(options: {
 			.filter((row) => row.statutory_contribution_id === options.schemeId)
 			.filter((row) => row.employment_id == null || row.employment_id === options.employmentId)
 			.flatMap((row) => {
-				if (row.status == null || row.status.kind !== 'REGISTERED') return [];
+				if (row.status.kind !== 'REGISTERED') return [];
 				const elections = row.status.elections ?? {};
 				if (!Object.hasOwn(elections, field.key)) return [];
 				return [
 					{
-						start: dateKey(row.effective_range == null ? null : row.effective_range.start) || null,
-						value: elections[field.key]
+						start: dateKey(readRange(row.effective_range)?.start) || null,
+						value: elections[field.key]!
 					}
 				];
 			})
@@ -78,7 +81,7 @@ function deferredElections(options: {
 			const january =
 				everyChange && declaration.start!.endsWith('-01-01')
 					? declaration.start!
-					: `${Number(declaration.start!.slice(0, 4)) + 1}-01-01`;
+					: `${Number.parseInt(declaration.start!.slice(0, 4), 10) + 1}-01-01`;
 			if (options.asOf >= january) effective = declaration.value;
 		}
 		elections[field.key] = effective;
@@ -100,7 +103,7 @@ function selectFactStatusesOn(
 ): Map<string, StatutoryFactStatus> {
 	const selected = new Map<string, FactRow>();
 	for (const fact of rows) {
-		if (!coversDate(fact.effective_range, asOf) || fact.status == null) continue;
+		if (!coversDate(fact.effective_range, asOf)) continue;
 		if (fact.employment_id != null && fact.employment_id !== employmentId) continue;
 		const previous = selected.get(fact.statutory_contribution_id);
 		if (previous?.employment_id != null && fact.employment_id == null) continue;
@@ -163,6 +166,26 @@ export function personFactsOn(
 	employmentId: string
 ): NonNullable<PersonInput['facts']> {
 	return personFactsFromSchemes(schemes, selectFactStatusesOn(rows, asOf, employmentId, schemes));
+}
+
+/** Read historical leave against that day's declaration definitions, aligning registrations by code. */
+export function personFactsForVersion(
+	rows: readonly FactRow[],
+	schemes: readonly (PersonFactScheme & { readonly settings_id: string })[],
+	settingsId: string,
+	asOf: IsoDate,
+	employmentId: string
+): NonNullable<PersonInput['facts']> {
+	const codeById = new Map(schemes.map((scheme) => [scheme.id, scheme.code]));
+	const picked = schemes.filter((scheme) => scheme.settings_id === settingsId);
+	const idByCode = new Map(picked.map((scheme) => [scheme.code, scheme.id]));
+	const aligned = rows.map((fact) => ({
+		...fact,
+		statutory_contribution_id:
+			idByCode.get(codeById.get(fact.statutory_contribution_id) ?? '') ??
+			fact.statutory_contribution_id
+	}));
+	return personFactsOn(aligned, picked, asOf, employmentId);
 }
 
 /** The facts as the person site reads them: one row per scheme of the version, registered or not. */

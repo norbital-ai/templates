@@ -28,7 +28,6 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	assessStatutory,
 	assessStatutoryUnvalidated,
@@ -41,8 +40,8 @@ import {
 	settingsVersions,
 	adhocCatalogue
 } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
-import { gatherPayrollRun, buildPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { gatherPayrollRun, buildPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 
 const start = (row: { effective_range: { start: string } }) =>
@@ -334,14 +333,19 @@ test('VN and ID D15: every election, entity fact and departure input is required
 });
 
 test('ID D16: PPh 21 no longer reads the current family record, and THR no longer reads religion', () => {
-	for (const scheme of contributionSchemes('ID').filter((row) => row.code === 'PPH21'))
+	for (const scheme of contributionSchemes('ID').filter((row) => row.code === 'PPH21')) {
 		assert.equal(
-			/employee\.(marital_status|dependents_count)|election_keys/.test(
-				// The undeclared-PTKP warning reads which elections are declared, never their values.
-				JSON.stringify(scheme.rules.filter((rule) => rule.warning == null))
+			/employee\.(marital_status|dependents_count)/.test(JSON.stringify(scheme.rules)),
+			false
+		);
+		assert.equal(
+			/election_keys/.test(
+				// Missing-input warnings/refusals read declaration presence; pricing never infers PTKP.
+				JSON.stringify(scheme.rules.filter((rule) => rule.warning == null && rule.refusal == null))
 			),
 			false
 		);
+	}
 	for (const row of adhocCatalogue('ID').filter((item) => item.code === 'THR'))
 		assert.equal(row.eligibility.includes('religion'), false);
 });
@@ -511,9 +515,7 @@ test('ID G14: a 2027 departure is judged against the 2027 religious holiday, not
 			approval_id: null
 		});
 	const built = buildPayrollRun(
-		Effect.runSync(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2027-02' })
-		)
+		gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2027-02' })
 	);
 	const paid = (key: string) => {
 		const employment = world.employments.find((row) => row.employee_number === key)!;
@@ -564,9 +566,7 @@ test('ID G14: a departure without the declared holiday skips the THR, and a malf
 		});
 		return () =>
 			buildPayrollRun(
-				Effect.runSync(
-					gatherPayrollRun({ api: memoryPayrollApi(w), companyId: COMPANY_ID, period: '2027-02' })
-				)
+				gatherPayrollRun({ world: payrollWorld(w), companyId: COMPANY_ID, period: '2027-02' })
 			);
 	};
 	// Undeclared, the THR cannot be judged and is skipped by name; the rest of the run is paid.

@@ -1,18 +1,14 @@
 /** Families prepare their own inputs and calculations. This coordinator preserves the family pipeline and contribution staging. */
-import { decodeNumber } from '@norbital-ai/std/json';
-import type {
-	CatalogueComponent,
-	Configuration,
-	Jurisdiction
-} from '../../collections/payroll_runs/lib/configuration.js';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
+import { decodeNumber } from '../wire.js';
+import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
+import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
 import {
 	accumulateSettledPayslip,
 	sumAccumulations,
 	type AccumulatedPayslip,
 	type QuantityPayment,
 	type MonthPrior
-} from '../../collections/payroll_runs/lib/accumulate.js';
+} from '../../lib/payroll/run/accumulate.js';
 import {
 	inclusiveDays,
 	completedMonths,
@@ -22,16 +18,16 @@ import {
 	monthKey,
 	periodMonth,
 	requiredDateKey
-} from '../../collections/payroll_runs/lib/dates.js';
-import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
-import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
+} from '../../lib/payroll/run/dates.js';
+import type { WorkspaceRow } from '../rows.js';
+import { coversDate } from '../../lib/payroll/run/effective.js';
+import { personContext } from '../../lib/payroll/run/eligibility.js';
 import {
 	closesTaxYear,
 	taxYearBounds,
 	type PayCadence,
-	type PayFrequency
-} from '../../collections/payroll_runs/lib/period.js';
+	type PayrollWindow
+} from '../../lib/payroll/run/period.js';
 import {
 	calculateLeavePayroll,
 	unpaidLeaveDays,
@@ -39,9 +35,9 @@ import {
 	leaveCoverage
 } from '../leave/payroll.js';
 import { leaveEncashmentRate } from '../leave/encashment-rate.js';
-import { settle } from '../../collections/payroll_runs/lib/settle.js';
-import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
-import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
+import { settle } from '../../lib/payroll/run/settle.js';
+import { employmentDates } from '../../lib/payroll/run/settlement.js';
+import { prorationSegment } from '../../lib/payroll/run/proration.js';
 import { stint } from '../employment-contract.js';
 import {
 	CONTRACT,
@@ -50,8 +46,8 @@ import {
 	OVERTIME_FLOOR_DAYS,
 	WAGES
 } from '../expressions/person-functions.js';
-import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
-import type { InLieuSlice, PayrollTrace } from '../../datatypes/payroll_trace/+definition.js';
+import type { PayslipProration } from '../datatypes/payslip_proration.js';
+import type { InLieuSlice, PayrollTrace } from '../datatypes/payroll_trace.js';
 import type { PayslipWageMonth } from './reference-wages.js';
 import type {
 	MeasuredEmployment,
@@ -61,16 +57,10 @@ import type {
 	MeasuredAdjustment
 } from './family.js';
 import { baseLine, settlementBucket } from './family.js';
-import {
-	PAY_REQUEST_FAMILIES,
-	requestIsDue,
-	prepareMoneySteps,
-	type PayRequestFamily,
-	type PreparedPayRequest
-} from './money.js';
+import { requestIsDue, prepareMoneySteps, type PreparedPayRequest } from './money.js';
 import { prepareWorkContext, calculateWorkAttendance, prepareWorkSteps, termsAt } from './work.js';
 import { measureLoanRecoveries, validateLoanRecoveries } from './loan.js';
-import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
+import type { RunIssue } from '../../lib/payroll/run/validate.js';
 export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEmployment {
 	/** What the family measurements reported about the requests they read and did not pay. */
 	const notes: RunIssue[] = [];
@@ -112,7 +102,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				request,
 				options.period,
 				options.salary,
-				decodeNumber(configuration.company.pay_cutoff_day),
+				configuration.company.pay_cutoff_day,
 				cadence
 			)
 		);
@@ -123,7 +113,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			employee: bundle.employee,
 			employment: stint(bundle.employment),
 			fixedAllowances: contractAllowancesOn(bundle, configuration, finalDate),
-			monthlyWage6mAverage: monthlyWageAverage(bundle, configuration, finalDate, 6),
 			terms: finalTerms,
 			children: bundle.children,
 			company: configuration.company,
@@ -165,7 +154,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			bundle,
 			configuration,
 			period: options.period,
-			cutoffDay: decodeNumber(configuration.company.pay_cutoff_day),
+			cutoffDay: configuration.company.pay_cutoff_day,
 			cadence,
 			subject
 		});
@@ -228,7 +217,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		workingDaysIn,
 		subject
 	} = work;
-	const cutoffDay = decodeNumber(configuration.company.pay_cutoff_day);
+	const cutoffDay = configuration.company.pay_cutoff_day;
 	// The default pay period is answered in the grammar this employment is paid in: a half at a
 	// semi-monthly company for semi-monthly terms, the `-2` run there for monthly terms, the month
 	// everywhere else. See `defaultPayPeriod`.
@@ -472,12 +461,10 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		adjustments,
 		captured: {
 			workDays: capturedWorkDayIds,
-			payRequests: Object.fromEntries(
-				PAY_REQUEST_FAMILIES.map((family) => [
-					family,
-					periodEntries.filter((entry) => entry.family === family).map((entry) => entry.id)
-				])
-			) as unknown as Record<PayRequestFamily, readonly string[]>,
+			payRequests: {
+				CLAIM: periodEntries.filter((entry) => entry.family === 'CLAIM').map((entry) => entry.id),
+				ADHOC: periodEntries.filter((entry) => entry.family === 'ADHOC').map((entry) => entry.id)
+			},
 			leave: measuredLeave.captures,
 			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
 			wagePeriods: [...referenceWageIds]
@@ -495,6 +482,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		inLieuSlices: workAttendance.inLieuSlices,
 		currency,
 		schedule,
+		normalWorkingDaysIn: workingDaysIn,
 		limits: workAttendance.limits,
 		periodWorkingDays: subject.period.working_days,
 		periodUnpaidDays: unpaidDaysIn(options.salary),
@@ -614,158 +602,15 @@ function measureArrears(
 	return amount <= 0 ? null : { period: owed.period, componentCatalogueId, amount };
 }
 
-import { Effect } from 'effect';
-import { cents } from '../../collections/payroll_runs/lib/rounding.js';
-import type { GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
-import { prepareWorkCatalogue, prepareWorkInputs } from './work.js';
-import { workPayItems } from './work-lines.js';
-import { prepareMoneyCatalogues, prepareMoneyInputs, prepareMoneyConsumption } from './money.js';
+import { cents } from '../../lib/payroll/run/rounding.js';
+import type { GatheredRun } from '../../lib/payroll/run/gather.js';
+import { prepareMoneyConsumption } from './money.js';
 import { prepareAllowanceSteps } from './allowances.js';
 import { contractAllowancesOn } from './contract-allowances.js';
-import { prepareLoanCatalogue, prepareLoanPayroll } from './loan.js';
-import {
-	prepareContributionCatalogue,
-	prepareContributionInputs,
-	contributionYearToDate,
-	monthlyWageAverage
-} from './contribution.js';
+import { contributionYearToDate } from './contribution.js';
 import { buildStatutoryHistory } from './statutory-history.js';
-import { prepareLeaveCatalogue, prepareLeavePayroll } from '../leave/payroll.js';
-import type { PayrollReadApi, ReadLog } from '../../collections/payroll_runs/lib/api.js';
-import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
+import type { PayrollWorld } from './world.js';
 
-/**
- * A version's catalogues, read once per invocation.
- *
- * A run picks its own configuration and one more for every earlier month a late allowance came
- * from; a February run with December and January stragglers read the same sealed version's
- * statutory rules — three megabytes of Third Schedule bands — three times, and decoding them was
- * the single largest cost in the guest. The four version-only catalogues are keyed by the settings
- * version id for the life of the runtime `db` object, which is one invocation; the work catalogue stays
- * per call because it reads the window's shifts and holidays.
- */
-const runMoneyCatalogues = (catalogue: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly settingsId: string;
-	readonly lineageIds: readonly string[];
-}) =>
-	Effect.all(
-		[
-			prepareMoneyCatalogues(catalogue),
-			prepareLoanCatalogue(catalogue),
-			prepareContributionCatalogue(catalogue),
-			prepareLeaveCatalogue(catalogue)
-		],
-		{ concurrency: 'unbounded' }
-	);
-type VersionCatalogues = Effect.Success<ReturnType<typeof runMoneyCatalogues>>;
-const versionCataloguesByApi = new WeakMap<object, Map<string, VersionCatalogues>>();
-
-export function prepareFamilyCatalogues(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly jurisdiction: Jurisdiction;
-	/** Every version of the lineage, for the classes a contract lists under an earlier one. */
-	readonly lineageIds: readonly string[];
-	readonly companyId: string;
-	readonly windowStart: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
-	readonly windowEnd: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
-	readonly shiftRows: Parameters<typeof prepareWorkCatalogue>[0]['shiftRows'];
-	readonly patternRows: Parameters<typeof prepareWorkCatalogue>[0]['patternRows'];
-}) {
-	return Effect.gen(function* () {
-		const catalogue = {
-			api: options.api,
-			settingsId: options.jurisdiction.id,
-			lineageIds: options.lineageIds
-		};
-		// Keyed by the runtime's own `db`, which every read-log wrapper spreads unchanged; the
-		// wrappers themselves are a fresh object per phase.
-		const cache =
-			versionCataloguesByApi.get(options.api.db) ??
-			(() => {
-				const fresh = new Map<string, VersionCatalogues>();
-				versionCataloguesByApi.set(options.api.db, fresh);
-				return fresh;
-			})();
-		const cached = cache.get(options.jurisdiction.id);
-		const [work, [money, loans, contributions, catalogueLeaves]] = yield* Effect.all(
-			[
-				prepareWorkCatalogue(options),
-				cached === undefined
-					? Effect.tap(runMoneyCatalogues(catalogue), (loaded) =>
-							Effect.sync(() => cache.set(options.jurisdiction.id, loaded))
-						)
-					: Effect.succeed(cached)
-			],
-			{ concurrency: 'unbounded' }
-		);
-		return {
-			...work,
-			contributions,
-			catalogueLeaves,
-			allowanceCodeById: money.allowanceCodeById,
-			catalogueComponents: [...workPayItems(work.work), ...money.components, ...loans].toSorted(
-				(a, b) => (a.code === b.code ? a.id.localeCompare(b.id) : a.code.localeCompare(b.code))
-			)
-		};
-	});
-}
-export function prepareFamilyObligations(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly configuration: Configuration;
-	readonly employments: readonly { readonly id: string }[];
-	readonly period: string;
-	readonly asOf: string;
-	readonly periodWindow: { readonly start: string; readonly end: string };
-}) {
-	return Effect.gen(function* () {
-		const [leaveByEmployment, money] = yield* Effect.all(
-			[
-				prepareLeavePayroll({
-					api: options.api,
-					employments: options.employments,
-					versions: options.configuration.lineageVersions,
-					currency: options.configuration.jurisdiction.payroll.currency
-				}),
-				prepareMoneyInputs({
-					...options,
-					employmentIds: options.employments.map((row) => row.id)
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		return { leaveByEmployment, requestsByEmployment: money.requestsByEmployment };
-	});
-}
-export function prepareFamilyInputs(
-	options: Omit<Parameters<typeof prepareMoneyInputs>[0], 'employmentIds'> & {
-		readonly employments: readonly { readonly id: string; readonly employee_id: string }[];
-		readonly requestsByEmployment: ReadonlyMap<string, readonly PreparedPayRequest[]>;
-		readonly cadenceByEmployment: ReadonlyMap<
-			string,
-			{ readonly window: PayrollWindow; readonly payFrequency: PayFrequency }
-		>;
-		readonly window: PayrollWindow;
-		readonly complianceSpan: PayrollWindow['attendance'];
-	} & Omit<Parameters<typeof prepareLoanPayroll>[0], 'employmentIds' | 'employments'>
-) {
-	return Effect.gen(function* () {
-		const inputOptions = {
-			...options,
-			employmentIds: options.employments.map((row) => row.id),
-			employeeIds: [...new Set(options.employments.map((row) => row.employee_id))]
-		};
-		const [work, loans, factsByEmployee] = yield* Effect.all(
-			[
-				prepareWorkInputs(inputOptions),
-				prepareLoanPayroll(inputOptions),
-				prepareContributionInputs(inputOptions)
-			],
-			{ concurrency: 'unbounded' }
-		);
-		return { ...work, ...loans, factsByEmployee };
-	});
-}
 /**
  * The earlier instalments of each calendar month, per employee: what they settled (re-folded into
  * an accumulation) and what each scheme charged on them. A MONTH-assessed scheme at a
@@ -775,7 +620,7 @@ function monthPriorOf(options: {
 	readonly payslips: readonly WorkspaceRow<'payslips'>[];
 	readonly employmentToEmployee: ReadonlyMap<string, string>;
 	readonly periodByRun: ReadonlyMap<string, string>;
-	readonly catalogueComponents?: readonly CatalogueComponent[];
+	readonly catalogueComponents?: readonly CatalogueComponent[] | undefined;
 }): Map<string, MonthPrior> {
 	const componentsByCode = new Map(
 		(options.catalogueComponents ?? []).map((component) => [component.code, component])
@@ -826,14 +671,14 @@ function monthPriorOf(options: {
 				directed: 0,
 				rebate: 0
 			};
-			const directed = decodeNumber(charge.directed_amount ?? 0);
+			const directed = charge.directed_amount ?? 0;
 			entry.charged.set(charge.scheme_code, {
-				employee: running.employee + decodeNumber(charge.employee_amount) - directed,
-				employer: running.employer + decodeNumber(charge.employer_amount),
-				base: running.base + decodeNumber(charge.base_amount),
-				ordinary: running.ordinary + decodeNumber(charge.ordinary_amount ?? 0),
+				employee: running.employee + charge.employee_amount - directed,
+				employer: running.employer + charge.employer_amount,
+				base: running.base + charge.base_amount,
+				ordinary: running.ordinary + (charge.ordinary_amount ?? 0),
 				directed: running.directed + directed,
-				rebate: running.rebate + decodeNumber(charge.rebate_amount ?? 0)
+				rebate: running.rebate + (charge.rebate_amount ?? 0)
 			});
 		}
 		parts.set(key, entry);
@@ -848,29 +693,28 @@ function monthPriorOf(options: {
 
 export function prepareFamilyHistory(
 	options: Parameters<typeof contributionYearToDate>[0] & {
-		readonly api: PayrollReadApi & { readonly reads: ReadLog };
+		readonly world: PayrollWorld;
 		readonly periodByRun: ReadonlyMap<string, string>;
 		/** run id → its frozen trace, which carries each payslip's settled overtime counts. */
 		readonly traceByRun: ReadonlyMap<string, PayrollTrace>;
-		readonly catalogueComponents?: readonly CatalogueComponent[];
+		readonly catalogueComponents?: readonly CatalogueComponent[] | undefined;
 	}
 ) {
-	return Effect.gen(function* () {
-		const scope = { api: options.api, payslipIds: options.payslips.map((row) => row.id) };
-		const consumedEntries = yield* prepareMoneyConsumption(scope);
-		return {
-			yearToDate: contributionYearToDate(options),
-			statutoryHistory: buildStatutoryHistory(options),
-			yearEarned: earnedYearToDate(options),
-			yearQuantityPayments: earnedQuantityPaymentsYearToDate(options),
-			earnedByMonth: earnedByMonth(options),
-			payslipWageMonths: payslipWageMonths(options),
-			priorOvertimeHours: priorOvertimeHours(options),
-			priorInLieu: priorInLieu(options),
-			monthPrior: monthPriorOf(options),
-			consumedEntries
-		};
-	});
+	return {
+		yearToDate: contributionYearToDate(options),
+		statutoryHistory: buildStatutoryHistory(options),
+		yearEarned: earnedYearToDate(options),
+		yearQuantityPayments: earnedQuantityPaymentsYearToDate(options),
+		earnedByMonth: earnedByMonth(options),
+		payslipWageMonths: payslipWageMonths(options),
+		priorOvertimeHours: priorOvertimeHours(options),
+		priorInLieu: priorInLieu(options),
+		monthPrior: monthPriorOf(options),
+		consumedEntries: prepareMoneyConsumption(
+			options.world,
+			options.payslips.map((row) => row.id)
+		)
+	};
 }
 
 /** Paid units remain units when a later salary changes their monetary value. */
@@ -885,7 +729,7 @@ function earnedQuantityPaymentsYearToDate(
 			(options.periodByRun.get(a.payroll_run_id) ?? '').localeCompare(
 				options.periodByRun.get(b.payroll_run_id) ?? ''
 			) ||
-			String(a.paid_at ?? '').localeCompare(String(b.paid_at ?? '')) ||
+			(a.paid_at ?? '').localeCompare(b.paid_at ?? '') ||
 			a.id.localeCompare(b.id)
 	);
 	for (const payslip of slips) {
@@ -898,9 +742,9 @@ function earnedQuantityPaymentsYearToDate(
 			const payments = byCode.get(line.component_code) ?? [];
 			payments.push({
 				period: options.periodByRun.get(payslip.payroll_run_id),
-				quantity: line.quantity == null ? null : decodeNumber(line.quantity),
-				amount: (line.bucket === 'ABSENCE' ? -1 : 1) * decodeNumber(line.amount),
-				rate: line.rate == null ? null : decodeNumber(line.rate)
+				quantity: line.quantity == null ? null : line.quantity,
+				amount: (line.bucket === 'ABSENCE' ? -1 : 1) * line.amount,
+				rate: line.rate == null ? null : line.rate
 			});
 			byCode.set(line.component_code, payments);
 		}
@@ -926,20 +770,14 @@ function earnedYearToDate(options: {
 		if (employeeId == null) continue;
 		const byCode = earned.get(employeeId) ?? new Map<string, number>();
 		for (const line of payslip.base)
-			byCode.set(
-				line.component_code,
-				(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
-			);
+			byCode.set(line.component_code, (byCode.get(line.component_code) ?? 0) + line.amount);
 		for (const line of payslip.adjustments)
 			if (line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT')
-				byCode.set(
-					line.component_code,
-					(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
-				);
+				byCode.set(line.component_code, (byCode.get(line.component_code) ?? 0) + line.amount);
 			// Every unpaid day, absence or no-pay leave, under the reserved name: `BASIC - ABSENCE`
 			// is the basic actually earned (PH PD 851: a 13th month is a twelfth of it).
 			else if (line.bucket === 'ABSENCE')
-				byCode.set(ABSENCE, (byCode.get(ABSENCE) ?? 0) + decodeNumber(line.amount));
+				byCode.set(ABSENCE, (byCode.get(ABSENCE) ?? 0) + line.amount);
 		earned.set(employeeId, byCode);
 	}
 	return earned;
@@ -962,7 +800,7 @@ function earnedByMonth(options: {
 	readonly employmentToEmployee: ReadonlyMap<string, string>;
 	readonly periodByRun: ReadonlyMap<string, string>;
 	readonly traceByRun: ReadonlyMap<string, PayrollTrace>;
-	readonly catalogueComponents?: readonly CatalogueComponent[];
+	readonly catalogueComponents?: readonly CatalogueComponent[] | undefined;
 }): Map<string, Map<string, Map<string, number>>> {
 	const components = new Map(
 		(options.catalogueComponents ?? []).map((component) => [component.code, component])
@@ -977,21 +815,15 @@ function earnedByMonth(options: {
 		const byMonth = earned.get(employeeId) ?? new Map<string, Map<string, number>>();
 		const byCode = byMonth.get(month) ?? new Map<string, number>();
 		for (const line of payslip.base)
-			byCode.set(
-				line.component_code,
-				(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
-			);
+			byCode.set(line.component_code, (byCode.get(line.component_code) ?? 0) + line.amount);
 		for (const line of payslip.adjustments)
 			if (line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT') {
-				byCode.set(
-					line.component_code,
-					(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
-				);
+				byCode.set(line.component_code, (byCode.get(line.component_code) ?? 0) + line.amount);
 				// Every priced work-day line — overtime, night, the funnelled hours — is also filed
 				// under the reserved name, so `earned_average(["BASIC", "OVERTIME"], …)` reads a
 				// month's 工資 whole (TW 施行細則 §27).
 				if (line.family === 'WORK_DAY')
-					byCode.set('OVERTIME', (byCode.get('OVERTIME') ?? 0) + decodeNumber(line.amount));
+					byCode.set('OVERTIME', (byCode.get('OVERTIME') ?? 0) + line.amount);
 			}
 		// The month's wages as the person reads them (`employment.earned_monthly_average`): the
 		// contract lines (the wage and the standing allowances), the priced work and every paid line
@@ -1002,15 +834,14 @@ function earnedByMonth(options: {
 		add(byCode, WAGES, 0);
 		// The contract lines by the segments that priced them, which back pay for an earlier month
 		// has none of: the day a 施行細則 §2 exclusion takes out is priced on it.
-		for (const segment of payslip.proration ?? [])
-			add(byCode, CONTRACT, decodeNumber(segment.prorated_amount));
+		for (const segment of payslip.proration ?? []) add(byCode, CONTRACT, segment.prorated_amount);
 		for (const line of payslip.base) {
 			const component = components.get(line.component_code);
 			if (
 				component == null ||
 				(component.destination === 'PAY' && component.direction !== 'SUBTRACT')
 			)
-				add(byCode, WAGES, decodeNumber(line.amount));
+				add(byCode, WAGES, line.amount);
 		}
 		for (const line of payslip.adjustments) {
 			if (
@@ -1018,13 +849,13 @@ function earnedByMonth(options: {
 				(line.family === 'WORK_DAY' ||
 					(components.get(line.component_code)?.counts_toward ?? []).includes(WAGES))
 			)
-				add(byCode, WAGES, decodeNumber(line.amount));
+				add(byCode, WAGES, line.amount);
 			if (line.bucket !== 'ABSENCE') continue;
-			add(byCode, WAGES, -decodeNumber(line.amount));
+			add(byCode, WAGES, -line.amount);
 			// Each leave code's deduction and days, for a law that leaves a leave's days out.
 			if (line.family === 'LEAVE') {
-				add(byCode, LEAVE_ABSENCE + line.component_code, decodeNumber(line.amount));
-				add(byCode, LEAVE_DAYS + line.component_code, decodeNumber(line.quantity ?? 0));
+				add(byCode, LEAVE_ABSENCE + line.component_code, line.amount);
+				add(byCode, LEAVE_DAYS + line.component_code, line.quantity ?? 0);
 			}
 		}
 		// The window's overtime or night days at the floor then in force, so `earned_daily_excess`
@@ -1050,7 +881,7 @@ function payslipWageMonths(options: {
 	readonly payslips: readonly WorkspaceRow<'payslips'>[];
 	readonly employmentToEmployee: ReadonlyMap<string, string>;
 	readonly periodByRun: ReadonlyMap<string, string>;
-	readonly catalogueComponents?: readonly CatalogueComponent[];
+	readonly catalogueComponents?: readonly CatalogueComponent[] | undefined;
 }): Map<string, PayslipWageMonth[]> {
 	const regular = new Set(
 		(options.catalogueComponents ?? [])
@@ -1065,18 +896,18 @@ function payslipWageMonths(options: {
 		const segments = payslip.proration ?? [];
 		if (employeeId == null || month == null || segments.length === 0) continue;
 		const months = byEmployee.get(employeeId) ?? new Map<string, PayslipWageMonth>();
-		const paid = payslip.paid_at == null ? null : String(payslip.paid_at).slice(0, 10);
+		const paid = payslip.paid_at == null ? null : payslip.paid_at.slice(0, 10);
 		const earlier = months.get(month);
 		const contract: Record<string, number> = { ...earlier?.contract };
 		for (const segment of segments)
 			contract[segment.component_code] =
-				(contract[segment.component_code] ?? 0) + decodeNumber(segment.prorated_amount);
-		const froms = segments.map((segment) => String(segment.from));
-		const tos = segments.map((segment) => String(segment.to));
+				(contract[segment.component_code] ?? 0) + segment.prorated_amount;
+		const froms = segments.map((segment) => segment.from);
+		const tos = segments.map((segment) => segment.to);
 		const lines = payslip.adjustments.map((line) => ({
 			bucket: line.bucket,
 			code: line.component_code,
-			amount: decodeNumber(line.amount)
+			amount: line.amount
 		}));
 		months.set(month, {
 			month,
@@ -1116,7 +947,7 @@ function yearContextOf(input: {
 	readonly absence: number;
 }): YearContext {
 	const { bundle, configuration, options, componentAmounts } = input;
-	const startMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
+	const startMonth = configuration.jurisdiction.payroll.tax_year_start_month;
 	const bounds = taxYearBounds(options.period, startMonth);
 	const dates = employmentDates(bundle.employment);
 	const from = dates.hire > bounds.start ? dates.hire : bounds.start;
@@ -1193,15 +1024,15 @@ function priorInLieu(options: {
 	return slices;
 }
 
-import { refuse } from '@norbital-ai/bolt/authoring';
+import { refuse } from '../refuse.js';
 import {
 	assessCompanyContributions,
 	assessContributions,
 	prepareContributionAssessment
 } from './contribution.js';
 import { validateWorkInputs, validateWorkResult } from './work.js';
-import { blockers, describeIssues } from '../../collections/payroll_runs/lib/validate.js';
-import { payProjection } from '../../collections/payroll_runs/lib/period.js';
+import { blockers, describeIssues } from '../../lib/payroll/run/validate.js';
+import { payProjection } from '../../lib/payroll/run/period.js';
 import { dateKey } from '../iso-day.js';
 
 export function calculateFamilyAssessments(options: {
@@ -1229,7 +1060,7 @@ export function calculateFamilyAssessments(options: {
 		readonly yearEarned: ReadonlyMap<string, number>;
 		readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	}> = [];
-	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
+	const taxYearStartMonth = configuration.jurisdiction.payroll.tax_year_start_month;
 
 	for (const bundle of gathered.bundles) {
 		// 4 — MEASURE

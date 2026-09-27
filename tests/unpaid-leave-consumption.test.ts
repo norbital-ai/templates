@@ -43,7 +43,8 @@ const NPL = {
 const TERM = {
 	id: 'terms-1',
 	employment_id: 'employment-1',
-	base_salary: { value: 3000, currency: 'MYR' },
+	base_salary: 3000,
+	currency: 'MYR',
 	pay_frequency: 'MONTHLY',
 	shift_pattern_id: 'pattern-1',
 	statutory_work_category: 'NON_MANUAL',

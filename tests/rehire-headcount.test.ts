@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 
 test('two contract stints for one employee in the same entity count as one person', async () => {
 	const world = createPublicPayrollWorld();
@@ -26,9 +25,11 @@ test('two contract stints for one employee in the same entity count as one perso
 		id: 'other-entity-contract',
 		company_id: 'other-company'
 	});
-	const prepared = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-01'
+	});
 	assert.equal(prepared.gathered.bundles.length, 2);
 	assert.equal(prepared.gathered.headcount, 1);
 	assert.ok(

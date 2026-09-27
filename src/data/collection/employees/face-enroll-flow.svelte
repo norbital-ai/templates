@@ -1,0 +1,454 @@
+<script lang="ts">
+	import { t } from '../../../lib/ui/t.js';
+	import { onMount } from 'svelte';
+	import Icon from '@iconify/svelte';
+	import type Human from '@vladmandic/human';
+	import type { Id } from '@norbital-ai/bolt';
+	import { Instant } from '@norbital-ai/std/date';
+	import { bolt } from '$bolt';
+	import { Button, Spinner } from '@norbital-ai/ui';
+	import { Cluster, Columns, Frame, Grid, Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { KIOSK_LOOP_MS } from '../../../lib/kiosk/config.js';
+	import { meanEmbedding } from '../../../lib/kiosk/embed.js';
+	import {
+		createAnalyseCanvas,
+		drawVideoFrame,
+		largestFace,
+		missingFaceModels,
+		sampleFromFace,
+		showStream,
+		openCamera,
+		closeCamera,
+		warmFaceEngine
+	} from '../../../lib/kiosk/face.js';
+	import {
+		GUIDED_POSES,
+		guidedCaptureComplete,
+		initialGuidedCapture,
+		observePose,
+		poseProgress,
+		targetPose,
+		type GuidedPose
+	} from '../../../lib/kiosk/guided-capture.js';
+	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../../lib/kiosk/phrases.js';
+	import type { KioskSample } from '../../../lib/kiosk/sample.js';
+	import { readKioskSettings } from '../../../lib/kiosk/settings.js';
+	import { browserNarratorPlatform, createKioskNarrator } from '../../../lib/kiosk/voice.js';
+	import { getErrorMessage } from '../../../lib/refuse.js';
+
+	/**
+	 * Guided face enrollment for one known person, opened from their profile.
+	 *
+	 * The identity is already answered by the record this mounts for, so the flow is three steps:
+	 * capture, review, done. Capture is automatic, the way a phone enrolls a face: the flow asks for
+	 * a pose, reads the face's rotation every frame, and takes the frame itself once the pose has
+	 * been held inside its window with a readable descriptor. Five poses, one averaged descriptor.
+	 *
+	 * The write is one: the `employees.kiosk_enroll` action, which attaches the descriptor to this known person
+	 * (approved at once) and refuses a pending or suspended enrollment HR has not reviewed. The photo uploads first
+	 * (`bolt.upload`) and only its file reference rides the action.
+	 */
+	let {
+		record,
+		onsaved,
+		onclose
+	}: {
+		record: { readonly id: Id<'employees'>; readonly face_enrollment_status?: unknown };
+		onsaved: (previewUrl: string) => void;
+		onclose: () => void;
+	} = $props();
+
+	type Step = 'capture' | 'review' | 'done';
+	const STEPS: readonly Step[] = ['capture', 'review', 'done'];
+	const POSE_PHRASES: Readonly<Record<GuidedPose, KioskPhraseKey>> = {
+		straight: 'enroll_straight',
+		left: 'enroll_left',
+		right: 'enroll_right',
+		up: 'enroll_up',
+		down: 'enroll_down'
+	};
+	/** No face for this long during capture is said once, then again after the next face. */
+	const NO_FACE_AFTER_MS = 3000;
+	const RING_RADIUS = 16;
+	const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+
+	const settings = readKioskSettings();
+	const narrator = createKioskNarrator(browserNarratorPlatform(), {
+		language: kioskVoiceLanguage(bolt.locale),
+		enabled: settings.voiceEnabled
+	});
+
+	let step = $state<Step>('capture');
+	let warming = $state(true);
+	let ready = $state(false);
+	let fatal = $state<string | null>(null);
+	let engineMissing = $state<string[]>([]);
+	let guided = $state(initialGuidedCapture());
+	let samples = $state<Partial<Record<GuidedPose, KioskSample>>>({});
+	/** The loop's clock, so the progress rings animate between frames. */
+	let now = $state(0);
+	let consent = $state(false);
+	/** In-flight and failure of the upload and the command, which no form owns. */
+	let submitting = $state(false);
+	let error = $state<string | null>(null);
+	/** A pending or suspended enrollment is HR's to review; the command would refuse it. */
+	let blocked = $derived(
+		record.face_enrollment_status === 'PENDING' || record.face_enrollment_status === 'SUSPENDED'
+	);
+
+	/** Imperative handles and bookkeeping nothing renders from: plain fields, not state. */
+	const handles: {
+		videoNode: HTMLVideoElement | null;
+		stream: MediaStream | null;
+		engine: Human | null;
+		canvas: HTMLCanvasElement | null;
+		loopTimer: ReturnType<typeof setInterval> | null;
+		inFlight: boolean;
+		absentSince: number;
+		absentSpoken: boolean;
+		spokenPose: GuidedPose | null;
+	} = {
+		videoNode: null,
+		stream: null,
+		engine: null,
+		canvas: null,
+		loopTimer: null,
+		inFlight: false,
+		absentSince: 0,
+		absentSpoken: false,
+		spokenPose: null
+	};
+
+	const target = $derived(targetPose(guided));
+	const complete = $derived(guidedCaptureComplete(guided));
+	const capturedCount = $derived(guided.captured.length);
+	const orderedSamples = $derived(
+		GUIDED_POSES.flatMap((pose) => {
+			const sample = samples[pose];
+			return sample === undefined ? [] : [sample];
+		})
+	);
+	const guidance = $derived(
+		fatal !== null
+			? fatal
+			: engineMissing.length > 0
+				? t('face.engine_unavailable', { models: engineMissing.join(', ') })
+				: warming
+					? t('face.preparing')
+					: target === null
+						? t('face.captured', { count: capturedCount, total: GUIDED_POSES.length })
+						: !guided.facePresent
+							? t('face.guide_no_face')
+							: t(`face.guide_${target}`)
+	);
+
+	const poseLabel = (pose: GuidedPose): string => t(`face.pose_${pose}`);
+
+	const stopCamera = () => {
+		closeCamera(handles.stream);
+		handles.stream = null;
+	};
+
+	/** Same two-direction attach as the kiosk: the node and the stream arrive in either order. */
+	const attachVideo = (node: HTMLVideoElement) => {
+		handles.videoNode = node;
+		if (handles.stream !== null) showStream(node, handles.stream);
+		return () => {
+			if (handles.videoNode === node) handles.videoNode = null;
+		};
+	};
+
+	$effect(() => {
+		narrator.setLanguage(kioskVoiceLanguage(bolt.locale));
+	});
+
+	const restartCapture = () => {
+		guided = initialGuidedCapture();
+		samples = {};
+		handles.spokenPose = null;
+		handles.absentSince = 0;
+		handles.absentSpoken = false;
+		consent = false;
+		error = null;
+		step = 'capture';
+	};
+
+	const start = async () => {
+		warming = true;
+		fatal = null;
+		try {
+			handles.stream = await openCamera('user');
+			if (handles.videoNode !== null) showStream(handles.videoNode, handles.stream);
+			handles.engine = await warmFaceEngine();
+			handles.canvas = createAnalyseCanvas();
+			engineMissing = missingFaceModels(handles.engine);
+			ready = engineMissing.length === 0;
+		} catch (failure) {
+			fatal = getErrorMessage(failure);
+		} finally {
+			warming = false;
+		}
+	};
+
+	/**
+	 * One frame: the largest face's rotation goes to the pose machine, and the frame that completes
+	 * a pose's hold becomes that pose's sample. Guidance is spoken when the target changes.
+	 */
+	const tick = async () => {
+		if (
+			step !== 'capture' ||
+			!ready ||
+			handles.engine === null ||
+			handles.canvas === null ||
+			handles.videoNode === null ||
+			handles.inFlight ||
+			!drawVideoFrame(handles.videoNode, handles.canvas)
+		)
+			return;
+		handles.inFlight = true;
+		try {
+			const started = performance.now();
+			const result = await handles.engine.detect(handles.canvas);
+			const face = largestFace(result.face ?? []);
+			const nowMs = Date.now();
+			const observed = observePose(
+				guided,
+				face === undefined
+					? null
+					: { angle: face.rotation?.angle ?? null, embedding: face.embedding !== undefined },
+				nowMs
+			);
+			guided = observed.state;
+			now = nowMs;
+			if (face === undefined) {
+				if (handles.absentSince === 0) handles.absentSince = nowMs;
+				else if (!handles.absentSpoken && nowMs - handles.absentSince >= NO_FACE_AFTER_MS) {
+					handles.absentSpoken = true;
+					narrator.say('enroll_no_face');
+				}
+			} else {
+				handles.absentSince = 0;
+				handles.absentSpoken = false;
+			}
+			if (observed.capture !== null && face !== undefined) {
+				const sample = sampleFromFace(face, handles.canvas, performance.now() - started);
+				if (sample !== null) samples = { ...samples, [observed.capture]: sample };
+			}
+			const next = targetPose(guided);
+			if (next === null) {
+				narrator.say('enroll_done');
+				step = 'review';
+			} else if (next !== handles.spokenPose && face !== undefined) {
+				handles.spokenPose = next;
+				narrator.say(POSE_PHRASES[next]);
+			}
+		} catch (failure) {
+			error = getErrorMessage(failure);
+		} finally {
+			handles.inFlight = false;
+		}
+	};
+
+	onMount(() => {
+		void start();
+		handles.loopTimer = setInterval(() => void tick(), KIOSK_LOOP_MS);
+		return () => {
+			if (handles.loopTimer !== null) clearInterval(handles.loopTimer);
+			stopCamera();
+			handles.engine?.reset();
+			narrator.stop();
+		};
+	});
+
+	const canvasToFile = (source: HTMLCanvasElement): Promise<File> =>
+		new Promise((resolve, reject) => {
+			source.toBlob(
+				(blob) => {
+					if (blob === null) reject(new Error('Snapshot encoding failed.'));
+					else resolve(new File([blob], 'face.jpg', { type: 'image/jpeg' }));
+				},
+				'image/jpeg',
+				0.8
+			);
+		});
+
+	const finish = (previewUrl: string) => {
+		stopCamera();
+		step = 'done';
+		onsaved(previewUrl);
+	};
+
+	/** Upload the straight-on snapshot, then enrol the averaged descriptor with it. */
+	const enroll = async () => {
+		if (!consent || !complete || submitting) return;
+		const photo = samples.straight ?? orderedSamples[0];
+		if (photo === undefined) return;
+		submitting = true;
+		error = null;
+		try {
+			const facePhoto = await bolt.upload(await canvasToFile(photo.canvas), 'employees.face_photo');
+			const outcome = await bolt.act('employees.kiosk_enroll', {
+				employee_id: record.id,
+				face_embedding: meanEmbedding(orderedSamples.map((sample) => sample.vector)),
+				face_photo: facePhoto,
+				consent_at: Instant(new Date())
+			});
+			if (outcome.kind === 'committed' || outcome.kind === 'pendingApproval') finish(photo.dataUrl);
+			else error = 'message' in outcome ? String(outcome.message) : t('face.upload_unavailable');
+		} catch (failure) {
+			error = getErrorMessage(failure);
+		} finally {
+			submitting = false;
+		}
+	};
+</script>
+
+<Stack gap="md" data-face-enroll-step={step}>
+	<Columns as="ol" count={3} gap="sm" collapse="none" aria-label={t('face.progress')}>
+		{#each STEPS as name, index (name)}
+			<li
+				class="border-t-2 pt-2 text-meta {index <= STEPS.indexOf(step)
+					? 'border-primary text-foreground'
+					: 'border-border'}"
+			>
+				{t(`face.step_${name}`)}
+			</li>
+		{/each}
+	</Columns>
+	<!-- Steps hide with the `hidden` attribute rather than an `{#if}`, so the camera loop and
+		the captures survive step changes. -->
+	<Stack hidden={step !== 'capture'} gap="md">
+		<Frame ratio="widescreen" class="relative w-full rounded-xl bg-foreground">
+			<video {@attach attachVideo} playsinline autoplay muted class="-scale-x-100"></video>
+			{#if warming}
+				<Imposter placement="fill" class="bg-black/40">
+					<Inline justify="center" fill>
+						<Spinner class="size-8 text-white" label={t('face.preparing')} />
+					</Inline>
+				</Imposter>
+			{/if}
+			<Imposter placement="bottom" class="p-3">
+				<p
+					class="rounded-lg bg-black/65 px-4 py-2 text-center text-sm font-medium text-white"
+					role="status"
+					aria-live="polite"
+					data-pose-target={target ?? ''}
+				>
+					{guidance}
+				</p>
+			</Imposter>
+		</Frame>
+		<Grid as="ol" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={t('face.poses')}>
+			{#each GUIDED_POSES as pose (pose)}
+				{@const progress = poseProgress(guided, pose, now)}
+				{@const done = guided.captured.includes(pose)}
+				<Stack
+					as="li"
+					gap="xs"
+					align="center"
+					class="text-meta {pose === target ? 'text-foreground' : ''}"
+					data-pose={pose}
+					data-pose-progress={done ? 1 : Math.round(progress * 100) / 100}
+				>
+					<svg viewBox="0 0 40 40" class="size-10" aria-hidden="true">
+						<circle
+							cx="20"
+							cy="20"
+							r={RING_RADIUS}
+							fill="none"
+							stroke="currentColor"
+							stroke-opacity="0.2"
+							stroke-width="3"
+						/>
+						<circle
+							cx="20"
+							cy="20"
+							r={RING_RADIUS}
+							fill="none"
+							class={done ? 'text-success' : 'text-primary'}
+							stroke="currentColor"
+							stroke-width="3"
+							stroke-linecap="round"
+							stroke-dasharray={RING_LENGTH}
+							stroke-dashoffset={RING_LENGTH * (1 - progress)}
+							transform="rotate(-90 20 20)"
+						/>
+						{#if done}
+							<path
+								d="M13 20.5l4.5 4.5L27 15.5"
+								fill="none"
+								class="text-success"
+								stroke="currentColor"
+								stroke-width="3"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+						{/if}
+					</svg>
+					<span>{poseLabel(pose)}</span>
+				</Stack>
+			{/each}
+		</Grid>
+		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
+		<Inline justify="end" class="border-t pt-4">
+			<Button variant="ghost" onclick={onclose}>{t('face.cancel')}</Button>
+		</Inline>
+	</Stack>
+
+	<Stack hidden={step !== 'review'} gap="md">
+		<p class="text-sm text-muted-foreground">{t('face.review_description')}</p>
+		<Grid as="ul" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={t('face.captures')}>
+			{#each GUIDED_POSES as pose (pose)}
+				{@const sample = samples[pose]}
+				<li class="rounded-lg border bg-background">
+					{#if sample !== undefined}
+						<Frame ratio="widescreen" class="rounded-t-lg">
+							<img class="-scale-x-100" src={sample.dataUrl} alt={poseLabel(pose)} />
+						</Frame>
+					{/if}
+					<p class="px-2 py-1 text-center text-meta">{poseLabel(pose)}</p>
+				</li>
+			{/each}
+		</Grid>
+		<label class="rounded-lg border bg-background p-4 text-sm font-medium">
+			<Inline as="span" gap="sm">
+				<input class="size-4" type="checkbox" bind:checked={consent} />
+				{t('face.consent')}
+			</Inline>
+		</label>
+		{#if blocked}
+			<p role="note" class="text-sm text-warning-foreground">
+				{record.face_enrollment_status === 'PENDING'
+					? t('face.status_pending')
+					: t('face.status_suspended')}
+			</p>
+		{/if}
+		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
+		<Cluster justify="between" gap="sm" class="border-t pt-4">
+			<Button variant="ghost" onclick={restartCapture} disabled={submitting}>
+				<Icon icon="lucide:rotate-ccw" class="size-4" />
+				{t('face.recapture')}
+			</Button>
+			<Button
+				type="button"
+				disabled={submitting || !consent || !complete || blocked}
+				onclick={() => void enroll()}
+			>
+				{#if submitting}
+					<Icon icon="lucide:loader-circle" class="size-4 animate-spin" aria-hidden="true" />
+				{/if}
+				{submitting ? t('face.enrolling') : t('face.enroll')}
+			</Button>
+		</Cluster>
+	</Stack>
+
+	<Stack hidden={step !== 'done'} gap="md">
+		<Inline align="start" gap="sm" class="rounded-lg bg-success/10 p-4 text-success" role="status">
+			<Icon icon="lucide:circle-check" class="mt-0.5 size-5 shrink-0" />
+			<p class="text-sm font-medium">{t('face.saved')}</p>
+		</Inline>
+		<Inline justify="end" class="border-t pt-4">
+			<Button onclick={onclose}>{t('face.close')}</Button>
+		</Inline>
+	</Stack>
+</Stack>

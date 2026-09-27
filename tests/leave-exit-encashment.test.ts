@@ -1,9 +1,11 @@
+// @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { runLeaveEncashmentOnExit } from '../src/automations/+leave_encashment_on_exit.ts';
+import { settleExit } from '../src/lib/leave/exit-settlement.ts';
+import encashmentDue from '../src/automation/+leave_encashment_due.automation.ts';
 import { exitEncashments, exitReference } from '../src/lib/leave/exit-encashment.ts';
 import { leaveBalanceSummaries } from '../src/lib/leave/summary.ts';
+import { matches } from './helpers/ctx.ts';
 import type { LeaveContext } from '../src/lib/leave/context.ts';
 import {
 	approve,
@@ -72,86 +74,116 @@ test('a spent balance, a posted exit reference, a non-encashable row or a non-an
 });
 
 /** The automation's api over one in-memory context: reads answer from it, writes are recorded. */
+/** The departure settlement over a fake run `ctx` whose reads answer with the context's rows, at a run instant. */
 const harness = (
 	context: LeaveContext,
 	exitReason: string | null,
 	separation: readonly Record<string, unknown>[] = [],
-	standing: readonly Record<string, unknown>[] = []
+	standing: readonly Record<string, unknown>[] = [],
+	now = '2026-06-30T12:00:00.000Z',
+	heldRows: readonly Record<string, unknown>[] = []
 ) => {
 	const writes: Record<string, unknown>[] = [];
 	const raisedAdhoc: Record<string, unknown>[] = [];
+	const raisedHolds: Record<string, unknown>[] = [];
+	const stamps: Record<string, unknown>[] = [];
 	const employment = {
 		...context.employments[0]!,
 		employee_number: 'E-1',
 		exit_reason: exitReason,
-		employment_employee: context.employees[0],
-		employment_company: context.companies[0]
+		approval_id: null
 	};
-	const rows = (list: readonly unknown[]) => ({ findMany: () => Effect.succeed(list) });
-	const api = {
-		progress: () => Effect.void,
-		db: {
-			employments: { ...rows([employment]), findFirst: () => Effect.succeed(employment) },
-			employment_terms: rows(context.terms),
-			leave_entries: rows(context.entries),
-			work_days: rows([]),
-			jurisdiction_settings: rows(context.versions),
-			leave_catalogue: rows(context.catalogues),
-			payroll_runs: rows([]),
-			shift_patterns: rows(context.patterns),
-			shift_definitions: rows(context.shifts),
-			jurisdiction_holidays: rows([]),
-			payslips: rows([]),
-			statutory_contributions: rows([]),
-			employment_statutory_facts: rows([]),
-			adhoc_catalogue: rows(separation),
-			adhoc_requests: rows(standing)
-		},
-		collection: {
-			adhoc_requests: {
-				createMany: (inputs: Record<string, unknown>[]) =>
-					Effect.sync(() => {
-						raisedAdhoc.push(...inputs);
-						return inputs;
-					})
-			},
-			leave_entries: {
-				createMany: (inputs: Record<string, unknown>[]) =>
-					Effect.sync(() => {
-						writes.push(...inputs);
-						return inputs.map((row, index) => ({
-							...row,
-							leave_code: 'ANNUAL',
-							id: id(90 + index),
-							approval_id: 'held'
-						}));
-					})
-			}
+	const rows: Record<string, readonly unknown[]> = {
+		employments: [employment],
+		employees: context.employees,
+		companies: context.companies,
+		employment_terms: context.terms,
+		leave_entries: context.entries,
+		jurisdiction_settings: context.versions,
+		leave_catalogue: context.catalogues,
+		shift_patterns: context.patterns,
+		shift_definitions: context.shifts,
+		adhoc_catalogue: separation,
+		adhoc_requests: standing,
+		payment_holds: heldRows
+	};
+	const ctx = {
+		now,
+		today: now.slice(0, 10),
+		todayIn: () => now.slice(0, 10),
+		progress: async () => {},
+		get: async () => employment,
+		read: async (collection: string, query: { where?: unknown } = {}) => ({
+			rows:
+				collection === 'payment_holds'
+					? (rows[collection] ?? []).filter((row) => matches(rows, collection, row, query.where))
+					: (rows[collection] ?? []),
+			next: null
+		}),
+		act: async (callable: string, input: unknown) => {
+			if (callable === 'leave_entries.create') writes.push(...(input as Record<string, unknown>[]));
+			else if (callable === 'adhoc_requests.create')
+				raisedAdhoc.push(...(input as Record<string, unknown>[]));
+			else if (callable === 'payment_holds.create')
+				raisedHolds.push(input as Record<string, unknown>);
+			else if (callable === 'employments.update')
+				stamps.push((input as { set: Record<string, unknown> }).set);
+			return { kind: 'committed', output: undefined, records: [] };
 		}
-	} as unknown as Parameters<typeof runLeaveEncashmentOnExit>[0];
-	return { api, writes, raisedAdhoc };
+	} as unknown as Parameters<typeof settleExit>[0];
+	return { ctx, run: () => settleExit(ctx, id(1)), writes, raisedAdhoc, raisedHolds, stamps };
 };
-const run = (
+const run = async (
 	context: LeaveContext,
 	exitReason: string | null,
 	separation: readonly Record<string, unknown>[] = [],
 	standing: readonly Record<string, unknown>[] = [],
-	now = new Date('2026-06-30T12:00:00Z')
+	now = '2026-06-30T12:00:00.000Z'
 ) => {
-	const { api, writes, raisedAdhoc } = harness(context, exitReason, separation, standing);
-	return Effect.runPromise(runLeaveEncashmentOnExit(api, id(1), now)).then((result) => ({
-		result,
-		writes,
-		raisedAdhoc
-	}));
+	const h = harness(context, exitReason, separation, standing, now);
+	return { result: await h.run(), writes: h.writes, raisedAdhoc: h.raisedAdhoc, stamps: h.stamps };
 };
+
+test('tax-clearance hold starts on employer awareness and a released hold is not recreated', async () => {
+	const context = closed(leaveContext());
+	context.terms[0]!.residency_status = 'FOREIGNER';
+	context.employments[0]!.exit_facts = { clearance_awareness_on: '2026-06-01' };
+	context.versions[0]!.payroll.tax_clearance = {
+		when: 'employee.citizenship == "FOREIGNER"',
+		category: 'TAX_CLEARANCE',
+		reference_label: 'IR21',
+		authority: 'Income Tax Act s.68(7)'
+	};
+	const first = harness(context, 'RESIGNATION');
+	await first.run();
+	assert.deepEqual(
+		first.raisedHolds.map((row) => row.held_on),
+		['2026-06-01']
+	);
+	const released = harness(context, 'RESIGNATION', [], [], '2026-06-30T12:00:00.000Z', [
+		{
+			id: 'released-ir21',
+			employment_id: id(1),
+			category: 'TAX_CLEARANCE',
+			held_on: '2026-06-01',
+			released_on: '2026-06-20'
+		}
+	]);
+	await released.run();
+	assert.equal(released.raisedHolds.length, 0);
+});
 
 test('a future departure reserves no leave; the due-day run includes intervening leave', async () => {
 	const context = closed(leaveContext());
 	// Future law need not have been configured to record a planned departure.
 	context.versions[0]!.effective_range = { start: '2026-01-01', end: '2026-06-15' };
-	const future = await run(context, 'RESIGNATION', [], [], new Date('2026-06-01T00:00:00Z'));
+	const future = await run(context, 'RESIGNATION', [], [], '2026-06-01T00:00:00.000Z');
 	assert.equal(future.result.status, 'not_due');
+	assert.deepEqual(
+		future.stamps,
+		[{ encashment_due_on: EXIT }],
+		'the deferred day is recorded for the daily catch-up'
+	);
 	assert.equal(future.writes.length, 0);
 	assert.equal(future.raisedAdhoc.length, 0);
 	context.versions[0]!.effective_range = { start: '2026-01-01', end: '2026-12-31' };
@@ -159,6 +191,11 @@ test('a future departure reserves no leave; the due-day run includes intervening
 	const due = await run(context, 'RESIGNATION');
 	assert.equal(due.result.status, 'raised');
 	assert.equal(due.result.raised[0]?.days, 11);
+	assert.deepEqual(
+		due.stamps,
+		[{ encashment_raised_at: '2026-06-30T12:00:00.000Z' }],
+		'raised once: the stamp stops a re-raise'
+	);
 });
 
 test('closing a contract raises the held encashment once, including dismissals; an open contract raises nothing', async () => {
@@ -269,12 +306,7 @@ test('departure automation validates the final-day input declaration before crea
 		}
 	];
 	const missing = harness(context, 'RETRENCHMENT', rows);
-	await assert.rejects(
-		Effect.runPromise(
-			runLeaveEncashmentOnExit(missing.api, id(1), new Date('2026-06-30T12:00:00Z'))
-		),
-		/Legal cause is required/
-	);
+	await assert.rejects(missing.run(), /Legal cause is required/);
 	assert.equal(missing.writes.length, 0);
 	assert.equal(missing.raisedAdhoc.length, 0);
 	context.employments[0]!.exit_facts = { legal_cause: 'LOSS' };
@@ -282,4 +314,25 @@ test('departure automation validates the final-day input declaration before crea
 	assert.equal(resolved.raisedAdhoc.length, 1);
 	context.employments[0]!.exit_facts = { legal_cause: 'OTHER' };
 	assert.equal((await run(context, 'RETRENCHMENT', rows)).raisedAdhoc.length, 0);
+});
+
+test('a contract whose settlement was raised is never raised again, even after HR rejected the request', async () => {
+	const context = closed(leaveContext());
+	(context.employments[0] as { encashment_raised_at?: string }).encashment_raised_at =
+		'2026-06-30T12:00:00.000Z';
+	const again = await run(context, 'RESIGNATION');
+	assert.equal(again.result.status, 'nothing_to_encash');
+	assert.deepEqual([again.writes, again.raisedAdhoc, again.stamps], [[], [], []]);
+});
+
+test('the daily catch-up settles each contract whose deferred day has come, and names a failure without stopping', async () => {
+	const h = harness(closed(leaveContext()), 'RESIGNATION');
+	const result = await encashmentDue.body({}, h.ctx);
+	assert.deepEqual(result, { checked: 1, raised: 1, failures: [], completed: [id(1)] });
+	assert.equal(h.writes.length, 1);
+	const failing = harness(closed(leaveContext()), 'RESIGNATION');
+	(failing.ctx as { get: unknown }).get = async () => null;
+	const failed = await encashmentDue.body({}, failing.ctx);
+	assert.equal(failed.failures.length, 1);
+	assert.deepEqual(failed.completed, []);
 });

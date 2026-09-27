@@ -6,35 +6,24 @@
 	 * the last scheme it reads); an edge is one `produced.<code>` read. A node opens the scheme's
 	 * base formula and its rules in a popover — nothing on the canvas wraps.
 	 */
-	import { client } from '../workspace-client.js';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { t } from './t.js';
+	import { bolt } from '$bolt';
 	import { Cluster, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import * as Popover from '@norbital-ai/ui/popover';
-	import type { WorkspaceRow } from '$bolt/types.js';
-	import { orderSchemes, producedMentions } from '../../collections/payroll_runs/lib/mentions.js';
+	import { Popover } from '@norbital-ai/ui';
+	import type { Id } from '@norbital-ai/bolt';
+	import { orderSchemes, producedMentions } from '../../lib/payroll/run/mentions.js';
+	import { liveRows } from './live.svelte.js';
 
-	let { version }: { readonly version: WorkspaceRow<'jurisdiction_settings'> } = $props();
-	const { t } = useI18n<TenantI18nKeys>();
-	const versionId = $derived(String(version.id));
-	const approved = { approval_id: { isNull: true } } as const;
-	const schemesQuery = $derived(
-		client.db.statutory_contributions.findMany({
-			where: { settings_id: { eq: versionId }, ...approved },
-			columns: {
-				id: true,
-				code: true,
-				name: true,
-				rules: true,
-				assessed_on: true,
-				assessment_scope: true
-			},
+	let { version }: { readonly version: { readonly id: Id<'jurisdiction_settings'> } } = $props();
+	const schemesQuery = liveRows(() =>
+		bolt.read('statutory_contributions', {
+			where: { settings_id: { eq: version.id }, approval_id: { isNull: true } },
+			select: { code: true, name: true, rules: true, assessed_on: true, assessment_scope: true },
 			orderBy: { code: 'asc' },
-			limit: 500
+			all: true
 		})
 	);
-
-	type Scheme = NonNullable<NonNullable<typeof schemesQuery>['current']>[number];
+	type Scheme = NonNullable<typeof schemesQuery.current>[number];
 	type Node = {
 		readonly row: Scheme;
 		readonly reads: readonly string[];
@@ -49,7 +38,7 @@
 
 	/** Dependency order from the expressions themselves; a version the gate let through cannot loop. */
 	const nodes = $derived.by((): Node[] => {
-		const schemes = schemesQuery?.current ?? [];
+		const schemes = schemesQuery.current ?? [];
 		let ordered: readonly { readonly row: Scheme }[];
 		try {
 			ordered = orderSchemes(schemes.map((row) => ({ row })));

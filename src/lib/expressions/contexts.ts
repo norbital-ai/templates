@@ -1,23 +1,10 @@
 /**
- * The expression contexts, as data.
- *
- * Every CEL a catalogue, band, scheme, schedule or assessment rule carries is compiled against
- * exactly one of these contexts. The catalogue is the single source of truth: the engine's builders
- * assemble an object of this shape, the compiler checks an expression's members and result type
- * against the blank instance below, and the UI's Fields panel renders `fields` and `functions` so
- * an operator can see what is available before typing it.
- *
- * Five sites, one subject each: `person` (who), `entry` (one catalogue entry), `work_day` (one
- * priced day), `assessment` (one scheme's wage) and `scheme` (one scheme's charge). Six roots —
- * `person`, `period`, `year`, `scheme`, `produced`, `limits` — carry the same members wherever they
- * appear; a root cannot drift between sites because every site is built from the one definition.
- *
- * The person site *is* the person object, so its members are `employee.*`, `employment.*` and so
- * on without the prefix; on every other site the same object sits under `person.`. Everything a
- * site's own subject is, is bare. Open prefixes (`limits.*`, `year.earned.*`, `produced.*`,
- * `scheme.elections.*`, `person.company.facts.*`) are the deliberate exception: their remaining
- * segments are data keys supplied by the version being evaluated. Every other member is refused at
- * write when the site does not declare it.
+ * The expression contexts, as data: every CEL a catalogue, band, scheme, schedule or assessment rule
+ * carries is compiled against one of them, the engine builds objects of this shape, and the Fields
+ * panel renders them. The person site is the person object (`employee.*`, `employment.*`); elsewhere
+ * it sits under `person.`. Open prefixes (`limits.*`, `year.earned.*`, `produced.*`,
+ * `scheme.elections.*`, `person.company.facts.*`) take the version's own keys; any other undeclared
+ * member is refused at write.
  */
 
 import { DEDUCTION_TOTAL_KEYS } from '../statutory-deductions.js';
@@ -116,7 +103,12 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'employment.service_days',
 		description:
-			'Calendar days since the stint began, the rule date included (MY s.37(2)(a): ninety days)'
+			'Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history'
+	},
+	{
+		path: 'employment.service_days_before(date, months)',
+		description:
+			'Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses'
 	},
 	{
 		path: 'employment.service_months',
@@ -130,6 +122,20 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'employment.service_years',
 		description: 'Completed years since the stint began; a leaver counts through the exit day'
+	},
+	{
+		path: 'employment.service_years_on(date)',
+		description: 'Completed service years on a specified calendar date on or after hire'
+	},
+	{
+		path: 'employment.notice_days_remaining(days, given_on, waived_days)',
+		description:
+			'Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse'
+	},
+	{
+		path: 'employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)',
+		description:
+			'Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule'
 	},
 	{
 		path: 'employment.service_start',
@@ -261,17 +267,40 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'terms.notice_days', description: 'Notice days the contract states, 0 when none' },
 	{ path: 'terms.ordinary_hours_per_week', description: 'Roster-measured working week, hours' },
+	{
+		path: 'terms.comparable_full_time_daily_hours',
+		description: 'Similar full-time employee’s declared normal daily hours, or 0 when unrecorded'
+	},
+	{
+		path: 'terms.comparable_full_time_presence',
+		description:
+			'PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown'
+	},
 	{ path: 'terms.working_days_per_week', description: 'Roster-measured working week, days' },
 	{
 		path: 'children.count',
 		description:
-			'Recorded children alive on the rule date; tax claim eligibility and allocation require the scheme’s own conditions'
+			'Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function'
 	},
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
 	{
 		path: 'children.born_on(date)',
 		description:
 			'Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third)'
+	},
+	{
+		path: 'children.natural_surviving_on(date)',
+		description:
+			'Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination.'
+	},
+	{
+		path: 'children.natural_surviving_before(date)',
+		description: 'Natural children alive before the named confinement, excluding its newborns'
+	},
+	{
+		path: 'children.natural_surviving_confinements_before(date)',
+		description:
+			'Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once'
 	},
 	{ path: 'children.citizens', description: 'Children recorded as citizens' },
 	{
@@ -378,7 +407,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'event.child_shared_weeks',
 		description:
-			'The weeks of the couple’s shared parental pool this parent takes for the named child, as recorded; 0 when unrecorded'
+			'The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share'
 	},
 	{
 		path: 'event.prior_employment_days',
@@ -437,6 +466,7 @@ const PERSON_BLANK = {
 		classification: '',
 		risk_class: '',
 		service_days: 0,
+		service_periods: null,
 		service_months: 0,
 		service_months_exact: 0,
 		service_years: 0,
@@ -471,9 +501,12 @@ const PERSON_BLANK = {
 		residency_since: '',
 		notice_days: 0,
 		ordinary_hours_per_week: 0,
+		comparable_full_time_daily_hours: 0,
+		comparable_full_time_presence: '',
 		working_days_per_week: 0
 	},
 	children: {
+		records: null,
 		count: 0,
 		ages: [],
 		citizens: 0,
@@ -515,7 +548,7 @@ const PERSON_BLANK = {
 		date: '',
 		child_citizenship: '',
 		child_age: -1,
-		child_shared_weeks: 0,
+		child_shared_weeks: -1,
 		prior_employment_days: 0
 	}
 };
@@ -558,6 +591,7 @@ const periodFields = (prefix: string): ContextField[] =>
 
 const PERIOD_BLANK = {
 	key: '',
+	year: 2026,
 	month: 1,
 	start: '',
 	end: '',
@@ -594,7 +628,12 @@ const yearFields = (prefix: string): ContextField[] =>
 
 const SCHEME_FIELDS: readonly ContextField[] = [
 	{ path: 'code', description: 'The scheme code' },
-	{ path: 'assessment_period', description: 'PAY_PERIOD | MONTH' },
+	{ path: 'assessment_period', description: 'PAY_PERIOD | MONTH | MONTH_TO_DATE' },
+	{
+		path: 'registration_status',
+		description:
+			'REGISTERED, NOT_REGISTERED or UNDECLARED when no effective statutory declaration exists'
+	},
 	{
 		path: 'year_to_date.base',
 		description:
@@ -1016,6 +1055,36 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		{ path: 'entry.quantity', description: 'Recorded quantity' },
 		{ path: 'entry.event_date', description: 'The day the entry belongs to' },
 		{ path: 'entry.period', description: 'Pay period key the entry settles in' },
+		{ path: 'entry.medical.due_on', description: 'Date treatment reimbursement becomes payable' },
+		{ path: 'entry.medical.incurred_on', description: 'Date reimbursed expense was incurred' },
+		{ path: 'entry.medical.amount_incurred', description: 'Actual treatment expense' },
+		{ path: 'entry.medical.patient', description: 'Treatment patient relationship' },
+		{
+			path: 'entry.medical.relationship_from',
+			description: 'First day of the patient relationship'
+		},
+		{
+			path: 'entry.medical.relationship_through',
+			description: 'Last day of the patient relationship, or empty'
+		},
+		{
+			path: 'entry.medical.relationship_recognised',
+			description: 'Whether the patient relationship is legally recognised'
+		},
+		{
+			path: 'entry.medical.treatment',
+			description: 'Medical, dental, dental hygiene or TCM treatment'
+		},
+		{
+			path: 'entry.medical.treatment_received',
+			description: 'Whether treatment has already been received'
+		},
+		{ path: 'entry.medical.treatment_necessary', description: 'Practitioner-certified necessity' },
+		{ path: 'entry.medical.solely_aesthetic', description: 'Treatment is solely aesthetic' },
+		{
+			path: 'entry.medical.practitioner_qualified',
+			description: 'Local registration or legal foreign qualification'
+		},
 		{ path: 'entry.window.start', description: 'Standing allowance window start' },
 		{ path: 'entry.window.end', description: 'Standing allowance window end' },
 		{ path: 'entry.captures.remaining', description: 'Amount still to settle' },
@@ -1047,6 +1116,20 @@ const ENTRY_CONTEXT: ExpressionContext = {
 			quantity: 0,
 			event_date: '',
 			period: '',
+			medical: {
+				incurred_on: '',
+				due_on: '',
+				amount_incurred: 0,
+				patient: '',
+				relationship_from: '',
+				relationship_through: '',
+				relationship_recognised: false,
+				treatment: '',
+				treatment_received: false,
+				treatment_necessary: false,
+				solely_aesthetic: false,
+				practitioner_qualified: false
+			},
 			window: { start: '', end: '' },
 			captures: { remaining: 0 }
 		},
@@ -1070,6 +1153,11 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		},
 		{ path: 'worked_hours', description: 'Net worked hours' },
 		{ path: 'normal_hours', description: 'The scheduled normal hours' },
+		{
+			path: 'comparable_full_time_daily_hours',
+			description:
+				'Similar full-time employee’s normal hours for this date, or the terms’ usual day'
+		},
 		{ path: 'hours_beyond_normal', description: 'Worked hours past the normal day' },
 		{ path: 'hours_from_start_fraction', description: 'Worked share of a normal day, 0..1' },
 		{
@@ -1123,6 +1211,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'day_type',
 		'worked_hours',
 		'normal_hours',
+		'comparable_full_time_daily_hours',
 		'hours_beyond_normal',
 		'hours_from_start_fraction',
 		'overtime_hours',
@@ -1155,6 +1244,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		day_type: 'ORDINARY',
 		worked_hours: 13,
 		normal_hours: 9,
+		comparable_full_time_daily_hours: 8,
 		hours_beyond_normal: 4,
 		hours_from_start_fraction: 1,
 		overtime_hours: 4,
@@ -1206,6 +1296,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 	fields: [
 		...personFields('person.'),
 		...periodFields('period.'),
+		{ path: 'period.year', description: 'Calendar year of the pay period' },
 		...yearFields('year.'),
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
@@ -1244,6 +1335,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		scheme: {
 			code: '',
 			assessment_period: 'PAY_PERIOD',
+			registration_status: 'UNDECLARED',
 			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0, rebate: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
@@ -1280,6 +1372,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 	fields: [
 		...personFields('person.'),
 		...periodFields('period.'),
+		{ path: 'period.year', description: 'Calendar year of the pay period' },
 		...yearFields('year.'),
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
@@ -1328,6 +1421,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			code: '',
 			deduction: 0,
 			assessment_period: 'PAY_PERIOD',
+			registration_status: 'UNDECLARED',
 			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0, rebate: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
@@ -1370,7 +1464,11 @@ const mentionKeys = new Map<string, readonly string[]>();
  * the same handful of (prefix, expression) pairs recurs across every context build. The pattern
  * and the key list are both pure functions of their inputs, so both are memoized.
  */
-export function openKeyMentions(expression: string, prefix: string): readonly string[] {
+export function openKeyMentions(
+	expression: string | null | undefined,
+	prefix: string
+): readonly string[] {
+	if (expression == null) return [];
 	const cacheKey = `${prefix}\u0000${expression}`;
 	const cached = mentionKeys.get(cacheKey);
 	if (cached !== undefined) return cached;

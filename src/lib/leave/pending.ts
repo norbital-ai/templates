@@ -1,38 +1,21 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import type { WorkspaceRow } from '../../collections/leave_entries/$types.js';
+import { refuse } from '../refuse.js';
+import type { LeaveEntryActivity } from './activity-fields.js';
+import type { LeaveAllocation } from '../datatypes/leave_allocations.js';
+import type { LeaveCharge } from '../datatypes/leave_charges.js';
 
-export type LeaveActivity = Pick<
-	WorkspaceRow<'leave_entries'>,
-	| 'id'
-	| 'employment_id'
-	| 'catalogue_id'
-	| 'leave_code'
-	| 'reference'
-	| 'from_date'
-	| 'to_date'
-	| 'half_day_start'
-	| 'half_day_end'
-	| 'days'
-	| 'encash_days'
-	| 'as_adjustment_entry'
-	| 'reversal_of_id'
-	| 'effective_on'
-	| 'due_on'
-	| 'destination_from'
-	| 'destination_to'
-	| 'available_from'
-	| 'expires_on'
-	| 'reason'
-	| 'charges'
-	| 'allocations'
-	| 'approval_id'
-	| 'payslip_id'
-	| 'event_kind'
-	| 'event_relationship'
-	| 'event_date'
-> &
-	/** Hourly leave's own hours, one day at a time; payroll reads them where the day is charged by the hour. */
-	Partial<Pick<WorkspaceRow<'leave_entries'>, 'hours'>>;
+/** One leave entry as the planner reads it: decimals as numbers, days as calendar days. */
+export type LeaveActivity = Required<Omit<LeaveEntryActivity, 'hours' | 'event_child_index'>> &
+	Pick<LeaveEntryActivity, 'hours' | 'event_child_index'> & {
+		readonly id: string;
+		readonly employment_id: string;
+		readonly catalogue_id: string;
+		readonly leave_code: string;
+		readonly reference: string;
+		readonly charges: readonly LeaveCharge[];
+		readonly allocations: readonly LeaveAllocation[];
+		readonly approval_id: string | null;
+		readonly payslip_id: string | null;
+	};
 
 /**
  * Held activity reserves its original server-measured debits until approval or rejection.

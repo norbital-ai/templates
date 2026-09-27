@@ -12,18 +12,14 @@
 	 * predicate over the person on the pay date, which a form filled today cannot know. The
 	 * datatype's own renderer and the change-terms flow both draw this.
 	 */
-	import { Result, Schema } from 'effect';
-	import { Button } from '@norbital-ai/ui/button';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import { Input } from '@norbital-ai/ui/input';
+	import { t } from './t.js';
+	import { bolt } from '$bolt';
+	import { Button, Combobox, Input } from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { client } from '../workspace-client.js';
 	import { inForceCatalogue } from './create-scope.js';
-	import {
-		contractAllowancesValueSchema,
-		type ContractAllowance
-	} from '../../datatypes/contract_allowances/+definition.js';
+	import { liveRows } from './live.svelte.js';
+	import type { ContractAllowance } from '../datatypes/contract_allowances.js';
+	import * as Predicate from 'effect/Predicate';
 
 	let {
 		value,
@@ -38,38 +34,42 @@
 		readonly mode?: 'display' | 'edit';
 		readonly disabled?: boolean;
 		/** The entity's settings lineage, whose allowance classes are offered. */
-		readonly settingsCode?: string;
+		readonly settingsCode?: string | undefined;
 		/** The terms' first day, which names the version whose classes are offered. */
-		readonly firstDay?: string;
+		readonly firstDay?: string | undefined;
 		readonly class?: string;
 		readonly onValueChange?: (value: readonly ContractAllowance[]) => void;
 	} = $props();
-	const { t } = useI18n<TenantI18nKeys>();
-	const parsed = $derived(Schema.decodeUnknownResult(contractAllowancesValueSchema)(value ?? []));
-	const rows = $derived(Result.isSuccess(parsed) ? parsed.success : []);
-
-	const catalogueQuery = $derived(
+	/** The stored list as given; a malformed entry is dropped rather than drawn. */
+	const rows = $derived(
+		(Array.isArray(value) ? (value as readonly ContractAllowance[]) : []).filter(
+			// repository-health:allow COERCE1 -- a stored allowance amount as Number reads it (a blank or null amount is kept)
+			(row) => Predicate.isString(row?.catalogue_id) && Number.isFinite(Number(row.amount))
+		)
+	);
+	/** The classes of the version in force on the terms' first day (today without one). */
+	const catalogueRows = liveRows(() =>
 		settingsCode == null
 			? null
-			: client.db.allowance_catalogue.findMany({
-					where: inForceCatalogue('allowance_catalogue_settings', settingsCode, firstDay),
-					columns: { id: true, code: true, name: true },
+			: bolt.read('allowance_catalogue', {
+					where: inForceCatalogue(settingsCode, firstDay) ?? {},
+					select: { code: true, name: true },
 					orderBy: { code: 'asc' },
-					limit: 500
+					all: true
 				})
 	);
 	/** Every version's rows, so a listing signed under an earlier version still reads by code. */
-	const lineageQuery = $derived(
+	const lineageRows = liveRows(() =>
 		settingsCode == null
 			? null
-			: client.db.allowance_catalogue.findMany({
-					where: { allowance_catalogue_settings: { some: { code: { eq: settingsCode } } } },
-					columns: { id: true, code: true, name: true },
-					limit: 2000
+			: bolt.read('allowance_catalogue', {
+					where: { settings_id: { is: { code: { eq: settingsCode } } } },
+					select: { code: true, name: true },
+					all: true
 				})
 	);
-	const classes = $derived(catalogueQuery?.current ?? []);
-	const lineage = $derived(lineageQuery?.current ?? []);
+	const classes = $derived(catalogueRows.current ?? []);
+	const lineage = $derived(lineageRows.current ?? []);
 	const codeOf = (id: string): string | undefined => lineage.find((row) => row.id === id)?.code;
 	const labelOf = (id: string): string => {
 		const found = lineage.find((row) => row.id === id);
@@ -108,24 +108,21 @@
 		{/if}
 		{#each rows as row, index (row.catalogue_id)}
 			<Inline gap="sm">
-				<select
-					class="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+				<Combobox
+					class="min-w-0 flex-1"
+					options={[
+						{ value: row.catalogue_id, label: labelOf(row.catalogue_id) },
+						...unlisted.map((option) => ({
+							value: option.id,
+							label: [option.code, option.name].filter(Boolean).join(' · ')
+						}))
+					]}
 					value={row.catalogue_id}
 					{disabled}
-					onchange={(event) =>
-						set(
-							rows.map((r, i) =>
-								i === index ? { ...r, catalogue_id: event.currentTarget.value } : r
-							)
-						)}
-				>
-					<option value={row.catalogue_id}>{labelOf(row.catalogue_id)}</option>
-					{#each unlisted as option (option.id)}
-						<option value={option.id}
-							>{[option.code, option.name].filter(Boolean).join(' · ')}</option
-						>
-					{/each}
-				</select>
+					onChange={(next) =>
+						next != null &&
+						set(rows.map((r, i) => (i === index ? { ...r, catalogue_id: next } : r)))}
+				/>
 				<Input
 					class="w-32"
 					type="number"

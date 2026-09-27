@@ -24,11 +24,11 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Effect } from 'effect';
 import { admitPayRequests } from '../src/lib/pay_request_rules.ts';
-import claimRequests from '../src/collections/claim_requests/+collection.ts';
-import adhocRequests from '../src/collections/adhoc_requests/+collection.ts';
-import { transformOne } from './helpers/transform.ts';
+import claimRequests from '../src/data/collection/claim_requests/+collection.ts';
+import adhocRequests from '../src/data/collection/adhoc_requests/+collection.ts';
+import { matches, memoryDb, runTransform } from './helpers/ctx.ts';
+import hrController from '../src/access/+hr_controller.policy.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -36,7 +36,6 @@ import {
 	TRANSPORT_ID,
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 
 const CLAIM_ID = '00000000-0000-4000-8000-0000000000c1';
 const ADHOC_ID = '00000000-0000-4000-8000-0000000000a1';
@@ -66,10 +65,11 @@ const ENTRY = {
 	direction: 'ADD'
 };
 
-const attempt = (collection, component, input) => {
-	const world = requestWorld({ bands: [], ...component });
-	return transformOne(collection, input, undefined, memoryPayrollApi(world).db);
-};
+/** One create through the collection's transform over the world; its payload back. */
+const write = async (collection, input, world) =>
+	(await runTransform(collection, [input], { tables: world }))[0];
+const attempt = (collection, component, input) =>
+	write(collection, input, requestWorld({ bands: [], ...component }));
 
 const ADHOC = {
 	employment_id: EMPLOYMENT_ID,
@@ -85,13 +85,13 @@ const CLAIM = {
 	incurred_on: '2026-04-02'
 };
 
-test('a component that demands evidence gets it, whichever family the request is in', () => {
+test('a component that demands evidence gets it, whichever family the request is in', async () => {
 	const demanding = { code: 'MEDICAL', evidence: 'REQUIRED' };
-	assert.throws(
-		() => attempt(claimRequests, demanding, CLAIM),
+	await assert.rejects(
+		attempt(claimRequests, demanding, CLAIM),
 		/MEDICAL requires evidence for its claims/
 	);
-	attempt(claimRequests, demanding, {
+	await attempt(claimRequests, demanding, {
 		...CLAIM,
 		evidence_file: {
 			storage_key: 'k',
@@ -101,96 +101,94 @@ test('a component that demands evidence gets it, whichever family the request is
 		}
 	});
 	// The column exists on the ad hoc family too, so an ad hoc request demands it the same way.
-	assert.throws(
-		() => attempt(adhocRequests, demanding, { ...ADHOC, catalogue_id: ADHOC_ID, amount: 100 }),
+	await assert.rejects(
+		attempt(adhocRequests, demanding, { ...ADHOC, catalogue_id: ADHOC_ID, amount: 100 }),
 		/MEDICAL requires evidence for its ad hoc payments/
 	);
 });
 
-test('a type whose eligibility rule does not hold for the person is refused, whichever family', () => {
+test('a type whose eligibility rule does not hold for the person is refused, whichever family', async () => {
 	const drivers = {
 		code: 'FUEL',
 		evidence: 'NONE',
 		eligibility: 'terms.department == "LOGISTICS"'
 	};
 	const claim = { ...CLAIM, catalogue_id: CLAIM_ID };
-	assert.throws(
-		() => attempt(claimRequests, drivers, claim),
+	await assert.rejects(
+		attempt(claimRequests, drivers, claim),
 		/FUEL is not offered to PF0001/,
 		'the fixture contract has no department'
 	);
 	const world = requestWorld(drivers);
 	world.employment_terms[0].department = 'LOGISTICS';
-	assert.equal(
-		transformOne(claimRequests, claim, undefined, memoryPayrollApi(world).db).employment_id,
-		EMPLOYMENT_ID
-	);
+	assert.equal((await write(claimRequests, claim, world)).employment_id, EMPLOYMENT_ID);
 	// An empty rule is everyone, and asks nothing of the person.
 	assert.equal(
-		attempt(
-			adhocRequests,
-			{ code: 'BONUS', evidence: 'NONE', eligibility: '' },
-			{
-				employment_id: EMPLOYMENT_ID,
-				catalogue_id: ADHOC_ID,
-				amount: 100,
-				event_date: '2026-04-01'
-			}
+		(
+			await attempt(
+				adhocRequests,
+				{ code: 'BONUS', evidence: 'NONE', eligibility: '' },
+				{
+					employment_id: EMPLOYMENT_ID,
+					catalogue_id: ADHOC_ID,
+					amount: 100,
+					event_date: '2026-04-01'
+				}
+			)
 		).employment_id,
 		EMPLOYMENT_ID
 	);
 });
 
-test('an amount is a positive magnitude, whichever family states it', () => {
+test('an amount is a positive magnitude, whichever family states it', async () => {
 	for (const amount of [0, -1, Number.NaN, 'not a number']) {
-		assert.throws(
-			() =>
-				attempt(
-					claimRequests,
-					{ code: 'X', evidence: 'NONE', eligibility: '' },
-					{ ...CLAIM, amount }
-				),
+		await assert.rejects(
+			attempt(
+				claimRequests,
+				{ code: 'X', evidence: 'NONE', eligibility: '' },
+				{ ...CLAIM, amount }
+			),
 			/A claim amount is a positive magnitude/,
 			String(amount)
 		);
 	}
 });
 
-test('an ad hoc request is a claim in another family: a band-priced class takes no amount, a stated one must be positive', () => {
+test('an ad hoc request is a claim in another family: a band-priced class takes no amount, a stated one must be positive', async () => {
 	// Separation pay is priced from the person by the class's band: the request states nothing.
 	assert.equal(
-		attempt(
-			adhocRequests,
-			{
-				code: 'BONUS',
-				evidence: 'NONE',
-				eligibility: '',
-				bands: [{ when: '', amount: '100.0', limit: null }]
-			},
-			ADHOC
+		(
+			await attempt(
+				adhocRequests,
+				{
+					code: 'BONUS',
+					evidence: 'NONE',
+					eligibility: '',
+					bands: [{ when: '', amount: '100.0', limit: null }]
+				},
+				ADHOC
+			)
 		).employment_id,
 		EMPLOYMENT_ID
 	);
-	assert.throws(
-		() => attempt(adhocRequests, { code: 'BONUS', evidence: 'NONE', eligibility: '' }, ADHOC),
+	await assert.rejects(
+		attempt(adhocRequests, { code: 'BONUS', evidence: 'NONE', eligibility: '' }, ADHOC),
 		/An ad hoc payment amount is a positive magnitude/
 	);
-	assert.throws(
-		() =>
-			attempt(
-				adhocRequests,
-				{ code: 'BONUS', evidence: 'REQUIRED', eligibility: '' },
-				{ ...ADHOC, amount: 500 }
-			),
+	await assert.rejects(
+		attempt(
+			adhocRequests,
+			{ code: 'BONUS', evidence: 'REQUIRED', eligibility: '' },
+			{ ...ADHOC, amount: 500 }
+		),
 		/requires evidence/
 	);
-	assert.throws(
-		() =>
-			attempt(
-				adhocRequests,
-				{ code: 'BONUS', evidence: 'NONE', eligibility: 'employment.service_months >= 600' },
-				{ ...ADHOC, amount: 500 }
-			),
+	await assert.rejects(
+		attempt(
+			adhocRequests,
+			{ code: 'BONUS', evidence: 'NONE', eligibility: 'employment.service_months >= 600' },
+			{ ...ADHOC, amount: 500 }
+		),
 		/eligibility rule does not hold/
 	);
 	// A separation class reads the leaver's exit at the write, as the run does: off-boarding's
@@ -201,7 +199,7 @@ test('an ad hoc request is a claim in another family: a band-priced class takes 
 		eligibility: 'employment.exit_reason == "REDUNDANCY"',
 		bands: [{ when: '', amount: 'person.terms.monthly_wage', limit: null }]
 	};
-	assert.throws(() => attempt(adhocRequests, separation, ADHOC), /eligibility rule does not hold/);
+	await assert.rejects(attempt(adhocRequests, separation, ADHOC), /eligibility rule does not hold/);
 	const world = requestWorld({ ...separation });
 	Object.assign(
 		world.employments.find((row) => row.id === EMPLOYMENT_ID)!,
@@ -211,32 +209,50 @@ test('an ad hoc request is a claim in another family: a band-priced class takes 
 		}
 	);
 	assert.equal(
-		transformOne(
-			adhocRequests,
-			{ ...ADHOC, event_date: '2026-04-30' },
-			undefined,
-			memoryPayrollApi(world).db
-		).employment_id,
+		(await write(adhocRequests, { ...ADHOC, event_date: '2026-04-30' }, world)).employment_id,
 		EMPLOYMENT_ID
 	);
 });
 
-test('a component that is not in the catalogue at all refuses nothing here', () => {
+test('a component that is not in the catalogue at all refuses nothing here', async () => {
 	// Deliberate: the foreign key is what refuses an unknown component, and it refuses it on every
 	// path including the seed. A second refusal in the transform would be a rule the database
 	// already holds, stated worse.
-	Effect.runSync(
-		admitPayRequests(
-			{
-				family: 'CLAIM',
-				catalogue: 'claim_catalogue',
-				requests: 'claim_requests',
-				noun: 'claim',
-				eventDate: (c) => c.incurred_on
-			},
-			memoryPayrollApi(requestWorld()).db,
-			[CLAIM],
-			[undefined]
-		)
+	await admitPayRequests(
+		{
+			family: 'CLAIM',
+			catalogue: 'claim_catalogue',
+			requests: 'claim_requests',
+			noun: 'claim',
+			eventDate: (c) => c.incurred_on
+		},
+		memoryDb(requestWorld()),
+		[CLAIM],
+		[undefined]
 	);
+});
+
+test('a captured claim refuses an edit and a delete; an uncaptured one takes both', async () => {
+	const stored = (payslip_id) => ({
+		...CLAIM,
+		id: 'claim-1',
+		as_adjustment_entry: false,
+		payslip_id
+	});
+	const edit = (row) => {
+		const world = requestWorld({ ...ENTRY, code: 'MEDICAL' });
+		world.claim_requests.push(row);
+		return runTransform(claimRequests, [{ amount: 400 }], { tables: world, existing: [row] });
+	};
+	// The lock is the pin: the row says a payslip took it, so no other read has to answer.
+	await assert.rejects(
+		edit(stored('paid-slip')),
+		/Changing this claim.*already taken this record into account/s
+	);
+	await edit(stored(null));
+	// A delete is the grant's predicate over the same pin.
+	const deletable = (row) =>
+		matches({}, 'claim_requests', row, hrController.grants.claim_requests.delete);
+	assert.equal(deletable(stored('paid-slip')), false);
+	assert.equal(deletable(stored(null)), true);
 });

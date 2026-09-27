@@ -37,3 +37,9 @@ and shipped alongside the model and MiniVision license.
 The live threshold is 0.8. This is a starting operating point, not a measured
 camera-specific false-accept rate. The upstream real and spoof samples are
 regressions for integration, not proof against all phones, replays, or cameras.
+
+## Shipped files (0.0.1)
+
+The workspace `assets/` directory is served at `/assets/*` from the release, so the kiosk loads everything from it:
+`human/{blazeface,facemesh,iris,faceres}.{json,bin}` are copied unchanged from `@vladmandic/human@3.3.6/models`, and
+`ort-wasm-simd-threaded.{wasm,mjs}` from `onnxruntime-web@1.23.2/dist`. Re-copy both when either dependency moves.

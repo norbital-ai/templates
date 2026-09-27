@@ -1,6 +1,6 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { decodeNumber } from '@norbital-ai/std/json';
-import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
+import { refuse } from '../refuse.js';
+import { decodeNumber } from '../wire.js';
+import type { WorkspaceRow } from '../rows.js';
 
 export type AssessmentFrequency = 'MONTHLY' | 'SEMI_MONTHLY' | 'WEEKLY';
 
@@ -31,12 +31,12 @@ export type StatutoryHistorySummary = {
 
 type Opening = {
 	readonly base: number;
-	readonly ordinary?: number | null;
+	readonly ordinary?: number | null | undefined;
 	readonly employee: number;
 	readonly employer: number;
-	readonly months?: number | null;
-	readonly payroll_periods?: number | null;
-	readonly payroll_frequency?: AssessmentFrequency | null;
+	readonly months?: number | null | undefined;
+	readonly payroll_periods?: number | null | undefined;
+	readonly payroll_frequency?: AssessmentFrequency | null | undefined;
 };
 
 const periodsPerMonth: Readonly<Record<AssessmentFrequency, number>> = {
@@ -89,16 +89,13 @@ export function buildStatutoryHistory(options: {
 		for (const line of slip.statutory) {
 			if (line.assessment_frequency != null) entry.frequencies.add(line.assessment_frequency);
 			const prior = entry.charges[line.scheme_code];
-			const ordinary = line.ordinary_amount == null ? null : decodeNumber(line.ordinary_amount);
+			const ordinary = line.ordinary_amount == null ? null : line.ordinary_amount;
 			entry.charges[line.scheme_code] = {
-				base: (prior?.base ?? 0) + decodeNumber(line.base_amount),
+				base: (prior?.base ?? 0) + line.base_amount,
 				ordinary:
 					prior?.ordinary === null || ordinary === null ? null : (prior?.ordinary ?? 0) + ordinary,
-				employee:
-					(prior?.employee ?? 0) +
-					decodeNumber(line.employee_amount) -
-					decodeNumber(line.directed_amount ?? 0),
-				employer: (prior?.employer ?? 0) + decodeNumber(line.employer_amount)
+				employee: (prior?.employee ?? 0) + line.employee_amount - (line.directed_amount ?? 0),
+				employer: (prior?.employer ?? 0) + line.employer_amount
 			};
 		}
 	}
@@ -122,7 +119,7 @@ export function philippinesCumulativeHistory(options: {
 	readonly openings: ReadonlyMap<string, Opening>;
 	readonly frequency: AssessmentFrequency;
 	/** Codes whose `history.<code>.periods` the catalogue reads; their openings must state a cadence. */
-	readonly requirePeriodsFor?: ReadonlySet<string>;
+	readonly requirePeriodsFor?: ReadonlySet<string> | undefined;
 }): ReadonlyMap<string, StatutoryHistorySummary> {
 	const codes = new Set([
 		...options.openings.keys(),

@@ -11,6 +11,8 @@
  * One implementation for the run-time engines; `eligibility.ts` and `expressions/evaluate.ts`
  * both register it.
  */
+import { isCalendarDate } from '../iso-day.js';
+
 export function childUnder(children: unknown, age: unknown): bigint {
 	return countUnder((children as { ages?: unknown }).ages, age);
 }
@@ -49,4 +51,57 @@ export function childBornOn(children: unknown, date: unknown): bigint {
 	if (!Array.isArray(birthdates)) return 0n;
 	const day = String(date).slice(0, 10);
 	return BigInt(birthdates.filter((value) => String(value).slice(0, 10) === day).length);
+}
+
+type DatedChild = {
+	readonly birth: string;
+	readonly confinement: string;
+	readonly death: string;
+	readonly relationship: string;
+	readonly from: string;
+	readonly through: string;
+};
+
+/** The natural-child records that were alive on the event date, with newborns optional. */
+function livingNaturalChildren(children: unknown, date: unknown, priorOnly: boolean): DatedChild[] {
+	const day = String(date ?? '').slice(0, 10);
+	const records = (children as { records?: readonly DatedChild[] | null }).records;
+	if (day === '' && records == null) return []; // Blank expression context.
+	if (!isCalendarDate(day)) throw new Error('Natural-child count needs a valid event date.');
+	if (records == null) throw new Error('Dated child history is required for this event.');
+	const living: DatedChild[] = [];
+	for (const child of records) {
+		if (child.relationship !== 'CHILD') continue;
+		if (!isCalendarDate(child.birth))
+			throw new Error('Natural-child history has no valid birth date.');
+		if (!isCalendarDate(child.confinement) || child.confinement > child.birth)
+			throw new Error('Natural-child history has an invalid confinement date.');
+		if (child.birth > day || (priorOnly && child.confinement >= day)) continue;
+		if (child.from !== '' && child.from > day) continue;
+		if (child.through !== '' && child.through < day) continue;
+		if (child.death === day)
+			throw new Error('Child survival on the confinement day needs a time-specific determination.');
+		if (child.death !== '' && (!isCalendarDate(child.death) || child.death < child.birth))
+			throw new Error('Natural-child history has an invalid death date.');
+		if (child.death !== '' && child.death < day) continue;
+		living.push(child);
+	}
+	return living;
+}
+
+/** Natural children alive on a specified day, including births that day. */
+export function naturalSurvivingOn(children: unknown, date: unknown): bigint {
+	return BigInt(livingNaturalChildren(children, date, false).length);
+}
+
+/** Natural children already living before the named confinement. */
+export function naturalSurvivingBefore(children: unknown, date: unknown): bigint {
+	return BigInt(livingNaturalChildren(children, date, true).length);
+}
+
+/** Distinct previous confinements with at least one child still living at this confinement. */
+export function naturalSurvivingConfinementsBefore(children: unknown, date: unknown): bigint {
+	return BigInt(
+		new Set(livingNaturalChildren(children, date, true).map((child) => child.confinement)).size
+	);
 }

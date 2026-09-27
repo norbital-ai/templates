@@ -1,27 +1,21 @@
+import type { WorkRules } from '../datatypes/work_rules.js';
+import type { ShiftPattern } from './run/configuration.js';
 /** Work owns schedules, contracted wages, attendance, and the rates supplied to Leave. */
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
-import type { WorkspaceRow } from '$bolt/types.js';
+import { refuse } from '../refuse.js';
+import type { WorkspaceRow } from '../rows.js';
 import { offsetMinutesFor } from '../timezone.js';
-import type { MoneyValue } from '@norbital-ai/std/finance';
-import { decodeNumber } from '@norbital-ai/std/json';
-import type {
-	CatalogueComponent,
-	Configuration
-} from '../../collections/payroll_runs/lib/configuration.js';
-import type { EmploymentBundle, GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
-import {
-	PAGE_LIMIT,
-	type PayrollReadApi,
-	type ReadLog
-} from '../../collections/payroll_runs/lib/api.js';
-import type { ComponentDefinition } from '../../collections/payroll_runs/lib/configuration.js';
-import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
-import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
+import type { MoneyValue } from './run/rounding.js';
+import { decodeNumber } from '../wire.js';
+import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
+import type { EmploymentBundle, GatheredRun } from '../../lib/payroll/run/gather.js';
+import type { PayrollWorld } from './world.js';
+import type { ComponentDefinition } from '../../lib/payroll/run/configuration.js';
+import type { PayslipProration } from '../datatypes/payslip_proration.js';
+import type { LeaveCharge } from '../datatypes/leave_charges.js';
 import {
 	classifyWageComparand,
 	deriveStatutoryWages
-} from '../../collections/payroll_runs/lib/statutory-wages.js';
+} from '../../lib/payroll/run/statutory-wages.js';
 import {
 	daysBetween,
 	inclusiveDays,
@@ -32,18 +26,18 @@ import {
 	requiredDateKey,
 	type IsoDate,
 	addDays
-} from '../../collections/payroll_runs/lib/dates.js';
-import type { InLieuSlice } from '../../datatypes/payroll_trace/+definition.js';
-import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
+} from '../../lib/payroll/run/dates.js';
+import type { InLieuSlice } from '../datatypes/payroll_trace.js';
+import { employmentDates } from '../../lib/payroll/run/settlement.js';
 import { leaveWindowOf } from '../leave/entitlement.js';
-import { coversDate, live, readRange } from '../../collections/payroll_runs/lib/effective.js';
+import { coversDate, live, readRange } from '../../lib/payroll/run/effective.js';
 import { dayInstant, dateKey } from '../iso-day.js';
 import {
 	evaluatePersonNumber,
 	isEligible,
 	personContext,
 	type PersonContext
-} from '../../collections/payroll_runs/lib/eligibility.js';
+} from '../../lib/payroll/run/eligibility.js';
 import { stint } from '../employment-contract.js';
 import { resolveFactValues } from '../declared-facts.js';
 import {
@@ -52,7 +46,7 @@ import {
 	ordinaryWorkedHours,
 	nightWindowHours,
 	type DailyOvertime
-} from '../../collections/payroll_runs/lib/overtime.js';
+} from '../../lib/payroll/run/overtime.js';
 import { nightAddsFor, priceWorkDay, workDayHolds, type WorkBandDay } from './work-bands.js';
 import {
 	absenceDayRate,
@@ -60,14 +54,14 @@ import {
 	ordinaryHourlyRate,
 	ordinaryDivisorDays,
 	type RateTerms
-} from '../../collections/payroll_runs/lib/ordinary-rate.js';
-import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
+} from '../../lib/payroll/run/ordinary-rate.js';
+import { prorationSegment } from '../../lib/payroll/run/proration.js';
 import { contractAllowancesOn, listedAllowances } from './contract-allowances.js';
-import { cents } from '../../collections/payroll_runs/lib/rounding.js';
-import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
+import { cents } from '../../lib/payroll/run/rounding.js';
+import { resolveSchedule } from '../../lib/payroll/run/schedule.js';
 import { applicableLimits } from '../scheduling/work-limits.js';
-import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
-import { PAY_FREQUENCIES, type PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
+import type { ScheduledDay } from '../../lib/payroll/run/schedule.js';
+import { PAY_FREQUENCIES, type PayrollWindow } from '../../lib/payroll/run/period.js';
 import {
 	validateDailyOvertimeHoursLimit,
 	validateDailyWorkLimit,
@@ -76,7 +70,7 @@ import {
 	validateRosteredExpectations,
 	rosteredWorkCodeMaps,
 	type RunIssue
-} from '../../collections/payroll_runs/lib/validate.js';
+} from '../../lib/payroll/run/validate.js';
 import { leaveCoverage, unpaidLeaveDays } from '../leave/payroll.js';
 import { previousWagePeriodOrdinaryRate } from './reference-wages.js';
 import { countryOf } from '../jurisdiction_settings.js';
@@ -100,124 +94,69 @@ import type {
 	PayRange
 } from './family.js';
 import { baseLine, settlementBucket } from './family.js';
+import * as Predicate from 'effect/Predicate';
 
-/** Work resolves its catalogue and the roster definitions used throughout the payroll window. */
-export function prepareWorkCatalogue(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly jurisdiction: Configuration['jurisdiction'];
-	readonly companyId: string;
-	readonly windowStart: IsoDate;
-	readonly windowEnd: IsoDate;
-	/** The company's roster vocabulary, read once by the configuration and handed down. */
-	readonly shiftRows: readonly WorkspaceRow<'shift_definitions'>[];
-	readonly patternRows: readonly WorkspaceRow<'shift_patterns'>[];
-}): Effect.Effect<
-	Pick<
-		Configuration,
-		| 'work'
-		| 'holidayRestPrecedence'
-		| 'limits'
-		| 'breaks'
-		| 'nightPremium'
-		| 'shiftById'
-		| 'patternById'
-	>
-> {
-	return Effect.gen(function* () {
-		const { jurisdiction, shiftRows, patternRows } = options;
-		const work: Configuration['work'] = {
-			...jurisdiction.work_rules,
-			settings_id: jurisdiction.id,
-			jurisdiction_code: jurisdiction.jurisdiction_code
-		};
-		return {
-			work,
-			holidayRestPrecedence: work.holiday_rest_precedence,
-			// The hours limits payroll reports on; the rest-days limit is judged at the roster gate.
-			limits: work.limits.filter((limit) => limit.measure !== 'CONSECUTIVE_WORK_DAYS'),
-			breaks: work.breaks,
-			nightPremium: work.night_premium ?? null,
-			// Historical terms and deferred leave payments still refer to these immutable shift IDs.
-			shiftById: new Map(live(shiftRows).map((row) => [row.id, row])),
-			// A terms row still names its original pattern after that pattern's effective range ends.
-			patternById: new Map(live(patternRows).map((row) => [row.id, row]))
-		};
-	});
+/** Work resolves its catalogue from the version's rules. */
+export function prepareWorkCatalogue(
+	jurisdiction: Configuration['jurisdiction']
+): Pick<Configuration, 'work' | 'holidayRestPrecedence' | 'limits' | 'breaks' | 'nightPremium'> {
+	const work: Configuration['work'] = {
+		// the custom field's check admits only `WorkRules` (`lib/datatypes/work_rules.ts`)
+		...(jurisdiction.work_rules as WorkRules),
+		settings_id: jurisdiction.id,
+		jurisdiction_code: jurisdiction.jurisdiction_code
+	};
+	return {
+		work,
+		holidayRestPrecedence: work.holiday_rest_precedence,
+		// The hours limits payroll reports on; the rest-days limit is judged at the roster gate.
+		limits: work.limits.filter((limit) => limit.measure !== 'CONSECUTIVE_WORK_DAYS'),
+		breaks: work.breaks,
+		nightPremium: work.night_premium ?? null
+	};
 }
 
 /** Read current Work days and the monthly rosters of record over the span. */
 export function prepareWorkInputs(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
+	readonly world: PayrollWorld;
 	readonly employmentIds: readonly string[];
 	readonly complianceSpan: PayRange;
-}): Effect.Effect<{
+}): {
 	readonly workDaysByEmployment: ReadonlyMap<string, EmploymentBundle['workDays']>;
 	readonly rostersByEmployment: ReadonlyMap<string, EmploymentBundle['rosters']>;
 	readonly wagePeriodsByEmployment: ReadonlyMap<string, EmploymentBundle['wagePeriods']>;
-}> {
-	return Effect.gen(function* () {
-		const { complianceSpan } = options;
-		const db = options.api.db;
-		const approved = { approval_id: { isNull: true } } as const;
-		const [workDayRows, rosterRows, wagePeriodRows] = yield* Effect.all(
-			[
-				db.work_days.findMany({
-					where: {
-						employment_id: { in: [...options.employmentIds] },
-						// A bare day as an upper bound is cast in the server's zone and lands before the
-						// day's stored instant, dropping the span's last day; a leaver settled to month end
-						// lost 28 February. Exclusive next-day bound instead, as the event pages read.
-						work_date: {
-							gte: dayInstant(complianceSpan.start),
-							lt: dayInstant(addDays(complianceSpan.end, 1))
-						},
-						...approved
-					},
-					limit: PAGE_LIMIT
-				}),
-				// The rosters of record: one row per person-month. A cycle that straddles a month
-				// boundary reads the two months it spans.
-				db.rosters.findMany({
-					where: {
-						employment_id: { in: [...options.employmentIds] },
-						period: { in: monthsSpanned(complianceSpan) },
-						...approved
-					},
-					columns: { employment_id: true, period: true, approval_id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.employment_wage_periods.findMany({
-					where: {
-						employment_id: { in: [...options.employmentIds] },
-						...approved
-					},
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		options.api.reads.assertComplete(workDayRows, 'work days');
-		options.api.reads.assertComplete(rosterRows, 'rosters');
-		options.api.reads.assertComplete(wagePeriodRows, 'employment wage periods');
-		const rostersByEmployment = Map.groupBy(
-			live(rosterRows).map((row) => {
-				const bounds = monthBounds(row.period);
-				return { employment_id: row.employment_id, start: bounds.start, end: bounds.end };
-			}),
+} {
+	const { complianceSpan, world } = options;
+	const employmentIds = new Set(options.employmentIds);
+	const ours = <
+		T extends { readonly approval_id?: string | null | undefined; readonly employment_id: string }
+	>(
+		rows: readonly T[]
+	) => live(rows).filter((row) => employmentIds.has(row.employment_id));
+	// The rosters of record: one row per person-month; a cycle straddling a month reads both.
+	const months = new Set(monthsSpanned(complianceSpan));
+	const workDays = new Map(
+		ours(world.work_days)
+			.filter((row) => {
+				const day = dateKey(row.work_date);
+				return day >= complianceSpan.start && day <= complianceSpan.end;
+			})
+			.map((row) => [row.id, row])
+	);
+	const rostersByEmployment = Map.groupBy(
+		ours(world.rosters).filter((row) => months.has(row.period)),
+		(row) => row.employment_id
+	);
+	return {
+		workDaysByEmployment: Map.groupBy([...workDays.values()], (row) => row.employment_id),
+		wagePeriodsByEmployment: Map.groupBy(
+			ours(world.employment_wage_periods),
 			(row) => row.employment_id
-		);
-		const workDays = new Map(live(workDayRows).map((row) => [row.id, row]));
-		return {
-			workDaysByEmployment: Map.groupBy([...workDays.values()], (row) => row.employment_id),
-			wagePeriodsByEmployment: Map.groupBy(live(wagePeriodRows), (row) => row.employment_id),
-			rostersByEmployment: new Map(
-				[...rostersByEmployment].map(([id, rows]) => [
-					id,
-					rows.map(({ start, end }) => ({ start, end }))
-				])
-			)
-		};
-	});
+		),
+		rostersByEmployment: new Map(
+			[...rostersByEmployment].map(([id, rows]) => [id, rows.map((row) => monthBounds(row.period))])
+		)
+	};
 }
 
 /** Every calendar month a span touches, as YYYY-MM. */
@@ -231,7 +170,7 @@ function monthsSpanned(span: PayRange): string[] {
 }
 
 function termsIdentity(terms: EmploymentBundle['terms'][number]): string {
-	return typeof terms.id === 'string' && terms.id !== '' ? terms.id : termsSnapshotKey(terms);
+	return Predicate.isString(terms.id) && terms.id !== '' ? terms.id : termsSnapshotKey(terms);
 }
 
 export function termsAt(
@@ -348,9 +287,11 @@ function asRateTerms(
 	/** The statute's normal day over this person, where the version states one; else infinite. */
 	normalDayHours: number = Number.POSITIVE_INFINITY,
 	/** The statute's normal week, where the version caps one (a `WEEK NORMAL_HOURS` limit); else infinite. */
-	normalWeekHours: number = Number.POSITIVE_INFINITY
+	normalWeekHours: number = Number.POSITIVE_INFINITY,
+	/** A contracted week below this belongs to the part-time hourly-rate rule. */
+	partTimeBelowHours: number | null = null
 ): RateTerms {
-	const salary = baseSalaryOf(terms);
+	const salary = terms.base_salary;
 	const frequency = payFrequency(terms.pay_frequency);
 	// No scheduled days is no weekly pattern to annualise hours from: an ad-hoc DAILY or HOURLY
 	// month with no rows, or a deferred joiner priced through `measureArrears` over a window their
@@ -361,8 +302,7 @@ function asRateTerms(
 	// The days a week are the pattern's, never counted off a roster: a rostered person is not
 	// ad hoc, and a divisor read off the days a roster happened to hold priced the same salary
 	// at a different day rate every month.
-	const contracted =
-		terms.ordinary_hours_per_week == null ? null : decodeNumber(terms.ordinary_hours_per_week);
+	const contracted = terms.ordinary_hours_per_week == null ? null : terms.ordinary_hours_per_week;
 	const rostered =
 		workload.work_days > 0
 			? workload.average_weekly_paid_minutes / 60
@@ -382,30 +322,32 @@ function asRateTerms(
 	// two hours beyond are overtime on that rate — not a cheaper hour that pays its own overtime.
 	// Where the version states the week a monthly wage's hour is built on
 	// (`work_rules.rate_week_hours`), a monthly-rated hour is on that week whatever the contract's:
-	// SG EA Fourth Schedule, 12 × monthly ÷ (52 × 44), so a 40-hour week and a 48-hour week both
-	// price the hour on 44. A part-timer's hour is on their own week (SG Part-Time Employees
-	// Regulations: 52 × the contract's hours), and other wage bases keep their own week, capped by
-	// it. Malaysia states none: its hour is the day over the daily normal hours (s.60I(1)(b)).
+	// SG EA Fourth Schedule uses 44; the Part-Time Employees Regulations use the contract's own
+	// week below the version's statutory part-time boundary. Malaysia states no fixed week.
+	if (Number.isFinite(normalWeekHours) && partTimeBelowHours == null)
+		throw new Error('A fixed hourly-rate week requires a sealed part-time boundary.');
+	const contractWeek = contracted != null && contracted > 0 ? contracted : rostered;
+	if (partTimeBelowHours != null) {
+		if (!Number.isFinite(partTimeBelowHours) || partTimeBelowHours <= 0)
+			throw new Error('The sealed part-time weekly-hour boundary must be positive.');
+		const underPartTimeBoundary = contractWeek < partTimeBelowHours;
+		if ((terms.employment_type === 'PART_TIME') !== underPartTimeBoundary)
+			throw new Error('Employment part-time status conflicts with contracted weekly hours.');
+	}
 	const fixedWeek =
 		(frequency === 'MONTHLY' || frequency === 'SEMI_MONTHLY') &&
-		terms.employment_type !== 'PART_TIME';
+		partTimeBelowHours != null &&
+		contractWeek >= partTimeBelowHours;
 	const hours =
 		fixedWeek && Number.isFinite(normalWeekHours)
 			? normalWeekHours
 			: Math.min(rostered, normalDayHours * days, normalWeekHours);
 	return {
-		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
+		base_salary: { value: salary, currency: terms.currency },
 		pay_frequency: frequency,
 		ordinary_hours_per_week: hours,
 		working_days_per_week: days
 	};
-}
-
-function baseSalaryOf(terms: EmploymentBundle['terms'][number]) {
-	const salary = terms.base_salary;
-	if (salary == null)
-		throw new Error('Employment terms carry no base salary, so no rate can be derived from them.');
-	return salary;
 }
 
 /**
@@ -418,10 +360,10 @@ function baseSalaryOf(terms: EmploymentBundle['terms'][number]) {
  * not a relationship.
  */
 function termsSnapshotKey(terms: EmploymentBundle['terms'][number]): string {
-	const start = dateKey(terms.effective_range?.start);
+	const start = dateKey(readRange(terms.effective_range)?.start);
 	const title =
 		terms.job_title == null || terms.job_title === '' ? terms.employment_type : terms.job_title;
-	return `${title} @ ${start} · ${decodeNumber(terms.base_salary?.value ?? 0).toFixed(2)}`;
+	return `${title} @ ${start} · ${(terms.base_salary ?? 0).toFixed(2)}`;
 }
 
 /** Prepare schedule and rates before money-family totals determine statutory overtime coverage. */
@@ -429,7 +371,7 @@ export function prepareWorkContext(
 	options: Pick<MeasureEmploymentOptions, 'bundle' | 'configuration' | 'salary'> & {
 		readonly employed: PayRange;
 		/** Consumed dated wage history, recorded for the payslip capture. */
-		readonly referenceWageIds?: Set<string>;
+		readonly referenceWageIds?: Set<string> | undefined;
 	}
 ) {
 	const { bundle, configuration, employed } = options;
@@ -480,7 +422,7 @@ export function prepareWorkContext(
 							ordinary_hours_per_week:
 								closingWorkload.work_days > 0
 									? closingWorkload.average_weekly_paid_minutes / 60
-									: decodeNumber(closingTerms.ordinary_hours_per_week ?? 0),
+									: (closingTerms.ordinary_hours_per_week ?? 0),
 							working_days_per_week: termsDaysPerWeek(closingTerms, configuration)
 						},
 						children: bundle.children,
@@ -488,8 +430,8 @@ export function prepareWorkContext(
 						asOf: options.salary.end
 					})
 				);
-	// The week the version builds the hourly rate on, where it states one (SG EA s.2: 52 × 44 for
-	// any contract of 44 hours or more); a version whose hour is the day over the daily normal
+	// The week the version builds the hourly rate on, where it states one (SG EA Fourth Schedule:
+	// 52 × 44 for a monthly-rated full-time employee); a version whose hour is the day over the daily normal
 	// hours (MY s.60I(1)(b)) states none.
 	const normalWeekCap = configuration.work.rate_week_hours ?? Number.POSITIVE_INFINITY;
 	const rateTerms = asRateTerms(
@@ -497,7 +439,8 @@ export function prepareWorkContext(
 		closingWorkload,
 		termsDaysPerWeek(closingTerms, configuration),
 		normalHoursCap,
-		normalWeekCap
+		normalWeekCap,
+		configuration.work.part_time_week_hours_below ?? null
 	);
 	const currency = rateTerms.base_salary.currency;
 	const scheduleTermsAt = (date: IsoDate) => {
@@ -684,14 +627,13 @@ export function prepareWorkContext(
 				configuration,
 				date,
 				undefined,
-				configuration.work.gross_excluded_allowances
+				configuration.work.gross_excluded_allowances ?? undefined
 			),
 			children: bundle.children,
 			company: configuration.company,
 			week: {
-				ordinary_hours_per_week: decodeNumber(
-					term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60
-				),
+				ordinary_hours_per_week:
+					term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60,
 				working_days_per_week: days
 			},
 			period: { working_days: workingDaysIn(month) },
@@ -702,7 +644,14 @@ export function prepareWorkContext(
 			normalHoursRule === ''
 				? Number.POSITIVE_INFINITY
 				: evaluatePersonNumber(normalHoursRule, datedPerson);
-		const datedTerms = asRateTerms(term, workload, days, cap, normalWeekCap);
+		const datedTerms = asRateTerms(
+			term,
+			workload,
+			days,
+			cap,
+			normalWeekCap,
+			configuration.work.part_time_week_hours_below ?? null
+		);
 		const rateWeek = {
 			ordinary_hours_per_week: datedTerms.ordinary_hours_per_week,
 			working_days_per_week: days
@@ -770,7 +719,8 @@ export function prepareWorkContext(
 			workload,
 			termsDaysPerWeek(term, configuration),
 			normalHoursCap,
-			normalWeekCap
+			normalWeekCap,
+			configuration.work.part_time_week_hours_below ?? null
 		);
 		if (terms.base_salary.currency !== currency)
 			throw new Error('Leave absence rate has a different currency from payroll.');
@@ -1011,6 +961,10 @@ export function calculateWorkAttendance(
 			workDayId: derived.workDayId,
 			date: derived.date,
 			dayType: derived.dayType,
+			comparableFullTimeDailyHours:
+				entry.comparable_full_time_daily_hours == null
+					? undefined
+					: decodeNumber(entry.comparable_full_time_daily_hours),
 			// The planned day, never the clock: the normal day plus the planned hours on an ordinary
 			// or off day, the planned hours alone on a rest day or holiday.
 			workedHours:
@@ -1046,7 +1000,7 @@ export function calculateWorkAttendance(
 		const allowances = new Map(
 			listedAllowances(termsAt(bundle, date)).map((row) => [
 				configuration.allowanceCodeById.get(row.catalogue_id),
-				decodeNumber(row.amount)
+				row.amount
 			])
 		);
 		const statutoryWages = deriveStatutoryWages({
@@ -1151,26 +1105,10 @@ export function calculateWorkAttendance(
 	// on the run's trace for the next run's quarter and year.
 	const settledOvertimeHours = new Map([['', settled.regulatedByMonth], ...settled.byLimit]);
 
-	// ── absent days: a rostered day with no time entry ─────────────────────────────────────
-	//
-	// The rule, in the four cases it actually has:
-	//
-	//   no `work_days` row at all   the pattern's projection stands and the person worked it.
-	//                               Attendance records exceptions, so silence is presence.
-	//   a row with intervals        the intervals are the truth and the roster is not consulted.
-	//   a row with no time entry    absent without leave, and one day comes off the salary.
-	//   under approved leave        not absence at all — a paid leave pays and an unpaid one
-	//                               deducts through that leave's own declared deduction.
-	//
-	// `null` and `[]` are the same answer here on purpose. They differ elsewhere — `[]` is a day
-	// somebody reviewed and closed, `null` is a day nobody looked at, and the roster lock cares
-	// about that difference — but by the time payroll reads a day inside its own attendance window,
-	// a rostered day with no punch is a day the person did not work, however it came to be empty.
-	// Treating `null` as a no-op meant a whole month of unpunched rostered days was paid in full.
-	//
-	// A REST or OFF day, a holiday, and a day outside the attendance window are all no-ops. DAILY
-	// and HOURLY employments are not deducted here: their base pay is earned units, so an absent
-	// day simply earns nothing (see below).
+	// Absent days — a rostered day with no time entry: no row is presence (the pattern stands), a row
+	// with intervals is the truth, a row with no time entry (`null` or `[]` alike, inside the window)
+	// is absence and one day comes off the salary, and approved leave deducts through its own rule. REST,
+	// OFF, holidays and days outside the window are no-ops; DAILY and HOURLY pay earned units instead.
 	const absentDays = options.work.absentDaysIn(attendance);
 	const absentAdjustments: MeasuredAdjustment[] =
 		absentDays.length === 0 ||
@@ -1237,10 +1175,12 @@ export function calculateWorkAttendance(
 					const adds =
 						addDay == null
 							? {
-									ordinary:
-										typeof nightPremium.ordinary_add === 'number' ? nightPremium.ordinary_add : 0,
-									overtime:
-										typeof nightPremium.overtime_add === 'number' ? nightPremium.overtime_add : 0
+									ordinary: Predicate.isNumber(nightPremium.ordinary_add)
+										? nightPremium.ordinary_add
+										: 0,
+									overtime: Predicate.isNumber(nightPremium.overtime_add)
+										? nightPremium.overtime_add
+										: 0
 								}
 							: nightAddsFor({
 									work: { ...configuration.work, limits },
@@ -1444,8 +1384,8 @@ export function measureContractSegments(options: {
 	/** The full-period figure the terms row states; 0 where the row states none. */
 	readonly contractOf: (terms: EmploymentBundle['terms'][number]) => number;
 	/** Standing allowances are monthly even when the basic salary is weekly. */
-	readonly contractPeriod?: 'MONTH';
-	readonly unpaidDaysIn?: (window: PayRange) => number;
+	readonly contractPeriod?: 'MONTH' | undefined;
+	readonly unpaidDaysIn?: ((window: PayRange) => number) | undefined;
 }): Measurement | null {
 	const bucket = settlementBucket(options.component.destination, options.component.direction);
 	const currency = options.configuration.jurisdiction.payroll.currency;
@@ -1494,7 +1434,7 @@ export function measureContractSegments(options: {
 					ordinary_hours_per_week:
 						workload.work_days > 0
 							? workload.average_weekly_paid_minutes / 60
-							: decodeNumber(terms.ordinary_hours_per_week ?? 0),
+							: (terms.ordinary_hours_per_week ?? 0),
 					working_days_per_week: termsDaysPerWeek(terms, options.configuration)
 				},
 				children: options.bundle.children,
@@ -1630,8 +1570,6 @@ function measureWorkComponent(
 	>
 ): Measurement | null {
 	const definition = options.component.definition;
-	if (definition == null)
-		throw new Error(`Component ${options.component.code} has no definition to measure.`);
 	const bucket = settlementBucket(options.component.destination, options.component.direction);
 	const currency = options.configuration.jurisdiction.payroll.currency;
 
@@ -1666,7 +1604,7 @@ function measureWorkComponent(
 					employed: options.employed,
 					contracted: options.contracted,
 					workingDaysIn: options.workingDaysIn,
-					contractOf: (terms) => decodeNumber(baseSalaryOf(terms).value)
+					contractOf: (terms) => terms.base_salary
 				});
 
 	/**
@@ -1753,7 +1691,7 @@ function measureWorkComponent(
 								(leave[date] ?? 0) * scheduledHours
 						)
 					: scheduledHours;
-			const rate = decodeNumber(baseSalaryOf(dayTerms).value);
+			const rate = dayTerms.base_salary;
 			exact += frequency === 'DAILY' ? rate * (hours / scheduledHours) : hours * rate;
 		}
 		const amount = cents(exact, currency);
@@ -1987,9 +1925,9 @@ function settleTimeOffInLieu(options: {
 		if (months <= 0) return yearEnd;
 		const agreed = addDays(
 			monthDay(
-				Number(date.slice(0, 4)),
-				Number(date.slice(5, 7)) - 1 + months,
-				Number(date.slice(8, 10))
+				Number.parseInt(date.slice(0, 4), 10),
+				Number.parseInt(date.slice(5, 7), 10) - 1 + months,
+				Number.parseInt(date.slice(8, 10), 10)
 			),
 			-1
 		);
@@ -2015,11 +1953,8 @@ function settleTimeOffInLieu(options: {
 	// day, which over-consumed the balance on any shorter normal day.
 	const hoursOf = (entry: (typeof bundle.leave.entries)[number]) =>
 		entry.charges.map((charge) => {
-			if (entry.hours != null) return { date: charge.date, hours: decodeNumber(entry.hours) };
-			const shift =
-				charge.shift_definition_id == null
-					? null
-					: options.shiftById.get(charge.shift_definition_id);
+			if (entry.hours != null) return { date: charge.date, hours: entry.hours };
+			const shift = options.shiftById.get(charge.shift_definition_id);
 			const window = shift == null ? null : workWindow(shift.variant);
 			if (window == null)
 				refuse(
@@ -2153,7 +2088,7 @@ export function validateWorkResult(options: {
 	readonly configuration: Configuration;
 	readonly measured: MeasuredEmployment;
 	/** Overtime earlier payslips settled: limit key (`''` regulated) → calendar month → hours. */
-	readonly priorOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+	readonly priorOvertimeHours?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 }): RunIssue[] {
 	const { configuration, measured } = options;
 	const { bundle } = measured;

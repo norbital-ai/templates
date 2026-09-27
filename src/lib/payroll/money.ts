@@ -1,18 +1,13 @@
 /** Normalized money inputs supplied by Claim and Ad hoc. */
-import type { CollectionPayload } from '@norbital-ai/bolt/authoring';
-import type { WorkspaceSchema } from '$bolt/types.js';
-import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
-import type {
-	CatalogueComponent,
-	Configuration
-} from '../../collections/payroll_runs/lib/configuration.js';
-import { requiredDateKey, type IsoDate } from '../../collections/payroll_runs/lib/dates.js';
+import type { WorkspaceRow } from '../rows.js';
+import type { CatalogueBand } from '../datatypes/catalogue_band.js';
+import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
+import { requiredDateKey, type IsoDate } from '../../lib/payroll/run/dates.js';
 import { contractAllowancesOn } from './contract-allowances.js';
-import { monthlyWageAverage } from './contribution.js';
-import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
-import { decodeNumber } from '@norbital-ai/std/json';
-import { Effect } from 'effect';
-import { refuse } from '@norbital-ai/bolt/authoring';
+import { configuredMonthlyWageAverage } from './contribution.js';
+import { defaultPayPeriod, type PayCadence } from '../../lib/payroll/run/period.js';
+import { decodeNumber } from '../wire.js';
+import { refuse } from '../refuse.js';
 import {
 	evaluateBoolean,
 	evaluateNumber,
@@ -23,13 +18,13 @@ import {
 	isEligible,
 	personContext,
 	type PersonContext
-} from '../../collections/payroll_runs/lib/eligibility.js';
+} from '../../lib/payroll/run/eligibility.js';
 import {
 	entryLimitRefusal,
 	resolveEntryLimit,
 	type LimitSibling
-} from '../../collections/payroll_runs/lib/entry-cap.js';
-import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
+} from '../../lib/payroll/run/entry-cap.js';
+import { prorationSegment } from '../../lib/payroll/run/proration.js';
 import { factStatusesOn, personFacts } from './facts.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import {
@@ -38,19 +33,19 @@ import {
 	resolveExitFacts,
 	resolveFactValues
 } from '../declared-facts.js';
-import { cents } from '../../collections/payroll_runs/lib/rounding.js';
+import { cents } from '../../lib/payroll/run/rounding.js';
 import {
 	intersectDays,
 	monthBounds,
 	monthDays,
 	monthKey,
 	shiftPeriod
-} from '../../collections/payroll_runs/lib/dates.js';
+} from '../../lib/payroll/run/dates.js';
 import { stint } from '../employment-contract.js';
 import { activeTimeOff } from '../leave/activity.js';
 import { dateKey } from '../iso-day.js';
 import { payRequestTerms } from '../component_entry_cap_subject.js';
-import type { PayslipAdjustment } from '../../datatypes/payslip_adjustments/+definition.js';
+import type { PayslipAdjustment } from '../datatypes/payslip_adjustments.js';
 import { oppositeBucket, settlementBucket } from './family.js';
 import type {
 	Measurement,
@@ -59,16 +54,13 @@ import type {
 	PayRange,
 	YearContext
 } from './family.js';
-import {
-	PAGE_LIMIT,
-	type PayrollReadApi,
-	type ReadLog
-} from '../../collections/payroll_runs/lib/api.js';
+import type { PayrollWorld } from './world.js';
+import { live } from './run/effective.js';
+import * as Predicate from 'effect/Predicate';
+import { getErrorMessage } from '../refuse.js';
 
-type ClaimRequest =
-	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'claim_requests'>;
-type AdhocRequest =
-	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'adhoc_requests'>;
+type ClaimRequest = WorkspaceRow<'claim_requests'>;
+type AdhocRequest = WorkspaceRow<'adhoc_requests'>;
 
 /** Which collection a request came from. The engine names it in refusals and in provenance. */
 export const PAY_REQUEST_FAMILIES = ['CLAIM', 'ADHOC'] as const;
@@ -92,6 +84,9 @@ export type PayRequest = {
 	readonly pay_period: string | null;
 	/** The day this request's economics belong to. */
 	readonly event_date: IsoDate;
+	readonly evidence_file?: ClaimRequest['evidence_file'] | null | undefined;
+	readonly incurred_on?: string | null | undefined;
+	readonly medical_reimbursement?: ClaimRequest['medical_reimbursement'] | null | undefined;
 	/**
 	 * `+1` to settle the way its catalogue declares, `−1` to settle the opposite way.
 	 *
@@ -115,21 +110,31 @@ export type PreparedPayRequest = PayRequest & {
 	readonly captures: readonly PayRequestCapture[];
 };
 
-/** A claim's economics belong to the day the expense was incurred, not the day it was entered. */
-export const claimRequest = (row: ClaimRequest): PayRequest => ({
-	id: row.id,
-	family: 'CLAIM',
-	source_id: row.id,
-	employment_id: row.employment_id,
-	catalogue_id: row.catalogue_id,
-	amount: row.amount,
-	approval_id: row.approval_id ?? null,
-	pay_period: row.pay_period ?? null,
-	event_date: requiredDateKey(row.incurred_on, 'claim incurred date'),
-	// The catalogue says which way this settles; the tick says settle it the other way.
-	sign: row.as_adjustment_entry === true ? -1 : 1,
-	captured: row.payslip_id != null
-});
+/** A claim belongs to its expense day unless a dated reimbursement becomes payable later. */
+export const claimRequest = (row: ClaimRequest): PayRequest => {
+	if (row.medical_reimbursement != null && row.pay_period != null && row.pay_period !== '')
+		refuse('A treatment reimbursement settles from its due date; do not override its pay period.');
+	return {
+		id: row.id,
+		family: 'CLAIM',
+		source_id: row.id,
+		employment_id: row.employment_id,
+		catalogue_id: row.catalogue_id,
+		amount: row.amount,
+		approval_id: row.approval_id ?? null,
+		pay_period: row.pay_period ?? null,
+		event_date: requiredDateKey(
+			row.medical_reimbursement?.due_on ?? row.incurred_on,
+			row.medical_reimbursement == null ? 'claim incurred date' : 'reimbursement due date'
+		),
+		medical_reimbursement: row.medical_reimbursement,
+		evidence_file: row.evidence_file,
+		incurred_on: row.incurred_on,
+		// The catalogue says which way this settles; the tick says settle it the other way.
+		sign: row.as_adjustment_entry === true ? -1 : 1,
+		captured: row.payslip_id != null
+	};
+};
 
 /** An ad hoc request's economics belong to the day it is for; it is due whole, never prorated. */
 const adhocRequest = (row: AdhocRequest): PayRequest => ({
@@ -142,6 +147,7 @@ const adhocRequest = (row: AdhocRequest): PayRequest => ({
 	approval_id: row.approval_id ?? null,
 	pay_period: row.pay_period ?? null,
 	event_date: requiredDateKey(row.event_date, 'ad hoc event date'),
+	evidence_file: row.evidence_file,
 	sign: row.as_adjustment_entry === true ? -1 : 1,
 	captured: row.payslip_id != null
 });
@@ -181,7 +187,10 @@ export function requestIsDue(
  */
 export function entryContext(options: {
 	/** What the context reads of the entry: its magnitude and its day. */
-	readonly entry: Pick<PayRequest, 'amount' | 'event_date'>;
+	readonly entry: Pick<
+		PayRequest,
+		'amount' | 'event_date' | 'incurred_on' | 'medical_reimbursement'
+	>;
 	readonly subject: PersonContext;
 	readonly period: string;
 	readonly periodStart: string;
@@ -194,10 +203,11 @@ export function entryContext(options: {
 	readonly ordinaryHour: number;
 	readonly limits: Readonly<Record<string, number>>;
 	readonly captures: { readonly paidToDate: number; readonly remaining: number };
-	readonly year?: () => YearContext;
+	readonly year?: (() => YearContext) | undefined;
 }): Record<string, unknown> {
 	const { entry } = options;
 	const year = options.year?.();
+	const medical = entry.medical_reimbursement;
 	return {
 		person: options.subject,
 		entry: {
@@ -207,6 +217,20 @@ export function entryContext(options: {
 			quantity: 0,
 			event_date: entry.event_date,
 			period: options.period,
+			medical: {
+				incurred_on: entry.incurred_on ?? '',
+				due_on: medical?.due_on ?? '',
+				amount_incurred: medical?.amount_incurred ?? 0,
+				patient: medical?.patient ?? '',
+				relationship_from: medical?.relationship_from ?? '',
+				relationship_through: medical?.relationship_through ?? '',
+				relationship_recognised: medical?.relationship_recognised ?? false,
+				treatment: medical?.treatment ?? '',
+				treatment_received: medical?.treatment_received ?? false,
+				treatment_necessary: medical?.treatment_necessary ?? false,
+				solely_aesthetic: medical?.solely_aesthetic ?? false,
+				practitioner_qualified: medical?.practitioner_qualified ?? false
+			},
 			captures: {
 				remaining: options.captures.remaining
 			}
@@ -249,9 +273,7 @@ function selectBand(
 		try {
 			if (evaluateBoolean(engine, band.when, context)) return band;
 		} catch (error) {
-			throw new Error(
-				`A catalogue band condition did not evaluate: ${error instanceof Error ? error.message : String(error)}`
-			);
+			throw new Error(`A catalogue band condition did not evaluate: ${getErrorMessage(error)}`);
 		}
 	}
 	return null;
@@ -294,19 +316,34 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 	// minimis on the statutory minimum, VN's twenty-times-the-minimum unemployment ceiling).
 	const engine = runtimeExpressionEngine({
 		minimumWage: (region) =>
-			decodeNumber(options.configuration.jurisdiction.work_rules.wages?.by_region?.[region] ?? 0)
+			options.configuration.jurisdiction.work_rules.wages?.by_region?.[region] ?? 0
 	});
 	const measureEntry = (entry: PreparedPayRequest): Measurement | null => {
+		// Evidence is held where a request is written (pay_request_rules, the one write surface). The run
+		// asks again only where the law prices it: a medical reimbursement's statutory treatment rests on
+		// the receipt. A plain company claim's paperwork never refuses a whole entity's run.
+		if (
+			options.component.evidence === 'REQUIRED' &&
+			entry.evidence_file == null &&
+			entry.medical_reimbursement != null
+		)
+			refuse(`${options.component.code} requires a receipt or other evidence.`);
 		// Only a class whose own rules read departure inputs owes them: ID's THR is classed for
 		// off-boarding but prices a festival wage, not a termination benefit.
-		const readsExitFacts = [
+		const expressions = [
 			options.component.eligibility,
 			...options.component.bands.flatMap((band) => [
 				band.when ?? '',
 				band.amount ?? '',
-				typeof band.limit === 'string' ? band.limit : ''
+				Predicate.isString(band.limit) ? band.limit : ''
 			])
-		].some((expression) => expression.includes('employment.exit_facts'));
+		];
+		const readsExitFacts = expressions.some((expression) =>
+			expression.includes('employment.exit_facts')
+		);
+		const readsSeparationAverage = expressions.some((expression) =>
+			expression.includes('monthly_wage_6m_average')
+		);
 		/** The person the entry is priced for, or the departure declaration it lacks. */
 		const subjectOn = (source: PayRequest): PersonContext | string => {
 			const employment = stint(options.bundle.employment);
@@ -314,9 +351,12 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			// active employee — is an ordinary payment on its event date, not a final obligation.
 			// A fixed-term contract states its end from the first day, so the contract has only
 			// ended once that day falls inside this run's window.
+			// Manual requests can also price a departure obligation (e.g. evidenced notice
+			// recovery). Reading exit facts fixes their rules and person at the final service day;
+			// the way the request was raised must not bypass required departure declarations.
 			const separation =
-				'raised_by' in options.component &&
-				options.component.raised_by === 'SEPARATION' &&
+				(readsExitFacts ||
+					('raised_by' in options.component && options.component.raised_by === 'SEPARATION')) &&
 				employment.exit_date != null &&
 				employment.exit_date <= options.salary.end;
 			const asOf = separation ? employment.exit_date! : source.event_date;
@@ -365,7 +405,9 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 								)
 							},
 				fixedAllowances: contractAllowancesOn(options.bundle, options.configuration, asOf),
-				monthlyWage6mAverage: monthlyWageAverage(options.bundle, options.configuration, asOf, 6),
+				monthlyWage6mAverage: readsSeparationAverage
+					? configuredMonthlyWageAverage(options.bundle, options.configuration, asOf, version)
+					: null,
 				earnings: options.earnedByMonth ?? null,
 				// The approved time off, as calendar spans: 施行細則 §2's periods and MY s.60E(3B)'s days.
 				leaveSpans: activeTimeOff(options.bundle.leave.entries).map((row) => ({
@@ -412,7 +454,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			});
 			return null;
 		};
-		if (typeof subjectOrMissing === 'string')
+		if (Predicate.isString(subjectOrMissing))
 			return skipped(`the departure record is incomplete: ${subjectOrMissing}`);
 		const subject = subjectOrMissing;
 		if (!isEligible(options.component.eligibility, subject))
@@ -449,6 +491,11 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				remaining: Math.max(0, decodeNumber(entry.amount) - paidToDate)
 			}
 		});
+		if (
+			(options.component.qualifies_when ?? '').trim() !== '' &&
+			!evaluateBoolean(engine, options.component.qualifies_when!, context)
+		)
+			refuse(`${options.component.code} does not satisfy its claim qualification rule.`);
 		const band = selectBand(options.component.bands, context, engine);
 		// A non-empty band table that covers nobody leaves the entry priced at nothing: the bands
 		// are the entitlement, and no band is no entitlement.
@@ -508,7 +555,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				limit: band.limit,
 				resolved,
 				componentCode: options.component.code,
-				subject: String(options.bundle.employment.employee_number),
+				subject: options.bundle.employment.employee_number,
 				proposed: sign * payable
 			});
 			if (refusal !== null) throw new Error(refusal);
@@ -557,48 +604,44 @@ export function prepareMoneySteps(
 
 /** The catalogue rows of the money families, lifted into engine components. */
 export function prepareMoneyCatalogues(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
+	readonly world: PayrollWorld;
 	readonly settingsId: string;
 	readonly lineageIds: readonly string[];
 }) {
-	return Effect.gen(function* () {
-		const where = {
-			settings_id: { eq: options.settingsId },
-			approval_id: { isNull: true }
-		} as const;
-		const [claims, adhoc, allowances, lineageClasses] = yield* Effect.all(
-			[
-				options.api.db.claim_catalogue.findMany({ where, limit: PAGE_LIMIT }),
-				options.api.db.adhoc_catalogue.findMany({ where, limit: PAGE_LIMIT }),
-				options.api.db.allowance_catalogue.findMany({ where, limit: PAGE_LIMIT }),
-				// Every version's allowance classes by id: a contract lists the row of the version
-				// it was signed under, and the code carries the class into this one.
-				options.api.db.allowance_catalogue.findMany({
-					where: { settings_id: { in: options.lineageIds }, approval_id: { isNull: true } },
-					columns: { id: true, code: true },
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		options.api.reads.assertComplete(claims, 'claim catalogue');
-		options.api.reads.assertComplete(adhoc, 'ad hoc catalogue');
-		options.api.reads.assertComplete(allowances, 'allowance catalogue');
-		options.api.reads.assertComplete(lineageClasses, 'allowance classes of the lineage');
-		const components: CatalogueComponent[] = [
-			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
-			...adhoc.map((row) => ({ ...row, family: 'ADHOC' as const, definition: entryOf() })),
-			...allowances.map((row) => ({
-				...row,
-				family: 'ALLOWANCE' as const,
-				definition: entryOf()
-			}))
-		] as unknown as CatalogueComponent[];
-		return {
-			components,
-			allowanceCodeById: new Map(lineageClasses.map((row) => [row.id, row.code]))
-		};
-	});
+	const { world } = options;
+	const ofVersion = <
+		T extends { readonly approval_id?: string | null | undefined; readonly settings_id: string }
+	>(
+		rows: readonly T[]
+	) => live(rows).filter((row) => row.settings_id === options.settingsId);
+	const lineage = new Set(options.lineageIds);
+	const components: CatalogueComponent[] = [
+		...ofVersion(world.claim_catalogue).map((row) => ({
+			...row,
+			family: 'CLAIM' as const,
+			definition: entryOf()
+		})),
+		...ofVersion(world.adhoc_catalogue).map((row) => ({
+			...row,
+			family: 'ADHOC' as const,
+			definition: entryOf()
+		})),
+		...ofVersion(world.allowance_catalogue).map((row) => ({
+			...row,
+			family: 'ALLOWANCE' as const,
+			definition: entryOf()
+		}))
+	];
+	return {
+		components,
+		// Every version's allowance classes by id: a contract lists the row of the version it was
+		// signed under, and the code carries the class into this one.
+		allowanceCodeById: new Map(
+			live(world.allowance_catalogue)
+				.filter((row) => lineage.has(row.settings_id))
+				.map((row) => [row.id, row.code])
+		)
+	};
 }
 
 /** The stored row lifted into the engine's `ENTRY` arm: the bands are the definition. */
@@ -632,7 +675,7 @@ export function captureAmounts(
 		for (const row of payslip.adjustments) {
 			if (!(PAY_REQUEST_FAMILIES as readonly string[]).includes(row.family)) continue;
 			const key = `${payslip.id}:${row.source_id}`;
-			amounts.set(key, (amounts.get(key) ?? 0) + decodeNumber(row.amount));
+			amounts.set(key, (amounts.get(key) ?? 0) + row.amount);
 		}
 	for (const link of links) {
 		if (!present.has(link.payslipId)) continue;
@@ -647,110 +690,76 @@ export function captureAmounts(
 	return captures;
 }
 
-/** The link rows of one money family, read from the pins the engine wrote. */
-function captureLinksOf(
-	family: PayRequestFamily,
-	api: PayrollReadApi & { readonly reads: ReadLog },
-	sourceIds: readonly string[]
-): Effect.Effect<readonly PayRequestCaptureLink[]> {
-	return Effect.gen(function* () {
-		if (sourceIds.length === 0) return [];
-		// The two request tables share the pin columns; the union of their clients is not
-		// callable, the claim client's shape reads either.
-		const requests = (
-			family === 'CLAIM' ? api.db.claim_requests : api.db.adhoc_requests
-		) as typeof api.db.claim_requests;
-		const rows = yield* requests.findMany({
-			where: { id: { in: [...sourceIds] }, payslip_id: { isNull: false } },
-			columns: { id: true, payslip_id: true },
-			limit: PAGE_LIMIT
-		});
-		return rows.map((row): PayRequestCaptureLink => ({
-			family,
-			payslipId: row.payslip_id!,
-			period: '',
-			sourceId: row.id
-		}));
-	});
-}
-
 /** Standing captures exclude single-use requests, including signed corrections, from later runs. */
-function requestCaptures(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly requests: readonly PayRequest[];
-}): Effect.Effect<ReadonlyMap<string, readonly PayRequestCapture[]>, never, never> {
-	return Effect.gen(function* () {
-		const captures = new Map<string, PayRequestCapture[]>();
-		if (options.requests.length === 0) return captures;
-		const idsOf = (family: PayRequestFamily) => [
-			...new Set(
-				options.requests
-					.filter((request) => request.family === family)
-					.map((request) => request.source_id)
-			)
-		];
-		const links = [
-			...(yield* captureLinksOf('CLAIM', options.api, idsOf('CLAIM'))),
-			...(yield* captureLinksOf('ADHOC', options.api, idsOf('ADHOC')))
-		];
-		if (links.length === 0) return captures;
-		const payslips = yield* options.api.db.payslips.findMany({
-			where: { id: { in: [...new Set(links.map((row) => row.payslipId))] } },
-			columns: { id: true, adjustments: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(payslips, 'captured pay-request outputs');
-		const bySource = captureAmounts(links, payslips);
-		for (const request of options.requests)
-			captures.set(request.id, [...(bySource.get(request.source_id) ?? [])]);
-		return captures;
-	});
+function requestCaptures(
+	world: PayrollWorld,
+	requests: readonly PayRequest[]
+): ReadonlyMap<string, readonly PayRequestCapture[]> {
+	const captures = new Map<string, PayRequestCapture[]>();
+	if (requests.length === 0) return captures;
+	// The link rows of each money family, read from the pins the engine wrote.
+	const linksOf = (
+		family: PayRequestFamily,
+		rows: readonly { readonly id: string; readonly payslip_id: string | null }[]
+	) => {
+		const ids = new Set(
+			requests.filter((request) => request.family === family).map((request) => request.source_id)
+		);
+		return rows.flatMap((row): PayRequestCaptureLink[] =>
+			ids.has(row.id) && row.payslip_id != null
+				? [{ family, payslipId: row.payslip_id, period: '', sourceId: row.id }]
+				: []
+		);
+	};
+	const links = [
+		...linksOf('CLAIM', world.claim_requests),
+		...linksOf('ADHOC', world.adhoc_requests)
+	];
+	if (links.length === 0) return captures;
+	const payslipIds = new Set(links.map((row) => row.payslipId));
+	const bySource = captureAmounts(
+		links,
+		world.payslips.filter((row) => payslipIds.has(row.id))
+	);
+	for (const request of requests)
+		captures.set(request.id, [...(bySource.get(request.source_id) ?? [])]);
+	return captures;
 }
 
 type MoneyPreparationOptions = {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
+	readonly world: PayrollWorld;
 	readonly configuration: Configuration;
 	readonly employmentIds: readonly string[];
-	readonly period: string;
-	/** The salary window this run settles. */
-	readonly periodWindow: { readonly start: string; readonly end: string };
 };
 
 /** Build the requests the run prices: every unpinned approved claim and ad hoc request of these people. */
 export function prepareMoneyInputs(options: MoneyPreparationOptions) {
-	return Effect.gen(function* () {
-		const db = options.api.db;
-		const approved = { approval_id: { isNull: true } } as const;
-		const unpinned = {
-			employment_id: { in: [...options.employmentIds] },
-			...approved,
-			payslip_id: { isNull: true }
-		} as const;
-		const [claimRows, adhocRows] = yield* Effect.all(
-			[
-				db.claim_requests.findMany({ where: unpinned, limit: PAGE_LIMIT }),
-				db.adhoc_requests.findMany({ where: unpinned, limit: PAGE_LIMIT })
-			],
-			{ concurrency: 'unbounded' }
-		);
-		options.api.reads.assertComplete(claimRows, 'claim requests');
-		options.api.reads.assertComplete(adhocRows, 'ad hoc requests');
-		const requests: readonly PayRequest[] = [
-			...claimRows.map(claimRequest),
-			...adhocRows.map(adhocRequest)
-		];
-		const capturesByRequest = yield* requestCaptures({ api: options.api, requests });
-		const requestCatalogues = yield* prepareRequestCatalogues(options, requests);
-		const requestsByEmployment = Map.groupBy(
-			requests.map((request): PreparedPayRequest => ({
-				...request,
-				captures: capturesByRequest.get(request.id) ?? [],
-				catalogueComponent: requestCatalogues.get(request.catalogue_id)!
-			})),
-			(row) => row.employment_id
-		);
-		return { requestsByEmployment };
-	});
+	const { world } = options;
+	const employmentIds = new Set(options.employmentIds);
+	const unpinned = <
+		T extends {
+			readonly approval_id?: string | null | undefined;
+			readonly employment_id: string;
+			readonly payslip_id: string | null;
+		}
+	>(
+		rows: readonly T[]
+	) => live(rows).filter((row) => employmentIds.has(row.employment_id) && row.payslip_id == null);
+	const requests: readonly PayRequest[] = [
+		...unpinned(world.claim_requests).map(claimRequest),
+		...unpinned(world.adhoc_requests).map(adhocRequest)
+	];
+	const capturesByRequest = requestCaptures(world, requests);
+	const requestCatalogues = prepareRequestCatalogues(options, requests);
+	const requestsByEmployment = Map.groupBy(
+		requests.map((request): PreparedPayRequest => ({
+			...request,
+			captures: capturesByRequest.get(request.id) ?? [],
+			catalogueComponent: requestCatalogues.get(request.catalogue_id)!
+		})),
+		(row) => row.employment_id
+	);
+	return { requestsByEmployment };
 }
 
 /** Requests retain their source revision; current contribution schemes still assess the result. */
@@ -758,116 +767,71 @@ function prepareRequestCatalogues(
 	options: MoneyPreparationOptions,
 	requests: readonly PayRequest[]
 ) {
-	return Effect.gen(function* () {
-		if (requests.length === 0) return new Map<string, CatalogueComponent>();
-		const idsOf = (family: PayRequestFamily) => [
-			...new Set(
-				requests
-					.filter((request) => request.family === family)
-					.map((request) => request.catalogue_id)
-			)
-		];
-		const approved = { approval_id: { isNull: true } } as const;
-		const [claims, adhoc] = yield* Effect.all(
-			[
-				options.api.db.claim_catalogue.findMany({
-					where: { id: { in: idsOf('CLAIM') }, ...approved },
-					limit: PAGE_LIMIT
-				}),
-				options.api.db.adhoc_catalogue.findMany({
-					where: { id: { in: idsOf('ADHOC') }, ...approved },
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
+	if (requests.length === 0) return new Map<string, CatalogueComponent>();
+	const idsOf = (family: PayRequestFamily) =>
+		new Set(
+			requests.filter((request) => request.family === family).map((request) => request.catalogue_id)
 		);
-		options.api.reads.assertComplete(claims, 'source Claim catalogue');
-		options.api.reads.assertComplete(adhoc, 'source Ad hoc catalogue');
-		const components = [
-			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
-			...adhoc.map((row) => ({ ...row, family: 'ADHOC' as const, definition: entryOf() }))
-		] as unknown as CatalogueComponent[];
-		// The lineage's versions are already in hand; only a component from outside it is read.
-		const settingsById = new Map(
-			options.configuration.lineageVersions.map((row) => [row.id, row] as const)
-		);
-		const unknownVersionIds = [
-			...new Set(components.map((row) => row.settings_id).filter((id) => !settingsById.has(id)))
-		];
-		if (unknownVersionIds.length > 0) {
-			const settings = yield* options.api.db.jurisdiction_settings.findMany({
-				where: { id: { in: unknownVersionIds }, ...approved },
-				limit: PAGE_LIMIT
-			});
-			options.api.reads.assertComplete(settings, 'source catalogue settings');
-			for (const row of settings) settingsById.set(row.id, row);
-		}
-		const byId = new Map(components.map((row) => [row.id, row]));
-		for (const request of requests) {
-			const component = byId.get(request.catalogue_id);
-			const version = component == null ? undefined : settingsById.get(component.settings_id);
-			if (
-				component == null ||
-				component.family !== request.family ||
-				version == null ||
-				version.code !== options.configuration.company.settings_code ||
-				version.sealed_at == null ||
-				version.voided_at != null
-			)
-				refuse(
-					`A ${request.family} input must reference an approved catalogue in a sealed version of this entity's settings.`
-				);
-			if (version.payroll.currency !== options.configuration.jurisdiction.payroll.currency)
-				refuse(`A ${request.family} input's source currency differs from this payroll's currency.`);
-		}
-		return byId;
-	});
+	const claimIds = idsOf('CLAIM');
+	const adhocIds = idsOf('ADHOC');
+	const components: CatalogueComponent[] = [
+		...live(options.world.claim_catalogue)
+			.filter((row) => claimIds.has(row.id))
+			.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
+		...live(options.world.adhoc_catalogue)
+			.filter((row) => adhocIds.has(row.id))
+			.map((row) => ({ ...row, family: 'ADHOC' as const, definition: entryOf() }))
+	];
+	// The lineage's versions are already in hand; only a component from outside it is looked up.
+	const settingsById = new Map<string, (typeof options.configuration.lineageVersions)[number]>(
+		options.configuration.lineageVersions.map((row) => [row.id, row] as const)
+	);
+	const unknownVersionIds = new Set(
+		components.map((row) => row.settings_id).filter((id) => !settingsById.has(id))
+	);
+	for (const row of live(options.world.jurisdiction_settings))
+		if (unknownVersionIds.has(row.id)) settingsById.set(row.id, row);
+	const byId = new Map(components.map((row) => [row.id, row]));
+	for (const request of requests) {
+		const component = byId.get(request.catalogue_id);
+		const version = component == null ? undefined : settingsById.get(component.settings_id);
+		if (
+			component == null ||
+			component.family !== request.family ||
+			version == null ||
+			version.code !== options.configuration.company.settings_code ||
+			version.sealed_at == null ||
+			version.voided_at != null
+		)
+			refuse(
+				`A ${request.family} input must reference an approved catalogue in a sealed version of this entity's settings.`
+			);
+		if (version.payroll.currency !== options.configuration.jurisdiction.payroll.currency)
+			refuse(`A ${request.family} input's source currency differs from this payroll's currency.`);
+	}
+	return byId;
 }
 
 /**
  * What earlier PAID runs already took from each entry, keyed by source id. A captured zero means
  * the entry was read and paid nothing, rather than leaving historical usage unknown.
  */
-export function prepareMoneyConsumption(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly payslipIds: readonly string[];
-}) {
-	return Effect.gen(function* () {
-		const db = options.api.db;
-		const priorPayslipIds = [...options.payslipIds];
-		const consumedEntries = new Map<string, number>();
-		const [claims, adhoc, payslips] = yield* Effect.all(
-			[
-				db.claim_requests.findMany({
-					where: { payslip_id: { in: priorPayslipIds } },
-					columns: { id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.adhoc_requests.findMany({
-					where: { payslip_id: { in: priorPayslipIds } },
-					columns: { id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.payslips.findMany({
-					where: { id: { in: priorPayslipIds } },
-					columns: { id: true, adjustments: true },
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		options.api.reads.assertComplete(claims, 'prior claim captures');
-		options.api.reads.assertComplete(adhoc, 'prior ad hoc captures');
-		options.api.reads.assertComplete(payslips, 'prior payslips');
-		for (const row of [...claims, ...adhoc]) consumedEntries.set(row.id, 0);
-		for (const payslip of payslips)
+export function prepareMoneyConsumption(
+	world: PayrollWorld,
+	payslipIds: readonly string[]
+): Map<string, number> {
+	const prior = new Set(payslipIds);
+	const consumedEntries = new Map<string, number>();
+	for (const row of [...world.claim_requests, ...world.adhoc_requests])
+		if (row.payslip_id != null && prior.has(row.payslip_id)) consumedEntries.set(row.id, 0);
+	for (const payslip of world.payslips)
+		if (prior.has(payslip.id))
 			for (const row of payslip.adjustments) {
 				if (!(PAY_REQUEST_FAMILIES as readonly string[]).includes(row.family)) continue;
 				consumedEntries.set(
 					row.source_id,
-					(consumedEntries.get(row.source_id) ?? 0) + decodeNumber(row.amount ?? 0)
+					(consumedEntries.get(row.source_id) ?? 0) + (row.amount ?? 0)
 				);
 			}
-		return consumedEntries;
-	});
+	return consumedEntries;
 }

@@ -1,5 +1,5 @@
-import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
-import { decodeNumber } from '@norbital-ai/std/json';
+/** One worked interval as stored: an instant period, `end` null while it is open. */
+type WorkedInterval = { readonly start: string; readonly end: string | null };
 
 export function attendanceBoundary(
 	value: readonly WorkedInterval[],
@@ -19,5 +19,5 @@ export function workedMinutes(
 		if (interval.end == null) return null;
 		gross += (Date.parse(interval.end) - Date.parse(interval.start)) / 60_000;
 	}
-	return Math.max(0, gross - decodeNumber(breakMinutes ?? 0));
+	return Math.max(0, gross - (breakMinutes ?? 0));
 }

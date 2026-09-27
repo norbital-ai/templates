@@ -5,8 +5,8 @@ import { computedEntitlement, leaveWindowOf } from '../src/lib/leave/entitlement
 import {
 	leaveEntitlementValueSchema,
 	type LeaveEntitlement
-} from '../src/datatypes/leave_entitlement/+definition.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+} from '../src/lib/datatypes/leave_entitlement.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 
 const base: LeaveEntitlement = {
 	availability: 'UPFRONT',

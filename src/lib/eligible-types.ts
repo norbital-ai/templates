@@ -2,46 +2,80 @@
  * The types an event form offers: the catalogue rows whose `eligibility` holds for the person.
  *
  * The rule is the engine's own (`payroll_runs/lib/eligibility.ts`), fed by the facts a browser can
- * read in one query: the employment, its employee, its terms and its entity. The picker then
+ * read in one query: the employment, its employee, its terms and its entity (`ELIGIBILITY_SELECT`). The picker then
  * narrows to these ids, so an ineligible type is not offered rather than refused after the fact;
  * the transform keeps the same rule for a write that did not come through the form.
  */
-import {
-	isEligible,
-	personContext,
-	type PersonContext
-} from '../collections/payroll_runs/lib/eligibility.js';
+import { isEligible, personContext, type PersonContext } from '../lib/payroll/run/eligibility.js';
 import { childrenOn, resolveEmployment } from './employment-contract.js';
 import { payRequestTerms } from './component_entry_cap_subject.js';
 import { dateKey } from './iso-day.js';
 
-/** The employment row with its person, terms and entity joined, as the form's one query reads it. */
+/**
+ * The employment row with its person, entity and terms selected through its relations
+ * (`ELIGIBILITY_SELECT`), plain values (`lib/wire.ts`).
+ */
 type PersonFacts = {
 	readonly effective_range: unknown;
-	readonly employment_employee?: Parameters<typeof personContext>[0]['employee'] & {
+	readonly employee_id?: Parameters<typeof personContext>[0]['employee'] & {
 		readonly children?: ReadonlyArray<{
 			readonly child_birthdate: string;
 			readonly effective_range: unknown;
 		}> | null;
 	};
-	readonly employment_company?: { readonly region?: string | null } | null;
-	readonly term_employment?: ReadonlyArray<
+	readonly company_id?:
+		{ readonly region?: string | null; readonly settings_code?: string } | null | undefined;
+	readonly employment_terms?: ReadonlyArray<
 		NonNullable<Parameters<typeof personContext>[0]['terms']> & {
 			readonly effective_range: unknown;
 		}
 	> | null;
 };
 
+/** The one read the offer needs: the employment with its person, entity and every term. */
+export const ELIGIBILITY_SELECT = {
+	effective_range: true,
+	employee_id: {
+		select: {
+			gender: true,
+			date_of_birth: true,
+			nationality: true,
+			marital_status: true,
+			solo_parent: true,
+			race: true,
+			religion: true,
+			children: true
+		}
+	},
+	company_id: { select: { region: true, settings_code: true } },
+	employment_terms: {
+		select: {
+			effective_range: true,
+			residency_status: true,
+			employment_type: true,
+			work_classification: true,
+			base_salary: true,
+			statutory_work_category: true,
+			department: true,
+			payroll_group: true,
+			paid_rest_days: true,
+			grade: true,
+			residency_since: true
+		},
+		all: true
+	}
+} as const;
+
 /** The person as the predicate grammar sees them on `day`. */
 export function personAsOf(facts: PersonFacts, day: string): PersonContext {
 	const contract = resolveEmployment(facts);
 	const start = contract.effective_range == null ? '' : dateKey(contract.effective_range.start);
 	return personContext({
-		employee: facts.employment_employee ?? null,
+		employee: facts.employee_id ?? null,
 		employment: { service_start: start },
-		terms: payRequestTerms(facts.term_employment ?? [], contract, day),
-		children: childrenOn(facts.employment_employee?.children ?? [], day),
-		company: facts.employment_company ?? null,
+		terms: payRequestTerms(facts.employment_terms ?? [], contract, day),
+		children: childrenOn(facts.employee_id?.children ?? [], day),
+		company: facts.company_id ?? null,
 		asOf: day
 	});
 }

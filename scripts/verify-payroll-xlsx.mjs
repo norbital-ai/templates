@@ -437,10 +437,10 @@ Effect.runPromise(
 		Effect.gen(function* () {
 			const vite = yield* viteResource;
 			const { payrollReportXlsx, catalogueEntriesXlsx } = yield* Effect.tryPromise(() =>
-				vite.ssrLoadModule('/src/collections/payroll_runs/lib/export.ts')
+				vite.ssrLoadModule('/src/lib/payroll/run/export.ts')
 			);
 			const { IDENTITY_OUTPUT_IDS, outputGroups, workbookRows } = yield* Effect.tryPromise(() =>
-				vite.ssrLoadModule('/src/collections/payroll_runs/lib/report.ts')
+				vite.ssrLoadModule('/src/lib/payroll/run/report.ts')
 			);
 			/**
 			 * The listing's columns, built the way the exporter builds them: an identity block, then

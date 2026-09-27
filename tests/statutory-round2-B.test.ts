@@ -23,7 +23,7 @@ import {
 } from './fixtures/statutory-world.ts';
 import { monthsAt, priorWages } from './fixtures/prior-wages.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { grantedDays } from '../src/lib/leave/entitlement.ts';
 
 /** The version of a lineage in force on a day. */

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { schemeFault } from '../src/lib/catalogue_rules.ts';
 import { resolveCompanyFacts, resolveExitFacts } from '../src/lib/declared-facts.ts';
 import { compileExpression } from '../src/lib/expressions/compile.ts';

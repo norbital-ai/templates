@@ -1,2 +1,6 @@
 # Borrow what this workspace already declares is not source, rather than restating it.
 inherit: .gitignore .prettierignore
+
+# The CEL bindings take CEL's int (a bigint) and double values: `Number` there converts between the two runtimes'
+# numbers, it decodes no input.
+src/lib/expressions/ COERCE1

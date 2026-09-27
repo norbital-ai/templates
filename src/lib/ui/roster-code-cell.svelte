@@ -3,44 +3,43 @@
 	 * One roster-code cell for a matrix: the codes of the row's company, by code and name. The
 	 * company rides the matrix row (`company_id`), so the same cell serves every day of a pattern.
 	 */
-	import type { MatrixCellRendererProps, MatrixRow } from '@norbital-ai/ui/data-renderer/matrix';
-	import { client } from '../workspace-client.js';
-	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { t } from './t.js';
+	import type { MatrixCellRendererProps, MatrixRow } from './grid.svelte';
+	import type { Id } from '@norbital-ai/bolt';
+	import { bolt } from '$bolt';
+	import { Combobox } from '@norbital-ai/ui';
+	import { liveRows } from './live.svelte.js';
+	import * as Predicate from 'effect/Predicate';
 
 	let { value, row, disabled, placeholder, onValueChange }: MatrixCellRendererProps<TRow> =
 		$props();
-	const { t } = useI18n<TenantI18nKeys>();
+	// The matrix row is a draft of the list value: its entity is asserted here, where it enters.
 	const companyId = $derived(
-		typeof (row as Record<string, unknown>).company_id === 'string'
-			? ((row as Record<string, unknown>).company_id as string)
-			: null
+		Predicate.isString(row.company_id) ? (row.company_id as Id<'companies'>) : null
 	);
-	const codesQuery = $derived(
+	const codes = liveRows(() =>
 		companyId == null
 			? null
-			: client.db.shift_definitions.findMany({
+			: bolt.read('shift_definitions', {
 					where: { company_id: { eq: companyId }, approval_id: { isNull: true } },
-					columns: { id: true, code: true, name: true },
+					select: { code: true, name: true },
 					orderBy: { code: 'asc' },
-					limit: 10_000
+					all: true
 				})
-	);
-	const options = $derived(
-		(codesQuery?.current ?? []).map((code) => ({
-			value: code.id,
-			label: `${code.code} · ${code.name}`,
-			search_term: `${code.code} ${code.name}`
-		}))
 	);
 </script>
 
 <Combobox
-	ariaLabel={t('component.code')}
-	{options}
+	class="w-full min-w-0"
+	size="sm"
+	aria-label={t('component.code')}
+	placeholder={placeholder ?? t('roster.choose_roster_code')}
+	clearable
+	options={(codes.current ?? []).map((code) => ({
+		value: code.id,
+		label: `${code.code} · ${code.name}`
+	}))}
 	value={typeof value === 'string' && value !== '' ? value : null}
 	{disabled}
-	emptyPlaceholder={placeholder ?? t('roster.choose_roster_code')}
-	onValueChange={(id) => onValueChange(id ?? '')}
+	onChange={(next) => onValueChange(next ?? '')}
 />

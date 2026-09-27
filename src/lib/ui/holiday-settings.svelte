@@ -1,217 +1,111 @@
 <script lang="ts">
-	import { client } from '../workspace-client.js';
-	import { getErrorMessage } from '@norbital-ai/std/error';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	import { formatCalendarInstant } from './display-formatters.js';
-	import { Effect } from 'effect';
-	import { setContext } from 'svelte';
-	import { toast } from 'svelte-sonner';
-	import { HOLIDAY_COMPANY } from '../holiday-scope.js';
-	import { dayInstant } from '../iso-day.js';
-	import { holidayCompanyImportPayload } from '../holiday-workbook.js';
-	import { runWorkbookImport } from './workbook-import.js';
-	import { importCollectionRecords } from '@norbital-ai/bolt/client';
-	import type { WorkspaceRow } from '$bolt/types.js';
-
 	/**
 	 * One table, one entity, one year: the holidays themselves, each published on its own.
 	 *
 	 * Holidays belong to the employer, not the country — two entities in one jurisdiction keep
 	 * different calendars — so the table is entity-scoped and its Google source is the entity's.
-	 * The year is a scope rather than a filter: a calendar is maintained a year at a time, and a
-	 * table showing every year at once is a table nobody can check against a gazette. It is picked
-	 * in the table's navigation, like every other scope in the catalogues.
+	 * The year is a scope rather than a filter: a calendar is maintained a year at a time.
 	 *
-	 * Create, search and filter are the table's; publishing is a bulk operation over the rows a
-	 * person selected, and the spreadsheet import a pipeline — both go through the collection's own
-	 * import handler, so no write is made from the browser. The Google calendar set on the entity
-	 * comes through the same dedupe, so a day the entity already has is never duplicated. A holiday
-	 * a payroll run captured is frozen; unpublishing or deleting one is refused while a run holds
-	 * it, and the pinning work days are re-saved first otherwise. Published is the status column.
+	 * Publishing and unpublishing are updates of the rows a person selected; the spreadsheet import is
+	 * the collection's `import_workbook` action and the Google calendar the `holiday_import`
+	 * automation, both through the same dedupe, so a day the entity already has is never duplicated.
+	 * A holiday a payroll run captured is frozen: its collection refuses the change.
 	 */
-	let { company }: { company: WorkspaceRow<'companies'> } = $props();
-	const companyId = $derived(company.id);
-	const { t } = useI18n<TenantI18nKeys>();
-	// The create form opened from this table starts on this entity.
-	setContext(HOLIDAY_COMPANY, () => companyId);
+	import { t } from './t.js';
+	import type { Id } from '@norbital-ai/bolt';
+	import { Instant } from '@norbital-ai/std/date';
+	import { Combobox, Table } from '@norbital-ai/ui';
+	import { holidayCompanyImportPayload } from '../holiday-workbook.js';
+	import { formatCalendarDate } from './display-formatters.js';
+	import { runWorkbookImport } from './workbook-import.js';
 
+	let { company }: { company: { readonly id: Id<'companies'>; readonly name: string } } = $props();
 	const thisYear = new Date().getFullYear();
 	let year = $state(thisYear);
 	/** Three years back for corrections, next year for the calendar the Google import fills. */
-	const yearOptions = Array.from({ length: 5 }, (_, index) => {
-		const value = String(thisYear - 3 + index);
-		return { value, label: value };
-	});
-	/** The last Google import, held so its live progress and outcome stay beside the year. */
-	let latestRun = $state<
-		Awaited<ReturnType<typeof client.automations.holiday_import.run>> | undefined
-	>();
-	const yearRange = $derived({
-		start: dayInstant(`${year}-01-01`),
-		end: dayInstant(`${year}-12-31`)
-	});
-
-	type Holiday = WorkspaceRow<'jurisdiction_holidays'>;
-	/**
-	 * Publication for selected rows goes through the collection's import handler, which answers
-	 * with the rows to write; the toolbar's operations are the only writer this surface has.
-	 */
-	const publication = (rows: readonly Holiday[], published: boolean) =>
-		Effect.tryPromise({
-			try: () =>
-				importCollectionRecords({
-					records: [
-						{
-							collection: 'jurisdiction_holidays',
-							id: crypto.randomUUID(),
-							values: { publish: rows.map((row) => row.id), published }
-						}
-					]
-				}),
-			catch: (cause) => new Error(getErrorMessage(cause))
-		}).pipe(
-			Effect.tap((count) =>
-				Effect.sync(() =>
-					toast.success(
-						t(
-							published ? 'holiday_calendar.published_count' : 'holiday_calendar.unpublished_count',
-							{
-								count
-							}
-						)
-					)
-				)
-			)
-		);
-
-	/**
-	 * The vault's projection is a management command the tenant client does not carry, so the
-	 * refusal for want of the key is translated rather than pre-flighted.
-	 */
-	const keyUnset = (message: string): string =>
-		/GOOGLE_CALENDAR_API_KEY.*vault has no value/.test(message)
-			? t('holiday_import.configure_key')
-			: message;
+	const years = Array.from({ length: 5 }, (_, index) => thisYear - 3 + index);
+	let importing = $state(false);
+	async function importSpreadsheet() {
+		importing = true;
+		await runWorkbookImport({
+			action: 'jurisdiction_holidays.import_workbook',
+			recordLabel: t('app.settings.holidays').toLowerCase(),
+			buildPayload: holidayCompanyImportPayload(company.name),
+			importedCount: (_payload, output) => output.inserted
+		});
+		importing = false;
+	}
+	const publication = (published: boolean) => (ids: Id<'jurisdiction_holidays'>[]) =>
+		ids.map((id) => ({
+			target: id,
+			set: { published_at: published ? Instant(new Date()) : null }
+		}));
 </script>
 
-{#snippet yearScope()}
+{#snippet dayCell({ value }: { value: unknown })}{formatCalendarDate(value)}{/snippet}
+
+{#snippet yearPicker()}
 	<Combobox
-		options={yearOptions}
-		value={String(year)}
-		onValueChange={(next) => {
-			if (next != null) year = Number(next);
-		}}
-		allowClear={false}
-		preserveOptionOrder
-		ariaLabel={t('holiday_calendar.year')}
 		class="w-28"
+		size="sm"
+		aria-label={t('holiday_calendar.year')}
+		options={years.map((option) => ({ value: String(option), label: String(option) }))}
+		value={String(year)}
+		onChange={(next) => next != null && (year = Number(next))}
 	/>
-	{#if latestRun?.current?.status === 'failed'}
-		<span class="text-sm text-destructive" role="alert"
-			>{keyUnset(latestRun.current.error ?? '')}</span
-		>
-	{:else if latestRun != null}
-		<span class="text-sm text-muted-foreground" role="status"
-			>{latestRun.current?.progress?.text ?? t('holiday_import.started')}</span
-		>
-	{/if}
 {/snippet}
 
-<CollectionTable
-	{client}
-	collection="jurisdiction_holidays"
-	view="hr_controller:settings:holidays"
-	title={t('app.settings.holidays')}
-	description={t('holiday_calendar.description')}
-	navigation={yearScope}
-	query={{
-		where: {
-			company_id: { eq: companyId },
-			date: { gte: yearRange.start, lte: yearRange.end },
+<!-- the year is the toolbar's scope control; the imports are its actions (the Google run's progress shows under it) -->
+{#key year}
+	<Table
+		of="jurisdiction_holidays"
+		key={`holidays-${company.id}-${year}`}
+		toolbar={{
+			title: t('app.settings.holidays'),
+			controls: yearPicker,
+			actions: [
+				{
+					start: 'holiday_import',
+					input: () => ({ company_id: company.id, year }),
+					group: 'import',
+					icon: 'lucide:calendar-sync',
+					label: t('holiday_import.google'),
+					description: t('holiday_import.google_description')
+				},
+				{
+					run: importSpreadsheet,
+					group: 'import',
+					icon: 'lucide:file-spreadsheet',
+					label: t('holiday_import.spreadsheet'),
+					description: t('holiday_import.spreadsheet_description'),
+					disabled: () => (importing ? t('component.loading') : null)
+				},
+				{
+					action: 'jurisdiction_holidays.update',
+					input: publication(true),
+					label: t('holiday_calendar.publish_selected'),
+					requiresSelection: true
+				},
+				{
+					action: 'jurisdiction_holidays.update',
+					input: publication(false),
+					label: t('holiday_calendar.unpublish_selected'),
+					requiresSelection: true
+				}
+			]
+		}}
+		where={{
+			company_id: { eq: company.id },
+			date: { gte: `${year}-01-01`, lte: `${year}-12-31` },
 			approval_id: { isNull: true }
-		},
-		orderBy: { date: 'asc' }
-	}}
-	bulkPipelines={[
-		{
-			id: 'holidays-publish',
-			label: t('holiday_calendar.publish_selected'),
-			description: t('holiday_calendar.publish_selected_description'),
-			icon: 'lucide:calendar-check',
-			requiresSelection: true,
-			run: ({ selectedRows }) => publication(selectedRows, true)
-		},
-		{
-			id: 'holidays-unpublish',
-			label: t('holiday_calendar.unpublish_selected'),
-			description: t('holiday_calendar.unpublish_selected_description'),
-			icon: 'lucide:calendar-minus',
-			requiresSelection: true,
-			run: ({ selectedRows }) => publication(selectedRows, false)
-		}
-	]}
-	importPipelines={[
-		{
-			id: 'holidays-google',
-			label: t('holiday_import.google'),
-			description: t('holiday_import.google_description'),
-			icon: 'lucide:calendar-sync',
-			// Inline, not a script helper: a client write is a command at its call site.
-			run: () =>
-				Effect.tryPromise({
-					try: () => client.automations.holiday_import.run({ company_id: companyId, year }),
-					catch: (cause) => new Error(keyUnset(getErrorMessage(cause)))
-				}).pipe(
-					Effect.flatMap((run) => {
-						latestRun = run;
-						return run.current?.status === 'failed'
-							? Effect.fail(new Error(keyUnset(run.current.error ?? '')))
-							: Effect.void;
-					})
-				)
-		},
-		{
-			id: 'holidays-workbook',
-			label: t('holiday_import.spreadsheet'),
-			description: t('holiday_import.spreadsheet_description'),
-			icon: 'lucide:upload',
-			run: () =>
-				runWorkbookImport(
-					{
-						collectionName: 'jurisdiction_holidays',
-						recordLabel: t('app.settings.holidays').toLowerCase(),
-						buildPayload: (grids) => holidayCompanyImportPayload(company.name)(grids)
-					},
-					t
-				)
-		}
-	]}
->
-	{#snippet columns({ Column })}
-		<!-- Holiday days are payroll-zone midnights; the default day renderer reads them in UTC, a day early. -->
-		<Column
-			name="date"
-			label={t('component.observed_on')}
-			card="title"
-			renderer={FormattedValueRenderer}
-			rendererProps={{
-				format: ({ row }: { row: { date: unknown } }) => formatCalendarInstant(row.date)
-			}}
-		/>
-		<Column name="name" label={t('component.holiday')} card="subtitle" />
-		<Column name="kind" label={t('holiday_calendar.kind')} />
-		<Column
-			name="replaces"
-			label={t('holiday_calendar.replaces')}
-			renderer={FormattedValueRenderer}
-			rendererProps={{
-				format: ({ row }: { row: { replaces: unknown } }) => formatCalendarInstant(row.replaces)
-			}}
-		/>
-		<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
-	{/snippet}
-</CollectionTable>
+		}}
+		orderBy={{ date: 'asc' }}
+		columns={[
+			{ field: 'date', label: t('component.observed_on'), cell: dayCell },
+			{ field: 'name', label: t('component.holiday') },
+			{ field: 'kind', label: t('holiday_calendar.kind') },
+			{ field: 'replaces', label: t('holiday_calendar.replaces'), cell: dayCell },
+			{ field: 'published_at', label: t('holiday_calendar.published_at') }
+		]}
+	/>
+{/key}

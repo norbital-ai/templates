@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 
 function mixedFamilies() {
 	const world = createPublicPayrollWorld({ includePayment: true });
@@ -62,13 +61,11 @@ function mixedFamilies() {
 
 async function calculate(world: ReturnType<typeof mixedFamilies>) {
 	return buildPayrollRun(
-		await Effect.runPromise(
-			gatherPayrollRun({
-				api: memoryPayrollApi(world) as never,
-				companyId: COMPANY_ID,
-				period: '2026-01'
-			})
-		)
+		gatherPayrollRun({
+			world: payrollWorld(world) as never,
+			companyId: COMPANY_ID,
+			period: '2026-01'
+		})
 	);
 }
 
@@ -90,7 +87,7 @@ test('family preparation and calculation preserve mixed source capture and cross
 test('payroll orchestration does not read family-owned source tables or interpret calculation definitions', async () => {
 	for (const name of ['engine', 'gather', 'configuration']) {
 		const source = await readFile(
-			new URL(`../src/collections/payroll_runs/lib/${name}.ts`, import.meta.url),
+			new URL(`../src/lib/payroll/run/${name}.ts`, import.meta.url),
 			'utf8'
 		);
 		assert.doesNotMatch(

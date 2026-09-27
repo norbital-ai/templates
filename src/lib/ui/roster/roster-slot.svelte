@@ -16,10 +16,9 @@
 	window and the presence.
 -->
 <script lang="ts">
-	import { cn } from '@norbital-ai/ui/utils';
+	import { t, type MessageKey } from '../t.js';
+	import { cn } from '@norbital-ai/ui';
 	import { Bound, Imposter, Stack } from '@norbital-ai/ui/layout';
-	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import {
 		halfHoursLabel,
 		plannedExtraLabel,
@@ -33,7 +32,6 @@
 
 	let { day, dense = true }: { day: DayFacts | undefined; dense?: boolean } = $props();
 
-	const { t } = useI18n<TenantI18nKeys>();
 	const state = $derived(slotState(day));
 	const fill = $derived(slotFill(day));
 	const code = $derived(slotCode(day, dense));
@@ -57,7 +55,7 @@
 		WORK: 'text-foreground',
 		EXTRA_WORK: 'font-semibold text-foreground'
 	};
-	const stateLabelKey: Record<SlotState, TenantI18nKeys> = {
+	const stateLabelKey: Record<SlotState, MessageKey> = {
 		EMPTY: 'roster.before_employment',
 		UNROSTERED: 'roster.unrostered',
 		REST: 'roster.rest_day',

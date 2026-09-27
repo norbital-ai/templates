@@ -33,6 +33,8 @@ import {
 	assessStatutory,
 	buildStatutory,
 	chargeOf,
+	COMPANY_ID,
+	createStatutoryWorld,
 	expectStatutory,
 	expectStatutorySkipped,
 	settingsVersions,
@@ -40,18 +42,24 @@ import {
 } from './fixtures/statutory-world.ts';
 import { monthsAt, priorWages } from './fixtures/prior-wages.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 
 const OUT = { kind: 'NOT_REGISTERED' } as const;
 const LOCAL = { EPF_NON_CITIZEN: OUT };
 const FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
 
-const baseVersionId = () =>
-	settingsVersions('MY').find((v) => String(v.effective_range.start).startsWith('2025-12'))!.id;
+const versionIdOn = (date: string) =>
+	settingsVersions('MY').find(
+		(v) =>
+			String(v.effective_range.start).slice(0, 10) <= date &&
+			date < String(v.effective_range.end).slice(0, 10)
+	)!.id;
 
 /** Plant one ad hoc request of catalogue `code` for `key`, priced in the run's period. */
 function adhoc(world: PayrollWorld, key: string, code: string, amount: number, date: string) {
 	const row = world.adhoc_catalogue!.find(
-		(candidate) => candidate.code === code && candidate.settings_id === baseVersionId()
+		(candidate) => candidate.code === code && candidate.settings_id === versionIdOn(date)
 	)!;
 	const employment = world.employments.find((candidate) => candidate.employee_number === key)!;
 	world.adhoc_requests!.push({
@@ -73,7 +81,7 @@ function adhoc(world: PayrollWorld, key: string, code: string, amount: number, d
 // EPF — the Board's own worked examples (KWSP Employer Mandatory Contribution, 2025–2026)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-test('MY audit — EPF Parts A, C, E and F reproduce KWSP’s published worked examples', () => {
+test('MY audit — EPF Parts A, C, E examples and the specific Part F FAQ convention', () => {
 	const people: Person[] = [
 		// Example 1.1: citizen < 60, RM3,250.00 → Part A row "3,240.01 – 3,260.00".
 		{ key: 'A-3250', wage: 3250, citizenship: 'CITIZEN', registrations: LOCAL },
@@ -121,12 +129,9 @@ test('MY audit — EPF Parts A, C, E and F reproduce KWSP’s published worked e
 	assert.equal(c21.employee + c21.employer, 2444);
 	// 2.4: Part F, 2% × 3,250 = 65.00 each, total 130 (KWSP).
 	expectStatutory(book, 'F-3250', 'EPF_NON_CITIZEN', 65, 65);
-	// 2.4: 2% × 6,710 = 134.20 each, 268.40 → total rounded to the next ringgit, 269 (KWSP). Part F
-	// para 2 (Act A1760): "The total contribution which includes cents shall be rounded to the next
-	// ringgit." (KWSP's separate non-citizen FAQ rounds each share — RM1,751 → 36 + 36 = 72; the
-	// statute and the Board's own mandatory-contribution page round the total.)
-	const f67 = chargeOf(book, 'F-6710', 'EPF_NON_CITIZEN');
-	assert.equal(f67.employee + f67.employer, 269);
+	// Specific foreign-worker FAQ rounds each share; the general-page discrepancy is recorded
+	// in the tracker. 6,710 × 2% = 134.20 → 135 independently for employee and employer.
+	expectStatutory(book, 'F-6710', 'EPF_NON_CITIZEN', 135, 135);
 });
 
 test('MY audit — Third Schedule Part A note: a bonus that lifts a ≤RM5,000 wage over RM5,000 keeps the employer at 13%', () => {
@@ -284,6 +289,266 @@ test('MY audit — HRD levy bands at 4/5 and 9/10 Malaysian employees', () => {
 	assert.equal(chargeOf(mixed, 'C0', 'HRDF').employer, 15);
 });
 
+test('MY audit — only declared Malaysian citizens enter HRD headcount in both lineages', () => {
+	for (const code of ['MY', 'MY-nihon'] as const)
+		for (const [name, citizens, other, expectedLevy] of [
+			['nine plus permanent resident', 9, 'PERMANENT_RESIDENT', 15],
+			['nine plus foreigner', 9, 'FOREIGNER', null],
+			['nine plus unknown', 9, undefined, null],
+			['ten citizens', 10, 'CITIZEN', 30],
+			['four plus permanent resident', 4, 'PERMANENT_RESIDENT', 0]
+		] as const) {
+			const people: Person[] = Array.from({ length: citizens }, (_, index) => ({
+				key: `C${index}`,
+				wage: 3000,
+				citizenship: 'CITIZEN'
+			}));
+			if (name !== 'ten citizens') people.push({ key: 'OTHER', wage: 3000, citizenship: other });
+			const world = createStatutoryWorld({ code, period: '2026-01', people });
+			const prepared = gatherPayrollRun({
+				world: payrollWorld(world),
+				companyId: COMPANY_ID,
+				period: '2026-01'
+			});
+			assert.equal(prepared.gathered.headcountCitizens, citizens, `${code}: ${name}`);
+			if (expectedLevy == null) continue;
+			const slip = buildPayrollRun(prepared).payslip_payroll_run.find(
+				(row) => row.employment_id === world.employments[0]!.id
+			);
+			assert.equal(
+				slip?.statutory.find((row) => row.scheme_code === 'HRDF')?.employer_amount ?? 0,
+				expectedLevy,
+				`${code}: ${name} levy`
+			);
+		}
+});
+
+test('MY audit — HRD worker scope and missing-registration liability in every active version', () => {
+	for (const code of ['MY', 'MY-nihon'] as const)
+		for (const period of ['2025-12', '2026-01', '2026-06', '2026-08', '2028-06', '2031-06']) {
+			const people = (count: number, first: Partial<Person> = {}): Person[] =>
+				Array.from({ length: count }, (_, index) => ({
+					key: `C${index}`,
+					wage: 3000,
+					citizenship: 'CITIZEN',
+					registrations: LOCAL,
+					...(index === 0 ? first : {})
+				}));
+			for (const employment_type of ['PART_TIME', 'DOMESTIC']) {
+				const result = buildStatutory({ code, period, people: people(10, { employment_type }) });
+				assert.equal(
+					result.slips.get('C0')?.statutory.find((row) => row.scheme_code === 'HRDF'),
+					undefined,
+					`${code} ${period} ${employment_type} owes no HRD levy`
+				);
+			}
+			const mandatory = buildStatutory({
+				code,
+				period,
+				people: people(10, { registrations: { ...LOCAL, HRDF: OUT } }),
+				companyFacts: { hrd_registration_class: 'NOT_REGISTERED' }
+			});
+			assert.equal(
+				mandatory.slips.get('C0')?.statutory.find((row) => row.scheme_code === 'HRDF')
+					?.employer_amount,
+				30,
+				`${code} ${period} mandatory liability survives missing registration`
+			);
+			assert.ok(
+				mandatory.warnings.some((line) => line.includes('Employer HRD registration is incomplete'))
+			);
+			const optional = buildStatutory({
+				code,
+				period,
+				people: people(8, { registrations: { ...LOCAL, HRDF: OUT } }),
+				companyFacts: { hrd_registration_class: 'NOT_REGISTERED' }
+			});
+			assert.equal(
+				optional.slips.get('C0')?.statutory.find((row) => row.scheme_code === 'HRDF'),
+				undefined,
+				`${code} ${period} optional employer has not elected registration`
+			);
+			assert.ok(
+				!optional.warnings.some((line) => line.includes('Employer HRD registration is incomplete'))
+			);
+			const undeclared = buildStatutory({ code, period, people: people(8) }, (world) => {
+				const employeeId = world.employments.find(
+					(row) => row.employee_number === 'C0'
+				)!.employee_id;
+				const schemeIds = new Set(
+					world.statutory_contributions.filter((row) => row.code === 'HRDF').map((row) => row.id)
+				);
+				let removed = 0;
+				for (let index = world.employment_statutory_facts.length - 1; index >= 0; index--)
+					if (
+						world.employment_statutory_facts[index]!.employee_id === employeeId &&
+						schemeIds.has(world.employment_statutory_facts[index]!.statutory_contribution_id)
+					) {
+						world.employment_statutory_facts.splice(index, 1);
+						removed++;
+					}
+				assert.ok(removed > 0);
+			});
+			assert.equal(
+				undeclared.slips.get('C0')?.statutory.find((row) => row.scheme_code === 'HRDF')
+					?.employer_amount,
+				15,
+				`${code} ${period} employer registration governs despite absent worker fact`
+			);
+		}
+});
+
+test('MY audit — HRD employer class and rate history in every active version', () => {
+	for (const code of ['MY', 'MY-nihon'] as const)
+		for (const period of ['2025-12', '2026-01', '2026-06', '2026-08', '2028-06', '2031-06']) {
+			const year = Number(period.slice(0, 4));
+			for (const [name, companyFacts, expected] of [
+				[
+					'compulsory still at eight',
+					{ hrd_form2_count: 8, hrd_registration_class: 'COMPULSORY' },
+					30
+				],
+				[
+					'compulsory still at four',
+					{ hrd_form2_count: 4, hrd_registration_class: 'COMPULSORY' },
+					30
+				],
+				['optional at eight', { hrd_form2_count: 8, hrd_registration_class: 'OPTIONAL' }, 15],
+				[
+					'optional after ten this year',
+					{
+						hrd_form2_count: 8,
+						hrd_registration_class: 'OPTIONAL',
+						hrd_optional_last_high_year: year
+					},
+					30
+				],
+				[
+					'optional nine after ten this year',
+					{
+						hrd_form2_count: 9,
+						hrd_registration_class: 'OPTIONAL',
+						hrd_optional_last_high_year: year
+					},
+					30
+				],
+				[
+					'optional nine next January',
+					{
+						hrd_form2_count: 9,
+						hrd_registration_class: 'OPTIONAL',
+						hrd_optional_last_high_year: year - 1
+					},
+					15
+				],
+				[
+					'Part II NGO at twenty',
+					{ hrd_scope: 'PART_II_NGO', hrd_form2_count: 20, hrd_registration_class: 'OPTIONAL' },
+					15
+				],
+				[
+					'outside First Schedule',
+					{
+						hrd_scope: 'OUT_OF_SCOPE',
+						hrd_form2_count: 10,
+						hrd_registration_class: 'NOT_REGISTERED'
+					},
+					null
+				]
+			] as const) {
+				const result = buildStatutory({
+					code,
+					period,
+					people: [
+						{
+							key: 'C0',
+							wage: 3000,
+							citizenship: 'CITIZEN',
+							registrations: { ...LOCAL, HRDF: OUT }
+						}
+					],
+					companyFacts
+				});
+				assert.equal(
+					result.slips.get('C0')?.statutory.find((row) => row.scheme_code === 'HRDF')
+						?.employer_amount ?? null,
+					expected,
+					`${code} ${period}: ${name}`
+				);
+			}
+		}
+});
+
+test('MY audit — P.U. (A) 13/2026 exempts registered scheduled education employers in 2026', () => {
+	const scheduled = ['85102', '85104', '85212', '85222', '85302', '8541', '8542', '8549', '85500'];
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const charge = (
+			period: string,
+			companyFacts: Record<string, string | number>
+		): number | undefined =>
+			buildStatutory({
+				code,
+				period,
+				people: [
+					{ key: 'C0', wage: 3000, citizenship: 'CITIZEN', registrations: { ...LOCAL, HRDF: OUT } }
+				],
+				companyFacts: { hrd_form2_count: 10, hrd_registration_class: 'COMPULSORY', ...companyFacts }
+			})
+				.slips.get('C0')
+				?.statutory.find((row) => row.scheme_code === 'HRDF')?.employer_amount;
+		for (const hrd_education_schedule_code of scheduled)
+			for (const period of ['2026-01', '2026-06', '2026-08', '2026-12'])
+				assert.equal(
+					charge(period, { hrd_education_schedule_code }),
+					0,
+					`${code} ${period} ${hrd_education_schedule_code}`
+				);
+		assert.equal(
+			charge('2025-12', { hrd_education_schedule_code: '85102' }),
+			30,
+			`${code} before order`
+		);
+		assert.equal(
+			charge('2027-01', { hrd_education_schedule_code: '85102' }),
+			30,
+			`${code} after order`
+		);
+		assert.equal(
+			charge('2026-01', { hrd_education_schedule_code: 'NONE' }),
+			30,
+			`${code} unscheduled`
+		);
+		assert.equal(
+			charge('2026-01', {
+				hrd_education_schedule_code: '85102',
+				hrd_registration_class: 'NOT_REGISTERED'
+			}),
+			30,
+			`${code} unregistered employer`
+		);
+		assert.equal(
+			charge('2026-01', {
+				hrd_education_schedule_code: 'NONE',
+				hrd_scope: 'PART_II_NGO',
+				hrd_form2_count: 20,
+				hrd_registration_class: 'OPTIONAL'
+			}),
+			15,
+			`${code} non-education Part II employer`
+		);
+		assert.equal(
+			charge('2026-01', {
+				hrd_education_schedule_code: '85102',
+				hrd_scope: 'PART_II_NGO',
+				hrd_form2_count: 20,
+				hrd_registration_class: 'OPTIONAL'
+			}),
+			0,
+			`${code} registered education employer outside Part I`
+		);
+	}
+});
+
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // PCB / MTD 2026 — the RM400 rebate cliff at P = 35,000
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -378,12 +643,12 @@ test('MY audit — a retrenchment notice is never shorter than s.12(2) whatever 
 	// s.12(3): for a termination attributable to redundancy/closure the notice "shall be not less
 	// than that provided under paragraph (2)(a), (b) or (c) … regardless of anything to the contrary
 	// contained in the contract". A contract stating 14 days still owes 42.
-	// s.13(1) indemnity at the seed's monthly-wage-over-30 rate: 3,000 × 42 ÷ 30 = 4,200.00.
-	assert.equal(amountOf(separation('REDUNDANCY', 14, 'NOTICE_IN_LIEU'), 'NOTICE_IN_LIEU'), 4200);
-	// A contract notice longer than the statute stands: 60 days → 3,000 × 60 ÷ 30 = 6,000.00.
-	assert.equal(amountOf(separation('REDUNDANCY', 60, 'NOTICE_IN_LIEU'), 'NOTICE_IN_LIEU'), 6000);
-	// Outside s.12(3) the written contract term governs s.12(2): 14 days → 3,000 × 14 ÷ 30 = 1,400.00.
-	assert.equal(amountOf(separation('UNILATERAL', 14, 'NOTICE_IN_LIEU'), 'NOTICE_IN_LIEU'), 1400);
+	// No notice served: February's 28 days plus 14 March days, at constant monthly wages.
+	assert.equal(amountOf(separation('REDUNDANCY', 14, 'NOTICE_IN_LIEU'), 'NOTICE_IN_LIEU'), 4354.84);
+	// Sixty days from 1 February: all February and March, plus 1 April = 3,000 + 3,000 + 100.
+	assert.equal(amountOf(separation('REDUNDANCY', 60, 'NOTICE_IN_LIEU'), 'NOTICE_IN_LIEU'), 6100);
+	// Outside s.12(3), fourteen contractual days: 1–14 February = half February's wages.
+	assert.equal(amountOf(separation('UNILATERAL', 14, 'NOTICE_IN_LIEU'), 'NOTICE_IN_LIEU'), 1500);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -429,10 +694,14 @@ test('MY audit — a daily rate is measured against the Order’s rate for the p
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 test('MY audit — each version carries the obligation register, SKBBK rows only where the scheme stood', () => {
-	const [base, june, july] = settingsVersions('MY').map(
-		(version) => version.obligations as { code: string; status: string; authority: string }[]
-	);
-	for (const register of [base!, june!, july!]) {
+	const versions = settingsVersions('MY');
+	const obligations = (start: string) =>
+		versions.find((version) => String(version.effective_range.start).startsWith(start))!
+			.obligations as { code: string; status: string; authority: string }[];
+	const base = obligations('2025-12');
+	const june = obligations('2026-06');
+	const july = obligations('2026-07');
+	for (const register of versions.map((version) => version.obligations as typeof base)) {
 		const codes = register.map((row) => row.code);
 		assert.equal(new Set(codes).size, codes.length, 'codes unique');
 		for (const row of register) {

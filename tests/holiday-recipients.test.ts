@@ -9,7 +9,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveSchedule } from '../src/collections/payroll_runs/lib/schedule.ts';
+import { resolveSchedule } from '../src/lib/payroll/run/schedule.ts';
 
 const RANGE = { start: '2020-01-01T00:00:00.000Z', end: null };
 const WORK_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';

@@ -10,9 +10,9 @@
  * the payslip's base line and its proration segments are the whole record.
  */
 
-import { decodeNumber } from '@norbital-ai/std/json';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
-import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import { decodeNumber } from '../wire.js';
+import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
+import { isEligible, personContext } from '../../lib/payroll/run/eligibility.js';
 import { stint } from '../employment-contract.js';
 import {
 	contractAllowanceClass,
@@ -21,7 +21,7 @@ import {
 } from './contract-allowances.js';
 import { factStatusesOn, personFacts } from './facts.js';
 import { runtimeExpressionEngine } from '../expressions/evaluate.js';
-import type { CatalogueComponent } from '../../collections/payroll_runs/lib/configuration.js';
+import type { CatalogueComponent } from '../../lib/payroll/run/configuration.js';
 import type { FamilyStep, MeasureComponentOptions } from './family.js';
 import { entryContext, priceBand } from './money.js';
 import { measureContractSegments, termsAt } from './work.js';
@@ -62,8 +62,7 @@ export function prepareAllowanceSteps(
 		}
 	const prorates = configuration.jurisdiction.payroll.allowance_npl_prorates === true;
 	const engine = runtimeExpressionEngine({
-		minimumWage: (region) =>
-			decodeNumber(configuration.jurisdiction.work_rules.wages?.by_region?.[region] ?? 0)
+		minimumWage: (region) => configuration.jurisdiction.work_rules.wages?.by_region?.[region] ?? 0
 	});
 	return configuration.catalogueComponents
 		.filter((component) => listed.has(component))
@@ -115,7 +114,7 @@ export function prepareAllowanceSteps(
 						(entry) => contractAllowanceClass(configuration, entry.catalogue_id) === component
 					);
 					if (row == null) return 0;
-					const amount = decodeNumber(row.amount);
+					const amount = row.amount;
 					if (component.bands.length === 0) return amount;
 					const subject = subjectOn(terms);
 					const context = entryContext({

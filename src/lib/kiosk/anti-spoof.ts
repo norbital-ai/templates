@@ -34,7 +34,8 @@ export const antiSpoofPixels = (rgba: Uint8ClampedArray): Float32Array => {
 };
 
 export const loadAntiSpoof = async (): Promise<InferenceSession> => {
-	const base = new URL(/* @vite-ignore */ '../models/minifas/', import.meta.url);
+	// `assets/models/`: the model and the pinned ONNX Runtime Web WASM pair, served at `/assets/*` (§3.1)
+	const base = new URL('/assets/models/', location.origin);
 	env.wasm.numThreads = 1;
 	env.wasm.wasmPaths = {
 		wasm: new URL('ort-wasm-simd-threaded.wasm', base).href,
@@ -78,6 +79,7 @@ export const scoreAntiSpoof = async (
 		const result = await session.run({ crop27: inputs[0]!, crop4: inputs[1]! });
 		const probabilities = result.probabilities;
 		if (probabilities === undefined) throw new Error('Face model returned no probabilities.');
+		// repository-health:allow COERCE1 -- a tensor element (a float, or a bigint for an int tensor)
 		const score = Number(probabilities.data[1]);
 		for (const tensor of Object.values(result)) tensor.dispose();
 		return score;

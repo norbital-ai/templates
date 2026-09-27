@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import {
 	assessStatutory,
 	createStatutoryWorld,
@@ -10,40 +9,42 @@ import {
 	expectStatutorySkipped,
 	type Person
 } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { gatherPayrollRun, buildPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import registrations from '../src/collections/employment_statutory_facts/+collection.ts';
-import { transformOne } from './helpers/transform.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { gatherPayrollRun, buildPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import registrations from '../src/data/collection/employment_statutory_facts/+collection.ts';
+import { transform } from './helpers/bodies.ts';
 
 type Elections = NonNullable<NonNullable<Person['registrations']>[string]['elections']>;
 
-test('SG: saved scheme declarations preserve zero and reach payroll without accepting wrong types', () => {
+test('SG: saved scheme declarations preserve zero and reach payroll without accepting wrong types', async () => {
 	const scheme = contributionSchemes('SG').find((row) => row.code === 'CDAC')!;
-	const save = (elections: Elections) =>
-		transformOne(
-			registrations,
-			{
-				employee_id: 'a0000000-0000-4000-8000-000000000000',
-				employment_id: 'e0000000-0000-4000-8000-000000000000',
-				statutory_contribution_id: scheme.id,
-				status: { kind: 'REGISTERED', elections },
-				effective_range: { start: '2025-01-01', end: null }
-			},
-			undefined,
-			{
-				statutory_contributions: { findMany: () => Effect.succeed([scheme]) },
-				employments: {
-					findMany: () =>
-						Effect.succeed([
+	const save = async (elections: Elections) =>
+		(
+			await transform(
+				registrations,
+				[
+					{
+						employee_id: 'a0000000-0000-4000-8000-000000000000',
+						employment_id: 'e0000000-0000-4000-8000-000000000000',
+						statutory_contribution_id: scheme.id,
+						status: { kind: 'REGISTERED', elections },
+						effective_range: { from: '2025-01-01', to: null }
+					}
+				],
+				{
+					tables: {
+						statutory_contributions: [scheme],
+						employments: [
 							{
 								id: 'e0000000-0000-4000-8000-000000000000',
 								employee_id: 'a0000000-0000-4000-8000-000000000000'
 							}
-						])
+						]
+					}
 				}
-			}
-		);
-	const saved = save({ shg_monthly_amount: 0, shg_instruction_reference: 'FUND-NOTICE' });
+			)
+		)[0];
+	const saved = await save({ shg_monthly_amount: 0, shg_instruction_reference: 'FUND-NOTICE' });
 	assert.equal(saved.status.elections.shg_monthly_amount, 0);
 	const book = assessStatutory({
 		code: 'SG',
@@ -59,9 +60,9 @@ test('SG: saved scheme declarations preserve zero and reach payroll without acce
 		]
 	});
 	expectStatutory(book, 'SAVED', 'CDAC', 0, 0);
-	assert.throws(() => save({ shg_monthly_amount: '0' }), /number/);
-	assert.throws(() => save({ shg_monthly_amount: -1 }), /at least 0/);
-	assert.throws(() => save({ shg_unknown: true }), /does not declare|not declared/);
+	await assert.rejects(save({ shg_monthly_amount: '0' }), /number/);
+	await assert.rejects(save({ shg_monthly_amount: -1 }), /at least 0/);
+	await assert.rejects(save({ shg_unknown: true }), /does not declare|not declared/);
 });
 
 test('SG: the PR date is required and must fall between birth and the assessment date', () => {
@@ -339,9 +340,11 @@ for (const cutoff of ['FIRST', 'SPLIT', 'LAST'])
 		world.companies[0]!.semi_monthly_statutory_cutoff = cutoff;
 		const totals = { employee: 0, employer: 0, fund: 0 };
 		for (const period of ['2026-01-1', '2026-01-2']) {
-			const prepared = Effect.runSync(
-				gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-			);
+			const prepared = gatherPayrollRun({
+				world: payrollWorld(world),
+				companyId: COMPANY_ID,
+				period
+			});
 			const built = buildPayrollRun(prepared);
 			world.payroll_runs.push({
 				id: period,

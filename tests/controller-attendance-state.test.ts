@@ -56,13 +56,17 @@ test('footer labels name the pending write, not a generic Save', () => {
 	assert.equal(daySaveLabelKey('controller', 'changes'), 'roster.save_changes');
 	assert.equal(daySaveLabelKey('employee', 'attendance'), 'roster.save_punch');
 	assert.equal(daySaveLabelKey('employee', 'changes'), 'roster.save_punch');
-	const messages = JSON.parse(
-		readFileSync(fileURLToPath(new URL('../src/i18n/messages.en.json', import.meta.url)), 'utf8')
+	const messages = readFileSync(
+		fileURLToPath(new URL('../src/i18n/+messages.ts', import.meta.url)),
+		'utf8'
 	);
-	assert.equal(messages['roster.save_assignment'], 'Save assignment');
-	assert.equal(messages['roster.save_attendance'], 'Save attendance');
-	assert.equal(messages['roster.save_changes'], 'Save changes');
-	assert.equal(messages['roster.save_punch'], 'Save punch');
+	for (const [key, label] of [
+		['roster.save_assignment', 'Save assignment'],
+		['roster.save_attendance', 'Save attendance'],
+		['roster.save_changes', 'Save changes'],
+		['roster.save_punch', 'Save punch']
+	])
+		assert.ok(messages.includes(`'${key}': '${label}'`), key);
 });
 
 test('multiple, overnight and final-open intervals remain valid controller attendance shapes', () => {

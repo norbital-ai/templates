@@ -5,12 +5,12 @@
  * Every formatter parses defensively: a table cell must never throw on a row whose variant was
  * written by an older definition. There is no writing here — presentation only.
  */
-import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
-import { addDays } from '../../collections/payroll_runs/lib/dates.js';
-import { readRange } from '../../collections/payroll_runs/lib/effective.js';
+import { governed } from '../jurisdiction_settings.js';
+import { readRange } from '../../lib/payroll/run/effective.js';
 import { dateKey, PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../iso-day.js';
-import { decodeNumber } from '@norbital-ai/std/json';
+import { decodeNumber } from '../wire.js';
+import * as Predicate from 'effect/Predicate';
 
 const DECIMAL = new Intl.NumberFormat(undefined, {
 	minimumFractionDigits: 2,
@@ -53,7 +53,7 @@ export function formatDurationHours(value: unknown, t: Translator): string {
  * not the one ISO-string record shape.
  */
 function calendarDayFrom(value: unknown): string | null {
-	if (typeof value !== 'string') return null;
+	if (!Predicate.isString(value)) return null;
 	return /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
 }
 
@@ -118,35 +118,20 @@ export function formatTermsDates(
  * page itself computed as `YYYY-MM-DD` go through `formatCalendarDate` unchanged.
  */
 export function formatCalendarInstant(value: unknown, fallback = '—'): string {
-	if (typeof value !== 'string' || value === '') return fallback;
+	if (!Predicate.isString(value) || value === '') return fallback;
 	const at = new Date(value);
 	if (Number.isNaN(at.getTime())) return fallback;
 	return formatCalendarDate(calendarDateInTimeZone(at, PAYROLL_TIME_ZONE));
 }
 
-export function formatEffectiveRange(value: unknown): string {
-	if (value == null || typeof value !== 'object') return '—';
-	return `${formatCalendarInstant(Reflect.get(value, 'start'), '…')} → ${formatCalendarInstant(Reflect.get(value, 'end'), '∞')}`;
-}
-
 /**
- * A jurisdiction settings `effective_range` as the days it actually governs.
- *
- * Settings versions are read **half-open** — `[start, end)` — by `settingsInForce` and by the
- * database exclusion, so the stored `end` is the first day the successor governs, not the last day
- * this version does. Printing the stored bound unchanged made two adjacent snapshots read as if
- * both covered the seam day (SG_1 "01 Jan 2026 → 01 Apr 2026" beside SG_2 from 01 Apr 2026), so
- * this formatter prints the last governed day instead and renders the `9999-12-31` sentinel as an
- * open tail. `formatEffectiveRange` stays for the inclusive collections (terms, loans).
+ * A jurisdiction settings `effective_range` as the days it governs: `{ from, to }`, both inclusive, an open tail
+ * printed as open (`governed` also reads a bank row's half-open `{ start, end }`).
  */
 export function formatSettingsRange(value: unknown): string {
-	if (value == null || typeof value !== 'object') return '—';
-	const start = formatCalendarInstant(Reflect.get(value, 'start'), '…');
-	const end = Reflect.get(value, 'end');
-	if (typeof end !== 'string' || Number.isNaN(Date.parse(end))) return `${start} – open`;
-	const endDay = calendarDateInTimeZone(new Date(end), PAYROLL_TIME_ZONE);
-	if (endDay.startsWith('9999')) return `${start} – open`;
-	return `${start} – ${formatCalendarDate(addDays(endDay, -1))}`;
+	const days = governed(value);
+	if (days == null) return '—';
+	return `${formatCalendarDate(days.from)} – ${days.to == null ? 'open' : formatCalendarDate(days.to)}`;
 }
 
 /**
@@ -155,7 +140,7 @@ export function formatSettingsRange(value: unknown): string {
  * unchanged.
  */
 export function formatLeaveSummary(value: unknown, t: Translator): string {
-	if (typeof value !== 'string') return '—';
+	if (!Predicate.isString(value)) return '—';
 	const match = /^([A-Z_]+) · (\d{4}-\d{2}-\d{2})$/.exec(value);
 	if (match == null) return value;
 	const kinds = ['TIME_OFF', 'ENCASHMENT', 'CARRY_FORWARD', 'ADJUSTMENT', 'REVERSAL'] as const;

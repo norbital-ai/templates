@@ -8,11 +8,15 @@
  */
 
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
-import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
+import { roundMoney } from '../../lib/payroll/run/rounding.js';
+import { noticeDaysRemaining, noticeMonthlyWages, serviceYearsOn } from './notice-period.js';
 import {
 	childBornOn,
 	childCitizensUnder,
 	childClassed,
+	naturalSurvivingOn,
+	naturalSurvivingBefore,
+	naturalSurvivingConfinementsBefore,
 	childUnclassedUnder,
 	childUnder
 } from './child-under.js';
@@ -24,8 +28,10 @@ import {
 	birthday,
 	earnedMonthlyAverage,
 	leaveTaken,
+	serviceDaysBefore,
 	serviceMonthsNet
 } from './person-functions.js';
+import * as Predicate from 'effect/Predicate';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -39,24 +45,25 @@ import {
 export type ExpressionEngine = {
 	readonly minimumWage: (region: string) => number;
 	/** The signed total of one catalogue code this payslip, or 0 where the payslip has none. */
-	readonly code?: (code: string) => number;
-	readonly annualQuantityExempt?: (code: string, limit: number) => number;
-	readonly earnedQuantityExempt?: (code: string, limit: number) => number;
-	readonly earnedMonthlyExcess?: (code: string, limit: number) => number;
+	readonly code?: ((code: string) => number) | undefined;
+	readonly annualQuantityExempt?: ((code: string, limit: number) => number) | undefined;
+	readonly earnedQuantityExempt?: ((code: string, limit: number) => number) | undefined;
+	readonly earnedMonthlyExcess?: ((code: string, limit: number) => number) | undefined;
 	/** `earned_daily_excess(code, share)`: earlier months' payments over a per-day share of the floor then in force. */
-	readonly earnedDailyExcess?: (code: string, share: number) => number;
+	readonly earnedDailyExcess?: ((code: string, share: number) => number) | undefined;
 	/** `earned_average(code, months_back, months)`: a window of earlier payslips' earnings. */
-	readonly earnedAverage?: (code: string, monthsBack: number, months: number) => number;
+	readonly earnedAverage?:
+		((code: string, monthsBack: number, months: number) => number) | undefined;
 	/** `days_under(age)`: the pay window's days on which the person is under that age. */
-	readonly daysUnder?: (age: number) => number;
+	readonly daysUnder?: ((age: number) => number) | undefined;
 	/** Covered days on a thirty-day calendar; age 0 leaves coverage uncapped by age. */
-	readonly coverageDays30?: (since: string, age: number) => number;
+	readonly coverageDays30?: ((since: string, age: number) => number) | undefined;
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
 
 const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
-	['minimum_wage(string): double', (region) => Number(bound.minimumWage(String(region)))],
+	['minimum_wage(string): double', (region) => bound.minimumWage(String(region))],
 	[
 		'bracket(dyn, dyn, dyn): double',
 		(base, upTo, step) => {
@@ -98,6 +105,9 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.classed(string): int', childClassed],
 	['map.unclassed_under(int): int', childUnclassedUnder],
 	['map.born_on(string): int', childBornOn],
+	['map.natural_surviving_on(string): int', naturalSurvivingOn],
+	['map.natural_surviving_before(string): int', naturalSurvivingBefore],
+	['map.natural_surviving_confinements_before(string): int', naturalSurvivingConfinementsBefore],
 	['map.age_on(string): int', ageOn],
 	['map.birthday(int): string', birthday],
 	['map.age_months_on(string): int', ageMonthsOn],
@@ -108,41 +118,44 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.average_daily_wage(int, list, list): double', averageDailyWage],
 	['map.average_monthly_wage(int, list, list): double', averageMonthlyWage],
 	['map.service_months_net(list, dyn): int', serviceMonthsNet],
-	['days_under(int): double', (age) => Number(bound.daysUnder?.(Number(age)) ?? 0)],
+	['map.service_days_before(dyn, int): int', serviceDaysBefore],
+	['map.service_years_on(dyn): int', serviceYearsOn],
+	['map.notice_days_remaining(dyn, dyn, dyn): double', noticeDaysRemaining],
+	['map.notice_monthly_wages(dyn, dyn, dyn, dyn): double', noticeMonthlyWages],
+	['days_under(int): double', (age) => bound.daysUnder?.(Number(age)) ?? 0],
 	[
 		'coverage_days_30(string, int): double',
-		(since, age) => Number(bound.coverageDays30?.(String(since), Number(age)) ?? 0)
+		(since, age) => bound.coverageDays30?.(String(since), Number(age)) ?? 0
 	],
 	['map.days(string): double', () => 0],
 	[
 		'annual_quantity_exempt(string, dyn): double',
-		(code, limit) => Number(bound.annualQuantityExempt?.(String(code), Number(limit)) ?? 0)
+		(code, limit) => bound.annualQuantityExempt?.(String(code), Number(limit)) ?? 0
 	],
 	[
 		'earned_quantity_exempt(string, dyn): double',
-		(code, limit) => Number(bound.earnedQuantityExempt?.(String(code), Number(limit)) ?? 0)
+		(code, limit) => bound.earnedQuantityExempt?.(String(code), Number(limit)) ?? 0
 	],
 	[
 		'earned_monthly_excess(string, dyn): double',
-		(code, limit) => Number(bound.earnedMonthlyExcess?.(String(code), Number(limit)) ?? 0)
+		(code, limit) => bound.earnedMonthlyExcess?.(String(code), Number(limit)) ?? 0
 	],
 	[
 		'earned_daily_excess(string, dyn): double',
-		(code, limit) => Number(bound.earnedDailyExcess?.(String(code), Number(limit)) ?? 0)
+		(code, limit) => bound.earnedDailyExcess?.(String(code), Number(limit)) ?? 0
 	],
-	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
+	['code(string): double', (catalogueCode) => bound.code?.(String(catalogueCode)) ?? 0],
 	[
 		'earned_average(string, int, int): double',
 		(code, monthsBack, months) =>
-			Number(bound.earnedAverage?.(String(code), Number(monthsBack), Number(months)) ?? 0)
+			bound.earnedAverage?.(String(code), Number(monthsBack), Number(months)) ?? 0
 	],
 	[
 		'earned_average(list, int, int): double',
 		(codes, monthsBack, months) =>
 			(Array.isArray(codes) ? codes : []).reduce(
 				(sum: number, code) =>
-					sum +
-					Number(bound.earnedAverage?.(String(code), Number(monthsBack), Number(months)) ?? 0),
+					sum + (bound.earnedAverage?.(String(code), Number(monthsBack), Number(months)) ?? 0),
 				0
 			)
 	],
@@ -200,7 +213,7 @@ export function programFor(expression: string): ParseResult {
 function evaluateExpression(
 	engine: ExpressionEngine,
 	expression: string,
-	context: Record<string, unknown>
+	context: object
 ): unknown {
 	const program = programFor(expression);
 	const previous = bound;
@@ -215,7 +228,7 @@ function evaluateExpression(
 export function evaluateNumber(
 	engine: ExpressionEngine,
 	expression: string,
-	context: Record<string, unknown>
+	context: object
 ): number {
 	const value = evaluateExpression(engine, expression, context);
 	const number = Number(value);
@@ -228,10 +241,10 @@ export function evaluateNumber(
 export function evaluateBoolean(
 	engine: ExpressionEngine,
 	expression: string,
-	context: Record<string, unknown>
+	context: object
 ): boolean {
 	const value = evaluateExpression(engine, expression, context);
-	if (typeof value !== 'boolean')
+	if (!Predicate.isBoolean(value))
 		throw new Error(`The expression "${expression}" produced ${String(value)}, not a boolean.`);
 	return value;
 }

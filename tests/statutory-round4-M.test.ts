@@ -34,6 +34,7 @@ import {
 	COMPANY_ID,
 	expectStatutory,
 	leaveCatalogue,
+	settingsIdOn,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
@@ -115,7 +116,8 @@ test('TW round 4 — NHI subsidises the insured and each disabled dependant on t
 const PERSON = { key: 'TW-TOIL', wage: 60_000, citizenship: 'CITIZEN' } as const;
 /** The 2026 version (1 January 2026 onward) and its 補休 leave row. */
 const COMP = leaveCatalogue('TW').find(
-	(row) => row.code === 'COMPENSATORY_TIME_OFF' && row.settings_id.startsWith('1fcfa66f')
+	(row) =>
+		row.code === 'COMPENSATORY_TIME_OFF' && row.settings_id === settingsIdOn('TW', '2026-01-15')
 )!;
 
 const elect = (world: PayrollWorld, date: string, start: string, end: string) => {

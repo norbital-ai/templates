@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { computedEntitlement } from '../src/lib/leave/entitlement.ts';
 import { leaveRules } from '../src/lib/leave/context.ts';
 import { leaveBalanceSummaries } from '../src/lib/leave/summary.ts';

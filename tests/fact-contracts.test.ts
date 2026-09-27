@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect, Schema } from 'effect';
-import { factKeysValueSchema } from '../src/datatypes/fact_keys/+definition.ts';
-import companies from '../src/collections/companies/+collection.ts';
-import registrations from '../src/collections/employment_statutory_facts/+collection.ts';
-import settings from '../src/collections/jurisdiction_settings/+collection.ts';
+import { factKeysValueSchema } from '../src/lib/datatypes/fact_keys.ts';
+import companies from '../src/data/collection/companies/+collection.ts';
+import registrations from '../src/data/collection/employment_statutory_facts/+collection.ts';
+import settings from '../src/data/collection/jurisdiction_settings/+collection.ts';
 import { buildStatutory } from './fixtures/statutory-world.ts';
-import { transformOne } from './helpers/transform.ts';
+import { transform } from './helpers/bodies.ts';
+
+/** One input through a 0.0.1 transform over in-memory tables; its payload back. */
+const transformOne = async (collection, input, existing, tables) =>
+	(await transform(collection, [input], { existing: [existing], tables }))[0];
 import { schemeFault } from '../src/lib/catalogue_rules.ts';
 import { compileExpression } from '../src/lib/expressions/compile.ts';
 import { personFactsOn } from '../src/lib/payroll/facts.ts';
@@ -22,26 +26,24 @@ const count = {
 } as const;
 const decode = Schema.decodeUnknownSync(factKeysValueSchema);
 
-test('draft settings reject invalid entity conditions and seals include every scheme expression', () => {
-	const empty = { findMany: () => Effect.succeed([]) };
+test('draft settings reject invalid entity conditions and seals include every scheme expression', async () => {
 	const draft = {
 		id: 'draft',
 		code: 'TEST',
 		jurisdiction_code: 'SG',
 		payroll: { currency: 'SGD' },
-		effective_range: { start: '2026-01-01', end: null },
+		effective_range: { from: '2026-01-01', to: null },
 		facts: [],
 		sealed_at: null
 	};
 	for (const required_when of ['company.facts.typo > 0.0', 'company.facts.consent + 1.0'])
-		assert.throws(
-			() =>
-				transformOne(
-					settings,
-					{ ...draft, facts: [{ key: 'consent', type: 'boolean', required_when }] },
-					undefined,
-					{ jurisdiction_settings: empty }
-				),
+		await assert.rejects(
+			transformOne(
+				settings,
+				{ ...draft, facts: [{ key: 'consent', type: 'boolean', required_when }] },
+				undefined,
+				{}
+			),
 			/requirement:/
 		);
 	for (const extra of [
@@ -62,29 +64,21 @@ test('draft settings reject invalid entity conditions and seals include every sc
 			]
 		}
 	]) {
-		const db = {
-			jurisdiction_settings: empty,
-			allowance_catalogue: empty,
-			adhoc_catalogue: empty,
-			claim_catalogue: empty,
-			loan_catalogue: empty,
-			leave_catalogue: empty,
-			statutory_contributions: {
-				findMany: () =>
-					Effect.succeed([
-						{
-							settings_id: 'draft',
-							code: 'SCHEME',
-							assessed_on: 'BASE',
-							elections: [],
-							rules: [{ when: 'true', employee: '0.0', employer: '0.0' }],
-							...extra
-						}
-					])
-			}
+		const tables = {
+			statutory_contributions: [
+				{
+					settings_id: 'draft',
+					approval_id: null,
+					code: 'SCHEME',
+					assessed_on: 'BASE',
+					elections: [],
+					rules: [{ when: 'true', employee: '0.0', employer: '0.0' }],
+					...extra
+				}
+			]
 		};
-		assert.throws(
-			() => transformOne(settings, { sealed_at: '2026-01-01T00:00:00Z' }, draft, db),
+		await assert.rejects(
+			transformOne(settings, { sealed_at: '2026-01-01T00:00:00Z' }, draft, tables),
 			/company.facts.typo.*does not declare/
 		);
 	}
@@ -102,6 +96,7 @@ test('entity requirements follow declared conditions without confusing false wit
 				(world) => {
 					for (const version of world.jurisdiction_settings)
 						version.facts = [
+							...version.facts,
 							{ key: 'consent', type: 'boolean', required: true },
 							{
 								...count,
@@ -111,6 +106,7 @@ test('entity requirements follow declared conditions without confusing false wit
 							}
 						];
 					world.companies[0]!.facts = {
+						...world.companies[0]!.facts,
 						consent,
 						...(value === undefined ? {} : { declared_count: value })
 					};
@@ -237,35 +233,32 @@ test('entity conditions compile only against declared, correctly typed entity in
 		assert.notEqual(compile(expression), null);
 });
 
-const versions = [{ code: 'TEST', facts: [count], sealed_at: '2026-01-01', voided_at: null }];
-const companyDb = { jurisdiction_settings: { findMany: () => Effect.succeed(versions) } };
+const versions = [
+	{ code: 'TEST', facts: [count], sealed_at: '2026-01-01', voided_at: null, approval_id: null }
+];
+const companyTables = { jurisdiction_settings: versions };
 
-test('entity writes reject unknown keys and invalid values, while preserving an incomplete record', () => {
+test('entity writes reject unknown keys and invalid values, while preserving an incomplete record', async () => {
 	const write = (facts: Record<string, unknown>) =>
-		transformOne(companies, { settings_code: 'TEST', facts }, undefined, companyDb);
-	assert.doesNotThrow(() => write({}));
-	assert.doesNotThrow(() => write({ declared_count: 0 }));
-	assert.throws(() => write({ wrong_key: 0 }), /does not declare.*wrong_key/);
+		transformOne(companies, { settings_code: 'TEST', facts }, undefined, companyTables);
+	await write({});
+	await write({ declared_count: 0 });
+	await assert.rejects(write({ wrong_key: 0 }), /does not declare.*wrong_key/);
 	for (const value of ['0', -1, 0.5, 4])
-		assert.throws(() => write({ declared_count: value }), /Declared count/);
-	assert.throws(
-		() =>
-			transformOne(
-				companies,
-				{ settings_code: 'OTHER' },
-				{ settings_code: 'TEST', facts: { declared_count: 0 } },
-				companyDb
-			),
+		await assert.rejects(write({ declared_count: value }), /Declared count/);
+	await assert.rejects(
+		transformOne(
+			companies,
+			{ settings_code: 'OTHER' },
+			{ settings_code: 'TEST', facts: { declared_count: 0 } },
+			companyTables
+		),
 		/does not declare/
 	);
 });
 
-test('scheme declaration constraints are enforced on employee writes', () => {
-	const db = {
-		statutory_contributions: {
-			findMany: () => Effect.succeed([{ id: 'scheme', code: 'SCHEME', elections: [count] }])
-		}
-	};
+test('scheme declaration constraints are enforced on employee writes', async () => {
+	const db = { statutory_contributions: [{ id: 'scheme', code: 'SCHEME', elections: [count] }] };
 	const write = (elections: Record<string, unknown>) =>
 		transformOne(
 			registrations,
@@ -277,10 +270,10 @@ test('scheme declaration constraints are enforced on employee writes', () => {
 			undefined,
 			db
 		);
-	assert.doesNotThrow(() => write({}));
-	assert.doesNotThrow(() => write({ declared_count: 0 }));
+	await write({});
+	await write({ declared_count: 0 });
 	for (const value of [-1, 0.5, 4])
-		assert.throws(() => write({ declared_count: value }), /Declared count/);
+		await assert.rejects(write({ declared_count: value }), /Declared count/);
 });
 
 test('employment declarations override personal facts and never leak across employments', () => {
@@ -325,21 +318,16 @@ test('employment declarations override personal facts and never leak across empl
 	);
 });
 
-test('employment-scoped declarations require an employment owned by the employee', () => {
+test('employment-scoped declarations require an employment owned by the employee', async () => {
 	const db = {
-		statutory_contributions: {
-			findMany: () =>
-				Effect.succeed([
-					{
-						id: 'scheme',
-						code: 'SCHEME',
-						elections: [{ key: 'instruction', type: 'string', scope: 'EMPLOYMENT' }]
-					}
-				])
-		},
-		employments: {
-			findMany: () => Effect.succeed([{ id: 'employment', employee_id: 'employee' }])
-		}
+		statutory_contributions: [
+			{
+				id: 'scheme',
+				code: 'SCHEME',
+				elections: [{ key: 'instruction', type: 'string', scope: 'EMPLOYMENT' }]
+			}
+		],
+		employments: [{ id: 'employment', employee_id: 'employee' }]
 	};
 	const write = (employment_id?: string, employee_id = 'employee') =>
 		transformOne(
@@ -353,37 +341,32 @@ test('employment-scoped declarations require an employment owned by the employee
 			undefined,
 			db
 		);
-	assert.throws(() => write(), /requires a named employment/);
-	assert.throws(() => write('employment', 'someone-else'), /must belong to this employee/);
-	assert.doesNotThrow(() =>
-		transformOne(
-			registrations,
-			{
-				employee_id: 'employee',
-				employment_id: 'employment',
-				statutory_contribution_id: 'scheme',
-				status: { kind: 'REGISTERED', elections: { instruction: 'NOTICE' } }
-			},
-			undefined,
-			db
-		)
+	await assert.rejects(write(), /requires a named employment/);
+	await assert.rejects(write('employment', 'someone-else'), /must belong to this employee/);
+	await transformOne(
+		registrations,
+		{
+			employee_id: 'employee',
+			employment_id: 'employment',
+			statutory_contribution_id: 'scheme',
+			status: { kind: 'REGISTERED', elections: { instruction: 'NOTICE' } }
+		},
+		undefined,
+		db
 	);
 });
 
-test('departure levy declarations require a journey reference on write', () => {
+test('departure levy declarations require a journey reference on write', async () => {
 	const db = {
-		statutory_contributions: {
-			findMany: () =>
-				Effect.succeed([
-					{
-						id: 'scheme',
-						code: 'PCB',
-						elections: [],
-						assessed_on: 'scheme.deductions.DEPARTURE_LEVY',
-						rules: []
-					}
-				])
-		}
+		statutory_contributions: [
+			{
+				id: 'scheme',
+				code: 'PCB',
+				elections: [],
+				assessed_on: 'scheme.deductions.DEPARTURE_LEVY',
+				rules: []
+			}
+		]
 	};
 	const write = (event_reference?: string) =>
 		transformOne(
@@ -410,9 +393,9 @@ test('departure levy declarations require a journey reference on write', () => {
 			undefined,
 			db
 		);
-	assert.throws(() => write(), /journey reference/);
-	assert.throws(() => write('  '), /journey reference/);
-	assert.doesNotThrow(() => write('TRIP-001'));
+	await assert.rejects(write(), /journey reference/);
+	await assert.rejects(write('  '), /journey reference/);
+	await write('TRIP-001');
 });
 
 test('payroll validates entity facts before absent values become numeric or boolean defaults', () => {
@@ -427,8 +410,9 @@ test('payroll validates entity facts before absent values become numeric or bool
 				buildStatutory(
 					{ code: 'SG', period: '2026-01', people: [{ key: 'INPUT', wage: 3000 }] },
 					(world) => {
-						for (const version of world.jurisdiction_settings) version.facts = [count];
-						world.companies[0]!.facts = facts;
+						for (const version of world.jurisdiction_settings)
+							version.facts = [...version.facts, count];
+						world.companies[0]!.facts = { ...world.companies[0]!.facts, ...facts };
 					}
 				),
 			/Declared count/
@@ -439,8 +423,16 @@ test('payroll validates entity facts before absent values become numeric or bool
 			{ code: 'SG', period: '2026-01', people: [{ key: 'INPUT', wage: 3000 }] },
 			(world) => {
 				for (const version of world.jurisdiction_settings)
-					version.facts = [count, { key: 'consent', type: 'boolean', required: true }];
-				world.companies[0]!.facts = { declared_count: 0, consent: false };
+					version.facts = [
+						...version.facts,
+						count,
+						{ key: 'consent', type: 'boolean', required: true }
+					];
+				world.companies[0]!.facts = {
+					...world.companies[0]!.facts,
+					declared_count: 0,
+					consent: false
+				};
 			}
 		)
 	);
@@ -508,4 +500,21 @@ test('a configured statutory default reaches the formula without replacing expli
 			expected
 		);
 	}
+});
+
+test('every seed scheme declares its election keys validly (a bad declaration blocks cloning current law)', async () => {
+	const { readdirSync, readFileSync, existsSync } = await import('node:fs');
+	const faults: string[] = [];
+	for (const code of readdirSync('seed/jurisdiction')) {
+		const path = `seed/jurisdiction/${code}/statutory_contributions.json`;
+		if (!existsSync(path)) continue;
+		for (const scheme of JSON.parse(readFileSync(path, 'utf8')) as {
+			code: string;
+			elections?: unknown;
+		}[]) {
+			const decoded = Schema.decodeUnknownExit(factKeysValueSchema)(scheme.elections ?? []);
+			if (decoded._tag === 'Failure') faults.push(`${code} ${scheme.code}`);
+		}
+	}
+	assert.deepEqual([...new Set(faults)], []);
 });

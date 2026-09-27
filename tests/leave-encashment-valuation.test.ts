@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect, Schema } from 'effect';
 import { createStatutoryWorld, COMPANY_ID, leaveCatalogue } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { addUnpaidWorkingDays } from './fixtures/unpaid-leave.ts';
-import { gatherPayrollRun, buildPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { gatherPayrollRun, buildPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { leaveEncashmentRate } from '../src/lib/leave/encashment-rate.ts';
-import { workRulesValueSchema } from '../src/datatypes/work_rules/+definition.ts';
+import { workRulesValueSchema } from '../src/lib/datatypes/work_rules.ts';
 
 const id = (n: number) => `a1000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 function cashWorld(
@@ -67,7 +67,8 @@ function recordNormalWages(world: ReturnType<typeof cashWorld>, month: string, v
 			id: `${id(900).slice(0, -6)}${month.replace('-', '')}`,
 			employment_id: world.employments[0]!.id,
 			period: { start: `${month}-01`, end },
-			normal_wages: { currency: 'TWD', value },
+			currency: 'TWD',
+			normal_wages: value,
 			ordinary_wages: null,
 			ordinary_days: null,
 			due_on: end,
@@ -78,9 +79,7 @@ function recordNormalWages(world: ReturnType<typeof cashWorld>, month: string, v
 	];
 }
 function payslip(world: ReturnType<typeof cashWorld>, period = '2026-06') {
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-	);
+	const prepared = gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period });
 	return buildPayrollRun(prepared).payslip_payroll_run[0]!;
 }
 function amount(world: ReturnType<typeof cashWorld>, period = '2026-06') {
@@ -90,9 +89,7 @@ function amount(world: ReturnType<typeof cashWorld>, period = '2026-06') {
 }
 
 function dailyRate(world: ReturnType<typeof cashWorld>, period: string) {
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
-	);
+	const prepared = gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period });
 	const bundle = prepared.gathered.bundles[0]!;
 	return leaveEncashmentRate({
 		bundle,
@@ -114,13 +111,15 @@ for (const [conversion, referenceMonth, expected] of [
 			...old,
 			id: id(301),
 			effective_range: { start: '2026-07-01', end: '2026-07-31' },
-			base_salary: { currency: 'TWD', value: 60_000 }
+			base_salary: 60_000,
+			currency: 'TWD'
 		} as never);
 		world.employment_terms.push({
 			...old,
 			id: id(302),
 			effective_range: { start: '2026-08-01', end: null },
-			base_salary: { currency: 'TWD', value: 90_000 }
+			base_salary: 90_000,
+			currency: 'TWD'
 		} as never);
 		// No earlier payslip stands in this world, so the months are recorded: June 30,000 (due
 		// 30 June), July 60,000 (due 31 July). 20 July reads June (30,000 / 30 = 1,000); 1 August
@@ -138,13 +137,15 @@ test('TW: carried leave preserves December normal wages when a raise began in De
 		...old,
 		id: id(303),
 		effective_range: { start: '2025-12-01', end: '2025-12-31' },
-		base_salary: { currency: 'TWD', value: 60_000 }
+		base_salary: 60_000,
+		currency: 'TWD'
 	} as never);
 	world.employment_terms.push({
 		...old,
 		id: id(304),
 		effective_range: { start: '2026-01-01', end: null },
-		base_salary: { currency: 'TWD', value: 90_000 }
+		base_salary: 90_000,
+		currency: 'TWD'
 	} as never);
 	world.leave_entries[0]!.from_date = '2025-01-01';
 	world.leave_entries[0]!.to_date = '2025-12-31';
@@ -164,7 +165,8 @@ for (const frequency of ['DAILY', 'HOURLY'] as const)
 			...old,
 			id: id(305),
 			effective_range: { start: '2026-07-20', end: null },
-			base_salary: { currency: 'TWD', value: frequency === 'DAILY' ? 1_600 : 400 }
+			base_salary: frequency === 'DAILY' ? 1_600 : 400,
+			currency: 'TWD'
 		} as never);
 		assert.equal(dailyRate(world, '2026-07'), 800);
 	});
@@ -184,7 +186,8 @@ for (const changed of ['salary', 'allowance'] as const)
 			...old,
 			id: id(306),
 			effective_range: { start: '2026-06-16', end: null },
-			base_salary: { currency: 'TWD', value: changed === 'salary' ? 60_000 : 30_000 }
+			base_salary: changed === 'salary' ? 60_000 : 30_000,
+			currency: 'TWD'
 		};
 		if (changed === 'allowance') {
 			for (const version of world.jurisdiction_settings)
@@ -253,6 +256,7 @@ test('delayed cash-out validates entity declarations under the conversion-date v
 	for (const version of world.jurisdiction_settings) {
 		const prior = String(version.effective_range.start).slice(0, 10) < '2026-01-01';
 		version.facts = [
+			...version.facts,
 			{
 				key: 'conversion_declaration',
 				type: 'number',
@@ -263,11 +267,11 @@ test('delayed cash-out validates entity declarations under the conversion-date v
 			}
 		];
 	}
-	world.companies[0]!.facts = {};
+	world.companies[0]!.facts = { ...world.companies[0]!.facts };
 	assert.throws(() => amount(world), /Conversion declaration is required/);
-	world.companies[0]!.facts = { conversion_declaration: 0 };
+	world.companies[0]!.facts = { ...world.companies[0]!.facts, conversion_declaration: 0 };
 	assert.throws(() => amount(world), /Conversion declaration must be at least 1/);
-	world.companies[0]!.facts = { conversion_declaration: 1 };
+	world.companies[0]!.facts = { ...world.companies[0]!.facts, conversion_declaration: 1 };
 	assert.equal(amount(world), 207.69);
 });
 
@@ -303,7 +307,8 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			...old,
 			id: id(5),
 			effective_range: { start: '2026-07-01', end: null },
-			base_salary: { currency: 'MYR', value: 1202 },
+			base_salary: 1202,
+			currency: 'MYR',
 			allowances: [{ ...old.allowances[0]!, amount: 520 }]
 		} as never);
 		old.effective_range = { start: '2000-01-01', end: '2026-06-30' };
@@ -355,9 +360,11 @@ test('MY: TP1 relief applies to normal and additional remuneration when unused l
 				}
 			];
 	}
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-01'
+	});
 	const slip = buildPayrollRun(prepared).payslip_payroll_run[0]!;
 	assert.equal(
 		slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')!.amount,
@@ -380,7 +387,8 @@ test('a later payment uses conversion-date terms, not the settlement month salar
 		...old,
 		id: id(2),
 		effective_range: { start: '2026-06-01', end: null },
-		base_salary: { currency: 'SGD', value: 6000 }
+		base_salary: 6000,
+		currency: 'SGD'
 	} as never);
 	old.effective_range = { start: '2000-01-01', end: '2026-05-31T23:59:59.999Z' };
 	assert.equal(amount(world), 207.69);
@@ -439,7 +447,8 @@ test('VN uses May contract salary and May normal working days for a June exit', 
 		...old,
 		id: id(3),
 		effective_range: { start: '2026-06-01', end: null },
-		base_salary: { currency: 'VND', value: 44000000 }
+		base_salary: 44000000,
+		currency: 'VND'
 	} as never);
 	old.effective_range = { start: '2000-01-01', end: '2026-05-31T23:59:59.999Z' };
 	// May 2026 has 21 Monday–Friday days. 22,000,000 / 21 × 1.5 = 1,571,428.571… đồng.
@@ -467,7 +476,8 @@ test('TW carried leave retains the original year-end salary despite a later incr
 		...old,
 		id: id(4),
 		effective_range: { start: '2026-01-01', end: null },
-		base_salary: { currency: 'TWD', value: 60_000 }
+		base_salary: 60_000,
+		currency: 'TWD'
 	} as never);
 	old.effective_range = { start: '2000-01-01', end: '2025-12-31T23:59:59.999Z' };
 	world.leave_entries[0]!.from_date = '2025-01-01';
@@ -485,7 +495,8 @@ test('TW current-year cash-out separates carried credit from current entitlement
 		...old,
 		id: id(5),
 		effective_range: { start: '2026-01-01', end: null },
-		base_salary: { currency: 'TWD', value: 60_000 }
+		base_salary: 60_000,
+		currency: 'TWD'
 	} as never);
 	old.effective_range = { start: '2000-01-01', end: '2025-12-31T23:59:59.999Z' };
 	const entry = world.leave_entries[0]!;
@@ -543,9 +554,11 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 		const world = cashWorld(code, 5001, '2026-01-20', '2026-01');
 		world.leave_entries[0]!.days = 0.5;
 		world.leave_entries[0]!.encash_days = 0.5;
-		const prepared = Effect.runSync(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-		);
+		const prepared = gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period: '2026-01'
+		});
 		const slip = buildPayrollRun(prepared).payslip_payroll_run[0]!;
 		assert.equal(
 			slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')!.amount,

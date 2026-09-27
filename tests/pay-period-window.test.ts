@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { defaultPayPeriod, payPeriodWindow } from '../src/collections/payroll_runs/lib/period.ts';
+import { defaultPayPeriod, payPeriodWindow } from '../src/lib/payroll/run/period.ts';
 
 test('the pay-period window is the inverse of the default cutoff rule', () => {
 	// The cutoff day opens the window, for entries as for attendance: Nihon's 21st.

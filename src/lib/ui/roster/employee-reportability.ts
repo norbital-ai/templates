@@ -29,7 +29,7 @@ export function employeeMissingPunchReportable(
 	if (day.date > today) return false;
 	if (pendingDates.has(day.date)) return false;
 	if (day.attendanceState !== null) return false;
-	if (day.workDayId != null && settledWorkDayIds.has(day.workDayId)) return false;
+	if (settledWorkDayIds.has(day.workDayId)) return false;
 	if (day.leaveCode != null && !day.halfDayLeave) return false;
 	return true;
 }

@@ -45,9 +45,10 @@ test('opposite halves coexist in a batch but repeated halves are refused', () =>
 	const first = before(context, inputs, 0);
 	assert.equal(first.charges[0]?.days, 0.5);
 	assert.equal(before(context, inputs, 1).charges[0]?.days, 0.5);
-	// The planned row carries its day columns in stored form, whatever day the editor sent.
-	assert.equal(first.from_date, '2026-04-01T00:00:00.000Z');
-	assert.equal(first.to_date, '2026-04-01T00:00:00.000Z');
+	// A `date` column stores the calendar day itself, and the planner derives the stored activity.
+	assert.equal(first.from_date, '2026-04-01');
+	assert.equal(first.to_date, '2026-04-01');
+	assert.equal(first.activity, 'TIME_OFF');
 	assert.throws(() => before(context, [inputs[0]!, submission(half('FIRST'), 'B')]), /overlaps/);
 });
 

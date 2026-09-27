@@ -15,15 +15,14 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import {
 	createPublicPayrollWorld,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	JURISDICTION_ID
 } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { clearAllowances } from './fixtures/contract-allowances.ts';
 
 const NEW_SETTINGS_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0001';
@@ -177,13 +176,11 @@ function loanWorld(options: LoanWorldOptions = {}) {
 
 const build = async (world) =>
 	buildPayrollRun(
-		await Effect.runPromise(
-			gatherPayrollRun({
-				api: memoryPayrollApi(world) as never,
-				companyId: COMPANY_ID,
-				period: '2026-02'
-			})
-		)
+		gatherPayrollRun({
+			world: payrollWorld(world) as never,
+			companyId: COMPANY_ID,
+			period: '2026-02'
+		})
 	);
 
 const recoveryOf = (slip) => slip.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
@@ -228,6 +225,11 @@ test('an instalment that is not yet due is not recovered early', async () => {
 
 test('an instalment an earlier paid run settled in full is recovered no further', async () => {
 	const result = await build(loanWorld({ alreadyRecovered: true }));
+	assert.equal(recoveryOf(result.payslip_payroll_run[0]), undefined);
+});
+
+test('a fully repaid loan may retire its catalogue code without blocking payroll', async () => {
+	const result = await build(loanWorld({ alreadyRecovered: true, currentCode: 'REPLACEMENT' }));
 	assert.equal(recoveryOf(result.payslip_payroll_run[0]), undefined);
 });
 

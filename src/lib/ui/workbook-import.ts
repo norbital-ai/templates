@@ -1,201 +1,90 @@
-/**
- * The browser half of a collection import: choose a file, read it, post the JSON, report the answer.
- *
- * It hangs off the same collection actions menu as the exports — `importPipelines` on
- * `CollectionTable`, beside `exportPipelines` — so the operator sends a file back through the
- * button they downloaded one from.
- *
- * ────────────────────────────────────────────────────────────────────────────────────────────────
- * WHY THE FILE IS PARSED HERE AND NOT ON THE SERVER.
- *
- * `import_data` is arbitrary structured JSON: the platform hands the pipeline whatever the caller
- * posted, and never opens a spreadsheet. So the workbook is read in the browser and the pipeline is
- * given rows. That split is also why the pipeline stays the only place that resolves anything —
- * employee numbers, shift codes, holidays and timezones are the server's, checked against the
- * company the records belong to, not against whatever this browser happens to have loaded.
- * ────────────────────────────────────────────────────────────────────────────────────────────────
- */
-
-import { getErrorMessage, toError } from '@norbital-ai/std';
-import { Effect } from 'effect';
+import type { ActInput, ActOutput, Callable } from '@norbital-ai/bolt';
+import { bolt } from '$bolt';
+import { t } from './t.js';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import { importCollectionRecords } from '@norbital-ai/bolt/client';
 import { toast } from 'svelte-sonner';
-import type { Translator } from './roster/roster-month.js';
 import {
 	csvGrid,
 	workbookGrids,
 	WorkbookImportError,
 	type WorkbookGrids
 } from '../workbook-rows.js';
-import { importPayloadFromGrids } from './workbook-import-payload.js';
+import { getErrorMessage } from '../refuse.js';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv';
 const FAILURE_TOAST_MS = 20_000;
 
-/**
- * Opens the operator's file picker and resolves with their choice, or nothing if they cancelled.
- *
- * The input is never attached to the page. A hidden control in the layout would be one more thing
- * that can be left behind by an unmounted table; this one lives exactly as long as the question.
- */
-function pickWorkbookFile(t: Translator): Effect.Effect<File | null, Error> {
-	if (typeof document === 'undefined') {
-		return Effect.fail(new Error(t('component.workbook_browser_only')));
-	}
-	return Effect.callback((resume) => {
+/** A file the operator picks, or null when they dismiss the dialog. */
+function pickWorkbookFile(): Promise<File | null> {
+	return new Promise((resolve) => {
 		const input = document.createElement('input');
 		input.type = 'file';
 		input.accept = ACCEPTED_FILE_TYPES;
-		let settled = false;
-		const finish = (file: File | null): void => {
-			if (settled) return;
-			settled = true;
-			resume(Effect.succeed(file));
-		};
-		input.addEventListener('change', () => finish(input.files?.[0] ?? null), { once: true });
-		// Dismissing the dialog fires `cancel`; without it a cancelled run would hang on this promise
-		// and leave the pipeline's button spinning until the page was reloaded.
-		input.addEventListener('cancel', () => finish(null), { once: true });
+		input.addEventListener('change', () => resolve(input.files?.[0] ?? null), { once: true });
+		// Dismissing the dialog fires `cancel`; without it a cancelled import would never settle.
+		input.addEventListener('cancel', () => resolve(null), { once: true });
 		input.click();
 	});
 }
 
-/**
- * Every sheet in the chosen file, as grids of plain values.
- *
- * ExcelJS's browser distribution is the one the payroll workbook is already written with, so
- * reading costs no new dependency. A CSV has one sheet and no name of its own, so it takes the
- * file's — `requireSheet` accepts a single-sheet file under any name.
- */
-function readWorkbookGrids(file: File, t: Translator) {
-	if (file.name.toLowerCase().endsWith('.csv')) {
-		return Effect.tryPromise({ try: () => file.text(), catch: toError }).pipe(
-			Effect.map((text) => new Map([[file.name, csvGrid(text)]]))
-		);
+async function readWorkbookGrids(file: File): Promise<WorkbookGrids> {
+	if (file.name.toLowerCase().endsWith('.csv'))
+		return new Map([[file.name, csvGrid(await file.text())]]);
+	const workbook = new ExcelJSBrowser.Workbook();
+	try {
+		await workbook.xlsx.load(await file.arrayBuffer());
+	} catch (cause) {
+		throw new WorkbookImportError(t('component.workbook_not_spreadsheet', { file: file.name }), [
+			t('component.workbook_save_as'),
+			getErrorMessage(cause)
+		]);
 	}
-	return Effect.gen(function* () {
-		const workbook = new ExcelJSBrowser.Workbook();
-		const refusal = (cause: unknown): WorkbookImportError =>
-			new WorkbookImportError(t('component.workbook_not_spreadsheet', { file: file.name }), [
-				t('component.workbook_save_as'),
-				getErrorMessage(cause)
-			]);
-		const buffer = yield* Effect.tryPromise({
-			try: () => file.arrayBuffer(),
-			catch: refusal
-		});
-		yield* Effect.tryPromise({
-			try: () => workbook.xlsx.load(buffer),
-			catch: refusal
-		});
-		return workbookGrids(workbook);
-	});
+	return workbookGrids(workbook);
 }
 
 /**
- * Shows a refusal as its headline and the rows it names.
- *
- * Both halves of the import refuse the same way: the reader lists the cells it could not read, and
- * the pipeline lists the rows the company's own records contradict. Either arrives as a headline
- * followed by a bulleted list, so the first line becomes the toast and the rest its detail rather
- * than one unreadable run of text.
+ * The spreadsheet import every page shares: the operator picks an XLSX or CSV, the page reads it into the action's
+ * input in the browser, and one act writes it (or refuses it whole, naming the rows). Every problem is a toast whose
+ * first line is the headline and the rest its detail.
  */
-function reportImportFailure(fallbackHeadline: string, error: unknown, t: Translator): void {
-	const message = getErrorMessage(error);
-	const [headline = '', ...detail] = message.split('\n');
-	toast.error(headline.trim() === '' ? fallbackHeadline : headline.trim(), {
-		description: detail.join('\n').trim() || undefined,
-		descriptionClass: 'whitespace-pre-line',
-		duration: FAILURE_TOAST_MS
-	});
-}
-
-interface WorkbookImportOptions<Payload extends object = object> {
-	readonly collectionName: string;
-	/** Names the thing being imported in the toasts: "roster rows", "time entries". */
+export async function runWorkbookImport<const A extends string>(options: {
+	/** The collection action that takes the payload (`jurisdiction_holidays.import_workbook`, `work_days.import_month`). */
+	readonly action: A extends Callable ? A : Callable;
 	readonly recordLabel: string;
-	/**
-	 * Turns the chosen file into the JSON this collection's import pipeline declares.
-	 *
-	 * `object` rather than `Record<string, unknown>`: the payload builders return declared interfaces
-	 * (`RosterImportPayload`, `TimeEntryImportPayload`), and an interface has no implicit index
-	 * signature, so naming the record type here would reject the very functions this exists for. The
-	 * widening to a record happens once, below, where the payload becomes a wire value.
-	 */
-	buildPayload(grids: WorkbookGrids): Payload;
-	/**
-	 * The rows the import wrote, read off the file. `collections.import` counts only the rows a
-	 * pipeline returns for the host to create; a pipeline that writes its own updates (the work
-	 * days' restated month) states its count here instead.
-	 */
-	importedCount?(payload: Payload): number;
-	/** Runs once the import has landed: the place a caller warns about what it wrote. */
-	afterImport?(payload: Payload): void;
-}
-
-/**
- * Runs one import end to end and reports it.
- *
- * Failures are shown here rather than rethrown. `CollectionTable` catches what a pipeline throws
- * and toasts `error.message`, which for these refusals is a headline and a bulleted list of rows
- * collapsed into a single line — so this handles its own and hands the caller a quiet return.
- */
-export function runWorkbookImport<Payload extends object>(
-	options: WorkbookImportOptions<Payload>,
-	t: Translator
-) {
-	return Effect.gen(function* () {
-		const file = yield* pickWorkbookFile(t);
-		if (file == null) return;
-		yield* Effect.catch(
-			Effect.gen(function* () {
-				const grids = yield* readWorkbookGrids(file, t);
-				const built = yield* Effect.try({
-					try: () => options.buildPayload(grids),
-					catch: toError
-				});
-				const payload = yield* importPayloadFromGrids(() => built, grids);
-				/**
-				 * The whole file is one record, not one record per row.
-				 *
-				 * `collections.import` declares `{ records: [{ collection, id, values }] }`, and
-				 * `values` is the document the collection's import pipeline declares as its `input`
-				 * — header fields and rows together. Splitting the file across `records` would leave
-				 * the header fields the pipeline validates against (`legal_entity`, `month`,
-				 * `timezone`) with nowhere to go, and each fragment would be checked
-				 * against the company's records on its own.
-				 *
-				 * The id is minted here because the command requires one, not because it is used: a
-				 * pipeline-backed collection gets the ids of its writes from the rows the pipeline
-				 * returns, and this one is never stored.
-				 */
-				const imported = yield* Effect.tryPromise({
-					try: () =>
-						importCollectionRecords({
-							records: [
-								{
-									collection: options.collectionName,
-									id: crypto.randomUUID(),
-									values: payload
-								}
-							]
-						}),
-					catch: toError
-				});
-				toast.success(
-					t('component.workbook_imported', {
-						count: options.importedCount?.(built) ?? imported,
-						label: options.recordLabel,
-						file: file.name
-					})
-				);
-				options.afterImport?.(built);
-			}),
-			(error) =>
-				Effect.sync(() =>
-					reportImportFailure(t('component.workbook_import_failed', { file: file.name }), error, t)
-				)
+	buildPayload(grids: WorkbookGrids): ActInput<A>;
+	/** The rows a committed import wrote; a held one counts the records it holds. */
+	importedCount?(payload: ActInput<A>, output: ActOutput<A>): number;
+	afterImport?(payload: ActInput<A>): void;
+}): Promise<void> {
+	const file = await pickWorkbookFile();
+	if (file == null) return;
+	try {
+		const payload = options.buildPayload(await readWorkbookGrids(file));
+		// repository-health:allow CLONE -- the JSON round trip turns the sheet's `Date` cells into the text the action decodes
+		// repository-health:allow R6b -- the text was produced from `payload` on the line itself
+		const outcome = await bolt.act<A>(options.action, JSON.parse(JSON.stringify(payload)));
+		if (outcome.kind === 'refused') throw new Error(outcome.message);
+		if (outcome.kind !== 'committed' && outcome.kind !== 'pendingApproval')
+			throw new Error(t('component.workbook_import_failed', { file: file.name }));
+		toast.success(
+			t('component.workbook_imported', {
+				count:
+					(outcome.kind === 'committed'
+						? options.importedCount?.(payload, outcome.output)
+						: undefined) ?? outcome.records.length,
+				label: options.recordLabel,
+				file: file.name
+			})
 		);
-	});
+		options.afterImport?.(payload);
+	} catch (error) {
+		const message = getErrorMessage(error);
+		const [headline = '', ...detail] = message.split('\n');
+		const description = detail.join('\n').trim();
+		toast.error(headline.trim() || t('component.workbook_import_failed', { file: file.name }), {
+			...(description === '' ? {} : { description }),
+			descriptionClass: 'whitespace-pre-line',
+			duration: FAILURE_TOAST_MS
+		});
+	}
 }

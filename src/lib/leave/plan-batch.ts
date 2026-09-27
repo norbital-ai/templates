@@ -1,10 +1,8 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import type { WorkspaceRow } from '$bolt/types.js';
+import { refuse } from '../refuse.js';
 import { boundToContract } from '../employment-contract.js';
 import type { LeaveContext } from './context.js';
 import { planLeaveActivity, type LeaveSubmission } from './activity.js';
-import { LEAVE_DAY_COLUMNS } from './activity-fields.js';
-import { canonicalDays } from '../iso-day.js';
+import { leaveActivityOf } from './activity-fields.js';
 
 /**
  * One batch of leave submissions, planned in order against one context.
@@ -13,15 +11,12 @@ import { canonicalDays } from '../iso-day.js';
  * reservations the next row sees, and a batch credit becomes spendable only after approval, so
  * it never funds another held submission. The `leave_entries` transform calls this with the
  * context it read; a test calls it with one it built.
- *
- * Each payload carries its own id: a carry-forward's credit allocation names the entry that
- * grants it, so the id has to exist before the row does. The engine keeps a transform-minted id.
  */
 export function planLeaveBatch(
 	context: LeaveContext,
 	inputs: ReadonlyArray<
 		Partial<LeaveSubmission> & {
-			readonly certificate_file?: WorkspaceRow<'leave_entries'>['certificate_file'] | undefined;
+			readonly certificate_file?: unknown | undefined;
 		}
 	>
 ) {
@@ -56,7 +51,9 @@ export function planLeaveBatch(
 		entries.push({ ...planned, id, approval_id: 'batch-reservation' });
 		const { certificateRequired: _certificateRequired, ...entry } = planned;
 		return {
-			...boundToContract(canonicalDays(entry, LEAVE_DAY_COLUMNS)),
+			...boundToContract(entry),
+			// Stored so the grants' approval routes and scopes can match on it.
+			activity: leaveActivityOf(entry),
 			certificate_file: input.certificate_file ?? null
 		};
 	});

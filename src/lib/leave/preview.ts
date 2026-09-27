@@ -1,35 +1,23 @@
-import { Effect, Schema } from 'effect';
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { calendarDay } from '../iso-day.js';
+import { refuse } from '../refuse.js';
+import type { Reads } from '../reads.js';
 import { pointNumber } from '../half-day.js';
 import { calendarDaysThrough, leaveCalendarGridBounds } from './calendar-grid.js';
-import {
-	readLeaveContext,
-	leavePool,
-	leaveRules,
-	type LeaveContext,
-	type LeaveReadApi
-} from './context.js';
+import { readLeaveContext, leavePool, leaveRules, type LeaveContext } from './context.js';
 import { measureLeaveDay, planLeaveActivity } from './activity.js';
 import { leaveBalanceAt, assertLeaveBalanceIntegrity } from './balance.js';
 import { leaveWindowOf } from './entitlement.js';
+import { getErrorMessage } from '../refuse.js';
 
-const half = Schema.Literals(['FIRST', 'SECOND']);
-export const previewLeaveInputSchema = Schema.Struct({
-	employment_id: Schema.String.check(Schema.isUUID()),
-	catalogue_id: Schema.String.check(Schema.isUUID()),
-	calendar_month: Schema.optionalKey(
-		Schema.String.check(Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/))
-	),
-	range: Schema.optionalKey(
-		Schema.Struct({
-			start: Schema.Struct({ date: calendarDay, half }),
-			end: Schema.Struct({ date: calendarDay, half })
-		})
-	),
-	exclude_entry_id: Schema.optionalKey(Schema.String.check(Schema.isUUID()))
-});
-export type PreviewLeaveInput = Schema.Schema.Type<typeof previewLeaveInputSchema>;
+type HalfDay = { readonly date: string; readonly half: 'FIRST' | 'SECOND' };
+/** The `leave_entries.preview_leave` query's input, as its literal declares it. */
+export type PreviewLeaveInput = {
+	readonly employment_id: string;
+	readonly catalogue_id: string;
+	/** A calendar month, YYYY-MM. */
+	readonly calendar_month?: string | null;
+	readonly range?: { readonly start: HalfDay; readonly end: HalfDay } | null;
+	readonly exclude_entry_id?: string | null;
+};
 export type LeaveDayPreview = {
 	readonly eligible: boolean;
 	readonly reason_code?:
@@ -59,6 +47,8 @@ export type LeavePreview = {
 };
 
 export function previewWindowOf(input: PreviewLeaveInput) {
+	if (input.calendar_month != null && !/^\d{4}-(0[1-9]|1[0-2])$/.test(input.calendar_month))
+		refuse('A calendar month is YYYY-MM.');
 	const grid = input.calendar_month == null ? null : leaveCalendarGridBounds(input.calendar_month);
 	const start = [grid?.start, input.range?.start.date]
 		.filter((value): value is string => value != null)
@@ -157,7 +147,7 @@ export function evaluateLeavePreview(
 		} catch (error) {
 			issues.push({
 				code: 'INVALID_INPUT',
-				message: error instanceof Error ? error.message : String(error)
+				message: getErrorMessage(error)
 			});
 			// Still show the measured selection when a balance or certificate check refuses it.
 			if (pointNumber(input.range.start) <= pointNumber(input.range.end))
@@ -189,13 +179,8 @@ export function evaluateLeavePreview(
 	};
 }
 
-export function previewLeave(
-	api: LeaveReadApi,
-	input: PreviewLeaveInput
-): Effect.Effect<LeavePreview> {
+export async function previewLeave(reads: Reads, input: PreviewLeaveInput): Promise<LeavePreview> {
 	const window = previewWindowOf(input);
 	if (!window) refuse('Choose a calendar month or a leave range.');
-	return Effect.map(readLeaveContext(api, [input.employment_id], window), (context) =>
-		evaluateLeavePreview(context, input)
-	);
+	return evaluateLeavePreview(await readLeaveContext(reads, [input.employment_id], window), input);
 }

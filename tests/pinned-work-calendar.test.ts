@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 
 const holiday = (date: string, published = true) => ({
 	id: `holiday-${date}`,
@@ -32,9 +31,11 @@ function calendarWorld() {
 
 test('payroll reads the published calendar for every day; a work day pins nothing', async () => {
 	const world = calendarWorld();
-	const prepared = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-01'
+	});
 	const configuration = prepared.configuration;
 	assert.equal(configuration.holidays.has('2026-01-05'), false, 'unpublished is not there');
 	assert.equal(configuration.holidays.has('2026-01-06'), true);

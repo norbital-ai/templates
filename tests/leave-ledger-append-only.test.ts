@@ -1,18 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import leaveEntries from '../src/collections/leave_entries/+collection.ts';
+import leaveEntries from '../src/data/collection/leave_entries/+collection.ts';
 import { approve, leaveContext, timeOff } from './helpers/manual-leave-context.ts';
 
 test('approved Leave activity is immutable and undeletable by declaration: a correction is a linked reversal', () => {
-	assert.equal(leaveEntries.update, undefined, 'no update endpoint: nothing can rewrite an entry');
-	assert.equal(
-		leaveEntries.delete,
-		undefined,
-		'no delete endpoint: an entry remains audit evidence'
-	);
-	assert.ok(leaveEntries.create, 'a reversal is a new entry through the create input');
-	assert.equal('payslip_id' in leaveEntries.create.input.columns, false, 'the pin is payroll’s');
-	assert.equal('charges' in leaveEntries.create.input.columns, false, 'charges are derived');
+	const { spec } = leaveEntries;
+	assert.equal(spec.update, undefined, 'no update: nothing can rewrite an entry');
+	assert.equal(spec.delete, undefined, 'no delete: an entry remains audit evidence');
+	assert.ok(spec.create, 'a reversal is a new entry through the create input');
+	for (const derived of [
+		'payslip_id',
+		'charges',
+		'allocations',
+		'activity',
+		'leave_code',
+		'summary'
+	])
+		assert.equal(spec.create.input.columns.includes(derived), false, `${derived} is not an input`);
 });
 
 test('an approved reversal preserves the original immutable record and cannot be reversed again', () => {

@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { cents } from '../src/collections/payroll_runs/lib/rounding.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { cents } from '../src/lib/payroll/run/rounding.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import {
 	COMPANY_ID,
 	EMPLOYEE_ID,
@@ -76,9 +75,7 @@ test('a company-assessed scheme lands once on the run, on no payslip', async () 
 		approval_id: null
 	});
 	const built = buildPayrollRun(
-		await Effect.runPromise(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-		)
+		gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
 	);
 	// One charge for the whole run, and the payslips carry none of it.
 	assert.equal(built.company_charges.length, 1);
@@ -93,9 +90,11 @@ test('a company-assessed scheme lands once on the run, on no payslip', async () 
 
 test('the payroll engine measures two rehire contracts but charges one contribution assessment', async () => {
 	const world = rehireWorld();
-	const prepared = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-01'
+	});
 	assert.equal(prepared.gathered.bundles.length, 2);
 	const built = buildPayrollRun(prepared);
 	assert.equal(built.payslipCount, 2);
@@ -160,9 +159,11 @@ test('a person’s held earlier slip is history the next period stands on', asyn
 			{ scheme_code: 'PUB_FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
 		]
 	});
-	const prepared = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-02' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-02'
+	});
 	assert.deepEqual(
 		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB_FIXED`),
 		{ employee: 30, employer: 60, base: 1000, ordinary: 0, rebate: 0 },
@@ -203,9 +204,11 @@ test('rehire gathers prior YTD across old contracts while excluding another enti
 			]
 		});
 	}
-	const prepared = await Effect.runPromise(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-02' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-02'
+	});
 	assert.deepEqual(
 		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB_FIXED`),
 		{ employee: 60, employer: 120, base: 2000, ordinary: 0, rebate: 74 },

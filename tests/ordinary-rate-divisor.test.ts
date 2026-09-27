@@ -29,8 +29,8 @@ import {
 	ordinaryHourlyRate,
 	ordinaryDivisorDays,
 	type RateTerms
-} from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+} from '../src/lib/payroll/run/ordinary-rate.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { settingsVersions } from './fixtures/statutory-world.ts';
 
 /** The Philippine Work as the bank seeds it, not a fixture invented here. */
@@ -67,7 +67,8 @@ const person = (hoursPerWeek: number, daysPerWeek: number, paidRestDays: boolean
 			employment_type: 'PERMANENT',
 			work_classification: 'EA_COVERED',
 			statutory_work_category: 'NON_MANUAL',
-			base_salary: { value: 15_650, currency: 'PHP' },
+			base_salary: 15_650,
+			currency: 'PHP',
 			department: 'Production',
 			payroll_group: 'BI-MONTHLY',
 			paid_rest_days: paidRestDays,

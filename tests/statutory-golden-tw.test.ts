@@ -30,6 +30,7 @@ import {
 	expectStatutorySkipped,
 	assertEveryVersionPriced,
 	settingsVersions,
+	settingsIdOn,
 	contributionSchemes,
 	leaveCatalogue,
 	COMPANY_ID,
@@ -57,6 +58,27 @@ function declareInsuredAmount(world: PayrollWorld, employeeNumber: string, amoun
 		)
 			fact.status.elections = { ...fact.status.elections, insured_amount: amount };
 }
+
+test('Taiwan — a last-day February exit completes the pension month but LI charges actual exit days', () => {
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2026-02',
+		riskClass: '1',
+		people: [
+			{
+				key: 'FEB-EXIT',
+				wage: 40_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2020-01-01',
+				exit_date: '2026-02-28',
+				exit_reason: 'RESIGNATION'
+			}
+		]
+	});
+	const slip = book.get('FEB-EXIT')!;
+	assert.equal(slip.get('LABOR_PENSION')!.employer, 2406);
+	assert.equal(slip.get('LI')!.employee, 861);
+});
 
 for (const period of ['2025-12', '2026-01', '2027-01'])
 	test(`Taiwan ${period} — part-time NHI uses its own minimum insured grade for supplementary premiums`, () => {
@@ -177,7 +199,15 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 						code: 'TW',
 						period,
 						riskClass: '1',
-						people: [{ key: 'UNKNOWN', wage: 60000, citizenship, tax_residency: null }]
+						people: [
+							{
+								key: 'UNKNOWN',
+								wage: 60000,
+								citizenship,
+								tax_residency: null,
+								registrations: { EI: { kind: 'NOT_REGISTERED' } }
+							}
+						]
 					}),
 				/Record tax residency/
 			);
@@ -192,10 +222,17 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 						citizenship,
 						tax_residency: 'RESIDENT',
 						registrations: {
+							EI: { kind: 'NOT_REGISTERED' },
 							INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 						}
 					},
-					{ key: 'NONRESIDENT', wage: 60000, citizenship, tax_residency: 'NON_RESIDENT' }
+					{
+						key: 'NONRESIDENT',
+						wage: 60000,
+						citizenship,
+						tax_residency: 'NON_RESIDENT',
+						registrations: { EI: { kind: 'NOT_REGISTERED' } }
+					}
 				]
 			});
 			expectStatutory(book, 'RESIDENT', 'INCOME_TAX', 3000, 0);
@@ -471,8 +508,18 @@ for (const period of ['2025-12', '2026-01', '2027-01']) {
 							INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 						}
 					})),
-					{ key: 'NR-6', wage: 40019, citizenship: 'FOREIGNER' },
-					{ key: 'NR-18', wage: 60009, citizenship: 'FOREIGNER' },
+					{
+						key: 'NR-6',
+						wage: 40019,
+						citizenship: 'FOREIGNER',
+						registrations: { EI: { kind: 'NOT_REGISTERED' } }
+					},
+					{
+						key: 'NR-18',
+						wage: 60009,
+						citizenship: 'FOREIGNER',
+						registrations: { EI: { kind: 'NOT_REGISTERED' } }
+					},
 					{ key: 'TABLE', wage: 600001, citizenship: 'CITIZEN' },
 					{ key: 'TABLE-12', wage: 300250, citizenship: 'CITIZEN', children: 12 },
 					{ key: 'BONUS', wage: 60000, citizenship: 'CITIZEN' }
@@ -523,6 +570,7 @@ test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemp
 				wage: 28_590,
 				citizenship: 'CITIZEN',
 				registrations: {
+					EI: { kind: 'NOT_REGISTERED' },
 					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 				}
 			},
@@ -570,8 +618,18 @@ test('Taiwan — a non-resident is withheld at 18%, and is outside employment in
 		period: '2026-01',
 		riskClass: '1',
 		people: [
-			{ key: 'TW-NR-40000', wage: 40_000, citizenship: 'FOREIGNER' },
-			{ key: 'TW-NR-60000', wage: 60_000, citizenship: 'FOREIGNER' }
+			{
+				key: 'TW-NR-40000',
+				wage: 40_000,
+				citizenship: 'FOREIGNER',
+				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+			},
+			{
+				key: 'TW-NR-60000',
+				wage: 60_000,
+				citizenship: 'FOREIGNER',
+				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+			}
 		]
 	});
 
@@ -603,8 +661,18 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 			{ key: 'TW-40000', wage: 40_000, citizenship: 'CITIZEN' },
 			// 1.5 × the basic wage is the non-resident 6%/18% breakpoint: 42,885 in 民國114年,
 			// against 44,250 in 民國115年.
-			{ key: 'TW-NR-42885', wage: 42_885, citizenship: 'FOREIGNER' },
-			{ key: 'TW-NR-42886', wage: 42_886, citizenship: 'FOREIGNER' }
+			{
+				key: 'TW-NR-42885',
+				wage: 42_885,
+				citizenship: 'FOREIGNER',
+				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+			},
+			{
+				key: 'TW-NR-42886',
+				wage: 42_886,
+				citizenship: 'FOREIGNER',
+				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+			}
 		]
 	});
 
@@ -655,7 +723,12 @@ test('Taiwan — the dollar above a grade insures at the next grade', () => {
 		people: [
 			{ key: 'TW-29500.01', wage: 29_500.01, citizenship: 'CITIZEN' },
 			{ key: 'TW-45801', wage: 45_801, citizenship: 'CITIZEN' },
-			{ key: 'TW-NR-44250.01', wage: 44_250.01, citizenship: 'FOREIGNER' }
+			{
+				key: 'TW-NR-44250.01',
+				wage: 44_250.01,
+				citizenship: 'FOREIGNER',
+				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+			}
 		]
 	});
 	// Grade 30,300 × 11.5% = 3,484.50 → 696.90 → 697 / 2,439.15 → 2,439; × 1% = 303 → 60.60 → 61 /
@@ -838,7 +911,7 @@ test('Taiwan — one national minimum wage, 28,590 in 2025 and 29,500 from 2026 
 // allowance below is planted to prove the proration rules a company that adds one would get.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-const TW_2026 = '1fcfa66f-40da-5792-b925-7c2fcaa8f92c';
+const TW_2026 = settingsIdOn('TW', '2026-01-15');
 const holiday = (date: string, name: string) => ({
 	id: `holiday-${date}`,
 	company_id: COMPANY_ID,
@@ -1211,6 +1284,7 @@ test('Taiwan — a part-timer insures at the part-time grades, the worker’s vo
 				citizenship: 'FOREIGNER',
 				tax_residency: 'RESIDENT',
 				registrations: {
+					EI: { kind: 'NOT_REGISTERED' },
 					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 				}
 			}
@@ -1244,10 +1318,7 @@ test('Taiwan — the 115年度 薪資所得扣繳稅額表: every one of its 10,
 	// read from the PDF, not derived. The rung is evaluated the way the run evaluates it, on a wage
 	// at the top of each bracket, so the anchor to the bracket's lower bound is what is tested.
 	const table = JSON.parse(
-		readFileSync(
-			new URL('../seed/jurisdiction/TW/withholding-table-115.json', import.meta.url),
-			'utf8'
-		)
+		readFileSync(new URL('./fixtures/law/tw-withholding-table-115.json', import.meta.url), 'utf8')
 	) as { from: number; to: number; withhold: number[] }[];
 	const rung = contributionSchemes('TW')
 		.find((row) => row.code === 'INCOME_TAX' && row.settings_id === settingsVersions('TW')[1]!.id)!
@@ -1342,7 +1413,13 @@ test('Taiwan — the second review: 災保 has no grade under the basic wage, th
 					}
 				},
 				// A migrant worker on a work permit is outside the 勞退 new scheme (勞退條例 §7(1)).
-				{ key: 'TW-MIGRANT', wage: 30_000, citizenship: 'FOREIGNER', pass_type: 'WORK_PERMIT' }
+				{
+					key: 'TW-MIGRANT',
+					wage: 30_000,
+					citizenship: 'FOREIGNER',
+					pass_type: 'WORK_PERMIT',
+					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				}
 			]
 		},
 		(world) => {
@@ -1469,7 +1546,8 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 					id: 'e1000000-0000-4000-8000-0000000enc03',
 					employment_id: employment.id,
 					period: { start: '2025-12-01', end: '2025-12-31' },
-					normal_wages: { currency: 'TWD', value: 60_000 },
+					currency: 'TWD',
+					normal_wages: 60_000,
 					ordinary_wages: null,
 					ordinary_days: null,
 					due_on: '2025-12-31',
@@ -1701,7 +1779,7 @@ test('Taiwan — the old-system pension reserve is the entity’s declared 2–1
 				wage: 50_000,
 				citizenship: 'FOREIGNER',
 				hire_date: '1998-03-01',
-				registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } }
+				registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' }, EI: { kind: 'NOT_REGISTERED' } }
 			}
 		]
 	});
@@ -1753,7 +1831,7 @@ test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on th
 			priorWages(
 				world,
 				employment.employee_number,
-				monthsAt(from, to, world.employment_terms[index]!.base_salary.value)
+				monthsAt(from, to, world.employment_terms[index]!.base_salary)
 			);
 		for (const [index, employment] of world.employments.entries())
 			world.adhoc_requests!.push({

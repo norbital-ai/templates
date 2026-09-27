@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import { createStatutoryWorld, COMPANY_ID, leaveCatalogue } from './fixtures/statutory-world.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { prepareWorkContext } from '../src/lib/payroll/work.ts';
 import { leaveEncashmentRate } from '../src/lib/leave/encashment-rate.ts';
 import {
+	latestDueMonthNormalRate,
 	previousWagePeriodOrdinaryRate,
 	type ReferenceWagePeriod
 } from '../src/lib/payroll/reference-wages.ts';
@@ -67,7 +67,8 @@ function referenceWorld(options: { withPeriod?: boolean } = {}) {
 			employment_id: world.employments[0]!.id,
 			period: { start: '2026-05-01', end: '2026-05-31T00:00:00.000Z' },
 			normal_wages: null,
-			ordinary_wages: { currency: 'MYR', value: 2310 },
+			currency: 'MYR',
+			ordinary_wages: 2310,
 			ordinary_days: 21,
 			due_on: '2026-06-07',
 			paid_on: '2026-06-07',
@@ -78,9 +79,7 @@ function referenceWorld(options: { withPeriod?: boolean } = {}) {
 }
 
 function preparedRun(world: ReturnType<typeof referenceWorld>) {
-	return Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-06' })
-	);
+	return gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-06' });
 }
 
 test('MY daily cash-out prices from the preceding wage period, not the current contract', () => {
@@ -134,7 +133,8 @@ test('the selector rejects non-adjacent and ambiguous periods', () => {
 		id,
 		period: { start: '2026-05-01', end },
 		normal_wages: null,
-		ordinary_wages: { currency: 'MYR', value },
+		currency: 'MYR',
+		ordinary_wages: value,
 		ordinary_days: 21,
 		due_on: '2026-06-07',
 		paid_on: null,
@@ -213,6 +213,7 @@ function normalWageWorld(periods: readonly ReferenceWagePeriod[]) {
 	workRules.ordinary_rate_reference = {
 		reference: 'LATEST_DUE_MONTH',
 		pay_frequencies: ['MONTHLY'],
+		daily_divisor: 30,
 		authority: 'Enforcement Rules art. 24-1 (mechanism test)'
 	};
 	world.employment_wage_periods = periods.map((row) => ({
@@ -223,9 +224,11 @@ function normalWageWorld(periods: readonly ReferenceWagePeriod[]) {
 }
 
 function twCashOut(world: ReturnType<typeof normalWageWorld>) {
-	const prepared = Effect.runSync(
-		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-07' })
-	);
+	const prepared = gatherPayrollRun({
+		world: payrollWorld(world),
+		companyId: COMPANY_ID,
+		period: '2026-07'
+	});
 	const bundle = prepared.gathered.bundles[0]!;
 	return leaveEncashmentRate({
 		bundle,
@@ -238,7 +241,8 @@ test('TW cash-out selects the latest month received or matured before the bounda
 	const june: ReferenceWagePeriod = {
 		id: 'tw-june',
 		period: { start: '2026-06-01T00:00:00.000Z', end: '2026-06-30T00:00:00.000Z' },
-		normal_wages: { currency: 'TWD', value: 30_000 },
+		currency: 'TWD',
+		normal_wages: 30_000,
 		ordinary_wages: null,
 		ordinary_days: null,
 		due_on: '2026-07-07',
@@ -247,12 +251,28 @@ test('TW cash-out selects the latest month received or matured before the bounda
 		approval_id: null
 	};
 	assert.equal(twCashOut(normalWageWorld([june])), 1000);
+	assert.equal(
+		latestDueMonthNormalRate({
+			periods: [june],
+			boundary: '2026-07-20',
+			currency: 'TWD',
+			dailyDivisor: 31
+		}).normalDay,
+		30_000 / 31
+	);
+	const withoutDivisor = normalWageWorld([june]);
+	const active = withoutDivisor.jurisdiction_settings.find(
+		(row) => row.voided_at == null && String(row.effective_range.start).startsWith('2026-01-01')
+	)!;
+	delete (active.work_rules as Record<string, any>).ordinary_rate_reference.daily_divisor;
+	assert.throws(() => twCashOut(withoutDivisor), /requires a sealed daily divisor/);
 	// An advance paid before the month's contractual due date is already received.
 	const july: ReferenceWagePeriod = {
 		...june,
 		id: 'tw-july',
 		period: { start: '2026-07-01T00:00:00.000Z', end: '2026-07-31T00:00:00.000Z' },
-		normal_wages: { currency: 'TWD', value: 60_000 },
+		currency: 'TWD',
+		normal_wages: 60_000,
 		due_on: '2026-08-07',
 		paid_on: '2026-07-10'
 	};
@@ -263,7 +283,8 @@ test('TW cash-out refuses normal wages that have neither matured nor been receiv
 	const future: ReferenceWagePeriod = {
 		id: 'tw-future',
 		period: { start: '2026-06-01T00:00:00.000Z', end: '2026-06-30T00:00:00.000Z' },
-		normal_wages: { currency: 'TWD', value: 30_000 },
+		currency: 'TWD',
+		normal_wages: 30_000,
 		ordinary_wages: null,
 		ordinary_days: null,
 		due_on: '2026-07-25',

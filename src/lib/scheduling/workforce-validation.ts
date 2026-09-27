@@ -1,6 +1,6 @@
 /** Clock-overlap checks for explicit assignments. */
 
-import { decodeNumber } from '@norbital-ai/std/json';
+import { decodeNumber } from '../wire.js';
 import { clockMinutes } from './roster-code.js';
 
 type Designation = 'WORK' | 'REST' | 'OFF';

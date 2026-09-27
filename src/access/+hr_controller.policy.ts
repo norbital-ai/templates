@@ -1,0 +1,83 @@
+import { policy } from '@norbital-ai/bolt';
+import {
+	CONTROLLER_RUN_APPROVAL,
+	DRAFT_SETTINGS_ROW,
+	DRAFT_VERSION,
+	HR_CONTROLLER_APPS,
+	HR_LEAVE_MANUAL,
+	HR_LEAVE_TIME_OFF,
+	MEMBER_LIMITS,
+	UNPINNED,
+	WORK_DAY_CREATE_APPROVAL,
+	WORK_DAY_FULL_FIELDS,
+	WORK_DAY_UPDATE_APPROVAL
+} from './grants.js';
+
+export default policy({
+	description:
+		'HR administration across people, scheduling, requests, loans and adjustments, with payroll visible but not committable.',
+	capabilities: { apps: ['hr_employee', ...HR_CONTROLLER_APPS] },
+	// the entities app starts the Google holiday import
+	automations: ['holiday_import', 'payroll_export'],
+	grants: {
+		companies: { read: true, create: true, update: true, delete: true },
+		company_facts: { read: true, create: true, update: true, delete: true },
+		shift_definitions: { read: true, create: true, update: true, delete: true },
+		shift_patterns: { read: true, create: true, update: true, delete: true },
+		jurisdiction_settings: {
+			read: true,
+			// a controller prepares drafts; a write that would seal or void is refused, not held
+			create: DRAFT_VERSION,
+			update: DRAFT_VERSION,
+			delete: DRAFT_VERSION,
+			actions: ['new_settings_version']
+		},
+		statutory_contributions: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
+		leave_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
+		claim_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
+		adhoc_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
+		allowance_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
+		loan_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
+		jurisdiction_holidays: {
+			read: true,
+			create: true,
+			update: true,
+			delete: true,
+			actions: ['import_workbook']
+		},
+		employees: {
+			read: true,
+			create: true,
+			update: true,
+			delete: true,
+			queries: ['kiosk_match'],
+			actions: ['kiosk_enroll']
+		},
+		employments: { read: true, create: true, update: true, delete: true },
+		employment_terms: { read: true, create: true, update: true, delete: true },
+		employment_statutory_facts: { read: true, create: true, update: true, delete: true },
+		employment_wage_periods: { read: true, create: true, update: true, delete: true },
+		payment_holds: { read: true, create: true, update: true, delete: true },
+		work_days: {
+			read: true,
+			create: { fields: WORK_DAY_FULL_FIELDS, approval: WORK_DAY_CREATE_APPROVAL },
+			update: { fields: WORK_DAY_FULL_FIELDS, approval: WORK_DAY_UPDATE_APPROVAL },
+			delete: UNPINNED,
+			actions: ['kiosk_punch', 'import_month']
+		},
+		rosters: { read: true, create: true, delete: true },
+		claim_requests: { read: true, create: true, update: true, delete: UNPINNED },
+		adhoc_requests: { read: true, create: true, update: true, delete: UNPINNED },
+		loans: { read: true, create: true, update: true, delete: true },
+		loan_repayments: { read: true, create: true, update: true, delete: UNPINNED },
+		leave_entries: {
+			read: true,
+			create: { approval: [HR_LEAVE_TIME_OFF, HR_LEAVE_MANUAL] },
+			queries: ['leave_balances', 'preview_leave']
+		},
+		payroll_runs: { read: true, create: { approval: CONTROLLER_RUN_APPROVAL } },
+		payslips: { read: true },
+		payslip_wage_periods: { read: true }
+	},
+	limits: MEMBER_LIMITS
+});

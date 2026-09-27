@@ -4,10 +4,9 @@
  * self-help-group funds on salary in lieu of notice. Every figure is derived by hand from the
  * instrument quoted beside it; the rules are read from the sealed seed, in every version.
  *
- *   EPF Act 1991 Third Schedule Part F (Act A1760 s.10(b); KWSP consolidated Third Schedule from
- *     1 October 2025, p.54): 2% by the employer and 2% by the employee; para 2 “The total
- *     contribution which includes cents shall be rounded to the next ringgit.” Part F prints no RM
- *     table. KWSP Employer Mandatory Contribution, example 2.4: RM6,710 → 268.40 → RM269.00.
+ *   KWSP non-Malaysian employee FAQ: RM1,751 → RM36 employee + RM36 employer.
+ *     Separate share rounding also matches all 186 eligible Infotech export records reviewed
+ *     (Jan–May 2026). The general-page combined-rounding discrepancy is recorded in the tracker.
  *   Employment Act 1955 (Act 265, reprint as at 1 August 2023) s.24(1), (2)(d), (8), (9).
  *   CPF Board FAQs: CPF “not payable on compensation in lieu of notice”; SHG contributions are
  *     “based on the total wages payable to an employee in a calendar month”; CDAC/ECF/SINDA are
@@ -16,9 +15,13 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { settle } from '../src/collections/payroll_runs/lib/settle.ts';
+import { settle } from '../src/lib/payroll/run/settle.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import {
 	COMPANY,
+	COMPANY_ID,
+	createStatutoryWorld,
 	assertEveryVersionPriced,
 	assessStatutory,
 	chargeOf,
@@ -28,12 +31,12 @@ import {
 
 const OUT = { kind: 'NOT_REGISTERED' } as const;
 const FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
-/** One period inside each sealed MY version: from 2025-12-01, 2026-06-01, 2026-07-08, 2028-06-01 and 2031-06-01. */
-const MY_PERIODS = ['2026-01', '2026-06', '2026-09', '2028-07', '2031-07'];
+/** One period inside each sealed MY version from December 2025 onward. */
+const MY_PERIODS = ['2025-12', '2026-01', '2026-06', '2026-09', '2028-07', '2031-07'];
 
 // ─── 1. EPF Third Schedule Part F ────────────────────────────────────────────────────────────────
 
-test('MY Part F: the total is rounded to the next ringgit, the employee share up, the employer the rest — every version, both lineages', () => {
+test('MY Part F: each 2% share rounds up independently — every version, both lineages', () => {
 	for (const code of ['MY', 'MY-nihon']) {
 		for (const period of MY_PERIODS) {
 			const book = assessStatutory({
@@ -41,25 +44,93 @@ test('MY Part F: the total is rounded to the next ringgit, the employee share up
 				period,
 				people: [
 					{ key: 'F-1751', wage: 1751, citizenship: 'FOREIGNER', registrations: FOREIGN },
+					{ key: 'F-1954', wage: 1954, citizenship: 'FOREIGNER', registrations: FOREIGN },
+					{ key: 'F-2123.05', wage: 2123.05, citizenship: 'FOREIGNER', registrations: FOREIGN },
+					{ key: 'F-3249.99', wage: 3249.99, citizenship: 'FOREIGNER', registrations: FOREIGN },
 					{ key: 'F-3250', wage: 3250, citizenship: 'FOREIGNER', registrations: FOREIGN },
+					{ key: 'F-3250.01', wage: 3250.01, citizenship: 'FOREIGNER', registrations: FOREIGN },
 					{ key: 'F-5001', wage: 5001, citizenship: 'FOREIGNER', registrations: FOREIGN },
 					{ key: 'F-6710', wage: 6710, citizenship: 'FOREIGNER', registrations: FOREIGN }
 				]
 			});
 			const at = `${code} ${period}`;
-			// 1,751: 2% = 35.02 each; total 70.04 → 71 (para 2), not the FAQ's 36 + 36 = 72.
-			// Employee 35.02 → 36; employer 71 − 36 = 35.
-			expectStatutory(book, 'F-1751', 'EPF_NON_CITIZEN', 36, 35);
+			// KWSP's specific FAQ: 1,751 × 2% = 35.02 → 36 for each share.
+			expectStatutory(book, 'F-1751', 'EPF_NON_CITIZEN', 36, 36);
+			// Synthetic cases use contribution bases reconciled from Infotech's export.
+			expectStatutory(book, 'F-1954', 'EPF_NON_CITIZEN', 40, 40);
+			expectStatutory(book, 'F-2123.05', 'EPF_NON_CITIZEN', 43, 43);
+			expectStatutory(book, 'F-3249.99', 'EPF_NON_CITIZEN', 65, 65);
 			// 3,250: 65.00 each, total 130.00 — no cents (KWSP example 2.4).
 			expectStatutory(book, 'F-3250', 'EPF_NON_CITIZEN', 65, 65);
-			// 5,001: 100.02 each, 200.04 → 201; employee 101, employer 100.
-			expectStatutory(book, 'F-5001', 'EPF_NON_CITIZEN', 101, 100);
-			// 6,710: 134.20 each, 268.40 → 269.00 (KWSP example 2.4); employee 135, employer 134.
+			expectStatutory(book, 'F-3250.01', 'EPF_NON_CITIZEN', 66, 66);
+			expectStatutory(book, 'F-5001', 'EPF_NON_CITIZEN', 101, 101);
 			const f67 = chargeOf(book, 'F-6710', 'EPF_NON_CITIZEN');
-			assert.equal(f67.employee + f67.employer, 269, at);
+			assert.equal(f67.employee + f67.employer, 270, at);
 			assert.equal(f67.employee, 135, at);
+			assert.equal(f67.employer, 135, at);
 		}
 		assertEveryVersionPriced(code);
+	}
+});
+
+test('MY Part F: semi-monthly shares reconcile to one rounded monthly assessment', () => {
+	for (const code of ['MY', 'MY-nihon']) {
+		const world = createStatutoryWorld({
+			code,
+			period: '2026-01-1',
+			payFrequency: 'SEMI_MONTHLY',
+			people: [
+				{
+					key: 'FOREIGN',
+					wage: 1954,
+					citizenship: 'FOREIGNER',
+					registrations: FOREIGN,
+					pay_frequency: 'SEMI_MONTHLY'
+				}
+			]
+		});
+		const build = (period: string) => {
+			const prepared = gatherPayrollRun({
+				world: payrollWorld(world),
+				companyId: COMPANY_ID,
+				period
+			});
+			return { prepared, built: buildPayrollRun(prepared) };
+		};
+		const first = build('2026-01-1');
+		world.payroll_runs.push({
+			id: 'FIRST',
+			company_id: COMPANY_ID,
+			period: '2026-01-1',
+			pay_date: first.prepared.window.payDate,
+			attendance_from: first.prepared.window.attendance.start,
+			attendance_to: first.prepared.window.attendance.end,
+			approval_id: null
+		});
+		world.payslips.push(
+			...first.built.payslip_payroll_run.map((slip) => ({
+				...slip,
+				payroll_run_id: 'FIRST',
+				paid_at: first.prepared.window.payDate,
+				approval_id: null
+			}))
+		);
+		const second = build('2026-01-2');
+		const charges = [first, second].flatMap((result) =>
+			result.built.payslip_payroll_run[0].statutory.filter(
+				(row) => row.scheme_code === 'EPF_NON_CITIZEN'
+			)
+		);
+		assert.equal(
+			charges.reduce((sum, row) => sum + row.employee_amount, 0),
+			40,
+			code
+		);
+		assert.equal(
+			charges.reduce((sum, row) => sum + row.employer_amount, 0),
+			40,
+			code
+		);
 	}
 });
 

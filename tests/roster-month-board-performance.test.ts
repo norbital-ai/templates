@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { performance } from 'node:perf_hooks';
 import test from 'node:test';
 import { buildRosterMonth, monthDays } from '../src/lib/ui/roster/roster-month.ts';
-import { decodeNumber } from '@norbital-ai/std/json';
+import { decodeNumber } from '../src/lib/wire.ts';
 
 const EMPLOYEE_COUNT = 290;
 const MONTH = '2026-06';

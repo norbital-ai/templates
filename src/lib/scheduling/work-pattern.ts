@@ -1,6 +1,6 @@
-import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
+import type { WorkPattern } from '../datatypes/work_pattern.js';
 import { dateKey } from '../iso-day.js';
-import { readRange } from '../../collections/payroll_runs/lib/effective.js';
+import { readRange } from '../../lib/payroll/run/effective.js';
 import { rosterCodeKind, workWindow, type RosterCodeLike } from './roster-code.js';
 
 const DAY_MS = 86_400_000;
@@ -11,7 +11,7 @@ export type ShiftPatternLike = {
 	readonly code: string;
 	readonly pattern: WorkPattern;
 	/** The stored effective range; the cycle counts from its start. Missing only in code fixtures. */
-	readonly effective_range?: unknown;
+	readonly effective_range?: unknown | undefined;
 };
 
 /**
@@ -25,13 +25,29 @@ export const PATTERN_WITH = {
 } as const;
 
 /**
+ * Terms rows with their named pattern riding along, from a separate read of the entity's patterns: what every pattern
+ * reader takes (`termPatternRow`). A terms row whose pattern is not among `patterns` carries none.
+ */
+export function attachPatterns<T extends { readonly shift_pattern_id: string | null }>(
+	terms: readonly T[],
+	patterns: readonly ShiftPatternLike[]
+): (T & { readonly term_shift_pattern: ShiftPatternLike | null })[] {
+	const byId = new Map(patterns.map((row) => [row.id, row]));
+	return terms.map((term) => ({
+		...term,
+		term_shift_pattern:
+			term.shift_pattern_id == null ? null : (byId.get(term.shift_pattern_id) ?? null)
+	}));
+}
+
+/**
  * Employment terms as every pattern reader sees them: the pointer, and the row when it rode the
  * read (`with: { term_shift_pattern: PATTERN_WITH }`). A reader that loaded the company's patterns separately
  * hands them in as `patternById` instead; the row wins when both are present.
  */
 type TermPatternLike = {
 	readonly shift_pattern_id: string | null;
-	readonly term_shift_pattern?: ShiftPatternLike | null;
+	readonly term_shift_pattern?: ShiftPatternLike | null | undefined;
 };
 
 /**
