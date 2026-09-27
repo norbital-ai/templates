@@ -1,153 +1,114 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
-import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
-import { decodeNumber } from '@norbital-ai/std/json';
-import { Schema } from 'effect';
+import { Decimal } from '@norbital-ai/std/decimal';
+import * as Predicate from './guards.js';
 
-/** The derived-money inputs one document line contributes, owned once for every document kind. */
-const linePricingSchema = Schema.Struct({
-	quantity: Schema.Number,
-	unit_price: Schema.Number,
-	discount_pct: Schema.optional(Schema.Number),
-	tax_rate: Schema.optional(Schema.Number),
-	tax_inclusive: Schema.Boolean,
-	currency: Schema.NonEmptyString
-});
+/**
+ * The only place rounding is decided. A line is priced once, in its document's currency and tax mode: half-up to the
+ * currency's minor unit by exponent shift (so `1.005` rounds to `1.01`), and a tax-inclusive line takes tax as the
+ * residual `gross − net`. A document total is the `sum` of its already-rounded lines (the model's roll-ups).
+ */
 
-type LinePricing = Schema.Schema.Type<typeof linePricingSchema>;
-
-/** The derived-money outcome for a document line or a whole document. */
-const lineAmountsSchema = Schema.Struct({
-	net: Schema.Number,
-	tax: Schema.Number,
-	gross: Schema.Number
-});
-
-export type LineAmounts = Schema.Schema.Type<typeof lineAmountsSchema>;
-
-export function requireCurrency(currency: string | null): string {
-	if (!currency) throw new Error('Document currency is required.');
-	return currency;
+/**
+ * A stored or submitted decimal as a number: a `Decimal` (its text), the wire's `{ $dec }`, a number or numeric text;
+ * anything else, or blank text, is NaN.
+ */
+export function num(value: unknown): number {
+	if (value == null) return Number.NaN;
+	if (Predicate.isNumber(value)) return value;
+	const text = Predicate.isObjectOrArray(value)
+		? '$dec' in value
+			? (value as { $dec: string }).$dec
+			: String(value)
+		: String(value);
+	// repository-health:allow COERCE1 -- the workspace's one decimal-text decode: blank is NaN, text is Number's
+	return /\S/.test(text) ? Number(text) : Number.NaN;
 }
+/** A nullable decimal as a number, for an export or a view. */
+export const numOrNull = (value: unknown) => (value == null ? null : num(value));
 
-function shiftExponent(value: number, places: number): number {
+/** Minor-unit digits of the CRM currencies (`lib/currency.ts`): JPY has none. */
+const digitsOf = (currency: string) => (currency === 'JPY' ? 0 : 2);
+
+function shift(value: number, places: number): number {
 	if (value === 0) return 0;
 	const [mantissa, exponent] = value.toExponential().split('e');
-	return decodeNumber(`${mantissa}e${decodeNumber(exponent) + places}`);
+	return Number.parseFloat(`${mantissa}e${Number.parseInt(exponent ?? '', 10) + places}`);
 }
-
 function roundHalfUp(value: number, digits: number): number {
-	if (!Number.isFinite(value)) {
-		throw new Error('Cannot round a value that is not a finite number.');
-	}
-	const magnitude = Math.abs(shiftExponent(value, digits));
-	const rounded = Math.round(magnitude);
-	return shiftExponent(value < 0 ? -rounded : rounded, -digits);
+	const rounded = Math.round(Math.abs(shift(value, digits)));
+	return shift(value < 0 ? -rounded : rounded, -digits);
 }
 
-function lineAmounts(line: LinePricing): LineAmounts {
-	const digits = currencyFractionDigits(line.currency);
-	const discount = line.discount_pct ?? 0;
-	const rate = (line.tax_rate ?? 0) / 100;
-	const base = line.quantity * line.unit_price * (1 - discount / 100);
+/** A line's own pricing cells; `unit_price` is the sell price or, on the buy side, the unit cost. */
+export type LineCells = {
+	readonly quantity?: unknown;
+	readonly unit_price?: unknown;
+	readonly discount_pct?: unknown;
+	readonly tax_rate?: unknown;
+};
+/** The document facts that price its lines. */
+export type PricedDocument = { readonly tax_inclusive: boolean; readonly currency: string | null };
 
-	if (line.tax_inclusive) {
+/**
+ * A line's `net`, `tax` and `line_total`, or the refusal its cells earn. `price` names the unit-price column in the
+ * sentence (`Unit price` on the sell side, `Unit cost` on the buy side).
+ */
+export function priceLine(
+	document: PricedDocument,
+	line: LineCells,
+	price = 'Unit price'
+): { net: Decimal; tax: Decimal; line_total: Decimal } | { refusal: string } {
+	const quantity = num(line.quantity);
+	if (Number.isNaN(quantity) || quantity <= 0)
+		return { refusal: 'Quantity must be greater than zero.' };
+	const unitPrice = num(line.unit_price);
+	if (Number.isNaN(unitPrice)) return { refusal: `${price} is required.` };
+	if (unitPrice < 0) return { refusal: `${price} cannot be negative.` };
+	const discount = line.discount_pct == null ? 0 : num(line.discount_pct);
+	if (!(discount >= 0 && discount <= 100))
+		return { refusal: 'Discount percentage must be between 0 and 100.' };
+	const taxRate = line.tax_rate == null ? 0 : num(line.tax_rate);
+	if (!(taxRate >= 0 && taxRate <= 100)) return { refusal: 'Tax rate must be between 0 and 100.' };
+	if (!document.currency) return { refusal: 'Document currency is required.' };
+	const digits = digitsOf(document.currency);
+	const base = quantity * unitPrice * (1 - discount / 100);
+	const rate = taxRate / 100;
+	if (document.tax_inclusive) {
 		const gross = roundHalfUp(base, digits);
 		const net = roundHalfUp(gross / (1 + rate), digits);
-		return { net, tax: roundHalfUp(gross - net, digits), gross };
+		return { net: dec(net), tax: dec(roundHalfUp(gross - net, digits)), line_total: dec(gross) };
 	}
-
 	const net = roundHalfUp(base, digits);
 	const tax = roundHalfUp(net * rate, digits);
-	return { net, tax, gross: roundHalfUp(net + tax, digits) };
-}
-
-/** The document facts that price its lines: how tax is quoted, and in which currency. */
-type PricedDocument = Pick<LinePricing, 'tax_inclusive'> & {
-	readonly currency: string | null;
-};
-
-/** A line's own pricing cells, as the row carries them, before the document is applied. */
-type DocumentLineCells = {
-	readonly quantity?: number | null;
-	readonly unit_price?: number | null;
-	readonly discount_pct?: number | null;
-	readonly tax_rate?: number | null;
-};
-
-/**
- * Refuses a line whose cells cannot be priced.
- *
- * Quote, order and invoice lines ask the same four questions of a row; `price` names the column the
- * sentence talks about (`Unit price` on the sell side, `Unit cost` on the buy side).
- */
-export function validateLineCells(line: DocumentLineCells, price = 'Unit price'): void {
-	const quantity = decodeNumber(line.quantity ?? Number.NaN);
-	if (Number.isNaN(quantity) || quantity <= 0) refuse('Quantity must be greater than zero.');
-	const unitPrice = decodeNumber(line.unit_price ?? Number.NaN);
-	if (Number.isNaN(unitPrice)) refuse(`${price} is required.`);
-	if (unitPrice < 0) refuse(`${price} cannot be negative.`);
-	const discount = decodeNumber(line.discount_pct ?? 0);
-	if (discount < 0 || discount > 100) refuse('Discount percentage must be between 0 and 100.');
-	const taxRate = decodeNumber(line.tax_rate ?? 0);
-	if (taxRate < 0 || taxRate > 100) refuse('Tax rate must be between 0 and 100.');
+	return { net: dec(net), tax: dec(tax), line_total: dec(roundHalfUp(net + tax, digits)) };
 }
 
 /**
- * One line's net, tax and gross, priced against the document that owns it.
- *
- * Quote lines, order lines and invoice lines all price the same way and differ only in which column
- * carries the unit price, so the coercion and the document's tax basis are owned here rather than
- * copied into each collection.
+ * What a batch may still claim of each source line (a quote line billed, an order line invoiced): the quantity already
+ * claimed against it, advanced as the batch claims its own, so two lines of one call cannot each fit under the cap
+ * alone and overflow it together. `claim` returns the refusal, or null.
  */
-export function documentLineAmounts(
-	document: PricedDocument,
-	line: DocumentLineCells
-): LineAmounts {
-	return lineAmounts({
-		quantity: decodeNumber(line.quantity ?? 0),
-		unit_price: decodeNumber(line.unit_price ?? 0),
-		discount_pct: decodeNumber(line.discount_pct ?? 0),
-		tax_rate: decodeNumber(line.tax_rate ?? 0),
-		tax_inclusive: document.tax_inclusive,
-		currency: requireCurrency(document.currency)
-	});
-}
-
-export function documentTotals(lines: readonly LineAmounts[], currency: string): LineAmounts {
-	let net = 0n;
-	let tax = 0n;
-	let gross = 0n;
-	for (const line of lines) {
-		net += toMinorUnits(line.net, currency);
-		tax += toMinorUnits(line.tax, currency);
-		gross += toMinorUnits(line.gross, currency);
-	}
-	return {
-		net: fromMinorUnits(net, currency),
-		tax: fromMinorUnits(tax, currency),
-		gross: fromMinorUnits(gross, currency)
+export function ledger(prior: Iterable<readonly [string, number]>) {
+	const claimed = new Map<string, number>();
+	for (const [id, quantity] of prior) claimed.set(id, (claimed.get(id) ?? 0) + quantity);
+	return (
+		id: string,
+		amount: number,
+		cap: number,
+		refusal: (soFar: number, cap: number) => string
+	): string | null => {
+		const soFar = claimed.get(id) ?? 0;
+		if (soFar + amount > cap) return refusal(soFar, cap);
+		claimed.set(id, soFar + amount);
+		return null;
 	};
 }
 
-/** A buy-side line's cells, as order and purchase invoice lines carry them. */
-type CostLineCells = {
-	readonly quantity?: number | null;
-	readonly unit_cost?: number | null;
-	readonly tax_rate?: number | null;
-};
+/** A reason a status move must carry, from the input or already on the record. */
+export const missingReason = (reason: unknown) =>
+	!Predicate.isString(reason) || reason.trim() === '';
 
 /**
- * A buy-side line's money columns, priced against the document that owns it.
- *
- * The cost column is the unit price of the buy side; the checks and the rounding are the same as
- * a sell-side line's, so only the column name differs here.
+ * A number as the `Decimal` a decimal field holds, by its shortest text (`Decimal.of` refuses a fractional number): the
+ * pricing here is number arithmetic that rounds half-up before it stores.
  */
-export function costLineColumns(
-	document: PricedDocument,
-	line: CostLineCells
-): { readonly net: number; readonly tax: number; readonly line_total: number } {
-	const cells = { quantity: line.quantity, unit_price: line.unit_cost, tax_rate: line.tax_rate };
-	validateLineCells(cells, 'Unit cost');
-	const amounts = documentLineAmounts(document, cells);
-	return { net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-}
+export const dec = (n: number): Decimal => Decimal.of(String(n));

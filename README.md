@@ -35,9 +35,9 @@ Four ideas carry the whole workspace:
   system's masters: every row carries the system's own key in `external_code`, and each arrives
   through its collection's `import` pipeline, which skips codes already on file so a re-imported
   export is a no-op. Committed documents go the other way: `quotes` and `purchase_orders` declare an
-  `export` pipeline that serializes a confirmed document and its lines.
-- **A document is a lifecycle, not a row.** Every document collection carries a status enum and a
-  `+collection.ts` transform that enforces a transition map. `draft` is the only editable state — lines, prices, and
+  `export_confirmed` query that serializes a confirmed document and its lines.
+- **A document is a lifecycle, not a row.** Every document collection carries a `state` field whose
+  declared moves and per-state edit rules the engine enforces on every write path. `draft` is the only editable state — lines, prices, and
   terms lock the moment a document leaves draft — and the terminal states are the ones that export,
   which is what makes their figures safe to hand across the boundary.
 - **History is snapshots.** Quote, order, and invoice lines snapshot the product code, name, unit,
@@ -79,9 +79,9 @@ any document requires a reason. Sent quotes past `valid_until` are caught by the
 | `sales_invoices`         | Billing raised against a confirmed quote; lines allocate quoted quantities.                                     |
 | `sales_invoice_lines`    | One billed quantity per quote line, capped across live invoices.                                                |
 | `contract_signings`      | The confirmed quote's contract lifecycle; `binding_hash` fingerprints the quote substance at generation.        |
-| `activities`             | Polymorphic interaction log (call / meeting / email / task / note) linked by `regarding_type` + `regarding_id`. |
+| `activities`             | Interaction log (call / meeting / email / task / note) on an account or a quote: `regarding`, an exclusive arc. |
 | `products`               | Sellable catalogue — the ERP item master. Sell prices and tax rate only; cost never lives here.                 |
-| `settlements`            | Payments in or out against any committed document. Paid status derived at render.                               |
+| `settlements`            | Payments in or out against any committed document (`regarding`). Paid status derived at render.                 |
 | `suppliers`              | Vendors — the ERP vendor master, with contact, category, and payment terms.                                     |
 | `purchase_orders`        | The buying pipeline document, snapshotting the supplier and inheriting its currency.                            |
 | `purchase_order_lines`   | Line items carrying the struck unit cost — a buy-side fact sales has no grant to read.                          |
@@ -94,149 +94,93 @@ any document requires a reason. Sent quotes past `valid_until` are caught by the
 
 ### Apps
 
-| App            | What a user does                                                                                                                                                                                                                                                                                                                       |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `crm`          | Sales CRM. The account selector in the header scopes the page (defaults to the first active account). Pipeline kanban over the active quote statuses with a rep filter, then quotes, quote lines, contacts, activities, invoices, invoice lines, contracts, and payments for that account — plus the accounts and products catalogues. |
-| `crm_purchase` | Purchasing workspace. A dashboard of PO counts per status, committed spend per currency, and top suppliers; then purchase orders, PO lines, suppliers, goods receipts, receipt lines, purchase invoices, invoice lines, and payments.                                                                                                  |
+| App            | What a user does                                                                                                                                                                                                                                                                                                                                    |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crm`          | Sales CRM (`src/app/crm/+desk.page.svelte`). The account picker in the header scopes the page (the first active account by name until one is chosen). Pipeline board over the quote states with a rep filter, then quotes, quote lines, accounts, contacts, products, activities, invoices, invoice lines, contracts and payments for that account. |
+| `crm_purchase` | Purchasing (`src/app/crm_purchase/+desk.page.svelte`). A live dashboard of orders per status, committed spend per currency and the top five suppliers; then purchase orders, order lines (with `received`), suppliers, goods receipts, receipt lines, purchase invoices, their lines and payments.                                                  |
+
+Every collection opens in the shell's record sheet; `src/data/collection/<c>/+representation.svelte` lays out its form
+(`src/lib/ui/record-form.svelte`), labels from the messages, the quote's contact picked from the chosen account's people,
+and an **Export** button on a confirmed quote or purchase order.
 
 ### Automation
 
-`quote_expiry_watch` — daily at 06:00, a read-only sweep of sent quotes past `valid_until`, written
-to an `expired-quotes.json` export attachment. It never mutates a quote.
+`quote_expiry_watch` — daily at 06:00 (workspace zone), a read-only sweep of sent quotes past `valid_until`, run as the
+`quote_watch` policy; the lapsed quotes are the run's result, and all of them its `expired-quotes.json` attachment.
 
-### Pipelines and policies
+### Imports, exports, queries
 
-- **Import — the ERP's masters.** `accounts`, `products`, and `suppliers` each declare an `import`
-  pipeline (`lib/erp-feed.ts`) that decodes a delivered page of customers, items, or vendors and
-  writes the returned rows. A malformed page fails the whole batch; a code already on file is
-  skipped, so importing the same export twice changes nothing.
-- **Export — confirmed documents.** `quotes` and `purchase_orders` declare an `export` pipeline
-  that builds a versioned JSON attachment (`norbital.crm.confirmed_quote.v1`, …) from the document
-  and its lines. It is field-enumerated, so cost and other internal facts can never serialize.
+- **Import — the ERP's masters.** `accounts`, `products` and `suppliers` each declare a `+pipeline.ts` import
+  (`lib/erp-feed.ts`): a delivered page of customers, items or vendors, trimmed and required (a malformed page fails the
+  whole batch), codes already on file skipped (`onConflict: 'keep'`), so importing the same export twice changes nothing.
+- **Export — confirmed documents.** `quotes.export_confirmed` and `purchase_orders.export_confirmed` return one
+  versioned JSON document per confirmed record the caller may read (`norbital.crm.confirmed_quote.v1`,
+  `norbital.crm.confirmed_purchase_order.v1`), field-enumerated, so cost and other internal facts can never serialize;
+  the record's Export button runs the same query and saves them.
+- `purchase_orders.purchase_matching` — ordered / received / invoiced per order line, the three-way match (cancelled
+  invoices do not count). `settlements.settlement_summary` — paid to date per document of one type.
 
-| Policy                | Apps           | What it owns                                                                                                 |
-| --------------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
-| `accounts_read`       | —              | The sole account-read grant, composed into Sales and the sales envoy.                                        |
-| `products_read`       | —              | The sole product-read grant, composed into both desks and the sales envoy.                                   |
-| `suppliers_manage`    | —              | The sole supplier read/mutate grant (new and existing), composed into Procurement.                           |
-| `commercial_shared`   | —              | The settlement ledger (`settlements` read plus mutate for new records), shared by both desks and owned once. |
-| `sales_rep`           | `crm`          | Requestor-scoped quotes, sales invoices, and contract signings, plus their lines, contacts, and activities.  |
-| `procurement_officer` | `crm_purchase` | Purchase orders and lines, goods receipts, and purchase invoices and lines.                                  |
+### Policies
 
-The sales/procurement split is drawn by **omission**, not masking. Bolt policies are
-collection-scoped, so buy cost stays off the sales surface because sales has no grant for
-`purchase_order_lines` (the only collection carrying a cost column) — and the buy side gets no
-quote grant, so it never sees sell prices or margin. The shared catalogue grant exposes sell prices
-only.
+| Policy                | Apps           | What it owns                                                                                                                       |
+| --------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `accounts_read`       | —              | The sole account-read grant.                                                                                                       |
+| `products_read`       | —              | The sole product-read grant (sell prices only).                                                                                    |
+| `suppliers_manage`    | —              | The supplier master.                                                                                                               |
+| `commercial_shared`   | —              | The settlement ledger and its summary.                                                                                             |
+| `sales_rep`           | `crm`          | Own quotes, sales invoices and signings (read and change), their lines, contacts, activities, the quote export; the desk's limits. |
+| `procurement_officer` | `crm_purchase` | Purchase orders and lines, receipts, purchase invoices and lines, the match and the order export.                                  |
+| `quote_watch`         | —              | Held by no team: the expiry sweep's read of quotes.                                                                                |
 
-### Functions
+The sales/procurement split is drawn by **omission**: sales has no `purchase_order_lines` grant (the only cost column),
+and procurement no quote grant. `src/access/+team.ts` binds the three teams (Sales, Procurement, Sales & Procurement).
 
-| Function             | Purpose                                                                                                     |
-| -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `purchase_matching`  | Ordered / received / invoiced per order line — the three-way match review. Cancelled invoices do not count. |
-| `settlement_summary` | Paid-to-date per document for one regarding type — the input to derived paid / partial / unpaid badges.     |
+### Channel and envoy
 
-Neither function is mounted on a default surface: `purchase_matching` is the review a tenant
-wires into its own match screen, and `settlement_summary` powers payment-status columns wherever a
-tenant wants them. Both are ready to call through `client.invoke`. The mounted sales and purchasing
-dashboards read their collections directly and derive their presentation locally, so the sync engine
-updates them without a remote live-query function or refresh control.
-
-### Channel
-
-`sales_desk` — a Telegram channel (`src/channels/+sales_desk.ts`) for customer-facing sales
-enquiries, answered by the `sales_desk` envoy. The agent answers under the
-same `accounts_read`, `products_read`, `commercial_shared`, and `sales_rep` policy set as the Sales
-team, so a message from a customer cannot become a way around the permission model.
+`sales_desk` — a Telegram channel (`src/channel/+sales_desk.channel.ts`) answered by the `sales_desk` envoy
+(`src/agent/envoy/+sales_desk.envoy.ts`, public, groups ignored, delegation on). An unlinked customer's direct message
+runs under the Sales team's four policies alone; a linked member's adds their own authority. `envoys.receive` caps each
+sender at 8 a minute and the desk at 300; the desk's turns share `sales_rep`'s 100 an hour.
 
 ### Seed
 
-None. A fresh tenant starts empty: masters arrive by importing the ERP's customer, item, and vendor
-exports, and everything else is entered by operators through the apps. There is deliberately no
-`+seed.ts` — this workspace's data enters either through an import or through the UI.
+The bank's `crm` tree (`seed/seed.ts`: an activity's `regarding_type`/`regarding_id` becomes its `regarding`
+reference; the purchase cost lookup stays in the bank). `bolt build --bank=<seed bank>` writes it as the `sample` pack.
 
 ## Under the hood
 
 ```text
 src/
-├── collections/              17 collections, each in its own directory
-│   ├── +relationship.ts      one-to-many and many-to-one relations; line collections cascade
-│   └── <collection>/
-│       ├── +model.ts         storage: columns, enums, indexes, recordLabel, icon
-│       ├── +collection.ts    the write contract: what a caller may submit, and the transform that
-│       │                     numbers, defaults, prices, caps and polices it
-│       ├── +pipelines.ts     master imports and confirmed-document exports
-│       └── +representation.svelte  create/edit form with human-readable relation labels
-├── apps/                     the two app surfaces
-├── automations/              quote_expiry_watch, and one line roll-up per line collection and event
-├── functions/                the two on-demand query handlers above
-├── access/policies/          narrow shared coordinate owners plus sales and procurement
-├── channels/                 sales_desk, the Telegram channel
-├── envoys/                   sales_desk, the agent on that channel
-├── lib/
-│   ├── pricing.ts            the only place rounding is decided
-│   ├── document-lines.ts     document totals from lines; the allocation ledger behind every cap
-│   ├── document-rollup.ts    the line-to-document roll-up the automations run
-│   ├── document-numbers.ts   PREFIX-YYYY-NNNN document numbering
-│   ├── lifecycle.ts          transition maps, batch pairing, and the small shared refusals
-│   ├── erp-feed.ts           the import every master feed lands through
-│   ├── desk-date.ts          calendar-day derivation in the desk's timezone
-│   └── clock.ts              the injected workflow clock
-└── i18n/                     messages.en.json + messages.zh.json, identical key sets
+├── +workspace.ts              Asia/Singapore; app order
+├── data/
+│   ├── +relationship.ts       every reference; lines are owned by their document
+│   ├── model/<c>/+model.ts    fields, states (to / edit), seq numbers, sum and count roll-ups, checks
+│   └── collection/<c>/        +collection.ts (allowlists, the one transform, queries), +representation.svelte,
+│                              +pipeline.ts (the three master imports)
+├── access/                    +team.ts and the seven +<p>.policy.ts
+├── agent/                     +agent.md, envoy/+sales_desk.envoy.ts
+├── automation/                +quote_expiry_watch.automation.ts
+├── channel/                   +sales_desk.channel.ts
+├── app/                       crm/ and crm_purchase/: +app.ts and +desk.page.svelte
+├── i18n/                      +messages.ts / +zh.messages.ts over messages.en.json / messages.zh.json
+└── lib/                       pricing.ts (the only rounding), erp-feed.ts, document-export.ts, currency.ts, ui/
 ```
 
-- **Collections** declare what a caller may submit — `doc_no`, snapshots and money columns are
-  never in the selection, the transform derives them — and their transform runs once per batch:
-  two read waves keyed by the inputs, then one decision per input. Transforms own the transition
-  maps, document numbering, quantity caps (received and invoiced quantities can never pass the
-  ordered or quoted quantity) and the credit gate. Lines are written on their own, so the
-  line-to-document roll-up that keeps `net` / `tax` / `gross` equal to the sum of the printed lines
-  is a change-triggered automation per line collection, acting under `document_rollup`, which may
-  write nothing but those three columns.
-- **Document numbering** (`lib/document-numbers.ts`) issues `QT-`, `PO-`, `SI-`, `PI-`, and `GRN-YYYY-NNNN`
-  numbers by reading the highest number already issued in the series; the unique index on `doc_no`
-  is what actually guarantees uniqueness, and the losing transaction fails and is retried.
-- **Money** (`lib/pricing.ts`): `roundHalfUp` shifts the decimal exponent so `1.005` rounds to
-  `1.01`, tax-inclusive lines take tax as the residual `gross − net`, and `documentTotals` sums
-  already-rounded lines in minor units so a total always equals what a reader can add up.
-- **Calendar days** (`lib/desk-date.ts`) resolve in `Asia/Singapore` — `new Date().toISOString()`
-  would be the UTC day, a day behind for part of every day on a server west of Greenwich. Task
-  `due_date` defaults and purchase-order `expected_date` (two weeks out) use it.
-- **Apps** are declarative: `$state` for operator input (account selector, rep filter), `$derived`
-  for everything downstream — label maps and queries. Collection surfaces bulk-resolve relation
-  columns, while standalone relation pickers use the generic relationship renderer; authored code
-  never queries platform-owned identity tables and never renders a UUID. The platform's user table
-  remains internal and is not duplicated as a workspace collection.
-- **Representations** are the collection-owned create/edit surfaces. Relation fields use the
-  `RelationshipRenderer` with human labels (`doc_no: title`, `code · name`, `first last`), and the
-  activities and settlements forms switch their target field by `regarding_type`.
-- **i18n**: app and component copy lives in `messages.en.json` (source of truth) and
-  `messages.zh.json` with the same key set; apps use `useI18n<TenantI18nKeys>()`. App metadata in
-  `<svelte:head>` stays static English, and the sidebar label localizes through `app.<appId>.title`.
+- **A document is a state field.** Each lists its moves (`to`) and what may change in each state (`edit`); lines are
+  owned, so they are written only while their document is a draft. The transforms add what a move needs: lines to
+  submit, issue or confirm; active master data; the credit acknowledgement; a reason to cancel or void; the stamps.
+- **Numbers and totals are the model's.** `doc_no` is a `seq` (`QT-`, `SI-`, `PO-`, `PI-`, `GRN-<yyyy>-<nnnn>`, in
+  the workspace zone, never reused); `net` / `tax` / `gross` are `sum` roll-ups of the already-rounded lines.
+- **Caps** (billed ≤ quoted, received and invoiced ≤ ordered, live invoices only) are refused in the line transforms
+  with the running figures; receipts are also bounded in the statement by the order line's `received` roll-up and check.
+- **Money** (`lib/pricing.ts`): half-up by exponent shift, a tax-inclusive line's tax the residual `gross − net`.
 
 ## Changing the template
 
-Run from the template directory; `.norbital/` generated output is rebuilt and never hand-edited:
-
 ```bash
-pnpm sync    # bolt sync — regenerates .norbital/, may add a migration
-pnpm lint    # prettier --check + svelte-check
+pnpm check   # bolt check: layout, names, bundle, seed, schema, rules, tsc and svelte-check
+pnpm test    # bolt build --bank=… (the sample pack), then bolt test (vitest on the test kit, the surface sweep)
+pnpm run env -- serve --template=templates/crm --seed=bank   # from the realm root: bolt start on the sample pack
 ```
 
-`sync` also emits the deployable portable artifact at `.norbital/artifact/bundle.mjs`; there is no
-separate per-template build command. The templates repository provides the same loops across every
-template (`pnpm --dir crm sync`, `pnpm --dir crm lint`, and repo-root `pnpm templates:verify`,
-which proves each template installs, syncs, and lints from tracked files alone).
-
-- `bolt sync` may create or update `.norbital/migrations/`. That directory is generated but
-  **committed** — commit it with the authored change. `workspaceSchemaFingerprint` hashes the
-  committed mutation-visible schema, so never edit the generated lineage by hand.
-- There is no seed script, so deployed data evolves through committed migrations, not seeds: for a
-  change that must apply to existing tenants, write the next lineage entry with
-  `pnpm exec bolt migrate --name <name>`, edit its SQL, and run it through the update flow below.
-- Publishing: pushing to `main` of the templates repository republishes
-  `refs/heads/templates/crm` — a fast-forward-only subtree split of this directory. A tenant is
-  forked from the exact advertised commit when Colony provisions it, so it shares ancestry but never
-  moves merely because the ref advances. From the realm root, `pnpm run env -- link` tests
-  local OSS packages inside this template; it does not link a template release into Colony or
-  update a tenant. The templates repository README documents the full release and tenant lifecycle.
+Publishing is unchanged: pushing to `main` of the templates repository republishes `refs/heads/templates/crm`.
