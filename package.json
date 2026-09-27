@@ -12,14 +12,14 @@
 		"lint": "prettier --check ."
 	},
 	"dependencies": {
-		"@norbital-ai/bolt": "0.0.118",
-		"@norbital-ai/std": "0.0.118",
-		"@norbital-ai/ui": "0.0.118",
+		"@norbital-ai/bolt": "0.0.120",
+		"@norbital-ai/std": "0.0.120",
+		"@norbital-ai/ui": "0.0.120",
 		"svelte": "^5.57.1",
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.118",
+		"@norbital-ai/bolt-server": "0.0.120",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^26.4.0",
 		"happy-dom": "^20.11.6",
