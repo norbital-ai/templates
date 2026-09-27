@@ -108,13 +108,13 @@ contractor policy or the WhatsApp envoy: only the controller dashboard renders i
 suspicion state.
 
 **Cross-assignment scene-reuse nomination (the review's second task).** PDQ cannot separate a crop
-of the same scene from an unrelated pair, so that task nominates candidates through the collection's
-learned record embedding. `photo_evidence` names Gemini Embedding 2 (multimodal, 256-dimension
-truncation) as its embedding model; the host resolves and normalizes the stored image and sends it
-as the provider's image content part, so `record_embedding` is a real scene vector and the Kismis /
-Lorong crop pair sits far closer than unrelated pairs. The host must have that model registered
-(`COLONY_AI_EMBEDDING_MODELS`); the review basis reports `record_embedding_photos` so a review taken
-without it is visible rather than silently clear. The deterministic PDQ net
+of the same scene from an unrelated pair, so that task nominates candidates through the photo's
+scene embedding: inspection embeds the photo itself (`ctx.ai.embed([photo], { model: 'scene' })`,
+a 256-dimension vector; every embedding model is multimodal) into `scene_embedding`, and the `scene`
+similarity ranks by cosine, so the Kismis / Lorong crop pair sits far closer than unrelated pairs.
+The host maps the `scene` embedding model (`COLONY_AI_EMBED_MODELS` / `BOLT_AI_EMBED_MODELS`); the
+review context reports `scene_embedding_photos` so a review taken without it is visible rather than
+silently clear. The deterministic PDQ net
 (`visual_duplicate` / `exact_duplicate`) runs independently of the embedding.
 
 **Network reach.** The review reaches no public page. Its inputs are tenant-held rows and the
@@ -161,13 +161,11 @@ The assignment transform stamps the filed photos uninspected (as a direct upload
 The envoy runs under the strict capability lock:
 
 - **The ceiling is `field_ops_whatsapp`, not the contractor policy.** It reads assignments, updates
-  `status`, `completed_at` and `summary` on one the sender holds, and files new photo and message
-  rows only under such an assignment. It cannot create, delete or reassign an assignment, change the
+  `status`, `completed_at` and `summary` on any one, and files new photo and message rows under it;
+  a group turn runs under this policy alone, so any member's group report may update any assignment. It cannot create, delete or reassign an assignment, change the
   work order, read back evidence or logs, or reach reviews, suspicion data or apps.
-- **The linked account is the requestor, which only authorizes the target.** `${requestor.id}` must
-  match `job_assignments.assignee_user_id` on the existing row. It confers nothing: a contractor who
-  administers the web app reaches no more here than an ordinary one, and their `admin` flag is
-  dropped at the boundary.
+- **A DM joins the linked member's own authority** to the envoy's policy (P32); a group turn holds
+  the envoy's policy alone, whoever sent the message.
 - **DMs are private; groups are shared.** Every assigned member sees profile group transcripts in
   Agent UI, while only the DM owner and administrators see a private transcript.
 
@@ -178,7 +176,7 @@ The envoy runs under the strict capability lock:
 | Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): inspects every photo still awaiting its integrity facts, then pages through all unchecked assignments, reviews each against a bounded visual + communication context, and writes one idempotent suspicion log only when the model judges the evidence suspicious. |
 | Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                                                                     |
 | Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).                                                       |
-| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read assignments; update status, completion and summary on one the linked contractor holds; file new photo and message rows under it. No other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                 |
+| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read assignments; update status, completion and summary on any one; file new photo and message rows under it. No other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                                         |
 | Policy     | `suspicion_review_automation`     | The review automation's authority: the photo corpus it inspects (facts written once, while the hash is empty), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                                       |
 | Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its photo-to-assignment map is reviewed photo by photo; the job-assignment import CSV template lives in `assets/` with its own README.                                                                     |
 
@@ -192,19 +190,20 @@ stay live without a remote query handler or refresh control.
 
 ```text
 src/
-├── apps/                           +field_ops_controller.svelte, +field_ops_contractor.svelte
-├── channels/                       +field_ops_whatsapp.ts, the WhatsApp channel
-├── envoys/                         +field_ops_whatsapp.ts, the agent on that channel
-├── access/policies/                the four policies and the variation approval flow
-├── collections/                    models, relationships, write contracts (+collection.ts), pipelines, representations
-│   ├── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
-│   ├── suspicion_reviews/          the review ledger (controller-only)
-│   └── suspicious_activity_logs/   the suspicion judgements and their controller resolution
-├── datatypes/
-│   └── photo_source/               where a photo came from: workspace upload or an envoy message
-├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
-├── lib/                            typed workspace client shared by server roles
-├── automations/                    the suspicion review — the one automation: it inspects filed photos and judges unchecked work
+├── +workspace.ts                   Asia/Singapore, SGD, the app order, the AI model classes
+├── data/
+│   ├── +relationship.ts            every foreign key
+│   ├── model/<c>/+model.ts         the seven models
+│   ├── collection/<c>/             +collection.ts (write contract, transform, queries/actions) and +representation.svelte
+│   └── custom_field/photo_source/  where a photo came from: workspace upload or a channel message
+├── access/                         +team.ts and the four +<name>.policy.ts (the variation approval is in the contractor's)
+├── agent/                          +agent.md and envoy/+field_ops_whatsapp.envoy.ts
+├── channel/                        +field_ops_whatsapp.channel.ts
+├── automation/                     photo inspection, the suspicion review, the site handover bundle
+├── app/                            field_ops_controller (dispatch, sites) and field_ops_contractor (jobs)
+├── i18n/                           +messages.ts, +zh.messages.ts
+└── lib/                            site keys, photo rules, the review, the sheet import, csv/xlsx readers
+seed/seed.ts                        the bank tree `field-operations` as the sample pack
 ```
 
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
@@ -219,7 +218,7 @@ not only the UI:
   channel message's; both are unique idempotency keys.
 - A reported location beyond the site tolerance is recorded as an evidence fact and never sets
   `suspect`; completion is stamped by the collection's own transform.
-- Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded by
+- Photo evidence: JPEG/PNG/HEIC, exactly one parent, fingerprints and integrity flags recorded by
   the inspection automation; its asset, parent, and provenance cannot be swapped after filing.
 - Communication logs and suspicion reviews declare no `update` and no `delete`: immutable by
   construction. A suspicion log's judgement is not an update input; only its resolution is.

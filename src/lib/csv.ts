@@ -32,6 +32,13 @@ export function csvRecords(text: string): Array<Record<string, string>> {
 		else if (character !== '\r') cell += character;
 	}
 	endRow();
+	return gridRecords(grid);
+}
+
+/** Rows under a header row as records keyed by the lower-cased header, blank cells omitted. */
+export function gridRecords(
+	grid: ReadonlyArray<ReadonlyArray<string>>
+): Array<Record<string, string>> {
 	const [header = [], ...body] = grid;
 	const names = header.map((name) => name.trim().toLowerCase());
 	return body.map((values) =>
