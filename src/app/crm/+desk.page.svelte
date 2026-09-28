@@ -8,7 +8,7 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Picker } from '@norbital-ai/ui';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cover, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs } from '@norbital-ai/ui';
 	import { Board, Table } from '@norbital-ai/ui';
 	import { num } from '../../lib/pricing.js';
@@ -46,12 +46,14 @@
 <!-- an arc column shows its row's label (`lib/ui/ref.svelte`); a one-relation column does by default -->
 {#snippet regarding({ value }: { value: unknown })}<Ref id={value} />{/snippet}
 
+{#snippet ownerFilter()}
+	<Stack as="label" gap="xs" class="max-w-72 text-sm">
+		<span class="font-medium">{t('component.owner')}</span>
+		<Picker of="sys_user" label={['name']} value={owner} onChange={(id) => (owner = id)} />
+	</Stack>
+{/snippet}
 {#snippet pipeline()}
-	<Stack gap="md">
-		<Stack as="label" gap="xs" class="max-w-72 text-sm">
-			<span class="font-medium">{t('component.owner')}</span>
-			<Picker of="sys_user" label={['name']} value={owner} onChange={(id) => (owner = id)} />
-		</Stack>
+	<Cover gap="md" top={ownerFilter}>
 		<Board
 			of="quotes"
 			by="status"
@@ -60,7 +62,7 @@
 			card={['doc_no', 'title', 'currency', 'gross']}
 			where={owner ? { ...onAccount, owner_id: { eq: owner } } : onAccount}
 		/>
-	</Stack>
+	</Cover>
 {/snippet}
 {#snippet quotes()}
 	<Table
