@@ -1,4 +1,5 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm';
+import { KIOSK_ASSET_BASE } from './config.js';
 import type { FrameSize } from './silhouette.js';
 
 /** MiniVision's inclusive, edge-shifted crop. Keep context around the face for screen/print cues. */
@@ -34,8 +35,8 @@ export const antiSpoofPixels = (rgba: Uint8ClampedArray): Float32Array => {
 };
 
 export const loadAntiSpoof = async (): Promise<InferenceSession> => {
-	// `assets/models/`: the model and the pinned ONNX Runtime Web WASM pair, served at `/assets/*` (§3.1)
-	const base = new URL('/assets/models/', location.origin);
+	// The model and pinned ONNX Runtime Web WASM pair use the same workspace base as Human's models.
+	const base = new URL(`${KIOSK_ASSET_BASE}/models/`, location.origin);
 	env.wasm.numThreads = 1;
 	env.wasm.wasmPaths = {
 		wasm: new URL('ort-wasm-simd-threaded.wasm', base).href,

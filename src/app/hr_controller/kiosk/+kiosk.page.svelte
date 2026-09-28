@@ -622,7 +622,7 @@
 	/**
 	 * A reply for the hold that asked. An empty reply is not a verdict: the frame that produced the
 	 * probe may have been blurred or half-turned, so the hold simply asks again with its next
-	 * embedding, and only a hold that runs its whole two seconds without a name is "unknown".
+	 * embedding, and only a hold that runs its full second without a name is "unknown".
 	 */
 	const acceptMatch = (
 		matched: MatchResult,

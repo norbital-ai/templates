@@ -37,7 +37,7 @@ export const sameKioskPerson = (first: readonly number[], second: readonly numbe
 /**
  * Camera observations own the hold. A server response cannot start or extend it, and neither can
  * the clock: the scan loop resets the hold itself on every frame without a readable face, so a slow
- * device whose frames arrive a second apart still accumulates its two seconds. Liveness is judged
+ * device whose frames arrive a second apart still accumulates the full second. Liveness is judged
  * on the hold's running mean, so one frame that dips under the line while the person blinks or the
  * light flickers keeps the hold; a run of them or a frame that plainly fails ends it, and a frame
  * under the line starts nothing.

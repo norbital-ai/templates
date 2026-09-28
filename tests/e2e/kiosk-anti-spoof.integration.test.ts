@@ -18,6 +18,7 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 	await mkdir(scratchRoot, { recursive: true });
 	const scratch = await mkdtemp(join(scratchRoot, 'kiosk-model-test-'));
 	const root = fileURLToPath(new URL('../../', import.meta.url));
+	const tenant = '/test-tenant';
 	const files = new Map<string, { path: string; type: string }>([
 		['/assets/anti-spoof.js', { path: join(scratch, 'anti-spoof.js'), type: 'text/javascript' }],
 		...['minifasnet.onnx', 'ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm'].map(
@@ -56,12 +57,14 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 	const server = createServer(async (request, response) => {
 		const path = request.url ?? '/';
 		requested.add(path);
-		if (path === '/') {
+		if (path === `${tenant}/`) {
 			response.setHeader('content-type', 'text/html');
-			response.end('<!doctype html><title>Kiosk model test</title>');
+			response.end(
+				`<html><head><meta name="bolt-base" content="${tenant}"><title>Kiosk model test</title></head></html>`
+			);
 			return;
 		}
-		const file = files.get(path);
+		const file = files.get(path.startsWith(`${tenant}/`) ? path.slice(tenant.length) : path);
 		if (file === undefined) {
 			response.writeHead(404).end();
 			return;
@@ -85,7 +88,8 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 				lib: {
 					entry: {
 						'anti-spoof': join(root, 'src/lib/kiosk/anti-spoof.ts'),
-						face: join(root, 'src/lib/kiosk/face.ts')
+						face: join(root, 'src/lib/kiosk/face.ts'),
+						config: join(root, 'src/lib/kiosk/config.ts')
 					},
 					formats: ['es'],
 					fileName: (_format, name) => `${name}.js`
@@ -102,7 +106,12 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 		browser = await chromium.launch().catch(() => undefined);
 		assert.ok(browser, 'Chromium is required for the anti-spoof model gate');
 		const page = await browser.newPage();
-		await page.goto(`http://127.0.0.1:${address.port}/`);
+		await page.goto(`http://127.0.0.1:${address.port}${tenant}/`);
+		const bases = await page.evaluate(`(async () => {
+			const { KIOSK_MODEL_BASE, KIOSK_VOICE_BASE } = await import('/assets/config.js');
+			return [KIOSK_MODEL_BASE, KIOSK_VOICE_BASE];
+		})()`);
+		assert.deepEqual(bases, [`${tenant}/assets/models/human/`, `${tenant}/assets/kiosk-voice/`]);
 		const capture = await page.evaluate(`(async () => {
 			const {drawVideoFrame,createAnalyseCanvas} = await import('/assets/face.js');
 			const source = document.createElement('canvas'); source.width=720; source.height=1280;
@@ -207,7 +216,12 @@ it('the browser runs the packaged MiniFASNet model, passes the real sample and r
 			assert.ok(Math.abs(sample.score - sample.reference) < 0.1, JSON.stringify(sample));
 		}
 		for (const name of ['minifasnet.onnx', 'ort-wasm-simd-threaded.wasm']) {
-			assert.ok(requested.has('/assets/models/' + name), 'release must supply ' + name);
+			assert.ok(requested.has(`${tenant}/assets/models/${name}`), 'release must supply ' + name);
+			assert.equal(
+				requested.has(`/assets/models/${name}`),
+				false,
+				'model must use the tenant path'
+			);
 		}
 		console.log('KIOSK_ANTI_SPOOF_PROFILE', JSON.stringify(measured));
 		await writeFile(

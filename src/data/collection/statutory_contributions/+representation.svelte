@@ -176,7 +176,9 @@
 				<Grid gap="sm" minimum="compact">
 					<Field name="assessment_period" label={t('component.assessment_period')} />
 					<Field name="assessment_scope" label={t('component.assessment_scope')} />
-					<Field name="elections" label={t('component.scheme_elections')} />
+				</Grid>
+				<Field name="elections" label={t('component.scheme_elections')} />
+				<Grid gap="sm" minimum="compact">
 					<Field
 						name="employee_share_annual_cap"
 						label={t('component.employee_share_annual_cap')}

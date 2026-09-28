@@ -13,7 +13,7 @@ test('the completed person stays suppressed while another person can start immed
 	}
 });
 
-test('only a live face starts the two-second hold; matching time is part of that hold', () => {
+test('only a live face starts the one-second hold; matching time is part of that hold', () => {
 	assert.equal(observeKioskHold(null, null, 0), null);
 	for (const liveScore of [0, 0.79, NaN, Infinity]) {
 		assert.equal(observeKioskHold(null, { ...live, liveScore }, 0), null);
@@ -21,14 +21,14 @@ test('only a live face starts the two-second hold; matching time is part of that
 	let hold = observeKioskHold(null, live, 100);
 	assert.ok(hold);
 	const probe = hold.probe;
-	assert.equal(kioskSecondsLeft(hold), 2);
-	for (let now = 200; now <= 2100; now += 100) {
+	assert.equal(kioskSecondsLeft(hold), 1);
+	for (let now = 200; now <= 1100; now += 100) {
 		hold = observeKioskHold(hold, { ...live, embedding: [0.97, 0.03, 0] }, now);
 		assert.ok(hold);
 		assert.equal(hold.probe, probe, 'the first frame anchors the whole hold');
 		assert.deepEqual(hold.embedding, [0.97, 0.03, 0], 'the newest frame is what recognition sees');
 		assert.equal(hold.startedAt, 100);
-		assert.equal(kioskSecondsLeft(hold), Math.ceil((2100 - now) / 1000));
+		assert.equal(kioskSecondsLeft(hold), Math.ceil((1100 - now) / 1000));
 	}
 });
 
@@ -58,8 +58,8 @@ test('leaving, spoofing or changing person cannot finish a prior hold; slow fram
 	assert.ok(swapped);
 	assert.notEqual(swapped.probe, hold.probe);
 	assert.equal(swapped.startedAt, 100);
-	// A tablet whose inference takes a second per frame still accumulates its two seconds.
-	const slow = observeKioskHold(hold, live, 2000);
+	// A tablet whose inference takes a second per frame still accumulates the full second.
+	const slow = observeKioskHold(hold, live, 1000);
 	assert.ok(slow);
 	assert.equal(slow.probe, hold.probe);
 	assert.equal(kioskSecondsLeft(slow), 0);
