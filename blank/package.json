@@ -13,9 +13,9 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/bolt": "0.0.125",
-		"@norbital-ai/std": "0.0.125",
-		"@norbital-ai/ui": "0.0.125",
+		"@norbital-ai/bolt": "0.0.126",
+		"@norbital-ai/std": "0.0.126",
+		"@norbital-ai/ui": "0.0.126",
 		"effect": "4.0.0-rc.112",
 		"mode-watcher": "^1.1.0",
 		"runed": "^0.37.1",
@@ -23,8 +23,8 @@
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.125",
-		"@norbital-ai/doctor": "0.0.125",
+		"@norbital-ai/bolt-server": "0.0.126",
+		"@norbital-ai/doctor": "0.0.126",
 		"@types/node": "^26.4.0",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"prettier": "^3.9.6",
