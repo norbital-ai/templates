@@ -143,8 +143,7 @@ test('a public holiday inside the window meets the guarantee as a paid day', () 
 		validateRosteredExpectations({
 			period: '2026-01',
 			window,
-			employments,
-			holidayDates: holidays,
+			employments: employments.map((employment) => ({ ...employment, holidayDates: holidays })),
 			...rosteredWorkCodeMaps(codes)
 		}),
 		[]

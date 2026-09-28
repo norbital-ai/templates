@@ -53,6 +53,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "0c3b0f05-b8af-5835-bd29-af57ee8d536f",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "94b4aba9-7466-5658-a354-0fa603ded593",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "f562deb3-3c28-527b-9507-b52e9f957acc",
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "BPAYBS",
@@ -108,6 +153,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "5ae340ba-2be8-5f9e-aa66-589e20716678",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "2718fa13-8103-5745-b15d-f68b4fa2c89c",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "0bdc1e3b-0c90-5f9b-8780-1d09077ab840",
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "BPAYBS",
@@ -160,6 +250,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "9de2dc33-87c0-5c0f-b664-083d525032ab",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c32d3d52-d0a1-5c2d-a331-fe41a763a6e6",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -395,6 +530,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "eee2d982-8f07-5050-ab2e-1ed391dc84fe",
+		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7aa09c72-8568-55f1-b097-50c07452381e",
+		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "e4ec0df1-6f77-54e7-bf8b-fc3fae613fb9",
 		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
 		"code": "BACKPAY_ADD_WAGES",
@@ -506,6 +686,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d9b16b67-ceb6-5a3e-a42b-0da72fe32326",
+		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e9119e30-a6ad-5291-a85b-c4f3d377ce6d",
+		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -721,6 +946,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "f1ce0de3-c993-5805-adad-1830db2dd687",
+		"settings_id": "afb1af6a-dc87-5261-841f-c07946dce50e",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "58cb7bdc-5c74-5712-9acb-0c2d865cd009",
+		"settings_id": "afb1af6a-dc87-5261-841f-c07946dce50e",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "db3a2da4-38ff-5680-8b23-b7fc27407f97",
 		"settings_id": "a0131890-6831-5877-ba7a-226d53641b4f",
 		"code": "BPAYBS",
@@ -776,6 +1046,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "1e39fc8d-f3ca-57c4-aae2-d65ab2ed16cf",
+		"settings_id": "a0131890-6831-5877-ba7a-226d53641b4f",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c964e3a9-ffa8-5660-8a7e-c2ce48726adc",
+		"settings_id": "a0131890-6831-5877-ba7a-226d53641b4f",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "09d67c57-f856-5e5b-b57e-86448cd092e9",
 		"settings_id": "76ad3dca-70cf-5225-a866-e6e9c77ca7c7",
 		"code": "BPAYBS",
@@ -828,6 +1143,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f47c17ec-5b53-5622-b341-5f52ed871218",
+		"settings_id": "76ad3dca-70cf-5225-a866-e6e9c77ca7c7",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c514b2e6-1d10-5972-a926-71171a772993",
+		"settings_id": "76ad3dca-70cf-5225-a866-e6e9c77ca7c7",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1063,6 +1423,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "879f8cf3-2a11-59b2-90a1-f1283f3c4043",
+		"settings_id": "3c1456f9-6462-5c19-a65e-2347b518b3f5",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3384260f-9941-517d-ab35-1bec2cff10e7",
+		"settings_id": "3c1456f9-6462-5c19-a65e-2347b518b3f5",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "d338fe13-bb0f-525f-a709-e0d390d6a3f7",
 		"settings_id": "3c1456f9-6462-5c19-a65e-2347b518b3f5",
 		"code": "BACKPAY_ADD_WAGES",
@@ -1174,6 +1579,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "94239334-fb75-5521-806d-f4cf4e0f56a6",
+		"settings_id": "7986fbc4-f724-5269-94d3-49c7fd4ebaf2",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ee388232-b1e8-5d2d-a622-d983c042315b",
+		"settings_id": "7986fbc4-f724-5269-94d3-49c7fd4ebaf2",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1389,6 +1839,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "4b25e05b-ed87-5c68-87b1-0e68afa4bef1",
+		"settings_id": "2c514e79-7396-5a28-a6ac-dc793ad66497",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b5c085a4-23bb-5cdc-8780-5b001273e737",
+		"settings_id": "2c514e79-7396-5a28-a6ac-dc793ad66497",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "a2cb7b3e-111b-5c2e-86f5-5e8e090b4a7c",
 		"settings_id": "047d7a5b-852c-559d-b2d0-f721cb820514",
 		"code": "BPAYBS",
@@ -1444,6 +1939,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "b80199ae-9586-5300-b599-6792a11e5dd8",
+		"settings_id": "047d7a5b-852c-559d-b2d0-f721cb820514",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "39241df5-10bf-5fd1-9e6e-8f759bbd95fa",
+		"settings_id": "047d7a5b-852c-559d-b2d0-f721cb820514",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "85814f93-8ce0-5798-92ef-d2970e28bd59",
 		"settings_id": "ca3f7f9d-a7c2-50d9-8566-2a19206b3f66",
 		"code": "BPAYBS",
@@ -1496,6 +2036,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "9d6c296c-557d-51c4-9cce-77421db1884f",
+		"settings_id": "ca3f7f9d-a7c2-50d9-8566-2a19206b3f66",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "cff36f5f-1adc-5779-9639-0f1d1aee92ac",
+		"settings_id": "ca3f7f9d-a7c2-50d9-8566-2a19206b3f66",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1731,6 +2316,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "b71bace9-71ea-551b-9575-c593527628f7",
+		"settings_id": "3b087820-2cb6-5a9c-b4ca-31ddb5957a02",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "368f22f3-e71a-5402-b384-02d1ef1dbb36",
+		"settings_id": "3b087820-2cb6-5a9c-b4ca-31ddb5957a02",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "e825ba8c-ea14-5cd5-bb00-d073e7af4ecd",
 		"settings_id": "3b087820-2cb6-5a9c-b4ca-31ddb5957a02",
 		"code": "BACKPAY_ADD_WAGES",
@@ -1842,6 +2472,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "50b964ca-41f6-524e-94c5-9502c6a4e6bf",
+		"settings_id": "c3d0d51d-e1c8-53da-8144-c0a09a3771e5",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "9062dc9f-8547-5836-9c85-d69095980583",
+		"settings_id": "c3d0d51d-e1c8-53da-8144-c0a09a3771e5",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -2057,6 +2732,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "18201e20-8308-58d1-8aec-16995e3449b7",
+		"settings_id": "488ff2a4-81ec-55e3-8e93-be89eaa5af69",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "241d264e-1593-5d90-9ab5-0f13de1559f8",
+		"settings_id": "488ff2a4-81ec-55e3-8e93-be89eaa5af69",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "46581108-9570-5e35-b4e5-ae3e47d5cf5c",
 		"settings_id": "a2d9696e-f903-5333-a3dc-1357d8cbcf68",
 		"code": "BPAYBS",
@@ -2112,6 +2832,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "c90c7811-48cf-5946-8a3d-88d2b686dd3a",
+		"settings_id": "a2d9696e-f903-5333-a3dc-1357d8cbcf68",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a0254cf6-d22c-5e3c-98e6-24c423da7f86",
+		"settings_id": "a2d9696e-f903-5333-a3dc-1357d8cbcf68",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "7d6b84a6-1090-5c34-b1e2-744bd6eccc0d",
 		"settings_id": "e9b35eb8-53fb-5e9f-98e9-50671005938c",
 		"code": "BPAYBS",
@@ -2164,6 +2929,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7b84c149-02c1-5c21-a6d5-508c4d53e4cc",
+		"settings_id": "e9b35eb8-53fb-5e9f-98e9-50671005938c",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d4437169-3dad-54d2-a599-2151a0ee4c02",
+		"settings_id": "e9b35eb8-53fb-5e9f-98e9-50671005938c",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -2399,6 +3209,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "f7576daf-b450-5c4f-b079-c755fd85afa1",
+		"settings_id": "6215213b-d017-5916-8cdf-bd2d64412a3f",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "6b88c070-bf31-51f6-bbdd-668b86786260",
+		"settings_id": "6215213b-d017-5916-8cdf-bd2d64412a3f",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "8acd5fd8-d79c-50f3-9c5e-13e2619c183d",
 		"settings_id": "6215213b-d017-5916-8cdf-bd2d64412a3f",
 		"code": "BACKPAY_ADD_WAGES",
@@ -2510,6 +3365,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "622e6c21-fcee-5890-ae16-487f3e67b0ba",
+		"settings_id": "c7e8b8e8-cb91-5a2b-b442-a33c089b841e",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "dbafff19-54c7-5f67-bdc6-aa5e0f1e0c25",
+		"settings_id": "c7e8b8e8-cb91-5a2b-b442-a33c089b841e",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -2725,6 +3625,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "6222a0ce-f034-52a2-ac46-aaeadc46fe85",
+		"settings_id": "dcbfe46a-d948-5aa7-b3c2-7500b9ec7283",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "0801ce68-100b-5ddf-a719-f8a541577e10",
+		"settings_id": "dcbfe46a-d948-5aa7-b3c2-7500b9ec7283",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "08bfcdd4-6074-5ecb-a55a-179d7f2f6a81",
 		"settings_id": "dcbfe46a-d948-5aa7-b3c2-7500b9ec7283",
 		"code": "BACKPAY_ADD_WAGES",
@@ -2854,6 +3799,51 @@
 			"PCB.ADDITIONAL",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7931cf7d-fb95-50c9-8c97-07ff4b24f024",
+		"settings_id": "10e35465-e226-5f28-82f8-149385947cac",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1d995e79-eadc-58d8-90e4-de875464293c",
+		"settings_id": "10e35465-e226-5f28-82f8-149385947cac",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -2991,6 +3981,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "51490c6f-f48a-5596-b3c5-00b67177e709",
+		"settings_id": "df51b92b-1c02-56a4-b4ca-984ac130d184",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d0152994-9362-5a64-9e4d-8eb3b31659bd",
+		"settings_id": "df51b92b-1c02-56a4-b4ca-984ac130d184",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "c08bd385-df63-52c2-811e-311202ead118",
 		"settings_id": "df51b92b-1c02-56a4-b4ca-984ac130d184",
 		"code": "BACKPAY_ADD_WAGES",
@@ -3122,6 +4157,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "18ec1191-d29e-557f-8773-ca25772e0fc0",
+		"settings_id": "db473023-ba7d-549f-9a23-51dc366e111a",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c26beb9d-a6eb-5d94-a51a-aaa4302bf7c5",
+		"settings_id": "db473023-ba7d-549f-9a23-51dc366e111a",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -3259,6 +4339,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "6d94b4fc-5891-593e-a06f-b33aa3529388",
+		"settings_id": "c945be82-d3c4-5c82-ac9d-5b8e52378cae",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e61183c0-dfad-5d02-bbcd-c6c9d4baa845",
+		"settings_id": "c945be82-d3c4-5c82-ac9d-5b8e52378cae",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "85cba625-63db-5892-8d1d-c108a1c85182",
 		"settings_id": "c945be82-d3c4-5c82-ac9d-5b8e52378cae",
 		"code": "BACKPAY_ADD_WAGES",
@@ -3390,6 +4515,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c5d1f38f-ed75-553b-b0d9-d1d92820e4c6",
+		"settings_id": "1b4c5584-fe04-57da-807a-b7a37c6446c0",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "31171ab6-833d-52a2-8a21-4b79d31dd4f2",
+		"settings_id": "1b4c5584-fe04-57da-807a-b7a37c6446c0",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -3525,6 +4695,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "527b5837-26cb-5d39-9870-157b0a343e13",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "10e9d678-46e7-5296-ada7-e79b199f342b",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "d756239e-fcdb-462a-915e-071b86c7c475",
 		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
 		"code": "BACKPAY_ADD_WAGES",
@@ -3654,6 +4869,51 @@
 			"PCB.ADDITIONAL",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "fdfc9e0e-757f-5066-abb6-b7fa300f2d5f",
+		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a67254ad-d064-5299-8d46-1a6d989aade0",
+		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -3791,6 +5051,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "a0943776-f096-5375-9cba-35d5f0ee7617",
+		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "41bd658b-ebb9-5e6b-88ed-aaf64ce59547",
+		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "45433f22-b7c5-4293-9f30-99e4d06e7c52",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"code": "BACKPAY_ADD_WAGES",
@@ -3922,6 +5227,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "abc248db-6d2f-5e75-8a4a-cf8199462618",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "022323ac-e86d-5362-a1ea-a300409ab91a",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{
@@ -4059,6 +5409,51 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "415795ea-9907-50f8-9f26-0d29aa822e6f",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d688aefe-0946-5ad1-a529-48b08969a9f0",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "d0ca5105-eca2-4ec0-a781-6153bd0c7b7c",
 		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
 		"code": "BACKPAY_ADD_WAGES",
@@ -4190,6 +5585,51 @@
 			"SKBBK",
 			"SOCSO"
 		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "db80b706-cdc4-5272-9124-a6c0c88fdbae",
+		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"code": "BONUS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Annual bonus",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "72cfca5f-9f50-5048-b0c2-244bbe36e234",
+		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"code": "LONG_SERVICE_AWARD",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Long service award",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL", "SKBBK", "SOCSO"],
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
 		"raised_by": "MANUAL"
 	},
 	{

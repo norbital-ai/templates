@@ -138,6 +138,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule'
 	},
 	{
+		path: 'employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)',
+		description:
+			'Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day'
+	},
+	{
 		path: 'employment.service_start',
 		description:
 			'First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire'
@@ -152,6 +157,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'employment.contract_months',
 		description:
 			'Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended'
+	},
+	{
+		path: 'employment.contract_days',
+		description:
+			'Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended'
 	},
 	{
 		path: 'employment.exit_reason',
@@ -175,7 +185,17 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'employment.earned_monthly_average(months)',
 		description:
-			'The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only'
+			'The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out'
+	},
+	{
+		path: 'employment.earned_monthly_average(months, excluded)',
+		description:
+			'That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资)'
+	},
+	{
+		path: 'employment.prior_service_months',
+		description:
+			'Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers)'
 	},
 	{
 		path: 'employment.average_daily_wage(months, codes)',
@@ -186,6 +206,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'employment.average_monthly_wage(months, codes)',
 		description:
 			'That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out)'
+	},
+	{
+		path: 'employment.on_leave(date, codes)',
+		description:
+			'Whether approved time off of one of the named leave codes spans that day (TW 勞基法 §13: no employer termination inside the §50 stop or the §59 medical period); none where the site has no leave record'
 	},
 	{
 		path: 'employment.service_months_net(codes, days)',
@@ -233,6 +258,14 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'terms.workman', description: 'Statutory work category starts with MANUAL_LABOUR' },
 	{ path: 'terms.statutory_work_category', description: 'Statutory work category of the terms' },
+	{
+		path: 'terms.worksite',
+		description: 'The worksite the terms record: a province or province/locality, or empty'
+	},
+	{
+		path: 'terms.worksite_sector',
+		description: 'The worksite sector the terms record (ID: the five-digit KBLI), or empty'
+	},
 	{
 		path: 'terms.department',
 		description: 'Department — an employer’s own catalogue tier, never a statute’s'
@@ -289,6 +322,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third)'
 	},
 	{
+		path: 'children.multiple_born_on(date)',
+		description:
+			'The infants of a multiple birth: children born on that day, refusing fewer than two (CN Order 619 art.7: 15 days per extra infant)'
+	},
+	{
 		path: 'children.natural_surviving_on(date)',
 		description:
 			'Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination.'
@@ -337,6 +375,10 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'company.region', description: 'Employing entity region' },
 	{ path: 'company.headcount', description: 'Active employments in the entity' },
 	{ path: 'company.headcount_citizens', description: 'Of them, the citizens' },
+	{
+		path: 'company.pay_frequency',
+		description: 'MONTHLY | SEMI_MONTHLY | WEEKLY; empty outside a payroll'
+	},
 	{
 		path: 'company.facts.<key>',
 		description: 'Entity facts the version declares: sector, establishment tests'
@@ -469,11 +511,13 @@ const PERSON_BLANK = {
 		service_periods: null,
 		service_months: 0,
 		service_months_exact: 0,
+		prior_service_months: 0,
 		service_years: 0,
 		service_start: '',
 		exit_date: '',
 		open_ended: true,
 		contract_months: 0,
+		contract_days: 0,
 		exit_reason: '',
 		exit_facts: {},
 		exit_fact_keys: [],
@@ -491,6 +535,8 @@ const PERSON_BLANK = {
 		workman: false,
 		statutory_work_category: '',
 		statutory_wages: 0,
+		worksite: '',
+		worksite_sector: '',
 		department: '',
 		payroll_group: '',
 		paid_rest_days: false,
@@ -518,7 +564,7 @@ const PERSON_BLANK = {
 		prior_extended_childcare_days: 0,
 		prior_infant_care_days: 0
 	},
-	company: { region: '', headcount: 1, headcount_citizens: 1, facts: {} },
+	company: { region: '', headcount: 1, headcount_citizens: 1, pay_frequency: '', facts: {} },
 	wage_floor: 0,
 	wage_floor_pay: {
 		BASE: 0,
@@ -650,6 +696,24 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 		path: 'year_to_date.rebate',
 		description:
 			'Rebatable payments already recorded this tax year, including declared prior-employer payments'
+	},
+	{
+		path: 'last_year.base',
+		description:
+			'Base this employer charged in the tax year before this one (no prior-employer opening) — ID PP 68/2009 art.2(2) joins severance parts across two calendar years'
+	},
+	{
+		path: 'last_year.employee',
+		description: 'Employee amount this employer charged in the tax year before this one'
+	},
+	{
+		path: 'last_year.employer',
+		description: 'Employer amount this employer charged in the tax year before this one'
+	},
+	{
+		path: 'first_year',
+		description:
+			'Earliest tax year in which one of this employer’s earlier slips charged a base on this scheme, 0 when none — ID PP 68/2009 art.6 counts the third calendar year from the first severance part'
 	},
 	{
 		path: 'projection.payslips_remaining',
@@ -931,7 +995,7 @@ const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 	if (site === 'entry')
 		functions.push({
 			path: 'leave.days(code)',
-			description: 'Charged days of one leave code in the window'
+			description: 'Charged days of one leave code in the leave window this payslip settles'
 		});
 	return functions;
 };
@@ -1026,6 +1090,16 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 		{ path: 'leave.day_index', description: 'Which calendar day of the leave, from 1' },
 		{ path: 'leave.days', description: 'The days the whole entry charges' },
 		{
+			path: 'leave.event_day',
+			description:
+				'Which charged day of the event, from 1, counting this day: across every entry of the code naming the same event date, else this entry’s (VN Labour Code art.99(3): the first 14 working days of a stoppage)'
+		},
+		{
+			path: 'leave.agreed_fraction',
+			description:
+				'The share of the day wage the parties agreed for this entry, 0 when none was recorded (VN Labour Code art.99(2), (3))'
+		},
+		{
 			path: 'leave.taken(code)',
 			description:
 				'The days of that leave code charged in the leave year before this day, across every entry (TW 勞工請假規則 §4(3): thirty half-paid 普通傷病假 days a year, hospitalised or not)'
@@ -1041,7 +1115,17 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 		'employment.exit_facts'
 	],
 	functions: functionsFor('person'),
-	blank: { ...personBlank(), leave: { month_index: 1, day_index: 1, days: 1, year_taken: {} } }
+	blank: {
+		...personBlank(),
+		leave: {
+			month_index: 1,
+			day_index: 1,
+			days: 1,
+			event_day: 1,
+			agreed_fraction: 0,
+			year_taken: {}
+		}
+	}
 };
 
 const ENTRY_CONTEXT: ExpressionContext = {
@@ -1055,6 +1139,11 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		{ path: 'entry.quantity', description: 'Recorded quantity' },
 		{ path: 'entry.event_date', description: 'The day the entry belongs to' },
 		{ path: 'entry.period', description: 'Pay period key the entry settles in' },
+		{
+			path: 'entry.religious_holidays',
+			description:
+				'Published holidays of the entity in the entry’s calendar year that name the employee’s recorded religion (`jurisdiction_holidays.religion`); 0 without a religion or a tagged day. ID Permenaker 6/2016 art.5(2): the same holiday twice in a year is two THRs'
+		},
 		{ path: 'entry.medical.due_on', description: 'Date treatment reimbursement becomes payable' },
 		{ path: 'entry.medical.incurred_on', description: 'Date reimbursed expense was incurred' },
 		{ path: 'entry.medical.amount_incurred', description: 'Actual treatment expense' },
@@ -1085,6 +1174,18 @@ const ENTRY_CONTEXT: ExpressionContext = {
 			path: 'entry.medical.practitioner_qualified',
 			description: 'Local registration or legal foreign qualification'
 		},
+		{ path: 'entry.late_wage.due_on', description: 'Day the late wage was due' },
+		{ path: 'entry.late_wage.paid_on', description: 'Day the late wage was paid' },
+		{
+			path: 'entry.late_wage.days',
+			description: 'Calendar days from the due day to the paid day; 0 without a late wage'
+		},
+		{
+			path: 'entry.late_wage.deposit_rate',
+			description:
+				'The payroll bank’s published 1-month term-deposit rate (% a year) on the paid day (VN Labour Code art.97(4))'
+		},
+		{ path: 'entry.late_wage.force_majeure', description: 'The delay was caused by force majeure' },
 		{ path: 'entry.window.start', description: 'Standing allowance window start' },
 		{ path: 'entry.window.end', description: 'Standing allowance window end' },
 		{ path: 'entry.captures.remaining', description: 'Amount still to settle' },
@@ -1093,7 +1194,10 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' },
 		...periodFields('period.'),
 		...yearFields('year.'),
-		{ path: 'leave.days(code)', description: 'Charged days of one leave code in the window' }
+		{
+			path: 'leave.days(code)',
+			description: 'Charged days of one leave code in the leave window this payslip settles'
+		}
 	],
 	bare: [],
 	open: [
@@ -1116,6 +1220,7 @@ const ENTRY_CONTEXT: ExpressionContext = {
 			quantity: 0,
 			event_date: '',
 			period: '',
+			religious_holidays: 0,
 			medical: {
 				incurred_on: '',
 				due_on: '',
@@ -1130,6 +1235,7 @@ const ENTRY_CONTEXT: ExpressionContext = {
 				solely_aesthetic: false,
 				practitioner_qualified: false
 			},
+			late_wage: { due_on: '', paid_on: '', days: 0, deposit_rate: 0, force_majeure: false },
 			window: { start: '', end: '' },
 			captures: { remaining: 0 }
 		},
@@ -1337,6 +1443,8 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			assessment_period: 'PAY_PERIOD',
 			registration_status: 'UNDECLARED',
 			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0, rebate: 0 },
+			last_year: { base: 0, employee: 0, employer: 0 },
+			first_year: 0,
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',
@@ -1423,6 +1531,8 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			assessment_period: 'PAY_PERIOD',
 			registration_status: 'UNDECLARED',
 			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0, rebate: 0 },
+			last_year: { base: 0, employee: 0, employer: 0 },
+			first_year: 0,
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',

@@ -27,6 +27,12 @@ export default model({
 			values: ['NONE', 'FLOOR_MAJOR_UNIT'],
 			default: 'NONE'
 		},
+		/**
+		 * CEL over the person: whose charges the rounded employer-month total covers; every other
+		 * charge is remitted at its actual amount. Empty: every charge (SG SDL: the local employees
+		 * submitted with CPF are floored, foreign employees' levy is paid as it is).
+		 */
+		remittance_rounding_when: { kind: 'text', default: '' },
 		/** A registration failure cannot waive a liability where the dated law still requires assessment. */
 		unregistered_action: { kind: 'enum', values: ['SKIP', 'ASSESS'], default: 'SKIP' },
 		/** COMPANY: this scheme reads employer facts and ignores per-employment registration rows. */

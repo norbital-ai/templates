@@ -37,6 +37,7 @@ import {
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { finalPayIssues } from '../src/lib/payroll/contribution.ts';
 import { ordinaryDivisorDays } from '../src/lib/payroll/run/ordinary-rate.ts';
 import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { restBreakAssessment } from '../src/lib/scheduling/rest-break.ts';
@@ -62,7 +63,7 @@ function idWorld(period: string) {
 		code: 'ID' as const,
 		period,
 		// DKI Jakarta: UMP 5,729,876 in 2026, which is the BPJS Kesehatan salary floor.
-		region: 'DKI Jakarta',
+		region: 'Provinsi DKI Jakarta',
 		// PP 44/2015 Ps.16 group II, "risiko rendah": the art.16(1) rate 0.54%, which is what BPJS
 		// bills — the 0.14% JKP recomposition stays inside it, never a second payslip line.
 		riskClass: 'II',
@@ -227,13 +228,15 @@ test('Indonesia — PPh 21 monthly withholding on the TER A and TER C ladders', 
 	// Kesehatan (4%) premiums are part of the gross — 15,000,000 + 81,000 + 525,000 = 15,606,000,
 	// in TER A bracket 15,100,001–16,950,000 at 7.00% → 1,092,420.
 	expectStatutory(book, 'ID-15M', 'PPH21', 1_092_420, 0);
-	// 25,000,000 is in TER A bracket 24,150,001–26,450,000 at 10.00% → 2,500,000.
+	// 25,000,000 + JKK 135,000 + JKM 75,000 + Kesehatan 480,000 (4% of the 12,000,000 cap) =
+	// 25,690,000, in TER A bracket 24,150,001–26,450,000 at 10.00% → 2,569,000.
 	expectStatutory(book, 'ID-25M', 'PPH21', 2569000, 0);
 
 	// TER C covers K/3 (PTKP 72,000,000).
-	// 15,000,000 is in bracket 14,150,001–15,550,000 at 5.00% → 750,000.
+	// 15,606,000 (the premiums in the gross, as above) is in bracket 15,550,001–17,050,000 at 6.00%
+	// → 936,360.
 	expectStatutory(book, 'ID-C-15M', 'PPH21', 936360, 0);
-	// 25,000,000 is in bracket 22,700,001–26,600,000 at 9.00% → 2,250,000.
+	// 25,690,000 is in bracket 22,700,001–26,600,000 at 9.00% → 2,312,100.
 	expectStatutory(book, 'ID-C-25M', 'PPH21', 2312100, 0);
 });
 
@@ -291,9 +294,9 @@ test('Indonesia — the December 2025 version, whose Kesehatan floor is the 2025
 test('Indonesia — December is the annual reckoning against the year the TER already withheld', () => {
 	// PMK 168/2023 art.20: the last tax period reconciles. PPh 21 for the year is computed on
 	// PKP = annual gross − biaya jabatan (5%, at most 6,000,000 a year; PMK 250/PMK.03/2008) − the
-	// year's employee JP AND JHT (PMK 168/2023 art.10(3)(b): iuran terkait program pensiun dan hari
+	// year's employee JP AND JHT (PMK 168/2023 art.10(1)(b): iuran terkait program pensiun dan hari
 	// tua paid through the employer to BPJS Ketenagakerjaan) − PTKP 54,000,000 TK/0, rounded down
-	// to the whole thousand (UU PPh art.17(4)), at 5% to 60,000,000 and 15% above; December charges
+	// to the whole thousand (UU PPh art.17(4); PMK 168/2023 art.8(4)), at 5% to 60,000,000 and 15% above; December charges
 	// the year's figure less what the TER already withheld. The prior eleven months are seeded as
 	// the engine priced them: TER A at 6% for a 15,000,000 monthly gross (900,000 a month), JP at
 	// the announced ceiling — 105,474 through February 2026 and 110,863 from 1 March — and JHT at
@@ -376,8 +379,10 @@ test('Indonesia — December is the annual reckoning against the year the TER al
 	// JHT 3,600,000 − 54,000,000 = 115,686,422 → 115,686,000 (art.17(4)). Annual tax = 5% ×
 	// 60,000,000 + 15% × 55,686,000 = 11,352,900. December = 11,352,900 − 9,900,000 = 1,452,900.
 	expectStatutory(book, 'ID-15M', 'PPH21', 1_452_900, 0);
-	// ID-5M: PKP = 60,000,000 − 3,000,000 − 600,000 − 1,200,000 − 54,000,000 = 1,200,000 →
-	// 60,000; the TER withheld nothing all year, so December charges the whole annual figure.
+	// ID-5M: December's gross carries its premiums (JKK 27,000 + JKM 15,000 + Kesehatan 229,195 on
+	// the DKI floor), so the year is 60,271,195; biaya jabatan 5% = 3,013,559.75; PKP = 60,271,195 −
+	// 3,013,559.75 − JP 600,000 − JHT 1,200,000 − 54,000,000 = 1,457,635.25 → 1,457,000 → 5% =
+	// 72,850; the TER withheld nothing all year, so December charges the whole annual figure.
 	expectStatutory(book, 'ID-5M', 'PPH21', 72850, 0);
 });
 
@@ -404,8 +409,8 @@ test('Indonesia — a married woman is TK/0 unless the PTKP election combines he
 			}
 		]
 	});
-	// Without the certificate she is TK/0, TER category A: 15,000,000 withholds 900,000. With it the
-	// married ladder applies (K/3, category C): 750,000.
+	// Without the certificate she is TK/0, TER category A: the 15,606,000 gross withholds 7% =
+	// 1,092,420. With it the married ladder applies (K/3, category C): 6% = 936,360.
 	expectStatutory(book, 'ID-W-15M', 'PPH21', 1_092_420, 0);
 	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', 936360, 0);
 });
@@ -805,11 +810,10 @@ test('Indonesia — the PP 35/2021 Pasal 31 ladder on an ordinary day, a rest da
 		['2026-01-10', 'OT-3.0X', 1, 300_000],
 		['2026-01-17', 'OT-2.0X', 3, 600_000]
 	]);
-	// PPh 21 reads the overtime (PMK 168/2023 Ps.15, gross) and the employer-borne JKK (1.27%,
-	// class III), JKM (0.30%) and BPJS Kesehatan (4% of 17,300,000) premiums beside it
-	// (Ps.5(1)): 219,710 + 51,900 + 692,000 = 685,870 with JKK at 0.24%… the run's own class
-	// decides; here 17,300,000 × (0.24% + 0.30%) + 4% × 17,300,000 = 685,870. The BPJS bases are
-	// the wage alone (PP 44/2015 Ps.19(2), PP 45/2015 Ps.29(1): upah pokok + tunjangan tetap).
+	// PPh 21 reads the overtime (PMK 168/2023 Ps.15, gross) and the employer-borne premiums beside
+	// it (Ps.5(1)): JKK class III 0.89% × 17,300,000 = 153,970, JKM 0.30% = 51,900 and Kesehatan
+	// 4% of the Rp12,000,000 cap = 480,000, together 685,870. The BPJS bases are the wage alone
+	// (PP 44/2015 Ps.19(2), PP 45/2015 Ps.29(1): upah pokok + tunjangan tetap).
 	const charge = (code: string) =>
 		slips.get('ID-OT')!.statutory.find((row) => row.scheme_code === code)!;
 	assert.equal(charge('PPH21').base_amount, 17_300_000 + 4_450_000 + 685_870);
@@ -1190,4 +1194,1272 @@ test('Indonesia — efficiency or closure because of losses is half the pesangon
 			?.employee_amount;
 	assert.equal(finalTax('ID-REDUNDANT'), 1_000_000);
 	assert.equal(finalTax('ID-RETRENCHED'), 0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scenario goldens, 2026-09-28 — every figure from the instrument cited beside it, on the
+// 1 March 2026 version unless stated: DKI Jakarta UMP 5,729,876 (Kep.1142/2025), JKK group II
+// 0.54% (PP 44/2015 art.16(1)), JKM 0.30%, JHT 2% / 3.7% (PP 46/2015 art.16), JP 1% / 2% on the
+// Rp11,086,300 ceiling from 1 March 2026 (PP 45/2015 arts.28–29), Kesehatan 1% / 4% floored at
+// the workplace UMK/UMP and capped at Rp12,000,000 (Perpres 82/2018 arts.30, 32 as amended),
+// PPh 21 TER on gross including the employer-borne JKK, JKM and Kesehatan premiums (PP 58/2023
+// Lampiran; PMK 168/2023 art.5(1), art.15). BPJS and PPh figures round to the whole rupiah
+// (register ID-127 records that this rounding rule is not yet sourced).
+//
+// Part-month pay and unpaid days: no statute fixes how a monthly wage is divided (register
+// ID-106: PP 36/2021 art.17's ÷25/÷21 is for wages SET daily; PP 36/2021 art.40(1) says only that
+// no wage is due for days not worked). The seed's stated policy is calendar days
+// (`work_rules.proration`), and these goldens price that policy; the statutory figures on top of
+// the wage are the law's.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MARCH_2026 = 'f5282c8e-2224-4714-afb7-7314a5bfe37d';
+const scenario = (period: string, people: Parameters<typeof buildStatutory>[0]['people']) => ({
+	code: 'ID' as const,
+	period,
+	region: 'Provinsi DKI Jakarta',
+	riskClass: 'II',
+	people
+});
+const charges = (slip: BuiltPayslip) =>
+	Object.fromEntries(
+		slip.statutory.map((row) => [row.scheme_code, [row.employee_amount, row.employer_amount]])
+	);
+const priorSlips = (
+	world: PayrollWorld,
+	key: string,
+	months: ReadonlyArray<{ period: string; gross: number; pph21: number; jp: number; jht: number }>
+) => {
+	const employment = world.employments.find((row) => row.employee_number === key)!;
+	for (const month of months) {
+		const runId = `prior-${month.period}-${key}`;
+		world.payroll_runs.push({ id: runId, company_id: COMPANY_ID, period: month.period });
+		world.payslips.push({
+			id: `payslip-${month.period}-${key}`,
+			payroll_run_id: runId,
+			employment_id: employment.id,
+			status: 'PAID',
+			paid_at: `${month.period}-28T00:00:00.000Z`,
+			currency: 'IDR',
+			base: [],
+			adjustments: [],
+			statutory: [
+				{
+					scheme_code: 'PPH21',
+					employee_amount: month.pph21,
+					employer_amount: 0,
+					base_amount: month.gross,
+					rule_when: null,
+					authority: null
+				},
+				{
+					scheme_code: 'JP',
+					employee_amount: month.jp,
+					employer_amount: month.jp * 2,
+					base_amount: month.gross,
+					rule_when: null,
+					authority: null
+				},
+				{
+					scheme_code: 'JHT',
+					employee_amount: month.jht,
+					employer_amount: month.jht * 1.85,
+					base_amount: month.gross,
+					rule_when: null,
+					authority: null
+				}
+			]
+		});
+	}
+};
+
+test('Indonesia — a full month, a joiner on the 16th and a raise on the 16th, April 2026', () => {
+	const { slips } = buildStatutory(
+		scenario('2026-04', [
+			{ key: 'ID-FULL', wage: 10_000_000 },
+			{ key: 'ID-JOIN', wage: 12_000_000, hire_date: '2026-04-16' },
+			{ key: 'ID-RAISE', wage: 10_000_000 }
+		]),
+		(world) => {
+			const raise = world.employments.find((row) => row.employee_number === 'ID-RAISE')!;
+			const terms = world.employment_terms.find((row) => row.employment_id === raise.id)!;
+			terms.effective_range = { start: '2015-01-01', end: '2026-04-15' };
+			world.employment_terms.push({
+				...terms,
+				id: 'b0000000-0000-4000-8000-0000000000ff',
+				base_salary: 13_000_000,
+				effective_range: { start: '2026-04-16', end: null }
+			});
+		}
+	);
+	// Full month, 10,000,000: JHT 200,000 / 370,000; JKK 54,000; JKM 30,000; JP 100,000 / 200,000
+	// (under the ceiling); Kesehatan 100,000 / 400,000 (above the floor, under the cap). PPh 21:
+	// 10,000,000 + 54,000 + 30,000 + 400,000 = 10,484,000, TER A 10,350,001–10,700,000 at 2.50% →
+	// 262,100.
+	assert.deepEqual(charges(slips.get('ID-FULL')!), {
+		JHT: [200_000, 370_000],
+		JKK: [0, 54_000],
+		JKM: [0, 30_000],
+		JKP: [0, 0],
+		JP: [100_000, 200_000],
+		KESEHATAN: [100_000, 400_000],
+		PPH21: [262_100, 0]
+	});
+	// Joiner: 15 of April's 30 days of 12,000,000 = 6,000,000 paid. Owner rule 2026-09-28 (ID-161):
+	// JHT, JKK and JKM are on "Upah sebulan", the contract's monthly rate (PP 46/2015 art.17(1)–(2),
+	// PP 44/2015 art.19(1)–(2)): 2% / 3.7% of 12,000,000 = 240,000 / 444,000, JKK 0.54% = 64,800,
+	// JKM 0.30% = 36,000. JP is on the wage paid "pada bulan yang bersangkutan" (PP 45/2015
+	// art.29(1)): 1% / 2% of 6,000,000. Kesehatan charges the wage paid; its floor is on the
+	// contract (12,000,000 ≥ 5,729,876), so it does not lift the part month. PPh 21 on the month's
+	// actual gross (PMK 168/2023 art.15; the TER is never annualised): 6,000,000 + 64,800 + 36,000 +
+	// 240,000 = 6,340,800, TER A 6,300,001–6,750,000 at 1% → 63,408.
+	assert.equal(
+		slips.get('ID-JOIN')!.base.find((row) => row.component_code === 'BASIC')!.amount,
+		6_000_000
+	);
+	assert.deepEqual(charges(slips.get('ID-JOIN')!), {
+		JHT: [240_000, 444_000],
+		JKK: [0, 64_800],
+		JKM: [0, 36_000],
+		JKP: [0, 0],
+		JP: [60_000, 120_000],
+		KESEHATAN: [60_000, 240_000],
+		PPH21: [63_408, 0]
+	});
+	// Raise: 15 days at 10,000,000 (5,000,000) + 15 days at 13,000,000 (6,500,000) = 11,500,000.
+	// JHT, JKK and JKM are on the monthly rate in force on the month's last day (owner rule
+	// 2026-09-28, ID-161: the law is silent on a mid-month change): 13,000,000 → 260,000 / 481,000,
+	// 70,200, 39,000. JP is on the wage paid, at the ceiling (11,500,000 > 11,086,300): 110,863 /
+	// 221,726. PPh 21: 11,500,000 + 70,200 + 39,000 + 460,000 = 12,069,200, TER A
+	// 11,600,001–12,500,000 at 4% → 482,768.
+	assert.deepEqual(charges(slips.get('ID-RAISE')!), {
+		JHT: [260_000, 481_000],
+		JKK: [0, 70_200],
+		JKM: [0, 39_000],
+		JKP: [0, 0],
+		JP: [110_863, 221_726],
+		KESEHATAN: [115_000, 460_000],
+		PPH21: [482_768, 0]
+	});
+});
+
+test('Indonesia — two unpaid days (PP 36/2021 art.40(1)), priced on the seed’s calendar-day policy', () => {
+	const { slips } = buildStatutory(
+		scenario('2026-04', [{ key: 'ID-NPL', wage: 10_000_000 }]),
+		(world) => {
+			world.leave_catalogue.push(
+				...leaveCatalogue('ID').map((row) => ({ ...row, approval_id: null }))
+			);
+			const unpaid = world.leave_catalogue.find(
+				(row) => row.settings_id === MARCH_2026 && row.code === 'UNPAID_LEAVE'
+			)!;
+			for (const date of ['2026-04-06', '2026-04-07'])
+				world.leave_entries.push({
+					id: `e1000000-0000-4000-8000-0000000000${date.slice(-2)}`,
+					employment_id: world.employments[0]!.id,
+					catalogue_id: unpaid.id,
+					leave_code: 'UNPAID_LEAVE',
+					reference: `NPL-${date}`,
+					from_date: date,
+					to_date: date,
+					half_day_start: false,
+					half_day_end: false,
+					days: 1,
+					effective_on: date,
+					reason: 'Unpaid day',
+					allocations: [],
+					charges: [
+						{
+							date,
+							days: 1,
+							catalogue_id: unpaid.id,
+							employment_term_id: world.employment_terms[0]!.id,
+							holiday_id: null,
+							shift_definition_id: null,
+							work_day_id: null
+						}
+					],
+					approval_id: null,
+					payslip_id: null
+				} as never);
+		}
+	);
+	const slip = slips.get('ID-NPL')!;
+	// 10,000,000 ÷ 30 × 2 = 666,666.67 off (split 333,333.33 + 333,333.34 so the cents close).
+	const off = slip.adjustments
+		.filter((row) => row.component_code === 'UNPAID_LEAVE')
+		.reduce((total, row) => total + row.amount, 0);
+	assert.equal(Math.round(off * 100) / 100, 666_666.67);
+	// JHT, JKK and JKM stay on the contract's monthly rate, 10,000,000 (owner rule 2026-09-28,
+	// ID-161; PP 46/2015 art.17(1)–(2), PP 44/2015 art.19(1)–(2)): 200,000 / 370,000, 54,000,
+	// 30,000. JP (PP 45/2015 art.29(1)) and Kesehatan charge the wage paid, 9,333,333.33; the
+	// contract stays above the Kesehatan floor so nothing lifts it: JP 93,333.33 → 93,333 and
+	// 186,666.67 → 186,667. PPh 21: 9,333,333.33 + 54,000 + 30,000 + 373,333 = 9,790,666.33, TER A
+	// 9,650,001–10,050,000 at 2% → 195,813.33 → 195,813.
+	assert.deepEqual(charges(slip), {
+		JHT: [200_000, 370_000],
+		JKK: [0, 54_000],
+		JKM: [0, 30_000],
+		JKP: [0, 0],
+		JP: [93_333, 186_667],
+		KESEHATAN: [93_333, 373_333],
+		PPH21: [195_813, 0]
+	});
+});
+
+test('Indonesia — a bonus month: TER on the whole gross, no BPJS on the bonus (PP 36/2021 art.8)', () => {
+	const bonus = (residency: 'RESIDENT' | 'NON_RESIDENT') =>
+		buildStatutory(
+			scenario('2026-06', [
+				{
+					key: 'ID-BONUS',
+					wage: residency === 'RESIDENT' ? 10_000_000 : 30_000_000,
+					...(residency === 'RESIDENT'
+						? {}
+						: { tax_residency: 'NON_RESIDENT', citizenship: 'FOREIGNER' })
+				}
+			]),
+			(world) => {
+				const row = world.adhoc_catalogue!.find(
+					(item) => item.settings_id === MARCH_2026 && item.code === 'BONUS_THR'
+				)!;
+				world.adhoc_requests!.push({
+					id: 'a1a1a1a1-0000-4000-8000-0000000000b1',
+					employment_id: world.employments[0]!.id,
+					catalogue_id: row.id,
+					amount: 20_000_000,
+					event_date: '2026-06-10',
+					pay_period: null,
+					payslip_id: null,
+					reason: 'Annual bonus',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		).slips.get('ID-BONUS')!;
+	// PP 36/2021 art.8(1)–(2): a bonus is non-wage income, so the BPJS bases (upah pokok + tunjangan
+	// tetap) stay at 10,000,000. PMK 168/2023 art.15 and the Lampiran's Tuan A example: the bonus
+	// month's TER is the rate for the whole month's gross: 10,000,000 + 20,000,000 + 54,000 + 30,000
+	// + 400,000 = 30,484,000, TER A 30,050,001–32,400,000 at 13% → 3,962,920.
+	const resident = charges(bonus('RESIDENT'));
+	assert.deepEqual(resident.JHT, [200_000, 370_000]);
+	assert.deepEqual(resident.PPH21, [3_962_920, 0]);
+	// UU PPh art.26(1): a non-resident is withheld 20% of gross, no PTKP and no TER: 30,000,000 +
+	// 20,000,000 + JKK 162,000 + JKM 90,000 + Kesehatan 480,000 = 50,732,000 → 10,146,400.
+	const nonResident = charges(bonus('NON_RESIDENT'));
+	assert.deepEqual(nonResident.PPH26, [10_146_400, 0]);
+	assert.equal(nonResident.PPH21, undefined, 'PPh 21 does not reach a non-resident');
+});
+
+test('Indonesia — a resigner on 15 June: final pay, untaken leave as UPH, and the leaver-month reckoning', () => {
+	// Five years' service at 10,000,000, resigning (PP 35/2021 art.36(i), art.50: UPH and any uang
+	// pisah). Five untaken, unlapsed annual-leave days are UPH (PP 35/2021 art.40(4)(a)), valued on
+	// the PKB basis the entity declared (UU 13/2003 art.79(4)): basic ÷ 21 = 476,190.48 a day, ×5 =
+	// 2,380,952.38.
+	const { slips, warnings } = buildStatutory(
+		scenario('2026-06', [
+			{
+				key: 'ID-LEAVER',
+				wage: 10_000_000,
+				hire_date: '2021-01-04',
+				exit_date: '2026-06-15',
+				exit_reason: 'RESIGNATION'
+			}
+		]),
+		(world) => {
+			world.companies[0]!.facts = {
+				leave_cash_out_day_divisor: 21,
+				leave_cash_out_wage_basis: 'BASIC'
+			};
+			world.employments[0]!.exit_facts = {
+				thr_holiday_date: '2027-03-10',
+				micro_small_enterprise: false,
+				termination_cause: 'VOLUNTARY_RESIGNATION',
+				separation_pay_amount: 0,
+				separation_pay_reference: 'NONE',
+				pension_offset_applies: false
+			};
+			world.leave_catalogue.push(
+				...leaveCatalogue('ID').map((row) => ({ ...row, approval_id: null }))
+			);
+			const annual = world.leave_catalogue.find(
+				(row) => row.settings_id === MARCH_2026 && row.code === 'ANNUAL_LEAVE'
+			)!;
+			world.leave_entries.push({
+				id: 'a4000000-0000-4000-8000-000000000009',
+				employment_id: world.employments[0]!.id,
+				catalogue_id: annual.id,
+				leave_code: 'ANNUAL_LEAVE',
+				reference: `exit:${world.employments[0]!.id}:ANNUAL_LEAVE`,
+				from_date: '2026-01-01',
+				to_date: '2026-12-31',
+				days: 5,
+				encash_days: 5,
+				effective_on: '2026-06-15',
+				due_on: '2026-06-15',
+				charges: [],
+				allocations: [],
+				approval_id: null,
+				payslip_id: null,
+				as_adjustment_entry: false
+			} as never);
+			// January–May as the engine priced them: 10,484,000 gross, TER A 2.5% = 262,100.
+			priorSlips(
+				world,
+				'ID-LEAVER',
+				['2026-01', '2026-02', '2026-03', '2026-04', '2026-05'].map((period) => ({
+					period,
+					gross: 10_484_000,
+					pph21: 262_100,
+					jp: 100_000,
+					jht: 200_000
+				}))
+			);
+		}
+	);
+	const slip = slips.get('ID-LEAVER')!;
+	assert.equal(slip.base.find((row) => row.component_code === 'BASIC')!.amount, 5_000_000);
+	assert.equal(
+		slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')!.amount,
+		2_380_952.38
+	);
+	const charge = charges(slip);
+	// The UPH is not upah. JHT, JKK and JKM on the contract's monthly rate, 10,000,000 (owner rule
+	// 2026-09-28, ID-161); JP and Kesehatan on the 5,000,000 paid.
+	assert.deepEqual(charge.JHT, [200_000, 370_000]);
+	assert.deepEqual(charge.JKK, [0, 54_000]);
+	assert.deepEqual(charge.JKM, [0, 30_000]);
+	assert.deepEqual(charge.JP, [50_000, 100_000]);
+	assert.deepEqual(charge.KESEHATAN, [50_000, 200_000]);
+	// PP 68/2009 art.1 angka 4: uang pesangon includes uang penggantian hak, paid in connection with
+	// the end of service — so the leave UPH takes the final rates (0% to Rp50,000,000, art.4(a))
+	// and stays out of the PPh 21 annual base.
+	assert.deepEqual(charge.PPH21_FINAL_SEVERANCE, [0, 0]);
+	// PMK 168/2023 (DJP Lampiran example, Tuan D): the month a resident employee stops working is the
+	// last tax period, reckoned on actual year income with the whole PTKP. Year gross = 5 × 10,484,000
+	// + June 5,284,000 (5,000,000 + 54,000 + 30,000 + 200,000) = 57,704,000; biaya jabatan 5% =
+	// 2,885,200 (under 6 × 500,000); JP 550,000; JHT 1,200,000; PTKP 54,000,000 → PKP −931,200 → 0.
+	// The 1,310,500 withheld January–May is refunded.
+	assert.deepEqual(charge.PPH21, [-1_310_500, 0]);
+	// Final pay: PP 36/2021 art.55(1) pays wages at the agreed time and art.55(4) caps the interval
+	// at a month; UU 13/2003 art.156(1) owes severance on termination without a day count. The
+	// deadline is the agreed payday (basis NEXT_PAYDAY), here 30 June, so the month-end run for a
+	// 15 June leaver is on time.
+	assert.deepEqual(
+		warnings.filter((warning) => warning.includes('FINAL_PAY_LATE')),
+		[]
+	);
+});
+
+test('Indonesia — final pay falls due on the agreed payday of the exit period (PP 36/2021 art.55)', () => {
+	for (const version of settingsVersions('ID'))
+		assert.deepEqual(
+			version.payroll.final_pay_deadlines.map(({ when, days, basis }) => ({ when, days, basis })),
+			[{ when: '', days: 0, basis: 'NEXT_PAYDAY' }]
+		);
+	const late = (payFrequency: 'MONTHLY' | 'SEMI_MONTHLY', period: string, payDate: string) => {
+		const world = createStatutoryWorld({
+			...scenario(period, [
+				{
+					key: 'ID-LEAVER',
+					wage: 10_000_000,
+					hire_date: '2021-01-04',
+					exit_date: '2026-06-15',
+					exit_reason: 'RESIGNATION',
+					pay_frequency: payFrequency
+				}
+			]),
+			payFrequency
+		});
+		const prepared = gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period
+		});
+		return finalPayIssues({
+			configuration: prepared.configuration,
+			bundles: prepared.gathered.bundles,
+			payDate
+		}).map((issue) => issue.message);
+	};
+	// Monthly: the agreed payday of June is its month end (art.55(1), (4)); paying on it is on time,
+	// a day later is late — art.61(1) counts the fine from the agreed date.
+	assert.deepEqual(late('MONTHLY', '2026-06', '2026-06-30'), []);
+	assert.match(late('MONTHLY', '2026-06', '2026-07-01')[0] ?? '', /agreed payday, by 2026-06-30/);
+	// Semi-monthly: the 15th is the payday of the 1st–15th half the exit falls in.
+	assert.deepEqual(late('SEMI_MONTHLY', '2026-06-1', '2026-06-15'), []);
+	assert.match(
+		late('SEMI_MONTHLY', '2026-06-1', '2026-06-16')[0] ?? '',
+		/agreed payday, by 2026-06-15/
+	);
+});
+
+test('Indonesia — band seams: every ceiling inclusive, the next band a rupiah above', () => {
+	// TER A row 1 ends at 5,400,000 and row 2 starts at 5,400,001 (PP 58/2023 Lampiran). In
+	// Kabupaten Subang (UMK 3,737,482) at group II, a wage of 5,150,706 grosses exactly
+	// 5,400,000: JKK 27,813.81 → 27,814, JKM 15,452.12 → 15,452, Kesehatan 206,028.24 → 206,028.
+	const subang = assessStatutoryUnvalidated({
+		...scenario('2026-04', [
+			{ key: 'ID-TER-AT', wage: 5_150_706 },
+			{ key: 'ID-TER-CENT', wage: 5_150_706.01 },
+			{ key: 'ID-TER-ABOVE', wage: 5_150_707 }
+		]),
+		region: 'Kabupaten Subang'
+	});
+	expectStatutory(subang, 'ID-TER-AT', 'PPH21', 0, 0);
+	// A gross one cent above (5,400,000.01) is already row 2, 0.25%: 13,500.000025 → 13,500.
+	expectStatutory(subang, 'ID-TER-CENT', 'PPH21', 13_500, 0);
+	// 5,400,001 at 0.25% = 13,500.0025 → 13,500.
+	expectStatutory(subang, 'ID-TER-ABOVE', 'PPH21', 13_500, 0);
+
+	const dki = assessStatutoryUnvalidated(
+		scenario('2026-04', [
+			{ key: 'ID-JP-AT', wage: 11_086_300 },
+			{ key: 'ID-KES-AT', wage: 12_000_000 },
+			{ key: 'ID-FLOOR-BELOW', wage: 5_729_875 },
+			{ key: 'ID-FLOOR-AT', wage: 5_729_876 }
+		])
+	);
+	// PP 45/2015 art.29: JP on the wage up to the ceiling, inclusive: 1% / 2% of 11,086,300.
+	expectStatutory(dki, 'ID-JP-AT', 'JP', 110_863, 221_726);
+	// Perpres 82/2018 art.32(1): the Rp12,000,000 cap is inclusive.
+	expectStatutory(dki, 'ID-KES-AT', 'KESEHATAN', 120_000, 480_000);
+	// art.32(2): a rupiah below the UMP is lifted to it; at the UMP it is the UMP. 1% =
+	// 57,298.76 → 57,299; 4% = 229,195.04 → 229,195.
+	expectStatutory(dki, 'ID-FLOOR-BELOW', 'KESEHATAN', 57_299, 229_195);
+	expectStatutory(dki, 'ID-FLOOR-AT', 'KESEHATAN', 57_299, 229_195);
+});
+
+test('Indonesia — age and identity branches: JP pension age 59 (PP 45/2015 art.15), no NPWP (UU PPh art.21(5a))', () => {
+	const book = assessStatutoryUnvalidated(
+		scenario('2026-04', [
+			{ key: 'ID-58', wage: 10_000_000, age: 58 },
+			{ key: 'ID-59', wage: 10_000_000, age: 59 },
+			// art.15(4): a participant still employed may defer the pension up to three years, and
+			// contributions continue on that choice.
+			{
+				key: 'ID-60-DEFER',
+				wage: 10_000_000,
+				age: 60,
+				registrations: {
+					JP: { kind: 'REGISTERED', elections: { continue_after_pension_age: true } }
+				}
+			},
+			{
+				key: 'ID-62-DEFER',
+				wage: 10_000_000,
+				age: 62,
+				registrations: {
+					JP: { kind: 'REGISTERED', elections: { continue_after_pension_age: true } }
+				}
+			},
+			{
+				key: 'ID-NO-NPWP',
+				wage: 15_000_000,
+				registrations: { PPH21: { kind: 'REGISTERED', elections: { no_tax_id: true } } }
+			}
+		])
+	);
+	// Pension age is 59 from 1 January 2025 to 31 December 2027 (art.15(1)–(3)).
+	expectStatutory(book, 'ID-58', 'JP', 100_000, 200_000);
+	expectStatutorySkipped(book, 'ID-59', 'JP');
+	expectStatutory(book, 'ID-60-DEFER', 'JP', 100_000, 200_000);
+	expectStatutorySkipped(book, 'ID-62-DEFER', 'JP');
+	// JHT has no age limit while employed (PP 46/2015 art.16).
+	expectStatutory(book, 'ID-59', 'JHT', 200_000, 370_000);
+	// 15,606,000 at TER A 7% = 1,092,420, × 1.2 without an NPWP or usable NIK = 1,310,904.
+	expectStatutory(book, 'ID-NO-NPWP', 'PPH21', 1_310_904, 0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Round 2 closures, 2026-09-28. Every figure is worked from the instrument cited beside it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Raise ad hoc severance lines (priced by their own bands) for one leaver in `period`. */
+const separationLines = (
+	world: PayrollWorld,
+	key: string,
+	period: string,
+	eventDate: string,
+	codes: readonly string[],
+	// A PKWT that ends by its term is not a PP 35/2021 art.36 termination: no cause is recorded.
+	cause: string | null = 'EFFICIENCY_PREVENT_LOSS'
+) => {
+	const employment = world.employments.find((row) => row.employee_number === key)!;
+	employment.exit_facts = {
+		thr_holiday_date: '2027-03-10',
+		micro_small_enterprise: false,
+		pension_offset_applies: false,
+		...(cause == null ? {} : { termination_cause: cause, separation_wage_basis: 'MONTHLY' })
+	};
+	const version = world.jurisdiction_settings.find(
+		(row) =>
+			String(row.effective_range.start).slice(0, 10) <= `${period}-01` &&
+			String(row.effective_range.end).slice(0, 10) > `${period}-01`
+	)!;
+	for (const [offset, code] of codes.entries()) {
+		const row = world.adhoc_catalogue!.find(
+			(item) => item.code === code && item.settings_id === version.id
+		)!;
+		world.adhoc_requests!.push({
+			id: `d0000000-0000-4000-8000-00000000${String(world.adhoc_requests!.length).padStart(2, '0')}${offset}0`,
+			employment_id: employment.id,
+			catalogue_id: row.id,
+			amount: 0,
+			event_date: eventDate,
+			pay_period: period,
+			payslip_id: null,
+			reason: code,
+			evidence_file: null,
+			as_adjustment_entry: false,
+			approval_id: null
+		});
+	}
+};
+const paidLine = (slip: BuiltPayslip, code: string) =>
+	slip.adjustments.find((row) => row.component_code === code)?.amount;
+
+test('Indonesia — JP reaches a foreign worker only on a recorded BPJS registration (PP 45/2015 arts.3(1), 4(1))', () => {
+	// PP 45/2015 art.2 names every worker of a non-state employer and has no nationality clause;
+	// art.3(1) starts participation only once the worker is registered and the first contribution
+	// paid. BPJS Ketenagakerjaan does not register a foreign national for JP (its FAQ), so the
+	// default record is NOT_REGISTERED and nothing is charged; a registration on file is charged
+	// like anyone else's. JHT has no such gate once the six-month rule is met (PP 46/2015 art.2(2)).
+	const { slips } = buildStatutory(
+		scenario('2026-04', [
+			{
+				key: 'ID-TKA-NOJP',
+				wage: 20_000_000,
+				citizenship: 'FOREIGNER',
+				registrations: { JP: { kind: 'NOT_REGISTERED' } }
+			},
+			{ key: 'ID-TKA-JP', wage: 20_000_000, citizenship: 'FOREIGNER' }
+		])
+	);
+	assert.deepEqual(charges(slips.get('ID-TKA-NOJP')!).JP, [0, 0]);
+	// 20,000,000 is above the Rp11,086,300 ceiling (PP 45/2015 art.29): 1% / 2% of the ceiling.
+	assert.deepEqual(charges(slips.get('ID-TKA-JP')!).JP, [110_863, 221_726]);
+	// JHT 2% / 3.7% of 20,000,000, uncapped.
+	assert.deepEqual(charges(slips.get('ID-TKA-NOJP')!).JHT, [400_000, 740_000]);
+});
+
+test('Indonesia — a missing BPJS registration does not waive JHT, JKK, JKM or Kesehatan; JP waits for registration (R46)', () => {
+	// UU 24/2011 art.15(1) and art.19(1)–(2): the employer must register its workers and collect and
+	// pay the contribution. PP 46/2015 art.2(1), 9(2), 11(4) (JHT) and PP 44/2015 art.4(1), 8(2)–(3),
+	// 10(4) (JKK, JKM) run the contribution from the first day of work and make a negligent employer
+	// pay it; Perpres 82/2018 art.13(1) registers the worker "dengan membayar Iuran". So an
+	// unregistered local worker is charged exactly as a registered one, with a warning. JP differs:
+	// PP 45/2015 art.3(1) starts participation only once the worker is registered and the first
+	// contribution paid, and art.6 answers a missing registration with the employer's own benefit
+	// liability, so a NOT_REGISTERED JP record charges nothing.
+	const unregistered = Object.fromEntries(
+		['JHT', 'JP', 'JKK', 'JKM', 'KESEHATAN'].map((code) => [
+			code,
+			{ kind: 'NOT_REGISTERED', reason: 'Enrolment outstanding' }
+		])
+	);
+	const { slips, warnings } = buildStatutory(
+		scenario('2026-04', [
+			{ key: 'ID-UNREG', wage: 10_000_000, registrations: unregistered },
+			{ key: 'ID-REG', wage: 10_000_000 }
+		])
+	);
+	const unreg = charges(slips.get('ID-UNREG')!);
+	const reg = charges(slips.get('ID-REG')!);
+	// Hand computation on the 10,000,000 monthly wage, DKI Jakarta, JKK group II:
+	// JHT 2% = 200,000 / 3.7% = 370,000 (PP 46/2015 art.16); JKK 0.54% = 54,000 and JKM 0.30% =
+	// 30,000, employer only (PP 44/2015 arts.16, 18); Kesehatan 1% = 100,000 / 4% = 400,000, under
+	// the 12,000,000 ceiling and above the DKI UMP floor (Perpres 82/2018 arts.30, 32).
+	for (const charge of [unreg, reg]) {
+		assert.deepEqual(charge.JHT, [200_000, 370_000]);
+		assert.deepEqual(charge.JKK, [0, 54_000]);
+		assert.deepEqual(charge.JKM, [0, 30_000]);
+		assert.deepEqual(charge.KESEHATAN, [100_000, 400_000]);
+	}
+	// JP 1% / 2% of 10,000,000 (under the Rp11,086,300 ceiling) only on a recorded registration.
+	assert.deepEqual(reg.JP, [100_000, 200_000]);
+	assert.ok(unreg.JP == null || (unreg.JP[0] === 0 && unreg.JP[1] === 0), 'no JP unregistered');
+	for (const code of ['JHT', 'JKK', 'JKM', 'KESEHATAN'])
+		assert.ok(
+			warnings.some((line) => line.includes(`${code}: registration incomplete`)),
+			`${code} warns that registration is outstanding`
+		);
+	assert.ok(!warnings.some((line) => line.includes('JP: registration incomplete')));
+});
+
+test('Indonesia — a missing tax registration does not waive PPh 26 (UU PPh arts.21(5a), 26(1); R46)', () => {
+	// The payer withholds; a recipient without an NPWP is answered with a higher rate (art.21(5a)),
+	// never with no tax. Same non-resident as the regular-wage PPh 26 golden: gross 20,648,000 × 20%
+	// = 4,129,600, now with the PPh 26 record NOT_REGISTERED.
+	const { slips, warnings } = buildStatutory(
+		scenario('2026-04', [
+			{
+				key: 'ID-NR-UNREG',
+				wage: 20_000_000,
+				tax_residency: 'NON_RESIDENT',
+				citizenship: 'FOREIGNER',
+				registrations: {
+					JP: { kind: 'NOT_REGISTERED' },
+					PPH26: { kind: 'NOT_REGISTERED', reason: 'No tax identity on file' }
+				}
+			}
+		])
+	);
+	assert.deepEqual(charges(slips.get('ID-NR-UNREG')!).PPH26, [4_129_600, 0]);
+	assert.ok(warnings.some((line) => line.includes('PPH26: registration incomplete')));
+});
+
+test('Indonesia — a recipient outside an employment relationship owes no BPJS premium (PP 44/2015 art.5)', () => {
+	// PP 44/2015 art.5(2)–(3) and PP 46/2015 art.4(2)–(3): a worker outside an employment
+	// relationship is a non-wage-earning participant who registers and pays himself (PP 44/2015
+	// art.11(1)); Perpres 82/2018 art.13(1) binds the employer only for its Pekerja. A PMK 168/2023
+	// bukan pegawai paid 10,000,000 for services: no BPJS line; PPh 21 on 50% of gross at 5% =
+	// 250,000 (PMK 168/2023 art.12(4)).
+	const { slips } = buildStatutory(
+		scenario('2026-04', [
+			{
+				key: 'ID-SERVICE',
+				wage: 10_000_000,
+				registrations: {
+					PPH21: {
+						kind: 'REGISTERED',
+						elections: { recipient_class: 'NON_EMPLOYEE', service_kind: 'OTHER', no_tax_id: false }
+					}
+				}
+			}
+		])
+	);
+	const charge = charges(slips.get('ID-SERVICE')!);
+	for (const code of ['JHT', 'JKK', 'JKM', 'KESEHATAN'])
+		assert.ok(charge[code] == null || (charge[code][0] === 0 && charge[code][1] === 0), code);
+	assert.deepEqual(charge.PPH21, [250_000, 0]);
+});
+
+test('Indonesia — PP 68/2009 art.4: the 15% and 25% severance bands', () => {
+	// Ten years' service ending 31 January 2026, redundancy to prevent losses (PP 35/2021 art.43(1)
+	// whole award): pesangon 9 months (art.40(2)(i), eight years or more) and UPMK 4 months
+	// (art.40(3)(c), nine to under twelve years).
+	const { slips } = buildStatutory(
+		scenario('2026-01', [
+			{
+				key: 'ID-SEV-50M',
+				wage: 50_000_000,
+				hire_date: '2016-01-04',
+				exit_date: '2026-01-31',
+				exit_reason: 'REDUNDANCY'
+			},
+			{
+				key: 'ID-SEV-20M',
+				wage: 20_000_000,
+				hire_date: '2016-01-04',
+				exit_date: '2026-01-31',
+				exit_reason: 'REDUNDANCY'
+			}
+		]),
+		(world) => {
+			for (const key of ['ID-SEV-50M', 'ID-SEV-20M'])
+				separationLines(world, key, '2026-01', '2026-01-31', ['PESANGON', 'UPMK']);
+		}
+	);
+	const final = (key: string) => charges(slips.get(key)!).PPH21_FINAL_SEVERANCE;
+	// 450,000,000 + 200,000,000 = 650,000,000: 0% of 50,000,000, 5% of 50,000,000 = 2,500,000,
+	// 15% of 400,000,000 = 60,000,000, 25% of 150,000,000 = 37,500,000 → 100,000,000.
+	assert.equal(paidLine(slips.get('ID-SEV-50M')!, 'PESANGON'), 450_000_000);
+	assert.equal(paidLine(slips.get('ID-SEV-50M')!, 'UPMK'), 200_000_000);
+	assert.deepEqual(final('ID-SEV-50M'), [100_000_000, 0]);
+	// 180,000,000 + 80,000,000 = 260,000,000: 2,500,000 + 15% of 160,000,000 = 24,000,000 →
+	// 26,500,000.
+	assert.deepEqual(final('ID-SEV-20M'), [26_500_000, 0]);
+});
+
+test('Indonesia — PP 68/2009 art.2(2): a later severance payment in the same year joins the bands of the first', () => {
+	// Pesangon 5 months and UPMK 2 months at 10,000,000 (four years' service) = 70,000,000, paid in
+	// March 2026 after 40,000,000 of separation pay was already paid, and withheld at 0%, in
+	// February. Payments within two calendar years count as paid at once: 110,000,000 cumulative →
+	// 2,500,000 + 15% of 10,000,000 = 4,000,000, less the 0 already withheld. Alone, the March
+	// payment would have carried 1,000,000.
+	const build = (withPrior: boolean) =>
+		buildStatutory(
+			scenario('2026-03', [
+				{
+					key: 'ID-SEV-SPLIT',
+					wage: 10_000_000,
+					hire_date: '2021-12-15',
+					exit_date: '2026-03-31',
+					exit_reason: 'REDUNDANCY'
+				}
+			]),
+			(world) => {
+				separationLines(world, 'ID-SEV-SPLIT', '2026-03', '2026-03-31', ['PESANGON', 'UPMK']);
+				if (!withPrior) return;
+				const employment = world.employments[0]!;
+				world.payroll_runs.push({
+					id: 'prior-2026-02-sev',
+					company_id: COMPANY_ID,
+					period: '2026-02'
+				});
+				world.payslips.push({
+					id: 'payslip-2026-02-sev',
+					payroll_run_id: 'prior-2026-02-sev',
+					employment_id: employment.id,
+					status: 'PAID',
+					paid_at: '2026-02-27T00:00:00.000Z',
+					currency: 'IDR',
+					base: [],
+					adjustments: [],
+					statutory: [
+						{
+							scheme_code: 'PPH21_FINAL_SEVERANCE',
+							employee_amount: 0,
+							employer_amount: 0,
+							base_amount: 40_000_000,
+							rule_when: null,
+							authority: null
+						}
+					]
+				});
+			}
+		).slips.get('ID-SEV-SPLIT')!;
+	assert.deepEqual(charges(build(false)).PPH21_FINAL_SEVERANCE, [1_000_000, 0]);
+	assert.deepEqual(charges(build(true)).PPH21_FINAL_SEVERANCE, [4_000_000, 0]);
+});
+
+test('Indonesia — PP 68/2009 art.2(2): a part paid in the next calendar year joins the first year’s bands', () => {
+	// Art.2(2) and its elucidation: parts paid within two calendar years are one payment "dan
+	// dihitung sebagai satu kesatuan untuk pengenaan pajaknya". 40,000,000 paid in December 2025
+	// and withheld at 0% (art.4(a)); 70,000,000 paid in January 2026. Together 110,000,000 →
+	// 0 + 5% of 50,000,000 + 15% of 10,000,000 = 4,000,000, less the 0 withheld in 2025 →
+	// 4,000,000 in January (`scheme.last_year`); alone, January would carry 5% of 20,000,000 = 1,000,000.
+	const slip = buildStatutory(
+		scenario('2026-01', [
+			{
+				key: 'ID-SEV-XYEAR',
+				wage: 10_000_000,
+				hire_date: '2021-12-15',
+				exit_date: '2026-01-31',
+				exit_reason: 'REDUNDANCY'
+			}
+		]),
+		(world) => {
+			separationLines(world, 'ID-SEV-XYEAR', '2026-01', '2026-01-31', ['PESANGON', 'UPMK']);
+			const employment = world.employments[0]!;
+			world.payroll_runs.push({
+				id: 'prior-2025-12-sev',
+				company_id: COMPANY_ID,
+				period: '2025-12'
+			});
+			world.payslips.push({
+				id: 'payslip-2025-12-sev',
+				payroll_run_id: 'prior-2025-12-sev',
+				employment_id: employment.id,
+				status: 'PAID',
+				paid_at: '2025-12-29T00:00:00.000Z',
+				currency: 'IDR',
+				base: [],
+				adjustments: [],
+				statutory: [
+					{
+						scheme_code: 'PPH21_FINAL_SEVERANCE',
+						employee_amount: 0,
+						employer_amount: 0,
+						base_amount: 40_000_000,
+						rule_when: null,
+						authority: null
+					}
+				]
+			});
+		}
+	).slips.get('ID-SEV-XYEAR')!;
+	assert.deepEqual(charges(slip).PPH21_FINAL_SEVERANCE, [4_000_000, 0]);
+});
+
+test('Indonesia — PP 68/2009 art.6: a part paid in the third calendar year is PPh 21 at the art.17(1)(a) rates on its gross, not final', () => {
+	// Art.6(1): a part of a severance paid "pada tahun ketiga dan tahun-tahun berikutnya" is withheld
+	// at the UU PPh art.17(1)(a) rates on the gross of that calendar year; (2) it is not final and is
+	// creditable; (3) art.21(5a)'s 120% applies without an NPWP. Leaver of 31 December 2025 with four
+	// years' service at 25,000,000: UPMK 2 months (PP 35/2021 art.40(3)(a)) = 50,000,000, paid in
+	// March 2027 — the third calendar year after a 2025 part of 100,000,000 (0% + 5% of 50,000,000 =
+	// 2,500,000 final) and a 2026 part of 30,000,000. Only this part is paid in 2027, the
+	// elucidation's case: 5% × 50,000,000 = 2,500,000 (UU 7/2021 keeps 5% to 60,000,000), and
+	// 120% × 5% × 50,000,000 = 3,000,000 without an NPWP. Joined to 2025 in the final bands, it
+	// would have carried 5% of 30,000,000 = 1,500,000.
+	const build = (noTaxId: boolean) =>
+		buildStatutory(
+			scenario('2027-03', [
+				{
+					key: 'ID-SEV-Y3',
+					wage: 25_000_000,
+					hire_date: '2021-11-01',
+					exit_date: '2025-12-31',
+					exit_reason: 'REDUNDANCY',
+					registrations: {
+						PPH21_FINAL_SEVERANCE: { kind: 'REGISTERED', elections: { no_tax_id: noTaxId } }
+					}
+				}
+			]),
+			(world) => {
+				// The award is priced by the catalogue of the final service day, and paid in March 2027.
+				separationLines(world, 'ID-SEV-Y3', '2025-12', '2025-12-31', ['UPMK']);
+				world.adhoc_requests!.at(-1)!.pay_period = '2027-03';
+				const employment = world.employments[0]!;
+				for (const [period, paidAt, base, employee] of [
+					['2025-12', '2025-12-29', 100_000_000, 2_500_000],
+					['2026-06', '2026-06-26', 30_000_000, 0]
+				] as const) {
+					world.payroll_runs.push({ id: `prior-${period}-sev`, company_id: COMPANY_ID, period });
+					world.payslips.push({
+						id: `payslip-${period}-sev`,
+						payroll_run_id: `prior-${period}-sev`,
+						employment_id: employment.id,
+						status: 'PAID',
+						paid_at: `${paidAt}T00:00:00.000Z`,
+						currency: 'IDR',
+						base: [],
+						adjustments: [],
+						statutory: [
+							{
+								scheme_code: 'PPH21_FINAL_SEVERANCE',
+								employee_amount: employee,
+								employer_amount: 0,
+								base_amount: base,
+								rule_when: null,
+								authority: null
+							}
+						]
+					});
+				}
+			}
+		).slips.get('ID-SEV-Y3')!;
+	const withId = build(false);
+	assert.equal(paidLine(withId, 'UPMK'), 50_000_000);
+	assert.deepEqual(charges(withId).PPH21_FINAL_SEVERANCE, [2_500_000, 0]);
+	assert.deepEqual(charges(build(true)).PPH21_FINAL_SEVERANCE, [3_000_000, 0]);
+});
+
+test('Indonesia — a non-resident’s severance is PPh 26 at 20% of gross, not PP 68/2009 (art.1 angka 3)', () => {
+	// PP 68/2009 art.1 angka 3: its "Pegawai" is a resident individual. A non-resident's
+	// separation pay is income of a permanent employee under any name (PMK 168/2023 art.5(1)) and
+	// is withheld at 20% of gross (arts.12(9), 14(1)). Five years' service at 30,000,000 ending
+	// 30 April 2026: pesangon 6 months = 180,000,000 (PP 35/2021 art.40(2)(f)), UPMK 2 months =
+	// 60,000,000 (art.40(3)(a)). Gross = 30,000,000 + 240,000,000 + JKK 0.54% 162,000 + JKM 0.30%
+	// 90,000 + Kesehatan 4% of the 12,000,000 cap 480,000 = 270,732,000 → 20% = 54,146,400.
+	const { slips } = buildStatutory(
+		scenario('2026-04', [
+			{
+				key: 'ID-NR-SEV',
+				wage: 30_000_000,
+				hire_date: '2021-01-04',
+				exit_date: '2026-04-30',
+				exit_reason: 'REDUNDANCY',
+				tax_residency: 'NON_RESIDENT',
+				citizenship: 'FOREIGNER'
+			}
+		]),
+		(world) => separationLines(world, 'ID-NR-SEV', '2026-04', '2026-04-30', ['PESANGON', 'UPMK'])
+	);
+	const slip = slips.get('ID-NR-SEV')!;
+	assert.equal(paidLine(slip, 'PESANGON'), 180_000_000);
+	assert.equal(paidLine(slip, 'UPMK'), 60_000_000);
+	const charge = charges(slip);
+	assert.deepEqual(charge.PPH26, [54_146_400, 0]);
+	assert.ok(
+		charge.PPH21_FINAL_SEVERANCE == null || charge.PPH21_FINAL_SEVERANCE[0] === 0,
+		'PP 68/2009 does not reach a non-resident'
+	);
+});
+
+test('Indonesia — THR is paid whole and once a year: an instalment is refused (Permenaker 6/2016 art.5(1); SE M/3/HK.04.00/III/2026 item 7)', () => {
+	const thrWorld = (amounts: readonly number[]) =>
+		buildStatutory(scenario('2026-03', [{ key: 'ID-THR', wage: 10_000_000 }]), (world) => {
+			for (const [index, amount] of amounts.entries())
+				world.adhoc_requests!.push({
+					id: `a1a1a1a1-0000-4000-8000-0000000009${index}0`,
+					employment_id: world.employments[0]!.id,
+					catalogue_id: THR_ID,
+					amount,
+					event_date: '2026-03-01',
+					pay_period: null,
+					payslip_id: null,
+					reason: 'THR 2026',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+		});
+	// Permenaker 6/2016 art.3(1)(a): twelve months' service or more is one month's wage, whatever
+	// amount the request was keyed at — half keyed, the whole paid.
+	assert.deepEqual(
+		thrWorld([5_000_000])
+			.slips.get('ID-THR')!
+			.adjustments.filter((row) => row.component_code === 'THR')
+			.map((row) => row.amount),
+		[10_000_000]
+	);
+	// A second request in the year — a second instalment — is not a second THR.
+	assert.throws(() => thrWorld([5_000_000, 5_000_000]), /THR entitlement exceeded/);
+	// The keyed figure is not the THR: two requests keyed at 0 are each priced by the band at
+	// 10,000,000 (art.3(1)(a)), so the second is a second THR in the year and is refused
+	// (art.5(1); SE M/3/HK.04.00/III/2026 item 7).
+	assert.throws(() => thrWorld([0, 0]), /THR entitlement exceeded/);
+});
+
+test('Indonesia — the same religious holiday twice in one year carries a THR for each (Permenaker 6/2016 art.5(2))', () => {
+	// Art.5(1): THR once a year; art.5(2): where the same religious holiday falls more than once in
+	// a year, THR is given for each occurrence. Idul Fitri moves about eleven days earlier each
+	// year, so a year opening and closing on it has two; no SKB in this version's range does, so
+	// the two ISLAM-tagged days below are a synthetic calendar, not SKB dates. They fall outside
+	// March, so they price no holiday work in this run. Twelve months' service: one THR is one
+	// month's wage, 10,000,000 (art.3(1)(a)); the ceiling is two of them.
+	const thrWorld = (religion: string, count: number) =>
+		buildStatutory(
+			scenario('2026-03', [{ key: 'ID-THR2', wage: 10_000_000, religion }]),
+			(world) => {
+				for (const date of ['2026-01-02', '2026-12-22'])
+					world.jurisdiction_holidays.push({
+						id: `holiday-${date}`,
+						company_id: COMPANY_ID,
+						date,
+						name: 'Idul Fitri (synthetic)',
+						religion: 'ISLAM',
+						replaces: null,
+						source: null,
+						published_at: '2025-12-01T00:00:00.000Z',
+						approval_id: null
+					});
+				for (let index = 0; index < count; index += 1)
+					world.adhoc_requests!.push({
+						id: `a1a1a1a1-0000-4000-8000-0000000019${index}0`,
+						employment_id: world.employments[0]!.id,
+						catalogue_id: THR_ID,
+						amount: 0,
+						event_date: '2026-03-01',
+						pay_period: null,
+						payslip_id: null,
+						reason: 'THR 2026',
+						evidence_file: null,
+						as_adjustment_entry: false,
+						approval_id: null
+					});
+			}
+		);
+	assert.deepEqual(
+		thrWorld('ISLAM', 2)
+			.slips.get('ID-THR2')!
+			.adjustments.filter((row) => row.component_code === 'THR')
+			.map((row) => row.amount),
+		[10_000_000, 10_000_000]
+	);
+	// A third is not an occurrence: 30,000,000 against 20,000,000.
+	assert.throws(() => thrWorld('ISLAM', 3), /THR entitlement exceeded/);
+	// The days are Idul Fitri's; a Christian's own holiday (Natal) falls once, so a second is refused.
+	assert.throws(() => thrWorld('CHRISTIAN', 2), /THR entitlement exceeded/);
+});
+
+test('Indonesia — the December reckoning deducts zakat paid through the employer (PMK 168/2023 art.10(1)(c))', () => {
+	// The December golden above, with 200,000 a month of zakat withheld and paid through the
+	// employer to a government-approved BAZNAS body, declared as ZAKAT deduction claims: PKP =
+	// 115,686,422 − 2,400,000 = 113,286,422 → 113,286,000 (art.8(4), down to the whole thousand).
+	// Annual tax 5% × 60,000,000 + 15% × 53,286,000 = 10,992,900; December = 10,992,900 − the
+	// 9,900,000 the TER withheld = 1,092,900 (1,452,900 without the zakat).
+	const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11'].map(
+		(month) => `2026-${month}`
+	);
+	const { slips } = buildStatutory(
+		scenario('2026-12', [
+			{
+				key: 'ID-ZAKAT',
+				wage: 15_000_000,
+				marital_status: 'SINGLE',
+				children: 0,
+				registrations: {
+					PPH21: {
+						kind: 'REGISTERED',
+						deduction_claims: [...months, '2026-12'].map((period) => ({
+							period,
+							category: 'ZAKAT',
+							amount: 200_000,
+							source: 'EMPLOYEE' as const,
+							reference: `BAZNAS-${period}`
+						}))
+					}
+				}
+			},
+			{ key: 'ID-NO-ZAKAT', wage: 15_000_000, marital_status: 'SINGLE', children: 0 }
+		]),
+		(world) => {
+			for (const key of ['ID-ZAKAT', 'ID-NO-ZAKAT']) {
+				priorSlips(
+					world,
+					key,
+					months
+						.filter((period) => period < '2026-03')
+						.map((period) => ({
+							period,
+							gross: 15_000_000,
+							pph21: 900_000,
+							jp: 105_474,
+							jht: 300_000
+						}))
+				);
+				priorSlips(
+					world,
+					key,
+					months
+						.filter((period) => period >= '2026-03')
+						.map((period) => ({
+							period,
+							gross: 15_000_000,
+							pph21: 900_000,
+							jp: 110_863,
+							jht: 300_000
+						}))
+				);
+			}
+		}
+	);
+	assert.deepEqual(charges(slips.get('ID-NO-ZAKAT')!).PPH21, [1_452_900, 0]);
+	assert.deepEqual(charges(slips.get('ID-ZAKAT')!).PPH21, [1_092_900, 0]);
+});
+
+test('Indonesia — PKWT profile: the art.15 compensation at the end of a one-year term, none to a foreign worker (PP 35/2021 arts.15(5), 16(1))', () => {
+	// A PKWT of 1 July 2025 to 30 June 2026 at 8,000,000: twelve months' service is one month's
+	// wage, 8,000,000 (art.16(1)(a)), inside PP 68/2009's 0% band (art.4(a)). Art.15(5): a foreign
+	// worker under a PKWT is not owed it.
+	const { slips } = buildStatutory(
+		scenario('2026-06', [
+			{
+				key: 'ID-PKWT',
+				wage: 8_000_000,
+				employment_type: 'CONTRACT',
+				hire_date: '2025-07-01',
+				exit_date: '2026-06-30',
+				exit_reason: 'CONTRACT_END'
+			},
+			{
+				key: 'ID-PKWT-TKA',
+				wage: 8_000_000,
+				employment_type: 'CONTRACT',
+				citizenship: 'FOREIGNER',
+				hire_date: '2025-07-01',
+				exit_date: '2026-06-30',
+				exit_reason: 'CONTRACT_END'
+			}
+		]),
+		(world) => {
+			for (const key of ['ID-PKWT', 'ID-PKWT-TKA'])
+				separationLines(world, key, '2026-06', '2026-06-30', ['PKWT_COMPENSATION'], null);
+		}
+	);
+	assert.equal(paidLine(slips.get('ID-PKWT')!, 'PKWT_COMPENSATION'), 8_000_000);
+	assert.equal(paidLine(slips.get('ID-PKWT-TKA')!, 'PKWT_COMPENSATION') ?? 0, 0);
+	assert.deepEqual(charges(slips.get('ID-PKWT')!).PPH21_FINAL_SEVERANCE, [0, 0]);
+});
+
+test('Indonesia — UMP 2026 by province: the Kesehatan floor in a workplace with no UMK (Perpres 82/2018 art.32(3))', () => {
+	// A wage of 2,000,000 is below every 2026 UMP, so the art.32(2) floor lifts the base to it.
+	const kesehatan = (region: string, period = '2026-04') =>
+		assessStatutoryUnvalidated({
+			...scenario(period, [{ key: 'ID-UMP', wage: 2_000_000 }]),
+			region
+		});
+	// Bengkulu, Kep. Gubernur K.646.DKKTRANS Tahun 2025: Rp2,827,250.90 — 1% = 28,272.51 → 28,273;
+	// 4% = 113,090.04 → 113,090.
+	expectStatutory(kesehatan('Provinsi Bengkulu'), 'ID-UMP', 'KESEHATAN', 28_273, 113_090);
+	// Banten, Kep. Gubernur 701/2025: Rp3,100,881.40 — 31,008.81 → 31,009; 124,035.26 → 124,035.
+	expectStatutory(kesehatan('Provinsi Banten'), 'ID-UMP', 'KESEHATAN', 31_009, 124_035);
+	// Aceh, Kep. Gubernur 500.15.14.1/1488/2025: Rp3,932,552 — 39,325.52 → 39,326; 157,302.08 →
+	// 157,302. The same figure on the 1 January version.
+	expectStatutory(kesehatan('Provinsi Aceh'), 'ID-UMP', 'KESEHATAN', 39_326, 157_302);
+	expectStatutory(kesehatan('Provinsi Aceh', '2026-02'), 'ID-UMP', 'KESEHATAN', 39_326, 157_302);
+	// Sulawesi Selatan, Kep. Gubernur 2129/XII/TAHUN 2025 diktum KESATU: Rp3,921,088.79 —
+	// 39,210.8879 → 39,211; 156,843.5516 → 156,844. The sen is the decree's, not a press rounding.
+	expectStatutory(kesehatan('Provinsi Sulawesi Selatan'), 'ID-UMP', 'KESEHATAN', 39_211, 156_844);
+	// Bangka Belitung, Kep. Gubernur 100.3.3.1/…/DISNAKER/2025 diktum KEDUA: Rp4,035,000 —
+	// 40,350; 161,400.
+	expectStatutory(
+		kesehatan('Provinsi Kepulauan Bangka Belitung'),
+		'ID-UMP',
+		'KESEHATAN',
+		40_350,
+		161_400
+	);
+	// December 2025 prices the 2025 UMP, not the 2026 one. Banten 2025 Rp2,905,119.90 (Pemprov
+	// Banten): 29,051.199 → 29,051; 116,204.796 → 116,205. Sulawesi Tenggara 2025 Rp3,073,551.70
+	// (Kep. Gubernur 100.3.3.1/470 Tahun 2024): 30,735.517 → 30,736; 122,942.068 → 122,942.
+	expectStatutory(kesehatan('Provinsi Banten', '2025-12'), 'ID-UMP', 'KESEHATAN', 29_051, 116_205);
+	expectStatutory(
+		kesehatan('Provinsi Sulawesi Tenggara', '2025-12'),
+		'ID-UMP',
+		'KESEHATAN',
+		30_736,
+		122_942
+	);
+	// Nusa Tenggara Timur 2025, Kep. Gubernur NTT 430/KEP/HK/2024 (Biro Adpim NTT, 12 Dec 2024):
+	// Rp2,328,969.69 — 23,289.6969 → 23,290; 93,158.7876 → 93,159.
+	expectStatutory(
+		kesehatan('Provinsi Nusa Tenggara Timur', '2025-12'),
+		'ID-UMP',
+		'KESEHATAN',
+		23_290,
+		93_159
+	);
+	// A province whose decree was not read has no floor, and refuses by name rather than charging
+	// a guessed one: Papua Selatan in 2026, Aceh in December 2025, Sulawesi Tengah in 2026 (only its
+	// 2025 figure is seeded) and Nusa Tenggara Timur in 2026 (its 2026 sen is unread).
+	for (const [region, period] of [
+		['Provinsi Nusa Tenggara Timur', '2026-04'],
+		['Provinsi Papua Selatan', '2026-04'],
+		['Provinsi Aceh', '2025-12'],
+		['Provinsi Sulawesi Tengah', '2026-04']
+	] as const)
+		assert.throws(
+			() => kesehatan(region, period),
+			/KESEHATAN bounds its base by the regional minimum wage/
+		);
+});
+
+test('Indonesia — the minimum-wage comparison holds a fractional UMP to the sen, never a rounded rupiah (ID-127)', () => {
+	// Owner rule 2026-09-28 (ID-127): only PKP rounding is prescribed (UU PPh art.17(4), PMK 168/2023
+	// art.8(4)); a floor the decree states in sen is compared in sen. Sulawesi Selatan, Kep. Gubernur
+	// 2129/XII/TAHUN 2025 diktum KESATU: Rp3,921,088.79. A contract at the floor is lawful; one sen
+	// under it, or the floor rounded down to the rupiah, is below it.
+	const below = (region: string, wages: ReadonlyArray<readonly [string, number]>) =>
+		buildStatutory({
+			...scenario(
+				'2026-04',
+				wages.map(([key, wage]) => ({ key, wage }))
+			),
+			region
+		})
+			.warnings.filter((warning) => warning.startsWith('MINIMUM_WAGE_BELOW:'))
+			.map((warning) => warning.split(' ')[1]);
+	assert.deepEqual(
+		below('Provinsi Sulawesi Selatan', [
+			['SS-AT', 3_921_088.79],
+			['SS-SEN', 3_921_088.78],
+			['SS-RP', 3_921_088]
+		]),
+		['SS-SEN', 'SS-RP']
+	);
+	// Central Java, Kep.100.3.3.1/505/2025 Lampiran I (signed 24 Dec 2025, from 1 Jan 2026): the
+	// Kabupaten Banyumas UMK Rp2,474,598.99, compared at the decree's precision. The province's UMP
+	// (Kep.100.3.3.1/504/2025, Rp2,327,386.07) is not seeded: every Central Java regency and city
+	// has a higher UMK, so a province key would floor a workplace below its own UMK.
+	assert.deepEqual(
+		below('Provinsi Jawa Tengah/Kabupaten Banyumas', [
+			['JT-AT', 2_474_598.99],
+			['JT-RP', 2_474_598]
+		]),
+		['JT-RP']
+	);
+});
+
+test('Indonesia — the monthly floor is the workplace’s, raised by the sector order that binds it (engine defect 6/20)', () => {
+	// UU 13/2003 art.88C as amended by UU 6/2023: a UMK binds in its regency or city, the UMP
+	// elsewhere in the province. Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020: the
+	// Kesehatan base is floored at the UMK, the UMP where none is set — never a sector wage. April
+	// 2026, the 1 March version; one company, whatever its own region.
+	const book = (people: Parameters<typeof buildStatutory>[0]['people'], facts = {}) => ({
+		...scenario('2026-04', people),
+		companyFacts: facts
+	});
+	const below = (options: ReturnType<typeof book>) =>
+		buildStatutory(options).warnings.filter((warning) => warning.startsWith('MINIMUM_WAGE_BELOW:'));
+	// (1) Two West Java sites of one company (Kepgub Jabar 561.7/Kep.862-Kesra/2025): Kota Bekasi
+	// Rp5,999,443 — 1% 59,994.43 → 59,994, 4% 239,977.72 → 239,978; Kabupaten Karawang Rp5,886,853
+	// — 58,868.53 → 58,869, 235,474.12 → 235,474. Each site is held to its own UMK.
+	const sites = book([
+		{ key: 'BKS', wage: 2_000_000, worksite: 'Provinsi Jawa Barat/Kota Bekasi' },
+		{ key: 'KRW', wage: 2_000_000, worksite: 'Provinsi Jawa Barat/Kabupaten Karawang' }
+	]);
+	expectStatutory(assessStatutory(sites), 'BKS', 'KESEHATAN', 59_994, 239_978);
+	expectStatutory(assessStatutory(sites), 'KRW', 'KESEHATAN', 58_869, 235_474);
+	assert.match(below(sites).join('\n'), /BKS .*\/Kota Bekasi minimum wage of 5999443/);
+	assert.match(below(sites).join('\n'), /KRW .*\/Kabupaten Karawang minimum wage of 5886853/);
+	// (2) DKI Kep. Gubernur 33 Tahun 2026 Lampiran A row 1: KBLI 10437 Rp5,741,201, for a worker
+	// with less than one year's service (diktum KETIGA). The DKI UMP Rp5,729,876 is below it.
+	const oil = (hire: string) =>
+		book([
+			{
+				key: 'OIL',
+				wage: 5_729_876,
+				hire_date: hire,
+				worksite: 'Provinsi DKI Jakarta',
+				worksite_sector: '10437'
+			}
+		]);
+	assert.match(below(oil('2026-01-01')).join('\n'), /OIL .* minimum wage of 5741201/);
+	assert.deepEqual(below(oil('2015-01-01')), [], 'a year’s service is outside the sector order');
+	// Kesehatan stays on the UMP: 1% 57,298.76 → 57,299, 4% 229,195.04 → 229,195.
+	expectStatutory(assessStatutory(oil('2026-01-01')), 'OIL', 'KESEHATAN', 57_299, 229_195);
+	// Row 10: KBLI 14111 Rp5,831,497, "EKSPOR" — only an exporting employer's.
+	const garment = (exporter: boolean) =>
+		below(
+			book(
+				[
+					{
+						key: 'GAR',
+						wage: 5_800_000,
+						hire_date: '2026-01-01',
+						worksite: 'Provinsi DKI Jakarta',
+						worksite_sector: '14111'
+					}
+				],
+				{ umsp_export_oriented: exporter }
+			)
+		);
+	assert.match(garment(true).join('\n'), /GAR .* minimum wage of 5831497/);
+	assert.deepEqual(garment(false), []);
+	// (3) Central Java, Kep.100.3.3.1/505/2025: Lampiran I Kota Semarang UMK Rp3,701,709 (1%
+	// 37,017.09 → 37,017; 4% 148,068.36 → 148,068); Lampiran II Kabupaten Demak KBLI 30911
+	// Rp3,137,685 over its UMK Rp3,122,805, for less than one year's service (diktum KETIGA).
+	const central = book([
+		{ key: 'SMG', wage: 2_000_000, worksite: 'Provinsi Jawa Tengah/Kota Semarang' },
+		{
+			key: 'DMK',
+			wage: 3_130_000,
+			hire_date: '2026-01-01',
+			worksite: 'Provinsi Jawa Tengah/Kabupaten Demak',
+			worksite_sector: '30911'
+		},
+		{ key: 'DMK-UMK', wage: 3_122_805, worksite: 'Provinsi Jawa Tengah/Kabupaten Demak' }
+	]);
+	expectStatutory(assessStatutory(central), 'SMG', 'KESEHATAN', 37_017, 148_068);
+	assert.match(below(central).join('\n'), /DMK .* minimum wage of 3137685/);
+	assert.ok(!below(central).some((warning) => warning.includes('DMK-UMK ')));
+	// A bare province whose regencies and cities all carry a UMK names no floor.
+	assert.throws(
+		() => assessStatutory(book([{ key: 'JT', wage: 2_000_000, worksite: 'Provinsi Jawa Tengah' }])),
+		/KESEHATAN bounds its base by the regional minimum wage/
+	);
+});
+
+test('Indonesia — a non-resident’s regular wage is PPh 26 at 20% of gross, with no PPh 21 (UU PPh art.26(1))', () => {
+	// UU 36/2008 art.26(1): remuneration for work paid to a non-resident individual is withheld at
+	// 20% of the gross amount; PPh 21's biaya jabatan, PTKP and TER do not apply. A foreign national
+	// on an open-ended contract (six months' work, PP 44/2015 art.1 angka 4) at 20,000,000 for all of
+	// April 2026, JKK group II. No JP: a foreigner is charged JP only on a recorded registration
+	// (PP 45/2015 art.3(1)). Gross = 20,000,000 + JKK 0.54% 108,000 + JKM 0.30% 60,000 + Kesehatan
+	// 4% of the 12,000,000 cap 480,000 = 20,648,000 → 20% = 4,129,600. The employee's own JHT 2%
+	// (400,000) is not deducted from a gross-basis tax.
+	const { slips } = buildStatutory(
+		scenario('2026-04', [
+			{
+				key: 'ID-NR',
+				wage: 20_000_000,
+				tax_residency: 'NON_RESIDENT',
+				citizenship: 'FOREIGNER',
+				registrations: { JP: { kind: 'NOT_REGISTERED' } }
+			}
+		])
+	);
+	const charge = charges(slips.get('ID-NR')!);
+	assert.deepEqual(charge.PPH26, [4_129_600, 0]);
+	assert.deepEqual(charge.JHT, [400_000, 740_000]);
+	assert.deepEqual(charge.JKK, [0, 108_000]);
+	assert.deepEqual(charge.JKM, [0, 60_000]);
+	assert.deepEqual(charge.KESEHATAN, [120_000, 480_000]);
+	assert.ok(charge.JP == null || (charge.JP[0] === 0 && charge.JP[1] === 0), 'no JP unregistered');
+	assert.ok(charge.PPH21 == null || charge.PPH21[0] === 0, 'PPh 21 does not reach a non-resident');
 });

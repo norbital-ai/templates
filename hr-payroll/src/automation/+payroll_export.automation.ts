@@ -11,13 +11,17 @@ import {
 } from '../lib/payroll/run/export.js';
 import { readAll } from '../lib/reads.js';
 import * as Predicate from 'effect/Predicate';
+import { loadIncomeReturns } from '../lib/payroll/run/income-return.js';
+import { refuse } from '../lib/refuse.js';
+import { dateKey } from '../lib/iso-day.js';
 
 /** The four artefacts, in the order the payroll page offers them. */
 const KINDS = [
 	'bank-files',
 	'payslip-pdfs',
 	'payroll-report-xlsx',
-	'catalogue-entries-xlsx'
+	'catalogue-entries-xlsx',
+	'income-tax-returns'
 ] as const;
 const artefact = {
 	kind: 'object',
@@ -42,10 +46,32 @@ const artefact = {
  */
 const payroll_export = automation({
 	description:
-		'Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment file, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals).',
+		'Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment file, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals); asked for by kind, the employment-income returns of each selected year (SG Form IR8A per employee, IR21 per cleared leaver).',
 	input: {
 		ids: { kind: 'list', of: { kind: 'id', of: 'payroll_runs' }, min: 1 },
-		kind: { kind: 'enum', values: KINDS, optional: true }
+		kind: { kind: 'enum', values: KINDS, optional: true },
+		/** Form IR8A/IR21: who signs the return, and the day they sign it. */
+		authorised_person: {
+			kind: 'object',
+			optional: true,
+			fields: {
+				name: { kind: 'text' },
+				designation: { kind: 'text' },
+				contact: { kind: 'text' },
+				date: { kind: 'date' }
+			}
+		},
+		/** ORIGINAL; REVISION restates whole records; AMENDMENT submits differences from `submitted`. */
+		submission: { kind: 'enum', values: ['ORIGINAL', 'AMENDMENT', 'REVISION'], optional: true },
+		/** The amounts already submitted, one per identity number and IR8A amount key. */
+		submitted: {
+			kind: 'list',
+			optional: true,
+			of: {
+				kind: 'object',
+				fields: { id_number: { kind: 'text' }, item: { kind: 'text' }, amount: { kind: 'number' } }
+			}
+		}
 	},
 	output: { kind: 'object', fields: { artefacts: { kind: 'list', of: artefact } } },
 	runAs: 'trigger'
@@ -64,7 +90,26 @@ const csv = (rows: readonly (readonly (string | number)[])[]) =>
 		)
 		.join('\r\n');
 
-payroll_export.run(async ({ ids, kind }, ctx) => {
+/** A record's leaves as one CSV row, keyed by their dotted path (`employee.id_number`). */
+const flatten = (value: object, prefix = ''): [string, string | number][] =>
+	Object.entries(value).flatMap(([key, leaf]): [string, string | number][] =>
+		Predicate.isObject(leaf) && !Array.isArray(leaf)
+			? flatten(leaf, `${prefix}${key}.`)
+			: [[`${prefix}${key}`, leaf == null ? '' : (leaf as string | number)]]
+	);
+const recordsCsv = (records: readonly object[]) => {
+	const rows = records.map((record) => flatten(record));
+	const header = [...new Set(rows.flatMap((row) => row.map(([key]) => key)))];
+	return csv([
+		header,
+		...rows.map((row) => {
+			const cells = new Map(row);
+			return header.map((key) => cells.get(key) ?? '');
+		})
+	]);
+};
+
+payroll_export.run(async ({ ids, kind, authorised_person, submission, submitted }, ctx) => {
 	const wants = (artefact: (typeof KINDS)[number]) => kind == null || kind === artefact;
 	const put = (bytes: Uint8Array, name: string, mime: string) =>
 		ctx.files.put(bytes, { name, mime, for: 'payroll_export' });
@@ -164,5 +209,41 @@ payroll_export.run(async ({ ids, kind }, ctx) => {
 				)
 			]
 		});
+	if (kind === 'income-tax-returns') {
+		if (authorised_person == null)
+			refuse('Form IR8A and IR21 name the authorised person, their designation, contact and date.');
+		const returns = await loadIncomeReturns(ctx, runs, {
+			authorised: { ...authorised_person, date: dateKey(authorised_person.date) },
+			submission: submission ?? 'ORIGINAL',
+			submitted: new Map(
+				[...Map.groupBy(submitted ?? [], (row) => row.id_number)].map(([id, rows]) => [
+					id,
+					Object.fromEntries(rows.map((row) => [row.item, row.amount]))
+				])
+			)
+		});
+		for (const filing of returns) {
+			const files = [];
+			for (const [form, records] of [
+				['ir8a', filing.ir8a],
+				['ir21', filing.ir21]
+			] as const)
+				if (records.length > 0)
+					files.push(
+						await put(
+							encode(recordsCsv(records)),
+							`${form}_${filing.year}_${filing.label.replaceAll(/\W+/g, '_')}.csv`,
+							'text/csv'
+						)
+					);
+			if (files.length > 0)
+				artefacts.push({
+					label: `Income tax returns ${filing.label}`,
+					kind: 'income-tax-returns' as const,
+					periods: [String(filing.year)],
+					files
+				});
+		}
+	}
 	return { artefacts };
 });

@@ -559,7 +559,8 @@ export function breachSentence(breach: OvertimeBreach): string {
 /**
  * The dates a person observes a company holiday on, exactly as payroll prices them: payroll's own
  * `resolveSchedule` over each assessment window (the attendance window a run resolves), with the
- * published rows of the company's calendar — replacement days included — the rosters of record,
+ * published rows of the company's calendar — replacement days included, a local day only at the
+ * worksite the person's terms record on it (PH RA 12271, as `atWorksite`) — the rosters of record,
  * the version's `holiday_rest_precedence` (under SUBSTITUTE a holiday on the rest day is carried to
  * the next working day, unless the calendar publishes its replacement) and each row's `given_to`.
  * The split, the headroom, the day sheet and the import read this, so none keeps a calendar rule of
@@ -595,6 +596,8 @@ export function observedHolidays(options: {
 	readonly patternOn: (
 		date: string
 	) => { readonly pattern: ShiftPatternLike['pattern']; readonly anchor: string | null } | null;
+	/** The worksite the person's terms record on a date: a local day reaches only that site's staff. */
+	readonly worksiteOn: (date: string) => string | null | undefined;
 }): ReadonlyMap<string, { readonly name: string; readonly from: string | null }> {
 	const observed = new Map<string, { readonly name: string; readonly from: string | null }>();
 	if (options.precedence == null) return observed;
@@ -623,7 +626,13 @@ export function observedHolidays(options: {
 			workDays: options.plans,
 			rosters: options.rosterPeriods.map((period) => monthBounds(period)),
 			configuration: {
-				holidays: resolveHolidays(options.holidays, options.companyId, window.start, window.end),
+				holidays: resolveHolidays(
+					options.holidays,
+					options.companyId,
+					window.start,
+					window.end,
+					options.worksiteOn
+				),
 				shiftById,
 				holidayRestPrecedence: options.precedence
 			}

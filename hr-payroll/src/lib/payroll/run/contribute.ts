@@ -44,7 +44,7 @@ import { addDays, completedMonths, inclusiveDays, monthBounds, monthDay } from '
 import { producedMentions, producedMentionsOf } from './mentions.js';
 import type { PersonContext } from './eligibility.js';
 import type { PayProjection } from './period.js';
-import { cents } from './rounding.js';
+import { cents, roundMoney, type RoundingMethod } from './rounding.js';
 import type { StatutoryFactStatus } from '../../../lib/datatypes/statutory_fact_status.js';
 import type {
 	AssessmentFrequency,
@@ -89,6 +89,8 @@ export type ContributionCharge = {
 	readonly rebate?: number | undefined;
 	/** The `when` expression of the rule that governed, or null where none held. */
 	readonly ruleReference: string | null;
+	/** How the employer amount is remitted, where the scheme rounds its employer-month total. */
+	readonly remittanceRounding?: 'NONE' | 'FLOOR_MAJOR_UNIT' | undefined;
 	/** The `warning` of every rule selected for this charge, prefixed with the scheme code. */
 	readonly warnings?: readonly string[] | undefined;
 	readonly firstContributionDueOn?: string | undefined;
@@ -132,6 +134,11 @@ type SchemeAssessment = {
 		ordinary: number;
 		rebate?: number | undefined;
 	};
+	/** `contribution_code` → what was charged in the tax year before this one (this employer). */
+	readonly lastYear?:
+		((code: string) => { employee: number; employer: number; base: number }) | undefined;
+	/** `contribution_code` → the earliest tax year this employer charged a base, 0 when none. */
+	readonly firstYear?: ((code: string) => number) | undefined;
 	/** component code → what earlier PAID payslips earned this tax year (BASIC always present). */
 	readonly yearEarned: ReadonlyMap<string, number>;
 	/** Scheme code → earlier paid assessments plus the selected prior-employer opening. */
@@ -181,6 +188,18 @@ type SchemeAssessment = {
 		readonly daysEmployed: number;
 		readonly daysInMonth: number;
 	};
+	/**
+	 * Where the residency the terms record changes inside the window: each status's person and its
+	 * share of the ordinary pay, in date order. A scheme with an ordinary part that reads residency
+	 * is priced on each (`residencyPriced`).
+	 */
+	readonly residencySegments?:
+		| readonly {
+				readonly employee: PersonContext['employee'];
+				readonly terms: PersonContext['terms'];
+				readonly share: number;
+		  }[]
+		| undefined;
 	/** The payroll currency every charge is rounded to the minor unit of. */
 	readonly currency: string;
 	/** The tax year the period sits in, for this employee. */
@@ -530,6 +549,7 @@ export const schemeExpressions = (contribution: ContributionConfig): readonly st
 	const expressions = [
 		contribution.row.assessed_on ?? '',
 		contribution.row.ordinary_on ?? '',
+		contribution.row.remittance_rounding_when ?? '',
 		...contribution.row.elections.flatMap((field) => [
 			field.valid_when ?? '',
 			field.required_when ?? ''
@@ -647,6 +667,10 @@ function schemeObject(options: {
 		assessment_period: contribution.row.assessment_period,
 		registration_status: status?.kind ?? 'UNDECLARED',
 		year_to_date: { rebate: 0, ...input.yearToDate(contribution.row.code) },
+		last_year: (({ base, employee, employer }) => ({ base, employee, employer }))(
+			input.lastYear?.(contribution.row.code) ?? { base: 0, employee: 0, employer: 0 }
+		),
+		first_year: input.firstYear?.(contribution.row.code) ?? 0,
 		projection: {
 			payslips_remaining: input.projection.payslipsRemaining,
 			future_equivalents: input.projection.futurePayslipEquivalents
@@ -905,6 +929,101 @@ function selectedRuleContext(
 	return { ...context, scheme: Object.assign({}, context.scheme, { deduction }) };
 }
 
+/** Whether a scheme's expressions read the person's residency status or its date. */
+const readsResidency = (expressions: readonly string[]) =>
+	expressions.some((expression) =>
+		/person\.(employee\.(citizenship|residency_months)|terms\.residency_since)\b/.test(expression)
+	);
+
+/**
+ * A scheme priced on each residency segment as one month: the ordinary pay split by the segments'
+ * shares (the last takes the cents left), the additional part (`base − ordinary`) on the last. A
+ * status no rule charges contributes no base; the charged portions are the month's wages, so they
+ * select every status's rule (its band) and each status's rule is applied to its own portion. The
+ * rules' roundings run once, on the portions' blend: each rule is read unrounded, the arguments of
+ * its roundings weighted by the portions, and each rounding applied to that blend (CPF Act First
+ * Schedule: rates by the month's total wages; the month's total rounded, the employee share's cents
+ * dropped). The rule is the last charged segment's.
+ */
+function residencyPriced(options: {
+	readonly segments: NonNullable<SchemeAssessment['residencySegments']>;
+	readonly base: number;
+	readonly ordinary: number;
+	readonly currency: string;
+	readonly engine: ExpressionEngine;
+	readonly code: string;
+	readonly select: (
+		person: Pick<PersonContext, 'employee' | 'terms'>,
+		base: number,
+		ordinary: number
+	) => { rule: ContributionRule; context: Record<string, unknown> } | null;
+}) {
+	const { segments, base, ordinary, currency, engine } = options;
+	let rest = ordinary;
+	const portions = segments.map((segment, index) => {
+		const last = index === segments.length - 1;
+		const own = last ? rest : cents(ordinary * segment.share, currency);
+		rest = cents(rest - own, currency);
+		return { segment, ordinary: own, base: last ? cents(own + base - ordinary, currency) : own };
+	});
+	const charged = portions.filter(
+		(portion) => options.select(portion.segment, base, ordinary) != null
+	);
+	const chargedBase = cents(
+		charged.reduce((sum, portion) => sum + portion.base, 0),
+		currency
+	);
+	const chargedOrdinary = cents(
+		charged.reduce((sum, portion) => sum + portion.ordinary, 0),
+		currency
+	);
+	const priced = charged.flatMap((portion) => {
+		const selected = options.select(portion.segment, chargedBase, chargedOrdinary);
+		const weight = chargedBase > 0 ? portion.base / chargedBase : 1 / charged.length;
+		return selected == null ? [] : [{ ...selected, weight }];
+	});
+	const blended = (pick: (rule: ContributionRule) => string) => {
+		const calls = priced.map(({ rule, context }) => {
+			const roundings: [RoundingMethod, number][] = [];
+			const round = (value: number, method: RoundingMethod) => {
+				roundings.push([method, value]);
+				return value;
+			};
+			evaluateNumber({ ...engine, round }, pick(rule), context);
+			return roundings;
+		});
+		const first = calls[0] ?? [];
+		if (
+			calls.some(
+				(call) =>
+					call.some(([method], index) => first[index]?.[0] !== method) ||
+					call.length !== first.length
+			)
+		)
+			refuse(`${options.code}: the statuses of a conversion month must round alike.`);
+		const once = first.map(([method], index) =>
+			roundMoney(
+				priced.reduce((sum, { weight }, segment) => sum + weight * calls[segment]![index]![1], 0),
+				method
+			)
+		);
+		return priced.reduce((sum, { rule, context, weight }) => {
+			let next = 0;
+			return (
+				sum +
+				weight * evaluateNumber({ ...engine, round: () => once[next++]! }, pick(rule), context)
+			);
+		}, 0);
+	};
+	return {
+		rule: priced.at(-1)?.rule ?? null,
+		base: priced.length === 0 ? 0 : chargedBase,
+		ordinary: priced.length === 0 ? 0 : chargedOrdinary,
+		employee: blended((rule) => rule.employee),
+		employer: blended((rule) => rule.employer)
+	};
+}
+
 /** Estimate the month's wages before a scheme applies its monthly floor, ceiling or band. */
 function scaleAccumulation(input: AccumulatedPayslip, factor: number): AccumulatedPayslip {
 	return {
@@ -1102,7 +1221,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			reads: reliefs,
 			ordinaryReads: ordinaryReliefs
 		});
-		const base = evaluated.base;
+		let base = evaluated.base;
 		// The ordinary part of the base, where the ceiling splits it (`ordinary_on`).
 		const ordinaryOn = (contribution.row.ordinary_on ?? '').trim();
 		let ordinary =
@@ -1119,6 +1238,9 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 					}).base;
 		let ordinaryEmployee: number | undefined;
 		const warnings = new Set<string>();
+		// Set from the person once the context exists; a charge before that is an unregistered zero.
+		let remittanceRounding: ContributionCharge['remittanceRounding'] =
+			contribution.row.remittance_rounding === 'FLOOR_MAJOR_UNIT' ? 'FLOOR_MAJOR_UNIT' : undefined;
 		const charge = (
 			employee: number,
 			employer: number,
@@ -1156,6 +1278,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				directed,
 				rebate,
 				ruleReference,
+				...(remittanceRounding == null ? {} : { remittanceRounding }),
 				...(warnings.size === 0 ? {} : { warnings: [...warnings] }),
 				...(status?.kind === 'REGISTERED' && status.first_contribution_due_on != null
 					? { firstContributionDueOn: status.first_contribution_due_on }
@@ -1218,8 +1341,9 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		// run rather than charging on an unbounded base.
 		if (input.minimumWage == null && mentionsMinimumWage(expressions))
 			refuse(
-				`${code} bounds its base by the regional minimum wage, but the company's region has ` +
-					'none in this settings version. Set companies.region and jurisdiction_settings.work_rules.wages.by_region.'
+				`${code} bounds its base by the regional minimum wage, but the workplace has none in ` +
+					'this settings version. Set employment_terms.worksite (a workplace-keyed version) or ' +
+					'companies.region to a place jurisdiction_settings.work_rules.wages.by_region names.'
 			);
 
 		let context: Record<string, unknown> = {
@@ -1238,7 +1362,58 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			ordinary: ordinary ?? base
 		};
 		requireSchemeFacts(contribution, status, context, schemeEngine);
-		const rule = selectRule(contribution.row.rules, context, schemeEngine);
+		const roundedWhen = (contribution.row.remittance_rounding_when ?? '').trim();
+		if (remittanceRounding != null && roundedWhen !== '')
+			remittanceRounding = evaluateBoolean(schemeEngine, roundedWhen, context)
+				? 'FLOOR_MAJOR_UNIT'
+				: 'NONE';
+		// The month a person's residency changes, a scheme that parts ordinary from additional pay
+		// and reads residency prices each status on its own share: the ordinary pay pro-rated at the
+		// status date, the additional part at the status on pay day, the last (CPF Board FAQs on a
+		// mid-month SPR grant and citizenship; CPF Act First Schedule para 1A). A status no rule
+		// charges contributes no base.
+		const residency =
+			ordinary != null && input.residencySegments != null && readsResidency(expressions)
+				? residencyPriced({
+						segments: input.residencySegments,
+						base,
+						ordinary,
+						currency: input.currency,
+						engine: schemeEngine,
+						code,
+						select: (person, segmentBase, segmentOrdinary) => {
+							const own: Record<string, unknown> = {
+								...schemeContext({
+									input: { ...schemeInput, person: { ...schemeInput.person, ...person } },
+									contribution,
+									status,
+									expressions,
+									produced: schemeProduced,
+									reads: reliefs,
+									ordinaryReads: ordinaryReliefs
+								}),
+								base: segmentBase,
+								ordinary: segmentOrdinary
+							};
+							requireSchemeFacts(contribution, status, own, schemeEngine);
+							const selected = selectRule(contribution.row.rules, own, schemeEngine);
+							return selected == null
+								? null
+								: {
+										rule: selected,
+										context: selectedRuleContext(selected, own, schemeEngine, code, warnings)
+									};
+						}
+					})
+				: null;
+		if (residency != null) {
+			base = residency.base;
+			ordinary = residency.ordinary;
+		}
+		const rule =
+			residency == null
+				? selectRule(contribution.row.rules, context, schemeEngine)
+				: residency.rule;
 		if (rule == null) {
 			if (ordinary != null) ordinary = 0;
 			if (already != null)
@@ -1341,57 +1516,59 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		}
 		const [assessedEmployee, assessedEmployer] =
 			unitShares ??
-			(standings == null
-				? [
-						evaluateNumber(schemeEngine, rule.employee, context),
-						evaluateNumber(schemeEngine, rule.employer, context)
-					]
-				: standings.reduce(
-						([employee, employer], standing) => {
-							const standingInput = {
-								...schemeInput,
-								facts: new Map(schemeInput.facts).set(contribution.row.id, standing.status),
-								coverageByScheme: new Map([[contribution.row.id, standing.intervals]])
-							};
-							const engine = engineFor(
-								standingInput,
-								contribution.row.assessment_period !== 'PAY_PERIOD'
-									? accumulation
-									: input.accumulation,
-								contribution.row.id
-							);
-							const ownBase = assessedBase({
-								input: standingInput,
-								contribution,
-								accumulation,
-								produced: schemeProduced,
-								reads: reliefs,
-								ordinaryReads: ordinaryReliefs
-							}).base;
-							const own: Record<string, unknown> = {
-								...schemeContext({
+			(residency != null
+				? [residency.employee, residency.employer]
+				: standings == null
+					? [
+							evaluateNumber(schemeEngine, rule.employee, context),
+							evaluateNumber(schemeEngine, rule.employer, context)
+						]
+					: standings.reduce(
+							([employee, employer], standing) => {
+								const standingInput = {
+									...schemeInput,
+									facts: new Map(schemeInput.facts).set(contribution.row.id, standing.status),
+									coverageByScheme: new Map([[contribution.row.id, standing.intervals]])
+								};
+								const engine = engineFor(
+									standingInput,
+									contribution.row.assessment_period !== 'PAY_PERIOD'
+										? accumulation
+										: input.accumulation,
+									contribution.row.id
+								);
+								const ownBase = assessedBase({
 									input: standingInput,
 									contribution,
-									status: standing.status,
-									expressions,
+									accumulation,
 									produced: schemeProduced,
 									reads: reliefs,
 									ordinaryReads: ordinaryReliefs
-								}),
-								base: ownBase,
-								ordinary: ordinary ?? ownBase
-							};
-							requireSchemeFacts(contribution, standing.status, own, engine);
-							const selected = selectRule(contribution.row.rules, own, engine);
-							if (selected == null) return [employee, employer];
-							const priced = selectedRuleContext(selected, own, engine, code, warnings);
-							return [
-								employee + evaluateNumber(engine, selected.employee, priced),
-								employer + evaluateNumber(engine, selected.employer, priced)
-							];
-						},
-						[0, 0]
-					));
+								}).base;
+								const own: Record<string, unknown> = {
+									...schemeContext({
+										input: standingInput,
+										contribution,
+										status: standing.status,
+										expressions,
+										produced: schemeProduced,
+										reads: reliefs,
+										ordinaryReads: ordinaryReliefs
+									}),
+									base: ownBase,
+									ordinary: ordinary ?? ownBase
+								};
+								requireSchemeFacts(contribution, standing.status, own, engine);
+								const selected = selectRule(contribution.row.rules, own, engine);
+								if (selected == null) return [employee, employer];
+								const priced = selectedRuleContext(selected, own, engine, code, warnings);
+								return [
+									employee + evaluateNumber(engine, selected.employee, priced),
+									employer + evaluateNumber(engine, selected.employer, priced)
+								];
+							},
+							[0, 0]
+						));
 		if (
 			status?.kind === 'NOT_REGISTERED' &&
 			contribution.row.unregistered_action === 'ASSESS' &&

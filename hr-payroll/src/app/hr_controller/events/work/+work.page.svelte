@@ -240,7 +240,8 @@
 						rosterPeriods: reads.rosters.current
 							.filter((row) => row.employment_id === employment.id)
 							.map((row) => row.period),
-						patternOn: patternOn(employment.id)
+						patternOn: patternOn(employment.id),
+						worksiteOn: (date) => activeTerm(employment.id, date)?.worksite
 					})
 				);
 			} catch {
@@ -434,7 +435,8 @@
 										shift_definition_id: codeIdByCode.get(row.shift_code) ?? null
 									})),
 						rosterPeriods: filed.length > 0 ? [calendarMonth] : [],
-						patternOn: patternOn(person.id)
+						patternOn: patternOn(person.id),
+						worksiteOn: (date) => activeTerm(person.id, date)?.worksite
 					});
 				} catch {
 					return new Set();

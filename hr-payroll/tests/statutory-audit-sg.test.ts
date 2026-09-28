@@ -366,10 +366,12 @@ test('SG audit — self-help group bands at their edges, and who each fund reach
 	expectStatutory(book, 'MBMF-FOREIGN-4000', 'MBMF', 15, 0);
 	expectStatutory(book, 'MBMF-4000.01', 'MBMF', 19.5, 0);
 	expectStatutory(book, 'MBMF-10000.01', 'MBMF', 26, 0);
-	// SINDA: SC, SPR "or Employment Pass holders". "> $10,000 to $15,000 $18; > $15,000 $30".
+	// SINDA: "> $2,500 to $4,500 $7; > $10,000 to $15,000 $18; > $15,000 $30". CPF Act s.76(3)
+	// and SINDA Rules 1992 r.2 set no residency condition (unlike CDAC r.2), so an S Pass holder of
+	// the Indian community is charged; the CPF Board's SC/SPR/EP list is narrower guidance.
 	expectStatutory(book, 'SINDA-15000', 'SINDA', 18, 0);
 	expectStatutory(book, 'SINDA-15000.01', 'SINDA', 30, 0);
-	expectStatutorySkipped(book, 'SINDA-SPASS', 'SINDA');
+	expectStatutory(book, 'SINDA-SPASS', 'SINDA', 7, 0);
 	// "Employees who … wish to contribute a different amount can contact the respective SHGs": a
 	// notified $5 replaces the $1 band amount at $3,000.
 	expectStatutory(book, 'CDAC-NOTIFIED', 'CDAC', 5, 0);

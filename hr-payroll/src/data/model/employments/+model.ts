@@ -12,6 +12,8 @@ export default model({
 		bank: { kind: 'custom', of: 'bank_account', optional: true },
 		/** The stint: first day of service to last day of work. A rehire is a new contract. */
 		effective_range: { kind: 'period', of: 'date' },
+		/** Months worked for earlier employers before this stint; annual leave counts them (CN 企业职工带薪年休假实施办法 art.4). */
+		prior_service_months: { kind: 'int', min: 0, optional: true },
 		/** Why the stint ended; every separation payment turns on it. */
 		exit_reason: {
 			kind: 'enum',

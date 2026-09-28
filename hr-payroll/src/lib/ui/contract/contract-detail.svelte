@@ -114,6 +114,7 @@
 				<Column span="all"
 					><Field name="effective_range" label={t('component.effective_period')} /></Column
 				>
+				<Field name="prior_service_months" label={t('component.prior_service_months')} />
 				<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
 				<Column span="all"><Field name="exit_reason" label={t('component.exit_reason')} /></Column>
 				<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>

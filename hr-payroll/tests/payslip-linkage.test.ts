@@ -762,7 +762,8 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 		nightPremium
 	};
 	// An ordinary day clocked 14:30–02:00: ten and a half hours net of the break, two and a half
-	// beyond the normal eight, and four of the clocked hours inside the window.
+	// beyond the normal eight, and four of the clocked hours inside the window. The overtime is the
+	// day's last two and a half hours (23:30–02:00); 22:00–23:30 is an ordinary night hour.
 	const late = measure(
 		{
 			workDays: [
@@ -777,7 +778,7 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 		configurationWithNight
 	);
 	const line = paid(late).find((item) => item.label === 'NIGHT_PREMIUM');
-	assert.equal(line?.amount, 13.27, '4 h × 20% × (3451 / 26 / 8)');
+	assert.equal(line?.amount, 10.78, '(1.5 h × 10% + 2.5 h × 20%) × (3451 / 26 / 8)');
 	assert.equal(line?.quantity, 4);
 	assert.equal(line?.catalogueComponent.output, 'night');
 	assert.equal(line?.input.id, 'day-2026-03-10');

@@ -352,6 +352,14 @@ export type MeasureComponentOptions = {
 		readonly ordinaryHour: number;
 	};
 	readonly subject: PersonContext;
+	/**
+	 * The salary window's leave by code — what an entry's `person.period.leave_days`/`leave_full_days`/
+	 * `leave_pay` and `leave.days(code)` read. Called at pricing time, after the wage lines; absent on
+	 * an ended contract, which pays no salary for its leave to price.
+	 */
+	readonly leavePeriod?:
+		| (() => Pick<PersonContext['period'], 'leave_days' | 'leave_full_days' | 'leave_pay'>)
+		| undefined;
 	/** calendar month → code → what earlier payslips filed; a pay request's person reads it. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 	/**

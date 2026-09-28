@@ -20,7 +20,7 @@ import {
 
 const MY_WAGES = ['EIS', 'HRDF', 'SKBBK', 'SOCSO'];
 const MY_ADDITIONAL_EPF = ['EPF.ADDITIONAL', 'EPF_NON_CITIZEN.ADDITIONAL', 'EPF_PR.ADDITIONAL'];
-const PH_SSS = ['SSS', 'SSS_EC', 'SSS_MPF'];
+const PH_WAGES = ['HDMF', 'SSS', 'SSS_EC', 'SSS_MPF'];
 const ID_BPJS = ['JHT', 'JKK', 'JKM', 'JKP', 'JP', 'KESEHATAN'];
 const RESERVED_WAGE_MARKS = new Set(['WAGES', 'FIRST_SCHEDULE_WAGES']);
 
@@ -34,7 +34,10 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		AMENITIES_RECOVERY: [],
 		COOPERATIVE_DUES: [],
 		bonus: ['CDAC', 'CPF.ADDITIONAL', 'ECF', 'MBMF', 'SDL', 'SINDA'],
-		SALARY_IN_LIEU_OF_NOTICE: ['SDL']
+		SALARY_IN_LIEU_OF_NOTICE: ['SDL'],
+		// Retrenchment benefit: CPF Board, not wages for CPF; SHG funds follow CPF; Muis Table 2; SDL Act
+		// s.2 wages (Owner rule 2026-09-28, register SG-EA24-R02).
+		RETRENCHMENT_BENEFIT: ['SDL']
 	},
 	// EPF Act s.2 (wages, no retirement/termination benefit), SOCSO/EIS s.2 wages, PSMB Act wages,
 	// ITA 1967 s.13(1)(a) with PCB's additional-remuneration method for one-off pay.
@@ -42,7 +45,14 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	MY: {
 		ADJ: [...MY_WAGES.filter((code) => code !== 'HRDF'), ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
 		BACKPAY_ADD_WAGES: ['EIS', 'PCB.ADDITIONAL', 'SKBBK', 'SOCSO'],
+		// Annual bonus: EPF Act 452 s.2 "wages" includes "any bonus" (AGC text as at 1 Jul 2022); ITA
+		// additional remuneration. Act 4 s.2(24)(e) and Act 800 s.2 "wages" (e) exclude "annual bonus"
+		// (so SOCSO, EIS and SKBBK do not read it); Act 612 s.2 "wages" (e) excludes "any bonus".
+		BONUS: [...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
 		BPAYBS: [...MY_WAGES, ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
+		// EPF s.2 "wages" (c) excludes any gratuity; Act 4 s.2(24)(d) and Act 800 s.2 (d) only one on
+		// discharge or retirement; Act 612 s.2 wages exclude it; ITA Sch.6 para 25C exempts RM2,000 of it.
+		LONG_SERVICE_AWARD: ['EIS', 'PCB.ADDITIONAL', 'SKBBK', 'SOCSO'],
 		NOTICE_IN_LIEU: ['PCB.ADDITIONAL'],
 		NOTICE_INDEMNITY: [],
 		ONCALL: [...MY_WAGES, ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL', 'FIRST_SCHEDULE_WAGES'],
@@ -59,35 +69,42 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	// RA 11199 s.8(f) compensation; NIRC s.32(B)(7)(e) 13th month and other benefits (de minimis meal).
 	// RR 2-98 s.2.78.1(A)(3) as amended (RR 11-2018, RR 4-2025, RR 29-2025): each de minimis class
 	// is its own WTAX part, capped by the formula (the OT meal by its own band).
+	// HDMF Circular 460 (15 Jan 2024, from Feb 2024): Fund Salary is basic salary plus other allowances.
 	PH: {
 		ACHIEVEMENT_AWARD: ['WTAX.AWARD'],
 		CBA_PRODUCTIVITY: ['WTAX.CBA'],
 		CHRISTMAS_GIFT: ['WTAX.GIFT'],
-		DEPENDANT_MEDICAL_ALLOWANCE: [...PH_SSS, 'WTAX.DEP_MEDICAL'],
-		LAUNDRY_ALLOWANCE: [...PH_SSS, 'WTAX.LAUNDRY'],
+		// SSS IRR Rule 12 s.6(ii), (xii): commissions are compensation; Circular 460 p.2: fund salary
+		// includes pay on a commission basis. Not PhilHealth's basic salary nor the 13th-month basic.
+		COMMISSION: [...PH_WAGES, 'WTAX.ORDINARY'],
+		DEPENDANT_MEDICAL_ALLOWANCE: [...PH_WAGES, 'WTAX.DEP_MEDICAL'],
+		LAUNDRY_ALLOWANCE: [...PH_WAGES, 'WTAX.LAUNDRY'],
 		MEDICAL_ASSISTANCE: ['WTAX.MEDICAL'],
-		OT_MEAL_ALLOWANCE: [...PH_SSS, 'WTAX.OT_MEAL'],
+		OT_MEAL_ALLOWANCE: [...PH_WAGES, 'WTAX.OT_MEAL'],
 		UNIFORM_ALLOWANCE: ['WTAX.UNIFORM'],
-		BACKPAY_ADD_WAGES: [...PH_SSS, 'WTAX.ORDINARY'],
-		BACKPAY_BASIC: [...PH_SSS, 'WTAX.ORDINARY'],
-		BACKPAY_DUTY_ALLOWANCE: [...PH_SSS, 'WTAX.ORDINARY'],
+		BACKPAY_ADD_WAGES: [...PH_WAGES, 'WTAX.ORDINARY'],
+		BACKPAY_BASIC: [...PH_WAGES, 'WTAX.ORDINARY'],
+		BACKPAY_DUTY_ALLOWANCE: [...PH_WAGES, 'WTAX.ORDINARY'],
 		RETIREMENT_PAY: [],
 		SEPARATION_PAY: [],
 		STATUTORY_ADJUSTMENT: [],
 		THIRTEENTH_MONTH_PAY: ['WTAX.SPECIAL'],
-		allowance: [...PH_SSS, 'WTAX.ORDINARY'],
-		bonus: ['WTAX.SPECIAL'],
-		communication: [...PH_SSS, 'WTAX.ORDINARY'],
-		corporate_duty_allowance: [...PH_SSS, 'WTAX.ORDINARY'],
-		duty_allowance: [...PH_SSS, 'WTAX.ORDINARY'],
-		leader: [...PH_SSS, 'WTAX.ORDINARY'],
-		meal: [...PH_SSS, 'WTAX.RICE'],
-		position: [...PH_SSS, 'WTAX.ORDINARY'],
-		transport: [...PH_SSS, 'WTAX.ORDINARY']
+		allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
+		// SSS IRR (RA 11199) Rule 12 s.6(iii): compensation includes "Bonuses (except Christmas bonus)".
+		bonus: ['SSS', 'SSS_EC', 'SSS_MPF', 'WTAX.SPECIAL'],
+		communication: [...PH_WAGES, 'WTAX.ORDINARY'],
+		corporate_duty_allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
+		duty_allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
+		leader: [...PH_WAGES, 'WTAX.ORDINARY'],
+		meal: [...PH_WAGES, 'WTAX.RICE'],
+		position: [...PH_WAGES, 'WTAX.ORDINARY'],
+		transport: [...PH_WAGES, 'WTAX.ORDINARY']
 	},
 	// Circular 111/2013 art.2(2): allowances are salary income except severance and job-loss allowances.
 	VN: {
 		INSURANCE_EQUIVALENT: ['PIT'],
+		// Labour Code 45/2019 art.97(4); owner rule 2026-09-28: taxable, not insured (Decree 158/2025 art.7(1)).
+		LATE_WAGE_COMPENSATION: ['PIT'],
 		// Decree 253/2026 art.8(2)(g)-(h): the meal above its cap, the rent up to 15% of income.
 		MEAL_ALLOWANCE: ['PIT.MEAL'],
 		HOUSING: ['PIT.HOUSING'],
@@ -95,7 +112,27 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		SEVERANCE_ALLOWANCE: []
 	},
 	// 所得稅法 §14(1)(3): a bonus is 薪資所得; 勞退條例 §14 and NHI supplement read it; severance is outside.
+	// 勞基法 §2(3) with 施行細則 §10: a monthly 伙食津貼 is 工資 (no §10 exclusion); 查核準則 §88(2)(1)
+	// keeps NT$3,000 of it out of 薪資所得, which the tax and NHI-supplement bases subtract by code.
+	// 勞基法 §55 retirement pay is 退休金, 退職所得 under 所得稅法 §14(1)(9): withheld through
+	// SEVERANCE_TAX by code, outside every wage base like severance.
+	// 勞基法 §59 但書 with 施行細則 §10(7): an elected insurer-benefit offset reduces 職業災害補償費, not
+	// 工資 — a net deduction outside every base (Owner rule 2026-09-28, register TW-EXIT-05).
 	TW: {
+		MEAL_ALLOWANCE: [
+			'EI',
+			'INCOME_TAX',
+			'INCOME_TAX_NON_RESIDENT',
+			'LABOR_PENSION',
+			'LABOR_PENSION_RESERVE',
+			'LI',
+			'NHI',
+			'NHI_PART_TIME',
+			'NHI_SUPPLEMENT_EMPLOYER',
+			'OCC_INJURY'
+		],
+		OCC_INJURY_OFFSET: [],
+		RETIREMENT_PAY: [],
 		SEVERANCE_PAY: [],
 		bonus: [
 			'INCOME_TAX_BONUS',
@@ -117,7 +154,9 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		KESEHATAN_TERMINATION_MONTH_EMPLOYEE: [],
 		KESEHATAN_TERMINATION_MONTH_EMPLOYER: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
 		MEDICAL_ALLOWANCE: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
-		PESANGON: [],
+		// PP 68/2009 art.1 angka 3: its final rates reach a resident only (PPH21_FINAL_SEVERANCE reads
+		// pesangon/UPMK by code); a non-resident's is PPh 26 at 20% of gross (UU PPh art.26(1)).
+		PESANGON: ['PPH26'],
 		PENSION_OFFSET: [],
 		// PP 68/2009 art.1 angka 4: paid when the PKWT ends (PP 35/2021 art.15(2)), so it is uang
 		// pesangon at the final rates (PPH21_FINAL_SEVERANCE reads it by code); only PPh 26 by membership.
@@ -129,10 +168,33 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		// with the end of service, so uang pisah carries the final severance rates like pesangon;
 		// only a non-resident's enters PPh 26.
 		UANG_PISAH: ['PPH26'],
-		UPMK: []
+		UPMK: ['PPH26']
+	},
+	// Revenue Code s.40(1) with Order P.96/2543 cl.1(5): a bonus is employment income withheld under
+	// s.50(1). Social Security Act s.5 wages exclude a bonus; LPA s.118 severance is outside both.
+	// LPA s.17/1 pay in lieu of notice is a one-time payment on leaving (DG Notification No.45
+	// cl.1(ง)), withheld with severance under s.50(1) para.3, and not pay for work (SSA s.5).
+	TH: { BONUS: ['PIT'], NOTICE_IN_LIEU: [], SEVERANCE_PAY: [] },
+	// 个人所得税法 art.2 and 实施条例 art.6: a bonus is 工资薪金 in the cumulative withholding; the annual
+	// one-time bonus may be taxed apart (财政部 税务总局公告2023年第30号, to 31 Dec 2027). The SI and
+	// housing-fund base is the prior year's average wage, so neither enters a current month.
+	// Both are 奖金, so both are WAGES: 劳动合同法实施条例 art.27 puts bonuses in the art.47 wage
+	// (https://xzfg.moj.gov.cn/front/law/detail?LawID=284), and 企业职工带薪年休假实施办法 art.11
+	// takes only overtime out of the leave day wage (https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html).
+	// 财税〔2018〕164号 item 5(1) (from 1 Jan 2019): LCL art.46-47 economic compensation is exempt to
+	// three times the local prior-year average wage and the excess is not added to comprehensive
+	// income, taxed alone (http://szs.mof.gov.cn/zhengcefabu/201812/t20181227_3110164.htm).
+	'CN-shanghai': {
+		ANNUAL_BONUS_SEPARATE: ['IIT_BONUS', 'WAGES'],
+		BONUS: ['IIT', 'WAGES'],
+		// The allowance offset takes a fund benefit back off the wage: it leaves the IIT base (财税〔2008〕8号
+		// exempts the allowance) and, being no wage, the art.47 average (Social Insurance Law art.56).
+		MATERNITY_ALLOWANCE_OFFSET: ['IIT'],
+		SEVERANCE_PAY: ['IIT_SEVERANCE']
 	}
 };
 MATRIX['MY-nihon'] = MATRIX.MY;
+MATRIX['CN-kunming'] = MATRIX['CN-shanghai'];
 
 /** The classes the law owes on separation, raised by off-boarding for an eligible leaver. */
 const SEPARATION = new Set([

@@ -56,6 +56,7 @@
 			['HOME_INTEREST', t('renderer.statutory_deductions.category.home_interest')],
 			['TOURISM', t('renderer.statutory_deductions.category.tourism')],
 			['ZAKAT_EXTERNAL', t('renderer.statutory_deductions.category.zakat_external')],
+			['ZAKAT', t('renderer.statutory_deductions.category.zakat')],
 			['DEPARTURE_LEVY', t('renderer.statutory_deductions.category.departure_levy')],
 			['SERVICE_COSTS', t('renderer.statutory_deductions.category.service_costs')]
 		].map(([value, label]) => ({ value: value!, label: label! }))

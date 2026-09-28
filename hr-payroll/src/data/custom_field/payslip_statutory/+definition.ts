@@ -24,7 +24,9 @@ const f = customField({
 				employer_amount: { kind: 'number' },
 				directed_amount: { kind: 'number', optional: true },
 				rebate_amount: { kind: 'number', optional: true },
-				rule_when: { kind: 'text', optional: true }
+				rule_when: { kind: 'text', optional: true },
+				/** How this charge's employer amount is remitted, on a scheme with remittance rounding. */
+				remittance_rounding: { kind: 'enum', values: ['NONE', 'FLOOR_MAJOR_UNIT'], optional: true }
 			}
 		}
 	}

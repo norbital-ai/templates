@@ -124,7 +124,8 @@
 						bolt.get('leave_catalogue', catalogueId, {
 							code: true,
 							unit: true,
-							entitlement: true
+							entitlement: true,
+							pay_fraction: true
 						})
 					)
 				)
@@ -335,6 +336,28 @@
 			{@render dateField(t('leave.event_date'), fields.event_date ?? '', (event_date) => {
 				emit({ event_date: event_date || null });
 			})}
+		{/if}
+		{#if catalogue?.pay_fraction?.includes('leave.agreed_fraction')}
+			<!-- Pay the parties agreed (VN art.99 stoppage); the event date joins one stoppage's entries. -->
+			<Labelled label={t('leave.agreed_pay_fraction')} class="text-sm font-medium">
+				<Input
+					type="number"
+					step="0.01"
+					min="0"
+					max="1"
+					value={fields.agreed_pay_fraction ?? ''}
+					{disabled}
+					oninput={(event) => {
+						const value = event.currentTarget.value;
+						emit({ agreed_pay_fraction: value === '' ? null : numberFrom(value, 0) });
+					}}
+				/>
+			</Labelled>
+			{#if catalogue.entitlement?.availability !== 'PER_EVENT'}
+				{@render dateField(t('leave.event_date'), fields.event_date ?? '', (event_date) => {
+					emit({ event_date: event_date || null });
+				})}
+			{/if}
 		{/if}
 	{:else}
 		{@render dateField(t('component.effective_date'), fields.effective_on ?? '', (effective_on) => {

@@ -44,6 +44,7 @@ export type LeaveContext = {
 		readonly effective_range: StoredRange | null;
 		readonly exit_reason?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
+		readonly prior_service_months?: number | null | undefined;
 	}[];
 	companies: {
 		readonly id: string;
@@ -71,6 +72,8 @@ export type LeaveContext = {
 		readonly employment_id: string;
 		readonly effective_range: Period | StoredRange;
 		readonly shift_pattern_id: string | null;
+		/** Where a local holiday reaches (`jurisdiction_holidays.worksite`). */
+		readonly worksite?: string | null;
 		readonly ordinary_hours_per_week: number | null;
 		readonly employment_type: string;
 		readonly residency_status: string | null;
@@ -252,7 +255,8 @@ export async function readLeaveContext(
 			effective_range: row.effective_range
 		}),
 		exit_reason: row.exit_reason ?? null,
-		exit_facts: row.exit_facts ?? null
+		exit_facts: row.exit_facts ?? null,
+		prior_service_months: row.prior_service_months ?? null
 	}));
 	const companyIds = unique(employments.map((row) => row.company_id));
 	const employeeIds = unique(employments.map((row) => row.employee_id));
@@ -556,6 +560,7 @@ export function personAt(
 		employee,
 		employment: {
 			service_start: range == null ? '' : dateKey(range.start),
+			prior_service_months: employment.prior_service_months ?? 0,
 			exit_date: range?.end == null ? null : dateKey(range.end),
 			exit_reason: employment.exit_reason ?? null,
 			exit_facts: employment.exit_facts ?? {},

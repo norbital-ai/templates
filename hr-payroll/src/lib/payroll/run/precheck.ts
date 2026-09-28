@@ -9,7 +9,7 @@
  * are what keep a refusal from leaving a record behind.
  */
 
-import type { Configuration } from './configuration.js';
+import { atWorksite, type Configuration } from './configuration.js';
 import type { EmploymentBundle } from './gather.js';
 import type { PayrollWindow } from './period.js';
 import { termPattern } from '../../../lib/scheduling/work-pattern.js';
@@ -119,9 +119,11 @@ export function payrollRunPrecheck(options: {
 				workDays: bundle.workDays.map((day) => ({
 					work_date: day.work_date,
 					shift_definition_id: day.shift_definition_id
-				}))
+				})),
+				holidayDates: new Set(
+					atWorksite(options.configuration, bundle.termsHistory).holidays.keys()
+				)
 			})),
-			holidayDates: new Set(options.configuration.holidays.keys()),
 			...rosteredWorkCodeMaps([...options.configuration.shiftById.values()])
 		})
 	);

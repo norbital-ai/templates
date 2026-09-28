@@ -2,11 +2,12 @@
 import type { WorkspaceRow } from '../rows.js';
 import type { CatalogueBand } from '../datatypes/catalogue_band.js';
 import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
-import { requiredDateKey, type IsoDate } from '../../lib/payroll/run/dates.js';
+import { inclusiveDays, requiredDateKey, type IsoDate } from '../../lib/payroll/run/dates.js';
 import { contractAllowancesOn } from './contract-allowances.js';
 import { configuredMonthlyWageAverage } from './contribution.js';
 import { defaultPayPeriod, type PayCadence } from '../../lib/payroll/run/period.js';
 import { decodeNumber } from '../wire.js';
+import { placeWage } from '../datatypes/wages.js';
 import { refuse } from '../refuse.js';
 import {
 	evaluateBoolean,
@@ -27,12 +28,7 @@ import {
 import { prorationSegment } from '../../lib/payroll/run/proration.js';
 import { factStatusesOn, personFacts } from './facts.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
-import {
-	exitFactsMissing,
-	resolveCompanyFacts,
-	resolveExitFacts,
-	resolveFactValues
-} from '../declared-facts.js';
+import { exitFactsMissing, resolveCompanyFacts, resolveExitFacts } from '../declared-facts.js';
 import { cents } from '../../lib/payroll/run/rounding.js';
 import {
 	intersectDays,
@@ -87,6 +83,7 @@ export type PayRequest = {
 	readonly evidence_file?: ClaimRequest['evidence_file'] | null | undefined;
 	readonly incurred_on?: string | null | undefined;
 	readonly medical_reimbursement?: ClaimRequest['medical_reimbursement'] | null | undefined;
+	readonly late_wage?: AdhocRequest['late_wage'] | null | undefined;
 	/**
 	 * `+1` to settle the way its catalogue declares, `−1` to settle the opposite way.
 	 *
@@ -148,6 +145,7 @@ const adhocRequest = (row: AdhocRequest): PayRequest => ({
 	pay_period: row.pay_period ?? null,
 	event_date: requiredDateKey(row.event_date, 'ad hoc event date'),
 	evidence_file: row.evidence_file,
+	late_wage: row.late_wage,
 	sign: row.as_adjustment_entry === true ? -1 : 1,
 	captured: row.payslip_id != null
 });
@@ -185,11 +183,14 @@ export function requestIsDue(
  * The builder supplies what the run knows about the entry being priced; a catalogue band's `when`
  * and `amount` are evaluated here, and the same blank instance compiled the expression at write.
  */
+/** A published day of the entity that is some religion's own holiday. */
+export type ReligiousHoliday = { readonly date: string; readonly religion: string };
+
 export function entryContext(options: {
 	/** What the context reads of the entry: its magnitude and its day. */
 	readonly entry: Pick<
 		PayRequest,
-		'amount' | 'event_date' | 'incurred_on' | 'medical_reimbursement'
+		'amount' | 'event_date' | 'incurred_on' | 'medical_reimbursement' | 'late_wage'
 	>;
 	readonly subject: PersonContext;
 	readonly period: string;
@@ -204,10 +205,22 @@ export function entryContext(options: {
 	readonly limits: Readonly<Record<string, number>>;
 	readonly captures: { readonly paidToDate: number; readonly remaining: number };
 	readonly year?: (() => YearContext) | undefined;
+	/** The entity's published days that name a religion (`jurisdiction_holidays.religion`). */
+	readonly religiousHolidays?: readonly ReligiousHoliday[] | undefined;
 }): Record<string, unknown> {
 	const { entry } = options;
 	const year = options.year?.();
 	const medical = entry.medical_reimbursement;
+	const late = entry.late_wage;
+	const religion = options.subject.employee.religion;
+	const religiousHolidays =
+		religion === ''
+			? 0
+			: (options.religiousHolidays ?? []).filter(
+					(row) =>
+						row.date.slice(0, 4) === entry.event_date.slice(0, 4) &&
+						row.religion.split(',').some((named) => named.trim().toUpperCase() === religion)
+				).length;
 	return {
 		person: options.subject,
 		entry: {
@@ -217,6 +230,7 @@ export function entryContext(options: {
 			quantity: 0,
 			event_date: entry.event_date,
 			period: options.period,
+			religious_holidays: religiousHolidays,
 			medical: {
 				incurred_on: entry.incurred_on ?? '',
 				due_on: medical?.due_on ?? '',
@@ -230,6 +244,13 @@ export function entryContext(options: {
 				treatment_necessary: medical?.treatment_necessary ?? false,
 				solely_aesthetic: medical?.solely_aesthetic ?? false,
 				practitioner_qualified: medical?.practitioner_qualified ?? false
+			},
+			late_wage: {
+				due_on: late?.due_on ?? '',
+				paid_on: late?.paid_on ?? '',
+				days: late == null ? 0 : inclusiveDays(late.due_on, late.paid_on) - 1,
+				deposit_rate: late?.deposit_rate ?? 0,
+				force_majeure: late?.force_majeure ?? false
 			},
 			captures: {
 				remaining: options.captures.remaining
@@ -257,7 +278,8 @@ export function entryContext(options: {
 						days_employed: year.days_employed,
 						earned: year.earned
 					},
-		leave: {}
+		// `leave.days(code)`: the salary window's charged days, the same map `person.period.leave_days` reads.
+		leave: { charged: options.subject.period.leave_days }
 	};
 }
 
@@ -316,7 +338,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 	// minimis on the statutory minimum, VN's twenty-times-the-minimum unemployment ceiling).
 	const engine = runtimeExpressionEngine({
 		minimumWage: (region) =>
-			options.configuration.jurisdiction.work_rules.wages?.by_region?.[region] ?? 0
+			placeWage(options.configuration.jurisdiction.work_rules.wages?.by_region ?? {}, region) ?? 0
 	});
 	const measureEntry = (entry: PreparedPayRequest): Measurement | null => {
 		// Evidence is held where a request is written (pay_request_rules, the one write surface). The run
@@ -346,7 +368,8 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		);
 		/** The person the entry is priced for, or the departure declaration it lacks. */
 		const subjectOn = (source: PayRequest): PersonContext | string => {
-			const employment = stint(options.bundle.employment);
+			// The recorded departure inputs, undefaulted: requiredness is judged on these.
+			const employment = stint(options.bundle.employment, []);
 			// A separation-classed row raised while the contract still runs — ID's THR for an
 			// active employee — is an ordinary payment on its event date, not a final obligation.
 			// A fixed-term contract states its end from the first day, so the contract has only
@@ -390,20 +413,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				: options.configuration.company;
 			const subject = personContext({
 				employee: options.bundle.employee,
-				employment:
-					separation && readsExitFacts
-						? employment
-						: {
-								// Eligibility over an active contract reads declared exit facts with their
-								// defaults; requiredness is enforced only where the rules read them.
-								...employment,
-								exit_facts: resolveFactValues(
-									version.exit_facts ?? [],
-									employment.exit_facts ?? {},
-									options.bundle.employment.employee_number,
-									false
-								)
-							},
+				employment: stint(options.bundle.employment, version.exit_facts ?? []),
 				fixedAllowances: contractAllowancesOn(options.bundle, options.configuration, asOf),
 				monthlyWage6mAverage: readsSeparationAverage
 					? configuredMonthlyWageAverage(options.bundle, options.configuration, asOf, version)
@@ -418,6 +428,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				terms: payRequestTerms(options.bundle.termsHistory, options.bundle.employment, asOf),
 				children: options.bundle.children,
 				company,
+				period: { ...options.subject.period, ...options.leavePeriod?.() },
 				facts: personFacts(
 					options.configuration.contributions,
 					factStatusesOn(
@@ -461,36 +472,39 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			return skipped('this employment does not satisfy the catalogue’s eligibility rule');
 
 		const rates = options.rates;
-		const captures = entry.captures;
-		const paidToDate = captures.reduce((sum, capture) => sum + capture.amount, 0);
-		const context = entryContext({
-			entry,
-			subject,
-			year: options.year,
-			period: options.period,
-			periodStart: options.salary.start,
-			periodEnd: options.salary.end,
-			instalments: options.instalments,
-			daysEmployed:
-				prorationSegment({
-					work: options.configuration.work,
-					person: subject,
-					period: options.salary,
-					covered: options.employed,
-					workingDaysIn: options.workingDaysIn,
-					instalments: options.instalments
-				})?.days ?? 0,
-			daysInMonth: monthDays(options.salary.start),
-			ordinaryDay: rates.ordinaryDay,
-			ordinaryHour: rates.ordinaryHour,
-			limits: Object.fromEntries(
-				options.configuration.limits.map((limit) => [limit.key, limit.max_hours])
-			),
-			captures: {
-				paidToDate,
-				remaining: Math.max(0, decodeNumber(entry.amount) - paidToDate)
-			}
-		});
+		const contextOf = (source: PreparedPayRequest) => {
+			const paidToDate = source.captures.reduce((sum, capture) => sum + capture.amount, 0);
+			return entryContext({
+				entry: source,
+				subject,
+				year: options.year,
+				period: options.period,
+				periodStart: options.salary.start,
+				periodEnd: options.salary.end,
+				instalments: options.instalments,
+				daysEmployed:
+					prorationSegment({
+						work: options.configuration.work,
+						person: subject,
+						period: options.salary,
+						covered: options.employed,
+						workingDaysIn: options.workingDaysIn,
+						instalments: options.instalments
+					})?.days ?? 0,
+				daysInMonth: monthDays(options.salary.start),
+				ordinaryDay: rates.ordinaryDay,
+				ordinaryHour: rates.ordinaryHour,
+				limits: Object.fromEntries(
+					options.configuration.limits.map((limit) => [limit.key, limit.max_hours])
+				),
+				captures: {
+					paidToDate,
+					remaining: Math.max(0, decodeNumber(source.amount) - paidToDate)
+				},
+				religiousHolidays: options.configuration.religiousHolidays
+			});
+		};
+		const context = contextOf(entry);
 		if (
 			(options.component.qualifies_when ?? '').trim() !== '' &&
 			!evaluateBoolean(engine, options.component.qualifies_when!, context)
@@ -513,6 +527,15 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		const payable = reimbursable;
 		if (band?.limit != null) {
 			const limitAmount = evaluateNumber(engine, band.limit.amount, context);
+			// ponytail: a sibling is priced for this entry's person, not re-judged for its own
+			// eligibility or departure facts; one employment in one window reads the same person.
+			const pricedAt = (candidate: PreparedPayRequest): number => {
+				const own = contextOf(candidate);
+				const bands = candidate.catalogueComponent.bands;
+				const priced = selectBand(bands, own, engine);
+				if (priced != null) return bandAmount(priced, own, engine);
+				return bands.length > 0 ? 0 : decodeNumber(candidate.amount);
+			};
 			// The ceiling spans catalogue revisions of one code: a request agreed under an earlier
 			// revision still consumes it. Compare by code, not id, for the same reason the transform's
 			// `catalogueRevisionsOf` reads the whole lineage.
@@ -531,7 +554,10 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 								id: candidate.id,
 								employment_id: candidate.employment_id,
 								event_date: candidate.event_date,
-								amount: candidate.sign * cents(decodeNumber(candidate.amount), currency)
+								// An unsettled sibling uses what its own band prices it at, not the figure it
+								// was keyed at: ID's THR is one month's wage whatever is typed (Permenaker 6/2016
+								// art.3(1)), so two requests keyed 0 are two THRs (art.5(1)).
+								amount: candidate.sign * cents(pricedAt(candidate), currency)
 							}
 						];
 					// A capture keeps the request's own event date.

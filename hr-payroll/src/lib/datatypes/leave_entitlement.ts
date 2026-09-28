@@ -69,6 +69,15 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 		)
 	),
 	/**
+	 * Each recorded child holds its own pool, renewed on each of its birthdays: the bands, read over
+	 * the person as if that child were their only one on the first day of the child's year counted
+	 * from its birth date, grant that child's days for that year, and every day of the leave is placed
+	 * on the pool of a child whose year holds it (沪府规〔2022〕18号 art.3: 5 days a year for each
+	 * child under three, "每年的育儿假从其子女出生之日起计算"; 上海市卫健委 口径 Q4: a child born
+	 * 1 Dec 2021 has the year to 30 Nov 2022). The leave year keeps no pool. Absent is the leave year.
+	 */
+	child_years: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
 	 * A window measured back from the day rather than a leave year: the `days` may be taken in any
 	 * such span (TW hospitalised sickness: one year within two, `24`). Absent is the leave year.
 	 */
@@ -76,9 +85,12 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	/**
 	 * How a prorated grant rounds: to the half day (the default), to the whole day with a half
 	 * or more rounding up (MY EA s.60E(1); SG EA s.88A(3)), or not at all (PH SIL: the DOLE
-	 * Handbook converts 2/12 × 5 = 0.833 days).
+	 * Handbook converts 2/12 × 5 = 0.833 days), or down to the whole day (CN 企业职工带薪年休假实施办法
+	 * arts.5, 12: 折算后不足1整天的部分不…).
 	 */
-	rounding: Schema.optionalKey(Schema.NullOr(Schema.Literals(['HALF_DAY', 'WHOLE_DAY', 'EXACT']))),
+	rounding: Schema.optionalKey(
+		Schema.NullOr(Schema.Literals(['HALF_DAY', 'WHOLE_DAY', 'WHOLE_DAY_DOWN', 'EXACT']))
+	),
 	/**
 	 * The fewest days a prorated grant rounds to, however short the service in the leave year (SG
 	 * CDCA s.12B(1)(i): 2 days for less than 5 months served in the relevant period). Absent is none.

@@ -15,5 +15,7 @@ export type HolidaySnapshot = {
 	readonly kind: (typeof HOLIDAY_KINDS)[number];
 	readonly replaces?: string | null;
 	readonly given_to: 'EVERYONE' | 'ONLY_IF_OFF_ON_REPLACED_DATE';
+	/** The worksite a local day belongs to (`employment_terms.worksite`), or null for the whole company. */
+	readonly worksite?: string | null;
 	readonly published_at: string;
 };

@@ -1,0 +1,2530 @@
+[
+	{
+		"id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "TH",
+		"name": "Thailand — 1 December 2025",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": null,
+		"effective_range": {
+			"start": "2025-12-01T00:00:00.000Z",
+			"end": "2025-12-07T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TH",
+		"change_summary": "First sealed Thailand version (register docs/inventory/thailand.md). SSO s.33 5% each side on a THB1,650–15,000 monthly base, the southern flood-relief 3% for a registered employer in the nine listed provinces (Gazette notice published 8 January 2026, wage months December 2025–May 2026); Revenue Code s.50(1) withholding on the Order P.96/2543 annualised method; Labour Protection Act ss.61–63, 68 overtime and holiday-work pay; leave before Labour Protection Act No.9 (98 days’ maternity leave, 45 paid).",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"ordinary_divisor_days": "30.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "HOL-1.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" || (day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "HOL-2.0X",
+					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"REST_DAY\" || day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				}
+			],
+			"limits": [
+				{
+					"key": "weekly_holiday",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"wages": {
+				"by_region": {},
+				"applies_when": "",
+				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
+				"daily_by_worksite": {
+					"Amnat Charoen": 347,
+					"Ang Thong": 348,
+					"Bangkok": 400,
+					"Bueng Kan": 349,
+					"Buriram": 352,
+					"Chachoengsao": 400,
+					"Chai Nat": 348,
+					"Chaiyaphum": 348,
+					"Chanthaburi": 352,
+					"Chiang Mai": 357,
+					"Chiang Mai/Mueang Chiang Mai": 380,
+					"Chiang Rai": 352,
+					"Chon Buri": 400,
+					"Chumphon": 351,
+					"Kalasin": 349,
+					"Kamphaeng Phet": 347,
+					"Kanchanaburi": 352,
+					"Khon Kaen": 357,
+					"Krabi": 354,
+					"Lampang": 347,
+					"Lamphun": 350,
+					"Loei": 347,
+					"Lop Buri": 356,
+					"Mae Hong Son": 347,
+					"Maha Sarakham": 347,
+					"Mukdahan": 352,
+					"Nakhon Nayok": 355,
+					"Nakhon Pathom": 372,
+					"Nakhon Phanom": 352,
+					"Nakhon Ratchasima": 359,
+					"Nakhon Sawan": 350,
+					"Nakhon Si Thammarat": 349,
+					"Nan": 345,
+					"Narathiwat": 337,
+					"Nong Bua Lamphu": 347,
+					"Nong Khai": 355,
+					"Nonthaburi": 372,
+					"Pathum Thani": 372,
+					"Pattani": 337,
+					"Phang Nga": 352,
+					"Phatthalung": 348,
+					"Phayao": 345,
+					"Phetchabun": 349,
+					"Phetchaburi": 351,
+					"Phichit": 347,
+					"Phitsanulok": 352,
+					"Phra Nakhon Si Ayutthaya": 357,
+					"Phrae": 345,
+					"Phuket": 400,
+					"Prachin Buri": 357,
+					"Prachuap Khiri Khan": 352,
+					"Ranong": 347,
+					"Ratchaburi": 347,
+					"Rayong": 400,
+					"Roi Et": 349,
+					"Sa Kaeo": 352,
+					"Sakon Nakhon": 352,
+					"Samut Prakan": 372,
+					"Samut Sakhon": 372,
+					"Samut Songkhram": 358,
+					"Saraburi": 357,
+					"Satun": 347,
+					"Sing Buri": 348,
+					"Sisaket": 347,
+					"Songkhla": 352,
+					"Songkhla/Hat Yai": 380,
+					"Sukhothai": 347,
+					"Suphan Buri": 355,
+					"Surat Thani": 352,
+					"Surat Thani/Ko Samui": 400,
+					"Surin": 351,
+					"Tak": 352,
+					"Trang": 345,
+					"Trat": 354,
+					"Ubon Ratchathani": 352,
+					"Udon Thani": 347,
+					"Uthai Thani": 347,
+					"Uttaradit": 347,
+					"Yala": 337,
+					"Yasothon": 350
+				},
+				"daily_by_sector": {
+					"HOTEL_TYPE_2": 400,
+					"HOTEL_TYPE_3": 400,
+					"HOTEL_TYPE_4": 400,
+					"SERVICE_ESTABLISHMENT": 400
+				},
+				"block_below_when": "true"
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * 8.0 : terms.monthly_wage / 30.0)",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
+			},
+			"authority": "Labour Protection Act B.E.2541 (consolidated through No.7 B.E.2562, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.23 normal hours at most eight a day (seven for hazardous work, not modelled); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 a monthly-paid employee is paid for weekly holidays, daily/hourly staff only for traditional holidays and annual leave; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). Overtime and holiday-work hour ceilings (Ministerial Regulation No.3 B.E.2541) and the s.27 breaks are not transcribed (register TH-WORK-07)."
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 3,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14626",
+				"https://ratchakitcha.soc.go.th/documents/98728.pdf",
+				"https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER2/DRAWER056/GENERAL/DATA0000/00000773.PDF",
+				"https://ratchakitcha.soc.go.th/documents/100888.pdf",
+				"https://www.rd.go.th/5937.html",
+				"https://www.rd.go.th/59670.html",
+				"https://www.rd.go.th/3558.html",
+				"https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins91_241268.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47755",
+				"https://www.rd.go.th/2502.html",
+				"https://www.rd.go.th/3213.html",
+				"https://www.rd.go.th/49994.html"
+			],
+			"instructions": "Register: docs/inventory/thailand.md. The ratchakitcha.soc.go.th Gazette PDFs return HTTP 403 to scripted and in-app browser fetches (28 September 2026); the s.33 base regulation was read from the SSO’s own copy (download_by_pool_file/47755, Gazette vol.142 part 81 Kor, 12 December 2025); the flood and Employee Welfare Fund figures remain the register’s transcription."
+		},
+		"facts": [
+			{
+				"key": "sso_flood_relief_area",
+				"type": "boolean",
+				"label": "SSO flood-relief rate (southern provinces)",
+				"default_value": false,
+				"description": "Gazette notice published 8 January 2026 (https://ratchakitcha.soc.go.th/documents/100888.pdf): a registered employer, and its s.33 insured employees, in Trang, Nakhon Si Thammarat, Narathiwat, Pattani, Phatthalung, Yala, Songkhla, Satun or Surat Thani contribute 3% each side instead of 5% for wage months December 2025–May 2026. Record the registration locality, not the worksite address; unrecorded is the ordinary 5%."
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "dismissed_for_cause",
+				"type": "boolean",
+				"label": "Dismissed for a s.119 cause stated in the notice",
+				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
+				"required_when": "employment.exit_reason == \"DISMISSAL\""
+			},
+			{
+				"key": "fixed_term_project_exempt",
+				"type": "boolean",
+				"label": "Fixed-term project, occasional or seasonal work finished within two years",
+				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
+				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+			},
+			{
+				"key": "relocation_objection",
+				"type": "boolean",
+				"label": "Objected in writing to a workplace relocation (s.120)",
+				"description": "Labour Protection Act s.120 para.3: within 30 days of the relocation notice (or of the move), the employee told the employer in writing that the move materially affects their or their family’s life and did not go; the contract ends on the move and special severance of at least the s.118 rate is owed. Unrecorded is no."
+			},
+			{
+				"key": "relocation_notice_posted",
+				"type": "boolean",
+				"label": "Relocation notice posted 30 days ahead (s.120)",
+				"description": "Labour Protection Act s.120 paras 1–2: the employer posted the relocation notice at the workplace at least 30 days before the move; otherwise 30 days’ last wage is owed in lieu of notice to an employee who does not go. Unrecorded is no."
+			},
+			{
+				"key": "technology_restructuring",
+				"type": "boolean",
+				"label": "Terminated for machinery or technology restructuring (s.121)",
+				"description": "Labour Protection Act s.121: the termination follows a reorganisation of units, production, distribution or service because of machinery or a change of machinery or technology that reduces the workforce. Unrecorded is no."
+			},
+			{
+				"key": "technology_notice_60_days",
+				"type": "boolean",
+				"label": "60 days’ notice given to the inspector and the employee (s.121)",
+				"description": "Labour Protection Act s.121 para.1: the date, reason and employee list were notified to the labour inspector and the employee at least 60 days before the termination; otherwise 60 days’ last wage is owed in lieu of notice (para.2). Unrecorded is no."
+			},
+			{
+				"key": "notice_given_on",
+				"type": "string",
+				"label": "Termination notice date (YYYY-MM-DD, s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"obligations": [
+			{
+				"code": "SSO_REGISTRATION",
+				"description": "Register each s.33 insured employee (aged 15–60 on entry) with the Social Security Office and report changes.",
+				"trigger": "A new employee, a change of insured facts, or an exit.",
+				"timing": "The insured list within 30 days of hiring; changes by the 15th of the following month.",
+				"owner": "HR / SSO e-service",
+				"authority": "Social Security Act ss.33, 34, 44 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-12.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"description": "Deduct the employee share at every wage payment and remit both shares with the contribution return; 2% a month on late or short remittance.",
+				"trigger": "Each wage payment to an insured employee.",
+				"timing": "By the 15th of the month after the deduction.",
+				"owner": "Payroll / SSO",
+				"authority": "Social Security Act ss.47, 49 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-01, TH-SS-12.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"description": "File the monthly ภ.ง.ด.1 withholding return and remit the s.50(1) tax withheld.",
+				"trigger": "Each month with s.40(1) payments.",
+				"timing": "Within 7 days after the month of payment (15 days if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code ss.52, 58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"description": "File the annual ภ.ง.ด.1ก summary of s.40(1) payments and tax withheld.",
+				"trigger": "Each tax year with s.40(1) payments.",
+				"timing": "Within February of the following year (8 March if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code s.58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE",
+				"description": "Issue the two-copy s.50 bis withholding certificate to each payee.",
+				"trigger": "Year end, or a departure during the year.",
+				"timing": "By 15 February of the following year, or within one month after a departure.",
+				"owner": "Payroll",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html); register TH-PIT-09.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "FINAL_PAY_AND_SEVERANCE",
+				"description": "Pay wages, s.67 annual-leave pay, s.118 severance and ss.120–122 special severance on an employer termination (or a s.120 relocation objection), and s.17/1 pay in lieu of the missing s.17 notice (due on the day the employee leaves).",
+				"trigger": "An employer termination.",
+				"timing": "Within three days of termination (s.70 para.2).",
+				"owner": "HR / Payroll",
+				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf); register TH-EXIT-01–07.",
+				"status": "PARTIAL"
+			}
+		]
+	},
+	{
+		"id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "TH",
+		"name": "Thailand — 7 December 2025 · Labour Protection Act No.9",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"effective_range": {
+			"start": "2025-12-07T00:00:00.000Z",
+			"end": "2026-01-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TH",
+		"change_summary": "Labour Protection Act No.9 B.E.2568 in force 7 December 2025 (s.2): maternity leave 120 days with 60 paid by the employer, up to 15 days’ child-care leave at 50% and 15 days’ paid leave for the birth of the employee’s child. Contributions and withholding unchanged.",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"ordinary_divisor_days": "30.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "HOL-1.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" || (day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "HOL-2.0X",
+					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"REST_DAY\" || day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				}
+			],
+			"limits": [
+				{
+					"key": "weekly_holiday",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"wages": {
+				"by_region": {},
+				"applies_when": "",
+				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
+				"daily_by_worksite": {
+					"Amnat Charoen": 347,
+					"Ang Thong": 348,
+					"Bangkok": 400,
+					"Bueng Kan": 349,
+					"Buriram": 352,
+					"Chachoengsao": 400,
+					"Chai Nat": 348,
+					"Chaiyaphum": 348,
+					"Chanthaburi": 352,
+					"Chiang Mai": 357,
+					"Chiang Mai/Mueang Chiang Mai": 380,
+					"Chiang Rai": 352,
+					"Chon Buri": 400,
+					"Chumphon": 351,
+					"Kalasin": 349,
+					"Kamphaeng Phet": 347,
+					"Kanchanaburi": 352,
+					"Khon Kaen": 357,
+					"Krabi": 354,
+					"Lampang": 347,
+					"Lamphun": 350,
+					"Loei": 347,
+					"Lop Buri": 356,
+					"Mae Hong Son": 347,
+					"Maha Sarakham": 347,
+					"Mukdahan": 352,
+					"Nakhon Nayok": 355,
+					"Nakhon Pathom": 372,
+					"Nakhon Phanom": 352,
+					"Nakhon Ratchasima": 359,
+					"Nakhon Sawan": 350,
+					"Nakhon Si Thammarat": 349,
+					"Nan": 345,
+					"Narathiwat": 337,
+					"Nong Bua Lamphu": 347,
+					"Nong Khai": 355,
+					"Nonthaburi": 372,
+					"Pathum Thani": 372,
+					"Pattani": 337,
+					"Phang Nga": 352,
+					"Phatthalung": 348,
+					"Phayao": 345,
+					"Phetchabun": 349,
+					"Phetchaburi": 351,
+					"Phichit": 347,
+					"Phitsanulok": 352,
+					"Phra Nakhon Si Ayutthaya": 357,
+					"Phrae": 345,
+					"Phuket": 400,
+					"Prachin Buri": 357,
+					"Prachuap Khiri Khan": 352,
+					"Ranong": 347,
+					"Ratchaburi": 347,
+					"Rayong": 400,
+					"Roi Et": 349,
+					"Sa Kaeo": 352,
+					"Sakon Nakhon": 352,
+					"Samut Prakan": 372,
+					"Samut Sakhon": 372,
+					"Samut Songkhram": 358,
+					"Saraburi": 357,
+					"Satun": 347,
+					"Sing Buri": 348,
+					"Sisaket": 347,
+					"Songkhla": 352,
+					"Songkhla/Hat Yai": 380,
+					"Sukhothai": 347,
+					"Suphan Buri": 355,
+					"Surat Thani": 352,
+					"Surat Thani/Ko Samui": 400,
+					"Surin": 351,
+					"Tak": 352,
+					"Trang": 345,
+					"Trat": 354,
+					"Ubon Ratchathani": 352,
+					"Udon Thani": 347,
+					"Uthai Thani": 347,
+					"Uttaradit": 347,
+					"Yala": 337,
+					"Yasothon": 350
+				},
+				"daily_by_sector": {
+					"HOTEL_TYPE_2": 400,
+					"HOTEL_TYPE_3": 400,
+					"HOTEL_TYPE_4": 400,
+					"SERVICE_ESTABLISHMENT": 400
+				},
+				"block_below_when": "true"
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * 8.0 : terms.monthly_wage / 30.0)",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
+			},
+			"authority": "Labour Protection Act B.E.2541 (consolidated through No.7 B.E.2562, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.23 normal hours at most eight a day (seven for hazardous work, not modelled); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 a monthly-paid employee is paid for weekly holidays, daily/hourly staff only for traditional holidays and annual leave; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). Overtime and holiday-work hour ceilings (Ministerial Regulation No.3 B.E.2541) and the s.27 breaks are not transcribed (register TH-WORK-07)."
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 3,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14626",
+				"https://ratchakitcha.soc.go.th/documents/98728.pdf",
+				"https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER2/DRAWER056/GENERAL/DATA0000/00000773.PDF",
+				"https://ratchakitcha.soc.go.th/documents/100888.pdf",
+				"https://www.rd.go.th/5937.html",
+				"https://www.rd.go.th/59670.html",
+				"https://www.rd.go.th/3558.html",
+				"https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins91_241268.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47755",
+				"https://www.rd.go.th/2502.html",
+				"https://www.rd.go.th/3213.html",
+				"https://www.rd.go.th/49994.html"
+			],
+			"instructions": "Register: docs/inventory/thailand.md. The ratchakitcha.soc.go.th Gazette PDFs return HTTP 403 to scripted and in-app browser fetches (28 September 2026); the s.33 base regulation was read from the SSO’s own copy (download_by_pool_file/47755, Gazette vol.142 part 81 Kor, 12 December 2025); the flood and Employee Welfare Fund figures remain the register’s transcription."
+		},
+		"facts": [
+			{
+				"key": "sso_flood_relief_area",
+				"type": "boolean",
+				"label": "SSO flood-relief rate (southern provinces)",
+				"default_value": false,
+				"description": "Gazette notice published 8 January 2026 (https://ratchakitcha.soc.go.th/documents/100888.pdf): a registered employer, and its s.33 insured employees, in Trang, Nakhon Si Thammarat, Narathiwat, Pattani, Phatthalung, Yala, Songkhla, Satun or Surat Thani contribute 3% each side instead of 5% for wage months December 2025–May 2026. Record the registration locality, not the worksite address; unrecorded is the ordinary 5%."
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "dismissed_for_cause",
+				"type": "boolean",
+				"label": "Dismissed for a s.119 cause stated in the notice",
+				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
+				"required_when": "employment.exit_reason == \"DISMISSAL\""
+			},
+			{
+				"key": "fixed_term_project_exempt",
+				"type": "boolean",
+				"label": "Fixed-term project, occasional or seasonal work finished within two years",
+				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
+				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+			},
+			{
+				"key": "relocation_objection",
+				"type": "boolean",
+				"label": "Objected in writing to a workplace relocation (s.120)",
+				"description": "Labour Protection Act s.120 para.3: within 30 days of the relocation notice (or of the move), the employee told the employer in writing that the move materially affects their or their family’s life and did not go; the contract ends on the move and special severance of at least the s.118 rate is owed. Unrecorded is no."
+			},
+			{
+				"key": "relocation_notice_posted",
+				"type": "boolean",
+				"label": "Relocation notice posted 30 days ahead (s.120)",
+				"description": "Labour Protection Act s.120 paras 1–2: the employer posted the relocation notice at the workplace at least 30 days before the move; otherwise 30 days’ last wage is owed in lieu of notice to an employee who does not go. Unrecorded is no."
+			},
+			{
+				"key": "technology_restructuring",
+				"type": "boolean",
+				"label": "Terminated for machinery or technology restructuring (s.121)",
+				"description": "Labour Protection Act s.121: the termination follows a reorganisation of units, production, distribution or service because of machinery or a change of machinery or technology that reduces the workforce. Unrecorded is no."
+			},
+			{
+				"key": "technology_notice_60_days",
+				"type": "boolean",
+				"label": "60 days’ notice given to the inspector and the employee (s.121)",
+				"description": "Labour Protection Act s.121 para.1: the date, reason and employee list were notified to the labour inspector and the employee at least 60 days before the termination; otherwise 60 days’ last wage is owed in lieu of notice (para.2). Unrecorded is no."
+			},
+			{
+				"key": "notice_given_on",
+				"type": "string",
+				"label": "Termination notice date (YYYY-MM-DD, s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"obligations": [
+			{
+				"code": "SSO_REGISTRATION",
+				"description": "Register each s.33 insured employee (aged 15–60 on entry) with the Social Security Office and report changes.",
+				"trigger": "A new employee, a change of insured facts, or an exit.",
+				"timing": "The insured list within 30 days of hiring; changes by the 15th of the following month.",
+				"owner": "HR / SSO e-service",
+				"authority": "Social Security Act ss.33, 34, 44 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-12.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"description": "Deduct the employee share at every wage payment and remit both shares with the contribution return; 2% a month on late or short remittance.",
+				"trigger": "Each wage payment to an insured employee.",
+				"timing": "By the 15th of the month after the deduction.",
+				"owner": "Payroll / SSO",
+				"authority": "Social Security Act ss.47, 49 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-01, TH-SS-12.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"description": "File the monthly ภ.ง.ด.1 withholding return and remit the s.50(1) tax withheld.",
+				"trigger": "Each month with s.40(1) payments.",
+				"timing": "Within 7 days after the month of payment (15 days if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code ss.52, 58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"description": "File the annual ภ.ง.ด.1ก summary of s.40(1) payments and tax withheld.",
+				"trigger": "Each tax year with s.40(1) payments.",
+				"timing": "Within February of the following year (8 March if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code s.58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE",
+				"description": "Issue the two-copy s.50 bis withholding certificate to each payee.",
+				"trigger": "Year end, or a departure during the year.",
+				"timing": "By 15 February of the following year, or within one month after a departure.",
+				"owner": "Payroll",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html); register TH-PIT-09.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "FINAL_PAY_AND_SEVERANCE",
+				"description": "Pay wages, s.67 annual-leave pay, s.118 severance and ss.120–122 special severance on an employer termination (or a s.120 relocation objection), and s.17/1 pay in lieu of the missing s.17 notice (due on the day the employee leaves).",
+				"trigger": "An employer termination.",
+				"timing": "Within three days of termination (s.70 para.2).",
+				"owner": "HR / Payroll",
+				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf); register TH-EXIT-01–07.",
+				"status": "PARTIAL"
+			}
+		]
+	},
+	{
+		"id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "TH",
+		"name": "Thailand — 1 January 2026 · SSO ceiling THB17,500",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"effective_range": {
+			"start": "2026-01-01T00:00:00.000Z",
+			"end": "2026-06-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TH",
+		"change_summary": "Ministerial regulation on the s.33 contribution wage base: the monthly ceiling rises from THB15,000 to THB17,500 from 1 January 2026; the THB1,650 floor and the 5% rate (2565 rate regulation, Schedule B) are unchanged. The flood-relief 3% continues through wage month May 2026.",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"ordinary_divisor_days": "30.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "HOL-1.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" || (day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "HOL-2.0X",
+					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"REST_DAY\" || day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				}
+			],
+			"limits": [
+				{
+					"key": "weekly_holiday",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"wages": {
+				"by_region": {},
+				"applies_when": "",
+				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
+				"daily_by_worksite": {
+					"Amnat Charoen": 347,
+					"Ang Thong": 348,
+					"Bangkok": 400,
+					"Bueng Kan": 349,
+					"Buriram": 352,
+					"Chachoengsao": 400,
+					"Chai Nat": 348,
+					"Chaiyaphum": 348,
+					"Chanthaburi": 352,
+					"Chiang Mai": 357,
+					"Chiang Mai/Mueang Chiang Mai": 380,
+					"Chiang Rai": 352,
+					"Chon Buri": 400,
+					"Chumphon": 351,
+					"Kalasin": 349,
+					"Kamphaeng Phet": 347,
+					"Kanchanaburi": 352,
+					"Khon Kaen": 357,
+					"Krabi": 354,
+					"Lampang": 347,
+					"Lamphun": 350,
+					"Loei": 347,
+					"Lop Buri": 356,
+					"Mae Hong Son": 347,
+					"Maha Sarakham": 347,
+					"Mukdahan": 352,
+					"Nakhon Nayok": 355,
+					"Nakhon Pathom": 372,
+					"Nakhon Phanom": 352,
+					"Nakhon Ratchasima": 359,
+					"Nakhon Sawan": 350,
+					"Nakhon Si Thammarat": 349,
+					"Nan": 345,
+					"Narathiwat": 337,
+					"Nong Bua Lamphu": 347,
+					"Nong Khai": 355,
+					"Nonthaburi": 372,
+					"Pathum Thani": 372,
+					"Pattani": 337,
+					"Phang Nga": 352,
+					"Phatthalung": 348,
+					"Phayao": 345,
+					"Phetchabun": 349,
+					"Phetchaburi": 351,
+					"Phichit": 347,
+					"Phitsanulok": 352,
+					"Phra Nakhon Si Ayutthaya": 357,
+					"Phrae": 345,
+					"Phuket": 400,
+					"Prachin Buri": 357,
+					"Prachuap Khiri Khan": 352,
+					"Ranong": 347,
+					"Ratchaburi": 347,
+					"Rayong": 400,
+					"Roi Et": 349,
+					"Sa Kaeo": 352,
+					"Sakon Nakhon": 352,
+					"Samut Prakan": 372,
+					"Samut Sakhon": 372,
+					"Samut Songkhram": 358,
+					"Saraburi": 357,
+					"Satun": 347,
+					"Sing Buri": 348,
+					"Sisaket": 347,
+					"Songkhla": 352,
+					"Songkhla/Hat Yai": 380,
+					"Sukhothai": 347,
+					"Suphan Buri": 355,
+					"Surat Thani": 352,
+					"Surat Thani/Ko Samui": 400,
+					"Surin": 351,
+					"Tak": 352,
+					"Trang": 345,
+					"Trat": 354,
+					"Ubon Ratchathani": 352,
+					"Udon Thani": 347,
+					"Uthai Thani": 347,
+					"Uttaradit": 347,
+					"Yala": 337,
+					"Yasothon": 350
+				},
+				"daily_by_sector": {
+					"HOTEL_TYPE_2": 400,
+					"HOTEL_TYPE_3": 400,
+					"HOTEL_TYPE_4": 400,
+					"SERVICE_ESTABLISHMENT": 400
+				},
+				"block_below_when": "true"
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * 8.0 : terms.monthly_wage / 30.0)",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
+			},
+			"authority": "Labour Protection Act B.E.2541 (consolidated through No.7 B.E.2562, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.23 normal hours at most eight a day (seven for hazardous work, not modelled); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 a monthly-paid employee is paid for weekly holidays, daily/hourly staff only for traditional holidays and annual leave; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). Overtime and holiday-work hour ceilings (Ministerial Regulation No.3 B.E.2541) and the s.27 breaks are not transcribed (register TH-WORK-07)."
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 3,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14626",
+				"https://ratchakitcha.soc.go.th/documents/98728.pdf",
+				"https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER2/DRAWER056/GENERAL/DATA0000/00000773.PDF",
+				"https://ratchakitcha.soc.go.th/documents/100888.pdf",
+				"https://www.rd.go.th/5937.html",
+				"https://www.rd.go.th/59670.html",
+				"https://www.rd.go.th/3558.html",
+				"https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins91_241268.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47755",
+				"https://www.rd.go.th/2502.html",
+				"https://www.rd.go.th/3213.html",
+				"https://www.rd.go.th/49994.html"
+			],
+			"instructions": "Register: docs/inventory/thailand.md. The ratchakitcha.soc.go.th Gazette PDFs return HTTP 403 to scripted and in-app browser fetches (28 September 2026); the s.33 base regulation was read from the SSO’s own copy (download_by_pool_file/47755, Gazette vol.142 part 81 Kor, 12 December 2025); the flood and Employee Welfare Fund figures remain the register’s transcription."
+		},
+		"facts": [
+			{
+				"key": "sso_flood_relief_area",
+				"type": "boolean",
+				"label": "SSO flood-relief rate (southern provinces)",
+				"default_value": false,
+				"description": "Gazette notice published 8 January 2026 (https://ratchakitcha.soc.go.th/documents/100888.pdf): a registered employer, and its s.33 insured employees, in Trang, Nakhon Si Thammarat, Narathiwat, Pattani, Phatthalung, Yala, Songkhla, Satun or Surat Thani contribute 3% each side instead of 5% for wage months December 2025–May 2026. Record the registration locality, not the worksite address; unrecorded is the ordinary 5%."
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "dismissed_for_cause",
+				"type": "boolean",
+				"label": "Dismissed for a s.119 cause stated in the notice",
+				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
+				"required_when": "employment.exit_reason == \"DISMISSAL\""
+			},
+			{
+				"key": "fixed_term_project_exempt",
+				"type": "boolean",
+				"label": "Fixed-term project, occasional or seasonal work finished within two years",
+				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
+				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+			},
+			{
+				"key": "relocation_objection",
+				"type": "boolean",
+				"label": "Objected in writing to a workplace relocation (s.120)",
+				"description": "Labour Protection Act s.120 para.3: within 30 days of the relocation notice (or of the move), the employee told the employer in writing that the move materially affects their or their family’s life and did not go; the contract ends on the move and special severance of at least the s.118 rate is owed. Unrecorded is no."
+			},
+			{
+				"key": "relocation_notice_posted",
+				"type": "boolean",
+				"label": "Relocation notice posted 30 days ahead (s.120)",
+				"description": "Labour Protection Act s.120 paras 1–2: the employer posted the relocation notice at the workplace at least 30 days before the move; otherwise 30 days’ last wage is owed in lieu of notice to an employee who does not go. Unrecorded is no."
+			},
+			{
+				"key": "technology_restructuring",
+				"type": "boolean",
+				"label": "Terminated for machinery or technology restructuring (s.121)",
+				"description": "Labour Protection Act s.121: the termination follows a reorganisation of units, production, distribution or service because of machinery or a change of machinery or technology that reduces the workforce. Unrecorded is no."
+			},
+			{
+				"key": "technology_notice_60_days",
+				"type": "boolean",
+				"label": "60 days’ notice given to the inspector and the employee (s.121)",
+				"description": "Labour Protection Act s.121 para.1: the date, reason and employee list were notified to the labour inspector and the employee at least 60 days before the termination; otherwise 60 days’ last wage is owed in lieu of notice (para.2). Unrecorded is no."
+			},
+			{
+				"key": "notice_given_on",
+				"type": "string",
+				"label": "Termination notice date (YYYY-MM-DD, s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"obligations": [
+			{
+				"code": "SSO_REGISTRATION",
+				"description": "Register each s.33 insured employee (aged 15–60 on entry) with the Social Security Office and report changes.",
+				"trigger": "A new employee, a change of insured facts, or an exit.",
+				"timing": "The insured list within 30 days of hiring; changes by the 15th of the following month.",
+				"owner": "HR / SSO e-service",
+				"authority": "Social Security Act ss.33, 34, 44 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-12.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"description": "Deduct the employee share at every wage payment and remit both shares with the contribution return; 2% a month on late or short remittance.",
+				"trigger": "Each wage payment to an insured employee.",
+				"timing": "By the 15th of the month after the deduction.",
+				"owner": "Payroll / SSO",
+				"authority": "Social Security Act ss.47, 49 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-01, TH-SS-12.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"description": "File the monthly ภ.ง.ด.1 withholding return and remit the s.50(1) tax withheld.",
+				"trigger": "Each month with s.40(1) payments.",
+				"timing": "Within 7 days after the month of payment (15 days if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code ss.52, 58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"description": "File the annual ภ.ง.ด.1ก summary of s.40(1) payments and tax withheld.",
+				"trigger": "Each tax year with s.40(1) payments.",
+				"timing": "Within February of the following year (8 March if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code s.58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE",
+				"description": "Issue the two-copy s.50 bis withholding certificate to each payee.",
+				"trigger": "Year end, or a departure during the year.",
+				"timing": "By 15 February of the following year, or within one month after a departure.",
+				"owner": "Payroll",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html); register TH-PIT-09.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "FINAL_PAY_AND_SEVERANCE",
+				"description": "Pay wages, s.67 annual-leave pay, s.118 severance and ss.120–122 special severance on an employer termination (or a s.120 relocation objection), and s.17/1 pay in lieu of the missing s.17 notice (due on the day the employee leaves).",
+				"trigger": "An employer termination.",
+				"timing": "Within three days of termination (s.70 para.2).",
+				"owner": "HR / Payroll",
+				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf); register TH-EXIT-01–07.",
+				"status": "PARTIAL"
+			}
+		]
+	},
+	{
+		"id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "TH",
+		"name": "Thailand — 1 June 2026 · flood-relief rate ends",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"effective_range": {
+			"start": "2026-06-01T00:00:00.000Z",
+			"end": "2026-10-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TH",
+		"change_summary": "The 8 January 2026 flood-relief notice covers wage months December 2025–May 2026 only: from wage month June 2026 every s.33 contribution is back at 5% each side.",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"ordinary_divisor_days": "30.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "HOL-1.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" || (day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "HOL-2.0X",
+					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"REST_DAY\" || day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				}
+			],
+			"limits": [
+				{
+					"key": "weekly_holiday",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"wages": {
+				"by_region": {},
+				"applies_when": "",
+				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
+				"daily_by_worksite": {
+					"Amnat Charoen": 347,
+					"Ang Thong": 348,
+					"Bangkok": 400,
+					"Bueng Kan": 349,
+					"Buriram": 352,
+					"Chachoengsao": 400,
+					"Chai Nat": 348,
+					"Chaiyaphum": 348,
+					"Chanthaburi": 352,
+					"Chiang Mai": 357,
+					"Chiang Mai/Mueang Chiang Mai": 380,
+					"Chiang Rai": 352,
+					"Chon Buri": 400,
+					"Chumphon": 351,
+					"Kalasin": 349,
+					"Kamphaeng Phet": 347,
+					"Kanchanaburi": 352,
+					"Khon Kaen": 357,
+					"Krabi": 354,
+					"Lampang": 347,
+					"Lamphun": 350,
+					"Loei": 347,
+					"Lop Buri": 356,
+					"Mae Hong Son": 347,
+					"Maha Sarakham": 347,
+					"Mukdahan": 352,
+					"Nakhon Nayok": 355,
+					"Nakhon Pathom": 372,
+					"Nakhon Phanom": 352,
+					"Nakhon Ratchasima": 359,
+					"Nakhon Sawan": 350,
+					"Nakhon Si Thammarat": 349,
+					"Nan": 345,
+					"Narathiwat": 337,
+					"Nong Bua Lamphu": 347,
+					"Nong Khai": 355,
+					"Nonthaburi": 372,
+					"Pathum Thani": 372,
+					"Pattani": 337,
+					"Phang Nga": 352,
+					"Phatthalung": 348,
+					"Phayao": 345,
+					"Phetchabun": 349,
+					"Phetchaburi": 351,
+					"Phichit": 347,
+					"Phitsanulok": 352,
+					"Phra Nakhon Si Ayutthaya": 357,
+					"Phrae": 345,
+					"Phuket": 400,
+					"Prachin Buri": 357,
+					"Prachuap Khiri Khan": 352,
+					"Ranong": 347,
+					"Ratchaburi": 347,
+					"Rayong": 400,
+					"Roi Et": 349,
+					"Sa Kaeo": 352,
+					"Sakon Nakhon": 352,
+					"Samut Prakan": 372,
+					"Samut Sakhon": 372,
+					"Samut Songkhram": 358,
+					"Saraburi": 357,
+					"Satun": 347,
+					"Sing Buri": 348,
+					"Sisaket": 347,
+					"Songkhla": 352,
+					"Songkhla/Hat Yai": 380,
+					"Sukhothai": 347,
+					"Suphan Buri": 355,
+					"Surat Thani": 352,
+					"Surat Thani/Ko Samui": 400,
+					"Surin": 351,
+					"Tak": 352,
+					"Trang": 345,
+					"Trat": 354,
+					"Ubon Ratchathani": 352,
+					"Udon Thani": 347,
+					"Uthai Thani": 347,
+					"Uttaradit": 347,
+					"Yala": 337,
+					"Yasothon": 350
+				},
+				"daily_by_sector": {
+					"HOTEL_TYPE_2": 400,
+					"HOTEL_TYPE_3": 400,
+					"HOTEL_TYPE_4": 400,
+					"SERVICE_ESTABLISHMENT": 400
+				},
+				"block_below_when": "true"
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * 8.0 : terms.monthly_wage / 30.0)",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
+			},
+			"authority": "Labour Protection Act B.E.2541 (consolidated through No.7 B.E.2562, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.23 normal hours at most eight a day (seven for hazardous work, not modelled); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 a monthly-paid employee is paid for weekly holidays, daily/hourly staff only for traditional holidays and annual leave; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). Overtime and holiday-work hour ceilings (Ministerial Regulation No.3 B.E.2541) and the s.27 breaks are not transcribed (register TH-WORK-07)."
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 3,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14626",
+				"https://ratchakitcha.soc.go.th/documents/98728.pdf",
+				"https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER2/DRAWER056/GENERAL/DATA0000/00000773.PDF",
+				"https://ratchakitcha.soc.go.th/documents/100888.pdf",
+				"https://www.rd.go.th/5937.html",
+				"https://www.rd.go.th/59670.html",
+				"https://www.rd.go.th/3558.html",
+				"https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins91_241268.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47755",
+				"https://www.rd.go.th/2502.html",
+				"https://www.rd.go.th/3213.html",
+				"https://www.rd.go.th/49994.html"
+			],
+			"instructions": "Register: docs/inventory/thailand.md. The ratchakitcha.soc.go.th Gazette PDFs return HTTP 403 to scripted and in-app browser fetches (28 September 2026); the s.33 base regulation was read from the SSO’s own copy (download_by_pool_file/47755, Gazette vol.142 part 81 Kor, 12 December 2025); the flood and Employee Welfare Fund figures remain the register’s transcription."
+		},
+		"facts": [],
+		"exit_facts": [
+			{
+				"key": "dismissed_for_cause",
+				"type": "boolean",
+				"label": "Dismissed for a s.119 cause stated in the notice",
+				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
+				"required_when": "employment.exit_reason == \"DISMISSAL\""
+			},
+			{
+				"key": "fixed_term_project_exempt",
+				"type": "boolean",
+				"label": "Fixed-term project, occasional or seasonal work finished within two years",
+				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
+				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+			},
+			{
+				"key": "relocation_objection",
+				"type": "boolean",
+				"label": "Objected in writing to a workplace relocation (s.120)",
+				"description": "Labour Protection Act s.120 para.3: within 30 days of the relocation notice (or of the move), the employee told the employer in writing that the move materially affects their or their family’s life and did not go; the contract ends on the move and special severance of at least the s.118 rate is owed. Unrecorded is no."
+			},
+			{
+				"key": "relocation_notice_posted",
+				"type": "boolean",
+				"label": "Relocation notice posted 30 days ahead (s.120)",
+				"description": "Labour Protection Act s.120 paras 1–2: the employer posted the relocation notice at the workplace at least 30 days before the move; otherwise 30 days’ last wage is owed in lieu of notice to an employee who does not go. Unrecorded is no."
+			},
+			{
+				"key": "technology_restructuring",
+				"type": "boolean",
+				"label": "Terminated for machinery or technology restructuring (s.121)",
+				"description": "Labour Protection Act s.121: the termination follows a reorganisation of units, production, distribution or service because of machinery or a change of machinery or technology that reduces the workforce. Unrecorded is no."
+			},
+			{
+				"key": "technology_notice_60_days",
+				"type": "boolean",
+				"label": "60 days’ notice given to the inspector and the employee (s.121)",
+				"description": "Labour Protection Act s.121 para.1: the date, reason and employee list were notified to the labour inspector and the employee at least 60 days before the termination; otherwise 60 days’ last wage is owed in lieu of notice (para.2). Unrecorded is no."
+			},
+			{
+				"key": "notice_given_on",
+				"type": "string",
+				"label": "Termination notice date (YYYY-MM-DD, s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"obligations": [
+			{
+				"code": "SSO_REGISTRATION",
+				"description": "Register each s.33 insured employee (aged 15–60 on entry) with the Social Security Office and report changes.",
+				"trigger": "A new employee, a change of insured facts, or an exit.",
+				"timing": "The insured list within 30 days of hiring; changes by the 15th of the following month.",
+				"owner": "HR / SSO e-service",
+				"authority": "Social Security Act ss.33, 34, 44 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-12.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"description": "Deduct the employee share at every wage payment and remit both shares with the contribution return; 2% a month on late or short remittance.",
+				"trigger": "Each wage payment to an insured employee.",
+				"timing": "By the 15th of the month after the deduction.",
+				"owner": "Payroll / SSO",
+				"authority": "Social Security Act ss.47, 49 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-01, TH-SS-12.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"description": "File the monthly ภ.ง.ด.1 withholding return and remit the s.50(1) tax withheld.",
+				"trigger": "Each month with s.40(1) payments.",
+				"timing": "Within 7 days after the month of payment (15 days if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code ss.52, 58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"description": "File the annual ภ.ง.ด.1ก summary of s.40(1) payments and tax withheld.",
+				"trigger": "Each tax year with s.40(1) payments.",
+				"timing": "Within February of the following year (8 March if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code s.58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE",
+				"description": "Issue the two-copy s.50 bis withholding certificate to each payee.",
+				"trigger": "Year end, or a departure during the year.",
+				"timing": "By 15 February of the following year, or within one month after a departure.",
+				"owner": "Payroll",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html); register TH-PIT-09.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "FINAL_PAY_AND_SEVERANCE",
+				"description": "Pay wages, s.67 annual-leave pay, s.118 severance and ss.120–122 special severance on an employer termination (or a s.120 relocation objection), and s.17/1 pay in lieu of the missing s.17 notice (due on the day the employee leaves).",
+				"trigger": "An employer termination.",
+				"timing": "Within three days of termination (s.70 para.2).",
+				"owner": "HR / Payroll",
+				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf); register TH-EXIT-01–07.",
+				"status": "PARTIAL"
+			}
+		]
+	},
+	{
+		"id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "TH",
+		"name": "Thailand — 1 October 2026 · Employee Welfare Fund contributions",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"effective_range": {
+			"start": "2026-10-01T00:00:00.000Z",
+			"end": "2029-01-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TH",
+		"change_summary": "Employee Welfare Fund (Labour Protection Act ch.11, ss.130–131): the commencement decree and the rate regulation start contributions of 0.25% of wages from the employee and 0.25% matched by the employer on 1 October 2026, for an employer of ten or more employees; a member of the employer’s provident fund is outside it. The rate regulation’s 0.50% step from 1 October 2031 (cl.3(2)) is its own version.",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"ordinary_divisor_days": "30.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "HOL-1.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" || (day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "HOL-2.0X",
+					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"REST_DAY\" || day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				}
+			],
+			"limits": [
+				{
+					"key": "weekly_holiday",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"wages": {
+				"by_region": {},
+				"applies_when": "",
+				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
+				"daily_by_worksite": {
+					"Amnat Charoen": 347,
+					"Ang Thong": 348,
+					"Bangkok": 400,
+					"Bueng Kan": 349,
+					"Buriram": 352,
+					"Chachoengsao": 400,
+					"Chai Nat": 348,
+					"Chaiyaphum": 348,
+					"Chanthaburi": 352,
+					"Chiang Mai": 357,
+					"Chiang Mai/Mueang Chiang Mai": 380,
+					"Chiang Rai": 352,
+					"Chon Buri": 400,
+					"Chumphon": 351,
+					"Kalasin": 349,
+					"Kamphaeng Phet": 347,
+					"Kanchanaburi": 352,
+					"Khon Kaen": 357,
+					"Krabi": 354,
+					"Lampang": 347,
+					"Lamphun": 350,
+					"Loei": 347,
+					"Lop Buri": 356,
+					"Mae Hong Son": 347,
+					"Maha Sarakham": 347,
+					"Mukdahan": 352,
+					"Nakhon Nayok": 355,
+					"Nakhon Pathom": 372,
+					"Nakhon Phanom": 352,
+					"Nakhon Ratchasima": 359,
+					"Nakhon Sawan": 350,
+					"Nakhon Si Thammarat": 349,
+					"Nan": 345,
+					"Narathiwat": 337,
+					"Nong Bua Lamphu": 347,
+					"Nong Khai": 355,
+					"Nonthaburi": 372,
+					"Pathum Thani": 372,
+					"Pattani": 337,
+					"Phang Nga": 352,
+					"Phatthalung": 348,
+					"Phayao": 345,
+					"Phetchabun": 349,
+					"Phetchaburi": 351,
+					"Phichit": 347,
+					"Phitsanulok": 352,
+					"Phra Nakhon Si Ayutthaya": 357,
+					"Phrae": 345,
+					"Phuket": 400,
+					"Prachin Buri": 357,
+					"Prachuap Khiri Khan": 352,
+					"Ranong": 347,
+					"Ratchaburi": 347,
+					"Rayong": 400,
+					"Roi Et": 349,
+					"Sa Kaeo": 352,
+					"Sakon Nakhon": 352,
+					"Samut Prakan": 372,
+					"Samut Sakhon": 372,
+					"Samut Songkhram": 358,
+					"Saraburi": 357,
+					"Satun": 347,
+					"Sing Buri": 348,
+					"Sisaket": 347,
+					"Songkhla": 352,
+					"Songkhla/Hat Yai": 380,
+					"Sukhothai": 347,
+					"Suphan Buri": 355,
+					"Surat Thani": 352,
+					"Surat Thani/Ko Samui": 400,
+					"Surin": 351,
+					"Tak": 352,
+					"Trang": 345,
+					"Trat": 354,
+					"Ubon Ratchathani": 352,
+					"Udon Thani": 347,
+					"Uthai Thani": 347,
+					"Uttaradit": 347,
+					"Yala": 337,
+					"Yasothon": 350
+				},
+				"daily_by_sector": {
+					"HOTEL_TYPE_2": 400,
+					"HOTEL_TYPE_3": 400,
+					"HOTEL_TYPE_4": 400,
+					"SERVICE_ESTABLISHMENT": 400
+				},
+				"block_below_when": "true"
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * 8.0 : terms.monthly_wage / 30.0)",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
+			},
+			"authority": "Labour Protection Act B.E.2541 (consolidated through No.7 B.E.2562, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.23 normal hours at most eight a day (seven for hazardous work, not modelled); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 a monthly-paid employee is paid for weekly holidays, daily/hourly staff only for traditional holidays and annual leave; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). Overtime and holiday-work hour ceilings (Ministerial Regulation No.3 B.E.2541) and the s.27 breaks are not transcribed (register TH-WORK-07)."
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 3,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14626",
+				"https://ratchakitcha.soc.go.th/documents/98728.pdf",
+				"https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER2/DRAWER056/GENERAL/DATA0000/00000773.PDF",
+				"https://ratchakitcha.soc.go.th/documents/100888.pdf",
+				"https://www.rd.go.th/5937.html",
+				"https://www.rd.go.th/59670.html",
+				"https://www.rd.go.th/3558.html",
+				"https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins91_241268.pdf",
+				"https://ratchakitcha.soc.go.th/documents/84794.pdf",
+				"https://ratchakitcha.soc.go.th/documents/86102.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47755",
+				"https://www.rd.go.th/2502.html",
+				"https://www.rd.go.th/3213.html",
+				"https://www.rd.go.th/49994.html",
+				"https://www.ocs.go.th/searchlaw/law-index/item/13221"
+			],
+			"instructions": "Register: docs/inventory/thailand.md. The ratchakitcha.soc.go.th Gazette PDFs return HTTP 403 to scripted and in-app browser fetches (28 September 2026); the s.33 base regulation was read from the SSO’s own copy (download_by_pool_file/47755, Gazette vol.142 part 81 Kor, 12 December 2025); the flood and Employee Welfare Fund figures remain the register’s transcription."
+		},
+		"facts": [],
+		"exit_facts": [
+			{
+				"key": "dismissed_for_cause",
+				"type": "boolean",
+				"label": "Dismissed for a s.119 cause stated in the notice",
+				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
+				"required_when": "employment.exit_reason == \"DISMISSAL\""
+			},
+			{
+				"key": "fixed_term_project_exempt",
+				"type": "boolean",
+				"label": "Fixed-term project, occasional or seasonal work finished within two years",
+				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
+				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+			},
+			{
+				"key": "relocation_objection",
+				"type": "boolean",
+				"label": "Objected in writing to a workplace relocation (s.120)",
+				"description": "Labour Protection Act s.120 para.3: within 30 days of the relocation notice (or of the move), the employee told the employer in writing that the move materially affects their or their family’s life and did not go; the contract ends on the move and special severance of at least the s.118 rate is owed. Unrecorded is no."
+			},
+			{
+				"key": "relocation_notice_posted",
+				"type": "boolean",
+				"label": "Relocation notice posted 30 days ahead (s.120)",
+				"description": "Labour Protection Act s.120 paras 1–2: the employer posted the relocation notice at the workplace at least 30 days before the move; otherwise 30 days’ last wage is owed in lieu of notice to an employee who does not go. Unrecorded is no."
+			},
+			{
+				"key": "technology_restructuring",
+				"type": "boolean",
+				"label": "Terminated for machinery or technology restructuring (s.121)",
+				"description": "Labour Protection Act s.121: the termination follows a reorganisation of units, production, distribution or service because of machinery or a change of machinery or technology that reduces the workforce. Unrecorded is no."
+			},
+			{
+				"key": "technology_notice_60_days",
+				"type": "boolean",
+				"label": "60 days’ notice given to the inspector and the employee (s.121)",
+				"description": "Labour Protection Act s.121 para.1: the date, reason and employee list were notified to the labour inspector and the employee at least 60 days before the termination; otherwise 60 days’ last wage is owed in lieu of notice (para.2). Unrecorded is no."
+			},
+			{
+				"key": "notice_given_on",
+				"type": "string",
+				"label": "Termination notice date (YYYY-MM-DD, s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"obligations": [
+			{
+				"code": "SSO_REGISTRATION",
+				"description": "Register each s.33 insured employee (aged 15–60 on entry) with the Social Security Office and report changes.",
+				"trigger": "A new employee, a change of insured facts, or an exit.",
+				"timing": "The insured list within 30 days of hiring; changes by the 15th of the following month.",
+				"owner": "HR / SSO e-service",
+				"authority": "Social Security Act ss.33, 34, 44 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-12.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"description": "Deduct the employee share at every wage payment and remit both shares with the contribution return; 2% a month on late or short remittance.",
+				"trigger": "Each wage payment to an insured employee.",
+				"timing": "By the 15th of the month after the deduction.",
+				"owner": "Payroll / SSO",
+				"authority": "Social Security Act ss.47, 49 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-01, TH-SS-12.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"description": "File the monthly ภ.ง.ด.1 withholding return and remit the s.50(1) tax withheld.",
+				"trigger": "Each month with s.40(1) payments.",
+				"timing": "Within 7 days after the month of payment (15 days if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code ss.52, 58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"description": "File the annual ภ.ง.ด.1ก summary of s.40(1) payments and tax withheld.",
+				"trigger": "Each tax year with s.40(1) payments.",
+				"timing": "Within February of the following year (8 March if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code s.58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE",
+				"description": "Issue the two-copy s.50 bis withholding certificate to each payee.",
+				"trigger": "Year end, or a departure during the year.",
+				"timing": "By 15 February of the following year, or within one month after a departure.",
+				"owner": "Payroll",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html); register TH-PIT-09.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "FINAL_PAY_AND_SEVERANCE",
+				"description": "Pay wages, s.67 annual-leave pay, s.118 severance and ss.120–122 special severance on an employer termination (or a s.120 relocation objection), and s.17/1 pay in lieu of the missing s.17 notice (due on the day the employee leaves).",
+				"trigger": "An employer termination.",
+				"timing": "Within three days of termination (s.70 para.2).",
+				"owner": "HR / Payroll",
+				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf); register TH-EXIT-01–07.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "EWF_REMITTANCE",
+				"description": "Deduct the employee’s Employee Welfare Fund contribution and remit it with the employer’s matching share.",
+				"trigger": "Each wage payment by an employer of ten or more employees.",
+				"timing": "By the 15th of the following month.",
+				"owner": "Payroll / Employee Welfare Fund",
+				"authority": "Labour Protection Act ss.130–131; commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf); rate regulation (https://ratchakitcha.soc.go.th/documents/86102.pdf); register TH-EWF-01–03.",
+				"status": "PARTIAL"
+			}
+		]
+	},
+	{
+		"id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "TH",
+		"name": "Thailand — 1 January 2029 · SSO ceiling THB20,000",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"effective_range": {
+			"start": "2029-01-01T00:00:00.000Z",
+			"end": "2031-10-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TH",
+		"change_summary": "Ministerial Regulation on the minimum and maximum wages for s.33 contributions B.E.2568 (Gazette vol.142 part 81 Kor, 12 December 2025; SSO copy https://www.sso.go.th/wpr/download/download_by_pool_file/47755) cl.3(2): the s.33 contribution wage base is THB1,650 to THB20,000 a month 1 January 2029 to 31 December 2031; the 5% rate (2565 rate regulation, Schedule B) is unchanged, so each share is at most THB1,000. Every other row is carried unchanged; the Employee Welfare Fund stays at 0.25% until its 0.50% step on 1 October 2031, a version of its own (EWF rate regulation B.E.2568 cl.3).",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"ordinary_divisor_days": "30.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "HOL-1.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" || (day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "HOL-2.0X",
+					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"REST_DAY\" || day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				}
+			],
+			"limits": [
+				{
+					"key": "weekly_holiday",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"wages": {
+				"by_region": {},
+				"applies_when": "",
+				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
+				"daily_by_worksite": {
+					"Amnat Charoen": 347,
+					"Ang Thong": 348,
+					"Bangkok": 400,
+					"Bueng Kan": 349,
+					"Buriram": 352,
+					"Chachoengsao": 400,
+					"Chai Nat": 348,
+					"Chaiyaphum": 348,
+					"Chanthaburi": 352,
+					"Chiang Mai": 357,
+					"Chiang Mai/Mueang Chiang Mai": 380,
+					"Chiang Rai": 352,
+					"Chon Buri": 400,
+					"Chumphon": 351,
+					"Kalasin": 349,
+					"Kamphaeng Phet": 347,
+					"Kanchanaburi": 352,
+					"Khon Kaen": 357,
+					"Krabi": 354,
+					"Lampang": 347,
+					"Lamphun": 350,
+					"Loei": 347,
+					"Lop Buri": 356,
+					"Mae Hong Son": 347,
+					"Maha Sarakham": 347,
+					"Mukdahan": 352,
+					"Nakhon Nayok": 355,
+					"Nakhon Pathom": 372,
+					"Nakhon Phanom": 352,
+					"Nakhon Ratchasima": 359,
+					"Nakhon Sawan": 350,
+					"Nakhon Si Thammarat": 349,
+					"Nan": 345,
+					"Narathiwat": 337,
+					"Nong Bua Lamphu": 347,
+					"Nong Khai": 355,
+					"Nonthaburi": 372,
+					"Pathum Thani": 372,
+					"Pattani": 337,
+					"Phang Nga": 352,
+					"Phatthalung": 348,
+					"Phayao": 345,
+					"Phetchabun": 349,
+					"Phetchaburi": 351,
+					"Phichit": 347,
+					"Phitsanulok": 352,
+					"Phra Nakhon Si Ayutthaya": 357,
+					"Phrae": 345,
+					"Phuket": 400,
+					"Prachin Buri": 357,
+					"Prachuap Khiri Khan": 352,
+					"Ranong": 347,
+					"Ratchaburi": 347,
+					"Rayong": 400,
+					"Roi Et": 349,
+					"Sa Kaeo": 352,
+					"Sakon Nakhon": 352,
+					"Samut Prakan": 372,
+					"Samut Sakhon": 372,
+					"Samut Songkhram": 358,
+					"Saraburi": 357,
+					"Satun": 347,
+					"Sing Buri": 348,
+					"Sisaket": 347,
+					"Songkhla": 352,
+					"Songkhla/Hat Yai": 380,
+					"Sukhothai": 347,
+					"Suphan Buri": 355,
+					"Surat Thani": 352,
+					"Surat Thani/Ko Samui": 400,
+					"Surin": 351,
+					"Tak": 352,
+					"Trang": 345,
+					"Trat": 354,
+					"Ubon Ratchathani": 352,
+					"Udon Thani": 347,
+					"Uthai Thani": 347,
+					"Uttaradit": 347,
+					"Yala": 337,
+					"Yasothon": 350
+				},
+				"daily_by_sector": {
+					"HOTEL_TYPE_2": 400,
+					"HOTEL_TYPE_3": 400,
+					"HOTEL_TYPE_4": 400,
+					"SERVICE_ESTABLISHMENT": 400
+				},
+				"block_below_when": "true"
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * 8.0 : terms.monthly_wage / 30.0)",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
+			},
+			"authority": "Labour Protection Act B.E.2541 (consolidated through No.7 B.E.2562, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.23 normal hours at most eight a day (seven for hazardous work, not modelled); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 a monthly-paid employee is paid for weekly holidays, daily/hourly staff only for traditional holidays and annual leave; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). Overtime and holiday-work hour ceilings (Ministerial Regulation No.3 B.E.2541) and the s.27 breaks are not transcribed (register TH-WORK-07)."
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 3,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14626",
+				"https://ratchakitcha.soc.go.th/documents/98728.pdf",
+				"https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER2/DRAWER056/GENERAL/DATA0000/00000773.PDF",
+				"https://ratchakitcha.soc.go.th/documents/100888.pdf",
+				"https://www.rd.go.th/5937.html",
+				"https://www.rd.go.th/59670.html",
+				"https://www.rd.go.th/3558.html",
+				"https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins91_241268.pdf",
+				"https://ratchakitcha.soc.go.th/documents/84794.pdf",
+				"https://ratchakitcha.soc.go.th/documents/86102.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47755",
+				"https://www.rd.go.th/2502.html",
+				"https://www.rd.go.th/3213.html",
+				"https://www.rd.go.th/49994.html",
+				"https://www.ocs.go.th/searchlaw/law-index/item/13221"
+			],
+			"instructions": "Register: docs/inventory/thailand.md. The ratchakitcha.soc.go.th Gazette PDFs return HTTP 403 to scripted and in-app browser fetches (28 September 2026); the s.33 base regulation was read from the SSO’s own copy (download_by_pool_file/47755, Gazette vol.142 part 81 Kor, 12 December 2025); the flood and Employee Welfare Fund figures remain the register’s transcription."
+		},
+		"facts": [],
+		"exit_facts": [
+			{
+				"key": "dismissed_for_cause",
+				"type": "boolean",
+				"label": "Dismissed for a s.119 cause stated in the notice",
+				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
+				"required_when": "employment.exit_reason == \"DISMISSAL\""
+			},
+			{
+				"key": "fixed_term_project_exempt",
+				"type": "boolean",
+				"label": "Fixed-term project, occasional or seasonal work finished within two years",
+				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
+				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+			},
+			{
+				"key": "relocation_objection",
+				"type": "boolean",
+				"label": "Objected in writing to a workplace relocation (s.120)",
+				"description": "Labour Protection Act s.120 para.3: within 30 days of the relocation notice (or of the move), the employee told the employer in writing that the move materially affects their or their family’s life and did not go; the contract ends on the move and special severance of at least the s.118 rate is owed. Unrecorded is no."
+			},
+			{
+				"key": "relocation_notice_posted",
+				"type": "boolean",
+				"label": "Relocation notice posted 30 days ahead (s.120)",
+				"description": "Labour Protection Act s.120 paras 1–2: the employer posted the relocation notice at the workplace at least 30 days before the move; otherwise 30 days’ last wage is owed in lieu of notice to an employee who does not go. Unrecorded is no."
+			},
+			{
+				"key": "technology_restructuring",
+				"type": "boolean",
+				"label": "Terminated for machinery or technology restructuring (s.121)",
+				"description": "Labour Protection Act s.121: the termination follows a reorganisation of units, production, distribution or service because of machinery or a change of machinery or technology that reduces the workforce. Unrecorded is no."
+			},
+			{
+				"key": "technology_notice_60_days",
+				"type": "boolean",
+				"label": "60 days’ notice given to the inspector and the employee (s.121)",
+				"description": "Labour Protection Act s.121 para.1: the date, reason and employee list were notified to the labour inspector and the employee at least 60 days before the termination; otherwise 60 days’ last wage is owed in lieu of notice (para.2). Unrecorded is no."
+			},
+			{
+				"key": "notice_given_on",
+				"type": "string",
+				"label": "Termination notice date (YYYY-MM-DD, s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"obligations": [
+			{
+				"code": "SSO_REGISTRATION",
+				"description": "Register each s.33 insured employee (aged 15–60 on entry) with the Social Security Office and report changes.",
+				"trigger": "A new employee, a change of insured facts, or an exit.",
+				"timing": "The insured list within 30 days of hiring; changes by the 15th of the following month.",
+				"owner": "HR / SSO e-service",
+				"authority": "Social Security Act ss.33, 34, 44 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-12.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"description": "Deduct the employee share at every wage payment and remit both shares with the contribution return; 2% a month on late or short remittance.",
+				"trigger": "Each wage payment to an insured employee.",
+				"timing": "By the 15th of the month after the deduction.",
+				"owner": "Payroll / SSO",
+				"authority": "Social Security Act ss.47, 49 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-01, TH-SS-12.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"description": "File the monthly ภ.ง.ด.1 withholding return and remit the s.50(1) tax withheld.",
+				"trigger": "Each month with s.40(1) payments.",
+				"timing": "Within 7 days after the month of payment (15 days if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code ss.52, 58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"description": "File the annual ภ.ง.ด.1ก summary of s.40(1) payments and tax withheld.",
+				"trigger": "Each tax year with s.40(1) payments.",
+				"timing": "Within February of the following year (8 March if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code s.58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE",
+				"description": "Issue the two-copy s.50 bis withholding certificate to each payee.",
+				"trigger": "Year end, or a departure during the year.",
+				"timing": "By 15 February of the following year, or within one month after a departure.",
+				"owner": "Payroll",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html); register TH-PIT-09.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "FINAL_PAY_AND_SEVERANCE",
+				"description": "Pay wages, s.67 annual-leave pay, s.118 severance and ss.120–122 special severance on an employer termination (or a s.120 relocation objection), and s.17/1 pay in lieu of the missing s.17 notice (due on the day the employee leaves).",
+				"trigger": "An employer termination.",
+				"timing": "Within three days of termination (s.70 para.2).",
+				"owner": "HR / Payroll",
+				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf); register TH-EXIT-01–07.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "EWF_REMITTANCE",
+				"description": "Deduct the employee’s Employee Welfare Fund contribution and remit it with the employer’s matching share.",
+				"trigger": "Each wage payment by an employer of ten or more employees.",
+				"timing": "By the 15th of the following month.",
+				"owner": "Payroll / Employee Welfare Fund",
+				"authority": "Labour Protection Act ss.130–131; commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf); rate regulation (https://ratchakitcha.soc.go.th/documents/86102.pdf); register TH-EWF-01–03.",
+				"status": "PARTIAL"
+			}
+		]
+	},
+	{
+		"id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "TH",
+		"name": "Thailand — 1 October 2031 · Employee Welfare Fund 0.50%",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"effective_range": {
+			"start": "2031-10-01T00:00:00.000Z",
+			"end": "2032-01-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TH",
+		"change_summary": "Ministerial Regulation on Employee Welfare Fund contribution rates B.E.2568 (Gazette vol.142 part 60 Kor pp.3–4, 15 September 2025; Council of State copy https://www.ocs.go.th/searchlaw/law-index/item/13221) cl.3(2): from 1 October 2031 the employee’s contribution and the employer’s matching contribution are each 0.50% of the member’s wages (0.25% each 1 October 2026–30 September 2031, cl.3(1)). Every other row is carried unchanged from the 1 January 2029 version (s.33 base THB1,650–20,000, cl.3(2) of the base regulation).",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"ordinary_divisor_days": "30.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "HOL-1.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" || (day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "HOL-2.0X",
+					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"REST_DAY\" || day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				}
+			],
+			"limits": [
+				{
+					"key": "weekly_holiday",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"wages": {
+				"by_region": {},
+				"applies_when": "",
+				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
+				"daily_by_worksite": {
+					"Amnat Charoen": 347,
+					"Ang Thong": 348,
+					"Bangkok": 400,
+					"Bueng Kan": 349,
+					"Buriram": 352,
+					"Chachoengsao": 400,
+					"Chai Nat": 348,
+					"Chaiyaphum": 348,
+					"Chanthaburi": 352,
+					"Chiang Mai": 357,
+					"Chiang Mai/Mueang Chiang Mai": 380,
+					"Chiang Rai": 352,
+					"Chon Buri": 400,
+					"Chumphon": 351,
+					"Kalasin": 349,
+					"Kamphaeng Phet": 347,
+					"Kanchanaburi": 352,
+					"Khon Kaen": 357,
+					"Krabi": 354,
+					"Lampang": 347,
+					"Lamphun": 350,
+					"Loei": 347,
+					"Lop Buri": 356,
+					"Mae Hong Son": 347,
+					"Maha Sarakham": 347,
+					"Mukdahan": 352,
+					"Nakhon Nayok": 355,
+					"Nakhon Pathom": 372,
+					"Nakhon Phanom": 352,
+					"Nakhon Ratchasima": 359,
+					"Nakhon Sawan": 350,
+					"Nakhon Si Thammarat": 349,
+					"Nan": 345,
+					"Narathiwat": 337,
+					"Nong Bua Lamphu": 347,
+					"Nong Khai": 355,
+					"Nonthaburi": 372,
+					"Pathum Thani": 372,
+					"Pattani": 337,
+					"Phang Nga": 352,
+					"Phatthalung": 348,
+					"Phayao": 345,
+					"Phetchabun": 349,
+					"Phetchaburi": 351,
+					"Phichit": 347,
+					"Phitsanulok": 352,
+					"Phra Nakhon Si Ayutthaya": 357,
+					"Phrae": 345,
+					"Phuket": 400,
+					"Prachin Buri": 357,
+					"Prachuap Khiri Khan": 352,
+					"Ranong": 347,
+					"Ratchaburi": 347,
+					"Rayong": 400,
+					"Roi Et": 349,
+					"Sa Kaeo": 352,
+					"Sakon Nakhon": 352,
+					"Samut Prakan": 372,
+					"Samut Sakhon": 372,
+					"Samut Songkhram": 358,
+					"Saraburi": 357,
+					"Satun": 347,
+					"Sing Buri": 348,
+					"Sisaket": 347,
+					"Songkhla": 352,
+					"Songkhla/Hat Yai": 380,
+					"Sukhothai": 347,
+					"Suphan Buri": 355,
+					"Surat Thani": 352,
+					"Surat Thani/Ko Samui": 400,
+					"Surin": 351,
+					"Tak": 352,
+					"Trang": 345,
+					"Trat": 354,
+					"Ubon Ratchathani": 352,
+					"Udon Thani": 347,
+					"Uthai Thani": 347,
+					"Uttaradit": 347,
+					"Yala": 337,
+					"Yasothon": 350
+				},
+				"daily_by_sector": {
+					"HOTEL_TYPE_2": 400,
+					"HOTEL_TYPE_3": 400,
+					"HOTEL_TYPE_4": 400,
+					"SERVICE_ESTABLISHMENT": 400
+				},
+				"block_below_when": "true"
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * 8.0 : terms.monthly_wage / 30.0)",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
+			},
+			"authority": "Labour Protection Act B.E.2541 (consolidated through No.7 B.E.2562, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.23 normal hours at most eight a day (seven for hazardous work, not modelled); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 a monthly-paid employee is paid for weekly holidays, daily/hourly staff only for traditional holidays and annual leave; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). Overtime and holiday-work hour ceilings (Ministerial Regulation No.3 B.E.2541) and the s.27 breaks are not transcribed (register TH-WORK-07)."
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 3,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14626",
+				"https://ratchakitcha.soc.go.th/documents/98728.pdf",
+				"https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER2/DRAWER056/GENERAL/DATA0000/00000773.PDF",
+				"https://ratchakitcha.soc.go.th/documents/100888.pdf",
+				"https://www.rd.go.th/5937.html",
+				"https://www.rd.go.th/59670.html",
+				"https://www.rd.go.th/3558.html",
+				"https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins91_241268.pdf",
+				"https://ratchakitcha.soc.go.th/documents/84794.pdf",
+				"https://ratchakitcha.soc.go.th/documents/86102.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47755",
+				"https://www.rd.go.th/2502.html",
+				"https://www.rd.go.th/3213.html",
+				"https://www.rd.go.th/49994.html",
+				"https://www.ocs.go.th/searchlaw/law-index/item/13221"
+			],
+			"instructions": "Register: docs/inventory/thailand.md. The ratchakitcha.soc.go.th Gazette PDFs return HTTP 403 to scripted and in-app browser fetches (28 September 2026); the s.33 base regulation was read from the SSO’s own copy (download_by_pool_file/47755, Gazette vol.142 part 81 Kor, 12 December 2025); the flood and Employee Welfare Fund figures remain the register’s transcription."
+		},
+		"facts": [],
+		"exit_facts": [
+			{
+				"key": "dismissed_for_cause",
+				"type": "boolean",
+				"label": "Dismissed for a s.119 cause stated in the notice",
+				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
+				"required_when": "employment.exit_reason == \"DISMISSAL\""
+			},
+			{
+				"key": "fixed_term_project_exempt",
+				"type": "boolean",
+				"label": "Fixed-term project, occasional or seasonal work finished within two years",
+				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
+				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+			},
+			{
+				"key": "relocation_objection",
+				"type": "boolean",
+				"label": "Objected in writing to a workplace relocation (s.120)",
+				"description": "Labour Protection Act s.120 para.3: within 30 days of the relocation notice (or of the move), the employee told the employer in writing that the move materially affects their or their family’s life and did not go; the contract ends on the move and special severance of at least the s.118 rate is owed. Unrecorded is no."
+			},
+			{
+				"key": "relocation_notice_posted",
+				"type": "boolean",
+				"label": "Relocation notice posted 30 days ahead (s.120)",
+				"description": "Labour Protection Act s.120 paras 1–2: the employer posted the relocation notice at the workplace at least 30 days before the move; otherwise 30 days’ last wage is owed in lieu of notice to an employee who does not go. Unrecorded is no."
+			},
+			{
+				"key": "technology_restructuring",
+				"type": "boolean",
+				"label": "Terminated for machinery or technology restructuring (s.121)",
+				"description": "Labour Protection Act s.121: the termination follows a reorganisation of units, production, distribution or service because of machinery or a change of machinery or technology that reduces the workforce. Unrecorded is no."
+			},
+			{
+				"key": "technology_notice_60_days",
+				"type": "boolean",
+				"label": "60 days’ notice given to the inspector and the employee (s.121)",
+				"description": "Labour Protection Act s.121 para.1: the date, reason and employee list were notified to the labour inspector and the employee at least 60 days before the termination; otherwise 60 days’ last wage is owed in lieu of notice (para.2). Unrecorded is no."
+			},
+			{
+				"key": "notice_given_on",
+				"type": "string",
+				"label": "Termination notice date (YYYY-MM-DD, s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"obligations": [
+			{
+				"code": "SSO_REGISTRATION",
+				"description": "Register each s.33 insured employee (aged 15–60 on entry) with the Social Security Office and report changes.",
+				"trigger": "A new employee, a change of insured facts, or an exit.",
+				"timing": "The insured list within 30 days of hiring; changes by the 15th of the following month.",
+				"owner": "HR / SSO e-service",
+				"authority": "Social Security Act ss.33, 34, 44 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-12.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"description": "Deduct the employee share at every wage payment and remit both shares with the contribution return; 2% a month on late or short remittance.",
+				"trigger": "Each wage payment to an insured employee.",
+				"timing": "By the 15th of the month after the deduction.",
+				"owner": "Payroll / SSO",
+				"authority": "Social Security Act ss.47, 49 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-01, TH-SS-12.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"description": "File the monthly ภ.ง.ด.1 withholding return and remit the s.50(1) tax withheld.",
+				"trigger": "Each month with s.40(1) payments.",
+				"timing": "Within 7 days after the month of payment (15 days if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code ss.52, 58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"description": "File the annual ภ.ง.ด.1ก summary of s.40(1) payments and tax withheld.",
+				"trigger": "Each tax year with s.40(1) payments.",
+				"timing": "Within February of the following year (8 March if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code s.58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE",
+				"description": "Issue the two-copy s.50 bis withholding certificate to each payee.",
+				"trigger": "Year end, or a departure during the year.",
+				"timing": "By 15 February of the following year, or within one month after a departure.",
+				"owner": "Payroll",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html); register TH-PIT-09.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "FINAL_PAY_AND_SEVERANCE",
+				"description": "Pay wages, s.67 annual-leave pay, s.118 severance and ss.120–122 special severance on an employer termination (or a s.120 relocation objection), and s.17/1 pay in lieu of the missing s.17 notice (due on the day the employee leaves).",
+				"trigger": "An employer termination.",
+				"timing": "Within three days of termination (s.70 para.2).",
+				"owner": "HR / Payroll",
+				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf); register TH-EXIT-01–07.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "EWF_REMITTANCE",
+				"description": "Deduct the employee’s Employee Welfare Fund contribution and remit it with the employer’s matching share.",
+				"trigger": "Each wage payment by an employer of ten or more employees.",
+				"timing": "By the 15th of the following month.",
+				"owner": "Payroll / Employee Welfare Fund",
+				"authority": "Labour Protection Act ss.130–131; commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf); rate regulation (https://ratchakitcha.soc.go.th/documents/86102.pdf); register TH-EWF-01–03.",
+				"status": "PARTIAL"
+			}
+		]
+	},
+	{
+		"id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "TH",
+		"name": "Thailand — 1 January 2032 · SSO ceiling THB23,000",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"effective_range": {
+			"start": "2032-01-01T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TH",
+		"change_summary": "Ministerial Regulation on the minimum and maximum wages for s.33 contributions B.E.2568 (Gazette vol.142 part 81 Kor, 12 December 2025; SSO copy https://www.sso.go.th/wpr/download/download_by_pool_file/47755) cl.3(3): the s.33 contribution wage base is THB1,650 to THB23,000 a month from 1 January 2032; the 5% rate (2565 rate regulation, Schedule B) is unchanged, so each share is at most THB1,150. Every other row is carried unchanged; the Employee Welfare Fund is 0.50% each side (EWF rate regulation B.E.2568 cl.3(2), from 1 October 2031).",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"ordinary_divisor_days": "30.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				},
+				{
+					"label": "HOL-1.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\" || (day_type == \"REST_DAY\" && person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "HOL-2.0X",
+					"when": "day_type == \"REST_DAY\" && !(person.terms.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\"])",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"REST_DAY\" || day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				}
+			],
+			"limits": [
+				{
+					"key": "weekly_holiday",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"wages": {
+				"by_region": {},
+				"applies_when": "",
+				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
+				"daily_by_worksite": {
+					"Amnat Charoen": 347,
+					"Ang Thong": 348,
+					"Bangkok": 400,
+					"Bueng Kan": 349,
+					"Buriram": 352,
+					"Chachoengsao": 400,
+					"Chai Nat": 348,
+					"Chaiyaphum": 348,
+					"Chanthaburi": 352,
+					"Chiang Mai": 357,
+					"Chiang Mai/Mueang Chiang Mai": 380,
+					"Chiang Rai": 352,
+					"Chon Buri": 400,
+					"Chumphon": 351,
+					"Kalasin": 349,
+					"Kamphaeng Phet": 347,
+					"Kanchanaburi": 352,
+					"Khon Kaen": 357,
+					"Krabi": 354,
+					"Lampang": 347,
+					"Lamphun": 350,
+					"Loei": 347,
+					"Lop Buri": 356,
+					"Mae Hong Son": 347,
+					"Maha Sarakham": 347,
+					"Mukdahan": 352,
+					"Nakhon Nayok": 355,
+					"Nakhon Pathom": 372,
+					"Nakhon Phanom": 352,
+					"Nakhon Ratchasima": 359,
+					"Nakhon Sawan": 350,
+					"Nakhon Si Thammarat": 349,
+					"Nan": 345,
+					"Narathiwat": 337,
+					"Nong Bua Lamphu": 347,
+					"Nong Khai": 355,
+					"Nonthaburi": 372,
+					"Pathum Thani": 372,
+					"Pattani": 337,
+					"Phang Nga": 352,
+					"Phatthalung": 348,
+					"Phayao": 345,
+					"Phetchabun": 349,
+					"Phetchaburi": 351,
+					"Phichit": 347,
+					"Phitsanulok": 352,
+					"Phra Nakhon Si Ayutthaya": 357,
+					"Phrae": 345,
+					"Phuket": 400,
+					"Prachin Buri": 357,
+					"Prachuap Khiri Khan": 352,
+					"Ranong": 347,
+					"Ratchaburi": 347,
+					"Rayong": 400,
+					"Roi Et": 349,
+					"Sa Kaeo": 352,
+					"Sakon Nakhon": 352,
+					"Samut Prakan": 372,
+					"Samut Sakhon": 372,
+					"Samut Songkhram": 358,
+					"Saraburi": 357,
+					"Satun": 347,
+					"Sing Buri": 348,
+					"Sisaket": 347,
+					"Songkhla": 352,
+					"Songkhla/Hat Yai": 380,
+					"Sukhothai": 347,
+					"Suphan Buri": 355,
+					"Surat Thani": 352,
+					"Surat Thani/Ko Samui": 400,
+					"Surin": 351,
+					"Tak": 352,
+					"Trang": 345,
+					"Trat": 354,
+					"Ubon Ratchathani": 352,
+					"Udon Thani": 347,
+					"Uthai Thani": 347,
+					"Uttaradit": 347,
+					"Yala": 337,
+					"Yasothon": 350
+				},
+				"daily_by_sector": {
+					"HOTEL_TYPE_2": 400,
+					"HOTEL_TYPE_3": 400,
+					"HOTEL_TYPE_4": 400,
+					"SERVICE_ESTABLISHMENT": 400
+				},
+				"block_below_when": "true"
+			},
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * 8.0 : terms.monthly_wage / 30.0)",
+				"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
+			},
+			"authority": "Labour Protection Act B.E.2541 (consolidated through No.7 B.E.2562, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.23 normal hours at most eight a day (seven for hazardous work, not modelled); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 a monthly-paid employee is paid for weekly holidays, daily/hourly staff only for traditional holidays and annual leave; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). Overtime and holiday-work hour ceilings (Ministerial Regulation No.3 B.E.2541) and the s.27 breaks are not transcribed (register TH-WORK-07)."
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_due_days": 3,
+			"final_pay_deadlines": [
+				{
+					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"days": 3,
+					"basis": "EVENT_DATE",
+					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14626",
+				"https://ratchakitcha.soc.go.th/documents/98728.pdf",
+				"https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER2/DRAWER056/GENERAL/DATA0000/00000773.PDF",
+				"https://ratchakitcha.soc.go.th/documents/100888.pdf",
+				"https://www.rd.go.th/5937.html",
+				"https://www.rd.go.th/59670.html",
+				"https://www.rd.go.th/3558.html",
+				"https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins91_241268.pdf",
+				"https://ratchakitcha.soc.go.th/documents/84794.pdf",
+				"https://ratchakitcha.soc.go.th/documents/86102.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47755",
+				"https://www.rd.go.th/2502.html",
+				"https://www.rd.go.th/3213.html",
+				"https://www.rd.go.th/49994.html",
+				"https://www.ocs.go.th/searchlaw/law-index/item/13221"
+			],
+			"instructions": "Register: docs/inventory/thailand.md. The ratchakitcha.soc.go.th Gazette PDFs return HTTP 403 to scripted and in-app browser fetches (28 September 2026); the s.33 base regulation was read from the SSO’s own copy (download_by_pool_file/47755, Gazette vol.142 part 81 Kor, 12 December 2025); the flood and Employee Welfare Fund figures remain the register’s transcription."
+		},
+		"facts": [],
+		"exit_facts": [
+			{
+				"key": "dismissed_for_cause",
+				"type": "boolean",
+				"label": "Dismissed for a s.119 cause stated in the notice",
+				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
+				"required_when": "employment.exit_reason == \"DISMISSAL\""
+			},
+			{
+				"key": "fixed_term_project_exempt",
+				"type": "boolean",
+				"label": "Fixed-term project, occasional or seasonal work finished within two years",
+				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
+				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+			},
+			{
+				"key": "relocation_objection",
+				"type": "boolean",
+				"label": "Objected in writing to a workplace relocation (s.120)",
+				"description": "Labour Protection Act s.120 para.3: within 30 days of the relocation notice (or of the move), the employee told the employer in writing that the move materially affects their or their family’s life and did not go; the contract ends on the move and special severance of at least the s.118 rate is owed. Unrecorded is no."
+			},
+			{
+				"key": "relocation_notice_posted",
+				"type": "boolean",
+				"label": "Relocation notice posted 30 days ahead (s.120)",
+				"description": "Labour Protection Act s.120 paras 1–2: the employer posted the relocation notice at the workplace at least 30 days before the move; otherwise 30 days’ last wage is owed in lieu of notice to an employee who does not go. Unrecorded is no."
+			},
+			{
+				"key": "technology_restructuring",
+				"type": "boolean",
+				"label": "Terminated for machinery or technology restructuring (s.121)",
+				"description": "Labour Protection Act s.121: the termination follows a reorganisation of units, production, distribution or service because of machinery or a change of machinery or technology that reduces the workforce. Unrecorded is no."
+			},
+			{
+				"key": "technology_notice_60_days",
+				"type": "boolean",
+				"label": "60 days’ notice given to the inspector and the employee (s.121)",
+				"description": "Labour Protection Act s.121 para.1: the date, reason and employee list were notified to the labour inspector and the employee at least 60 days before the termination; otherwise 60 days’ last wage is owed in lieu of notice (para.2). Unrecorded is no."
+			},
+			{
+				"key": "notice_given_on",
+				"type": "string",
+				"label": "Termination notice date (YYYY-MM-DD, s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"obligations": [
+			{
+				"code": "SSO_REGISTRATION",
+				"description": "Register each s.33 insured employee (aged 15–60 on entry) with the Social Security Office and report changes.",
+				"trigger": "A new employee, a change of insured facts, or an exit.",
+				"timing": "The insured list within 30 days of hiring; changes by the 15th of the following month.",
+				"owner": "HR / SSO e-service",
+				"authority": "Social Security Act ss.33, 34, 44 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-12.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"description": "Deduct the employee share at every wage payment and remit both shares with the contribution return; 2% a month on late or short remittance.",
+				"trigger": "Each wage payment to an insured employee.",
+				"timing": "By the 15th of the month after the deduction.",
+				"owner": "Payroll / SSO",
+				"authority": "Social Security Act ss.47, 49 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626); register TH-SS-01, TH-SS-12.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"description": "File the monthly ภ.ง.ด.1 withholding return and remit the s.50(1) tax withheld.",
+				"trigger": "Each month with s.40(1) payments.",
+				"timing": "Within 7 days after the month of payment (15 days if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code ss.52, 58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"description": "File the annual ภ.ง.ด.1ก summary of s.40(1) payments and tax withheld.",
+				"trigger": "Each tax year with s.40(1) payments.",
+				"timing": "Within February of the following year (8 March if e-filed).",
+				"owner": "Payroll / Revenue Department",
+				"authority": "Revenue Code s.58 (https://www.rd.go.th/5937.html); register TH-PIT-04.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE",
+				"description": "Issue the two-copy s.50 bis withholding certificate to each payee.",
+				"trigger": "Year end, or a departure during the year.",
+				"timing": "By 15 February of the following year, or within one month after a departure.",
+				"owner": "Payroll",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html); register TH-PIT-09.",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "FINAL_PAY_AND_SEVERANCE",
+				"description": "Pay wages, s.67 annual-leave pay, s.118 severance and ss.120–122 special severance on an employer termination (or a s.120 relocation objection), and s.17/1 pay in lieu of the missing s.17 notice (due on the day the employee leaves).",
+				"trigger": "An employer termination.",
+				"timing": "Within three days of termination (s.70 para.2).",
+				"owner": "HR / Payroll",
+				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf); register TH-EXIT-01–07.",
+				"status": "PARTIAL"
+			},
+			{
+				"code": "EWF_REMITTANCE",
+				"description": "Deduct the employee’s Employee Welfare Fund contribution and remit it with the employer’s matching share.",
+				"trigger": "Each wage payment by an employer of ten or more employees.",
+				"timing": "By the 15th of the following month.",
+				"owner": "Payroll / Employee Welfare Fund",
+				"authority": "Labour Protection Act ss.130–131; commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf); rate regulation (https://ratchakitcha.soc.go.th/documents/86102.pdf); register TH-EWF-01–03.",
+				"status": "PARTIAL"
+			}
+		]
+	}
+]

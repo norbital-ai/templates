@@ -134,6 +134,7 @@ const settings = collection('jurisdiction_settings', {
 							'assessment_period',
 							'assessment_scope',
 							'remittance_rounding',
+							'remittance_rounding_when',
 							'unregistered_action',
 							'registration_subject',
 							'opening_scope',

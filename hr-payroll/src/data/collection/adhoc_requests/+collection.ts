@@ -34,6 +34,7 @@ const c = collection('adhoc_requests', {
 				'reason',
 				'evidence_file',
 				'as_adjustment_entry',
+				'late_wage',
 				'pay_period'
 			]
 		}
@@ -48,6 +49,7 @@ const c = collection('adhoc_requests', {
 				'reason',
 				'evidence_file',
 				'as_adjustment_entry',
+				'late_wage',
 				'pay_period'
 			]
 		}

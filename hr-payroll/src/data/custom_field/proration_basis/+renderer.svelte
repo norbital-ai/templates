@@ -22,7 +22,9 @@
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
 		if (current.by === 'FIXED_DAYS') return `Fixed ${current.days} days`;
-		return current.by === 'CALENDAR_DAYS' ? 'Calendar days' : 'Working days';
+		if (current.by === 'CALENDAR_DAYS')
+			return current.days == null ? 'Calendar days' : `Calendar days over ${current.days}`;
+		return 'Working days';
 	});
 
 	function emit(next: Value | null): void {
@@ -64,7 +66,23 @@
 			placeholder={t('renderer.proration_basis.select_basis')}
 			onChange={selectBasis}
 		/>
-		{#if current?.by === 'FIXED_DAYS'}
+		{#if current?.by === 'CALENDAR_DAYS'}
+			<Labelled label={t('renderer.proration_basis.days')} class="text-xs" muted>
+				<Input
+					type="number"
+					min="1"
+					step="1"
+					value={current.days ?? ''}
+					{disabled}
+					oninput={(event) =>
+						emit(
+							event.currentTarget.value === ''
+								? { by: 'CALENDAR_DAYS' }
+								: { by: 'CALENDAR_DAYS', days: numberFrom(event.currentTarget.value, 30) }
+						)}
+				/>
+			</Labelled>
+		{:else if current?.by === 'FIXED_DAYS'}
 			<Labelled label={t('renderer.proration_basis.days')} class="text-xs" muted>
 				<Input
 					type="number"

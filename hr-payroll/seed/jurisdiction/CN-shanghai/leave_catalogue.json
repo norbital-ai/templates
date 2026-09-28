@@ -1,0 +1,682 @@
+[
+	{
+		"id": "678352cd-120c-5b9f-89af-5f9e20cab2fa",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "UNPAID_LEAVE",
+		"name": "Personal leave, unpaid (事假)",
+		"authority": "Interim Wage Payment Regulation (劳部发〔1994〕489号) arts.11–12 list the paid absences; personal leave outside them is unpaid, deducted at the monthly wage ÷ 21.75 a day (人社部发〔2025〕2号).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e594cee2-2c74-5db2-b411-ff0094a38c9b",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (带薪年休假)",
+		"authority": "职工带薪年休假条例 (State Council Order 514, from 1 January 2008, https://xzfg.moj.gov.cn/front/law/detail?LawID=208) art.2: a worker in continuous work for more than twelve months is entitled; art.3: cumulative service 1–10 years 5 days, 10–20 years 10, 20 or more 15 (statutory holidays and rest days inside it not counted); art.5: unused days paid at 300% of the day wage. 企业职工带薪年休假实施办法 (MOHRSS Order 1, from 18 September 2008, https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html) art.3: the twelve months may be with this or earlier employers; art.4: service with every employer counts toward the ladder (`employment.prior_service_months`); art.5: a new hire’s year is the calendar days left with this employer ÷ 365 × the full days, the part day dropped; art.12: a leaver’s year is (calendar days with this employer this year ÷ 365) × the full days less days taken, the part day dropped, no clawback of excess. Not modelled: the art.4 disqualifications (long paid personal or sick leave), a leap year read as 366 by CALENDAR_DAYS rather than the measure’s 365, and deemed service (register CN-N05, CN-N18).",
+		"eligibility": "employment.service_months + employment.prior_service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "WHOLE_DAY_DOWN",
+			"encash_on_exit_when": "",
+			"bands": [
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 240",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 120",
+					"days": 10
+				},
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "1f03a4e9-1bcf-5cd0-b782-2d69e8908333",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (产假及生育假)",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: a lawful birth adds 60 days of 生育假, taken with the maternity leave and paid as it; the added days extend past a statutory holiday. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The maternity allowance offset against the wage (沪医保规〔2026〕5号, register CN-SH14) is outside this row.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_4M\"",
+					"days": 42
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_MULTIPLE_BIRTH\"",
+					"days": "188.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
+					"days": "173.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_BIRTH\"",
+					"days": 173
+				},
+				{
+					"eligibility": "",
+					"days": 158
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8a856bdb-7485-5a23-9d26-6ba8f479e797",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (配偶陪产假)",
+		"authority": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: the husband of a lawfully birthing couple (夫妻) has 10 days of 配偶陪产假, taken continuously during the wife’s maternity leave at the normal wage; extended past a statutory holiday.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "f442bb2a-7098-5f6d-9010-48dc7107e0d0",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: a lawfully marrying citizen has 7 more days, normally taken with them. The seed grants the national three (the discretionary maximum) plus seven: 10. A unit that grants fewer national days lowers this row.",
+		"eligibility": "event.kind == \"MARRIAGE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "170ff497-3214-5a77-9358-c2778fb5f6e4",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave (育儿假)",
+		"authority": "上海市人口与计划生育条例 and 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.3: lawfully married parents each have 5 days of 育儿假 a year until their child turns three, counted by the number of children, at normal pay; each year runs from the child's birth date. 上海市卫生健康委 口径 (Dec 2021, https://www.shqp.gov.cn/wsjkw/wsjkw/upload/202112/1202_170513_376.pdf) Q3–Q4: the year is the child's anniversary year (born 1 December 2021: to 30 November 2022), used within it. Each parent holds the days separately. The lawful-birth test is the operator’s record (register CN-SH13).",
+		"eligibility": "children.under(3) >= 1",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"child_years": true,
+			"bands": [
+				{
+					"eligibility": "children.under(3) >= 1",
+					"days": "5.0 * double(children.under(3))"
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "9adab635-01fc-5fbf-afa8-930fbae52b5d",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "UNPAID_LEAVE",
+		"name": "Personal leave, unpaid (事假)",
+		"authority": "Interim Wage Payment Regulation (劳部发〔1994〕489号) arts.11–12 list the paid absences; personal leave outside them is unpaid, deducted at the monthly wage ÷ 21.75 a day (人社部发〔2025〕2号).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cd09a53d-c6c2-5394-8f68-094682326e9c",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (带薪年休假)",
+		"authority": "职工带薪年休假条例 (State Council Order 514, from 1 January 2008, https://xzfg.moj.gov.cn/front/law/detail?LawID=208) art.2: a worker in continuous work for more than twelve months is entitled; art.3: cumulative service 1–10 years 5 days, 10–20 years 10, 20 or more 15 (statutory holidays and rest days inside it not counted); art.5: unused days paid at 300% of the day wage. 企业职工带薪年休假实施办法 (MOHRSS Order 1, from 18 September 2008, https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html) art.3: the twelve months may be with this or earlier employers; art.4: service with every employer counts toward the ladder (`employment.prior_service_months`); art.5: a new hire’s year is the calendar days left with this employer ÷ 365 × the full days, the part day dropped; art.12: a leaver’s year is (calendar days with this employer this year ÷ 365) × the full days less days taken, the part day dropped, no clawback of excess. Not modelled: the art.4 disqualifications (long paid personal or sick leave), a leap year read as 366 by CALENDAR_DAYS rather than the measure’s 365, and deemed service (register CN-N05, CN-N18).",
+		"eligibility": "employment.service_months + employment.prior_service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "WHOLE_DAY_DOWN",
+			"encash_on_exit_when": "",
+			"bands": [
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 240",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 120",
+					"days": 10
+				},
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "f126c2d6-2e78-5005-8ede-5e5ca9dc0253",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (产假及生育假)",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: a lawful birth adds 60 days of 生育假, taken with the maternity leave and paid as it; the added days extend past a statutory holiday. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The maternity allowance offset against the wage (沪医保规〔2026〕5号, register CN-SH14) is outside this row.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_4M\"",
+					"days": 42
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_MULTIPLE_BIRTH\"",
+					"days": "188.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
+					"days": "173.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_BIRTH\"",
+					"days": 173
+				},
+				{
+					"eligibility": "",
+					"days": 158
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "80639dba-52a4-505b-b42f-fa0e6d43f3d7",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (配偶陪产假)",
+		"authority": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: the husband of a lawfully birthing couple (夫妻) has 10 days of 配偶陪产假, taken continuously during the wife’s maternity leave at the normal wage; extended past a statutory holiday.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "db9f1ef2-acee-516e-a0d8-3f34edcb2bcd",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: a lawfully marrying citizen has 7 more days, normally taken with them. The seed grants the national three (the discretionary maximum) plus seven: 10. A unit that grants fewer national days lowers this row.",
+		"eligibility": "event.kind == \"MARRIAGE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3d7a88d0-22e3-5e5e-b4fd-e193fd7944a4",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave (育儿假)",
+		"authority": "上海市人口与计划生育条例 and 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.3: lawfully married parents each have 5 days of 育儿假 a year until their child turns three, counted by the number of children, at normal pay; each year runs from the child's birth date. 上海市卫生健康委 口径 (Dec 2021, https://www.shqp.gov.cn/wsjkw/wsjkw/upload/202112/1202_170513_376.pdf) Q3–Q4: the year is the child's anniversary year (born 1 December 2021: to 30 November 2022), used within it. Each parent holds the days separately. The lawful-birth test is the operator’s record (register CN-SH13).",
+		"eligibility": "children.under(3) >= 1",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"child_years": true,
+			"bands": [
+				{
+					"eligibility": "children.under(3) >= 1",
+					"days": "5.0 * double(children.under(3))"
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "5c560547-cd34-574f-81ce-72c7776ee5d5",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "UNPAID_LEAVE",
+		"name": "Personal leave, unpaid (事假)",
+		"authority": "Interim Wage Payment Regulation (劳部发〔1994〕489号) arts.11–12 list the paid absences; personal leave outside them is unpaid, deducted at the monthly wage ÷ 21.75 a day (人社部发〔2025〕2号).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ea0ed9d7-8059-5804-857c-a888801169cf",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (带薪年休假)",
+		"authority": "职工带薪年休假条例 (State Council Order 514, from 1 January 2008, https://xzfg.moj.gov.cn/front/law/detail?LawID=208) art.2: a worker in continuous work for more than twelve months is entitled; art.3: cumulative service 1–10 years 5 days, 10–20 years 10, 20 or more 15 (statutory holidays and rest days inside it not counted); art.5: unused days paid at 300% of the day wage. 企业职工带薪年休假实施办法 (MOHRSS Order 1, from 18 September 2008, https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html) art.3: the twelve months may be with this or earlier employers; art.4: service with every employer counts toward the ladder (`employment.prior_service_months`); art.5: a new hire’s year is the calendar days left with this employer ÷ 365 × the full days, the part day dropped; art.12: a leaver’s year is (calendar days with this employer this year ÷ 365) × the full days less days taken, the part day dropped, no clawback of excess. Not modelled: the art.4 disqualifications (long paid personal or sick leave), a leap year read as 366 by CALENDAR_DAYS rather than the measure’s 365, and deemed service (register CN-N05, CN-N18).",
+		"eligibility": "employment.service_months + employment.prior_service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "WHOLE_DAY_DOWN",
+			"encash_on_exit_when": "",
+			"bands": [
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 240",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 120",
+					"days": 10
+				},
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "9eb12b59-6c0c-5871-98f7-b88ba0570592",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (产假及生育假)",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: a lawful birth adds 60 days of 生育假, taken with the maternity leave and paid as it; the added days extend past a statutory holiday. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The maternity allowance offset against the wage (沪医保规〔2026〕5号, register CN-SH14) is outside this row.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_4M\"",
+					"days": 42
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_MULTIPLE_BIRTH\"",
+					"days": "188.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
+					"days": "173.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_BIRTH\"",
+					"days": 173
+				},
+				{
+					"eligibility": "",
+					"days": 158
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d66204a4-cb4e-5708-af80-37f6ae4c6901",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (配偶陪产假)",
+		"authority": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: the husband of a lawfully birthing couple (夫妻) has 10 days of 配偶陪产假, taken continuously during the wife’s maternity leave at the normal wage; extended past a statutory holiday.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d2465609-6266-5d45-9a9f-780cdf56a342",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: a lawfully marrying citizen has 7 more days, normally taken with them. The seed grants the national three (the discretionary maximum) plus seven: 10. A unit that grants fewer national days lowers this row.",
+		"eligibility": "event.kind == \"MARRIAGE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e1988ef7-1084-5c4e-871c-4d5641fc20e0",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave (育儿假)",
+		"authority": "上海市人口与计划生育条例 and 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.3: lawfully married parents each have 5 days of 育儿假 a year until their child turns three, counted by the number of children, at normal pay; each year runs from the child's birth date. 上海市卫生健康委 口径 (Dec 2021, https://www.shqp.gov.cn/wsjkw/wsjkw/upload/202112/1202_170513_376.pdf) Q3–Q4: the year is the child's anniversary year (born 1 December 2021: to 30 November 2022), used within it. Each parent holds the days separately. The lawful-birth test is the operator’s record (register CN-SH13).",
+		"eligibility": "children.under(3) >= 1",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"child_years": true,
+			"bands": [
+				{
+					"eligibility": "children.under(3) >= 1",
+					"days": "5.0 * double(children.under(3))"
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "7fa9c424-d4c9-5d07-9bcb-fec00d2aa8dd",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "UNPAID_LEAVE",
+		"name": "Personal leave, unpaid (事假)",
+		"authority": "Interim Wage Payment Regulation (劳部发〔1994〕489号) arts.11–12 list the paid absences; personal leave outside them is unpaid, deducted at the monthly wage ÷ 21.75 a day (人社部发〔2025〕2号).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "de8084a1-5a7a-5128-babd-46a69b20a8bf",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (带薪年休假)",
+		"authority": "职工带薪年休假条例 (State Council Order 514, from 1 January 2008, https://xzfg.moj.gov.cn/front/law/detail?LawID=208) art.2: a worker in continuous work for more than twelve months is entitled; art.3: cumulative service 1–10 years 5 days, 10–20 years 10, 20 or more 15 (statutory holidays and rest days inside it not counted); art.5: unused days paid at 300% of the day wage. 企业职工带薪年休假实施办法 (MOHRSS Order 1, from 18 September 2008, https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html) art.3: the twelve months may be with this or earlier employers; art.4: service with every employer counts toward the ladder (`employment.prior_service_months`); art.5: a new hire’s year is the calendar days left with this employer ÷ 365 × the full days, the part day dropped; art.12: a leaver’s year is (calendar days with this employer this year ÷ 365) × the full days less days taken, the part day dropped, no clawback of excess. Not modelled: the art.4 disqualifications (long paid personal or sick leave), a leap year read as 366 by CALENDAR_DAYS rather than the measure’s 365, and deemed service (register CN-N05, CN-N18).",
+		"eligibility": "employment.service_months + employment.prior_service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "WHOLE_DAY_DOWN",
+			"encash_on_exit_when": "",
+			"bands": [
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 240",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 120",
+					"days": 10
+				},
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "68a06b1c-9ace-59a6-81e9-d9758e5ca043",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (产假及生育假)",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: a lawful birth adds 60 days of 生育假, taken with the maternity leave and paid as it; the added days extend past a statutory holiday. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The maternity allowance offset against the wage (沪医保规〔2026〕5号, register CN-SH14) is outside this row.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_4M\"",
+					"days": 42
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_MULTIPLE_BIRTH\"",
+					"days": "188.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
+					"days": "173.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_BIRTH\"",
+					"days": 173
+				},
+				{
+					"eligibility": "",
+					"days": 158
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "dc8baf25-363c-5b26-9379-b8df023d70b7",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (配偶陪产假)",
+		"authority": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: the husband of a lawfully birthing couple (夫妻) has 10 days of 配偶陪产假, taken continuously during the wife’s maternity leave at the normal wage; extended past a statutory holiday.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8857439a-b4bb-5960-8f4f-6658cc70bc18",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.2: a lawfully marrying citizen has 7 more days, normally taken with them. The seed grants the national three (the discretionary maximum) plus seven: 10. A unit that grants fewer national days lowers this row.",
+		"eligibility": "event.kind == \"MARRIAGE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "a8aeb76b-5146-5779-a6a4-43b108c4245a",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave (育儿假)",
+		"authority": "上海市人口与计划生育条例 and 上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号, from 1 November 2022 to 31 October 2027, https://www.shanghai.gov.cn/nw12344/20221110/87151565cd6246c99854c129797d178c.html) art.3: lawfully married parents each have 5 days of 育儿假 a year until their child turns three, counted by the number of children, at normal pay; each year runs from the child's birth date. 上海市卫生健康委 口径 (Dec 2021, https://www.shqp.gov.cn/wsjkw/wsjkw/upload/202112/1202_170513_376.pdf) Q3–Q4: the year is the child's anniversary year (born 1 December 2021: to 30 November 2022), used within it. Each parent holds the days separately. The lawful-birth test is the operator’s record (register CN-SH13).",
+		"eligibility": "children.under(3) >= 1",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"child_years": true,
+			"bands": [
+				{
+					"eligibility": "children.under(3) >= 1",
+					"days": "5.0 * double(children.under(3))"
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	}
+]

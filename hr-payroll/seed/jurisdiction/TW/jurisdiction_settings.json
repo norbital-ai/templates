@@ -15,7 +15,8 @@
 		"change_summary": "民國114年 tables: minimum wage 28,590, 12 勞保 grades to 45,800, 59 健保 grades to 313,000, 勞退 grade 24 = 28,590 → 1,715.40; LI 11.5% + EI 1%, NHI 5.17%, the 職災 industry table in force 2025-01-01, and the non-resident 6% breakpoint at 42,885.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -559,8 +560,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -613,9 +614,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -629,7 +632,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -639,7 +642,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -659,7 +674,8 @@
 		"change_summary": "民國115年 tables from the 29,500 minimum wage: 11 勞保 grades, 58 健保 grades, 勞退 grade 25 = 29,500 → 1,770, the non-resident 6% breakpoint at 44,250; the 2025-12-09 勞工請假規則 amendment and 育嬰留職停薪 day-unit flexibility; foreign professionals enter 勞退新制.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -1204,8 +1220,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -1267,9 +1283,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -1283,7 +1301,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -1293,7 +1311,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -1313,7 +1343,8 @@
 		"change_summary": "勞保條例 §13’s 2027 step: the ordinary rate rises from 11.5% to 12% (13% combined with 就業保險) on the 115年 ladder; the 116年 grade tables await the 116年 minimum wage. The 116年 holiday calendar is transcribed.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -1858,8 +1889,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -1921,9 +1952,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -1937,7 +1970,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -1947,7 +1980,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -1967,7 +2012,8 @@
 		"change_summary": "民國114年 tables: minimum wage 28,590, 12 勞保 grades to 45,800, 59 健保 grades to 313,000, 勞退 grade 24 = 28,590 → 1,715.40; LI 11.5% + EI 1%, NHI 5.17%, the 職災 industry table in force 2025-01-01, and the non-resident 6% breakpoint at 42,885. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2).",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -2512,8 +2558,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -2566,9 +2612,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -2582,7 +2630,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -2592,7 +2640,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -2612,7 +2672,8 @@
 		"change_summary": "民國115年 tables from the 29,500 minimum wage: 11 勞保 grades, 58 健保 grades, 勞退 grade 25 = 29,500 → 1,770, the non-resident 6% breakpoint at 44,250; the 2025-12-09 勞工請假規則 amendment and 育嬰留職停薪 day-unit flexibility; foreign professionals enter 勞退新制. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2).",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -3158,8 +3219,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -3221,9 +3282,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -3237,7 +3300,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -3247,7 +3310,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -3267,7 +3342,8 @@
 		"change_summary": "勞保條例 §13’s 2027 step: the ordinary rate rises from 11.5% to 12% (13% combined with 就業保險) on the 115年 ladder; the 116年 grade tables await the 116年 minimum wage. The 116年 holiday calendar is transcribed. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2).",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -3813,8 +3889,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -3876,9 +3952,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -3892,7 +3970,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -3902,7 +3980,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -3922,7 +4012,8 @@
 		"change_summary": "民國114年 tables: minimum wage 28,590, 12 勞保 grades to 45,800, 59 健保 grades to 313,000, 勞退 grade 24 = 28,590 → 1,715.40; LI 11.5% + EI 1%, NHI 5.17%, the 職災 industry table in force 2025-01-01, and the non-resident 6% breakpoint at 42,885. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2). Monthly-paid part-time minimum wage uses the published monthly minimum in proportion to contracted weekly hours / 40, per MOL part-time guidance §6(2)(1); the distinct hourly minimum governs hourly-paid workers. A daily-paid part-timer is held to the hourly minimum times agreed normal hours per day.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -4469,8 +4560,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -4523,9 +4614,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -4539,7 +4632,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -4549,7 +4642,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -4569,7 +4674,8 @@
 		"change_summary": "民國115年 tables from the 29,500 minimum wage: 11 勞保 grades, 58 健保 grades, 勞退 grade 25 = 29,500 → 1,770, the non-resident 6% breakpoint at 44,250; the 2025-12-09 勞工請假規則 amendment and 育嬰留職停薪 day-unit flexibility; foreign professionals enter 勞退新制. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2). Monthly-paid part-time minimum wage uses the published monthly minimum in proportion to contracted weekly hours / 40, per MOL part-time guidance §6(2)(1); the distinct hourly minimum governs hourly-paid workers. A daily-paid part-timer is held to the hourly minimum times agreed normal hours per day.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -5117,8 +5223,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -5180,9 +5286,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -5196,7 +5304,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -5206,7 +5314,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -5226,7 +5346,8 @@
 		"change_summary": "勞保條例 §13’s 2027 step: the ordinary rate rises from 11.5% to 12% (13% combined with 就業保險) on the 115年 ladder; the 116年 grade tables await the 116年 minimum wage. The 116年 holiday calendar is transcribed. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2). Monthly-paid part-time minimum wage uses the published monthly minimum in proportion to contracted weekly hours / 40, per MOL part-time guidance §6(2)(1); the distinct hourly minimum governs hourly-paid workers. A daily-paid part-timer is held to the hourly minimum times agreed normal hours per day.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -5774,8 +5895,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -5837,9 +5958,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -5853,7 +5976,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -5863,7 +5986,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -5883,7 +6018,8 @@
 		"change_summary": "民國115年 tables from the 29,500 minimum wage: 11 勞保 grades, 58 健保 grades, 勞退 grade 25 = 29,500 → 1,770, the non-resident 6% breakpoint at 44,250; the 2025-12-09 勞工請假規則 amendment and 育嬰留職停薪 day-unit flexibility; foreign professionals enter 勞退新制. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2). Monthly-paid part-time minimum wage uses the published monthly minimum in proportion to contracted weekly hours / 40, per MOL part-time guidance §6(2)(1); the distinct hourly minimum governs hourly-paid workers. A daily-paid part-timer is held to the hourly minimum times agreed normal hours per day. Personal leave for a reason other than personally caring for a family member is day-unit; the separate family-care catalogue alone allows hourly taking and consumes the personal-leave quota (Leave Regulations art. 7, effective 2026-01-01).",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -6432,8 +6568,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -6504,9 +6640,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -6520,7 +6658,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -6530,7 +6668,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -6550,7 +6700,8 @@
 		"change_summary": "勞保條例 §13’s 2027 step: the ordinary rate rises from 11.5% to 12% (13% combined with 就業保險) on the 115年 ladder; the 116年 grade tables await the 116年 minimum wage. The 116年 holiday calendar is transcribed. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2). Monthly-paid part-time minimum wage uses the published monthly minimum in proportion to contracted weekly hours / 40, per MOL part-time guidance §6(2)(1); the distinct hourly minimum governs hourly-paid workers. A daily-paid part-timer is held to the hourly minimum times agreed normal hours per day. Personal leave for a reason other than personally caring for a family member is day-unit; the separate family-care catalogue alone allows hourly taking and consumes the personal-leave quota (Leave Regulations art. 7, effective 2026-01-01).",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -7099,8 +7250,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -7171,9 +7322,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -7187,7 +7340,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -7197,7 +7350,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -7217,7 +7382,8 @@
 		"change_summary": "民國114年 tables: minimum wage 28,590, 12 勞保 grades to 45,800, 59 健保 grades to 313,000, 勞退 grade 24 = 28,590 → 1,715.40; LI 11.5% + EI 1%, NHI 5.17%, the 職災 industry table in force 2025-01-01, and the non-resident 6% breakpoint at 42,885. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2). Monthly-paid part-time minimum wage uses the published monthly minimum in proportion to contracted weekly hours / 40, per MOL part-time guidance §6(2)(1); the distinct hourly minimum governs hourly-paid workers. A daily-paid part-timer is held to the hourly minimum times agreed normal hours per day. Employment insurance no longer treats all permanent residents as eligible; foreign spouses and, from 2026, permanent-resident foreign professionals require dated registered status, an eligible class and proof.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -7765,8 +7931,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -7828,9 +7994,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -7844,7 +8012,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -7854,7 +8022,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -7874,7 +8054,8 @@
 		"change_summary": "民國115年 tables from the 29,500 minimum wage: 11 勞保 grades, 58 健保 grades, 勞退 grade 25 = 29,500 → 1,770, the non-resident 6% breakpoint at 44,250; the 2025-12-09 勞工請假規則 amendment and 育嬰留職停薪 day-unit flexibility; foreign professionals enter 勞退新制. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2). Monthly-paid part-time minimum wage uses the published monthly minimum in proportion to contracted weekly hours / 40, per MOL part-time guidance §6(2)(1); the distinct hourly minimum governs hourly-paid workers. A daily-paid part-timer is held to the hourly minimum times agreed normal hours per day. Personal leave for a reason other than personally caring for a family member is day-unit; the separate family-care catalogue alone allows hourly taking and consumes the personal-leave quota (Leave Regulations art. 7, effective 2026-01-01). Employment insurance no longer treats all permanent residents as eligible; foreign spouses and, from 2026, permanent-resident foreign professionals require dated registered status, an eligible class and proof.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -8424,8 +8605,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -8505,9 +8686,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -8521,7 +8704,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -8531,7 +8714,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	},
@@ -8551,7 +8746,8 @@
 		"change_summary": "勞保條例 §13’s 2027 step: the ordinary rate rises from 11.5% to 12% (13% combined with 就業保險) on the 115年 ladder; the 116年 grade tables await the 116年 minimum wage. The 116年 holiday calendar is transcribed. Sealed leave normal-month daily divisor 30 under 勞動基準法施行細則 §24-1(2). Monthly-paid part-time minimum wage uses the published monthly minimum in proportion to contracted weekly hours / 40, per MOL part-time guidance §6(2)(1); the distinct hourly minimum governs hourly-paid workers. A daily-paid part-timer is held to the hourly minimum times agreed normal hours per day. Personal leave for a reason other than personally caring for a family member is day-unit; the separate family-care catalogue alone allows hourly taking and consumes the personal-leave quota (Leave Regulations art. 7, effective 2026-01-01). Employment insurance no longer treats all permanent residents as eligible; foreign spouses and, from 2026, permanent-resident foreign professionals require dated registered status, an eligible class and proof.",
 		"work_rules": {
 			"proration": {
-				"by": "CALENDAR_DAYS"
+				"by": "CALENDAR_DAYS",
+				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
@@ -9101,8 +9297,8 @@
 				"trigger": "Retirement of a worker with old-system seniority",
 				"timing": "Within thirty days of retirement (instalments only with the authority’s approval).",
 				"owner": "Finance / retirement pay record",
-				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2)",
-				"status": "EXTERNAL"
+				"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2). Partial: the engine prices the payout on the RETIREMENT_PAY line (withheld through SEVERANCE_TAX); the thirty-day payment, any approved instalments and §84-2 pre-Act seniority are external.",
+				"status": "PARTIAL"
 			},
 			{
 				"code": "OCCUPATIONAL_INJURY_COMPENSATION",
@@ -9182,9 +9378,11 @@
 				"key": "lsa_termination_ground",
 				"type": "string",
 				"label": "勞基法 termination ground",
-				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11 and the §13 proviso (§16). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11.",
+				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"]"
+				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
+				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
 			{
 				"key": "average_daily_wage",
@@ -9198,7 +9396,7 @@
 				"key": "old_system_service_months",
 				"type": "number",
 				"label": "Retained old-system seniority (months)",
-				"description": "勞工退休金條例 §11: service before the new pension system, retained, severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole).",
+				"description": "勞工退休金條例 §11: service on the old pension system — the whole service of a worker who never left it, or the seniority retained on choosing the new system. Severed at one month’s average wage a year under 勞基法 §17 (a part month counts whole); on a §53/§54 retirement paid as retirement pay under 勞基法 §55 (RETIREMENT_PAY).",
 				"minimum": 0,
 				"default_value": 0
 			},
@@ -9208,7 +9406,19 @@
 				"label": "Notice days given",
 				"description": "勞基法 §16: calendar days from the day after notice to the last working day. The shortfall against 10 / 20 / 30 days is paid at the day wage.",
 				"minimum": 0,
-				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\"]"
+				"required_when": "employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]"
+			},
+			{
+				"key": "retirement_disability",
+				"type": "boolean",
+				"label": "Retired for disability (勞基法 §54(1)(2))",
+				"description": "勞基法 §54(1)(2): the employer retired the worker as 身心障礙不堪勝任工作, which makes a retirement eligible at any age or service. Unrecorded is no."
+			},
+			{
+				"key": "retirement_disability_duty_caused",
+				"type": "boolean",
+				"label": "Disability caused by the job (勞基法 §55(1)(2))",
+				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
 			}
 		]
 	}

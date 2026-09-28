@@ -554,7 +554,8 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 			shift_pattern_id: term.shift_pattern_id,
 			effective_range: term.effective_range,
 			employment_type: term.employment_type,
-			work_classification: term.work_classification
+			work_classification: term.work_classification,
+			worksite: term.worksite
 		}));
 		const termOn = (employmentId: string, date: string) =>
 			terms.find(
@@ -643,7 +644,8 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 				precedence: rules?.holiday_rest_precedence,
 				plans: dates.map((date) => ({ work_date: date, shift_definition_id: explicitOn(date) })),
 				rosterPeriods: rosteredMonth ? [...rosterPeriods, month] : rosterPeriods,
-				patternOn
+				patternOn,
+				worksiteOn: (date) => termOn(employmentId, date)?.worksite
 			});
 			const split = splitPlannedOvertime({
 				days: dates.map((date) => {

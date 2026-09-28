@@ -1,0 +1,521 @@
+[
+	{
+		"id": "63faaed6-168c-58fb-a428-19f339bbb511",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "UNPAID_LEAVE",
+		"name": "Personal leave, unpaid (事假)",
+		"authority": "Interim Wage Payment Regulation (劳部发〔1994〕489号) arts.11–12 list the paid absences; personal leave outside them is unpaid, deducted at the monthly wage ÷ 21.75 a day (人社部发〔2025〕2号).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "be782629-4332-56a1-8121-0f2e61ef40d9",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (带薪年休假)",
+		"authority": "职工带薪年休假条例 (State Council Order 514, from 1 January 2008, https://xzfg.moj.gov.cn/front/law/detail?LawID=208) art.2: a worker in continuous work for more than twelve months is entitled; art.3: cumulative service 1–10 years 5 days, 10–20 years 10, 20 or more 15 (statutory holidays and rest days inside it not counted); art.5: unused days paid at 300% of the day wage. 企业职工带薪年休假实施办法 (MOHRSS Order 1, from 18 September 2008, https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html) art.3: the twelve months may be with this or earlier employers; art.4: service with every employer counts toward the ladder (`employment.prior_service_months`); art.5: a new hire’s year is the calendar days left with this employer ÷ 365 × the full days, the part day dropped; art.12: a leaver’s year is (calendar days with this employer this year ÷ 365) × the full days less days taken, the part day dropped, no clawback of excess. Not modelled: the art.4 disqualifications (long paid personal or sick leave), a leap year read as 366 by CALENDAR_DAYS rather than the measure’s 365, and deemed service (register CN-N05, CN-N18).",
+		"eligibility": "employment.service_months + employment.prior_service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "WHOLE_DAY_DOWN",
+			"encash_on_exit_when": "",
+			"bands": [
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 240",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 120",
+					"days": 10
+				},
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "df584628-c31f-57b9-a0cd-e487c1080061",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (产假及生育假)",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_4M\"",
+					"days": 42
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_MULTIPLE_BIRTH\"",
+					"days": "188.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
+					"days": "173.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_BIRTH\"",
+					"days": 173
+				},
+				{
+					"eligibility": "",
+					"days": 158
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "72760265-a845-566c-9a7c-865c5399c1c2",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (护理假)",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "46dc2e22-fa17-5dcb-aa15-1269a50e403b",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
+		"eligibility": "event.kind == \"MARRIAGE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 18
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "f538ab0e-d0d6-5500-824c-6afb398324b6",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave (育儿假)",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; controlling text http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html, unreachable 28 Sep 2026 — clause read on the Yunnan Department of Justice copy https://sft.yn.gov.cn/yfzs/pages_1_3173.aspx): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
+		"eligibility": "children.under(3) >= 1",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "children.under(3) >= 2",
+					"days": 15
+				},
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b0166ac3-83dd-52f1-be62-70d65704008f",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "UNPAID_LEAVE",
+		"name": "Personal leave, unpaid (事假)",
+		"authority": "Interim Wage Payment Regulation (劳部发〔1994〕489号) arts.11–12 list the paid absences; personal leave outside them is unpaid, deducted at the monthly wage ÷ 21.75 a day (人社部发〔2025〕2号).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ab151599-10ba-5229-bcbf-db7213752f92",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (带薪年休假)",
+		"authority": "职工带薪年休假条例 (State Council Order 514, from 1 January 2008, https://xzfg.moj.gov.cn/front/law/detail?LawID=208) art.2: a worker in continuous work for more than twelve months is entitled; art.3: cumulative service 1–10 years 5 days, 10–20 years 10, 20 or more 15 (statutory holidays and rest days inside it not counted); art.5: unused days paid at 300% of the day wage. 企业职工带薪年休假实施办法 (MOHRSS Order 1, from 18 September 2008, https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html) art.3: the twelve months may be with this or earlier employers; art.4: service with every employer counts toward the ladder (`employment.prior_service_months`); art.5: a new hire’s year is the calendar days left with this employer ÷ 365 × the full days, the part day dropped; art.12: a leaver’s year is (calendar days with this employer this year ÷ 365) × the full days less days taken, the part day dropped, no clawback of excess. Not modelled: the art.4 disqualifications (long paid personal or sick leave), a leap year read as 366 by CALENDAR_DAYS rather than the measure’s 365, and deemed service (register CN-N05, CN-N18).",
+		"eligibility": "employment.service_months + employment.prior_service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "WHOLE_DAY_DOWN",
+			"encash_on_exit_when": "",
+			"bands": [
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 240",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 120",
+					"days": 10
+				},
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "0ba5d75c-9c2d-5367-b305-0b42d97cb2ec",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (产假及生育假)",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_4M\"",
+					"days": 42
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_MULTIPLE_BIRTH\"",
+					"days": "188.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
+					"days": "173.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_BIRTH\"",
+					"days": 173
+				},
+				{
+					"eligibility": "",
+					"days": 158
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e7868324-dbd0-5453-bcba-1fbf46dc38d7",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (护理假)",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "0f4f4d01-f693-5051-adba-86df7113e0e0",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
+		"eligibility": "event.kind == \"MARRIAGE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 18
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "86eefb36-496c-5399-9b67-c951fabae1a3",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave (育儿假)",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; controlling text http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html, unreachable 28 Sep 2026 — clause read on the Yunnan Department of Justice copy https://sft.yn.gov.cn/yfzs/pages_1_3173.aspx): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
+		"eligibility": "children.under(3) >= 1",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "children.under(3) >= 2",
+					"days": 15
+				},
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "2b379d82-1848-55c9-8640-ac953d3146d0",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "UNPAID_LEAVE",
+		"name": "Personal leave, unpaid (事假)",
+		"authority": "Interim Wage Payment Regulation (劳部发〔1994〕489号) arts.11–12 list the paid absences; personal leave outside them is unpaid, deducted at the monthly wage ÷ 21.75 a day (人社部发〔2025〕2号).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "836bfdbf-7d54-562a-a227-0fa0ebdb3e47",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (带薪年休假)",
+		"authority": "职工带薪年休假条例 (State Council Order 514, from 1 January 2008, https://xzfg.moj.gov.cn/front/law/detail?LawID=208) art.2: a worker in continuous work for more than twelve months is entitled; art.3: cumulative service 1–10 years 5 days, 10–20 years 10, 20 or more 15 (statutory holidays and rest days inside it not counted); art.5: unused days paid at 300% of the day wage. 企业职工带薪年休假实施办法 (MOHRSS Order 1, from 18 September 2008, https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html) art.3: the twelve months may be with this or earlier employers; art.4: service with every employer counts toward the ladder (`employment.prior_service_months`); art.5: a new hire’s year is the calendar days left with this employer ÷ 365 × the full days, the part day dropped; art.12: a leaver’s year is (calendar days with this employer this year ÷ 365) × the full days less days taken, the part day dropped, no clawback of excess. Not modelled: the art.4 disqualifications (long paid personal or sick leave), a leap year read as 366 by CALENDAR_DAYS rather than the measure’s 365, and deemed service (register CN-N05, CN-N18).",
+		"eligibility": "employment.service_months + employment.prior_service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "WHOLE_DAY_DOWN",
+			"encash_on_exit_when": "",
+			"bands": [
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 240",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months + employment.prior_service_months >= 120",
+					"days": 10
+				},
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "8720f58f-57b2-5084-9531-e74260eb6aa8",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (产假及生育假)",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"MISCARRIAGE_4M\"",
+					"days": 42
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_MULTIPLE_BIRTH\"",
+					"days": "188.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"MULTIPLE_BIRTH\"",
+					"days": "173.0 + 15.0 * double(children.multiple_born_on(event.date) - 2)"
+				},
+				{
+					"eligibility": "event.kind == \"DIFFICULT_BIRTH\"",
+					"days": 173
+				},
+				{
+					"eligibility": "",
+					"days": 158
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cb5cba8c-3bce-5b8a-bbc9-3fee91ecf0b3",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (护理假)",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ad86fb01-cbbb-52ee-8eac-fd93c509830d",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
+		"eligibility": "event.kind == \"MARRIAGE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 18
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "10c3ac7f-4520-5557-aacc-e0783abc287d",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave (育儿假)",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; controlling text http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html, unreachable 28 Sep 2026 — clause read on the Yunnan Department of Justice copy https://sft.yn.gov.cn/yfzs/pages_1_3173.aspx): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
+		"eligibility": "children.under(3) >= 1",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "children.under(3) >= 2",
+					"days": 15
+				},
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	}
+]

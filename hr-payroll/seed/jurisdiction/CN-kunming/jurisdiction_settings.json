@@ -1,0 +1,887 @@
+[
+	{
+		"id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "CN-kunming",
+		"name": "China — Kunming",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": null,
+		"effective_range": {
+			"start": "2025-12-01T00:00:00.000Z",
+			"end": "2026-01-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "CN",
+		"change_summary": "First sealed Kunming version: base 4,357–21,789, pension 16/8, medical 7/2 + maternity 0.9, unemployment 0.7/0.3 to 31 December 2025, housing fund cap 32,470, minimum wage 2,170 / 2,020.",
+		"work_rules": {
+			"proration": {
+				"by": "FIXED_DAYS",
+				"days": 21.75
+			},
+			"ordinary_divisor_days": "21.75",
+			"overtime_when": "",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				}
+			],
+			"limits": [
+				{
+					"key": "daily_ot",
+					"period": "DAY",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 3,
+					"unit": "WORKED_HOURS",
+					"authority": "Labour Law art.41: at most three extended hours a day for special reasons"
+				},
+				{
+					"key": "monthly_ot",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 36,
+					"unit": "WORKED_HOURS",
+					"authority": "Labour Law art.41: at most 36 extended hours a month"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Law art.38: at least one rest day a week"
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"wages": {
+				"by_region": {
+					"CATEGORY_I": 2170,
+					"CATEGORY_II": 2020
+				},
+				"hourly_by_region": {
+					"CATEGORY_I": 21,
+					"CATEGORY_II": 20
+				},
+				"applies_when": "",
+				"block_below_when": "employment.type != \"PART_TIME\" && terms.pay_frequency == \"MONTHLY\"",
+				"authority": "云人社发〔2025〕19号 from 1 October 2025: CNY2,170 / 2,020 a month, CNY21 / 20 an hour (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law."
+			},
+			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "employment.earned_monthly_average(12, [\"OVERTIME\"]) / 21.75 * 2.0",
+				"pay_frequencies": ["MONTHLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime), but the BONUS class does not mark WAGES (engine_defect: counts-toward matrix), so a paid bonus is not yet averaged in."
+			}
+		},
+		"payroll": {
+			"currency": "CNY",
+			"timezone": "Asia/Shanghai",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 5,
+					"basis": "WORKING_DAYS",
+					"authority": "昆明市工资支付条例 art.13 (from 1 September 2019, approved by the Yunnan People’s Congress Standing Committee on 16 May 2019; MOFCOM copy https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457): wages are paid in one sum within five working days of the day the labour relationship ends or is terminated. This local regulation governs over the 劳部发〔1994〕489号 normative document’s “at termination” (register CN-KM-WP06)."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html",
+				"https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html",
+				"https://www.gov.cn/zhengce/content/202411/content_6986380.htm",
+				"http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm",
+				"https://www.gov.cn/zhengce/content/202608/content_7078477.htm",
+				"https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c100012/c5213592/content.html",
+				"https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf",
+				"https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html",
+				"https://www.kunming.cn/news/c/2026-08-29/14069738.shtml",
+				"https://www.yncxym.gov.cn/info/1011/286437.htm",
+				"https://www.hhpb.gov.cn/info/5861/518871.htm",
+				"https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml",
+				"https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml",
+				"https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml",
+				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf"
+			],
+			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
+		},
+		"facts": [
+			{
+				"key": "injury_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 0.01,
+				"maximum": 5,
+				"label": "Assigned work-injury rate (%)",
+				"description": "The employer-only work-injury rate the agency assigned: the industry class base rate (0.2/0.4/0.7/0.9/1.1/1.3/1.6/1.9%) after its float. It is an agency determination, never a default."
+			},
+			{
+				"key": "housing_fund_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 5,
+				"maximum": 12,
+				"integer": false,
+				"label": "Housing-fund rate each side (%)",
+				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
+			},
+			{
+				"key": "housing_fund_supplementary_rate",
+				"type": "number",
+				"default_value": 0,
+				"minimum": 0,
+				"maximum": 5,
+				"integer": true,
+				"label": "Supplementary housing-fund rate each side (%)",
+				"description": "Shanghai supplementary fund, 1–5% equal each side, only where the unit elected it; 0 where it did not."
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "lcl_termination_ground",
+				"type": "string",
+				"label": "Labour Contract Law ground",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"options": [
+					"ART_36_EMPLOYER",
+					"ART_36_WORKER",
+					"ART_37",
+					"ART_38",
+					"ART_39",
+					"ART_40",
+					"ART_41",
+					"ART_44_1",
+					"ART_44_2_3",
+					"ART_44_4_5",
+					"ART_87"
+				],
+				"required_when": "employment.exit_reason != \"\""
+			},
+			{
+				"key": "notice_days_given",
+				"type": "number",
+				"label": "Days of written notice given",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lcl_termination_ground == \"ART_40\""
+			},
+			{
+				"key": "renewal_offer_refused",
+				"type": "boolean",
+				"label": "Worker refused a renewal on equal or better terms",
+				"default_value": false
+			},
+			{
+				"key": "lcl47_average_monthly_wage",
+				"type": "number",
+				"label": "Published prior-year monthly average wage",
+				"minimum": 0,
+				"default_value": 10531.92,
+				"description": "Owner rule 2026-09-28: LCL art.47 reads 直辖市、设区的市级人民政府公布的本地区上年度职工月平均工资 and 164号 当地上年职工平均工资; neither names the series or the changeover day. Default: the calendar year before the exit (literal 上年度), on Kunming Statistics Bureau 城镇非私营单位就业人员 annual average: CNY126,383 for 2024 (https://tjj.km.gov.cn/c/2025-08-21/5011808.shtml) → 10,531.92 a month, CNY130,174 for 2025 (https://tjj.km.gov.cn/c/2026-08-19/5105682.shtml) → 10,847.83; the only series the city publishes for both years (2025 has no 在岗职工 figure), and the one the city housing-fund centre’s 2026 cap 32,543 (= 130,174 ÷ 4) applies. A recorded value overrides the default; a figure published for a later year is a new sealed version."
+			},
+			{
+				"key": "lcl97_pre2008_months",
+				"type": "number",
+				"label": "Counted service months before 1 January 2008",
+				"description": "LCL art.97 para.3: art.47 years count from 1 January 2008; service before it is compensated under the rules then in force. The completed months of counted service (this stint and any carried service) before 1 January 2008.",
+				"minimum": 0,
+				"integer": true,
+				"default_value": 0,
+				"required_when": "employment.service_start < \"2008-01-01\""
+			},
+			{
+				"key": "lcl97_pre2008_compensation",
+				"type": "number",
+				"label": "Compensation for pre-2008 service under the rules then in force",
+				"description": "LCL art.97 para.3: the amount the rules in force before 1 January 2008 owe for that service on this ground, as the unit computed it (0 where they owe none, such as a fixed-term expiry). Not added on an art.87 unlawful termination, whose damages count every year from hire (Regulation art.25).",
+				"minimum": 0,
+				"default_value": 0,
+				"required_when": "employment.service_start < \"2008-01-01\""
+			},
+			{
+				"key": "lcl10_transferred_service_months",
+				"type": "number",
+				"label": "Service months carried from a transferring employer",
+				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
+				"minimum": 0,
+				"integer": true,
+				"default_value": 0
+			}
+		],
+		"obligations": [
+			{
+				"code": "SI_REGISTRATION",
+				"description": "Register each employee for social insurance and declare the contribution base.",
+				"trigger": "Hire",
+				"timing": "Within 30 days of hire (Social Insurance Law art.58).",
+				"owner": "HR",
+				"authority": "Social Insurance Law art.58 http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"description": "Withhold the worker share and remit both housing-fund shares.",
+				"trigger": "Each payday",
+				"timing": "Within five days after payday (Regulation art.19).",
+				"owner": "Payroll",
+				"authority": "Housing Provident Fund Regulation art.19 https://www.gov.cn/zhengce/content/202608/content_7078477.htm",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "IIT_DECLARATION",
+				"description": "Declare and remit the month’s withheld IIT for every payee.",
+				"trigger": "Each month",
+				"timing": "By the 15th of the following month (STA 2018 No.61).",
+				"owner": "Payroll",
+				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SI_TAX_DECLARATION",
+				"description": "Self-declare each employee’s contribution wage and pay the month’s social insurance to the tax department.",
+				"trigger": "Each month",
+				"timing": "By the 20th of each month.",
+				"owner": "Payroll",
+				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
+				"status": "EXTERNAL"
+			}
+		]
+	},
+	{
+		"id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "CN-kunming",
+		"name": "China — Kunming — 1 January 2026",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"effective_range": {
+			"start": "2026-01-01T00:00:00.000Z",
+			"end": "2026-09-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "CN",
+		"change_summary": "Unemployment reduction expired; pension/unemployment/injury on the 2026 bounds 4,403–22,017 from 1 January (owner rule 2026-09-28: 2026年度 is the calendar year; medical keeps 2025’s to 31 August); housing-fund ceiling 32,543 from 1 January 2026.",
+		"work_rules": {
+			"proration": {
+				"by": "FIXED_DAYS",
+				"days": 21.75
+			},
+			"ordinary_divisor_days": "21.75",
+			"overtime_when": "",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				}
+			],
+			"limits": [
+				{
+					"key": "daily_ot",
+					"period": "DAY",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 3,
+					"unit": "WORKED_HOURS",
+					"authority": "Labour Law art.41: at most three extended hours a day for special reasons"
+				},
+				{
+					"key": "monthly_ot",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 36,
+					"unit": "WORKED_HOURS",
+					"authority": "Labour Law art.41: at most 36 extended hours a month"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Law art.38: at least one rest day a week"
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"wages": {
+				"by_region": {
+					"CATEGORY_I": 2170,
+					"CATEGORY_II": 2020
+				},
+				"hourly_by_region": {
+					"CATEGORY_I": 21,
+					"CATEGORY_II": 20
+				},
+				"applies_when": "",
+				"block_below_when": "employment.type != \"PART_TIME\" && terms.pay_frequency == \"MONTHLY\"",
+				"authority": "云人社发〔2025〕19号 from 1 October 2025: CNY2,170 / 2,020 a month, CNY21 / 20 an hour (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law."
+			},
+			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "employment.earned_monthly_average(12, [\"OVERTIME\"]) / 21.75 * 2.0",
+				"pay_frequencies": ["MONTHLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime), but the BONUS class does not mark WAGES (engine_defect: counts-toward matrix), so a paid bonus is not yet averaged in."
+			}
+		},
+		"payroll": {
+			"currency": "CNY",
+			"timezone": "Asia/Shanghai",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 5,
+					"basis": "WORKING_DAYS",
+					"authority": "昆明市工资支付条例 art.13 (from 1 September 2019, approved by the Yunnan People’s Congress Standing Committee on 16 May 2019; MOFCOM copy https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457): wages are paid in one sum within five working days of the day the labour relationship ends or is terminated. This local regulation governs over the 劳部发〔1994〕489号 normative document’s “at termination” (register CN-KM-WP06)."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html",
+				"https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html",
+				"https://www.gov.cn/zhengce/content/202411/content_6986380.htm",
+				"http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm",
+				"https://www.gov.cn/zhengce/content/202608/content_7078477.htm",
+				"https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c100012/c5213592/content.html",
+				"https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf",
+				"https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html",
+				"https://www.kunming.cn/news/c/2026-08-29/14069738.shtml",
+				"https://www.yncxym.gov.cn/info/1011/286437.htm",
+				"https://www.hhpb.gov.cn/info/5861/518871.htm",
+				"https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml",
+				"https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml",
+				"https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml",
+				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf"
+			],
+			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
+		},
+		"facts": [
+			{
+				"key": "injury_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 0.01,
+				"maximum": 5,
+				"label": "Assigned work-injury rate (%)",
+				"description": "The employer-only work-injury rate the agency assigned: the industry class base rate (0.2/0.4/0.7/0.9/1.1/1.3/1.6/1.9%) after its float. It is an agency determination, never a default."
+			},
+			{
+				"key": "unemployment_employer_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 0,
+				"maximum": 2,
+				"label": "Employer unemployment rate on the agency notice (%)",
+				"description": "No 2026 instrument continuing the reduced unemployment rate was located (register CN-SH06 / CN-KM27); the rate the agency assesses is recorded until one is sealed. Unrecorded refuses the run."
+			},
+			{
+				"key": "unemployment_employee_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 0,
+				"maximum": 1,
+				"label": "Employee unemployment rate on the agency notice (%)",
+				"description": "As the employer rate: recorded from the agency assessment until the 2026 instrument is sealed."
+			},
+			{
+				"key": "housing_fund_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 5,
+				"maximum": 12,
+				"integer": false,
+				"label": "Housing-fund rate each side (%)",
+				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
+			},
+			{
+				"key": "housing_fund_supplementary_rate",
+				"type": "number",
+				"default_value": 0,
+				"minimum": 0,
+				"maximum": 5,
+				"integer": true,
+				"label": "Supplementary housing-fund rate each side (%)",
+				"description": "Shanghai supplementary fund, 1–5% equal each side, only where the unit elected it; 0 where it did not."
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "lcl_termination_ground",
+				"type": "string",
+				"label": "Labour Contract Law ground",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"options": [
+					"ART_36_EMPLOYER",
+					"ART_36_WORKER",
+					"ART_37",
+					"ART_38",
+					"ART_39",
+					"ART_40",
+					"ART_41",
+					"ART_44_1",
+					"ART_44_2_3",
+					"ART_44_4_5",
+					"ART_87"
+				],
+				"required_when": "employment.exit_reason != \"\""
+			},
+			{
+				"key": "notice_days_given",
+				"type": "number",
+				"label": "Days of written notice given",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lcl_termination_ground == \"ART_40\""
+			},
+			{
+				"key": "renewal_offer_refused",
+				"type": "boolean",
+				"label": "Worker refused a renewal on equal or better terms",
+				"default_value": false
+			},
+			{
+				"key": "lcl47_average_monthly_wage",
+				"type": "number",
+				"label": "Published prior-year monthly average wage",
+				"minimum": 0,
+				"default_value": 10847.83,
+				"description": "Owner rule 2026-09-28: LCL art.47 reads 直辖市、设区的市级人民政府公布的本地区上年度职工月平均工资 and 164号 当地上年职工平均工资; neither names the series or the changeover day. Default: the calendar year before the exit (literal 上年度), on Kunming Statistics Bureau 城镇非私营单位就业人员 annual average: CNY126,383 for 2024 (https://tjj.km.gov.cn/c/2025-08-21/5011808.shtml) → 10,531.92 a month, CNY130,174 for 2025 (https://tjj.km.gov.cn/c/2026-08-19/5105682.shtml) → 10,847.83; the only series the city publishes for both years (2025 has no 在岗职工 figure), and the one the city housing-fund centre’s 2026 cap 32,543 (= 130,174 ÷ 4) applies. A recorded value overrides the default; a figure published for a later year is a new sealed version."
+			},
+			{
+				"key": "lcl97_pre2008_months",
+				"type": "number",
+				"label": "Counted service months before 1 January 2008",
+				"description": "LCL art.97 para.3: art.47 years count from 1 January 2008; service before it is compensated under the rules then in force. The completed months of counted service (this stint and any carried service) before 1 January 2008.",
+				"minimum": 0,
+				"integer": true,
+				"default_value": 0,
+				"required_when": "employment.service_start < \"2008-01-01\""
+			},
+			{
+				"key": "lcl97_pre2008_compensation",
+				"type": "number",
+				"label": "Compensation for pre-2008 service under the rules then in force",
+				"description": "LCL art.97 para.3: the amount the rules in force before 1 January 2008 owe for that service on this ground, as the unit computed it (0 where they owe none, such as a fixed-term expiry). Not added on an art.87 unlawful termination, whose damages count every year from hire (Regulation art.25).",
+				"minimum": 0,
+				"default_value": 0,
+				"required_when": "employment.service_start < \"2008-01-01\""
+			},
+			{
+				"key": "lcl10_transferred_service_months",
+				"type": "number",
+				"label": "Service months carried from a transferring employer",
+				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
+				"minimum": 0,
+				"integer": true,
+				"default_value": 0
+			}
+		],
+		"obligations": [
+			{
+				"code": "SI_REGISTRATION",
+				"description": "Register each employee for social insurance and declare the contribution base.",
+				"trigger": "Hire",
+				"timing": "Within 30 days of hire (Social Insurance Law art.58).",
+				"owner": "HR",
+				"authority": "Social Insurance Law art.58 http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"description": "Withhold the worker share and remit both housing-fund shares.",
+				"trigger": "Each payday",
+				"timing": "Within five days after payday (Regulation art.19).",
+				"owner": "Payroll",
+				"authority": "Housing Provident Fund Regulation art.19 https://www.gov.cn/zhengce/content/202608/content_7078477.htm",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "IIT_DECLARATION",
+				"description": "Declare and remit the month’s withheld IIT for every payee.",
+				"trigger": "Each month",
+				"timing": "By the 15th of the following month (STA 2018 No.61).",
+				"owner": "Payroll",
+				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SI_TAX_DECLARATION",
+				"description": "Self-declare each employee’s contribution wage and pay the month’s social insurance to the tax department.",
+				"trigger": "Each month",
+				"timing": "By the 20th of each month.",
+				"owner": "Payroll",
+				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
+				"status": "EXTERNAL"
+			}
+		]
+	},
+	{
+		"id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "CN-kunming",
+		"name": "China — Kunming — 1 September 2026",
+		"sealed_at": "2026-09-28T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"effective_range": {
+			"start": "2026-09-01T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"jurisdiction_code": "CN",
+		"change_summary": "Minimum wage 2,270 / 2,120; base 4,403–22,017 for every fund (medical expressly from 1 September; the others confirmed in use by the 7 September county notice); new-account housing-fund floor 2,270 / 2,120.",
+		"work_rules": {
+			"proration": {
+				"by": "FIXED_DAYS",
+				"days": 21.75
+			},
+			"ordinary_divisor_days": "21.75",
+			"overtime_when": "",
+			"normal_hours": "8.0",
+			"bands": [
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\" && !time_off_in_lieu",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
+				}
+			],
+			"limits": [
+				{
+					"key": "daily_ot",
+					"period": "DAY",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 3,
+					"unit": "WORKED_HOURS",
+					"authority": "Labour Law art.41: at most three extended hours a day for special reasons"
+				},
+				{
+					"key": "monthly_ot",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 36,
+					"unit": "WORKED_HOURS",
+					"authority": "Labour Law art.41: at most 36 extended hours a month"
+				},
+				{
+					"key": "weekly_rest",
+					"measure": "CONSECUTIVE_WORK_DAYS",
+					"max_days": 6,
+					"discharged_by": "REST",
+					"authority": "Labour Law art.38: at least one rest day a week"
+				}
+			],
+			"breaks": [],
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"wages": {
+				"by_region": {
+					"CATEGORY_I": 2270,
+					"CATEGORY_II": 2120
+				},
+				"hourly_by_region": {
+					"CATEGORY_I": 22,
+					"CATEGORY_II": 21
+				},
+				"applies_when": "",
+				"block_below_when": "employment.type != \"PART_TIME\" && terms.pay_frequency == \"MONTHLY\"",
+				"authority": "Yunnan HRSS 29 August 2026 from 1 September 2026: CNY2,270 / 2,120 a month, CNY22 / 21 an hour (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law."
+			},
+			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
+			"encashment": {
+				"reference": "EVENT_DATE",
+				"day_amount": "employment.earned_monthly_average(12, [\"OVERTIME\"]) / 21.75 * 2.0",
+				"pay_frequencies": ["MONTHLY"],
+				"include_allowances": [],
+				"exclude_allowances": [],
+				"preserve_year_end_rate": false,
+				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime), but the BONUS class does not mark WAGES (engine_defect: counts-toward matrix), so a paid bonus is not yet averaged in."
+			}
+		},
+		"payroll": {
+			"currency": "CNY",
+			"timezone": "Asia/Shanghai",
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 5,
+					"basis": "WORKING_DAYS",
+					"authority": "昆明市工资支付条例 art.13 (from 1 September 2019, approved by the Yunnan People’s Congress Standing Committee on 16 May 2019; MOFCOM copy https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457): wages are paid in one sum within five working days of the day the labour relationship ends or is terminated. This local regulation governs over the 劳部发〔1994〕489号 normative document’s “at termination” (register CN-KM-WP06)."
+				}
+			]
+		},
+		"sources": {
+			"urls": [
+				"https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html",
+				"https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html",
+				"https://www.gov.cn/zhengce/content/202411/content_6986380.htm",
+				"http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm",
+				"https://www.gov.cn/zhengce/content/202608/content_7078477.htm",
+				"https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html",
+				"https://fgk.chinatax.gov.cn/zcfgk/c100012/c5213592/content.html",
+				"https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf",
+				"https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html",
+				"https://www.kunming.cn/news/c/2026-08-29/14069738.shtml",
+				"https://www.yncxym.gov.cn/info/1011/286437.htm",
+				"https://www.hhpb.gov.cn/info/5861/518871.htm",
+				"https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml",
+				"https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml",
+				"https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml",
+				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf"
+			],
+			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
+		},
+		"facts": [
+			{
+				"key": "injury_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 0.01,
+				"maximum": 5,
+				"label": "Assigned work-injury rate (%)",
+				"description": "The employer-only work-injury rate the agency assigned: the industry class base rate (0.2/0.4/0.7/0.9/1.1/1.3/1.6/1.9%) after its float. It is an agency determination, never a default."
+			},
+			{
+				"key": "unemployment_employer_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 0,
+				"maximum": 2,
+				"label": "Employer unemployment rate on the agency notice (%)",
+				"description": "No 2026 instrument continuing the reduced unemployment rate was located (register CN-SH06 / CN-KM27); the rate the agency assesses is recorded until one is sealed. Unrecorded refuses the run."
+			},
+			{
+				"key": "unemployment_employee_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 0,
+				"maximum": 1,
+				"label": "Employee unemployment rate on the agency notice (%)",
+				"description": "As the employer rate: recorded from the agency assessment until the 2026 instrument is sealed."
+			},
+			{
+				"key": "housing_fund_rate",
+				"type": "number",
+				"required": true,
+				"minimum": 5,
+				"maximum": 12,
+				"integer": false,
+				"label": "Housing-fund rate each side (%)",
+				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
+			},
+			{
+				"key": "housing_fund_supplementary_rate",
+				"type": "number",
+				"default_value": 0,
+				"minimum": 0,
+				"maximum": 5,
+				"integer": true,
+				"label": "Supplementary housing-fund rate each side (%)",
+				"description": "Shanghai supplementary fund, 1–5% equal each side, only where the unit elected it; 0 where it did not."
+			}
+		],
+		"exit_facts": [
+			{
+				"key": "lcl_termination_ground",
+				"type": "string",
+				"label": "Labour Contract Law ground",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"options": [
+					"ART_36_EMPLOYER",
+					"ART_36_WORKER",
+					"ART_37",
+					"ART_38",
+					"ART_39",
+					"ART_40",
+					"ART_41",
+					"ART_44_1",
+					"ART_44_2_3",
+					"ART_44_4_5",
+					"ART_87"
+				],
+				"required_when": "employment.exit_reason != \"\""
+			},
+			{
+				"key": "notice_days_given",
+				"type": "number",
+				"label": "Days of written notice given",
+				"minimum": 0,
+				"required_when": "employment.exit_facts.lcl_termination_ground == \"ART_40\""
+			},
+			{
+				"key": "renewal_offer_refused",
+				"type": "boolean",
+				"label": "Worker refused a renewal on equal or better terms",
+				"default_value": false
+			},
+			{
+				"key": "lcl47_average_monthly_wage",
+				"type": "number",
+				"label": "Published prior-year monthly average wage",
+				"minimum": 0,
+				"default_value": 10847.83,
+				"description": "Owner rule 2026-09-28: LCL art.47 reads 直辖市、设区的市级人民政府公布的本地区上年度职工月平均工资 and 164号 当地上年职工平均工资; neither names the series or the changeover day. Default: the calendar year before the exit (literal 上年度), on Kunming Statistics Bureau 城镇非私营单位就业人员 annual average: CNY126,383 for 2024 (https://tjj.km.gov.cn/c/2025-08-21/5011808.shtml) → 10,531.92 a month, CNY130,174 for 2025 (https://tjj.km.gov.cn/c/2026-08-19/5105682.shtml) → 10,847.83; the only series the city publishes for both years (2025 has no 在岗职工 figure), and the one the city housing-fund centre’s 2026 cap 32,543 (= 130,174 ÷ 4) applies. A recorded value overrides the default; a figure published for a later year is a new sealed version."
+			},
+			{
+				"key": "lcl97_pre2008_months",
+				"type": "number",
+				"label": "Counted service months before 1 January 2008",
+				"description": "LCL art.97 para.3: art.47 years count from 1 January 2008; service before it is compensated under the rules then in force. The completed months of counted service (this stint and any carried service) before 1 January 2008.",
+				"minimum": 0,
+				"integer": true,
+				"default_value": 0,
+				"required_when": "employment.service_start < \"2008-01-01\""
+			},
+			{
+				"key": "lcl97_pre2008_compensation",
+				"type": "number",
+				"label": "Compensation for pre-2008 service under the rules then in force",
+				"description": "LCL art.97 para.3: the amount the rules in force before 1 January 2008 owe for that service on this ground, as the unit computed it (0 where they owe none, such as a fixed-term expiry). Not added on an art.87 unlawful termination, whose damages count every year from hire (Regulation art.25).",
+				"minimum": 0,
+				"default_value": 0,
+				"required_when": "employment.service_start < \"2008-01-01\""
+			},
+			{
+				"key": "lcl10_transferred_service_months",
+				"type": "number",
+				"label": "Service months carried from a transferring employer",
+				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
+				"minimum": 0,
+				"integer": true,
+				"default_value": 0
+			}
+		],
+		"obligations": [
+			{
+				"code": "SI_REGISTRATION",
+				"description": "Register each employee for social insurance and declare the contribution base.",
+				"trigger": "Hire",
+				"timing": "Within 30 days of hire (Social Insurance Law art.58).",
+				"owner": "HR",
+				"authority": "Social Insurance Law art.58 http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"description": "Withhold the worker share and remit both housing-fund shares.",
+				"trigger": "Each payday",
+				"timing": "Within five days after payday (Regulation art.19).",
+				"owner": "Payroll",
+				"authority": "Housing Provident Fund Regulation art.19 https://www.gov.cn/zhengce/content/202608/content_7078477.htm",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "IIT_DECLARATION",
+				"description": "Declare and remit the month’s withheld IIT for every payee.",
+				"trigger": "Each month",
+				"timing": "By the 15th of the following month (STA 2018 No.61).",
+				"owner": "Payroll",
+				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
+				"status": "EXTERNAL"
+			},
+			{
+				"code": "SI_TAX_DECLARATION",
+				"description": "Self-declare each employee’s contribution wage and pay the month’s social insurance to the tax department.",
+				"trigger": "Each month",
+				"timing": "By the 20th of each month.",
+				"owner": "Payroll",
+				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
+				"status": "EXTERNAL"
+			}
+		]
+	}
+]

@@ -272,7 +272,8 @@ c.transform(async (inputs, ctx) => {
 				shift_pattern_id: true,
 				effective_range: true,
 				employment_type: true,
-				work_classification: true
+				work_classification: true,
+				worksite: true
 			},
 			all: true
 		}),
@@ -428,7 +429,8 @@ c.transform(async (inputs, ctx) => {
 		shift_pattern_id: term.shift_pattern_id,
 		effective_range: term.effective_range,
 		employment_type: term.employment_type,
-		work_classification: term.work_classification
+		work_classification: term.work_classification,
+		worksite: term.worksite
 	}));
 	const dayRows = [...monthRows.rows, ...projectionRows.rows].map((row) => ({
 		id: String(row.id),
@@ -664,7 +666,11 @@ c.transform(async (inputs, ctx) => {
 				rosterPeriods: rosterRows.rows
 					.filter((row) => String(row.employment_id) === employmentId)
 					.map((row) => row.period),
-				patternOn
+				patternOn,
+				worksiteOn: (date) =>
+					termsByEmployment
+						.get(employmentId)
+						?.find((candidate) => coversDate(candidate.effective_range, date))?.worksite
 			});
 			const headroomOf = (written: boolean) =>
 				overtimeHeadroom({

@@ -80,7 +80,7 @@ Leave, Claim, Allowance and Loan — matched by `code` with leaf-level changes, 
 Holidays are entity-owned, so they are not part of a lineage diff.
 
 **Holidays are entity-owned. There is no per-jurisdiction holiday concept.** `jurisdiction_holidays`
-stores one observed day per entity — `unique(company_id, date)` — with its name, the original date
+stores one observed day per entity — `unique(company_id, date, worksite)` — with its name, the original date
 when the observance moved, provenance and `published_at`. Two entities in the same country keep
 different calendars: a factory on its state's gazetted days and the office beside it on the federal
 ones is the ordinary case, not an exception to model around. Publication is per holiday and needs
@@ -510,8 +510,9 @@ week shape — and an hour is that day over the contract's normal daily hours (`
 Base salary is segmented at effective term boundaries and each segment uses the same full-month
 proration denominator — the month the period sits in, never the run period, so a semi-monthly
 company's two halves sum to one month rather than to two. Proration is the typed
-`work_rules.proration` (`CALENDAR_DAYS`, `WORKING_DAYS` or `FIXED_DAYS{n}`). Calendar-day proration
-uses the month's actual days; working-day proration uses the month's working days; a fixed-day
+`work_rules.proration` (`CALENDAR_DAYS{n?}`, `WORKING_DAYS` or `FIXED_DAYS{n}`). Calendar-day proration
+uses the month's actual days, or a fixed month of `n` calendar days (TW 30) with a part period capped
+at it; working-day proration uses the month's working days; a fixed-day
 basis uses its configured divisor, and a run covering part of a month takes that instalment's share
 of the divisor. None is inferred from an output workbook.
 
@@ -556,7 +557,7 @@ expressions over the same day context (PH art.86: 10% of the hour's own rate, so
 the day type), and on a shiftless day the first `normal_hours` night hours are the ordinary ones.
 `work_rules.proration_by` is an ordered list of `{when, basis}` arms over the person; the first
 that holds replaces `proration` for that person everywhere a proration is read — the salary
-segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167). A rostered shift shorter than
+segment, an absence, an allowance's part period (PH: the monthly-paid on 30.4167). Where the law states no divisor, `work_rules.proration_contractual` lets a terms row's own `proration` replace both for that row (VN: calendar days or 26 on the contract); where it is absent the row's basis is ignored. A rostered shift shorter than
 `normal_hours` is that day's normal day (ID art.31(2)(b)); an `ALL_OVERTIME_HOURS` limit
 counts rest-day and holiday hours beyond the normal day for its warning while the regulated
 `OVERTIME_HOURS` count stays the regulated one. `payroll.holiday_in_no_pay_leave_unpaid` and `payroll.short_day_half_hours` carry SG s.88(2)

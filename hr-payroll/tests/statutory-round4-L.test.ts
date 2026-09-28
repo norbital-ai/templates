@@ -34,7 +34,7 @@ function cashOut(facts: Record<string, string | number>, houseAllowance = 0) {
 	const world = createStatutoryWorld({
 		code: 'ID',
 		period: '2026-06',
-		region: 'DKI Jakarta',
+		region: 'Provinsi DKI Jakarta',
 		riskClass: 'I',
 		people: [{ key: 'LEAVE', wage: 6_000_000 }]
 	});
@@ -140,7 +140,7 @@ function pkwt(wage: number, taxResidency: string | null = 'RESIDENT') {
 		{
 			code: 'ID',
 			period: '2026-01',
-			region: 'DKI Jakarta',
+			region: 'Provinsi DKI Jakarta',
 			riskClass: 'I',
 			people: [
 				{

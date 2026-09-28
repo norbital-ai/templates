@@ -15,6 +15,8 @@ const holidays = collection('jurisdiction_holidays', {
 				'kind',
 				'replaces',
 				'given_to',
+				'worksite',
+				'religion',
 				'source',
 				'published_at'
 			]
@@ -29,6 +31,8 @@ const holidays = collection('jurisdiction_holidays', {
 				'kind',
 				'replaces',
 				'given_to',
+				'worksite',
+				'religion',
 				'source',
 				'published_at'
 			]
@@ -38,7 +42,7 @@ const holidays = collection('jurisdiction_holidays', {
 	actions: {
 		import_workbook: {
 			description:
-				'Loads holidays from the holidays spreadsheet — one row per entity and day, and one file may carry every entity; a day the entity already has is skipped, never duplicated or overwritten, and imported rows arrive unpublished. An unmatched entity is refused by name; a duplicated day and a day already on file are reported.',
+				'Loads company-wide holidays from the holidays spreadsheet — one row per entity and day, and one file may carry every entity; a day the entity already has company-wide is skipped, never duplicated or overwritten, and imported rows arrive unpublished. An unmatched entity is refused by name; a duplicated day and a day already on file are reported.',
 			input: {
 				rows: {
 					kind: 'list',
@@ -78,7 +82,7 @@ const holidays = collection('jurisdiction_holidays', {
 export default holidays;
 
 /** The identity a pin or a run snapshot points at: what a retraction must not move. */
-const IDENTITY = ['company_id', 'date'] as const;
+const IDENTITY = ['company_id', 'date', 'worksite'] as const;
 
 /**
  * A holiday needs an entity, a day and a name; retracting one (unpublish, or moving its day or entity) is refused while
@@ -120,15 +124,18 @@ holidays.transform(async (inputs, { existing, db, refuse }) => {
 		}
 		if (!(input.name ?? stored?.name ?? '').trim())
 			refuse('A holiday needs a name.', { field: 'name' });
-		if (stored == null || !retracting.includes(stored)) return input;
+		// A blank worksite is the whole company, stored as null so the key sees one company-wide row a day.
+		const row =
+			input.worksite != null && !input.worksite.trim() ? { ...input, worksite: null } : input;
+		if (stored == null || !retracting.includes(stored)) return row;
 		const run = capturing(stored.id);
 		if (run != null)
 			refuse(
 				`Holiday ${String(stored.date)} was captured by payroll run ${run.period} and cannot ` +
-					`${input.published_at === null ? 'be unpublished' : 'move its day or entity'}. ` +
+					`${input.published_at === null ? 'be unpublished' : 'move its day, entity or worksite'}. ` +
 					'Delete that draft run to release it; a paid run holds it permanently.'
 			);
-		return input;
+		return row;
 	});
 });
 

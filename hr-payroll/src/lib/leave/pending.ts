@@ -4,8 +4,10 @@ import type { LeaveAllocation } from '../datatypes/leave_allocations.js';
 import type { LeaveCharge } from '../datatypes/leave_charges.js';
 
 /** One leave entry as the planner reads it: decimals as numbers, days as calendar days. */
-export type LeaveActivity = Required<Omit<LeaveEntryActivity, 'hours' | 'event_child_index'>> &
-	Pick<LeaveEntryActivity, 'hours' | 'event_child_index'> & {
+export type LeaveActivity = Required<
+	Omit<LeaveEntryActivity, 'hours' | 'event_child_index' | 'agreed_pay_fraction'>
+> &
+	Pick<LeaveEntryActivity, 'hours' | 'event_child_index' | 'agreed_pay_fraction'> & {
 		readonly id: string;
 		readonly employment_id: string;
 		readonly catalogue_id: string;

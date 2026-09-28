@@ -38,3 +38,34 @@ for (const year of [2026, 2027])
 			[null, 'PERSONAL_LEAVE']
 		);
 	});
+
+// 勞工請假規則 §7(2) (am. 2025-12-09, eff. 2026-01-01): only leave to care for family may be taken
+// by the hour; ordinary personal leave stays a day unit, so hours on it are refused, not charged.
+for (const year of [2026, 2027])
+	test(`Taiwan ${year} — hours on day-unit personal leave are refused`, () => {
+		const setting = settingsVersions('TW').find((row) =>
+			row.effective_range.start.startsWith(`${year}-01-01`)
+		)!;
+		const personal = leaveCatalogue('TW').find(
+			(row) => row.settings_id === setting.id && row.code === 'PERSONAL_LEAVE'
+		)!;
+		const context = leaveContext();
+		context.catalogues[0] = {
+			...context.catalogues[0]!,
+			...personal,
+			id: id(7),
+			settings_id: id(6)
+		};
+		assert.throws(
+			() =>
+				planLeaveActivity(
+					context,
+					{
+						...submission({ ...timeOff(`${year}-02-03`), hours: 2 }, 'PERSONAL-2H'),
+						catalogue_id: id(7)
+					},
+					id(10)
+				),
+			/not by the hour/
+		);
+	});

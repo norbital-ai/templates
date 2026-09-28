@@ -19,7 +19,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -390,7 +390,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -417,7 +417,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -435,7 +435,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -504,7 +504,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -877,7 +877,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -904,7 +904,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -922,7 +922,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -991,7 +991,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -1364,7 +1364,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -1391,7 +1391,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -1409,7 +1409,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -1478,7 +1478,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -1851,7 +1851,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -1878,7 +1878,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -1896,7 +1896,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -1965,7 +1965,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -2338,7 +2338,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2365,7 +2365,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2383,7 +2383,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -2452,7 +2452,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -2828,7 +2828,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2855,7 +2855,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2873,7 +2873,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -2942,7 +2942,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -3313,7 +3313,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -3340,7 +3340,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -3358,7 +3358,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -3427,7 +3427,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -3800,7 +3800,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -3827,7 +3827,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -3845,7 +3845,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -3914,7 +3914,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -4287,7 +4287,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -4314,7 +4314,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -4332,7 +4332,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -4401,7 +4401,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -4774,7 +4774,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -4801,7 +4801,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -4819,7 +4819,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -4888,7 +4888,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -5261,7 +5261,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5288,7 +5288,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5306,7 +5306,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -5375,7 +5375,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -5751,7 +5751,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5778,7 +5778,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5796,7 +5796,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -5865,7 +5865,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -6241,7 +6241,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6268,7 +6268,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6286,7 +6286,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -6355,7 +6355,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -6733,7 +6733,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6760,7 +6760,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6778,7 +6778,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -6847,7 +6847,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -7225,7 +7225,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -7252,7 +7252,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -7270,7 +7270,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -7339,7 +7339,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -7717,7 +7717,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -7744,7 +7744,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -7762,7 +7762,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -7831,7 +7831,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -8209,7 +8209,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -8236,7 +8236,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -8254,7 +8254,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -8323,7 +8323,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -8704,7 +8704,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -8731,7 +8731,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -8749,7 +8749,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -8818,7 +8818,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -9195,7 +9195,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9222,7 +9222,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9240,7 +9240,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -9309,7 +9309,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -9688,7 +9688,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9715,7 +9715,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9733,7 +9733,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -9802,7 +9802,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -10181,7 +10181,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -10208,7 +10208,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -10226,7 +10226,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -10295,7 +10295,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -10674,7 +10674,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -10701,7 +10701,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -10719,7 +10719,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -10788,7 +10788,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -11167,7 +11167,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -11194,7 +11194,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -11212,7 +11212,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{
@@ -11281,7 +11281,7 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PAID_BY_RESULTS\"])",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
 			"bands": [
 				{
 					"label": "DOUBLE-HOLIDAY-UNWORKED",
@@ -11663,7 +11663,7 @@
 				"trigger": "Each pay period",
 				"timing": "Intervals not exceeding 16 days (a kasambahay: at least monthly)",
 				"owner": "Payroll / pay calendar",
-				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
+				"authority": "Labor Code art.103; Omnibus Rules Book III Rule VIII s.3 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RA 10361 s.25; Labor Code art.96 as amended by RA 11360 (Handbook ch.6 §D, https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -11690,7 +11690,7 @@
 				"trigger": "Each record",
 				"timing": "At least three years from the date of the last entry; BIR 2316 employer copy ten years",
 				"owner": "HR and Payroll / records",
-				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/77583/PHL77583.pdf); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
+				"authority": "Omnibus Rules Implementing the Labor Code Book III Rule X ss.11–12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -11708,7 +11708,7 @@
 				"trigger": "Separation for any cause; a request for a certificate",
 				"timing": "Final pay within 30 days from the date of separation unless a more favourable policy applies; certificate within 3 days of the request (a kasambahay's within 5 days of severance, RA 10361 s.35)",
 				"owner": "HR / itemised settlement, payment and certificate delivery",
-				"authority": "DOLE Labor Advisory 06-20 (https://dole.gov.ph/news/labor-advisory-no-06-20-guidelines-on-the-payment-of-final-pay-and-issuance-of-certificate-of-emplo/); RA 10361 s.35",
+				"authority": "DOLE Labor Advisory No. 06, s.2020 of 31 January 2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf); RA 10361 s.35",
 				"status": "PARTIAL"
 			},
 			{

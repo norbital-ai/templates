@@ -60,7 +60,8 @@ describe('leave activity fields', () => {
 			event_kind: null,
 			event_relationship: null,
 			event_child_index: null,
-			event_date: null
+			event_date: null,
+			agreed_pay_fraction: null
 		});
 	});
 

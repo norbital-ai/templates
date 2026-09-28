@@ -8,10 +8,16 @@
  */
 
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
-import { roundMoney } from '../../lib/payroll/run/rounding.js';
-import { noticeDaysRemaining, noticeMonthlyWages, serviceYearsOn } from './notice-period.js';
+import { roundMoney, type RoundingMethod } from '../../lib/payroll/run/rounding.js';
+import {
+	noticeDaysRemaining,
+	noticeMonthlyWages,
+	paydayNoticeDays,
+	serviceYearsOn
+} from './notice-period.js';
 import {
 	childBornOn,
+	childMultipleBornOn,
 	childCitizensUnder,
 	childClassed,
 	naturalSurvivingOn,
@@ -28,6 +34,8 @@ import {
 	birthday,
 	earnedMonthlyAverage,
 	leaveTaken,
+	leaveDays,
+	onLeave,
 	serviceDaysBefore,
 	serviceMonthsNet
 } from './person-functions.js';
@@ -58,6 +66,8 @@ export type ExpressionEngine = {
 	readonly daysUnder?: ((age: number) => number) | undefined;
 	/** Covered days on a thirty-day calendar; age 0 leaves coverage uncapped by age. */
 	readonly coverageDays30?: ((since: string, age: number) => number) | undefined;
+	/** Replaces every money rounding (`round_unit`, `floor_unit`, …): a caller that rounds a blend once. */
+	readonly round?: ((value: number, method: RoundingMethod) => number) | undefined;
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
@@ -80,12 +90,21 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 			return rungs.find((grade) => value <= grade) ?? rungs.at(-1) ?? value;
 		}
 	],
-	['round_cent(dyn): double', (value) => roundMoney(Number(value), 'NEAREST_CENT')],
-	['truncate_cent(dyn): double', (value) => roundMoney(Number(value), 'TRUNCATE_CENT')],
-	['up_5_cents(dyn): double', (value) => roundMoney(Number(value), 'UP_5_CENTS')],
-	['round_unit(dyn): double', (value) => roundMoney(Number(value), 'NEAREST_UNIT')],
-	['floor_unit(dyn): double', (value) => roundMoney(Number(value), 'FLOOR_UNIT')],
-	['up_to_unit(dyn): double', (value) => roundMoney(Number(value), 'UP_TO_UNIT')],
+	[
+		'round_cent(dyn): double',
+		(value) => (bound.round ?? roundMoney)(Number(value), 'NEAREST_CENT')
+	],
+	[
+		'truncate_cent(dyn): double',
+		(value) => (bound.round ?? roundMoney)(Number(value), 'TRUNCATE_CENT')
+	],
+	['up_5_cents(dyn): double', (value) => (bound.round ?? roundMoney)(Number(value), 'UP_5_CENTS')],
+	[
+		'round_unit(dyn): double',
+		(value) => (bound.round ?? roundMoney)(Number(value), 'NEAREST_UNIT')
+	],
+	['floor_unit(dyn): double', (value) => (bound.round ?? roundMoney)(Number(value), 'FLOOR_UNIT')],
+	['up_to_unit(dyn): double', (value) => (bound.round ?? roundMoney)(Number(value), 'UP_TO_UNIT')],
 	[
 		'progressive(dyn, list<dyn>): double',
 		(value, table) => {
@@ -105,6 +124,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.classed(string): int', childClassed],
 	['map.unclassed_under(int): int', childUnclassedUnder],
 	['map.born_on(string): int', childBornOn],
+	['map.multiple_born_on(string): int', childMultipleBornOn],
 	['map.natural_surviving_on(string): int', naturalSurvivingOn],
 	['map.natural_surviving_before(string): int', naturalSurvivingBefore],
 	['map.natural_surviving_confinements_before(string): int', naturalSurvivingConfinementsBefore],
@@ -113,21 +133,24 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.age_months_on(string): int', ageMonthsOn],
 	['map.taken(string): double', leaveTaken],
 	['map.earned_monthly_average(int): double', earnedMonthlyAverage],
+	['map.earned_monthly_average(int, list): double', earnedMonthlyAverage],
 	['map.average_daily_wage(int, list): double', averageDailyWage],
 	['map.average_monthly_wage(int, list): double', averageMonthlyWage],
 	['map.average_daily_wage(int, list, list): double', averageDailyWage],
 	['map.average_monthly_wage(int, list, list): double', averageMonthlyWage],
 	['map.service_months_net(list, dyn): int', serviceMonthsNet],
+	['map.on_leave(string, list): bool', onLeave],
 	['map.service_days_before(dyn, int): int', serviceDaysBefore],
 	['map.service_years_on(dyn): int', serviceYearsOn],
 	['map.notice_days_remaining(dyn, dyn, dyn): double', noticeDaysRemaining],
 	['map.notice_monthly_wages(dyn, dyn, dyn, dyn): double', noticeMonthlyWages],
+	['map.payday_notice_days(dyn, dyn, dyn): double', paydayNoticeDays],
 	['days_under(int): double', (age) => bound.daysUnder?.(Number(age)) ?? 0],
 	[
 		'coverage_days_30(string, int): double',
 		(since, age) => bound.coverageDays30?.(String(since), Number(age)) ?? 0
 	],
-	['map.days(string): double', () => 0],
+	['map.days(string): double', leaveDays],
 	[
 		'annual_quantity_exempt(string, dyn): double',
 		(code, limit) => bound.annualQuantityExempt?.(String(code), Number(limit)) ?? 0

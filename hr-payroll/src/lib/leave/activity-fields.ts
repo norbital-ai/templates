@@ -35,6 +35,8 @@ export type LeaveEntryActivity = {
 	readonly event_relationship?: string | null | undefined;
 	readonly event_child_index?: number | null | undefined;
 	readonly event_date?: string | null | undefined;
+	/** Time off paid at a share the parties agreed (VN Labour Code art.99 stoppage): 0.7 is 70% of the day wage. */
+	readonly agreed_pay_fraction?: number | null | undefined;
 	readonly charges?: readonly LeaveCharge[] | undefined;
 };
 
@@ -73,7 +75,7 @@ export const LEAVE_DAY_COLUMNS = [
 ] as const;
 
 /** The decimal columns of a leave entry, which the wire carries as text. */
-const LEAVE_DECIMAL_COLUMNS = ['days', 'hours', 'encash_days'] as const;
+const LEAVE_DECIMAL_COLUMNS = ['days', 'hours', 'encash_days', 'agreed_pay_fraction'] as const;
 
 /** A stored leave row with every day resolved to its calendar day and every decimal to a number. */
 export function normaliseLeaveDays<T extends LeaveEntryActivity>(row: T): T {
@@ -106,7 +108,8 @@ export function normaliseLeaveDays<T extends LeaveEntryActivity>(row: T): T {
 		event_kind: null,
 		event_relationship: null,
 		event_child_index: null,
-		event_date: null
+		event_date: null,
+		agreed_pay_fraction: null
 	} as const;
 }
 
@@ -132,7 +135,8 @@ export function emptyActivityFields() {
 		event_kind: null,
 		event_relationship: null,
 		event_child_index: null,
-		event_date: null
+		event_date: null,
+		agreed_pay_fraction: null
 	} as const;
 }
 

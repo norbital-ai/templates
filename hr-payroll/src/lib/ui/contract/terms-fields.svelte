@@ -117,12 +117,16 @@
 			<Field name="tax_residency" label={t('component.tax_residency')} />
 			<Field name="notice_days" label={t('component.notice_days')} />
 			<Field name="paid_rest_days" label={t('component.paid_rest_days')} />
+			<Field name="proration" label={t('component.proration')} />
 			<!-- VN Decree 293/2025 art. 5(5): the worksite's 2025 region and whether 2026 reclassified it lower -->
 			<Field name="minimum_wage_2025_region" label={t('component.minimum_wage_2025_region')} />
 			<Field
 				name="minimum_wage_2026_area_reclassified"
 				label={t('component.minimum_wage_2026_area_reclassified')}
 			/>
+			<!-- TH Minimum Wage Notice 14: the worksite and sector the daily rate is read at -->
+			<Field name="worksite" label={t('component.worksite')} />
+			<Field name="worksite_sector" label={t('component.worksite_sector')} />
 		</Grid>
 	</FormSection>
 

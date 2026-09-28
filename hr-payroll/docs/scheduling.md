@@ -68,7 +68,7 @@ facts even when imported or displayed together.
 ## Entity holidays
 
 Holidays are not roster codes, employee events or per-person selections. An entity's observed days
-are rows of `jurisdiction_holidays` — `unique(company_id, date)` — each published on its own.
+are rows of `jurisdiction_holidays` — `unique(company_id, date, worksite)` — each published on its own.
 Company closures remain Work schedule decisions. The entity's Holidays tab is one table: add a day,
 import the holidays spreadsheet or the Google calendar set beside it, and publish each day;
 Settings → Catalog is untouched.

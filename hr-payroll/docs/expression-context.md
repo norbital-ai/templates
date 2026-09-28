@@ -68,17 +68,22 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
 | `employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
 | `employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
+| `employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
 | `employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
-| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `employment.on_leave(date, codes)` | Whether approved time off of one of the named leave codes spans that day (TW 勞基法 §13: no employer termination inside the §50 stop or the §59 medical period); none where the site has no leave record |
 | `employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -90,6 +95,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
+| `terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
+| `terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -106,6 +113,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `children.under(n)` | Children under n completed years |
 | `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `children.multiple_born_on(date)` | The infants of a multiple birth: children born on that day, refusing fewer than two (CN Order 619 art.7: 15 days per extra infant) |
 | `children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
 | `children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
 | `children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
@@ -120,6 +128,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `company.region` | Employing entity region |
 | `company.headcount` | Active employments in the entity |
 | `company.headcount_citizens` | Of them, the citizens |
+| `company.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY; empty outside a payroll |
 | `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -201,17 +210,22 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
 | `person.employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
 | `person.employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
+| `person.employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `person.employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
 | `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `person.employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
-| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `person.employment.on_leave(date, codes)` | Whether approved time off of one of the named leave codes spans that day (TW 勞基法 §13: no employer termination inside the §50 stop or the §59 medical period); none where the site has no leave record |
 | `person.employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -223,6 +237,8 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
+| `person.terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
+| `person.terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -239,6 +255,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `person.children.multiple_born_on(date)` | The infants of a multiple birth: children born on that day, refusing fewer than two (CN Order 619 art.7: 15 days per extra infant) |
 | `person.children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
 | `person.children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
 | `person.children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
@@ -253,6 +270,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
+| `person.company.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY; empty outside a payroll |
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -290,6 +308,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `entry.quantity` | Recorded quantity |
 | `entry.event_date` | The day the entry belongs to |
 | `entry.period` | Pay period key the entry settles in |
+| `entry.religious_holidays` | Published holidays of the entity in the entry’s calendar year that name the employee’s recorded religion (`jurisdiction_holidays.religion`); 0 without a religion or a tagged day. ID Permenaker 6/2016 art.5(2): the same holiday twice in a year is two THRs |
 | `entry.medical.due_on` | Date treatment reimbursement becomes payable |
 | `entry.medical.incurred_on` | Date reimbursed expense was incurred |
 | `entry.medical.amount_incurred` | Actual treatment expense |
@@ -302,6 +321,11 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `entry.medical.treatment_necessary` | Practitioner-certified necessity |
 | `entry.medical.solely_aesthetic` | Treatment is solely aesthetic |
 | `entry.medical.practitioner_qualified` | Local registration or legal foreign qualification |
+| `entry.late_wage.due_on` | Day the late wage was due |
+| `entry.late_wage.paid_on` | Day the late wage was paid |
+| `entry.late_wage.days` | Calendar days from the due day to the paid day; 0 without a late wage |
+| `entry.late_wage.deposit_rate` | The payroll bank’s published 1-month term-deposit rate (% a year) on the paid day (VN Labour Code art.97(4)) |
+| `entry.late_wage.force_majeure` | The delay was caused by force majeure |
 | `entry.window.start` | Standing allowance window start |
 | `entry.window.end` | Standing allowance window end |
 | `entry.captures.remaining` | Amount still to settle |
@@ -323,7 +347,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
 | `year.earned.ABSENCE` | Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned |
-| `leave.days(code)` | Charged days of one leave code in the window |
+| `leave.days(code)` | Charged days of one leave code in the leave window this payslip settles |
 
 | Function | Meaning |
 | --- | --- |
@@ -337,7 +361,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `ladder(base, grades)` | Step a figure up to the next grade in a table |
 | `progressive(value, table)` | Apply a progressive [from, base, rate] table |
 | `minimum_wage(region)` | The version’s minimum wage for a region |
-| `leave.days(code)` | Charged days of one leave code in the window |
+| `leave.days(code)` | Charged days of one leave code in the leave window this payslip settles |
 
 ## `work_day` — One priced person-day: work bands and owed breaks.
 
@@ -377,17 +401,22 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
 | `person.employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
 | `person.employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
+| `person.employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `person.employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
 | `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `person.employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
-| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `person.employment.on_leave(date, codes)` | Whether approved time off of one of the named leave codes spans that day (TW 勞基法 §13: no employer termination inside the §50 stop or the §59 medical period); none where the site has no leave record |
 | `person.employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -399,6 +428,8 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
+| `person.terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
+| `person.terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -415,6 +446,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `person.children.multiple_born_on(date)` | The infants of a multiple birth: children born on that day, refusing fewer than two (CN Order 619 art.7: 15 days per extra infant) |
 | `person.children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
 | `person.children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
 | `person.children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
@@ -429,6 +461,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
+| `person.company.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY; empty outside a payroll |
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -535,17 +568,22 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
 | `person.employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
 | `person.employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
+| `person.employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `person.employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
 | `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `person.employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
-| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `person.employment.on_leave(date, codes)` | Whether approved time off of one of the named leave codes spans that day (TW 勞基法 §13: no employer termination inside the §50 stop or the §59 medical period); none where the site has no leave record |
 | `person.employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -557,6 +595,8 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
+| `person.terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
+| `person.terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -573,6 +613,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `person.children.multiple_born_on(date)` | The infants of a multiple birth: children born on that day, refusing fewer than two (CN Order 619 art.7: 15 days per extra infant) |
 | `person.children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
 | `person.children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
 | `person.children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
@@ -587,6 +628,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
+| `person.company.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY; empty outside a payroll |
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -642,6 +684,10 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `scheme.year_to_date.employee` | Employee amount already charged this tax year |
 | `scheme.year_to_date.employer` | Employer amount already charged this tax year |
 | `scheme.year_to_date.rebate` | Rebatable payments already recorded this tax year, including declared prior-employer payments |
+| `scheme.last_year.base` | Base this employer charged in the tax year before this one (no prior-employer opening) — ID PP 68/2009 art.2(2) joins severance parts across two calendar years |
+| `scheme.last_year.employee` | Employee amount this employer charged in the tax year before this one |
+| `scheme.last_year.employer` | Employer amount this employer charged in the tax year before this one |
+| `scheme.first_year` | Earliest tax year in which one of this employer’s earlier slips charged a base on this scheme, 0 when none — ID PP 68/2009 art.6 counts the third calendar year from the first severance part |
 | `scheme.projection.payslips_remaining` | Payslips left in the year, this one included |
 | `scheme.projection.future_equivalents` | Future payslips of this size |
 | `scheme.rate_override` | The employment flat rate override percentage, 0 when none |
@@ -754,17 +800,22 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
 | `person.employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
 | `person.employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
+| `person.employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `person.employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
 | `person.employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `person.employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
-| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `person.employment.on_leave(date, codes)` | Whether approved time off of one of the named leave codes spans that day (TW 勞基法 §13: no employer termination inside the §50 stop or the §59 medical period); none where the site has no leave record |
 | `person.employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -776,6 +827,8 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
+| `person.terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
+| `person.terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -792,6 +845,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `person.children.under(n)` | Children under n completed years |
 | `person.children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `person.children.multiple_born_on(date)` | The infants of a multiple birth: children born on that day, refusing fewer than two (CN Order 619 art.7: 15 days per extra infant) |
 | `person.children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
 | `person.children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
 | `person.children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
@@ -806,6 +860,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.company.region` | Employing entity region |
 | `person.company.headcount` | Active employments in the entity |
 | `person.company.headcount_citizens` | Of them, the citizens |
+| `person.company.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY; empty outside a payroll |
 | `person.company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -861,6 +916,10 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `scheme.year_to_date.employee` | Employee amount already charged this tax year |
 | `scheme.year_to_date.employer` | Employer amount already charged this tax year |
 | `scheme.year_to_date.rebate` | Rebatable payments already recorded this tax year, including declared prior-employer payments |
+| `scheme.last_year.base` | Base this employer charged in the tax year before this one (no prior-employer opening) — ID PP 68/2009 art.2(2) joins severance parts across two calendar years |
+| `scheme.last_year.employee` | Employee amount this employer charged in the tax year before this one |
+| `scheme.last_year.employer` | Employer amount this employer charged in the tax year before this one |
+| `scheme.first_year` | Earliest tax year in which one of this employer’s earlier slips charged a base on this scheme, 0 when none — ID PP 68/2009 art.6 counts the third calendar year from the first severance part |
 | `scheme.projection.payslips_remaining` | Payslips left in the year, this one included |
 | `scheme.projection.future_equivalents` | Future payslips of this size |
 | `scheme.rate_override` | The employment flat rate override percentage, 0 when none |
@@ -953,17 +1012,22 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
 | `employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
 | `employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
+| `employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
 | `employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
-| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `employment.on_leave(date, codes)` | Whether approved time off of one of the named leave codes spans that day (TW 勞基法 §13: no employer termination inside the §50 stop or the §59 medical period); none where the site has no leave record |
 | `employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -975,6 +1039,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
+| `terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
+| `terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -991,6 +1057,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `children.under(n)` | Children under n completed years |
 | `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `children.multiple_born_on(date)` | The infants of a multiple birth: children born on that day, refusing fewer than two (CN Order 619 art.7: 15 days per extra infant) |
 | `children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
 | `children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
 | `children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
@@ -1005,6 +1072,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `company.region` | Employing entity region |
 | `company.headcount` | Active employments in the entity |
 | `company.headcount_citizens` | Of them, the citizens |
+| `company.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY; empty outside a payroll |
 | `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -1039,6 +1107,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `leave.month_index` | Which month of the leave the day is in, from 1 |
 | `leave.day_index` | Which calendar day of the leave, from 1 |
 | `leave.days` | The days the whole entry charges |
+| `leave.event_day` | Which charged day of the event, from 1, counting this day: across every entry of the code naming the same event date, else this entry’s (VN Labour Code art.99(3): the first 14 working days of a stoppage) |
+| `leave.agreed_fraction` | The share of the day wage the parties agreed for this entry, 0 when none was recorded (VN Labour Code art.99(2), (3)) |
 | `leave.taken(code)` | The days of that leave code charged in the leave year before this day, across every entry (TW 勞工請假規則 §4(3): thirty half-paid 普通傷病假 days a year, hospitalised or not) |
 
 | Function | Meaning |
@@ -1092,17 +1162,22 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.service_years_on(date)` | Completed service years on a specified calendar date on or after hire |
 | `employment.notice_days_remaining(days, given_on, waived_days)` | Unserved calendar notice days after the last service day; written notice includes its giving day, empty given_on means no notice. Waived days remove the final unserved days; excessive waiver or invalid dates refuse |
 | `employment.notice_monthly_wages(monthly_wage, days, given_on, waived_days)` | Constant monthly wages over the unserved notice interval, divided separately by each calendar month’s actual length. Does not select the legal wage components or handle changing/non-monthly wages; rounding belongs to the rule |
+| `employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
+| `employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
 | `employment.exit_reason` | RESIGNATION \| DISMISSAL \| REDUNDANCY \| RETRENCHMENT \| UNILATERAL \| RETIREMENT \| END_OF_CONTRACT \| MUTUAL \| DEATH, or empty |
 | `employment.exit_facts.<key>` | Departure inputs declared by the settings version effective on the final service day |
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
-| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request only |
+| `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
+| `employment.on_leave(date, codes)` | Whether approved time off of one of the named leave codes spans that day (TW 勞基法 §13: no employer termination inside the §50 stop or the §59 medical period); none where the site has no leave record |
 | `employment.service_months_net(codes, days)` | Completed months of service with the named leave codes’ calendar days disregarded in each twelve months of service where they exceed `days` (MY EA s.60E(3B)); read on a leave rule only |
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
@@ -1114,6 +1189,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
+| `terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
+| `terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -1130,6 +1207,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `children.count` | Recorded child relationships active on the rule date, regardless of relationship or recorded death; a legal living-natural-child test needs its own dated function |
 | `children.under(n)` | Children under n completed years |
 | `children.born_on(date)` | Children born on that day — the size of one confinement (VN Law 113/2025: a month or three days more per child from the second or third) |
+| `children.multiple_born_on(date)` | The infants of a multiple birth: children born on that day, refusing fewer than two (CN Order 619 art.7: 15 days per extra infant) |
 | `children.natural_surviving_on(date)` | Natural CHILD records alive on that date, including children born that day; excludes adopted, stepchildren and wards. A death on the same date needs a time-specific determination. |
 | `children.natural_surviving_before(date)` | Natural children alive before the named confinement, excluding its newborns |
 | `children.natural_surviving_confinements_before(date)` | Previous confinements that produced a natural child still alive at this confinement; children born in one confinement count once |
@@ -1144,6 +1222,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `company.region` | Employing entity region |
 | `company.headcount` | Active employments in the entity |
 | `company.headcount_citizens` | Of them, the citizens |
+| `company.pay_frequency` | MONTHLY \| SEMI_MONTHLY \| WEEKLY; empty outside a payroll |
 | `company.facts.<key>` | Entity facts the version declares: sector, establishment tests |
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |

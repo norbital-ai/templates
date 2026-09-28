@@ -41,6 +41,15 @@ export type ReportPayslip = {
 	readonly identityNumber: string | null;
 	readonly hireDate: string;
 	readonly lastDay: string | null;
+	/** The person behind the row, for the employment-income returns (`income-return.ts`). */
+	readonly person: {
+		readonly employeeId: string;
+		readonly dateOfBirth: string | null;
+		readonly gender: 'MALE' | 'FEMALE' | null;
+		readonly nationality: string | null;
+		/** Exit fact `departure_on`, where the version declares and the leaver records it. */
+		readonly departureOn: string | null;
+	};
 	readonly attendance: {
 		readonly normalHours: number;
 		readonly actualHours: number;

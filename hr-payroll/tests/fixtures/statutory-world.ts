@@ -23,6 +23,7 @@ import {
 } from '../../src/lib/payroll/run/engine.ts';
 import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
 import { prepareWorkContext } from '../../src/lib/payroll/work.ts';
+import { atWorksite } from '../../src/lib/payroll/run/configuration.ts';
 import { dailyWorkedHours, nightWindowHours } from '../../src/lib/payroll/run/overtime.ts';
 import { derivedBreakMinutes, restBreakAssessment } from '../../src/lib/scheduling/rest-break.ts';
 import { roundMinute } from '../../src/lib/payroll/run/rounding.ts';
@@ -48,7 +49,8 @@ export const LINEAGES = readdirSync(jurisdictionRoot, { withFileTypes: true })
 	.map((entry) => entry.name)
 	.sort() as readonly Lineage[];
 
-export type Lineage = 'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID';
+export type Lineage =
+	'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID' | 'TH' | 'CN-shanghai' | 'CN-kunming';
 
 function law(code: Lineage, file: string, options?: { optional: true }): any[] {
 	const rows = readLawFile(resolve(jurisdictionRoot, code, file), options);
@@ -121,6 +123,9 @@ export type Person = {
 	/** The worksite's region under the 31 December 2025 VN minimum-wage order. */
 	readonly minimum_wage_2025_region?: string | null;
 	readonly minimum_wage_2026_area_reclassified?: boolean | null;
+	/** The worksite and its sector a daily minimum-wage table names (TH Notice 14). */
+	readonly worksite?: string | null;
+	readonly worksite_sector?: string | null;
 	/** The last employed day; the fixture closes the employment and its terms on it. */
 	readonly exit_date?: string;
 	/** `employments.exit_reason`, the separation bands' gate. */
@@ -304,7 +309,8 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		{ length: Math.max(0, (options.headcount ?? 0) - options.people.length) },
 		(_, index) => ({
 			key: `PAD-${index}`,
-			wage: 1,
+			// Thailand's Notice 14 blocks a token wage: 12,000 is Bangkok's THB400 × 30.
+			wage: code === 'TH' ? 12_000 : 1,
 			citizenship: 'CITIZEN',
 			registrations: Object.fromEntries(
 				schemes.map((scheme) => [scheme.code, { kind: 'NOT_REGISTERED' }])
@@ -382,6 +388,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 					? false
 					: person.minimum_wage_2026_area_reclassified
 				: null,
+		// A Thai worksite is recorded (Notice 14 prices every normal day at it); Bangkok unless stated.
+		worksite: person.worksite === undefined ? (code === 'TH' ? 'Bangkok' : null) : person.worksite,
+		worksite_sector: person.worksite_sector ?? null,
 		ordinary_hours_per_week:
 			person.ordinary_hours_per_week ??
 			(code === 'TW' && person.employment_type === 'PART_TIME' ? 20 : null),
@@ -400,10 +409,15 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		work_classification: person.work_classification ?? 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
 		employment_type: person.employment_type ?? 'PERMANENT',
-		// VN, ID, TW and SG refuse an unrecorded citizenship; synthetic cases there are citizens unless stated.
+		// VN, ID, TW, SG and CN refuse an unrecorded citizenship; synthetic cases there are citizens unless stated.
 		residency_status:
 			person.citizenship === undefined &&
-			(code === 'VN' || code === 'ID' || code === 'TW' || code === 'SG')
+			(code === 'VN' ||
+				code === 'ID' ||
+				code === 'TW' ||
+				code === 'SG' ||
+				code === 'CN-shanghai' ||
+				code === 'CN-kunming')
 				? 'CITIZEN'
 				: (person.citizenship ?? null),
 		residency_since: person.residency_since ?? null,
@@ -424,7 +438,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				code === 'TW' ||
 				code === 'PH' ||
 				code === 'VN' ||
-				code === 'ID')
+				code === 'ID' ||
+				code === 'CN-shanghai' ||
+				code === 'CN-kunming')
 				? code === 'TW' && person.citizenship === 'FOREIGNER'
 					? 'NON_RESIDENT'
 					: 'RESIDENT'
@@ -762,6 +778,26 @@ function indexStatutory(
 const pricedVersions = new Set<string>();
 
 /**
+ * Record the version the run was priced under, and every version whose leave rows priced a
+ * charged day in its salary window: leave prices each day from the row its charge names, across
+ * the lineage (`prepareLeavePayroll`), so a version whose law is its leave rows alone (TH 1–6
+ * December 2025) is priced by the days it governs, not by the version in force on the period end.
+ */
+// ponytail: counts a version through its leave rows even where it also differs elsewhere; compare
+// the version's other law to the run's when such a version is sealed.
+const recordPriced = (code: Lineage, prepared: ReturnType<typeof gatherPayrollRun>) => {
+	pricedVersions.add(`${code}:${String(prepared.configuration.jurisdiction.id)}`);
+	const { start, end } = prepared.window.salary;
+	for (const { leave } of prepared.gathered.bundles)
+		for (const entry of leave.entries)
+			for (const charge of entry.charges) {
+				if (charge.date < start || charge.date > end) continue;
+				const row = leave.catalogues.find((row) => row.id === charge.catalogue_id);
+				if (row != null) pricedVersions.add(`${code}:${String(row.settings_id)}`);
+			}
+};
+
+/**
  * Fail if any sealed version of `code` was never priced by a golden in this file.
  *
  * A sealed version is a law in force. One with no golden is a law nothing checks, and the seed
@@ -791,7 +827,7 @@ export function assessStatutory(
 		companyId: COMPANY_ID,
 		period: options.period
 	});
-	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
+	recordPriced(options.code, prepared);
 	const built = buildPayrollRun(prepared);
 	const book = indexStatutory(
 		world.employments,
@@ -849,9 +885,10 @@ function keyClockOverruns(prepared: PreparedRun): void {
 	for (const bundle of prepared.gathered.bundles) {
 		const punched = bundle.workDays.filter((entry) => entry.worked_intervals != null);
 		if (punched.length === 0) continue;
+		const configuration = atWorksite(prepared.configuration, bundle.termsHistory);
 		const work = prepareWorkContext({
 			bundle,
-			configuration: prepared.configuration,
+			configuration,
 			salary: prepared.window.salary,
 			employed: bundle.employedDays ?? bundle.attendance
 		});
@@ -865,20 +902,17 @@ function keyClockOverruns(prepared: PreparedRun): void {
 				...entry,
 				break_minutes: derivedBreakMinutes(entry.worked_intervals, day.shift?.break_minutes ?? 0)
 			};
-			const offset = offsetMinutesFor(
-				prepared.configuration.jurisdiction.payroll.timezone,
-				workDate
-			);
+			const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate);
 			const observed = dailyWorkedHours(clocked, day, offset);
 			// A rest, off or holiday day plans every worked hour, less a statutory break the day owed
 			// and did not take where the statute says it is not work (ID ps.79(2)(a)).
-			const night = prepared.configuration.nightPremium;
+			const night = configuration.nightPremium;
 			const measuredNight =
 				night == null ? null : nightWindowHours(clocked, night, day.shift, offset);
 			const shortfall = restBreakAssessment({
 				intervals: entry.worked_intervals ?? [],
 				breakMinutes: clocked.break_minutes,
-				breaks: prepared.configuration.breaks,
+				breaks: configuration.breaks,
 				overtimeHours: observed,
 				nightHours: measuredNight == null ? 0 : measuredNight.ordinary + measuredNight.overtime,
 				person: work.subject
@@ -893,7 +927,7 @@ function keyClockOverruns(prepared: PreparedRun): void {
 			planned.set(workDate, entry);
 		}
 		if (planned.size === 0) continue;
-		const limits = applicableLimits(prepared.configuration.limits, work.subject);
+		const limits = applicableLimits(configuration.limits, work.subject);
 		const split = splitPlannedOvertime({
 			days: [...work.schedule.values()].map((day) => ({
 				date: day.date,
@@ -912,7 +946,7 @@ function keyClockOverruns(prepared: PreparedRun): void {
 				)
 			})),
 			limits,
-			cutoffDay: prepared.configuration.company.pay_cutoff_day
+			cutoffDay: configuration.company.pay_cutoff_day
 		});
 		for (const [date, entry] of planned) {
 			const row = split.get(date);
@@ -949,7 +983,7 @@ export function buildStatutory(
 		period: options.period
 	});
 	keyClockOverruns(prepared);
-	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
+	recordPriced(options.code, prepared);
 	const built = buildPayrollRun(prepared);
 	const numbers = new Map(
 		world.employments.map((row) => [String(row.id), String(row.employee_number)])
@@ -993,7 +1027,7 @@ export function assessStatutoryUnvalidated(
 		period: options.period
 	});
 	keyClockOverruns(prepared);
-	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
+	recordPriced(options.code, prepared);
 	const { measuredContracts, chargesByEmployment, companyCharges } = calculateFamilyAssessments({
 		configuration: prepared.configuration,
 		gathered: prepared.gathered,

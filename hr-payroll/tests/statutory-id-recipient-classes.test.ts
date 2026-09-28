@@ -4,7 +4,7 @@ import registrations from '../src/data/collection/employment_statutory_facts/+co
 import { statutoryFactStatusFault } from '../src/lib/datatypes/statutory_fact_status.ts';
 import { transform } from './helpers/bodies.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
-import { payrollWorld } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import {
 	assessStatutory,
 	buildStatutory,
@@ -21,6 +21,7 @@ test('ID services — each cut-off withholds on actual monthly receipts and reco
 		payFrequency: 'SEMI_MONTHLY',
 		people: [{ ...person('SERVICE', 310_000_000, 'NON_EMPLOYEE'), pay_frequency: 'SEMI_MONTHLY' }]
 	});
+	taxOnly(world);
 	const build = (period: string) => {
 		const prepared = gatherPayrollRun({
 			world: payrollWorld(world),
@@ -108,23 +109,36 @@ test('payment assessments validate through the authored status schema and regist
 
 // PMK 168/2023 arts.12, 16 and Lampiran A.III–VII; UU PPh art.17(1)(a).
 // Recipient class is a declaration, independent of the employment contract label.
-const excluded = Object.fromEntries(
-	['JHT', 'JP', 'JKK', 'JKM', 'JKP', 'KESEHATAN'].map((code) => [code, { kind: 'NOT_REGISTERED' }])
-);
 function person(key: string, wage: number, recipient_class: string): Person {
 	return {
 		key,
 		wage,
 		registrations: {
-			...excluded,
 			PPH21: { kind: 'REGISTERED', elections: { recipient_class, service_kind: 'OTHER' } }
 		}
 	};
 }
+// These probes price withholding alone. A missing BPJS registration no longer waives the premiums
+// (UU 24/2011 arts.15, 19; R46), so the BPJS schemes here carry one zero rule; PPh 21 still reads
+// their zero output. The month-to-date test below keeps them to prove the employer
+// premiums reach the tax gross.
+function taxOnly(world: PayrollWorld): void {
+	for (const row of world.statutory_contributions)
+		if (!row.code.startsWith('PPH'))
+			row.rules = [{ when: 'true', employee: '0.0', employer: '0.0' }];
+}
+const assess = (
+	options: Parameters<typeof assessStatutory>[0],
+	prepare?: Parameters<typeof assessStatutory>[1]
+) =>
+	assessStatutory(options, (world, period) => {
+		taxOnly(world);
+		prepare?.(world, period);
+	});
 
 for (const period of ['2025-12', '2026-01', '2026-03', '2026-12']) {
 	test(`ID recipient classes — ${period}: services use half gross, without annual reconciliation`, () => {
-		const book = assessStatutory({
+		const book = assess({
 			code: 'ID',
 			period,
 			people: [
@@ -139,7 +153,7 @@ for (const period of ['2025-12', '2026-01', '2026-03', '2026-12']) {
 		expectStatutory(book, 'ABOVE', 'PPH21', 3_001_500, 0);
 	});
 	test(`ID recipient classes — ${period}: monthly temporary workers keep TER in the final month`, () => {
-		const book = assessStatutory({
+		const book = assess({
 			code: 'ID',
 			period,
 			people: [person('TEMP', 8_000_000, 'NON_PERMANENT_MONTHLY')]
@@ -151,7 +165,7 @@ for (const period of ['2025-12', '2026-01', '2026-03', '2026-12']) {
 
 test('ID Article 16 — full-gross classes and commissioners do not reconcile the year', () => {
 	const classes = ['ACTIVITY_PARTICIPANT', 'FORMER_EMPLOYEE', 'ACTIVE_PENSION_WITHDRAWAL'];
-	const book = assessStatutory({
+	const book = assess({
 		code: 'ID',
 		period: '2026-12',
 		people: [
@@ -165,7 +179,7 @@ test('ID Article 16 — full-gross classes and commissioners do not reconcile th
 
 test('ID services — documented pass-throughs, no-tax-ID surcharge and prior tax remain distinct', () => {
 	const sample = person('SERVICE', 10_000_000, 'NON_EMPLOYEE');
-	const book = assessStatutory({ code: 'ID', period: '2026-12', people: [sample] }, (world) => {
+	const book = assess({ code: 'ID', period: '2026-12', people: [sample] }, (world) => {
 		for (const fact of world.employment_statutory_facts) {
 			if (
 				world.statutory_contributions.find((row) => row.id === fact.statutory_contribution_id)
@@ -200,7 +214,7 @@ for (const service_kind of ['CATERING', 'MEDICAL']) {
 	test(`ID ${service_kind} — costs cannot reduce statutory gross`, () => {
 		assert.throws(
 			() =>
-				assessStatutory(
+				assess(
 					{
 						code: 'ID',
 						period: '2026-03',
@@ -237,7 +251,7 @@ for (const invalid of ['missing', 'wrong-period', 'short', 'duplicate', 'zero-un
 	test(`ID daily assessment refuses ${invalid} payment inputs`, () => {
 		assert.throws(
 			() =>
-				assessStatutory(
+				assess(
 					{
 						code: 'ID',
 						period: '2026-03',
@@ -285,7 +299,7 @@ for (const payFrequency of ['SEMI_MONTHLY', 'WEEKLY'] as const) {
 			payFrequency === 'SEMI_MONTHLY' ? 3_100_000 : 1_000_000,
 			'NON_PERMANENT_NON_MONTHLY'
 		);
-		const book = assessStatutory(
+		const book = assess(
 			{ code: 'ID', period, payFrequency, people: [{ ...sample, pay_frequency: payFrequency }] },
 			(world) => {
 				for (const fact of world.employment_statutory_facts) {
@@ -348,7 +362,7 @@ for (const period of ['2025-12', '2026-01', '2026-03', '2026-12']) {
 				'NON_PERMANENT_NON_MONTHLY'
 			)
 		);
-		const book = assessStatutory({ code: 'ID', period, people }, (world) => {
+		const book = assess({ code: 'ID', period, people }, (world) => {
 			for (const fact of world.employment_statutory_facts) {
 				const scheme = world.statutory_contributions.find(
 					(row) => row.id === fact.statutory_contribution_id
@@ -390,7 +404,7 @@ test('ID DTP — reference-month eligibility survives a raise and cannot arise f
 			}
 		};
 	});
-	const book = assessStatutory({
+	const book = assess({
 		code: 'ID',
 		period: '2026-03',
 		companyFacts: { pph21_dtp_sector: true },
@@ -423,7 +437,7 @@ test('ID daily DTP — Rp500,000 inclusive, tax identity and conflicting incenti
 			}
 		};
 	});
-	const book = assessStatutory(
+	const book = assess(
 		{ code: 'ID', period: '2026-03', companyFacts: { pph21_dtp_sector: true }, people },
 		(world) => {
 			for (const fact of world.employment_statutory_facts) {
@@ -450,7 +464,7 @@ test('ID month-to-date tax includes employer premiums actually charged at the cu
 			code: 'ID',
 			period: '2026-03-1',
 			payFrequency: 'SEMI_MONTHLY',
-			region: 'DKI Jakarta',
+			region: 'Provinsi DKI Jakarta',
 			riskClass: 'II',
 			people: [{ key: 'EMPLOYEE', wage: 31_000_000, pay_frequency: 'SEMI_MONTHLY' }]
 		},
@@ -458,17 +472,18 @@ test('ID month-to-date tax includes employer premiums actually charged at the cu
 			world.companies[0]!.semi_monthly_statutory_cutoff = 'SPLIT';
 		}
 	);
-	// First 15/31 salary = 15m. SPLIT provisionally prices BPJS on two instalments (30m):
-	// JKK 162000, JKM 90000, Kesehatan 480000; half charged now = 366000.
-	// Actual taxable gross 15366000 × TER A 7% = 1075620; the second cut-off reconciles BPJS.
-	expectStatutory(book, 'EMPLOYEE', 'PPH21', 1_075_620, 0);
+	// First 15/31 salary = 15m. JKK/JKM price on the contract monthly rate, "Upah sebulan"
+	// (PP 44/2015 art.19): JKK 0.54% × 31m = 167400, JKM 0.30% × 31m = 93000; Kesehatan 4% of the
+	// 12m ceiling = 480000. SPLIT charges half now = 370200.
+	// Actual taxable gross 15370200 × TER A 7% = 1075914; the second cut-off reconciles BPJS.
+	expectStatutory(book, 'EMPLOYEE', 'PPH21', 1_075_914, 0);
 });
 
 test('ID former employee — a bonus paid after exit reaches Article 16 without another salary', () => {
 	const world = createStatutoryWorld({
 		code: 'ID',
 		period: '2026-04',
-		region: 'DKI Jakarta',
+		region: 'Provinsi DKI Jakarta',
 		riskClass: 'II',
 		people: [{ ...person('FORMER', 10_000_000, 'FORMER_EMPLOYEE'), exit_date: '2026-03-31' }]
 	});

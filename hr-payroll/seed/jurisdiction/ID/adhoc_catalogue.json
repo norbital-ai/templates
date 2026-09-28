@@ -536,10 +536,14 @@
 			{
 				"when": "",
 				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
-				"limit": null
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "BLOCK",
+					"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0) * (entry.religious_holidays > 1.0 ? entry.religious_holidays : 1.0)"
+				}
 			}
 		],
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Corrected 2026-09-23: the version in force in December 2025 measures a Christian or Catholic leaver against Christmas 2025 (25 December 2025; a PKWTT leaver from 25 November), not Christmas 2026. Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)).",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Corrected 2026-09-23: the version in force in December 2025 measures a Christian or Catholic leaver against Christmas 2025 (25 December 2025; a PKWTT leaver from 25 November), not Christmas 2026. Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)). Applied 2026-09-28: Permenaker 6/2016 art.5(1): THR is given once a year, on the worker’s own religious holiday; SE Menaker M/3/HK.04.00/III/2026 item 7 (2 March 2026): it is paid in full and may not be paid in instalments. The band’s own amount is its calendar-year ceiling, so a second THR request in the year — an instalment or a duplicate — is refused rather than paid again. Corrected 2026-09-28: art.5(2) (signed PDF, jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf): where the same religious holiday falls more than once in one year, THR is given for each occurrence, so the calendar-year ceiling is one THR for each published holiday of the year tagged with the worker’s religion (`entry.religious_holidays`, `jurisdiction_holidays.religion`), and never less than one (art.5(1)).",
 		"name": "THR (religious holiday allowance)",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26", "PPH21_DAILY"],
 		"raised_by": "SEPARATION"
@@ -556,10 +560,14 @@
 			{
 				"when": "",
 				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
-				"limit": null
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "BLOCK",
+					"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0) * (entry.religious_holidays > 1.0 ? entry.religious_holidays : 1.0)"
+				}
 			}
 		],
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)).",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)). Applied 2026-09-28: Permenaker 6/2016 art.5(1): THR is given once a year, on the worker’s own religious holiday; SE Menaker M/3/HK.04.00/III/2026 item 7 (2 March 2026): it is paid in full and may not be paid in instalments. The band’s own amount is its calendar-year ceiling, so a second THR request in the year — an instalment or a duplicate — is refused rather than paid again. Corrected 2026-09-28: art.5(2) (signed PDF, jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf): where the same religious holiday falls more than once in one year, THR is given for each occurrence, so the calendar-year ceiling is one THR for each published holiday of the year tagged with the worker’s religion (`entry.religious_holidays`, `jurisdiction_holidays.religion`), and never less than one (art.5(1)).",
 		"name": "THR (religious holiday allowance)",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26", "PPH21_DAILY"],
 		"raised_by": "SEPARATION"
@@ -576,10 +584,14 @@
 			{
 				"when": "",
 				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
-				"limit": null
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "BLOCK",
+					"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0) * (entry.religious_holidays > 1.0 ? entry.religious_holidays : 1.0)"
+				}
 			}
 		],
-		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)).",
+		"authority": "Applied 2026-09-18 (2): Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Applied 2026-09-19 (2): Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). Applied 2026-09-23 (round 2): art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. Applied 2026-09-23 (round 4): the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)). Applied 2026-09-28: Permenaker 6/2016 art.5(1): THR is given once a year, on the worker’s own religious holiday; SE Menaker M/3/HK.04.00/III/2026 item 7 (2 March 2026): it is paid in full and may not be paid in instalments. The band’s own amount is its calendar-year ceiling, so a second THR request in the year — an instalment or a duplicate — is refused rather than paid again. Corrected 2026-09-28: art.5(2) (signed PDF, jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf): where the same religious holiday falls more than once in one year, THR is given for each occurrence, so the calendar-year ceiling is one THR for each published holiday of the year tagged with the worker’s religion (`entry.religious_holidays`, `jurisdiction_holidays.religion`), and never less than one (art.5(1)).",
 		"name": "THR (religious holiday allowance)",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26", "PPH21_DAILY"],
 		"raised_by": "SEPARATION"
@@ -589,7 +601,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
-		"authority": "PP 35/2021 arts.40–57 set the pesangon schedule and a cause-specific multiplier. UU 6/2023 art.157 sets the monthly wage basis: basic wage plus fixed allowances; 30 times daily wage; or the 12-month output-paid average floored at the applicable regional minimum. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.40–57 set the pesangon schedule and a cause-specific multiplier. UU 6/2023 art.157 sets the monthly wage basis: basic wage plus fixed allowances; 30 times daily wage; or the 12-month output-paid average floored at the applicable regional minimum. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-28: PP 68/2009 art.1 angka 3 confines its final severance rates to a \"orang pribadi dalam negeri\"; a non-resident's is imbalan sehubungan dengan pekerjaan withheld PPh 26 at 20% of gross (UU PPh art.26(1); PMK 168/2023 arts.5(1), 12(9), 14(1)), so it counts toward PPH26 as UANG_PISAH and PKWT_COMPENSATION do.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -601,7 +613,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -609,7 +621,7 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
-		"authority": "PP 35/2021 arts.40–57 set the UPMK service schedule and identify the causes that carry it. UU 6/2023 art.157 sets the monthly wage basis. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.40–57 set the UPMK service schedule and identify the causes that carry it. UU 6/2023 art.157 sets the monthly wage basis. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-28: PP 68/2009 art.1 angka 3 confines its final severance rates to a \"orang pribadi dalam negeri\"; a non-resident's is imbalan sehubungan dengan pekerjaan withheld PPh 26 at 20% of gross (UU PPh art.26(1); PMK 168/2023 arts.5(1), 12(9), 14(1)), so it counts toward PPH26 as UANG_PISAH and PKWT_COMPENSATION do.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\", \"DETENTION_NO_LOSS\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -621,7 +633,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -649,7 +661,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
-		"authority": "PP 35/2021 arts.40–57 set the pesangon schedule and a cause-specific multiplier. UU 6/2023 art.157 sets the monthly wage basis: basic wage plus fixed allowances; 30 times daily wage; or the 12-month output-paid average floored at the applicable regional minimum. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.40–57 set the pesangon schedule and a cause-specific multiplier. UU 6/2023 art.157 sets the monthly wage basis: basic wage plus fixed allowances; 30 times daily wage; or the 12-month output-paid average floored at the applicable regional minimum. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-28: PP 68/2009 art.1 angka 3 confines its final severance rates to a \"orang pribadi dalam negeri\"; a non-resident's is imbalan sehubungan dengan pekerjaan withheld PPh 26 at 20% of gross (UU PPh art.26(1); PMK 168/2023 arts.5(1), 12(9), 14(1)), so it counts toward PPH26 as UANG_PISAH and PKWT_COMPENSATION do.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -661,7 +673,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -669,7 +681,7 @@
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
-		"authority": "PP 35/2021 arts.40–57 set the UPMK service schedule and identify the causes that carry it. UU 6/2023 art.157 sets the monthly wage basis. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.40–57 set the UPMK service schedule and identify the causes that carry it. UU 6/2023 art.157 sets the monthly wage basis. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-28: PP 68/2009 art.1 angka 3 confines its final severance rates to a \"orang pribadi dalam negeri\"; a non-resident's is imbalan sehubungan dengan pekerjaan withheld PPh 26 at 20% of gross (UU PPh art.26(1); PMK 168/2023 arts.5(1), 12(9), 14(1)), so it counts toward PPH26 as UANG_PISAH and PKWT_COMPENSATION do.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\", \"DETENTION_NO_LOSS\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -681,7 +693,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -709,7 +721,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "PESANGON",
 		"name": "Uang pesangon (severance pay)",
-		"authority": "PP 35/2021 arts.40–57 set the pesangon schedule and a cause-specific multiplier. UU 6/2023 art.157 sets the monthly wage basis: basic wage plus fixed allowances; 30 times daily wage; or the 12-month output-paid average floored at the applicable regional minimum. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.40–57 set the pesangon schedule and a cause-specific multiplier. UU 6/2023 art.157 sets the monthly wage basis: basic wage plus fixed allowances; 30 times daily wage; or the 12-month output-paid average floored at the applicable regional minimum. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-28: PP 68/2009 art.1 angka 3 confines its final severance rates to a \"orang pribadi dalam negeri\"; a non-resident's is imbalan sehubungan dengan pekerjaan withheld PPh 26 at 20% of gross (UU PPh art.26(1); PMK 168/2023 arts.5(1), 12(9), 14(1)), so it counts toward PPH26 as UANG_PISAH and PKWT_COMPENSATION do.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\"]",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -721,7 +733,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{
@@ -729,7 +741,7 @@
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "UPMK",
 		"name": "Uang penghargaan masa kerja (service award)",
-		"authority": "PP 35/2021 arts.40–57 set the UPMK service schedule and identify the causes that carry it. UU 6/2023 art.157 sets the monthly wage basis. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise.",
+		"authority": "PP 35/2021 arts.40–57 set the UPMK service schedule and identify the causes that carry it. UU 6/2023 art.157 sets the monthly wage basis. PP 35 art.59 replaces the schedule with the worker-employer agreement for a micro or small enterprise. Corrected 2026-09-28: PP 68/2009 art.1 angka 3 confines its final severance rates to a \"orang pribadi dalam negeri\"; a non-resident's is imbalan sehubungan dengan pekerjaan withheld PPh 26 at 20% of gross (UU PPh art.26(1); PMK 168/2023 arts.5(1), 12(9), 14(1)), so it counts toward PPH26 as UANG_PISAH and PKWT_COMPENSATION do.",
 		"eligibility": "employment.type != \"CONTRACT\" && employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\", \"DETENTION_NO_LOSS\"] && employment.service_months >= 36",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -741,7 +753,7 @@
 				"limit": null
 			}
 		],
-		"counts_toward": [],
+		"counts_toward": ["PPH26"],
 		"raised_by": "SEPARATION"
 	},
 	{

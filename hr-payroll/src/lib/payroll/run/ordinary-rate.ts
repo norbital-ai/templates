@@ -135,7 +135,7 @@ export function absenceDayRate(options: AbsenceDayRateOptions): number {
 	const proration = prorationBasisFor(options.work, options.person);
 	switch (proration.by) {
 		case 'CALENDAR_DAYS':
-			return monthly / monthDays(options.period.start);
+			return monthly / (proration.days ?? monthDays(options.period.start));
 		case 'WORKING_DAYS': {
 			const days = options.workingDaysIn(options.period);
 			if (!(days > 0))

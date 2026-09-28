@@ -208,6 +208,7 @@
 						shift_pattern_id: { select: { code: true, pattern: true, effective_range: true } },
 						employment_type: true,
 						work_classification: true,
+						worksite: true,
 						base_salary: true,
 						statutory_work_category: true,
 						pay_frequency: true,
@@ -463,6 +464,7 @@
 						kind: true,
 						replaces: true,
 						given_to: true,
+						worksite: true,
 						published_at: true
 					},
 					limit: 62
@@ -520,7 +522,8 @@
 					{ work_date: date, shift_definition_id: draftCodeId }
 				],
 				rosterPeriods: (rosters.current ?? []).map((row) => row.period),
-				patternOn
+				patternOn,
+				worksiteOn: (day) => termOn(day)?.worksite
 			});
 		} catch {
 			// A plan the schedule cannot resolve observes nothing here; the save is judged by the transform.

@@ -5,6 +5,7 @@ import {
 	days as calendarDays,
 	monthOf
 } from '@norbital-ai/std/date';
+import { cadenceWindow, defaultPayPeriod, type PayFrequency } from '../payroll/run/period.js';
 
 type Employment = { service_start?: string; exit_date?: string };
 
@@ -75,4 +76,45 @@ export function noticeMonthlyWages(
 		day = addDays(through, 1);
 	}
 	return amount;
+}
+
+/** The first payday on or after `day` on the leaver's cadence and the company's calendar. */
+function paydayFrom(day: string, payFrequency: string, companyPayFrequency: string): string {
+	// Daily and hourly wages settle on the weekly calendar at a weekly company (`cadenceWindow`).
+	const cadence = (
+		companyPayFrequency === 'WEEKLY' && (payFrequency === 'DAILY' || payFrequency === 'HOURLY')
+			? 'WEEKLY'
+			: payFrequency
+	) as PayFrequency;
+	// The cutoff moves attendance, never the payday: every period pays on its last calendar day.
+	const company = { pay_cutoff_day: 1, pay_frequency: companyPayFrequency };
+	const window = cadenceWindow(
+		defaultPayPeriod(day, 1, { company, payFrequency: cadence }),
+		company,
+		cadence
+	);
+	if (window == null || window.payDate < day)
+		throw new Error(`No ${payFrequency} payday follows ${day} on this company's calendar.`);
+	return window.payDate;
+}
+
+/**
+ * TH LPA s.17 para.2: notice given at or before a payday takes effect on the next payday; s.17/1
+ * prices the missing notice from the removal to that day. As a notice length for
+ * `notice_monthly_wages`: from the giving day, or without notice from the day after the last
+ * service day, through the payday after the first payday on or after the notice (no notice: the
+ * removal day). s.17 para.2's three-month ceiling cannot bind: paydays here are at most a month apart.
+ */
+export function paydayNoticeDays(
+	employment: unknown,
+	given: unknown,
+	payFrequency: unknown,
+	companyPayFrequency: unknown
+): number {
+	const { service_start: start = '', exit_date: exit = '' } = employment as Employment;
+	if (start === '' && exit === '') return 0; // Blank expression-compilation context.
+	const notice = String(given) || PlainDate(exit);
+	const cadence = [String(payFrequency), String(companyPayFrequency)] as const;
+	const effective = paydayFrom(addDays(paydayFrom(notice, ...cadence), 1), ...cadence);
+	return calendarDays(datePeriod(String(given) || addDays(exit, 1), effective));
 }

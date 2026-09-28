@@ -71,6 +71,8 @@ export async function dedupeHolidayRows(
 		where: {
 			company_id: { in: companies },
 			date: { gte: PlainDate(dates[0]!), lte: PlainDate(dates.at(-1)!) },
+			// An import is company-wide: a worksite's local day on the same date is its own row.
+			worksite: { isNull: true },
 			approval_id: { isNull: true }
 		},
 		select: { company_id: true, date: true },

@@ -67,7 +67,7 @@ function separationAmounts(options: {
 		{
 			code: 'ID',
 			period: '2026-01',
-			region: 'DKI Jakarta',
+			region: 'Provinsi DKI Jakarta',
 			riskClass: 'I',
 			people: [
 				{
@@ -258,7 +258,7 @@ test('ID fixed-term compensation remains separate from permanent termination ben
 		{
 			code: 'ID',
 			period: '2026-01',
-			region: 'DKI Jakarta',
+			region: 'Provinsi DKI Jakarta',
 			riskClass: 'I',
 			people: ['PERMANENT', 'CONTRACT'].map((employment_type) => ({
 				key: employment_type,
@@ -313,7 +313,7 @@ function contractualCashOut(conversion: string) {
 	const world = createStatutoryWorld({
 		code: 'ID',
 		period: '2026-03',
-		region: 'DKI Jakarta',
+		region: 'Provinsi DKI Jakarta',
 		riskClass: 'I',
 		people: [{ key: 'POLICY', wage: 6_000_000 }]
 	});

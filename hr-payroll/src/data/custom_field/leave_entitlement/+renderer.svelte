@@ -50,7 +50,7 @@
 		}))
 	);
 	const roundingOptions = $derived(
-		(['HALF_DAY', 'WHOLE_DAY', 'EXACT'] as const).map((value) => ({
+		(['HALF_DAY', 'WHOLE_DAY', 'WHOLE_DAY_DOWN', 'EXACT'] as const).map((value) => ({
 			value,
 			label: t(`leave.rounding.${value}`)
 		}))
@@ -193,6 +193,15 @@
 					{disabled}
 					onCheckedChange={(checked) => emit({ ...current, qualifies_window: checked === true })}
 				/>{t('leave.qualifies_window')}</Inline
+			></label
+		>
+		<label class="text-sm font-medium"
+			><Inline as="span" gap="sm"
+				><Checkbox
+					checked={current.child_years === true}
+					{disabled}
+					onCheckedChange={(checked) => emit({ ...current, child_years: checked === true })}
+				/>{t('leave.child_years')}</Inline
 			></label
 		>
 		<Labelled label={t('leave.consumes_after_days')} class="text-sm font-medium">

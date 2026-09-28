@@ -115,38 +115,49 @@
 			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 			"wages": {
 				"by_region": {
-					"DKI Jakarta": 5396761,
-					"Kabupaten Bekasi": 5558515.1,
-					"Kota Bekasi": 5690752.95,
-					"Kabupaten Karawang": 5599593.21,
-					"Kabupaten Purwakarta": 4792252.92,
-					"Kabupaten Subang": 3508626.53,
-					"Kota Depok": 5195721.78,
-					"Kota Bogor": 5126897.22,
-					"Kabupaten Bogor": 4877211.17,
-					"Kabupaten Sukabumi": 3604482.92,
-					"Kabupaten Cianjur": 3104583.63,
-					"Kota Sukabumi": 3018634.94,
-					"Kota Bandung": 4482914.09,
-					"Kota Cimahi": 3863692,
-					"Kabupaten Bandung Barat": 3736741,
-					"Kabupaten Sumedang": 3732088.02,
-					"Kabupaten Bandung": 3757284.86,
-					"Kabupaten Indramayu": 2794237,
-					"Kota Cirebon": 2697685.47,
-					"Kabupaten Cirebon": 2681382.45,
-					"Kabupaten Majalengka": 2404632.62,
-					"Kabupaten Kuningan": 2209519.29,
-					"Kota Tasikmalaya": 2801962.82,
-					"Kabupaten Tasikmalaya": 2699992.26,
-					"Kabupaten Garut": 2328555.41,
-					"Kabupaten Ciamis": 2225279.16,
-					"Kabupaten Pangandaran": 2221724.19,
-					"Kota Banjar": 2204754.48
+					"Provinsi DKI Jakarta": 5396761,
+					"Provinsi Jawa Barat/Kabupaten Bekasi": 5558515.1,
+					"Provinsi Jawa Barat/Kota Bekasi": 5690752.95,
+					"Provinsi Jawa Barat/Kabupaten Karawang": 5599593.21,
+					"Provinsi Jawa Barat/Kabupaten Purwakarta": 4792252.92,
+					"Provinsi Jawa Barat/Kabupaten Subang": 3508626.53,
+					"Provinsi Jawa Barat/Kota Depok": 5195721.78,
+					"Provinsi Jawa Barat/Kota Bogor": 5126897.22,
+					"Provinsi Jawa Barat/Kabupaten Bogor": 4877211.17,
+					"Provinsi Jawa Barat/Kabupaten Sukabumi": 3604482.92,
+					"Provinsi Jawa Barat/Kabupaten Cianjur": 3104583.63,
+					"Provinsi Jawa Barat/Kota Sukabumi": 3018634.94,
+					"Provinsi Jawa Barat/Kota Bandung": 4482914.09,
+					"Provinsi Jawa Barat/Kota Cimahi": 3863692,
+					"Provinsi Jawa Barat/Kabupaten Bandung Barat": 3736741,
+					"Provinsi Jawa Barat/Kabupaten Sumedang": 3732088.02,
+					"Provinsi Jawa Barat/Kabupaten Bandung": 3757284.86,
+					"Provinsi Jawa Barat/Kabupaten Indramayu": 2794237,
+					"Provinsi Jawa Barat/Kota Cirebon": 2697685.47,
+					"Provinsi Jawa Barat/Kabupaten Cirebon": 2681382.45,
+					"Provinsi Jawa Barat/Kabupaten Majalengka": 2404632.62,
+					"Provinsi Jawa Barat/Kabupaten Kuningan": 2209519.29,
+					"Provinsi Jawa Barat/Kota Tasikmalaya": 2801962.82,
+					"Provinsi Jawa Barat/Kabupaten Tasikmalaya": 2699992.26,
+					"Provinsi Jawa Barat/Kabupaten Garut": 2328555.41,
+					"Provinsi Jawa Barat/Kabupaten Ciamis": 2225279.16,
+					"Provinsi Jawa Barat/Kabupaten Pangandaran": 2221724.19,
+					"Provinsi Jawa Barat/Kota Banjar": 2204754.48,
+					"Provinsi Sumatera Utara": 2992559,
+					"Provinsi Kepulauan Riau": 3623654,
+					"Provinsi Kepulauan Bangka Belitung": 3876600,
+					"Provinsi Banten": 2905119.9,
+					"Provinsi Sulawesi Tengah": 2915000,
+					"Provinsi Sulawesi Tenggara": 3073551.7,
+					"Provinsi Gorontalo": 3221731,
+					"Provinsi Papua": 4285850,
+					"Provinsi Papua Barat": 3615000,
+					"Provinsi Nusa Tenggara Timur": 2328969.69
 				},
+				"workplace_keyed": true,
 				"applies_when": "employment.type != \"INTERN\"",
 				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
-				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.798-Kesra/2024, effective 1 January 2025. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order."
+				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.798-Kesra/2024, effective 1 January 2025. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28 (round 3): the 2025 UMP, each in force from 1 January 2025, for the provinces whose own decree or government publication states it: Provinsi Kepulauan Bangka Belitung Rp3,876,600 — Kep. Gubernur Babel 188.44/628/DISNAKER/2024, signed copy on Disnaker Babel (diktum KEDUA, KEENAM); Provinsi Sulawesi Tenggara Rp3,073,551.70 — Kep. Gubernur Sultra 100.3.3.1/470 Tahun 2024, per the Pemprov Sultra portal; Provinsi Banten Rp2,905,119.90, Provinsi Sumatera Utara Rp2,992,559, Provinsi Kepulauan Riau Rp3,623,654 and Provinsi Gorontalo Rp3,221,731 — each the 2025 figure the provincial government states in its own 2026 announcement; Provinsi Papua Barat Rp3,615,000 — Pemprov Papua Barat announcement of 17 Dec 2024 (from 1 January 2025); Provinsi Sulawesi Tengah Rp2,915,000 — Pemprov Sulteng announcement of the 2025 wage council decision; Provinsi Papua Rp4,285,850 — the Pemprov Papua 2026 announcement’s Rp4,436,283 less its stated Rp150,433 rise, matching the Kemnaker 2025 compilation. A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency with no UMK (Perpres 82/2018 art.32(3); Permenaker 16/2024 art.12); a province not listed, or a city or regency with its own UMK, refuses rather than falls back. Applied 2026-09-28 (round 4): Provinsi Nusa Tenggara Timur Rp2,328,969.69 — Kep. Gubernur NTT 430/KEP/HK/2024 of 11 Dec 2024, 1 January–31 December 2025, per the Biro Administrasi Pimpinan Setda NTT announcement of 12 Dec 2024 (Kota Kupang has its own UMK and refuses). The other 2025 provincial decrees were not read (register ID-128–ID-160). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, read at the worksite the terms record (`employment_terms.worksite`), else the company’s region; a locality key overrides its province and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). No 2025 sector order was read."
 			},
 			"daily_month_days": "terms.working_days_per_week >= 6.0 ? 25.0 : 21.0",
 			"encashment": {
@@ -165,6 +176,14 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "PP 36/2021 art.55(1): wages are paid at the time agreed between employer and worker, the interval at most one month (art.55(4)); a final wage is still a wage, so it falls due on the agreed payday of the period the exit falls in. No instrument sets a shorter post-exit deadline (UU 13/2003 art.156(1) owes severance on termination without a day count); the late-wage fine of art.61(1) runs from the fourth day after the agreed date."
+				}
+			],
 			"deduction_ceiling": {
 				"share": 0.5,
 				"basis": "GROSS",
@@ -173,8 +192,7 @@
 				"exempt_codes": ["KESEHATAN_TERMINATION_MONTH_EMPLOYEE", "PENSION_OFFSET"],
 				"final_pay_exempt": false,
 				"authority": "PP 36/2021 art.65: the deductions of art.63(1) — fines, damages, wage advances, rent, debts or their instalments, overpaid wages — may total at most 50% of each wage payment; contributions to the state and to social-security bodies are deducted under art.64(3), outside art.63, so the employee's BPJS share and PPh 21 are not counted, nor is the pension offset against separation pay (not a wage deduction). No final-payment exception."
-			},
-			"final_pay_due_days": 7
+			}
 		},
 		"sources": {
 			"urls": [
@@ -740,38 +758,293 @@
 			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 			"wages": {
 				"by_region": {
-					"DKI Jakarta": 5729876,
-					"Kabupaten Bekasi": 5938885,
-					"Kota Bekasi": 5999443,
-					"Kabupaten Karawang": 5886853,
-					"Kabupaten Purwakarta": 5052856,
-					"Kabupaten Subang": 3737482,
-					"Kota Depok": 5522662,
-					"Kota Bogor": 5437203,
-					"Kabupaten Bogor": 5161769,
-					"Kabupaten Sukabumi": 3831926,
-					"Kabupaten Cianjur": 3316191,
-					"Kota Sukabumi": 3192807,
-					"Kota Bandung": 4737678,
-					"Kota Cimahi": 4090568,
-					"Kabupaten Bandung Barat": 3984711,
-					"Kabupaten Sumedang": 3949856,
-					"Kabupaten Bandung": 3972202,
-					"Kabupaten Indramayu": 2910254,
-					"Kota Cirebon": 2878646,
-					"Kabupaten Cirebon": 2880798,
-					"Kabupaten Majalengka": 2595368,
-					"Kabupaten Kuningan": 2369380,
-					"Kota Tasikmalaya": 2980336,
-					"Kabupaten Tasikmalaya": 2871874,
-					"Kabupaten Garut": 2472227,
-					"Kabupaten Ciamis": 2373644,
-					"Kabupaten Pangandaran": 2351250,
-					"Kota Banjar": 2361241
+					"Provinsi DKI Jakarta": 5729876,
+					"Provinsi Jawa Barat/Kabupaten Bekasi": 5938885,
+					"Provinsi Jawa Barat/Kota Bekasi": 5999443,
+					"Provinsi Jawa Barat/Kabupaten Karawang": 5886853,
+					"Provinsi Jawa Barat/Kabupaten Purwakarta": 5052856,
+					"Provinsi Jawa Barat/Kabupaten Subang": 3737482,
+					"Provinsi Jawa Barat/Kota Depok": 5522662,
+					"Provinsi Jawa Barat/Kota Bogor": 5437203,
+					"Provinsi Jawa Barat/Kabupaten Bogor": 5161769,
+					"Provinsi Jawa Barat/Kabupaten Sukabumi": 3831926,
+					"Provinsi Jawa Barat/Kabupaten Cianjur": 3316191,
+					"Provinsi Jawa Barat/Kota Sukabumi": 3192807,
+					"Provinsi Jawa Barat/Kota Bandung": 4737678,
+					"Provinsi Jawa Barat/Kota Cimahi": 4090568,
+					"Provinsi Jawa Barat/Kabupaten Bandung Barat": 3984711,
+					"Provinsi Jawa Barat/Kabupaten Sumedang": 3949856,
+					"Provinsi Jawa Barat/Kabupaten Bandung": 3972202,
+					"Provinsi Jawa Barat/Kabupaten Indramayu": 2910254,
+					"Provinsi Jawa Barat/Kota Cirebon": 2878646,
+					"Provinsi Jawa Barat/Kabupaten Cirebon": 2880798,
+					"Provinsi Jawa Barat/Kabupaten Majalengka": 2595368,
+					"Provinsi Jawa Barat/Kabupaten Kuningan": 2369380,
+					"Provinsi Jawa Barat/Kota Tasikmalaya": 2980336,
+					"Provinsi Jawa Barat/Kabupaten Tasikmalaya": 2871874,
+					"Provinsi Jawa Barat/Kabupaten Garut": 2472227,
+					"Provinsi Jawa Barat/Kabupaten Ciamis": 2373644,
+					"Provinsi Jawa Barat/Kabupaten Pangandaran": 2351250,
+					"Provinsi Jawa Barat/Kota Banjar": 2361241,
+					"Provinsi Aceh": 3932552,
+					"Provinsi Sumatera Utara": 3228971,
+					"Provinsi Bengkulu": 2827250.9,
+					"Provinsi Kepulauan Riau": 3879520,
+					"Provinsi Lampung": 3047734,
+					"Provinsi Banten": 3100881.4,
+					"Provinsi DI Yogyakarta": 2417495,
+					"Provinsi Bali": 3207459,
+					"Provinsi Nusa Tenggara Barat": 2673861,
+					"Provinsi Kalimantan Tengah": 3686138,
+					"Provinsi Kalimantan Selatan": 3725000,
+					"Provinsi Kalimantan Timur": 3762431,
+					"Provinsi Gorontalo": 3405144,
+					"Provinsi Kepulauan Bangka Belitung": 4035000,
+					"Provinsi Sulawesi Selatan": 3921088.79,
+					"Provinsi Sulawesi Tenggara": 3306496.18,
+					"Provinsi Papua": 4436283,
+					"Provinsi Papua Barat": 3841000,
+					"Provinsi Papua Tengah": 4285848,
+					"Provinsi Jawa Tengah/Kabupaten Cilacap": 2773184,
+					"Provinsi Jawa Tengah/Kabupaten Banyumas": 2474598.99,
+					"Provinsi Jawa Tengah/Kabupaten Purbalingga": 2474721.94,
+					"Provinsi Jawa Tengah/Kabupaten Banjarnegara": 2327813.08,
+					"Provinsi Jawa Tengah/Kabupaten Kebumen": 2400000,
+					"Provinsi Jawa Tengah/Kabupaten Purworejo": 2401961.91,
+					"Provinsi Jawa Tengah/Kabupaten Wonosobo": 2455038.01,
+					"Provinsi Jawa Tengah/Kabupaten Magelang": 2607790,
+					"Provinsi Jawa Tengah/Kabupaten Boyolali": 2537949,
+					"Provinsi Jawa Tengah/Kabupaten Klaten": 2538691,
+					"Provinsi Jawa Tengah/Kabupaten Sukoharjo": 2500000,
+					"Provinsi Jawa Tengah/Kabupaten Wonogiri": 2335126,
+					"Provinsi Jawa Tengah/Kabupaten Karanganyar": 2592154.06,
+					"Provinsi Jawa Tengah/Kabupaten Sragen": 2337700,
+					"Provinsi Jawa Tengah/Kabupaten Grobogan": 2399186,
+					"Provinsi Jawa Tengah/Kabupaten Blora": 2345695,
+					"Provinsi Jawa Tengah/Kabupaten Rembang": 2386305,
+					"Provinsi Jawa Tengah/Kabupaten Pati": 2485000,
+					"Provinsi Jawa Tengah/Kabupaten Kudus": 2818585,
+					"Provinsi Jawa Tengah/Kabupaten Jepara": 2756501,
+					"Provinsi Jawa Tengah/Kabupaten Demak": 3122805,
+					"Provinsi Jawa Tengah/Kabupaten Semarang": 2940088,
+					"Provinsi Jawa Tengah/Kabupaten Temanggung": 2397000,
+					"Provinsi Jawa Tengah/Kabupaten Kendal": 2992994,
+					"Provinsi Jawa Tengah/Kabupaten Batang": 2708520,
+					"Provinsi Jawa Tengah/Kabupaten Pekalongan": 2633700,
+					"Provinsi Jawa Tengah/Kabupaten Pemalang": 2433254,
+					"Provinsi Jawa Tengah/Kabupaten Tegal": 2484162,
+					"Provinsi Jawa Tengah/Kabupaten Brebes": 2400350.47,
+					"Provinsi Jawa Tengah/Kota Magelang": 2429285,
+					"Provinsi Jawa Tengah/Kota Surakarta": 2570000,
+					"Provinsi Jawa Tengah/Kota Salatiga": 2698273.24,
+					"Provinsi Jawa Tengah/Kota Semarang": 3701709,
+					"Provinsi Jawa Tengah/Kota Pekalongan": 2700926,
+					"Provinsi Jawa Tengah/Kota Tegal": 2526510
 				},
+				"workplace_keyed": true,
+				"monthly_by_sector": [
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["10437", "10213", "10520", "10616", "10740", "24201", "25992", "42205"],
+						"when": "employment.service_years < 1",
+						"amount": 5741201
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": [
+							"10734",
+							"10801",
+							"10802",
+							"11040",
+							"22220",
+							"24103",
+							"28130",
+							"33121",
+							"43211",
+							"65111",
+							"66420",
+							"49432",
+							"52291",
+							"52109"
+						],
+						"when": "employment.service_years < 1",
+						"amount": 5743449
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["14111"],
+						"when": "employment.service_years < 1 && company.facts.umsp_export_oriented",
+						"amount": 5831497
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["15201"],
+						"when": "employment.service_years < 1 && company.facts.umsp_export_oriented",
+						"amount": 5872985
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": [
+							"20118",
+							"20119",
+							"20114",
+							"20231",
+							"20291",
+							"20221",
+							"22230",
+							"23129",
+							"23111",
+							"23112",
+							"23953"
+						],
+						"when": "employment.service_years < 1",
+						"amount": 5844336
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["21012"],
+						"when": "employment.service_years < 1 && company.facts.umsp_assets_over_1_trillion",
+						"amount": 5741201
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["24101", "24310", "25991", "25940"],
+						"when": "employment.service_years < 1",
+						"amount": 5744066
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["27201"],
+						"when": "employment.service_years < 1",
+						"amount": 5759723
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["32202"],
+						"when": "employment.service_years < 1",
+						"amount": 5759015
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["27111", "27320", "27510"],
+						"when": "employment.service_years < 1",
+						"amount": 5812808
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["29200", "29300", "30912"],
+						"when": "employment.service_years < 1 && company.facts.umsp_astra_group",
+						"amount": 5904114
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["30911", "28160", "29101"],
+						"when": "employment.service_years < 1 && company.facts.umsp_astra_group",
+						"amount": 5943938
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["33151"],
+						"when": "employment.service_years < 1",
+						"amount": 5741336
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["58200", "61921", "61922"],
+						"when": "employment.service_years < 1",
+						"amount": 5754720
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["64121", "64122"],
+						"when": "employment.service_years < 1 && company.facts.umsp_assets_over_1_trillion",
+						"amount": 5872985
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["55110"],
+						"when": "employment.service_years < 1 && company.facts.umsp_hotel_star >= 4",
+						"amount": 5803839
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Cilacap",
+						"kbli": ["35111"],
+						"when": "employment.service_years < 1",
+						"amount": 2800916
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Demak",
+						"kbli": [
+							"25920",
+							"30911",
+							"25120",
+							"22220",
+							"22292",
+							"27510",
+							"27520",
+							"28193",
+							"31004",
+							"20131",
+							"13133",
+							"20232",
+							"23953",
+							"17022",
+							"10801",
+							"15121",
+							"12013",
+							"10710",
+							"12011",
+							"82920"
+						],
+						"when": "employment.service_years < 1",
+						"amount": 3137685
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Semarang",
+						"kbli": ["08109"],
+						"when": "employment.service_years < 1",
+						"amount": 2955088
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Semarang",
+						"kbli": ["46610"],
+						"when": "employment.service_years < 1",
+						"amount": 2950088
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kota Semarang",
+						"kbli": ["42930", "43905"],
+						"when": "employment.service_years < 1",
+						"amount": 3721126
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kota Semarang",
+						"kbli": ["15201", "15203"],
+						"when": "employment.service_years < 1",
+						"amount": 3707534
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kota Semarang",
+						"kbli": ["22220", "22291", "29300"],
+						"when": "employment.service_years < 1",
+						"amount": 3703651
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Tegal",
+						"kbli": ["15201", "33151"],
+						"when": "employment.service_years < 1",
+						"amount": 2495993
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Tegal",
+						"kbli": ["31009"],
+						"when": "employment.service_years < 1",
+						"amount": 2490077
+					}
+				],
 				"applies_when": "employment.type != \"INTERN\"",
 				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
-				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order."
+				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28: UMP 2026 for the provinces whose own decree or government publication was read, each applying from 1 January 2026 (PP 49/2025 art.II): Provinsi Aceh Rp3,932,552 — Kep. Gubernur Aceh 500.15.14.1/1488/2025 (30 Dec 2025), signed copy; Provinsi Sumatera Utara Rp3,228,971 — the Pemprov Sumut announcement of 19 Dec 2025 (decree number not stated there); Provinsi Bengkulu Rp2,827,250.9 — Kep. Gubernur Bengkulu K.646.DKKTRANS Tahun 2025 (22 Dec 2025), signed copy on the provincial data portal; Provinsi Kepulauan Riau Rp3,879,520 — SK Gubernur Kepri 1327/2025, per the Pemprov Kepri announcement; Provinsi Lampung Rp3,047,734 — Kep. Gubernur Lampung G/865/V.08/HK/2025, signed copy on JDIH Lampung (dictum KELIMA excepts micro and small enterprises); Provinsi Banten Rp3,100,881.4 — Kep. Gubernur Banten 701/2025 (24 Dec 2025), per the Pemprov Banten announcement; Provinsi DI Yogyakarta Rp2,417,495 — Kep. Gubernur DIY 442/2025, per the DIY Disnakertrans announcement; Provinsi Bali Rp3,207,459 — Kep. Gubernur Bali 1011/2025, published with its announcement by the Bali labour office; Provinsi Nusa Tenggara Barat Rp2,673,861 — Kep. Gubernur NTB 100.3.3.1-683/2025 (22 Dec 2025), per the NTB Disnakertrans announcement; Provinsi Kalimantan Tengah Rp3,686,138 — SK Gubernur Kalteng 188.44/477/2025 (19 Dec 2025), per the Pemprov Kalteng media centre; Provinsi Kalimantan Selatan Rp3,725,000 — the Pemprov Kalsel media-centre announcement of 25 Dec 2025 (decree number not stated there); Provinsi Kalimantan Timur Rp3,762,431 — Pengumuman Gubernur Kaltim 500.15.14.1/5097/DTKT.Srk-IV/2025 (24 Dec 2025); Provinsi Gorontalo Rp3,405,144 — the Pemprov Gorontalo announcement of 22 Dec 2025 (decree number not stated there). A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency that has no UMK (Perpres 82/2018 art.32(3), and as Permenaker 16/2024 art.12 provided for 2025); where the city or regency sets a UMK, select it instead — a UMK is not seeded for these provinces, so such a workplace must refuse, not fall back. West Java and Central Java carry no province key because every city and regency there has a UMK. Applied 2026-09-28 (round 3), each from 1 January 2026: Provinsi Kepulauan Bangka Belitung Rp4,035,000 — Kep. Gubernur Babel 100.3.3.1/…/DISNAKER/2025 (the handwritten serial reads 654 or 684), signed copy on Disnaker Babel, diktum KEDUA and KEENAM; Provinsi Sulawesi Selatan Rp3,921,088.79 — Kep. Gubernur Sulsel 2129/XII/TAHUN 2025 (22 Dec 2025), signed copy on the Sulsel open-data portal, diktum KESATU and KESEPULUH (KELIMA excepts micro and small enterprises); Provinsi Sulawesi Tenggara Rp3,306,496.18 — Kep. Gubernur Sultra 110.3.3.1/581 (24 Dec 2025), per the Pemprov Sultra portal (1 January to 31 December 2026); Provinsi Papua Rp4,436,283 — Kep. Gubernur Papua 100.3.3.1/KEP.409/2025, per the Pemprov Papua portal (effective 1 January 2026); Provinsi Papua Barat Rp3,841,000 — SK Gubernur Papua Barat 343 Tahun 2025, per the provincial archives and library office (Disarpus Papua Barat) of 23 Dec 2025; Provinsi Papua Tengah Rp4,285,848 — SK Gubernur Papua Tengah 100.3.3.1/334 Tahun 2025, per the Pemprov Papua Tengah portal of 24 Dec 2025 (unchanged from 2025). The Kemnaker compilation (satudata.kemnaker.go.id, UMP 2026) is not an authority here: it truncates sen (Bengkulu 2,827,250 against the decree’s 2,827,250.90; Sulsel 3,921,088 against 3,921,088.79) and lists Sumatera Utara at 3,228,949 against the Pemprov Sumut 3,228,971 (2,992,559 × 1.079). The other 15 provincial 2026 decrees were not read from an official source (register ID-128–ID-160). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, and the floor is read at the worksite the terms record (`employment_terms.worksite`), the company’s region where none is; a locality key overrides its province, a locality with no key of its own owes the province’s UMP, and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). DKI Jakarta has one UMP and no UMK (Kep. Gubernur 1142/2025). Jawa Tengah: the 35 UMKs of Kep. Gubernur Jawa Tengah 100.3.3.1/505 Tahun 2025 (24 Dec 2025, in force 1 January 2026, Lampiran I; PPID Kota Semarang copy of the BSrE-signed decree) — no province key, since every regency and city has a UMK. Sector minimum wages (`monthly_by_sector`; PP 36/2021 as amended by PP 49/2025 art.35D(1), which the DKI decree cites): DKI Kep. Gubernur 33 Tahun 2026 (20 Jan 2026, retroactive to 1 January 2026, diktum KETUJUH), Lampiran rows 1–57 and 60, each for its five-digit KBLI, with the Keterangan conditions as company facts; Jawa Tengah Kep.100.3.3.1/505/2025 Lampiran II, the UMSK of Kabupaten Cilacap, Demak, Semarang, Tegal and Kota Semarang. Both bind a worker with less than one year’s service only (DKI diktum KETIGA; Jawa Tengah diktum KETIGA). The worksite sector is `employment_terms.worksite_sector`, the five-digit KBLI. Not seeded: DKI rows 58–59 (KBLI 49214, 49219, bus drivers and mechanics of private companies) and 61 (KBLI 86103, class A private hospitals, nursing, midwifery and medical-support services), which bind named job types the terms do not record; an operator adds them with a `when` over their own label (e.g. `terms.department`). The sector floor raises the MINIMUM_WAGE_BELOW comparison only: Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020 floors BPJS Kesehatan at the UMK, or the UMP where none is set, never a sector wage, so `wage_floor` stays the place’s."
 			},
 			"daily_month_days": "terms.working_days_per_week >= 6.0 ? 25.0 : 21.0",
 			"encashment": {
@@ -790,6 +1063,14 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "PP 36/2021 art.55(1): wages are paid at the time agreed between employer and worker, the interval at most one month (art.55(4)); a final wage is still a wage, so it falls due on the agreed payday of the period the exit falls in. No instrument sets a shorter post-exit deadline (UU 13/2003 art.156(1) owes severance on termination without a day count); the late-wage fine of art.61(1) runs from the fourth day after the agreed date."
+				}
+			],
 			"deduction_ceiling": {
 				"share": 0.5,
 				"basis": "GROSS",
@@ -798,8 +1079,7 @@
 				"exempt_codes": ["KESEHATAN_TERMINATION_MONTH_EMPLOYEE", "PENSION_OFFSET"],
 				"final_pay_exempt": false,
 				"authority": "PP 36/2021 art.65: the deductions of art.63(1) — fines, damages, wage advances, rent, debts or their instalments, overpaid wages — may total at most 50% of each wage payment; contributions to the state and to social-security bodies are deducted under art.64(3), outside art.63, so the employee's BPJS share and PPh 21 are not counted, nor is the pension offset against separation pay (not a wage deduction). No final-payment exception."
-			},
-			"final_pay_due_days": 7
+			}
 		},
 		"sources": {
 			"urls": [
@@ -855,6 +1135,36 @@
 				"label": "Leave cash-out wage basis",
 				"description": "The monthly wage the employment agreement, company regulation or collective agreement values unused annual leave on: BASIC (basic wage) or BASIC_AND_FIXED_ALLOWANCES. Required before any annual leave is cashed out.",
 				"options": ["BASIC", "BASIC_AND_FIXED_ALLOWANCES"]
+			},
+			{
+				"key": "umsp_export_oriented",
+				"type": "boolean",
+				"label": "Export-oriented (sector minimum wage)",
+				"description": "The employer is an exporter where a sector minimum wage binds only exporters (DKI Kep.33/2026 Lampiran A rows 10–11, KBLI 14111 and 15201: \"EKSPOR\"). Owner rule 2026-09-28: law silent on an unrecorded condition; default false; lawful because the decree binds only employers that meet the condition, which the employer records, and the run warns rather than pays.",
+				"default_value": false
+			},
+			{
+				"key": "umsp_assets_over_1_trillion",
+				"type": "boolean",
+				"label": "Assets above Rp1 trillion (sector minimum wage)",
+				"description": "The employer’s assets exceed Rp1,000,000,000,000 where a sector minimum wage binds only such employers (DKI Kep.33/2026 Lampiran A row 18, KBLI 21012; Lampiran D rows 51–52, KBLI 64121 and 64122: \"ASET DI ATAS 1 TRILIUN\"). Owner rule 2026-09-28: law silent on an unrecorded condition; default false; lawful because the decree binds only employers that meet the condition, which the employer records, and the run warns rather than pays.",
+				"default_value": false
+			},
+			{
+				"key": "umsp_astra_group",
+				"type": "boolean",
+				"label": "Astra group member (sector minimum wage)",
+				"description": "The employer belongs to the Astra group where a sector minimum wage binds only it (DKI Kep.33/2026 Lampiran A rows 38–43: \"ASTRA GROUP\"). Owner rule 2026-09-28: law silent on an unrecorded condition; default false; lawful because the decree binds only employers that meet the condition, which the employer records, and the run warns rather than pays.",
+				"default_value": false
+			},
+			{
+				"key": "umsp_hotel_star",
+				"type": "number",
+				"label": "Hotel star class (sector minimum wage)",
+				"description": "The star class of the employer’s hotel, 0 where it is not a star hotel (DKI Kep.33/2026 Lampiran F row 60, KBLI 55110: \"BINTANG 4 DAN BINTANG 5\"). Owner rule 2026-09-28: law silent on an unrecorded condition; default 0 (not a star hotel); lawful because the decree binds only employers that meet the condition, which the employer records, and the run warns rather than pays.",
+				"minimum": 0,
+				"maximum": 5,
+				"default_value": 0
 			}
 		],
 		"exit_facts": [
@@ -1364,38 +1674,293 @@
 			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 			"wages": {
 				"by_region": {
-					"DKI Jakarta": 5729876,
-					"Kabupaten Bekasi": 5938885,
-					"Kota Bekasi": 5999443,
-					"Kabupaten Karawang": 5886853,
-					"Kabupaten Purwakarta": 5052856,
-					"Kabupaten Subang": 3737482,
-					"Kota Depok": 5522662,
-					"Kota Bogor": 5437203,
-					"Kabupaten Bogor": 5161769,
-					"Kabupaten Sukabumi": 3831926,
-					"Kabupaten Cianjur": 3316191,
-					"Kota Sukabumi": 3192807,
-					"Kota Bandung": 4737678,
-					"Kota Cimahi": 4090568,
-					"Kabupaten Bandung Barat": 3984711,
-					"Kabupaten Sumedang": 3949856,
-					"Kabupaten Bandung": 3972202,
-					"Kabupaten Indramayu": 2910254,
-					"Kota Cirebon": 2878646,
-					"Kabupaten Cirebon": 2880798,
-					"Kabupaten Majalengka": 2595368,
-					"Kabupaten Kuningan": 2369380,
-					"Kota Tasikmalaya": 2980336,
-					"Kabupaten Tasikmalaya": 2871874,
-					"Kabupaten Garut": 2472227,
-					"Kabupaten Ciamis": 2373644,
-					"Kabupaten Pangandaran": 2351250,
-					"Kota Banjar": 2361241
+					"Provinsi DKI Jakarta": 5729876,
+					"Provinsi Jawa Barat/Kabupaten Bekasi": 5938885,
+					"Provinsi Jawa Barat/Kota Bekasi": 5999443,
+					"Provinsi Jawa Barat/Kabupaten Karawang": 5886853,
+					"Provinsi Jawa Barat/Kabupaten Purwakarta": 5052856,
+					"Provinsi Jawa Barat/Kabupaten Subang": 3737482,
+					"Provinsi Jawa Barat/Kota Depok": 5522662,
+					"Provinsi Jawa Barat/Kota Bogor": 5437203,
+					"Provinsi Jawa Barat/Kabupaten Bogor": 5161769,
+					"Provinsi Jawa Barat/Kabupaten Sukabumi": 3831926,
+					"Provinsi Jawa Barat/Kabupaten Cianjur": 3316191,
+					"Provinsi Jawa Barat/Kota Sukabumi": 3192807,
+					"Provinsi Jawa Barat/Kota Bandung": 4737678,
+					"Provinsi Jawa Barat/Kota Cimahi": 4090568,
+					"Provinsi Jawa Barat/Kabupaten Bandung Barat": 3984711,
+					"Provinsi Jawa Barat/Kabupaten Sumedang": 3949856,
+					"Provinsi Jawa Barat/Kabupaten Bandung": 3972202,
+					"Provinsi Jawa Barat/Kabupaten Indramayu": 2910254,
+					"Provinsi Jawa Barat/Kota Cirebon": 2878646,
+					"Provinsi Jawa Barat/Kabupaten Cirebon": 2880798,
+					"Provinsi Jawa Barat/Kabupaten Majalengka": 2595368,
+					"Provinsi Jawa Barat/Kabupaten Kuningan": 2369380,
+					"Provinsi Jawa Barat/Kota Tasikmalaya": 2980336,
+					"Provinsi Jawa Barat/Kabupaten Tasikmalaya": 2871874,
+					"Provinsi Jawa Barat/Kabupaten Garut": 2472227,
+					"Provinsi Jawa Barat/Kabupaten Ciamis": 2373644,
+					"Provinsi Jawa Barat/Kabupaten Pangandaran": 2351250,
+					"Provinsi Jawa Barat/Kota Banjar": 2361241,
+					"Provinsi Aceh": 3932552,
+					"Provinsi Sumatera Utara": 3228971,
+					"Provinsi Bengkulu": 2827250.9,
+					"Provinsi Kepulauan Riau": 3879520,
+					"Provinsi Lampung": 3047734,
+					"Provinsi Banten": 3100881.4,
+					"Provinsi DI Yogyakarta": 2417495,
+					"Provinsi Bali": 3207459,
+					"Provinsi Nusa Tenggara Barat": 2673861,
+					"Provinsi Kalimantan Tengah": 3686138,
+					"Provinsi Kalimantan Selatan": 3725000,
+					"Provinsi Kalimantan Timur": 3762431,
+					"Provinsi Gorontalo": 3405144,
+					"Provinsi Kepulauan Bangka Belitung": 4035000,
+					"Provinsi Sulawesi Selatan": 3921088.79,
+					"Provinsi Sulawesi Tenggara": 3306496.18,
+					"Provinsi Papua": 4436283,
+					"Provinsi Papua Barat": 3841000,
+					"Provinsi Papua Tengah": 4285848,
+					"Provinsi Jawa Tengah/Kabupaten Cilacap": 2773184,
+					"Provinsi Jawa Tengah/Kabupaten Banyumas": 2474598.99,
+					"Provinsi Jawa Tengah/Kabupaten Purbalingga": 2474721.94,
+					"Provinsi Jawa Tengah/Kabupaten Banjarnegara": 2327813.08,
+					"Provinsi Jawa Tengah/Kabupaten Kebumen": 2400000,
+					"Provinsi Jawa Tengah/Kabupaten Purworejo": 2401961.91,
+					"Provinsi Jawa Tengah/Kabupaten Wonosobo": 2455038.01,
+					"Provinsi Jawa Tengah/Kabupaten Magelang": 2607790,
+					"Provinsi Jawa Tengah/Kabupaten Boyolali": 2537949,
+					"Provinsi Jawa Tengah/Kabupaten Klaten": 2538691,
+					"Provinsi Jawa Tengah/Kabupaten Sukoharjo": 2500000,
+					"Provinsi Jawa Tengah/Kabupaten Wonogiri": 2335126,
+					"Provinsi Jawa Tengah/Kabupaten Karanganyar": 2592154.06,
+					"Provinsi Jawa Tengah/Kabupaten Sragen": 2337700,
+					"Provinsi Jawa Tengah/Kabupaten Grobogan": 2399186,
+					"Provinsi Jawa Tengah/Kabupaten Blora": 2345695,
+					"Provinsi Jawa Tengah/Kabupaten Rembang": 2386305,
+					"Provinsi Jawa Tengah/Kabupaten Pati": 2485000,
+					"Provinsi Jawa Tengah/Kabupaten Kudus": 2818585,
+					"Provinsi Jawa Tengah/Kabupaten Jepara": 2756501,
+					"Provinsi Jawa Tengah/Kabupaten Demak": 3122805,
+					"Provinsi Jawa Tengah/Kabupaten Semarang": 2940088,
+					"Provinsi Jawa Tengah/Kabupaten Temanggung": 2397000,
+					"Provinsi Jawa Tengah/Kabupaten Kendal": 2992994,
+					"Provinsi Jawa Tengah/Kabupaten Batang": 2708520,
+					"Provinsi Jawa Tengah/Kabupaten Pekalongan": 2633700,
+					"Provinsi Jawa Tengah/Kabupaten Pemalang": 2433254,
+					"Provinsi Jawa Tengah/Kabupaten Tegal": 2484162,
+					"Provinsi Jawa Tengah/Kabupaten Brebes": 2400350.47,
+					"Provinsi Jawa Tengah/Kota Magelang": 2429285,
+					"Provinsi Jawa Tengah/Kota Surakarta": 2570000,
+					"Provinsi Jawa Tengah/Kota Salatiga": 2698273.24,
+					"Provinsi Jawa Tengah/Kota Semarang": 3701709,
+					"Provinsi Jawa Tengah/Kota Pekalongan": 2700926,
+					"Provinsi Jawa Tengah/Kota Tegal": 2526510
 				},
+				"workplace_keyed": true,
+				"monthly_by_sector": [
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["10437", "10213", "10520", "10616", "10740", "24201", "25992", "42205"],
+						"when": "employment.service_years < 1",
+						"amount": 5741201
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": [
+							"10734",
+							"10801",
+							"10802",
+							"11040",
+							"22220",
+							"24103",
+							"28130",
+							"33121",
+							"43211",
+							"65111",
+							"66420",
+							"49432",
+							"52291",
+							"52109"
+						],
+						"when": "employment.service_years < 1",
+						"amount": 5743449
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["14111"],
+						"when": "employment.service_years < 1 && company.facts.umsp_export_oriented",
+						"amount": 5831497
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["15201"],
+						"when": "employment.service_years < 1 && company.facts.umsp_export_oriented",
+						"amount": 5872985
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": [
+							"20118",
+							"20119",
+							"20114",
+							"20231",
+							"20291",
+							"20221",
+							"22230",
+							"23129",
+							"23111",
+							"23112",
+							"23953"
+						],
+						"when": "employment.service_years < 1",
+						"amount": 5844336
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["21012"],
+						"when": "employment.service_years < 1 && company.facts.umsp_assets_over_1_trillion",
+						"amount": 5741201
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["24101", "24310", "25991", "25940"],
+						"when": "employment.service_years < 1",
+						"amount": 5744066
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["27201"],
+						"when": "employment.service_years < 1",
+						"amount": 5759723
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["32202"],
+						"when": "employment.service_years < 1",
+						"amount": 5759015
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["27111", "27320", "27510"],
+						"when": "employment.service_years < 1",
+						"amount": 5812808
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["29200", "29300", "30912"],
+						"when": "employment.service_years < 1 && company.facts.umsp_astra_group",
+						"amount": 5904114
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["30911", "28160", "29101"],
+						"when": "employment.service_years < 1 && company.facts.umsp_astra_group",
+						"amount": 5943938
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["33151"],
+						"when": "employment.service_years < 1",
+						"amount": 5741336
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["58200", "61921", "61922"],
+						"when": "employment.service_years < 1",
+						"amount": 5754720
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["64121", "64122"],
+						"when": "employment.service_years < 1 && company.facts.umsp_assets_over_1_trillion",
+						"amount": 5872985
+					},
+					{
+						"place": "Provinsi DKI Jakarta",
+						"kbli": ["55110"],
+						"when": "employment.service_years < 1 && company.facts.umsp_hotel_star >= 4",
+						"amount": 5803839
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Cilacap",
+						"kbli": ["35111"],
+						"when": "employment.service_years < 1",
+						"amount": 2800916
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Demak",
+						"kbli": [
+							"25920",
+							"30911",
+							"25120",
+							"22220",
+							"22292",
+							"27510",
+							"27520",
+							"28193",
+							"31004",
+							"20131",
+							"13133",
+							"20232",
+							"23953",
+							"17022",
+							"10801",
+							"15121",
+							"12013",
+							"10710",
+							"12011",
+							"82920"
+						],
+						"when": "employment.service_years < 1",
+						"amount": 3137685
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Semarang",
+						"kbli": ["08109"],
+						"when": "employment.service_years < 1",
+						"amount": 2955088
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Semarang",
+						"kbli": ["46610"],
+						"when": "employment.service_years < 1",
+						"amount": 2950088
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kota Semarang",
+						"kbli": ["42930", "43905"],
+						"when": "employment.service_years < 1",
+						"amount": 3721126
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kota Semarang",
+						"kbli": ["15201", "15203"],
+						"when": "employment.service_years < 1",
+						"amount": 3707534
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kota Semarang",
+						"kbli": ["22220", "22291", "29300"],
+						"when": "employment.service_years < 1",
+						"amount": 3703651
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Tegal",
+						"kbli": ["15201", "33151"],
+						"when": "employment.service_years < 1",
+						"amount": 2495993
+					},
+					{
+						"place": "Provinsi Jawa Tengah/Kabupaten Tegal",
+						"kbli": ["31009"],
+						"when": "employment.service_years < 1",
+						"amount": 2490077
+					}
+				],
 				"applies_when": "employment.type != \"INTERN\"",
 				"terms_when": "terms.basic_salary >= 0.75 * terms.monthly_wage",
-				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order."
+				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28: UMP 2026 for the provinces whose own decree or government publication was read, each applying from 1 January 2026 (PP 49/2025 art.II): Provinsi Aceh Rp3,932,552 — Kep. Gubernur Aceh 500.15.14.1/1488/2025 (30 Dec 2025), signed copy; Provinsi Sumatera Utara Rp3,228,971 — the Pemprov Sumut announcement of 19 Dec 2025 (decree number not stated there); Provinsi Bengkulu Rp2,827,250.9 — Kep. Gubernur Bengkulu K.646.DKKTRANS Tahun 2025 (22 Dec 2025), signed copy on the provincial data portal; Provinsi Kepulauan Riau Rp3,879,520 — SK Gubernur Kepri 1327/2025, per the Pemprov Kepri announcement; Provinsi Lampung Rp3,047,734 — Kep. Gubernur Lampung G/865/V.08/HK/2025, signed copy on JDIH Lampung (dictum KELIMA excepts micro and small enterprises); Provinsi Banten Rp3,100,881.4 — Kep. Gubernur Banten 701/2025 (24 Dec 2025), per the Pemprov Banten announcement; Provinsi DI Yogyakarta Rp2,417,495 — Kep. Gubernur DIY 442/2025, per the DIY Disnakertrans announcement; Provinsi Bali Rp3,207,459 — Kep. Gubernur Bali 1011/2025, published with its announcement by the Bali labour office; Provinsi Nusa Tenggara Barat Rp2,673,861 — Kep. Gubernur NTB 100.3.3.1-683/2025 (22 Dec 2025), per the NTB Disnakertrans announcement; Provinsi Kalimantan Tengah Rp3,686,138 — SK Gubernur Kalteng 188.44/477/2025 (19 Dec 2025), per the Pemprov Kalteng media centre; Provinsi Kalimantan Selatan Rp3,725,000 — the Pemprov Kalsel media-centre announcement of 25 Dec 2025 (decree number not stated there); Provinsi Kalimantan Timur Rp3,762,431 — Pengumuman Gubernur Kaltim 500.15.14.1/5097/DTKT.Srk-IV/2025 (24 Dec 2025); Provinsi Gorontalo Rp3,405,144 — the Pemprov Gorontalo announcement of 22 Dec 2025 (decree number not stated there). A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency that has no UMK (Perpres 82/2018 art.32(3), and as Permenaker 16/2024 art.12 provided for 2025); where the city or regency sets a UMK, select it instead — a UMK is not seeded for these provinces, so such a workplace must refuse, not fall back. West Java and Central Java carry no province key because every city and regency there has a UMK. Applied 2026-09-28 (round 3), each from 1 January 2026: Provinsi Kepulauan Bangka Belitung Rp4,035,000 — Kep. Gubernur Babel 100.3.3.1/…/DISNAKER/2025 (the handwritten serial reads 654 or 684), signed copy on Disnaker Babel, diktum KEDUA and KEENAM; Provinsi Sulawesi Selatan Rp3,921,088.79 — Kep. Gubernur Sulsel 2129/XII/TAHUN 2025 (22 Dec 2025), signed copy on the Sulsel open-data portal, diktum KESATU and KESEPULUH (KELIMA excepts micro and small enterprises); Provinsi Sulawesi Tenggara Rp3,306,496.18 — Kep. Gubernur Sultra 110.3.3.1/581 (24 Dec 2025), per the Pemprov Sultra portal (1 January to 31 December 2026); Provinsi Papua Rp4,436,283 — Kep. Gubernur Papua 100.3.3.1/KEP.409/2025, per the Pemprov Papua portal (effective 1 January 2026); Provinsi Papua Barat Rp3,841,000 — SK Gubernur Papua Barat 343 Tahun 2025, per the provincial archives and library office (Disarpus Papua Barat) of 23 Dec 2025; Provinsi Papua Tengah Rp4,285,848 — SK Gubernur Papua Tengah 100.3.3.1/334 Tahun 2025, per the Pemprov Papua Tengah portal of 24 Dec 2025 (unchanged from 2025). The Kemnaker compilation (satudata.kemnaker.go.id, UMP 2026) is not an authority here: it truncates sen (Bengkulu 2,827,250 against the decree’s 2,827,250.90; Sulsel 3,921,088 against 3,921,088.79) and lists Sumatera Utara at 3,228,949 against the Pemprov Sumut 3,228,971 (2,992,559 × 1.079). The other 15 provincial 2026 decrees were not read from an official source (register ID-128–ID-160). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, and the floor is read at the worksite the terms record (`employment_terms.worksite`), the company’s region where none is; a locality key overrides its province, a locality with no key of its own owes the province’s UMP, and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). DKI Jakarta has one UMP and no UMK (Kep. Gubernur 1142/2025). Jawa Tengah: the 35 UMKs of Kep. Gubernur Jawa Tengah 100.3.3.1/505 Tahun 2025 (24 Dec 2025, in force 1 January 2026, Lampiran I; PPID Kota Semarang copy of the BSrE-signed decree) — no province key, since every regency and city has a UMK. Sector minimum wages (`monthly_by_sector`; PP 36/2021 as amended by PP 49/2025 art.35D(1), which the DKI decree cites): DKI Kep. Gubernur 33 Tahun 2026 (20 Jan 2026, retroactive to 1 January 2026, diktum KETUJUH), Lampiran rows 1–57 and 60, each for its five-digit KBLI, with the Keterangan conditions as company facts; Jawa Tengah Kep.100.3.3.1/505/2025 Lampiran II, the UMSK of Kabupaten Cilacap, Demak, Semarang, Tegal and Kota Semarang. Both bind a worker with less than one year’s service only (DKI diktum KETIGA; Jawa Tengah diktum KETIGA). The worksite sector is `employment_terms.worksite_sector`, the five-digit KBLI. Not seeded: DKI rows 58–59 (KBLI 49214, 49219, bus drivers and mechanics of private companies) and 61 (KBLI 86103, class A private hospitals, nursing, midwifery and medical-support services), which bind named job types the terms do not record; an operator adds them with a `when` over their own label (e.g. `terms.department`). The sector floor raises the MINIMUM_WAGE_BELOW comparison only: Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020 floors BPJS Kesehatan at the UMK, or the UMP where none is set, never a sector wage, so `wage_floor` stays the place’s."
 			},
 			"daily_month_days": "terms.working_days_per_week >= 6.0 ? 25.0 : 21.0",
 			"encashment": {
@@ -1414,6 +1979,14 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"final_pay_deadlines": [
+				{
+					"when": "",
+					"days": 0,
+					"basis": "NEXT_PAYDAY",
+					"authority": "PP 36/2021 art.55(1): wages are paid at the time agreed between employer and worker, the interval at most one month (art.55(4)); a final wage is still a wage, so it falls due on the agreed payday of the period the exit falls in. No instrument sets a shorter post-exit deadline (UU 13/2003 art.156(1) owes severance on termination without a day count); the late-wage fine of art.61(1) runs from the fourth day after the agreed date."
+				}
+			],
 			"deduction_ceiling": {
 				"share": 0.5,
 				"basis": "GROSS",
@@ -1422,8 +1995,7 @@
 				"exempt_codes": ["KESEHATAN_TERMINATION_MONTH_EMPLOYEE", "PENSION_OFFSET"],
 				"final_pay_exempt": false,
 				"authority": "PP 36/2021 art.65: the deductions of art.63(1) — fines, damages, wage advances, rent, debts or their instalments, overpaid wages — may total at most 50% of each wage payment; contributions to the state and to social-security bodies are deducted under art.64(3), outside art.63, so the employee's BPJS share and PPh 21 are not counted, nor is the pension offset against separation pay (not a wage deduction). No final-payment exception."
-			},
-			"final_pay_due_days": 7
+			}
 		},
 		"sources": {
 			"urls": [
@@ -1479,6 +2051,36 @@
 				"label": "Leave cash-out wage basis",
 				"description": "The monthly wage the employment agreement, company regulation or collective agreement values unused annual leave on: BASIC (basic wage) or BASIC_AND_FIXED_ALLOWANCES. Required before any annual leave is cashed out.",
 				"options": ["BASIC", "BASIC_AND_FIXED_ALLOWANCES"]
+			},
+			{
+				"key": "umsp_export_oriented",
+				"type": "boolean",
+				"label": "Export-oriented (sector minimum wage)",
+				"description": "The employer is an exporter where a sector minimum wage binds only exporters (DKI Kep.33/2026 Lampiran A rows 10–11, KBLI 14111 and 15201: \"EKSPOR\"). Owner rule 2026-09-28: law silent on an unrecorded condition; default false; lawful because the decree binds only employers that meet the condition, which the employer records, and the run warns rather than pays.",
+				"default_value": false
+			},
+			{
+				"key": "umsp_assets_over_1_trillion",
+				"type": "boolean",
+				"label": "Assets above Rp1 trillion (sector minimum wage)",
+				"description": "The employer’s assets exceed Rp1,000,000,000,000 where a sector minimum wage binds only such employers (DKI Kep.33/2026 Lampiran A row 18, KBLI 21012; Lampiran D rows 51–52, KBLI 64121 and 64122: \"ASET DI ATAS 1 TRILIUN\"). Owner rule 2026-09-28: law silent on an unrecorded condition; default false; lawful because the decree binds only employers that meet the condition, which the employer records, and the run warns rather than pays.",
+				"default_value": false
+			},
+			{
+				"key": "umsp_astra_group",
+				"type": "boolean",
+				"label": "Astra group member (sector minimum wage)",
+				"description": "The employer belongs to the Astra group where a sector minimum wage binds only it (DKI Kep.33/2026 Lampiran A rows 38–43: \"ASTRA GROUP\"). Owner rule 2026-09-28: law silent on an unrecorded condition; default false; lawful because the decree binds only employers that meet the condition, which the employer records, and the run warns rather than pays.",
+				"default_value": false
+			},
+			{
+				"key": "umsp_hotel_star",
+				"type": "number",
+				"label": "Hotel star class (sector minimum wage)",
+				"description": "The star class of the employer’s hotel, 0 where it is not a star hotel (DKI Kep.33/2026 Lampiran F row 60, KBLI 55110: \"BINTANG 4 DAN BINTANG 5\"). Owner rule 2026-09-28: law silent on an unrecorded condition; default 0 (not a star hotel); lawful because the decree binds only employers that meet the condition, which the employer records, and the run warns rather than pays.",
+				"minimum": 0,
+				"maximum": 5,
+				"default_value": 0
 			}
 		],
 		"exit_facts": [

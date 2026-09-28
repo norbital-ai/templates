@@ -240,7 +240,7 @@ test('ID — a daily-paid worker’s THR is the average monthly wage received (P
 		{
 			code: 'ID',
 			period: '2026-03',
-			region: 'DKI Jakarta',
+			region: 'Provinsi DKI Jakarta',
 			riskClass: 'II',
 			people: [
 				{
@@ -271,7 +271,7 @@ test('ID — BPJS reads a daily wage as the day × 25 whatever days were paid (P
 	const book = assessStatutoryUnvalidated({
 		code: 'ID',
 		period: '2026-04',
-		region: 'DKI Jakarta',
+		region: 'Provinsi DKI Jakarta',
 		riskClass: 'II',
 		people: [{ key: 'ID-DAILY', wage: 200_000, pay_frequency: 'DAILY', age: 40 }]
 	});

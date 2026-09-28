@@ -6,7 +6,11 @@ import type { WorkspaceRow } from '../rows.js';
 import { offsetMinutesFor } from '../timezone.js';
 import type { MoneyValue } from './run/rounding.js';
 import { decodeNumber } from '../wire.js';
-import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
+import {
+	atWorksite,
+	type CatalogueComponent,
+	type Configuration
+} from '../../lib/payroll/run/configuration.js';
 import type { EmploymentBundle, GatheredRun } from '../../lib/payroll/run/gather.js';
 import type { PayrollWorld } from './world.js';
 import type { ComponentDefinition } from '../../lib/payroll/run/configuration.js';
@@ -39,7 +43,6 @@ import {
 	type PersonContext
 } from '../../lib/payroll/run/eligibility.js';
 import { stint } from '../employment-contract.js';
-import { resolveFactValues } from '../declared-facts.js';
 import {
 	dailyWorkedHours,
 	deriveDailyOvertime,
@@ -375,21 +378,8 @@ export function prepareWorkContext(
 	}
 ) {
 	const { bundle, configuration, employed } = options;
-	// Component eligibility runs over the whole catalogue, so departure inputs the version declares
-	// resolve to their defaults even for an active contract; requiredness is enforced where a
-	// final service day exists (money.ts).
-	const employmentForPerson = () => {
-		const employment = stint(bundle.employment);
-		return {
-			...employment,
-			exit_facts: resolveFactValues(
-				configuration.jurisdiction.exit_facts ?? [],
-				employment.exit_facts ?? {},
-				bundle.employment.employee_number,
-				false
-			)
-		};
-	};
+	const employmentForPerson = () =>
+		stint(bundle.employment, configuration.jurisdiction.exit_facts ?? []);
 	const attendance = bundle.attendance;
 	const wageDays = bundle.wageDays ?? employed;
 	const closingTerms = termsAt(bundle, employed.end);
@@ -946,8 +936,7 @@ export function calculateWorkAttendance(
 							clocked,
 							configuration.nightPremium,
 							day.dayType === 'ORDINARY' ? day.shift : null,
-							offset,
-							derived?.normalHours ?? day.normalHours
+							offset
 						);
 						return night.ordinary + night.overtime;
 					})();
@@ -1136,12 +1125,30 @@ export function calculateWorkAttendance(
 					const day = schedule.get(date);
 					const priced = day;
 					const bandDay = pricedBandDays.find((row) => row.workDayId === entry.id);
+					const shift = priced != null && priced.dayType === 'ORDINARY' ? priced.shift : null;
+					const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date);
+					const clocked = {
+						...entry,
+						break_minutes: derivedBreakMinutes(
+							entry.worked_intervals,
+							priced?.shift?.break_minutes ?? 0
+						)
+					};
+					// Overtime is the day's planned hours beyond its normal ones. A scheduled day nobody
+					// planned overtime on has none; a day with no shift is overtime past its normal hours,
+					// all of it when unscheduled.
 					const night = nightWindowHours(
-						entry,
+						clocked,
 						nightPremium,
-						priced != null && priced.dayType === 'ORDINARY' ? priced.shift : null,
-						offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date),
-						bandDay?.normalHours ?? priced?.normalHours ?? 0
+						shift,
+						offset,
+						bandDay != null
+							? bandDay.workedHours - bandDay.normalHours
+							: shift != null
+								? 0
+								: priced == null
+									? Number.POSITIVE_INFINITY
+									: Math.max(0, dailyWorkedHours(clocked, priced, offset) - priced.normalHours)
 					);
 					// Overtime hours add nothing where the person is outside statutory overtime pay.
 					const overtime = paymentEligibleOn(date) ? night.overtime : 0;
@@ -1393,7 +1400,6 @@ export function measureContractSegments(options: {
 		date > options.contracted.end
 			? termsAt(options.bundle, options.contracted.end)
 			: termsAt(options.bundle, date);
-	const closingFrequency = payFrequency(termsOn(options.employed.end).pay_frequency);
 	const measured: {
 		readonly segment: NonNullable<ReturnType<typeof prorationSegment>>;
 		readonly unpaid: number;
@@ -1423,7 +1429,10 @@ export function measureContractSegments(options: {
 			work: options.configuration.work,
 			person: personContext({
 				employee: options.bundle.employee,
-				employment: stint(options.bundle.employment),
+				employment: stint(
+					options.bundle.employment,
+					options.configuration.jurisdiction.exit_facts ?? []
+				),
 				fixedAllowances: contractAllowancesOn(
 					options.bundle,
 					options.configuration,
@@ -1446,6 +1455,7 @@ export function measureContractSegments(options: {
 					? (intersectDays(options.salary, monthBounds(monthKey(covered.start))) ?? options.salary)
 					: options.salary,
 			covered,
+			employed: options.employed,
 			workingDaysIn: options.workingDaysIn,
 			instalments: terms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
 			salaryPeriod: options.contractPeriod ?? (terms.pay_frequency === 'WEEKLY' ? 'WEEK' : 'MONTH')
@@ -1499,35 +1509,14 @@ export function measureContractSegments(options: {
 	 * than being left as a cent nobody can account for. `payslip_proration` says the segments
 	 * sum; this is what makes that true rather than nearly true.
 	 */
-	/**
-	 * A fixed factor caps the MONTH (or the instalment), not each terms row. Two rows split on
-	 * the 24th measured 16 + 7 = 23 working days over 21.75 and paid 105.75% of a month; the
-	 * DOLE factor is what a whole month is worth, so the rows are scaled to it together and
-	 * the segments a payslip stores still sum to what was paid.
-	 */
-	const capped = ((): typeof measured => {
-		if (measured.length < 2 || measured.some((entry) => entry.segment.basis.by !== 'FIXED_DAYS'))
-			return measured;
-		const cap = measured[0]!.segment.denominator / (closingFrequency === 'SEMI_MONTHLY' ? 2 : 1);
-		const total = measured.reduce((sum, entry) => sum + entry.segment.days, 0);
-		if (total <= cap) return measured;
-		return measured.map((entry) => {
-			const days = (entry.segment.days * cap) / total;
-			return {
-				...entry,
-				segment: { ...entry.segment, days },
-				exact: entry.contract * (days / entry.segment.denominator)
-			};
-		});
-	})();
 	const amount = cents(
-		capped.reduce((total, entry) => total + entry.exact, 0),
+		measured.reduce((total, entry) => total + entry.exact, 0),
 		currency
 	);
 	let allocated = 0;
-	const segments: PayslipProration[] = capped.map((entry, index) => {
+	const segments: PayslipProration[] = measured.map((entry, index) => {
 		const prorated =
-			index === capped.length - 1
+			index === measured.length - 1
 				? cents(amount - allocated, currency)
 				: cents(entry.exact, currency);
 		allocated = cents(allocated + prorated, currency);
@@ -2068,9 +2057,9 @@ export function validateWorkInputs(options: {
 					workDays: bundle.workDays.map((day) => ({
 						work_date: day.work_date,
 						shift_definition_id: day.shift_definition_id
-					}))
+					})),
+					holidayDates: new Set(atWorksite(configuration, bundle.termsHistory).holidays.keys())
 				})),
-			holidayDates: new Set(configuration.holidays.keys()),
 			...rosteredWorkCodeMaps(
 				[...configuration.shiftById].map(([id, code]) => ({ id, variant: code.variant }))
 			)
@@ -2113,12 +2102,15 @@ export function validateWorkResult(options: {
 	);
 	for (const limit of measured.limits) {
 		if (limit.period !== 'DAY') continue;
+		// The limit's own citation only: the whole work_rules authority is a paragraph, not a cite.
+		const authority = limit.authority ?? undefined;
 		if (limit.measure === 'TOTAL_WORK_HOURS')
 			issues.push(
 				...validateDailyWorkLimit({
 					employeeNumber: bundle.employment.employee_number,
 					days: ownDays,
 					maxWorkHours: limit.max_hours,
+					authority,
 					unit: limit.unit
 				})
 			);
@@ -2127,7 +2119,8 @@ export function validateWorkResult(options: {
 				...validateDailyOvertimeHoursLimit({
 					employeeNumber: bundle.employment.employee_number,
 					days: ownDays,
-					maxOvertimeHours: limit.max_hours
+					maxOvertimeHours: limit.max_hours,
+					authority
 				})
 			);
 	}

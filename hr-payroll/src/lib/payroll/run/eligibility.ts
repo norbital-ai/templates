@@ -11,6 +11,8 @@ import { addDays, completedMonths, completedYears, inclusiveDays, monthDay } fro
 import { dateKey } from '../../../lib/iso-day.js';
 import { coversDate, readRange } from './effective.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
+import { Schema } from 'effect';
+import { prorationBasisValueSchema, type ProrationBasis } from '../../datatypes/proration_basis.js';
 
 /** Recorded facts as the expression contexts read them: a stored fact is a boolean, a number or a string (its custom field's check). */
 export const scalarFacts = (
@@ -67,6 +69,8 @@ export type PersonContext = {
 		readonly service_months: number;
 		/** Completed months plus the part month as a fraction of that month's days: a pro-rata-for-a-part-year statute reads this. */
 		readonly service_months_exact: number;
+		/** Months worked for earlier employers before this stint, as recorded; 0 unrecorded. */
+		readonly prior_service_months: number;
 		/** Completed years of service on the rule date; separation payments count in these. */
 		readonly service_years: number;
 		/** First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire. */
@@ -77,6 +81,8 @@ export type PersonContext = {
 		readonly open_ended: boolean;
 		/** Whole months of a fixed-term contract, first day to last; 0 where open-ended. */
 		readonly contract_months: number;
+		/** Calendar days of a fixed-term contract, first day to last inclusive; 0 where open-ended. */
+		readonly contract_days: number;
 		/** `employments.exit_reason`, or empty while the stint is open or unrecorded. */
 		readonly exit_reason: string;
 		readonly exit_facts: Readonly<Record<string, string | number | boolean>>;
@@ -118,6 +124,9 @@ export type PersonContext = {
 		readonly statutory_work_category: string;
 		/** Basic plus every other cash payment for work settling in the run; 0 outside payroll. */
 		readonly statutory_wages: number;
+		/** The worksite and its sector (a five-digit KBLI in ID) the terms record, or empty. */
+		readonly worksite: string;
+		readonly worksite_sector: string;
 		/** Department and grade: an employer's own catalogue row may tier on them; no statute does. */
 		readonly department: string;
 		readonly payroll_group: string;
@@ -183,6 +192,8 @@ export type PersonContext = {
 		readonly headcount: number;
 		/** Of them, the citizens; the run supplies it, else the headcount. */
 		readonly headcount_citizens: number;
+		/** The entity's payday calendar; empty where the caller did not supply the company row. */
+		readonly pay_frequency: string;
 		/** Entity facts the version declares: sector, overtime consent, establishment tests. */
 		readonly facts: Readonly<Record<string, string | number | boolean>>;
 	};
@@ -245,6 +256,8 @@ export type PersonContext = {
 		/** Days employed elsewhere before the named child's confinement, as declared; 0 unrecorded. */
 		readonly prior_employment_days: number;
 	};
+	/** The terms row's own part-month basis (`employment_terms.proration`); not an expression member. */
+	readonly contract_proration?: ProrationBasis | undefined;
 };
 
 export type PersonInput = {
@@ -263,9 +276,12 @@ export type PersonInput = {
 	} | null;
 	readonly employment: {
 		readonly service_start: string;
+		readonly prior_service_months?: number | null | undefined;
 		readonly exit_date?: string | null | undefined;
 		readonly exit_reason?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
+		/** The departure inputs actually recorded, where `exit_facts` carries declared defaults (`stint`). */
+		readonly exit_fact_keys?: readonly string[] | undefined;
 		/** The entity's statutory risk class, where a regime prices one. */
 		readonly risk_class?: string | null | undefined;
 		/** Unauthorised absences in the twelve months to `asOf`, where counted. */
@@ -292,6 +308,8 @@ export type PersonInput = {
 		readonly allowances?:
 			readonly { readonly catalogue_id: string; readonly amount: number }[] | null | undefined;
 		readonly statutory_work_category?: string | null | undefined;
+		readonly worksite?: string | null | undefined;
+		readonly worksite_sector?: string | null | undefined;
 		readonly department?: string | null | undefined;
 		readonly payroll_group?: string | null | undefined;
 		readonly paid_rest_days?: boolean | null | undefined;
@@ -303,6 +321,7 @@ export type PersonInput = {
 		readonly notice_days?: unknown | undefined;
 		readonly comparable_full_time_daily_hours?: unknown | undefined;
 		readonly comparable_full_time_presence?: string | null | undefined;
+		readonly proration?: unknown | undefined;
 	} | null;
 	/**
 	 * The working week the roster produced, where one has been measured. Separate from `terms`
@@ -317,6 +336,7 @@ export type PersonInput = {
 		readonly region?: string | null | undefined;
 		readonly headcount?: number | null | undefined;
 		readonly headcount_citizens?: number | null | undefined;
+		readonly pay_frequency?: string | null | undefined;
 		readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 	} | null;
 	/** The statutory wage comparand this run derived, where one is known. */
@@ -487,15 +507,18 @@ export function personContext(input: PersonInput): PersonContext {
 			service_periods: input.servicePeriods ?? null,
 			service_months: start === '' ? 0 : completedMonths(start, through),
 			service_months_exact: start === '' ? 0 : exactMonths(start, through),
+			prior_service_months: decodeNumber(input.employment.prior_service_months ?? 0),
 			service_years: start === '' ? 0 : completedYears(start, through),
 			service_start: start,
 			exit_date: exit,
 			open_ended: exit === '',
 			contract_months:
 				exit === '' || start === '' || exit < start ? 0 : completedMonths(start, addDays(exit, 1)),
+			contract_days: exit === '' || start === '' || exit < start ? 0 : inclusiveDays(start, exit),
 			exit_reason: input.employment.exit_reason ?? '',
 			exit_facts: scalarFacts(input.employment.exit_facts),
-			exit_fact_keys: Object.keys(input.employment.exit_facts ?? {}),
+			exit_fact_keys:
+				input.employment.exit_fact_keys ?? Object.keys(input.employment.exit_facts ?? {}),
 			absent_days_12m: decodeNumber(input.employment.absent_days_12m ?? 0),
 			history: {
 				as_of: day,
@@ -526,6 +549,8 @@ export function personContext(input: PersonInput): PersonContext {
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
 			statutory_work_category: input.terms?.statutory_work_category ?? '',
 			statutory_wages: decodeNumber(input.statutoryWages ?? 0),
+			worksite: input.terms?.worksite?.trim() ?? '',
+			worksite_sector: input.terms?.worksite_sector?.trim() ?? '',
 			department: input.terms?.department ?? '',
 			payroll_group: input.terms?.payroll_group ?? '',
 			paid_rest_days: input.terms?.paid_rest_days ?? false,
@@ -582,6 +607,7 @@ export function personContext(input: PersonInput): PersonContext {
 			headcount_citizens: decodeNumber(
 				input.company?.headcount_citizens ?? input.company?.headcount ?? 1
 			),
+			pay_frequency: input.company?.pay_frequency ?? '',
 			facts: scalarFacts(input.company?.facts)
 		},
 		wage_floor: decodeNumber(input.wageFloor ?? 0),
@@ -615,6 +641,10 @@ export function personContext(input: PersonInput): PersonContext {
 			child_shared_weeks: named?.shared_parental_weeks ?? -1,
 			prior_employment_days: named?.prior_employment_days ?? 0
 		},
+		contract_proration:
+			input.terms?.proration == null
+				? undefined
+				: Schema.decodeUnknownSync(prorationBasisValueSchema)(input.terms.proration),
 		facts: Object.fromEntries(
 			(input.facts ?? []).map((fact) => {
 				const since = dateKey(fact.since);
@@ -623,8 +653,9 @@ export function personContext(input: PersonInput): PersonContext {
 					{
 						registered: fact.registered,
 						since,
-						since_months:
-							since === '' || since > input.asOf ? 0 : completedMonths(since, input.asOf),
+						// Measured to the same `through` as service, so `service_months - since_months` is the uncovered
+						// span (Decree 145/2020 art.8(3)) on a month-end exit too.
+						since_months: since === '' || since > through ? 0 : completedMonths(since, through),
 						elections: fact.elections ?? {},
 						election_keys: fact.election_keys ?? Object.keys(fact.elections ?? {})
 					}

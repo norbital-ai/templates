@@ -29,6 +29,7 @@ const f = customField({
 					fields: { when: { kind: 'text' }, basis: { kind: 'custom', of: 'proration_basis' } }
 				}
 			},
+			proration_contractual: { kind: 'bool', optional: true },
 			ordinary_divisor_days: { kind: 'text' },
 			daily_month_days: { kind: 'text', optional: true },
 			ordinary_rate_reference: {

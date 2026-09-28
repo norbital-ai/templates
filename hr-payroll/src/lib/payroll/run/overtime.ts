@@ -143,59 +143,58 @@ export function ordinaryWorkedHours(
 }
 
 /**
- * Hours inside the regime's night window, split into the shift's own hours and the rest.
+ * Hours inside the regime's night window, split into ordinary night hours and overtime ones.
  *
  * Attendance is already assigned to a work date, so the window opens at `from` on that date and,
  * when it ends at or before it opens, closes the next morning — which also catches an overtime
- * punch continuing past a scheduled night shift. Hours inside the scheduled window are ordinary;
- * everything else in the night is overtime, and on a day with no shift every night hour is.
- * The overlap is derived from the actual clock rather than a payroll workbook amount.
+ * punch continuing past a scheduled night shift. Overtime is the last hours of the day, after the
+ * normal ones (PH Labor Code art.87: work beyond eight hours), so only the night hours inside the
+ * day's final `overtimeHours` are overtime; every other worked night hour is ordinary (art.86),
+ * wherever it falls against the scheduled window. On a scheduled day the clock before the shift
+ * start is not work. The unpaid break has no recorded position, so it is taken out of the
+ * ordinary night only as far as the day's net hours demand.
  */
 export function nightWindowHours(
 	entry: WorkDayLike,
 	window: Pick<NightPremium, 'from' | 'to'>,
 	shift: ScheduledDay['shift'],
 	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES,
-	/**
-	 * On a day with no shift (a rest day, a holiday) the first this many worked hours are the
-	 * ordinary night hours and the rest overtime — the split the bands price the day on (PH
-	 * art.93: 130% for eight hours, 169% beyond, the night add on each at 10%).
-	 */
-	normalHours = 0
+	/** The day's overtime: its last this many worked hours. */
+	overtimeHours = 0
 ): { readonly ordinary: number; readonly overtime: number } {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
+	const day = midnight(workDate, utcOffsetMinutes);
 	const from = clockMinutes(window.from);
 	let to = clockMinutes(window.to);
 	if (to <= from) to += 1440;
-	const nightStart = midnight(workDate, utcOffsetMinutes) + from * MINUTE_MS;
-	const nightEnd = midnight(workDate, utcOffsetMinutes) + to * MINUTE_MS;
-	const intervals = normalizedWorkedIntervals(entry);
-	const night = overlapHours(intervals, nightStart, nightEnd);
-	if (shift == null) {
-		if (!(normalHours > 0)) return { ordinary: 0, overtime: night };
-		// The first `normalHours` of the clock, in order, cut where the allowance runs out.
-		let left = normalHours * HOUR_MS;
-		const first: Interval[] = [];
-		for (const interval of [...intervals].sort((a, b) => a.start - b.start)) {
-			if (left <= 0) break;
-			const take = Math.min(left, interval.end - interval.start);
-			first.push({ start: interval.start, end: interval.start + take });
-			left -= take;
-		}
-		const ordinary = overlapHours(first, nightStart, nightEnd);
-		return { ordinary, overtime: night - ordinary };
+	const nightStart = day + from * MINUTE_MS;
+	const nightEnd = day + to * MINUTE_MS;
+	const shiftStart =
+		shift == null ? Number.NEGATIVE_INFINITY : day + clockMinutes(shift.start_time) * MINUTE_MS;
+	const worked = normalizedWorkedIntervals(entry)
+		.flatMap((interval) =>
+			interval.end > shiftStart
+				? [{ start: Math.max(interval.start, shiftStart), end: interval.end }]
+				: []
+		)
+		.toSorted((a, b) => b.start - a.start);
+	// The last `overtimeHours` of the clock, latest first.
+	let left = Math.max(0, overtimeHours) * HOUR_MS;
+	const tail: Interval[] = [];
+	for (const interval of worked) {
+		if (left <= 0) break;
+		const take = Math.min(left, interval.end - interval.start);
+		tail.push({ start: interval.end - take, end: interval.end });
+		left -= take;
 	}
-	const start = clockMinutes(shift.start_time);
-	let end = clockMinutes(shift.end_time);
-	if (shift.crosses_midnight || end <= start) end += 1440;
-	// ponytail: the recorded break is not apportioned to the night; add a break window if a statute
-	// prices the break itself.
-	const ordinary = overlapHours(
-		intervals,
-		Math.max(nightStart, midnight(workDate, utcOffsetMinutes) + start * MINUTE_MS),
-		Math.min(nightEnd, midnight(workDate, utcOffsetMinutes) + end * MINUTE_MS)
+	const overtime = overlapHours(tail, nightStart, nightEnd);
+	const clocked = overlapHours(worked, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY);
+	const ordinaryNet = Math.max(
+		0,
+		clocked - Math.max(0, entry.break_minutes ?? 0) / 60 - overtimeHours
 	);
-	return { ordinary, overtime: night - ordinary };
+	const ordinary = Math.min(overlapHours(worked, nightStart, nightEnd) - overtime, ordinaryNet);
+	return { ordinary: Math.max(0, ordinary), overtime };
 }
 
 /** One day's overtime, before it is priced. */

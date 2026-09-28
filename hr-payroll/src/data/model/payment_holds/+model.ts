@@ -16,6 +16,8 @@ export default model({
 		directive_reference: { kind: 'text' },
 		/** The amount withheld, in the employment's currency; null while the authority has not stated one. */
 		amount: { kind: 'decimal', scale: 2, optional: true },
+		/** Form IR21: why no moneys were withheld under ITA s.68(7), where none were. */
+		no_withholding_reason: { kind: 'text', optional: true },
 		held_on: { kind: 'date' },
 		/** Set when the authority releases the hold; open holds block the payslip's settlement. */
 		released_on: { kind: 'date', optional: true },
