@@ -4,7 +4,7 @@
 	 * who also files new ones. The status filter is the table's view popover.
 	 */
 	import { bolt } from '$bolt';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cover } from '@norbital-ai/ui/layout';
 	import { Table, useKinds } from '@norbital-ai/ui';
 
 	const t = bolt.t;
@@ -18,12 +18,7 @@
 	title={t('app.field_ops_contractor.header_title')}
 	description={t('app.field_ops_contractor.header_description')}
 >
-	<Stack gap="md">
-		<p class="text-sm text-muted-foreground">
-			{dispatcher
-				? t('app.field_ops_contractor.scope_workspace')
-				: t('app.field_ops_contractor.scope_own')}
-		</p>
+	<Cover gap="md" top={scope}>
 		<Table
 			of="job_assignments"
 			key="jobs"
@@ -42,5 +37,14 @@
 				'summary'
 			]}
 		/>
-	</Stack>
+	</Cover>
 </AppShell>
+
+<!-- the scope line is chrome; the table takes the rest of the body, so its footer (the pager) stays in view -->
+{#snippet scope()}
+	<p class="text-sm text-muted-foreground">
+		{dispatcher
+			? t('app.field_ops_contractor.scope_workspace')
+			: t('app.field_ops_contractor.scope_own')}
+	</p>
+{/snippet}

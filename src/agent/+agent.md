@@ -28,6 +28,8 @@ who holds it (`assignee_user_id`). Everything else hangs off an assignment.
   not mean the photo failed.
 - A photo's file and parent never change. A different photo is new evidence.
 - A site is its address. Give a new site its location, not just a name.
+- A job at an address no site carries is one write: `sites.create` with the job nested under
+  `job_assignments.create`. Never file the site and then the job as two writes.
 
 ## House rules
 

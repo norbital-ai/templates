@@ -10,8 +10,9 @@ import * as Predicate from './guards.js';
 
 /**
  * The suspicion review, one unchecked assignment at a time: its photos' facts (host-side through `ctx.files.image`, the scene
- * through `ctx.ai.embed`), scene-reuse candidates from other assignments, one structured `sys_2` turn that judges the job-site photos and every
- * nominated pair, an immutable review row per evidence basis, a suspicion log only when the judgement is suspicious
+ * through `ctx.ai.embed`), scene-reuse candidates from other assignments, one structured `sys_2` turn that judges the job-site photos,
+ * one two-image turn per nominated pair (a model handed five unlabelled images cross-wired them and matched different
+ * bathrooms), an immutable review row per evidence basis, a suspicion log only when the judgement is suspicious
  * and no finding already stands, then the assignment's checked stamp.
  */
 
@@ -264,30 +265,16 @@ export function inferenceContext(
 	representatives = selectInferencePhotos(facts.photos)
 ): string {
 	const attached = new Set(representatives.map((photo) => photo.id));
-	const pairs = pairsOf(facts, representatives);
-	const shown = pairs.filter((pair) => pair.attached);
 	const base = {
-		review_scope: {
-			kind: 'single_assignment_review',
-			instruction:
-				'Complete both named tasks in this one turn. job_site_review uses only job_site_photo assets. similar_photo_reviews compares only each explicitly named pair.'
-		},
+		review_scope: { kind: 'single_assignment_review' },
 		attachment_manifest: {
 			instruction:
 				'The attached images appear in exactly this order. The role and asset_name are authoritative; use no other image identifier.',
-			images: [
-				...representatives.map((photo) => ({
-					asset_name: assetName(photo),
-					gps_metadata: gpsMetadataStatus(photo.flags),
-					role: 'job_site_photo'
-				})),
-				...shown.map(({ own, candidate }) => ({
-					asset_name: assetName(candidate),
-					gps_metadata: gpsMetadataStatus(candidate.flags),
-					role: 'similar_photo_from_other_assignment',
-					compare_only_with_asset_name: assetName(own)
-				}))
-			]
+			images: representatives.map((photo) => ({
+				asset_name: assetName(photo),
+				gps_metadata: gpsMetadataStatus(photo.flags),
+				role: 'job_site_photo'
+			}))
 		},
 		assignment: {
 			...facts.assignment,
@@ -327,14 +314,7 @@ export function inferenceContext(
 				mime_type: photo.photo.mime,
 				integrity_flags: [...photo.flags].sort()
 			}))
-		},
-		similar_photos_flagged: pairs.map(({ own, candidate, attached: visible }) => ({
-			job_site_asset_name: assetName(own),
-			similar_asset_name: assetName(candidate),
-			similar_asset_gps_metadata: gpsMetadataStatus(candidate.flags),
-			retrieval_distance: candidate.distance,
-			visually_attached: visible
-		}))
+		}
 	};
 	let messages = [...facts.communications]
 		.sort(
@@ -367,11 +347,9 @@ export function suspicionPrompt(
 	facts: ReviewFacts,
 	representatives = selectInferencePhotos(facts.photos)
 ): string {
-	const shown = pairsOf(facts, representatives).filter((pair) => pair.attached).length;
 	return [
-		'Review this field-work assignment in exactly one structured turn. Return one job_site_review and one similar_photo_reviews entry for every visually attached named pair.',
-		'The attachment_manifest is authoritative: it names every attached image in order and identifies whether it is a job_site_photo or a similar_photo_from_other_assignment. Refer to an image only by its exact asset_name. Do not invent a photo number, record id, attachment label, address, GPS coordinate, or any other identification method.',
-		'TASK 1 — job_site_review. Judge only the assets whose role is job_site_photo. Never treat a similar_photo_from_other_assignment as evidence that a second site was submitted to this assignment, and never borrow a number, address, sign, marker or scene observation from it.',
+		'Review this field-work assignment in exactly one structured turn.',
+		'The attachment_manifest is authoritative: it names every attached image in order. Refer to an image only by its exact asset_name. Do not invent a photo number, record id, attachment label, address, GPS coordinate, or any other identification method.',
 		'The job_site_photo_dataset is the complete set submitted to this assignment. Each row gives the actual asset_name and the GPS metadata state durably retained by ingestion.',
 		representatives.length === 0
 			? 'No photo fit the bounded attachment budget. Judge from the assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications; do not pretend a scene was visible.'
@@ -385,91 +363,51 @@ export function suspicionPrompt(
 		'A suspicion log is an actionable escalation, not a queue for low-confidence review. Plausibly benign ambiguity, incomplete corroboration, or the fact that a controller could confirm something is not enough. When the available evidence has a reasonable ordinary explanation and no concrete contradiction, return suspicious false.',
 		'For every other fact, return suspicious only when your contextual judgement finds a concrete, articulable reason to question this assignment.',
 		'Likewise, an assignment location mismatch is evidence for judgement, never an automatic verdict.',
-		`If job_site_review.suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate. Set evidence_asset_name to the exact asset_name of one decisive attached job-site photo and reference only exact asset names from the supplied dataset in the reason.`,
-		`If job_site_review.suspicious is false, set evidence_asset_name to an empty string and explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,
-		'TASK 2 — similar_photo_reviews. The similar_photos_flagged list contains retrieval nominations from other assignments. Retrieval distance is not evidence. Compare each visually_attached pair only with its named job_site_asset_name; do not compare it to another job-site photo and do not use it in TASK 1.',
-		'Return same_scene true only when multiple permanent visual landmarks share the same geometry: for example the same openings, vents, holes, stains, wall or ceiling edges, fixed fixtures and background structure in the same relative positions.',
-		'A crop, zoom, recompression, new overlay, different timestamp, different camera, or re-photograph of the same underlying scene is still same_scene true. Overlay text must neither establish nor rebut the match.',
-		'Similar colours, doors, handrails, grab bars, stairs, bathrooms, ceilings or trade fixtures without distinctive shared geometry are expected across unrelated sites and must return same_scene false. If uncertain, return same_scene false.',
-		`Return exactly ${shown} similar_photo_reviews entr${shown === 1 ? 'y' : 'ies'}: one for each pair marked visually_attached true, using its exact job_site_asset_name and similar_asset_name. Return no entry for a pair marked visually_attached false and never introduce another asset name.`,
+		`If suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate. Set evidence_asset_name to the exact asset_name of one decisive attached job-site photo and reference only exact asset names from the supplied dataset in the reason.`,
+		`If suspicious is false, set evidence_asset_name to an empty string and explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,
 		`Bounded inference facts: ${inferenceContext(facts, representatives)}`
 	].join(' ');
 }
+
+/** One nominated pair, judged alone: exactly two images, so neither can be mistaken for another. */
+export const PAIR_PROMPT = [
+	'Two photos are attached: first a job-site photo, then a photo filed under a different assignment. Decide whether they show the same physical scene.',
+	'Return same_scene true only when multiple permanent visual landmarks share the same geometry: for example the same openings, vents, holes, stains, wall or ceiling edges, fixed fixtures and background structure in the same relative positions.',
+	'A crop, zoom, recompression, new overlay, different timestamp, different camera, or re-photograph of the same underlying scene is still same_scene true. Overlay text must neither establish nor rebut the match.',
+	'Similar colours, tiles, doors, handrails, grab bars, stairs, bathrooms, ceilings or trade fixtures without distinctive shared geometry are expected across unrelated sites and must return same_scene false. Tools, equipment, tags and other portable objects are never landmarks. If uncertain, return same_scene false.'
+].join(' ');
+export const PAIR_DECISION = {
+	kind: 'object',
+	fields: { same_scene: { kind: 'bool' }, reason: { kind: 'text' } }
+} as const;
 
 /** The structured output of one review turn (a root object, no unions: what structured-output providers accept). */
 export const DECISION = {
 	kind: 'object',
 	fields: {
-		job_site_review: {
-			kind: 'object',
-			fields: {
-				suspicious: { kind: 'bool' },
-				reason: { kind: 'text' },
-				/** Empty: no decisive photo; otherwise an attached job-site asset name. */
-				evidence_asset_name: { kind: 'text', max: MAX_ASSET_NAME_CHARS }
-			}
-		},
-		similar_photo_reviews: {
-			kind: 'list',
-			of: {
-				kind: 'object',
-				fields: {
-					job_site_asset_name: { kind: 'text', max: MAX_ASSET_NAME_CHARS },
-					similar_asset_name: { kind: 'text', max: MAX_ASSET_NAME_CHARS },
-					same_scene: { kind: 'bool' },
-					reason: { kind: 'text' }
-				}
-			}
-		}
+		suspicious: { kind: 'bool' },
+		reason: { kind: 'text' },
+		/** Empty: no decisive photo; otherwise an attached job-site asset name. */
+		evidence_asset_name: { kind: 'text', max: MAX_ASSET_NAME_CHARS }
 	}
 } as const;
 export type Decision = {
-	readonly job_site_review: {
-		readonly suspicious: boolean;
-		readonly reason: string;
-		readonly evidence_asset_name: string;
-	};
-	readonly similar_photo_reviews: readonly {
-		readonly job_site_asset_name: string;
-		readonly similar_asset_name: string;
-		readonly same_scene: boolean;
-		readonly reason: string;
-	}[];
+	readonly suspicious: boolean;
+	readonly reason: string;
+	readonly evidence_asset_name: string;
 };
 
 /**
- * The verdict a decision supports. A pair decision counts only when both names match the manifest exactly, once each;
- * a job-site suspicion counts only when it cites an attached job-site asset. Model pair prose never enters the log.
+ * The verdict a decision supports: a job-site suspicion counts only when it cites an attached job-site asset; each
+ * pair judged the same scene adds its reuse. Model pair prose never enters the log.
  */
 export function judge(
-	facts: ReviewFacts,
 	representatives: readonly ReviewPhoto[],
-	decision: Decision
+	decision: Decision,
+	reused: readonly Pair[]
 ) {
-	const expected = new Map(
-		pairsOf(facts, representatives)
-			.filter((pair) => pair.attached)
-			.map((pair) => [JSON.stringify([assetName(pair.own), assetName(pair.candidate)]), pair])
-	);
-	const reviewed = new Set<string>();
-	const reused: Pair[] = [];
-	for (const review of decision.similar_photo_reviews) {
-		const key = JSON.stringify([review.job_site_asset_name, review.similar_asset_name]);
-		const pair = expected.get(key);
-		if (pair === undefined || reviewed.has(key))
-			throw new Error(
-				'Suspicion review returned an unnamed, unexpected, or duplicate similar-photo pair.'
-			);
-		reviewed.add(key);
-		if (review.same_scene) reused.push(pair);
-	}
-	if (reviewed.size !== expected.size)
-		throw new Error(
-			`Suspicion review returned ${reviewed.size} of ${expected.size} required similar-photo pair decisions.`
-		);
-	if (decision.job_site_review.reason.trim() === '')
-		throw new Error('Suspicion review returned an empty reason.');
-	const site = decision.job_site_review;
+	if (decision.reason.trim() === '') throw new Error('Suspicion review returned an empty reason.');
+	const site = decision;
 	const cited =
 		site.evidence_asset_name === ''
 			? null
@@ -874,17 +812,30 @@ export async function reviewAssignment(
 	const basis = reviewBasis(facts);
 	const basisHash = sha256Text(basis);
 	const attachedPairs = pairsOf(facts, representatives).filter((pair) => pair.attached);
-	const decision = (await ctx.ai.sys_2.infer({
-		model: SUSPICION_REVIEW_MODEL,
-		prompt: suspicionPrompt(facts, representatives),
-		files: await Promise.all(
-			[...representatives, ...attachedPairs.map((pair) => pair.candidate)].map((p) =>
-				visible(ctx, p.photo)
-			)
-		),
-		output: DECISION
-	})) as Decision;
-	const verdict = judge(facts, representatives, decision);
+	const [decision, ...sameScene] = await Promise.all([
+		ctx.ai.sys_2.infer({
+			model: SUSPICION_REVIEW_MODEL,
+			prompt: suspicionPrompt(facts, representatives),
+			files: await Promise.all(representatives.map((p) => visible(ctx, p.photo))),
+			output: DECISION
+		}) as Promise<Decision>,
+		...attachedPairs.map(
+			async ({ own, candidate }) =>
+				(
+					(await ctx.ai.sys_2.infer({
+						model: SUSPICION_REVIEW_MODEL,
+						prompt: PAIR_PROMPT,
+						files: await Promise.all([visible(ctx, own.photo), visible(ctx, candidate.photo)]),
+						output: PAIR_DECISION
+					})) as { readonly same_scene: boolean }
+				).same_scene
+		)
+	]);
+	const verdict = judge(
+		representatives,
+		decision,
+		attachedPairs.filter((_, i) => sameScene[i])
+	);
 	const job = assignment.id as Id<'job_assignments'>;
 	// a retried run with the same basis finds its review by the unique key instead of writing a second
 	const written = await ctx.act.try('suspicion_reviews.create', {

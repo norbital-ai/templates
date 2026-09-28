@@ -59,12 +59,9 @@ async function filedPhoto(t: T, job: string) {
 	)[0]!;
 }
 const suspicious = {
-	job_site_review: {
-		suspicious: true,
-		reason: 'Two different door plates.',
-		evidence_asset_name: 'IMG_0001.jpg'
-	},
-	similar_photo_reviews: []
+	suspicious: true,
+	reason: 'Two different door plates.',
+	evidence_asset_name: 'IMG_0001.jpg'
 };
 
 it('inspects the photo, judges the job once, writes one finding, and judges again after a change', async () => {
