@@ -15,7 +15,7 @@ import {
 	type WorkWindow
 } from '../../../lib/scheduling/roster-code.js';
 import type { Configuration, ShiftDefinition } from './configuration.js';
-import { requiredDateKey, type IsoDate } from './dates.js';
+import { addDays, requiredDateKey, weekStart, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
 import type { WorkPattern } from '../../../lib/datatypes/work_pattern.js';
 import { RULE_DAY_TYPES } from '../../../lib/payroll/work-rules-values.js';
@@ -147,7 +147,8 @@ type ResolveScheduleOptions = {
 	readonly workDays: readonly PlannedDay[];
 	/** The cycles a roster of record covers; a day inside one reads its row before the pattern. */
 	readonly rosters?: readonly { readonly start: IsoDate; readonly end: IsoDate }[] | undefined;
-	readonly configuration: Pick<Configuration, 'holidays' | 'shiftById' | 'holidayRestPrecedence'>;
+	readonly configuration: Pick<Configuration, 'holidays' | 'shiftById' | 'holidayRestPrecedence'> &
+		Partial<Pick<Configuration, 'lastRestDayOnly'>>;
 };
 
 /** Resolve every day of a window for one employment. */
@@ -179,6 +180,44 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		} catch {
 			return null;
 		}
+	};
+
+	/**
+	 * The roster codes one date resolves to. For a patterned employment the pattern remains the
+	 * contractual baseline: a monthly WORK assignment on a patterned REST/OFF day carries a real
+	 * shift window while retaining the protected day type, so scheduled overtime is derived from
+	 * that difference, not tagged. A roster of record outranks the pattern: inside its cycle the
+	 * row is the contract. A ROSTERED employment has no generated assignment: an absent monthly
+	 * entry is simply OFF; publication validation enforces any guaranteed load.
+	 */
+	const codesOn = (date: IsoDate) => {
+		const terms = options.terms(date);
+		const patternCodeId = patternRosterCodeId(terms.work_pattern, date, terms.pattern_anchor);
+		const assignmentCodeId = plannedByDate.get(date)?.shift_definition_id ?? patternCodeId;
+		const assignmentCode =
+			assignmentCodeId == null ? null : scheduledCode(codeFor(assignmentCodeId, date), date);
+		const patternCode =
+			patternCodeId == null ? null : scheduledCode(codeFor(patternCodeId, date), date);
+		const rostered = (options.rosters ?? []).some(
+			(roster) => roster.start <= date && date <= roster.end
+		);
+		const dayCode = rostered ? (assignmentCode ?? patternCode) : (patternCode ?? assignmentCode);
+		return { terms, assignmentCode, dayCode };
+	};
+	/**
+	 * `lastRestDayOnly` (MY s.59(1)): a REST day with a later REST day in its Monday–Sunday week is
+	 * not the week's rest day. A date outside the contract has no code and holds no rest day.
+	 */
+	const laterRestInWeek = (date: IsoDate): boolean => {
+		const sunday = addDays(weekStart(date), 6);
+		for (let later = addDays(date, 1); later <= sunday; later = addDays(later, 1)) {
+			try {
+				if (codesOn(later).dayCode?.kind === 'REST') return true;
+			} catch {
+				// outside the contract
+			}
+		}
+		return false;
 	};
 
 	let clampStart: string | null = null;
@@ -214,25 +253,14 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		if (holiday.replaces != null) substitutedFrom.add(holiday.replaces);
 
 	for (const date of options.dates) {
-		const terms = options.terms(date);
-		const planned = plannedByDate.get(date);
-		const patternCodeId = patternRosterCodeId(terms.work_pattern, date, terms.pattern_anchor);
-		const assignmentCodeId = planned?.shift_definition_id ?? patternCodeId;
-		// A ROSTERED employment has no generated assignment. An absent monthly entry is simply OFF;
-		// publication validation is responsible for enforcing any guaranteed load.
-		const assignmentCode =
-			assignmentCodeId == null ? null : scheduledCode(codeFor(assignmentCodeId, date), date);
-		const patternCode =
-			patternCodeId == null ? null : scheduledCode(codeFor(patternCodeId, date), date);
-		// For a patterned employment the pattern remains the contractual baseline. A monthly WORK
-		// assignment on a patterned REST/OFF day therefore carries a real shift window while retaining
-		// the protected day type: scheduled overtime is derived from that difference, not tagged.
-		// A roster of record outranks the pattern: inside its cycle the row is the contract.
-		const rostered = (options.rosters ?? []).some(
-			(roster) => roster.start <= date && date <= roster.end
-		);
-		const dayCode = rostered ? (assignmentCode ?? patternCode) : (patternCode ?? assignmentCode);
-		const baseDayType = dayCode == null ? 'OFF_DAY' : dayTypeFor(dayCode.kind);
+		const { terms, assignmentCode, dayCode } = codesOn(date);
+		const baseDayType =
+			dayCode == null ||
+			(dayCode.kind === 'REST' &&
+				options.configuration.lastRestDayOnly === true &&
+				laterRestInWeek(date))
+				? 'OFF_DAY'
+				: dayTypeFor(dayCode.kind);
 		const holidayRow = options.configuration.holidays.get(date);
 		// A holiday scoped to staff who were off on the replaced date does not apply to someone
 		// whose roster had that date as WORK: the holiday itself was their day off, and the

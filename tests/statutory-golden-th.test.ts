@@ -4,7 +4,9 @@
  * The register is docs/inventory/thailand.md; each case names the row it prices. Figures come from
  * the instruments, never from the engine:
  *
- * - Social Security Act B.E.2533 (https://www.sso.go.th/wpr/download/download_by_pool_file/14626):
+ * - Social Security Act B.E.2533, Council of State current consolidation
+ *   (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09,
+ *   read 28 September 2026; the SSO's own copy stops at No.3 B.E.2542, register TH-SS-12):
  *   s.33 insured on entry at 15–60; s.46 each side at the ministerial rate on the wage between the
  *   ministerial floor and ceiling, a fraction of 50 satang or more counting as one baht, less
  *   dropped; s.5 the wage is pay for normal working time (overtime and holiday-work pay outside).
@@ -17,7 +19,9 @@
  *   –20,000 2029–2031, –23,000 from 2032. The ratchakitcha.soc.go.th flood-relief PDF returns
  *   HTTP 403 to every fetch tried, the Browser pane included (28 September 2026); its figures are
  *   the register's own transcription. The Employee Welfare Fund rate regulation B.E.2568 was read
- *   from the Council of State copy (https://www.ocs.go.th/searchlaw/law-index/item/13221).
+ *   from the Gazette facsimile the Council of State serves ('ค0077 กฎกระทรวง 2568-60ก-3.pdf',
+ *   https://www.ocs.go.th/searchlaw/power_link/download/eyJ1dWlkIjoiNDNjMTc4OTgtODFiMS00MmVhLWIwNmYtMjQ4YzM1NzlmMzFhIiwiZmlsZW5hbWUiOiLguIQwMDc3IOC4geC4juC4geC4o-C4sOC4l-C4o-C4p-C4hyAyNTY4LTYw4LiBLTMucGRmIn0.CH4M5nGGlUmG48thQPthO-j_qpRZ-5GpRKA0pnN9pw8);
+ *   its law-index page (https://www.ocs.go.th/searchlaw/law-index/item/13221) has no text.
  * - Severance withholding: Revenue Code s.50(1) para.3 and s.48(5); DG Notification No.45
  *   (https://www.rd.go.th/3213.html) cls.1(ค), 2(ก), 4; MR No.126 cl.2(51) as amended by No.394
  *   (https://www.rd.go.th/2502.html). TH-PIT-05.
@@ -33,13 +37,15 @@
  *   The social-security relief is this employment's monthly contribution × the number of
  *   payments — what the employee's ล.ย.01 declares from the start of the year (P.96 cl.1(2)); no
  *   other ล.ย.01 relief is priced.
- * - Labour Protection Act B.E.2541 (consolidated through No.7, https://www.mol.go.th/wp-content/
- *   uploads/sites/2/1998/01/labour_protection_2541_new62.pdf): s.61 1.5×; s.62(1) +1× for an
- *   employee paid for the holiday, s.62(2) 2× for one who is not (a daily-paid employee's weekly
- *   holiday, s.56); s.63 3×; s.65(1)/s.66 managers outside; s.68 hourly rate = monthly ÷ (30 × normal
- *   hours); s.67 annual-leave pay on termination; s.118 severance; ss.120–122 special severance
- *   (read in the Krisdika consolidation through No.7); s.70 final pay in three days.
- *   TH-WORK-02, -05, -06; TH-EXIT-02, -03, -06, -07.
+ * - Labour Protection Act B.E.2541, Council of State current consolidation through No.9 B.E.2568
+ *   (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09,
+ *   read 28 September 2026; No.8 added only s.23/1, No.9 only ss.4/1, 41, 41/1, 59–59/2 and 115/1):
+ *   s.61 1.5×; s.62(1) +1× for an employee paid for the holiday, s.62(2) 2× for one who is not (a
+ *   daily-paid employee's weekly holiday, s.56); s.63 3×; s.65(1)/s.66 managers outside; s.68 hourly
+ *   rate = monthly ÷ (30 × normal hours); s.67 annual-leave pay on termination; s.118 severance;
+ *   ss.120–122 special severance; s.70 final pay in three days; s.41/s.59 as amended by No.9 (in
+ *   force 7 December 2025): 120 days' maternity leave, holidays counted, wages for 60 of them.
+ *   TH-WORK-02, -05, -06; TH-EXIT-02, -03, -06, -07; TH-LEAVE-01.
  *
  * Premises the law is silent on, fixed by owner rule 2026-09-28 (register TH-WORK-05): the Act states no
  * part-month proration, so a monthly wage is prorated on calendar days (s.56(1) pays it for every
@@ -63,10 +69,13 @@ import {
 	settingsIdOn,
 	settingsVersions,
 	adhocCatalogue,
+	contributionSchemes,
 	assertEveryVersionPriced,
+	createStatutoryWorld,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
-import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import {
 	evaluateBoolean,
 	evaluateNumber,
@@ -322,6 +331,36 @@ test('Thailand — s.33 insures an entrant aged 15–60; a hire over 60 does not
 	expectStatutory(book, 'SS-62-INSURED', 'PIT', 164.58, 0);
 });
 
+test('Thailand — SSO law is read from the current consolidation: s.46 para.5 and s.47 para.1 as amended (TH-SS-11, -12)', () => {
+	// s.46 para.5 (as the consolidation reads it): each insured person's contribution is rounded on
+	// its own, 50 satang or more to the baht. February 2026, 5% each side under the 17,500 ceiling:
+	// 12,345 × 5% = 617.25 → 617; 13,999 × 5% = 699.95 → 700.
+	const book = assessStatutory(
+		{
+			code: TH,
+			period: '2026-02',
+			people: [citizen('SS-12345', 12_345), citizen('SS-13999', 13_999)]
+		},
+		belowNotice14
+	);
+	expectStatutory(book, 'SS-12345', 'SSO', 617, 617);
+	expectStatutory(book, 'SS-13999', 'SSO', 700, 700);
+	// Every version cites the consolidation, never the SSO copy frozen at No.3 B.E.2542.
+	const consolidation =
+		'https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09';
+	for (const version of [
+		...settingsVersions(TH),
+		...contributionSchemes(TH).filter((scheme) => scheme.code === 'SSO')
+	]) {
+		const text = JSON.stringify(version);
+		assert.ok(
+			!text.includes('download_by_pool_file/14626'),
+			`${version.id} cites the pre-No.4 SSO copy`
+		);
+		assert.ok(text.includes(consolidation), `${version.id} does not cite the consolidation`);
+	}
+});
+
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // Employee Welfare Fund (TH-EWF-01, -02)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -353,21 +392,64 @@ test('Thailand — Employee Welfare Fund 0.25% each side from 1 October 2026, te
 
 test('Thailand — the Employee Welfare Fund steps to 0.50% each side on 1 October 2031 (rate regulation B.E.2568 cl.3)', () => {
 	// Ministerial Regulation on Employee Welfare Fund contribution rates B.E.2568 (Gazette vol.142
-	// part 60 Kor pp.3–4, 15 September 2025; Council of State copy
-	// https://www.ocs.go.th/searchlaw/law-index/item/13221, read 28 September 2026): cl.3(1) 0.25%
+	// part 60 Kor pp.3–4, 15 September 2025; Gazette facsimile served by the Council of State,
+	// https://www.ocs.go.th/searchlaw/power_link/download/eyJ1dWlkIjoiNDNjMTc4OTgtODFiMS00MmVhLWIwNmYtMjQ4YzM1NzlmMzFhIiwiZmlsZW5hbWUiOiLguIQwMDc3IOC4geC4juC4geC4o-C4sOC4l-C4o-C4p-C4hyAyNTY4LTYw4LiBLTMucGRmIn0.CH4M5nGGlUmG48thQPthO-j_qpRZ-5GpRKA0pnN9pw8,
+	// read 28 September 2026): cl.3(1) 0.25%
 	// each side 1 October 2026 – 30 September 2031; cl.3(2) 0.50% each side from 1 October 2031.
 	// 20,000 × 0.25% = 50; × 0.50% = 100. 60,000 × 0.50% = 300 (no ceiling).
-	const people = [citizen('EWF-20000', 20_000), citizen('EWF-60000', 60_000)];
+	// 15,330.40 × 0.25% = 38.326 → 38.33; × 0.50% = 76.652 → 76.65 (kept to the satang, TH-S4).
+	const people = [
+		citizen('EWF-20000', 20_000),
+		citizen('EWF-60000', 60_000),
+		citizen('EWF-SATANG', 15_330.4)
+	];
 	const september2031 = assessStatutory({ code: TH, period: '2031-09', people, headcount: 10 });
 	expectStatutory(september2031, 'EWF-20000', 'EWF', 50, 50);
+	expectStatutory(september2031, 'EWF-SATANG', 'EWF', 38.33, 38.33);
 	const october2031 = assessStatutory({ code: TH, period: '2031-10', people, headcount: 10 });
 	expectStatutory(october2031, 'EWF-20000', 'EWF', 100, 100);
 	expectStatutory(october2031, 'EWF-60000', 'EWF', 300, 300);
+	expectStatutory(october2031, 'EWF-SATANG', 'EWF', 76.65, 76.65);
 	// The s.33 base stays THB20,000 to 31 December 2031 (base regulation cl.3(2)): 1,000 each side.
 	expectStatutory(october2031, 'EWF-60000', 'SSO', 1_000, 1_000);
 	const january2032 = assessStatutory({ code: TH, period: '2032-01', people, headcount: 10 });
 	expectStatutory(january2032, 'EWF-60000', 'EWF', 300, 300);
 	expectStatutory(january2032, 'EWF-60000', 'SSO', 1_150, 1_150);
+});
+
+test('Thailand — Gazette originals: EWF and s.33 base at each cl.3 boundary (TH-S3)', () => {
+	// Read 28 September 2026 from the Gazette's own PDFs: Internet Archive captures of 84794 (decree
+	// s.4: collection from 1 October 2026) and 86102 (rate regulation cl.3: 0.25% each side to
+	// 30 September 2031, 0.5% from 1 October 2031), and the rendered pages of the SSO's copy of the
+	// base regulation (47755, cl.3: THB1,650 floor; ceiling 17,500 to 2028, 20,000 2029–2031,
+	// 23,000 from 2032). At 30,000 a month: SSO 5% of the ceiling, EWF 30,000 × 0.25% = 75 or
+	// × 0.5% = 150.
+	const people = [citizen('GZ-30000', 30_000)];
+	const cases: ReadonlyArray<readonly [string, number, number | null]> = [
+		['2026-09', 875, null],
+		['2026-10', 875, 75],
+		['2028-12', 875, 75],
+		['2029-01', 1_000, 75],
+		['2031-09', 1_000, 75],
+		['2031-10', 1_000, 150],
+		['2032-01', 1_150, 150]
+	];
+	for (const [period, sso, ewf] of cases) {
+		const book = assessStatutory({ code: TH, period, people, headcount: 10 });
+		expectStatutory(book, 'GZ-30000', 'SSO', sso, sso);
+		if (ewf === null) expectStatutorySkipped(book, 'GZ-30000', 'EWF');
+		else expectStatutory(book, 'GZ-30000', 'EWF', ewf, ewf);
+	}
+	const captures = [
+		'https://web.archive.org/web/20260913004819/https://ratchakitcha.soc.go.th/documents/84794.pdf',
+		'https://web.archive.org/web/20250919123501/https://ratchakitcha.soc.go.th/documents/86102.pdf'
+	];
+	for (const version of settingsVersions(TH)) {
+		const text = JSON.stringify(version);
+		if (!text.includes('documents/86102.pdf')) continue;
+		for (const capture of captures)
+			assert.ok(text.includes(capture), `${version.id} does not cite ${capture}`);
+	}
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -546,6 +628,79 @@ test('Thailand — December 2025: days before 7 December are priced from the pre
 	assert.equal(settingsIdOn(TH, '2025-12-02'), settingsVersions(TH)[0]!.id);
 	assert.equal(slip.gross, 58_000);
 	assert.deepEqual(charge(slip, 'SSO'), [58_000, 750, 750]);
+});
+
+test('Thailand — s.41/s.59 as amended by No.9: 120 days of maternity leave, the first 60 paid (TH-LEAVE-01)', () => {
+	// Council of State consolidation: s.41 para.1 up to 120 days for one pregnancy, para.3 holidays
+	// counted; s.59 wages for the leave days but not more than 60. Leave 11 January–10 May 2026 is
+	// 21 + 28 + 31 + 30 + 10 = 120 calendar days; day 60 is 11 March (21 + 28 + 11), so 12 March
+	// onward is unpaid. The March payslip's attendance window (21 February–20 March, cutoff 21)
+	// and its entry (day 42 onward of the leave) hold nine unpaid days, 12–20 March, at March's calendar-day rate 62,000 ÷ 31 = 2,000
+	// (premise TH-WORK-05): 62,000 − 18,000 = 44,000. SSO capped at 17,500: 875 each side. PIT:
+	// 44,000 × 12 = 528,000 − 100,000 − 60,000 − 875 × 12 = 357,500 → 7,500 + 57,500 × 10% =
+	// 13,250 ÷ 12 = 1,104.1666… → 1,104.16.
+	const { slips } = buildStatutory(
+		{ code: TH, period: '2026-03', people: [citizen('ML', 62_000, { gender: 'FEMALE' })] },
+		(world) => {
+			withLeaveCatalogue(world);
+			const employment = world.employments.find((row) => row.employee_number === 'ML')!;
+			const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+			const dates: string[] = [];
+			for (let day = Date.UTC(2026, 0, 11); day <= Date.UTC(2026, 4, 10); day += 86_400_000)
+				dates.push(new Date(day).toISOString().slice(0, 10));
+			assert.equal(dates.length, 120);
+			const row = (date: string) =>
+				rowIn(leaveCatalogue(TH), settingsIdOn(TH, date), 'MATERNITY_LEAVE');
+			// One entry per payroll window (an entry settles whole in one period), all naming the
+			// same birth: the leave is the event, so day 61 is 12 March in whichever entry holds it.
+			const cuts = ['2026-01-21', '2026-02-21', '2026-03-21', '2026-04-21'];
+			const blocks = Object.values(
+				Object.groupBy(dates, (date) => String(cuts.filter((cut) => date >= cut).length))
+			) as string[][];
+			for (const [index, block] of blocks.entries())
+				world.leave_entries.push({
+					id: `e3000000-0000-4000-8000-00000000000${index}`,
+					employment_id: employment.id,
+					catalogue_id: row(block[0]!),
+					leave_code: 'MATERNITY_LEAVE',
+					reference: `ML-${index}`,
+					from_date: block[0]!,
+					to_date: block.at(-1)!,
+					half_day_start: false,
+					half_day_end: false,
+					days: block.length,
+					effective_on: block[0]!,
+					event_kind: 'BIRTH',
+					event_date: '2026-02-01',
+					reason: 'ลาเพื่อคลอดบุตร',
+					allocations: [],
+					charges: block.map((date) => ({
+						date,
+						days: 1,
+						catalogue_id: row(date),
+						employment_term_id: term.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					})),
+					approval_id: null
+				} as never);
+		}
+	);
+	const slip = slips.get('ML')!;
+	assert.equal(slip.gross, 44_000);
+	assert.deepEqual(charge(slip, 'SSO'), [44_000, 875, 875]);
+	assert.deepEqual(charge(slip, 'PIT'), [44_000, 1_104.16, 0]);
+	// Every version cites the Council of State LPA consolidation, never the Ministry's 2019 copy.
+	const consolidation =
+		'https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09';
+	for (const row of [...settingsVersions(TH), ...contributionSchemes(TH), ...adhocCatalogue(TH)])
+		assert.ok(!JSON.stringify(row).includes('labour_protection_2541_new62'), `${row.id} cites it`);
+	for (const version of settingsVersions(TH))
+		assert.ok(
+			JSON.stringify(version).includes(consolidation),
+			`${version.id} lacks the consolidation`
+		);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -1042,7 +1197,7 @@ test('Thailand — the s.33 ceiling steps to THB20,000 on 1 January 2029 and THB
 });
 
 test('Thailand — s.17/1 pay in lieu of notice runs to the payday after the next payday (TH-EXIT-04)', () => {
-	// LPA s.17 para.2 (No.2 B.E.2551), Krisdika consolidation through No.7 p.6: notice given at or
+	// LPA s.17 para.2 (No.2 B.E.2551), Council of State consolidation through No.9: notice given at or
 	// before a payday takes effect on the next payday. s.17/1 (No.7 B.E.2562): without that notice
 	// the employer pays the wages from the removal to that day, on the removal day. Every engine
 	// period pays on its last calendar day: month end; the 15th and month end; Sunday.
@@ -1267,7 +1422,7 @@ test('Thailand — a monthly wage meets Notice 14 at the daily rate × 30 (TH-WA
 	);
 	// A semi-monthly contract's base_salary is its month (paid in two halves): 12,000 ÷ 30 = 400
 	// meets Bangkok, 11,999.70 does not. A weekly wage is taken to its month (× 52 ÷ 12) first:
-	// 2,770 × 52 ÷ 12 = 12,003.33 ÷ 30 = 400.11 meets it; 2,769 × 52 ÷ 12 = 11,999 ÷ 30 = 399.97
+	// 2,770 × 52 ÷ 12 = 12,003.33 ÷ 30 = 400.11 meets it; 2,769 × 52 ÷ 12 = 11,999 ÷ 30 = 399.9667
 	// does not.
 	assert.deepEqual(
 		run([monthly('SM-BKK-12000', 12_000, 'Bangkok', 'SEMI_MONTHLY')], 'SEMI_MONTHLY'),
@@ -1280,7 +1435,18 @@ test('Thailand — a monthly wage meets Notice 14 at the daily rate × 30 (TH-WA
 	);
 	assert.throws(
 		() => run([monthly('W-BKK-2769', 2_769, 'Bangkok', 'WEEKLY')], 'WEEKLY'),
-		/W-BKK-2769 is paid 399\.97 a day .* of 400/
+		/W-BKK-2769 is paid 399\.9667 a day .* of 400/
+	);
+	// The unrounded day is compared: Yala THB337 × 30 = 10,110.00. 10,109.99 ÷ 30 = 336.9997 < 337
+	// blocks (it rounds to 337.00 at the satang, which must not pass); 10,110.00 ÷ 30 = 337 meets it.
+	const yala = (people: ReturnType<typeof citizen>[]) =>
+		buildStatutory({ code: TH, period: '2026-07', people }).warnings.filter((line) =>
+			line.startsWith('MINIMUM_WAGE_BELOW')
+		);
+	assert.deepEqual(yala([citizen('M-YALA-10110', 10_110, { worksite: 'Yala' })]), []);
+	assert.throws(
+		() => yala([citizen('M-YALA-LOW', 10_109.99, { worksite: 'Yala' })]),
+		/M-YALA-LOW is paid 336\.9997 a day .* of 337/
 	);
 });
 
@@ -1311,7 +1477,7 @@ test('Thailand — s.70: a resignation is paid on the agreed payday, an employer
 });
 
 test('Thailand — s.122 needs more than six years’ service; its 180-day rule counts only toward the amount (TH-EXIT-07)', () => {
-	// LPA s.122 (Krisdika consolidation through No.7): a s.121 termination of an employee "ทำงาน
+	// LPA s.122 (Council of State consolidation through No.9): a s.121 termination of an employee "ทำงาน
 	// ติดต่อกันเกินหกปีขึ้นไป" (continuous service exceeding six years) adds 15 days' last wage per
 	// full year; the last paragraph counts a part year over 180 days as a year "for computing"
 	// special severance. 30,000 (day 1,000), exit Tuesday 31 March 2026, no 60-day notice (s.121
@@ -1348,6 +1514,134 @@ test('Thailand — s.122 needs more than six years’ service; its 180-day rule 
 			amount,
 			key
 		);
+});
+
+/**
+ * Run `periods` in sequence, each filed PAID before the next (a chained settle: the month's
+ * earlier instalments are read back), and return each person's `[SSO, PIT]` employee shares.
+ */
+const chained = (world: PayrollWorld, periods: readonly string[]) => {
+	const charged = new Map<string, [number, number][]>();
+	for (const period of periods) {
+		const prepared = gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period
+		});
+		const built = buildPayrollRun(prepared);
+		world.payroll_runs.push({ id: period, company_id: COMPANY_ID, period } as never);
+		for (const slip of built.payslip_payroll_run) {
+			world.payslips.push({
+				...slip,
+				payroll_run_id: period,
+				paid_at: prepared.window.payDate
+			} as never);
+			const key = world.employments.find((row) => row.id === slip.employment_id)!
+				.employee_number as string;
+			const amount = (code: string) =>
+				slip.statutory.find((row) => row.scheme_code === code)?.employee_amount ?? 0;
+			charged.set(key, [...(charged.get(key) ?? []), [amount('SSO'), amount('PIT')]]);
+		}
+	}
+	return charged;
+};
+
+test('Thailand — a weekly payee is withheld on every payment at × 52 (P.96/2543 cl.1(1)(ค), (3)); SSO at every payment on the month’s wages (s.47, TH-PIT-02)', () => {
+	// Weeks run in sequence, each filed PAID before the next (the month's earlier weeks are read back).
+	const world = createStatutoryWorld({
+		code: TH,
+		period: '2026-07-1',
+		payFrequency: 'WEEKLY',
+		people: [
+			citizen('W-20K', 20_000, { pay_frequency: 'WEEKLY' }),
+			citizen('W-3K', 3_000, { pay_frequency: 'WEEKLY' }),
+			citizen('W-HIRE', 20_000, { pay_frequency: 'WEEKLY', hire_date: '2026-07-06' })
+		]
+	});
+	const weeks = (month: string, count: number) =>
+		chained(
+			world,
+			Array.from({ length: count }, (_, index) => `${month}-${index + 1}`)
+		);
+	// July 2026 has four Sunday paydays (5, 12, 19, 26). 20,000 × 52 = 1,040,000 − 100,000 (s.42 bis
+	// cap) − 60,000 − SSO 875 × 12 = 10,500 → 869,500 → 65,000 + 119,500 × 20% = 88,900 ÷ 52 =
+	// 1,709.615… → 1,709.61 each week. The SSO relief is the month's contribution on the week's wage
+	// taken to the month (20,000 × 52 ÷ 12 = 86,666.67, at the 17,500 ceiling → 875) × 12, owner rule
+	// 2026-09-28. SSO: s.46's floor and ceiling are the month's; s.47 deducts at every payment what
+	// the month's wages paid so far owe less what was deducted: 20,000 already reaches the ceiling.
+	const july = weeks('2026-07', 4);
+	assert.deepEqual(july.get('W-20K'), [
+		[875, 1_709.61],
+		[0, 1_709.61],
+		[0, 1_709.61],
+		[0, 1_709.61]
+	]);
+	// 3,000 a week: 5% of each week's wage, 150, the month's 12,000 × 5% = 600 over four payments.
+	// PIT: 156,000 − 78,000 − 60,000 − 650 × 12 (13,000 a month → 650) = 10,200 → exempt.
+	assert.deepEqual(july.get('W-3K'), [
+		[150, 0],
+		[150, 0],
+		[150, 0],
+		[150, 0]
+	]);
+	// Hired Monday 6 July: cl.1(1)'s payments actually due in the year of hire, the Sundays 12 July
+	// to 27 December = 3 + 5 + 4 + 4 + 5 + 4 = 25. 500,000 − 100,000 − 60,000 − 875 × 25 × 12 ÷ 52
+	// (5,048.08) = 334,951.92 → 7,500 + 34,951.92 × 10% = 10,995.19 ÷ 25 = 439.807… → 439.80.
+	assert.deepEqual(july.get('W-HIRE'), [
+		[875, 439.8],
+		[0, 439.8],
+		[0, 439.8]
+	]);
+	// December's last payday (27 December) carries cl.1(3)'s remainder: 88,900 − 52 × 1,709.61 =
+	// 0.28 → 1,709.89; the hire's 10,995.19 − 25 × 439.80 = 0.19 → 439.99.
+	const december = weeks('2026-12', 4);
+	assert.deepEqual(
+		december.get('W-20K')!.map(([, pit]) => pit),
+		[1_709.61, 1_709.61, 1_709.61, 1_709.89]
+	);
+	assert.deepEqual(
+		december.get('W-HIRE')!.map(([, pit]) => pit),
+		[439.8, 439.8, 439.8, 439.99]
+	);
+});
+
+test('Thailand — a semi-monthly payee is withheld on each half at × 24 (P.96/2543 cl.1(1)(ข)); SSO at every payment (s.47, TH-PIT-02)', () => {
+	// June 2026 (30 days; a half is prorated on calendar days, 15 of 30 each): 60,000 a month in two
+	// halves of 30,000: × 24 = 720,000, the monthly case's 34,925 annual tax
+	// (above) ÷ 24 = 1,455.2083… → 1,455.20 a half. SSO relief: the half taken to the month (× 2 =
+	// 60,000 → 875) × 12 = 10,500. SSO: the first half's 30,000 already reaches the 17,500 ceiling.
+	const world = createStatutoryWorld({
+		code: TH,
+		period: '2026-06-1',
+		payFrequency: 'SEMI_MONTHLY',
+		people: [citizen('SM-60K', 60_000, { pay_frequency: 'SEMI_MONTHLY' })]
+	});
+	assert.deepEqual(chained(world, ['2026-06-1', '2026-06-2']).get('SM-60K'), [
+		[875, 1_455.2],
+		[0, 1_455.2]
+	]);
+	// July 2026 (31 days), unequal halves: each is withheld on itself, whatever the entity's
+	// semi_monthly_statutory_cutoff (issue TH-D2). H1 15/31 × 60,000 = 29,032.26 × 24 = 696,774.24
+	// − 100,000 − 60,000 − 10,500 = 526,274.24 → 7,500 + 20,000 + 26,274.24 × 15% = 31,441.136 → ÷ 24
+	// = 1,310.047… → 1,310.04. H2 16/31 = 30,967.74 × 24 = 743,225.76 → 572,725.76 → 38,408.864 ÷ 24
+	// = 1,600.369… → 1,600.36.
+	for (const cutoff of ['FIRST', 'SPLIT', 'LAST'] as const) {
+		const july = createStatutoryWorld({
+			code: TH,
+			period: '2026-07-1',
+			payFrequency: 'SEMI_MONTHLY',
+			people: [citizen('SM-60K', 60_000, { pay_frequency: 'SEMI_MONTHLY' })]
+		});
+		july.companies[0]!.semi_monthly_statutory_cutoff = cutoff;
+		assert.deepEqual(
+			chained(july, ['2026-07-1', '2026-07-2']).get('SM-60K'),
+			[
+				[875, 1_310.04],
+				[0, 1_600.36]
+			],
+			cutoff
+		);
+	}
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────

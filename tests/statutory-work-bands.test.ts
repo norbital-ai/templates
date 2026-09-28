@@ -92,7 +92,8 @@ test('Malaysia and Singapore — a rest day worked for exactly half the normal h
 	// MY-nihon prices overtime by the customer's own attendance-sheet columns, not the s.60(3) and
 	// s.60D(3) day-wage limbs (owner-approved company terms, 2026-09-23; the lineage's authority):
 	// every rest-day hour at 2.0, a holiday at 2.0 up to the normal hours and 3.0 beyond, a working
-	// day's overrun at 1.5 — hours × the hourly rate × the column multiple, no day-wage awards.
+	// day's overrun at 1.5 — hours × the hourly rate × the column multiple. The s.60(3)/s.60D(3) day
+	// awards on monthly wage ÷ 26 floor them (s.60I(2)); a termless person floors at nothing.
 	assert.deepEqual(price('MY-nihon', restDay(4)), [['RESTDAY-OT-2.0X', 4, 800]]);
 	assert.deepEqual(price('MY-nihon', restDay(4.5)), [['RESTDAY-OT-2.0X', 4.5, 900]]);
 	assert.deepEqual(price('MY-nihon', restDay(10)), [['RESTDAY-OT-2.0X', 10, 2000]]);

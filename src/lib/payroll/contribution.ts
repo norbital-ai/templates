@@ -188,6 +188,7 @@ import {
 	monthBounds,
 	monthKey,
 	periodHalf,
+	shiftPeriod,
 	type IsoDate
 } from '../../lib/payroll/run/dates.js';
 import {
@@ -432,7 +433,7 @@ export function assessCompanyContributions(options: {
 			daysInMonth: monthDays(window.salary.start)
 		},
 		currency: configuration.jurisdiction.payroll.currency,
-		year: { start: bounds.start, end: bounds.end, months_employed: 0 },
+		year: { start: bounds.start, end: bounds.end, months_employed: 0, payments: 0 },
 		person: { ...entity, wage_floor: floor ?? 0 },
 		minimumWage,
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
@@ -707,86 +708,142 @@ export function minimumWageIssues(options: {
 	);
 	for (const bundle of options.bundles) {
 		if (bundle.employedDays == null || bundle.deferral != null) continue;
+		const measured = measuredByEmployment.get(bundle.employment.id);
 		const segments = versionSegments(options.configuration, bundle.employedDays);
-		for (const segment of segments) {
+		for (const segment of segments)
+			issues.push(...dailyFloorIssues(segment.configuration, bundle, segment, measured));
+		for (const { segment, term, against, during } of floorTerms(bundle, segments, measured)) {
 			const { configuration } = segment;
-			issues.push(
-				...dailyFloorIssues(
-					configuration,
-					bundle,
-					segment,
-					measuredByEmployment.get(bundle.employment.id)
-				)
-			);
-			const datedTerms = effectiveWithin(bundle.termsHistory, segment.start, segment.end);
-			for (const term of datedTerms.length > 0 ? datedTerms : bundle.terms.slice(-1)) {
-				const range = readRange(term.effective_range);
-				const from = range == null ? segment.start : dateKey(range.start);
-				const through = range?.end == null ? segment.end : dateKey(range.end);
-				const start = from > segment.start ? from : segment.start;
-				const asOf = through < segment.end ? through : segment.end;
-				if (start > asOf) continue;
-				const against = wageAgainstFloor(
-					configuration,
-					bundle,
-					term,
-					asOf,
-					measuredByEmployment.get(bundle.employment.id)
-				);
-				if (against == null) continue;
-				const { person } = against;
-				const during =
-					segments.length > 1 || datedTerms.length > 1 ? ` from ${start} to ${asOf}` : '';
-				// The wages order's rule on the contract's composition (ID: basic at least 75% of the wage).
-				const termsWhen = (configuration.jurisdiction.work_rules.wages?.terms_when ?? '').trim();
-				if (termsWhen !== '' && !isEligible(termsWhen, person))
-					issues.push({
-						code: 'WAGE_TERMS_RULE',
-						severity: 'WARNING',
-						message:
-							`${bundle.employment.employee_number}'s contract does not satisfy the version's wage rule ` +
-							`\`${termsWhen}\` (basic ${person.terms.basic_salary}, fixed allowances ${person.terms.fixed_allowances})${during}. ` +
-							'The run pays the contract; restate the terms or record why they stand.',
-						collection: 'employment_terms',
-						recordId: term.id
-					});
-				const { floor, unit, stated } = against;
-				// A monthly floor stated net of the employee's own shares (CN-SH 沪人社规〔2025〕10号 item 4)
-				// is met by the contract less the month's employee charges of the named schemes.
-				// ponytail: the month's charges net every term segment of the month; split per segment if a
-				// mid-month rise lands on the floor.
-				const netOf = configuration.jurisdiction.work_rules.wages?.net_of_employee_schemes ?? [];
-				const withheld =
-					unit === 'a month' && netOf.length > 0
-						? (options.charges?.get(bundle.employment.id) ?? [])
-								.filter((charge) => netOf.includes(charge.contribution.row.code))
-								.reduce((sum, charge) => sum + charge.employee, 0)
-						: 0;
-				const paid = against.paid - withheld;
-				// The table states a month to the cent (₱695 × 313 ÷ 12 = 18,127.92); rescaled to 261 days it
-				// is 15,116.2528, which a ₱695 daily rate (15,116.25) meets — the floor is money, in cents.
-				const payable = cents(paid);
-				if (payable >= cents(floor)) continue;
-				const blockWhen = configuration.jurisdiction.work_rules.wages?.block_below_when?.trim();
-				const blocking = blockWhen != null && blockWhen !== '' && isEligible(blockWhen, person);
+			const { person } = against;
+			// The wages order's rule on the contract's composition (ID: basic at least 75% of the wage).
+			const termsWhen = (configuration.jurisdiction.work_rules.wages?.terms_when ?? '').trim();
+			if (termsWhen !== '' && !isEligible(termsWhen, person))
 				issues.push({
-					code: 'MINIMUM_WAGE_BELOW',
-					severity: blocking ? 'BLOCKER' : 'WARNING',
+					code: 'WAGE_TERMS_RULE',
+					severity: 'WARNING',
 					message:
-						`${bundle.employment.employee_number} is contracted at ${payable} ${unit}` +
-						(withheld > 0 ? ` net of ${cents(withheld)} employee ${netOf.join('/')} shares` : '') +
-						', below the ' +
-						`${workplace(configuration, person)} minimum wage of ${stated} the version states${during}. ` +
-						(blocking
-							? 'Raise the contract terms before running payroll.'
-							: 'The run pays the contract; raise the terms or record why the wage stands.'),
+						`${bundle.employment.employee_number}'s contract does not satisfy the version's wage rule ` +
+						`\`${termsWhen}\` (basic ${person.terms.basic_salary}, fixed allowances ${person.terms.fixed_allowances})${during}. ` +
+						'The run pays the contract; restate the terms or record why they stand.',
 					collection: 'employment_terms',
 					recordId: term.id
 				});
-			}
+			const { floor, unit, stated } = against;
+			// A monthly floor stated net of the employee's own shares (CN-SH 沪人社规〔2025〕10号 item 4)
+			// is met by the contract less the month's employee charges of the named schemes.
+			// ponytail: the month's charges net every term segment of the month; split per segment if a
+			// mid-month rise lands on the floor.
+			const netOf = configuration.jurisdiction.work_rules.wages?.net_of_employee_schemes ?? [];
+			const withheld =
+				unit === 'a month' && netOf.length > 0
+					? (options.charges?.get(bundle.employment.id) ?? [])
+							.filter((charge) => netOf.includes(charge.contribution.row.code))
+							.reduce((sum, charge) => sum + charge.employee, 0)
+					: 0;
+			const paid = against.paid - withheld;
+			// The table states a month to the cent (₱695 × 313 ÷ 12 = 18,127.92); rescaled to 261 days it
+			// is 15,116.2528, which a ₱695 daily rate (15,116.25) meets — the floor is money, in cents.
+			const payable = cents(paid);
+			if (payable >= cents(floor)) continue;
+			const blockWhen = configuration.jurisdiction.work_rules.wages?.block_below_when?.trim();
+			const blocking = blockWhen != null && blockWhen !== '' && isEligible(blockWhen, person);
+			issues.push({
+				code: 'MINIMUM_WAGE_BELOW',
+				severity: blocking ? 'BLOCKER' : 'WARNING',
+				message:
+					`${bundle.employment.employee_number} is contracted at ${payable} ${unit}` +
+					(withheld > 0 ? ` net of ${cents(withheld)} employee ${netOf.join('/')} shares` : '') +
+					', below the ' +
+					`${workplace(configuration, person)} minimum wage of ${stated} the version states${during}. ` +
+					(blocking
+						? 'Raise the contract terms before running payroll.'
+						: 'The run pays the contract; raise the terms or record why the wage stands.'),
+				collection: 'employment_terms',
+				recordId: term.id
+			});
 		}
 	}
 	return issues;
+}
+
+/**
+ * Each terms row in force in each version segment, judged against that version's floor: the days
+ * it covers there and, where the version states a floor that covers the person, the pay against it.
+ */
+function* floorTerms(
+	bundle: EmploymentBundle,
+	segments: ReturnType<typeof versionSegments>,
+	measured: MeasuredEmployment | undefined
+) {
+	for (const segment of segments) {
+		const datedTerms = effectiveWithin(bundle.termsHistory, segment.start, segment.end);
+		for (const term of datedTerms.length > 0 ? datedTerms : bundle.terms.slice(-1)) {
+			const range = readRange(term.effective_range);
+			const from = range == null ? segment.start : dateKey(range.start);
+			const through = range?.end == null ? segment.end : dateKey(range.end);
+			const start = from > segment.start ? from : segment.start;
+			const asOf = through < segment.end ? through : segment.end;
+			if (start > asOf) continue;
+			const against = wageAgainstFloor(segment.configuration, bundle, term, asOf, measured);
+			if (against == null) continue;
+			const during =
+				segments.length > 1 || datedTerms.length > 1 ? ` from ${start} to ${asOf}` : '';
+			yield { segment, term, against, during };
+		}
+	}
+}
+
+/**
+ * 最低工資法 §5 (`wages.substitutes_below`): a covered contract agreed below the floor has the floor
+ * as its wage, so every bundle's terms row below the floor of a version in force during the
+ * employed days is re-rated to it in the contract's own unit (the rate × floor ÷ pay, each in the
+ * floor's unit) before anything is measured, and the run warns. The highest floor the row meets in
+ * the period is the one it is raised to.
+ * ponytail: judged without the measured month, so a version combining this with
+ * `weekly_daily_hourly_alternative` refuses a daily contract; measure first if one ever does.
+ */
+export function raiseToMinimumWage(
+	configuration: Configuration,
+	bundles: readonly EmploymentBundle[]
+): { bundles: EmploymentBundle[]; issues: RunIssue[] } {
+	const issues: RunIssue[] = [];
+	const raised = bundles.map((bundle) => {
+		if (bundle.employedDays == null) return bundle;
+		const rates = new Map<string, number>();
+		// Only a version whose floor substitutes itself is judged here; the rest are judged measured.
+		const segments = versionSegments(configuration, bundle.employedDays).filter(
+			(segment) => segment.configuration.jurisdiction.work_rules.wages?.substitutes_below === true
+		);
+		for (const { segment, term, against, during } of floorTerms(bundle, segments, undefined)) {
+			if (against.paid <= 0) continue;
+			if (cents(against.paid) >= cents(against.floor)) continue;
+			const base = term.base_salary ?? 0;
+			// The floor restated in the contract's unit, up to the cent so it meets the floor.
+			const rate =
+				Math.ceil(Math.round((base * against.floor * 10_000) / against.paid) / 100) / 100;
+			if (rate <= (rates.get(term.id) ?? base)) continue;
+			rates.set(term.id, rate);
+			issues.push({
+				code: 'MINIMUM_WAGE_BELOW',
+				severity: 'WARNING',
+				message:
+					`${bundle.employment.employee_number} is contracted at ${cents(against.paid)} ${against.unit}, below the ` +
+					`${workplace(segment.configuration, against.person)} minimum wage of ${against.stated} the version states${during}. ` +
+					`The law makes the minimum the wage, so the run pays ${rate} in place of the agreed ${base}.`,
+				collection: 'employment_terms',
+				recordId: term.id
+			});
+		}
+		if (rates.size === 0) return bundle;
+		const lift = (term: EmploymentBundle['terms'][number]) =>
+			rates.has(term.id) ? { ...term, base_salary: rates.get(term.id)! } : term;
+		return {
+			...bundle,
+			terms: bundle.terms.map(lift),
+			termsHistory: bundle.termsHistory.map(lift)
+		};
+	});
+	return { bundles: raised, issues };
 }
 
 /**
@@ -876,20 +933,22 @@ function dailyFloorIssues(
 			);
 		const floor = Math.max(place, sector);
 		const rate = decodeNumber(term.base_salary);
-		const paid =
+		// The day's pay is rate × scale ÷ per; compare rate × scale with floor × per in satang so the
+		// unrounded day is judged (10,109.99 ÷ 30 = 336.9997 is below 337, not rounded up to it).
+		const [scale, per] =
 			term.pay_frequency === 'DAILY'
-				? rate
+				? [1, 1]
 				: term.pay_frequency === 'HOURLY'
-					? (rate * day.shift.paid_minutes) / 60
+					? [day.shift.paid_minutes, 60]
 					: term.pay_frequency === 'WEEKLY'
-						? (rate * 52) / 12 / judgement.divisor
-						: rate / judgement.divisor;
-		if (cents(paid) >= cents(floor)) continue;
+						? [52, 12 * judgement.divisor]
+						: [1, judgement.divisor];
+		if (cents(rate * scale) >= cents(floor * per)) continue;
+		const paid = Math.round((rate * scale * 10_000) / per) / 10_000;
 		const at = sectorKey === '' ? site : `${site} ${sectorKey}`;
-		const key = `${term.id}:${at}:${floor}:${cents(paid)}`;
+		const key = `${term.id}:${at}:${floor}:${paid}`;
 		const seen = below.get(key);
-		if (seen == null)
-			below.set(key, { term, first: day.date, days: 1, paid: cents(paid), floor, at });
+		if (seen == null) below.set(key, { term, first: day.date, days: 1, paid, floor, at });
 		else seen.days += 1;
 	}
 	return [...below.values()].map((row): RunIssue => {
@@ -1124,7 +1183,16 @@ function wageAgainstFloor(
 									'a month',
 									`${statedHourly} an hour over ${term.ordinary_hours_per_week ?? 0} hours a week`
 								]
-							: [person.terms.monthly_basic, wage * scale, 'a month', statedMonthly];
+							: [
+									person.terms.monthly_basic,
+									wage * scale,
+									'a month',
+									// Quote the floor this person is held to (PH: ₱755 × 261 ÷ 12 on a five-day week),
+									// not the version's basis it is restated from.
+									scale === 1
+										? statedMonthly
+										: `${cents(wage * scale)} (${statedMonthly} restated on this person's factor)`
+								];
 	return { person, paid, floor, unit, stated };
 }
 
@@ -1532,7 +1600,8 @@ export function prepareContributionAssessment(options: {
 			leave_days: measured.periodLeaveDays,
 			leave_full_days: measured.periodFullLeaveDays,
 			leave_pay: measured.periodLeavePay,
-			overtime_days: measured.periodOvertimeDays
+			overtime_days: measured.periodOvertimeDays,
+			arrears: measured.arrears?.amount ?? 0
 		},
 		facts: personFacts(configuration.contributions, currentFacts),
 		asOf
@@ -1727,9 +1796,15 @@ export function prepareContributionAssessment(options: {
 				start: bounds.start,
 				end: bounds.end,
 				// The calendar months of the year the employment touches, the join and exit months
-				// whole: a month with any income in it is a month of income (ID PMK 250/2008 art.1(1):
+				// whole: a month with any income in it is a month of income (ID PMK 168/2023 art.10(2):
 				// the biaya jabatan cap is Rp500,000 a month, and a joiner on the 15th earns in that month).
-				months_employed: (employed ? calendarMonthsTouched(from, through) : 0) + openingMonths
+				months_employed: (employed ? calendarMonthsTouched(from, through) : 0) + openingMonths,
+				// A monthly count keeps the declared prior-employer months, as `months_employed` does.
+				// ponytail: a weekly or semi-monthly opening is not converted into payments.
+				payments:
+					bundle.window.payFrequency === 'WEEKLY' || bundle.window.payFrequency === 'SEMI_MONTHLY'
+						? paymentsDue(bundle.window.payFrequency, from, bounds.end)
+						: calendarMonthsTouched(from, bounds.end) + openingMonths
 			},
 			projection,
 			person: {
@@ -1756,6 +1831,26 @@ function employedDaysIn(dates: EmploymentDates, window: PayrollWindow['salary'])
 	const start = dates.hire > window.start ? dates.hire : window.start;
 	const end = dates.exit != null && dates.exit < window.end ? dates.exit : window.end;
 	return end >= start ? inclusiveDays(start, end) : 0;
+}
+
+/**
+ * The weekly or semi-monthly paydays of the tax year from `from` (the join, or the year's start)
+ * to `yearEnd`, each instalment counted whose period ends on or after `from` (TH P.96/2543 cl.1(1):
+ * the payments due in the year, the remaining ones in the year of hire).
+ */
+function paymentsDue(
+	frequency: 'WEEKLY' | 'SEMI_MONTHLY',
+	from: IsoDate,
+	yearEnd: IsoDate
+): number {
+	let count = 0;
+	for (let month = from.slice(0, 7); month <= yearEnd.slice(0, 7); month = shiftPeriod(month, 1))
+		count += (
+			frequency === 'WEEKLY'
+				? weeklyInstalments(month).map((week) => week.salary.end)
+				: [`${month}-15`, monthBounds(month).end]
+		).filter((end) => end >= from).length;
+	return count;
 }
 
 /** The calendar months from the month of `from` to the month of `through`, both counted whole. */

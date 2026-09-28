@@ -33,8 +33,14 @@ export const fromMinorUnits = (minor: bigint, currency: string): number =>
 export type RoundingMethod =
 	'NEAREST_CENT' | 'TRUNCATE_CENT' | 'UP_5_CENTS' | 'NEAREST_UNIT' | 'FLOOR_UNIT' | 'UP_TO_UNIT';
 
+/**
+ * A difference inherits its operands' error, not its own size: 6,225.41 − 5,655.60 is
+ * 569.8099999999995, 5e-13 short, and a result-relative epsilon truncated it to 569.80. The 1e-9
+ * floor covers that cancellation; no amount built from sen and published rates sits that close to a
+ * boundary without being on it.
+ */
 function epsilon(value: number): number {
-	return Number.EPSILON * Math.max(1, Math.abs(value)) * 4;
+	return Math.max(1e-9, Number.EPSILON * Math.abs(value) * 4);
 }
 
 /**

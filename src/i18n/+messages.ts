@@ -446,6 +446,9 @@ export default messages({
 	'component.net': 'Net',
 	'component.next_month': 'Next month',
 	'component.no_email_recorded': 'No email recorded',
+	'component.owed': 'Owed by statute',
+	'component.owed_hint':
+		'Paid to every employment its eligibility admits, with no contract row (Vietnam Labour Code art.168(3)).',
 	'component.npl_prorates': 'Prorates on unpaid leave',
 	'component.npl_prorates_hint':
 		"Whether a day of unpaid leave comes off this allowance. Unset follows the version's default; a class the law keeps out of the deduction's wage (a travelling, food or housing allowance) states No.",

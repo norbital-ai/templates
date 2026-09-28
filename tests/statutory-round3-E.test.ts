@@ -126,7 +126,8 @@ test('Taiwan round 3 — §32-1 time off elected instead of overtime pay is pric
 		}
 	);
 	assert.deepEqual(workLines(slips.get(TW_PERSON.key)!), [
-		['2026-01-11', 'REST-STATUTORY-DOUBLE', 3.5, 2000],
+		// 09:00–13:00: 4 hours, none deducted for a §35 break (TW-D3).
+		['2026-01-11', 'REST-STATUTORY-DOUBLE', 4, 2000],
 		['2026-01-13', 'EMERGENCY-2.0X', 2, 1000]
 	]);
 	// What the two elected days would have paid, which §32-1(2) owes as wages if the time off is

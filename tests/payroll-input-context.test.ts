@@ -34,7 +34,8 @@ test('payroll context keeps wage fractions separate from whole unpaid and benefi
 		leave_full_days: { SICK_LEAVE: 10, MATERNITY_LEAVE: 3 },
 		leave_days: { SICK_LEAVE: 10.5, MATERNITY_LEAVE: 3 },
 		leave_pay: { MATERNITY_LEAVE: 4090.91 },
-		overtime_days: 0
+		overtime_days: 0,
+		arrears: 0
 	});
 	assert.deepEqual(personContext(input).period, {
 		working_days: 0,
@@ -43,7 +44,8 @@ test('payroll context keeps wage fractions separate from whole unpaid and benefi
 		leave_full_days: {},
 		leave_days: {},
 		leave_pay: {},
-		overtime_days: 0
+		overtime_days: 0,
+		arrears: 0
 	});
 	for (const [site, prefix] of [
 		['person', ''],

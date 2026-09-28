@@ -129,6 +129,8 @@ export type PayrollSettings = {
 	} | null;
 	/** A public holiday enclosed by requested no-pay leave is unpaid (SG EA s.88(2)). */
 	readonly holiday_in_no_pay_leave_unpaid?: boolean | null;
+	/** An absence without consent beside a public holiday forfeits its pay (SG EA s.88(3)). */
+	readonly holiday_adjacent_absence_unpaid?: boolean | null;
 	/** An unworked special day earns the daily/hourly-paid nothing (PH DOLE Handbook ch.3 §C). */
 	readonly special_holiday_unworked_unpaid?: boolean | null;
 	/** An unworked regular holiday needs presence on the prior workday (PH Handbook ch.2 §D–E). */

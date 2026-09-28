@@ -15,6 +15,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
 	assessStatutory,
@@ -28,6 +29,7 @@ import {
 	type BuiltPayslip,
 	settingsVersions,
 	settingsIdOn,
+	contributionSchemes,
 	leaveCatalogue,
 	rowIn
 } from './fixtures/statutory-world.ts';
@@ -160,6 +162,53 @@ test('Malaysia — a bonus month withholds the additional remuneration’s whole
 	expectStatutory(book, 'MY-BONUS', 'PCB', 1278.4, 0);
 	assert.equal(book.get('MY-BONUS')!.get('PCB')!.base, 17_001);
 });
+
+// LHDN MTD Specification 2026 D.2 Steps 1–5 and E(1): K2 is truncated to the sen, so a full-year
+// EPF projection is K1 + Kt + K2 × 11 = 3,999.93, not the RM4,000 cap (the spec's own example:
+// "Total EPF = RM3,999.93 ≤ RM4,000.00"). Wage 7,777.77: EPF K1 = 11% × 7,800 = 858; LP1 = SOCSO
+// 29.75 + EIS 11.90 = 41.65; personal 9,000; band M=70,000 R=19% B=3,700.
+// Step 1: K2 = (4,000 − 858)/11 = 285.63; P = 6,919.77 + 7,492.14 × 11 − 9,041.65 = 80,291.66;
+// MTD = (10,291.66 × 19% + 3,700)/12 = 471.28 → 471.30; the year's normal tax 471.30 × 12 = 5,655.60.
+// Bonus 10,000: wage 17,777.77 → EPF 11% × 17,800 = 1,958, Kt = 1,100; K2 = 2,042/11 = 185.63;
+//   P = 6,919.77 + 7,592.14 × 11 + 8,900 − 9,041.65 = 90,291.66; tax 7,555.41; 1,899.81 → 1,899.85;
+//   PCB 471.30 + 1,899.85 = 2,371.15.
+// Bonus 10,005.50: same EPF; P = 90,297.16; tax 7,556.46; 1,900.86 → 1,900.90; PCB 2,372.20.
+// Bonus 3,000: wage 10,777.77 → EPF 1,188, Kt = 330; K2 = 2,812/11 = 255.63;
+//   P = 6,919.77 + 7,522.14 × 11 + 2,670 − 9,041.65 = 83,291.66; tax 6,225.41; 569.81 → 569.85;
+//   PCB 1,041.15.
+// Relieving the untruncated cap instead lowered P by 0.07 and each PCB by 5 sen.
+for (const code of ['MY', 'MY-nihon'] as const)
+	for (const [bonus, expected] of [
+		[10_000, 2371.15],
+		[10_005.5, 2372.2],
+		[3_000, 1041.15]
+	] as const)
+		test(`${code} — a bonus month's EPF projection truncates K2 to the sen (MTD spec 2026 E(1)), bonus ${bonus}`, () => {
+			const settingsId = settingsIdOn(code, '2026-01-15');
+			const book = assessStatutory(
+				{
+					code,
+					period: '2026-01',
+					people: [{ key: 'RES', wage: 7777.77, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+				},
+				(world) => {
+					world.adhoc_requests!.push({
+						id: 'd0000000-0000-4000-8000-0000000b0e2a',
+						employment_id: world.employments[0]!.id,
+						catalogue_id: rowIn(world.adhoc_catalogue!, settingsId, 'BONUS'),
+						amount: bonus,
+						event_date: '2026-01-15',
+						pay_period: '2026-01',
+						payslip_id: null,
+						reason: 'bonus',
+						evidence_file: null,
+						as_adjustment_entry: false,
+						approval_id: null
+					});
+				}
+			);
+			expectStatutory(book, 'RES', 'PCB', expected, 0);
+		});
 
 test('Malaysia — declared relief categories remain separate from recorded family facts', () => {
 	// MTD 2026: RM2,000 minor + RM8,000 tertiary + RM8,000 disabled = RM18,000.
@@ -503,8 +552,8 @@ test('Malaysia — SKBBK is levied from 1 June 2026, and a local leaves it by re
 
 	// 1 June 2026: Act 4's non-employment-injury scheme opens, phase 1 at 0.75%, employee share
 	// only, on SOCSO's own 65 wage rows and the same RM6,000 ceiling — charged in both categories.
-	// The 5,000.01–5,100 row of PERKESO's published Act 4 schedule including SKBBK is 37.85 (0.75%
-	// of the band reference would give 37.875, so the figure is the printed one, not a formula).
+	// Act A1788 Third Schedule Part I row 55 (RM5,000–5,100), column (4)(B), is 37.85 (0.75% of the
+	// band reference would give 37.875, so the figure is the printed one, not a formula).
 	const june = assessStatutory({ code: 'MY', period: '2026-06', people });
 	expectStatutory(june, 'MY-LOCAL', 'SKBBK', 37.85, 0);
 	expectStatutory(june, 'MY-FOREIGN', 'SKBBK', 37.85, 0);
@@ -669,6 +718,61 @@ test('Malaysia — the Third Schedule brackets a wage in tens, then twenties, th
 	expectStatutory(book, 'MY-20000.01', 'EPF', 2201, 2400);
 });
 
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — EPF rows read off KWSP’s Third Schedule effective 1 October 2025, and its citation`, () => {
+		// KWSP, "10. Effective 1 October 2025.pdf" (https://www.kwsp.gov.my/documents/d/guest/
+		// third_schedule_from_-1-october-2025, read in a browser 2026-09-28, SHA-256 c4904e44…58b1),
+		// columns "By the Employer / By the Employee", printed figures — not the rate rule:
+		// Part A p.1 "20.01 to 40.00" 6.00 / 5.00; p.12 "5,000.01 to 5,100.00" 612.00 / 561.00;
+		// p.19 "19,900.01 to 20,000.00" 2,400.00 / 2,200.00. Part C p.22 "260.01 to 280.00"
+		// 19.00 / 16.00; p.30 "5,000.01 to 5,100.00" 306.00 / 281.00. Part E p.38
+		// "60.01 to 80.00" 4.00 / 0.00 and "80.01 to 100.00" 4.00 / 0.00; p.52 "19,900.01 to
+		// 20,000.00" 800.00 / 0.00.
+		const citizen = (key: string, wage: number, age: number) =>
+			({ key, wage, age, citizenship: 'CITIZEN', registrations: MY_LOCAL }) as const;
+		const pr = (key: string, wage: number) =>
+			({ key, wage, age: 61, citizenship: 'PERMANENT_RESIDENT', registrations: MY_LOCAL }) as const;
+		const book = assessStatutory({
+			code,
+			period: '2026-01',
+			people: [
+				citizen('A-30', 30, 40),
+				citizen('A-5050', 5050, 40),
+				citizen('A-20000', 20_000, 40),
+				pr('C-270', 270),
+				pr('C-5050', 5050),
+				citizen('E-70', 70, 62),
+				citizen('E-90', 90, 62),
+				citizen('E-20000', 20_000, 62)
+			]
+		});
+		expectStatutory(book, 'A-30', 'EPF', 5, 6);
+		expectStatutory(book, 'A-5050', 'EPF', 561, 612);
+		expectStatutory(book, 'A-20000', 'EPF', 2200, 2400);
+		expectStatutory(book, 'C-270', 'EPF_PR', 16, 19);
+		expectStatutory(book, 'C-5050', 'EPF_PR', 281, 306);
+		expectStatutory(book, 'E-70', 'EPF', 0, 4);
+		expectStatutory(book, 'E-90', 'EPF', 0, 4);
+		expectStatutory(book, 'E-20000', 'EPF', 0, 800);
+
+		// The Part A bonus note is cited to that October 2025 PDF (p.12) and the age limits to the
+		// live mandatory-contribution page, never to the 2024 Wayback copy of the superseded
+		// July 2022 schedule.
+		const pdf = 'https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025';
+		const page = 'https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution';
+		const schemes = contributionSchemes(code);
+		for (const version of settingsVersions(code)) {
+			for (const scheme of ['EPF', 'EPF_PR']) {
+				const authority: string = schemes.find(
+					(row) => row.settings_id === version.id && row.code === scheme
+				)!.authority;
+				assert.ok(authority.includes(pdf), `${code} ${version.id} ${scheme}`);
+				assert.ok(authority.includes(`note 1: ${page}`), `${code} ${version.id} ${scheme}`);
+				assert.doesNotMatch(authority, /web\.archive\.org/, `${code} ${version.id} ${scheme}`);
+			}
+		}
+	});
+
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // Employment Act 1955 Part XII: the pay side of the statute. The world's shift is 09:00–18:00 with
 // a sixty-minute break — eight normal hours, Monday to Friday — so every figure below is a hand
@@ -710,6 +814,51 @@ const workLines = (slip: BuiltPayslip) =>
 		.filter((row) => row.family === 'WORK_DAY')
 		.map((row) => [row.source_id.slice(-10), row.label, row.quantity, row.amount] as const)
 		.toSorted((left, right) => left[0].localeCompare(right[0]) || left[1].localeCompare(right[1]));
+
+test('Malaysia — s.59(1): of two rest days in a week only the last is the rest day', () => {
+	// The world's pattern codes both Saturday and Sunday REST. s.59(1): "where an employee is
+	// allowed more than one rest day in a week the last of such rest days shall be the rest day for
+	// the purposes of this Part", so Saturday is not a Part XII rest day and s.60(3) does not price
+	// it. It has no normal hours, so every hour is s.60A(3)(a) overtime at 1.5 × the hourly rate.
+	// RM3,000: s.60I(1A) ORP 3,000 ÷ 26 = 115.3846; hourly 115.3846 ÷ 8 = 14.4231.
+	// Sat 8 Aug, 4 h: 4 × 14.4231 × 1.5 = 86.54 (the rest-day price was 57.69).
+	// Sat 8 Aug, 08:00–13:00 and 14:00–19:00, 10 h: 10 × 14.4231 × 1.5 = 216.35 (was 115.38 + 57.69).
+	// Sun 9 Aug stays the rest day: 4 h is not more than half the normal hours, s.60(3)(b)(i) half a
+	// day's wages = 57.69.
+	const { slips } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-08',
+			people: [
+				{ key: 'SAT-4', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+				{ key: 'SAT-10', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }
+			]
+		},
+		(world) => {
+			punch(world, 'SAT-4', '2026-08-08', '09:00', '13:00');
+			punch(world, 'SAT-4', '2026-08-09', '09:00', '13:00');
+			const employment = world.employments.find((row) => row.employee_number === 'SAT-10')!;
+			world.work_days.push({
+				id: 'wd-SAT-10-2026-08-08',
+				employment_id: employment.id,
+				work_date: '2026-08-08',
+				shift_definition_id: null,
+				worked_intervals: [
+					{ start: '2026-08-08T08:00:00+08:00', end: '2026-08-08T13:00:00+08:00' },
+					{ start: '2026-08-08T14:00:00+08:00', end: '2026-08-08T19:00:00+08:00' }
+				],
+				approval_id: null
+			});
+		}
+	);
+	assert.deepEqual(workLines(slips.get('SAT-4')!), [
+		['2026-08-08', 'WORKDAY-OT-1.5X', 4, 86.54],
+		['2026-08-09', 'RESTDAY-HALF-DAY-PAY', 4, 57.69]
+	]);
+	assert.deepEqual(workLines(slips.get('SAT-10')!), [
+		['2026-08-08', 'WORKDAY-OT-1.5X', 10, 216.35]
+	]);
+});
 
 test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rate', () => {
 	const { slips, warnings } = buildStatutory(
@@ -1000,6 +1149,36 @@ test('MY-nihon — overtime past twelve hours worked is incentive at the custome
 			['INCENTIVE:WORKDAY-OT-1.5X', 0.5, 10]
 		]
 	);
+});
+
+test('MY-nihon — a short rest day or holiday is lifted to the Act’s day awards (EA s.60I(2), s.7)', () => {
+	// The customer’s columns stand only where they pay no less than the Act. RM3,000 monthly:
+	// the customer’s hour is round(3,000 × 12 ÷ (52 × 45)) = 15.38; the s.60I(1A) ordinary rate of
+	// pay is 3,000 ÷ 26 = 115.3846, its hour ÷ 8 = 14.4231.
+	// Sunday 6 Sep, 1 h: column 1 × 15.38 × 2 = 30.76; s.60(3)(b)(i) half the ORP = 57.69.
+	// Sunday 20 Sep, 11 h: column 8 × 15.38 × 2 = 246.08 over s.60(3)(b)(ii)'s 115.38; the 3 h beyond
+	// at the greater hour, 3 × 15.38 × 2 = 92.28 over s.60(3)(c)'s 86.54 — 338.36, the column price.
+	// Hari Malaysia, Wed 16 Sep, 10:00–12:00: the column is 1 h (the shift's hour of break comes off
+	// a scheduled day's clock) × 15.38 × 2 = 30.76; s.60D(3)(a)(i) two days' wages 2 × 115.3846 =
+	// 230.77 "regardless that the period of work done on that day is less than the normal hours".
+	const { slips } = buildStatutory(
+		{
+			code: 'MY-nihon',
+			period: '2026-09',
+			people: [{ key: 'N-3000', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+		},
+		(world) => {
+			world.jurisdiction_holidays.push(holiday('2026-09-16', 'Hari Malaysia'));
+			punch(world, 'N-3000', '2026-09-16', '10:00', '12:00');
+			punch(world, 'N-3000', '2026-09-06', '09:00', '10:00');
+			punch(world, 'N-3000', '2026-09-20', '09:00', '20:00');
+		}
+	);
+	assert.deepEqual(workLines(slips.get('N-3000')!), [
+		['2026-09-06', 'RESTDAY-OT-2.0X', 1, 57.69],
+		['2026-09-16', 'HOLIDAY-2.0X', 1, 230.77],
+		['2026-09-20', 'RESTDAY-OT-2.0X', 11, 338.36]
+	]);
 });
 
 test('Nihon cash allowances enter the contribution bases but not the overtime hour', () => {
@@ -1307,7 +1486,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 	test(`${code} — SKBBK Second and Third Phases follow Act A1788 Third Schedule Parts II and III`, () => {
 		// P.U. (B) 196/2026: Second Phase 1 June 2028 – 31 May 2031, Third Phase from 1 June 2031.
 		// Act A1788 s.17, Third Schedule column (4)(B) "Non-employment injury", employee only:
-		// row 36 (RM3,500–3,600): Part II RM35.50 (1.00% × 3,550), Part III RM44.40 (1.25% × 3,550 =
+		// row 40 (RM3,500–3,600): Part II RM35.50 (1.00% × 3,550), Part III RM44.40 (1.25% × 3,550 =
 		// 44.375, printed 44.40); rows 64–65 (RM5,900 and above, the RM6,000 ceiling): RM59.50 and RM74.40.
 		const people = [
 			{ key: 'W-3550', wage: 3550, citizenship: 'CITIZEN' },
@@ -1327,6 +1506,33 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			26.65,
 			0
 		);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — SKBBK First Phase is Act A1788 Third Schedule Parts I and IV`, () => {
+		// P.U. (B) 196/2026 para (a)-(b): A1788 in operation, First Phase 1 June 2026 – 31 May 2028.
+		// Column (4)(B) "Non-employment injury", employee only, the same in Part I (first category)
+		// and Part IV (second category):
+		//   row 1  (up to RM30)        RM0.20
+		//   row 26 (RM2,100–2,200)     RM16.15 (0.75% × 2,150 = 16.125, printed 16.15)
+		//   row 40 (RM3,500–3,600)     RM26.65 (0.75% × 3,550 = 26.625, printed 26.65)
+		//   row 65 (above RM6,000)     RM44.65 (the RM6,000 ceiling, same as row 64)
+		// Age 61 is Second Category (Part IV): the employee still owes the same 16.15.
+		const people = [
+			{ key: 'W-30', wage: 30, citizenship: 'CITIZEN' },
+			{ key: 'W-2150', wage: 2150, citizenship: 'CITIZEN' },
+			{ key: 'W-3550', wage: 3550, citizenship: 'CITIZEN' },
+			{ key: 'W-7000', wage: 7000, citizenship: 'CITIZEN' },
+			{ key: 'W-2150-61', wage: 2150, age: 61, citizenship: 'CITIZEN' }
+		];
+		for (const period of ['2026-06', '2026-08']) {
+			const book = assessStatutory({ code, period, people });
+			expectStatutory(book, 'W-30', 'SKBBK', 0.2, 0);
+			expectStatutory(book, 'W-2150', 'SKBBK', 16.15, 0);
+			expectStatutory(book, 'W-3550', 'SKBBK', 26.65, 0);
+			expectStatutory(book, 'W-7000', 'SKBBK', 44.65, 0);
+			expectStatutory(book, 'W-2150-61', 'SKBBK', 16.15, 0);
+		}
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const)
@@ -2412,6 +2618,15 @@ for (const code of ['MY', 'MY-nihon'] as const)
 						citizenship: 'CITIZEN',
 						registrations: MY_LOCAL
 					},
+					// Exactly ten years at the 31 January period end: not "more than 10 years"
+					// (Sch.6 para 25C; LHDN Public Ruling 5/2019 para 7.1.1(c), p.18) — no exemption.
+					{
+						key: 'LS-10',
+						wage: 5001,
+						hire_date: '2016-01-31',
+						citizenship: 'CITIZEN',
+						registrations: MY_LOCAL
+					},
 					// Nine years: no exemption.
 					{
 						key: 'LS-9',
@@ -2439,7 +2654,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 					});
 			}
 		);
-		for (const key of ['LS-11', 'LS-9']) {
+		for (const key of ['LS-11', 'LS-10', 'LS-9']) {
 			// EPF Act s.2 "wages" (c) "any gratuity" (owner rule 2026-09-28): the 5,001 wage alone.
 			// Third Schedule Part A bracket 5,100: 11% = 561, 12% (wage above RM5,000) = 612.
 			expectStatutoryBase(book, key, 'EPF', 5001);
@@ -2455,6 +2670,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		}
 		// PCB base: para 25C takes RM2,000 out after more than ten years: 5,001 + 3,000 − 2,000.
 		expectStatutoryBase(book, 'LS-11', 'PCB', 6001);
+		expectStatutoryBase(book, 'LS-10', 'PCB', 8001);
 		expectStatutoryBase(book, 'LS-9', 'PCB', 8001);
 		// MTD 2026 D(b)(1)–(2). Normal: Y1 = Y2 = 5,001, n = 11; K1 = 561; K2 = lower of 561 and
 		// (4,000 − 561) ÷ 11 = 312.636 → 312.63 (E(1)); LP1 = 29.75 + 11.90 = 41.65; personal 9,000.
@@ -2465,8 +2681,105 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		// LS-11: Yt = 1,000 → 600 + 12,970.42 × 6% = 1,378.2252 − 1,318.20 = 60.025 → 60.02 → 60.05;
 		// 109.85 + 60.05 = 169.90.
 		// LS-9: Yt = 3,000 → 600 + 14,970.42 × 6% = 1,498.2252 − 1,318.20 = 180.025 → 180.05;
-		// 109.85 + 180.05 = 289.90. (Table 1 B at 20,001–35,000 is −250, the s.6A RM400 rebate; a
+		// 109.85 + 180.05 = 289.90; LS-10 the same. (Table 1 B at 20,001–35,000 is −250, the s.6A RM400 rebate; a
 		// RM3,000 wage would withhold nothing either way, so the probe sits above RM35,000.)
 		expectStatutory(book, 'LS-11', 'PCB', 169.9, 0);
+		expectStatutory(book, 'LS-10', 'PCB', 289.9, 0);
 		expectStatutory(book, 'LS-9', 'PCB', 289.9, 0);
 	});
+
+test('Malaysia — ITA employer duties cite Act 53 as at 1 January 2026, not the 2006 reprint', () => {
+	// AGC "Online version of updated text of reprint", Act 53 as at 1 January 2026: s.82 records
+	// seven years; s.83(1) employer's return by 31 March; s.83(1A) statement of remuneration by the
+	// last day of February; s.83(2) new employee within thirty days; s.83(3)–(5) cessation and
+	// departure notices thirty days ahead, ninety-day withholding; s.83A agent statement by
+	// 31 March; s.107 deduction, employer liable for tax it failed to deduct.
+	const current =
+		'https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf';
+	const expected = {
+		TAX_RECORDS_RETENTION: 's.82 ',
+		FORM_E_CP8D: 's.83(1) ',
+		EA_FORM: 's.83(1A) ',
+		CP22_NEW_EMPLOYEE: 's.83(2) ',
+		CP22A_CESSATION_AND_WITHHOLDING: 's.83(3), (5) ',
+		CP21_LEAVING_MALAYSIA: 's.83(4)-(5) ',
+		CP58_INCENTIVE_STATEMENT: 's.83A ',
+		PCB_REMITTANCE: 's.107(1)-(4) '
+	};
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		for (const version of settingsVersions(code)) {
+			const obligations = version.obligations as readonly { code: string; authority: string }[];
+			for (const [duty, section] of Object.entries(expected)) {
+				const authority = obligations.find((row) => row.code === duty)?.authority ?? '';
+				assert.ok(
+					authority.includes(`Income Tax Act 1967 (Act 53) ${section}(${current})`),
+					`${code} ${version.id} ${duty}: ${authority}`
+				);
+			}
+			assert.doesNotMatch(JSON.stringify(version), /LOM\/EN\/Act%2053\.pdf/);
+		}
+	}
+});
+
+test('Malaysia — EPF employer duties cite Act 452 as at 1 July 2022 with Act A1760, not the 2006 reprint', () => {
+	// AGC "Online version of updated text of reprint", Act 452 as at 1 July 2022 (the latest
+	// updated text on lom.agc.gov.my): s.41(1) register before the end of the first week of the
+	// first contribution month, s.41(3) notify cessation; s.42(1)-(2) wage statement, registers
+	// open to inspection for not less than six years; s.43 monthly contributions at the Third
+	// Schedule rate; s.45 employer pays both shares, s.45(3) dividend on arrears; s.47 employer
+	// share irrecoverable; s.49 late payment charges. Act A1760 (Gazette 14 May 2025) touches none
+	// of those sections: s.3 substitutes s.70A (noncitizen employees), s.10 deletes Third Schedule
+	// Parts B and D and inserts Part F. KWSP's Third Schedule page carries the October 2025 table.
+	const act = 'Employees Provident Fund Act 1991 (Act 452) ';
+	const current =
+		'https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf';
+	const a1760 =
+		'https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf';
+	const expected: Record<string, readonly string[]> = {
+		EPF_REGISTRATION_AND_REMITTANCE: [`${act}s.41(1)-(3) (${current})`],
+		EPF_EMPLOYEE_REGISTRATION: [
+			`${act}s.43 (${current})`,
+			`s.70A as substituted by Act A1760 s.3 (${a1760})`
+		],
+		EPF_MONTHLY_CONTRIBUTION: [
+			`${act}ss.43, 45, 47, 49 (${current})`,
+			`Third Schedule as amended by Act A1760 s.10 (${a1760})`,
+			'(https://www.kwsp.gov.my/en/epf-act-1991-third-schedule)'
+		],
+		EPF_RECORDS: [`${act}s.42(1)-(2) (${current})`]
+	};
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		for (const version of settingsVersions(code)) {
+			const obligations = version.obligations as readonly { code: string; authority: string }[];
+			for (const [duty, parts] of Object.entries(expected)) {
+				const authority = obligations.find((row) => row.code === duty)?.authority ?? '';
+				for (const part of parts)
+					assert.ok(authority.includes(part), `${code} ${version.id} ${duty}: ${authority}`);
+			}
+			assert.doesNotMatch(JSON.stringify(version), /LOM\/EN\/Act%20452\.pdf/);
+		}
+	}
+});
+
+test('Malaysia — the Employment Act cites the AGC reprint as at 1 August 2023, not a secondary host', () => {
+	// The Invest Malaysia copy of Act 265 is byte-identical (1,585,700 B, same SHA-256) to the
+	// AGC Commissioner of Law Revision reprint as at 1 August 2023; cite the publisher.
+	const jtksmUpdatedText = /jtksm\.mohr\.gov\.my\/sites\/default\/files\/2023-11\/Akta/;
+	const reprint =
+		'https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf';
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		for (const version of settingsVersions(code)) {
+			const text = JSON.stringify(version);
+			assert.ok(text.includes(reprint), `${code} ${version.id}`);
+			assert.doesNotMatch(text, /investmalaysia\.gov\.my/);
+			// JTKSM's 2023-11 PDF is the AGC updated text as at 1 January 2023, which states on
+			// its cover that it is NOT an authentic text (Revision of Laws Act 1968 s.14(1)).
+			assert.doesNotMatch(text, jtksmUpdatedText, `${code} ${version.id}`);
+		}
+		const adhoc = readFileSync(
+			new URL(`../seed/jurisdiction/${code}/adhoc_catalogue.json`, import.meta.url),
+			'utf8'
+		);
+		assert.doesNotMatch(adhoc, jtksmUpdatedText, `${code} adhoc_catalogue`);
+	}
+});

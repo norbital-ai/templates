@@ -21,7 +21,8 @@ const c = collection('allowance_catalogue', {
 				'bands',
 				'eligibility',
 				'counts_toward',
-				'npl_prorates'
+				'npl_prorates',
+				'owed'
 			]
 		}
 	},
@@ -36,7 +37,8 @@ const c = collection('allowance_catalogue', {
 				'bands',
 				'eligibility',
 				'counts_toward',
-				'npl_prorates'
+				'npl_prorates',
+				'owed'
 			]
 		}
 	},

@@ -79,6 +79,7 @@ export const STATUTORY_SOURCES: Readonly<Record<string, readonly string[]>> = {
 	TH: [
 		'https://ratchakitcha.soc.go.th',
 		'https://www.ocs.go.th',
+		'https://searchlaw.ocs.go.th',
 		'https://www.mol.go.th',
 		'https://www.sso.go.th',
 		'https://www.rd.go.th',

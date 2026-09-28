@@ -363,8 +363,16 @@ test('TW — salary paid to a worker not insured here carries the 2.11% NHI supp
 		people: [
 			// 30,000 ≥ the 29,500 minimum wage: 30,000 × 2.11% = 633.
 			{ key: 'PT-30000', wage: 30_000, citizenship: 'CITIZEN', registrations: elsewhere },
-			// 29,000 < 29,500: not withheld on (NHIA: 未達基本工資 無需扣取).
-			{ key: 'PT-29000', wage: 29_000, citizenship: 'CITIZEN', registrations: elsewhere },
+			// 29,000 < 29,500: not withheld on (NHIA: 未達基本工資 無需扣取). A part-timer on 39 hours, whose
+			// floor is 29,500 × 39/40 = 28,762.50, since 最低工資法 §5 pays a full-timer at least 29,500.
+			{
+				key: 'PT-29000',
+				wage: 29_000,
+				citizenship: 'CITIZEN',
+				employment_type: 'PART_TIME',
+				ordinary_hours_per_week: 39,
+				registrations: elsewhere
+			},
 			// A 第2類 insured with proof on file.
 			{
 				key: 'PT-UNION',

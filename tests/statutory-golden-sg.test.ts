@@ -13,6 +13,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import {
 	assessStatutory,
 	buildStatutory,
@@ -895,6 +896,93 @@ test('Singapore — s.20A prices an incomplete month and an unpaid day on the mo
 	);
 	assert.equal(absent.gross, 3135);
 	assert.deepEqual(scheme(absent, 'CPF'), [3135, 627, 533]);
+});
+
+test('Singapore — s.20A(1)(c) on many absent days: the month’s share, not a sum of rounded days (SG-D1)', () => {
+	// September 2026 holds 22 working days and no public holiday. EA 1968 s.20A(1)(c) (SSO, current
+	// as at 28 Sep 2026): 3,000 × days worked ÷ 22. Eleven absent days leave 3,000 × 11 ÷ 22 =
+	// 1,500.00 (not 3,000 − 11 × 136.36 = 1,500.04): CPF 37% × 1,500 = 555, employee 20% = 300,
+	// employer 255; SDL 0.25% = 3.75; CDAC 0.50. All 22 absent leave 3,000 × 0 ÷ 22 = 0.00 (not
+	// 0.08), so no CPF, no fund deduction and, no service rendered in the month, no SDL (s.2).
+	const weekdays = Array.from(
+		{ length: 30 },
+		(_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`
+	).filter((date) => ![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay()));
+	assert.equal(weekdays.length, 22);
+	const { slips, warnings } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-09',
+			people: [
+				{ key: 'SG-HALF', wage: 3000, age: 30, citizenship: 'CITIZEN', race: 'CHINESE' },
+				{ key: 'SG-NONE', wage: 3000, age: 30, citizenship: 'CITIZEN', race: 'CHINESE' }
+			]
+		},
+		(world) => {
+			world.companies[0]!.pay_cutoff_day = 1;
+			for (const date of weekdays.slice(0, 11)) emptyDay(world, 'SG-HALF', date);
+			for (const date of weekdays) emptyDay(world, 'SG-NONE', date);
+		}
+	);
+	const half = slips.get('SG-HALF')!;
+	assert.equal(half.gross, 1500);
+	assert.deepEqual(scheme(half, 'CPF'), [1500, 300, 255]);
+	assert.deepEqual(scheme(half, 'SDL'), [1500, 0, 3.75]);
+	assert.deepEqual(scheme(half, 'CDAC'), [1500, 0.5, 0]);
+	const none = slips.get('SG-NONE')!;
+	assert.equal(none.gross, 0);
+	assert.deepEqual(none.statutory, []);
+	assert.deepEqual(warnings, []);
+});
+
+test('Singapore — s.88(3): an absence on the working day before or after a public holiday forfeits its pay (SG-D2)', () => {
+	// EA 1968 s.88(3) (SSO, current as at 28 Sep 2026): an employee absent without prior consent or
+	// reasonable excuse on the working day immediately preceding or succeeding a public holiday is
+	// not entitled to holiday pay for it. August 2026 holds 21 working days (Mon–Fri), National Day
+	// observed on Monday 10 Aug among them (s.20A counts it). 2,400 ÷ 21 = 114.2857 a day.
+	// - Absent Fri 7 Aug (the working day before): 7 Aug and 10 Aug come off, 114.29 + 114.28 by
+	//   the running total, gross 2,400 × 19 ÷ 21 = 2,171.43. CPF 37% × 2,171.43 = 803.43 → 803,
+	//   employee 20% = 434.28 → 434, employer 369.
+	// - Absent Tue 11 Aug (the working day after): the same 2,171.43.
+	// - Absent on both: the holiday is forfeited once, 2,400 × 18 ÷ 21 = 2,057.14.
+	// - Absent Thu 6 Aug (not adjacent): one day, 2,400 × 20 ÷ 21 = 2,285.71.
+	const { slips, warnings } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-08',
+			people: ['SG-PH-BEFORE', 'SG-PH-AFTER', 'SG-PH-BOTH', 'SG-PH-APART'].map((key) => ({
+				key,
+				wage: 2400,
+				age: 30,
+				citizenship: 'CITIZEN' as const
+			}))
+		},
+		(world) => {
+			world.companies[0]!.pay_cutoff_day = 1;
+			world.jurisdiction_holidays.push(holiday('2026-08-10', 'National Day (observed)'));
+			emptyDay(world, 'SG-PH-BEFORE', '2026-08-07');
+			emptyDay(world, 'SG-PH-AFTER', '2026-08-11');
+			emptyDay(world, 'SG-PH-BOTH', '2026-08-07');
+			emptyDay(world, 'SG-PH-BOTH', '2026-08-11');
+			emptyDay(world, 'SG-PH-APART', '2026-08-06');
+		}
+	);
+	const absences = (key: string) =>
+		slips
+			.get(key)!
+			.adjustments.filter((row) => row.bucket === 'ABSENCE')
+			.map((row) => [row.quantity, row.amount]);
+	assert.deepEqual(absences('SG-PH-BEFORE'), [
+		[1, 114.29],
+		[1, 114.28]
+	]);
+	assert.equal(slips.get('SG-PH-BEFORE')!.gross, 2171.43);
+	assert.deepEqual(scheme(slips.get('SG-PH-BEFORE')!, 'CPF'), [2171.43, 434, 369]);
+	assert.equal(slips.get('SG-PH-AFTER')!.gross, 2171.43);
+	assert.equal(slips.get('SG-PH-BOTH')!.gross, 2057.14);
+	assert.deepEqual(absences('SG-PH-APART'), [[1, 114.29]]);
+	assert.equal(slips.get('SG-PH-APART')!.gross, 2285.71);
+	assert.deepEqual(warnings, []);
 });
 
 test('Singapore — s.20A(2): a day of five contracted hours or fewer counts as half a working day', () => {
@@ -2766,6 +2854,26 @@ test('Singapore — IR8A, IR21 and CPF late interest are dated external obligati
 	}
 });
 
+test('Singapore — the full-time Local Qualifying Salary is $1,600 before 1 July 2026 and $1,800 from it', () => {
+	// MOM, Factsheet on lower-wage workers (3 March 2026) para 10: "From 1 July 2026, the
+	// Government will raise the LQS from $1,600 to $1,800"; part-time stays $10.50 an hour.
+	// MOM LQS page (archived 22 Jan 2026): "The LQS is $1,600 today", ≥ $10.50/hr part-time.
+	for (const version of settingsVersions('SG')) {
+		const lqs = (version.obligations as { code: string; description: string }[]).find(
+			(row) => row.code === 'WORK_PASS_AND_LOCAL_QUALIFYING_SALARY'
+		)!.description;
+		const monthly = version.effective_range.start.slice(0, 10) < '2026-07-01' ? '$1,600' : '$1,800';
+		assert.ok(
+			lqs.includes(`(${monthly} a month full-time; $10.50 an hour part-time`),
+			`${version.name}: ${lqs}`
+		);
+	}
+	assert.match(
+		settingsVersions('SG').find((v) => v.id === sgSettingsId('2026-07-15'))!.change_summary,
+		/\$1,600 to \$1,800/
+	);
+});
+
 test('Singapore — a fund instruction for a different monthly amount replaces the schedule rung (CDAC and SINDA Rules r.8)', () => {
 	// SSO (current as at 28 Sep 2026): CDAC Rules 1992 r.8 and SINDA Rules 1992 r.8(1) — an
 	// employee may give written notice to contribute in excess of the Schedule rate, and the
@@ -3207,4 +3315,68 @@ test('Singapore — a conversion month selects the wage band on the month’s to
 	// statuses here have the same Table 1 rates): 444, employee 20% = 240, employer 204. Pricing
 	// each portion (545.45 and 654.55) on its own band puts both in the $500–$750 graduated row.
 	assert.deepEqual(scheme(sprToCitizen(1200), 'CPF'), [1200, 240, 204]);
+});
+
+test('Singapore — every settings version cites the live Part-Time Employees Regulations anchors (SSO as at 28 Sep 2026; SG-SRC02)', () => {
+	// Read in the browser on 2026-09-28: SL/EmA1968-RG8?ProvIds=pr5- is Page Not Found (regs.4–5
+	// are anchored pr4-XX-pr4- / pr5-XX-pr5-); ?ProvIds=pr5-XX-pr5- opens reg.5 "Overtime pay" and
+	// ?ProvIds=pr2- opens reg.2 "Definitions". 45 raw rows (voided snapshots included) carry the
+	// part-time citations, 5 of them in the operative timeline.
+	const raw: { sources: { urls: string[] } }[] = JSON.parse(
+		readFileSync(
+			new URL('../seed/jurisdiction/SG/jurisdiction_settings.json', import.meta.url),
+			'utf8'
+		)
+	);
+	const citing = raw.filter((row) => row.sources.urls.some((url) => url.includes('-RG8')));
+	assert.equal(citing.length, 45);
+	assert.equal(
+		settingsVersions('SG').filter((row) =>
+			row.sources.urls.some((url: string) => url.includes('-RG8'))
+		).length,
+		5
+	);
+	for (const row of citing) {
+		const rg8 = row.sources.urls.filter((url) => url.includes('-RG8'));
+		assert.deepEqual(rg8, [
+			'https://sso.agc.gov.sg/SL/EmA1968-RG8?ProvIds=pr5-XX-pr5-',
+			'https://sso.agc.gov.sg/SL/EmA1968-RG8?ProvIds=pr2-'
+		]);
+	}
+});
+
+test('Singapore — the SDL authority names SWDA from SSO s.2 and the NOA FAQ as SSG’s; the levy does not move on the 1 July 2026 Agency change (SG-S3)', () => {
+	// SSO SDLA1979 s.2 (current version as at 28 Sep 2026): "“Agency” means the Skills and Workforce
+	// Development Agency …" [Act 17 of 2026 wef 01/07/2026]. The NOA FAQ PDF's header is
+	// "SkillsFuture Singapore Agency" (Oct 2023). 25 raw SDL rows (voided snapshots included) cite it.
+	const raw: { code: string; authority: string }[] = JSON.parse(
+		readFileSync(
+			new URL('../seed/jurisdiction/SG/statutory_contributions.json', import.meta.url),
+			'utf8'
+		)
+	);
+	const citing = raw.filter(
+		(row) => row.code === 'SDL' && row.authority.includes('sdl-noa2023faqs.pdf')
+	);
+	assert.equal(citing.length, 25);
+	for (const row of citing) {
+		assert.ok(!row.authority.includes('SWDA SDL FAQ'));
+		assert.ok(
+			row.authority.includes(
+				'SkillsFuture Singapore FAQs on the October 2023 SDL Notice of Assessment, F.7'
+			)
+		);
+		assert.ok(row.authority.includes('https://sso.agc.gov.sg/Act/SDLA1979?ProvIds=pr2-,pr3-'));
+		assert.ok(row.authority.includes('Skills and Workforce Development Agency (SWDA)'));
+	}
+	// s.3(1): 0.25% of the month's wages. S Pass 2,345.67 × 0.25% = 5.864175 → 5.86 in June and in
+	// July 2026 alike; the Agency renaming moves no figure.
+	for (const period of ['2026-06', '2026-07']) {
+		const book = assessStatutory({
+			code: 'SG',
+			period,
+			people: [{ key: 'SG-SP', wage: 2345.67, age: 30, citizenship: 'FOREIGNER' }]
+		});
+		expectStatutory(book, 'SG-SP', 'SDL', 0, 5.86);
+	}
 });

@@ -193,6 +193,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资)'
 	},
 	{
+		path: 'employment.earned_monthly_average(months, excluded, fallback)',
+		description:
+			'That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked)'
+	},
+	{
 		path: 'employment.prior_service_months',
 		description:
 			'Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers)'
@@ -483,6 +488,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'period.overtime_days',
 		description:
 			'Dates in the assessment window with overtime hours or hours inside the night window, counted once per date'
+	},
+	{
+		path: 'period.arrears',
+		description:
+			'The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1))'
 	}
 ];
 
@@ -584,7 +594,8 @@ const PERSON_BLANK = {
 		leave_full_days: {},
 		leave_days: {},
 		leave_pay: {},
-		overtime_days: 0
+		overtime_days: 0,
+		arrears: 0
 	},
 	facts: {},
 	event: {
@@ -810,6 +821,11 @@ const PRODUCED_FIELDS: readonly ContextField[] = [
 		path: 'employee_this_period',
 		description:
 			'The employee share charged this period alone, floored at zero — the relief a per-period withholding table subtracts'
+	},
+	{
+		path: 'employee_month_estimate',
+		description:
+			'The employee share a month-assessed producer would charge on this instalment’s wage scaled to the month (`period.month_factor`); `employee_this_period` where the month is paid at once — the monthly contribution a per-payment withholding annualises (TH P.96/2543 cl.1(2))'
 	},
 	{ path: 'employer', description: 'The employer share' },
 	{
@@ -1404,6 +1420,11 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		...periodFields('period.'),
 		{ path: 'period.year', description: 'Calendar year of the pay period' },
 		...yearFields('year.'),
+		{
+			path: 'year.payments',
+			description:
+				'The payments due in the tax year at this cadence, from the join to the year end (monthly: months, adding declared prior-employer months as `months_employed` does; semi-monthly: halves; weekly: paydays)'
+		},
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
 		...HISTORY_FIELDS,
@@ -1433,6 +1454,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			start: '',
 			end: '',
 			months_employed: 0,
+			payments: 12,
 			earned: { BASIC: 0, ABSENCE: 0 },
 			ALLOWANCES: 0,
 			ADHOC: 0,
@@ -1456,7 +1478,14 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			...Object.fromEntries(DEDUCTION_TOTAL_KEYS.map((key) => [key, {}]))
 		},
 		produced: {
-			EPF: { base: 0, employee: 0, employee_normal: 0, employee_this_period: 0, employer: 0 }
+			EPF: {
+				base: 0,
+				employee: 0,
+				employee_normal: 0,
+				employee_this_period: 0,
+				employee_month_estimate: 0,
+				employer: 0
+			}
 		},
 		history: {},
 		BASE: 0,
@@ -1482,6 +1511,11 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		...periodFields('period.'),
 		{ path: 'period.year', description: 'Calendar year of the pay period' },
 		...yearFields('year.'),
+		{
+			path: 'year.payments',
+			description:
+				'The payments due in the tax year at this cadence, from the join to the year end (monthly: months, adding declared prior-employer months as `months_employed` does; semi-monthly: halves; weekly: paydays)'
+		},
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
 		...HISTORY_FIELDS,
@@ -1520,6 +1554,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			start: '',
 			end: '',
 			months_employed: 0,
+			payments: 12,
 			earned: { BASIC: 0, ABSENCE: 0 },
 			ALLOWANCES: 0,
 			ADHOC: 0,
@@ -1544,7 +1579,14 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			...Object.fromEntries(DEDUCTION_TOTAL_KEYS.map((key) => [key, {}]))
 		},
 		produced: {
-			EPF: { base: 0, employee: 0, employee_normal: 0, employee_this_period: 0, employer: 0 }
+			EPF: {
+				base: 0,
+				employee: 0,
+				employee_normal: 0,
+				employee_this_period: 0,
+				employee_month_estimate: 0,
+				employer: 0
+			}
 		},
 		history: {},
 		base: 0,

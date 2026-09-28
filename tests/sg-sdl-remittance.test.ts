@@ -543,12 +543,12 @@ for (const month of ['2026-02', '2026-03'])
 			assert.equal(costs, 40.75);
 		});
 
-// SWDA SDL FAQ (https://file.go.gov.sg/sdl-noa2023faqs.pdf) p.15 F.7: "You should indicate the
+// SkillsFuture Singapore SDL NOA 2023 FAQ (https://file.go.gov.sg/sdl-noa2023faqs.pdf) F.7: "You should indicate the
 // actual amount payable under the 'Skills Development Levy (SDL) – For foreign employees' field";
 // the CPF Board's round-down covers the SDL paid with CPF for local employees. Each employee's
 // levy is to the cent (Owner rule SG-SDL13): 3,999.99 × 0.25% → 10.00; 1,234.56 × 0.25% → 3.09.
 for (const period of ['2025-12', '2026-01', '2026-04', '2026-07', '2027-01']) {
-	test(`SG SDL ${period} submits foreign employees' levy at the actual amount (SWDA SDL FAQ F.7)`, () => {
+	test(`SG SDL ${period} submits foreign employees' levy at the actual amount (SSG SDL NOA 2023 FAQ F.7)`, () => {
 		const world = createStatutoryWorld({
 			code: 'SG',
 			period,

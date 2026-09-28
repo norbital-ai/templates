@@ -138,7 +138,7 @@ type Stint = { service_start?: unknown; exit_date?: unknown; history?: PersonHis
  * covered month no earlier payslip settled is refused — the law reads wages received, and a
  * contract wage is not a substitute for them.
  */
-function wageMonths(employment: unknown, months: unknown, what: string) {
+function wageMonths(employment: unknown, months: unknown, what: string, orNone = false) {
 	const { service_start, exit_date, history } = employment as Stint;
 	const start = String(service_start ?? '');
 	const exit = String(exit_date ?? '');
@@ -171,7 +171,7 @@ function wageMonths(employment: unknown, months: unknown, what: string) {
 			codes
 		});
 	}
-	if (rows.length === 0)
+	if (rows.length === 0 && !orNone)
 		throw new Error(`${what} needs at least one month of service before ${history.as_of}.`);
 	return rows;
 }
@@ -182,15 +182,19 @@ function wageMonths(employment: unknown, months: unknown, what: string) {
  * counts as its covered share (ID Permenaker 6/2016 art.3(3)–(4): the average wage received each
  * month; MY reg.6(2): twelve months' wages is twelve such months). `excluded` names filed codes
  * taken back out, `["OVERTIME"]` every priced work-day line (CN 企业职工带薪年休假实施办法 art.11:
- * the twelve months' average 剔除加班工资).
+ * the twelve months' average 剔除加班工资). `fallback`, where given, is the figure where the stint
+ * served no month before the rule date's month (CN LCL art.47 with 实施条例 art.27: a leaver in
+ * the hiring month averages the wage due over that one month; register CN-SH-A2).
  */
 export function earnedMonthlyAverage(
 	employment: unknown,
 	months: unknown,
-	excluded: unknown = []
+	excluded: unknown = [],
+	fallback?: unknown
 ): number {
-	const rows = wageMonths(employment, months, 'Earned monthly average');
+	const rows = wageMonths(employment, months, 'Earned monthly average', fallback !== undefined);
 	if (rows == null) return 0;
+	if (rows.length === 0) return decodeNumber(fallback);
 	const out = (Array.isArray(excluded) ? excluded : []).map(String);
 	const wages = rows.reduce(
 		(sum, row) =>

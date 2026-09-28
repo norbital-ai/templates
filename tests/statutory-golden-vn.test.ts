@@ -41,6 +41,7 @@ import {
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
+import { addUnpaidWorkingDays } from './fixtures/unpaid-leave.ts';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 
 const VN_PEOPLE = [
@@ -97,7 +98,9 @@ test('Vietnam — short contracts do not replace non-resident withholding with t
 			}
 		]
 	});
-	expectStatutory(book, 'NONRES-SHORT', 'PIT', 4_000_000, 0);
+	// A foreigner on a two-month contract is outside SI and HI (Law 41/2024 art.2(2)) and owed the
+	// employer's 17.5% + 3% of 20,000,000 = 4,100,000 as wages (LC art.168(3)); 20% of 24,100,000.
+	expectStatutory(book, 'NONRES-SHORT', 'PIT', 4_820_000, 0);
 });
 
 test('Vietnam — SI, HI, UI and the union fee under the 1 January 2026 version', () => {
@@ -1120,6 +1123,45 @@ test('Vietnam — union dues below the floor are 0.5% of the floored SI salary (
 	expectStatutory(book, 'VN-DUES-2M', 'UNION_DUES', 11_700, 0);
 });
 
+test('Vietnam — union dues stop only for a month unpaid, and a member outside SI pays the set sum (Decision 61/QĐ-TLĐ art.1)', () => {
+	const member = { UNION_DUES: { kind: 'REGISTERED', elections: { union_member: true } } } as const;
+	const dues = (unpaid: number, person: Record<string, unknown> = {}) => {
+		const slip = buildStatutory(
+			{
+				code: 'VN',
+				period: '2026-07',
+				region: 'I',
+				people: [
+					{
+						key: 'VN-DUES',
+						wage: 30_000_000,
+						citizenship: 'CITIZEN',
+						registrations: {
+							...member,
+							SI: { kind: 'REGISTERED', elections: { continue_si_unpaid: false } }
+						},
+						...person
+					}
+				]
+			},
+			(world) => {
+				world.companies[0]!.pay_cutoff_day = 1;
+				if (unpaid > 0) addUnpaidWorkingDays(world, '2026-07', unpaid);
+			}
+		).slips.get('VN-DUES')!;
+		const row = slip.statutory.find((entry) => entry.scheme_code === 'UNION_DUES');
+		return row ? [row.base_amount, row.employee_amount] : [];
+	};
+	// 15 of July's 23 working days unpaid: past Law 41/2024 art.33(5)'s 14, so no SI, but under a
+	// month, so the member still owes 0.5% of the 30,000,000 insurance salary = 150,000.
+	assert.deepEqual(dues(15), [30_000_000, 150_000]);
+	// Every working day of July unpaid: a month without pay, no dues.
+	assert.deepEqual(dues(23), []);
+	// An intern is outside compulsory SI (Law 41/2024 art.2(1)); the set sum is at least 0.5% of
+	// the 2,530,000 base salary = 12,650.
+	assert.deepEqual(dues(0, { wage: 5_000_000, employment_type: 'INTERN' }), [2_530_000, 12_650]);
+});
+
 test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve months whatever the months employed (Decree 253/2026 art.48(1)(b))', () => {
 	// A joiner on 1 July 2026 at 60,000,000 with no other income of the year: the employer's
 	// finalisation in December reads the year's income, 6 × 60,000,000 = 360,000,000, less the
@@ -1434,6 +1476,42 @@ test('Vietnam — a pensioner, a transferee and a foreigner hired at retirement 
 	// Under the age at hire: insured; the row the catalogue declines to price pays nothing.
 	assert.deepEqual(charge('VN-F-NOT-YET', 'SI'), [1_600_000, 3_500_000]);
 	assert.equal(equivalent('VN-F-NOT-YET'), undefined);
+});
+
+test('Vietnam — the insurance equivalent is owed with no allowance row: a working pensioner and a foreigner hired past retirement age (Labour Code art.168(3); Law 41/2024 art.2(2), 2(7))', () => {
+	// No `assignAllowance`: the statute owes the amount with each wage, whatever HR has recorded.
+	const { slips } = buildStatutory({
+		code: 'VN',
+		period: '2026-09',
+		region: 'I',
+		people: [
+			{ key: 'VN-PEN', wage: 25_000_000, citizenship: 'CITIZEN', receiving_pension: true },
+			// Born 1 June 1962, hired 5 January 2026: 63 years 7 months, past 2026's 61 years 6.
+			{
+				key: 'VN-FR',
+				wage: 30_000_000,
+				citizenship: 'FOREIGNER',
+				gender: 'MALE',
+				birth_date: '1962-06-01',
+				hire_date: '2026-01-05'
+			}
+		]
+	});
+	const equivalent = (key: string) =>
+		slips.get(key)!.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')?.amount;
+	// Pensioner: 17.5% SI + 3% HI + 1% UI of 25,000,000 = 5,375,000.
+	assert.equal(equivalent('VN-PEN'), 5_375_000);
+	// Foreigner: 17.5% + 3% of 30,000,000 = 6,150,000; no UI share for a foreigner.
+	assert.equal(equivalent('VN-FR'), 6_150_000);
+	for (const key of ['VN-PEN', 'VN-FR'])
+		for (const code of ['SI', 'HI', 'UI']) {
+			const row = slips.get(key)!.statutory.find((item) => item.scheme_code === code);
+			assert.deepEqual(
+				[row?.employee_amount ?? 0, row?.employer_amount ?? 0],
+				[0, 0],
+				`${key} ${code}`
+			);
+		}
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -2397,4 +2475,210 @@ test('Vietnam — the seeded art.97(4) class pays interest at the payroll bank�
 	}
 	assert.equal(slips.get('VN-LATE-14')!.gross, 20_000_000);
 	assert.ok(warnings.some((line) => line.includes('no band of the catalogue covers this entry')));
+});
+
+test('Vietnam — an open-ended contract ended by resignation is withheld on the progressive table, not the 10% (Decree 253/2026 art.50(2); Labour Code 2019 art.20)', () => {
+	// Art.50(2)'s 10% is for no labour contract or one under three months. An indefinite contract
+	// resigned after seven weeks never had a term, so the monthly table applies.
+	const pit = (period: string) =>
+		charge(
+			buildStatutory(
+				{
+					code: 'VN',
+					period,
+					region: 'I',
+					people: [
+						{
+							key: 'VN-RESIGN',
+							wage: 30_000_000,
+							citizenship: 'CITIZEN',
+							hire_date: '2026-08-01',
+							exit_date: '2026-09-18',
+							exit_reason: 'RESIGNATION'
+						}
+					]
+				},
+				(world) => {
+					world.companies[0]!.pay_cutoff_day = 1;
+				}
+			).slips.get('VN-RESIGN')!,
+			'PIT'
+		)[1];
+	// August: 30,000,000 − 3,150,000 (10.5%) − 15,500,000 = 11,350,000 → 500,000 + 1,350,000 × 10%.
+	assert.equal(pit('2026-08'), 635_000);
+	// September, 14 of 22 working days: 19,090,909 − 3,150,000 − 15,500,000 = 440,909 × 5%.
+	assert.equal(pit('2026-09'), 22_045);
+});
+
+test('Vietnam — a foreigner on an open-ended contract who resigns stays insured (Law 41/2024 art.2(2); HI Law art.12(1)(c))', () => {
+	// Coverage turns on the contract signed, not the stint served: an indefinite contract resigned
+	// after five and a half months never had a term under twelve months.
+	const build = (period: string) =>
+		buildStatutory(
+			{
+				code: 'VN',
+				period,
+				region: 'I',
+				people: [
+					{
+						key: 'VN-F-RESIGN',
+						wage: 30_000_000,
+						citizenship: 'FOREIGNER',
+						gender: 'MALE',
+						hire_date: '2026-04-01',
+						exit_date: '2026-09-18',
+						exit_reason: 'RESIGNATION'
+					}
+				]
+			},
+			(world) => {
+				world.companies[0]!.pay_cutoff_day = 1;
+			}
+		);
+	const slip = (period: string) => build(period).slips.get('VN-F-RESIGN')!;
+	for (const period of ['2026-08', '2026-09']) {
+		const payslip = slip(period);
+		// SI 8% / 17.5%, HI 1.5% / 3% of the contract wage, union fee 2% employer.
+		assert.deepEqual(charge(payslip, 'SI'), [30_000_000, 2_400_000, 5_250_000]);
+		assert.deepEqual(charge(payslip, 'HI'), [30_000_000, 450_000, 900_000]);
+		assert.deepEqual(build(period).companyCharges.get('UNION_FEE'), [30_000_000, 600_000]);
+	}
+	// August: 30,000,000 − 2,850,000 − 15,500,000 = 11,650,000 → 500,000 + 1,650,000 × 10%.
+	assert.equal(charge(slip('2026-08'), 'PIT')[1], 665_000);
+	// September, 14 of 22 working days: 19,090,909 − 2,850,000 − 15,500,000 = 740,909 × 5%.
+	assert.equal(charge(slip('2026-09'), 'PIT')[1], 37_045);
+});
+
+test('Vietnam — a fixed-term contract under one full month is outside SI, HI and UI and owed the employer’s rate as wages (Law 41/2024 art.2(1)(a); HI Law art.12(1)(a); Law 74/2025 art.31(1)(a); Labour Code art.168(3))', () => {
+	const september = settingsIdOn('VN', '2026-09-15');
+	const short = {
+		wage: 30_000_000,
+		citizenship: 'CITIZEN',
+		hire_date: '2026-09-01',
+		exit_date: '2026-09-21',
+		exit_reason: 'END_OF_CONTRACT'
+	};
+	const { slips, companyCharges } = buildStatutory(
+		{
+			code: 'VN',
+			period: '2026-09',
+			region: 'I',
+			people: [
+				{ key: 'VN-21D', ...short },
+				{ key: 'VN-21D-EQ', ...short },
+				// 1 to 30 September is one full month: insured.
+				{ ...short, key: 'VN-1M', exit_date: '2026-09-30' }
+			]
+		},
+		(world) => {
+			world.companies[0]!.pay_cutoff_day = 1;
+			const row = world.allowance_catalogue.find(
+				(item) => item.code === 'INSURANCE_EQUIVALENT' && item.settings_id === september
+			)!;
+			assignAllowance(world, {
+				id: 'd0000000-0000-4000-8000-0000000000f0',
+				employment_id: world.employments.find((item) => item.employee_number === 'VN-21D-EQ')!.id,
+				catalogue_id: row.id,
+				amount: 0,
+				effective_from: '2026-09-01',
+				effective_to: null,
+				reason: 'art.168(3)',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+		}
+	);
+	const paid = (key: string, code: string) => {
+		const row = slips.get(key)!.statutory.find((item) => item.scheme_code === code);
+		return [row?.employee_amount ?? 0, row?.employer_amount ?? 0];
+	};
+	for (const code of ['SI', 'HI', 'UI']) assert.deepEqual(paid('VN-21D', code), [0, 0], code);
+	// 21 days (1–21 September) is no full month, so the 10% short-contract withholding applies to
+	// the 15 of 22 working days paid, 30,000,000 × 15 / 22 = 20,454,545, plus the owed equivalent
+	// below (4,397,727): 24,852,272 × 10% = 2,485,227.
+	assert.equal(paid('VN-21D', 'PIT')[0], 2_485_227);
+	// The equivalent is owed without an HR row (LC art.168(3)): the same line as the listed one.
+	assert.equal(
+		slips.get('VN-21D')!.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')?.amount,
+		4_397_727
+	);
+	// The equivalent: 17.5% SI + 3% HI + 1% UI of the 30,000,000 it would have insured = 6,450,000,
+	// paid like any standing row for the 15 of 22 working days: 6,450,000 × 15 / 22 = 4,397,727.
+	// Art.168(3) sets no part-month rule; proration is the recorded default (register VN-LC168-01).
+	assert.equal(
+		slips.get('VN-21D-EQ')!.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')
+			?.amount,
+		4_397_727
+	);
+	// One full month: 8% / 17.5%, 1.5% / 3%, 1% / 1% of 30,000,000.
+	assert.deepEqual(paid('VN-1M', 'SI'), [2_400_000, 5_250_000]);
+	assert.deepEqual(paid('VN-1M', 'HI'), [450_000, 900_000]);
+	assert.deepEqual(paid('VN-1M', 'UI'), [300_000, 300_000]);
+	// The union fee (2% of the SI salary fund) carries only the insured contract.
+	assert.deepEqual(companyCharges.get('UNION_FEE'), [30_000_000, 600_000]);
+});
+
+test('Vietnam — through December 2025 a short fixed-term contract is outside SI and HI but insured for UI (Law 38/2013 art.43(1)(b))', () => {
+	const { slips } = buildStatutory({
+		code: 'VN',
+		period: '2025-12',
+		region: 'I',
+		people: [
+			{
+				key: 'VN-DEC-21D',
+				wage: 30_000_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2025-12-01',
+				exit_date: '2025-12-21',
+				exit_reason: 'END_OF_CONTRACT'
+			}
+		]
+	});
+	const paid = (code: string) => {
+		const row = slips.get('VN-DEC-21D')!.statutory.find((item) => item.scheme_code === code);
+		return [row?.base_amount ?? 0, row?.employee_amount ?? 0, row?.employer_amount ?? 0];
+	};
+	assert.deepEqual(paid('SI'), [0, 0, 0]);
+	assert.deepEqual(paid('HI'), [0, 0, 0]);
+	// Art.43(1)(b) names every fixed-term contract, with no minimum: 1% / 1% of 30,000,000.
+	assert.deepEqual(paid('UI'), [30_000_000, 300_000, 300_000]);
+});
+
+test('Vietnam — a worker on a probation contract is outside UI from 2026 (Law 74/2025 art.31(2))', () => {
+	for (const period of ['2026-01', '2026-06', '2026-09']) {
+		const { slips } = buildStatutory(
+			{
+				code: 'VN',
+				period,
+				region: 'I',
+				people: [
+					{
+						key: 'VN-PROBATION',
+						wage: 20_000_000,
+						citizenship: 'CITIZEN',
+						employment_type: 'PROBATION',
+						hire_date: `${period}-01`
+					},
+					{
+						key: 'VN-PERMANENT',
+						wage: 20_000_000,
+						citizenship: 'CITIZEN',
+						hire_date: `${period}-01`
+					}
+				]
+			},
+			(world) => {
+				world.companies[0]!.pay_cutoff_day = 1;
+			}
+		);
+		const ui = (key: string) => {
+			const row = slips.get(key)!.statutory.find((item) => item.scheme_code === 'UI');
+			return [row?.base_amount ?? 0, row?.employee_amount ?? 0, row?.employer_amount ?? 0];
+		};
+		// Art.31(2): "người lao động đang làm việc theo hợp đồng thử việc" is not a UI participant.
+		assert.deepEqual(ui('VN-PROBATION'), [0, 0, 0], period);
+		// Control: the same wage on a labour contract, 1% / 1% of 20,000,000.
+		assert.deepEqual(ui('VN-PERMANENT'), [20_000_000, 200_000, 200_000], period);
+	}
 });
