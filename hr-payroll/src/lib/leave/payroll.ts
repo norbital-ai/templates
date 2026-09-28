@@ -243,7 +243,9 @@ export function withLeaveDeductionEligibility(
 						row.event_date === entry.event_date)
 			)
 			.flatMap((row) => row.charges);
-		const opening = entry.charges.map((charge) => charge.date).toSorted()[0] ?? '';
+		// The leave opens on the event's first charged day: an event filed one entry per period keeps
+		// counting `day_index` / `month_index` across them (TH LPA s.59: wages for the first 60 days).
+		const opening = eventCharges.map((charge) => charge.date).toSorted()[0] ?? '';
 		for (const charge of entry.charges) {
 			const catalogue = gathered.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved leave refers to a missing catalogue revision.');

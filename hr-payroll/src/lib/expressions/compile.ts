@@ -173,7 +173,14 @@ function openKeyBlank(
 		blank.produced = Object.fromEntries(
 			produced.map((code) => [
 				code,
-				{ base: 0, employee: 0, employee_normal: 0, employee_this_period: 0, employer: 0 }
+				{
+					base: 0,
+					employee: 0,
+					employee_normal: 0,
+					employee_this_period: 0,
+					employee_month_estimate: 0,
+					employer: 0
+				}
 			])
 		);
 	const history = openKeyMentions(expression, 'history');

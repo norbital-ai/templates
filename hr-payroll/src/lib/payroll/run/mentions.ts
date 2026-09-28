@@ -2,7 +2,7 @@
  * Dependency edges between statutory schemes.
  *
  * A rule or an `assessed_on` formula names another scheme's result as
- * `produced.<code>.employee`, `produced.<code>.employee_this_period` or `produced.<code>.employer`. That mention is the whole dependency
+ * `produced.<code>.employee`, `produced.<code>.employee_this_period`, `produced.<code>.employee_month_estimate` or `produced.<code>.employer`. That mention is the whole dependency
  * declaration: there is no sequence column and no relief junction. The engine reads the mentions
  * out of the compiled expressions, orders the schemes so every producer runs before its consumer,
  * and refuses a loop.
@@ -35,6 +35,7 @@ function walk(node: AstNode, mentions: string[]): void {
 			path[0] === 'produced' &&
 			(path[2] === 'employee' ||
 				path[2] === 'employee_this_period' ||
+				path[2] === 'employee_month_estimate' ||
 				path[2] === 'employer' ||
 				path[2] === 'base') &&
 			!mentions.includes(path[1]!)

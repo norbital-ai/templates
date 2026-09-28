@@ -145,7 +145,8 @@ const f = customField({
 			holiday_rest_precedence: {
 				kind: 'enum',
 				values: ['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']
-			}
+			},
+			last_rest_day_only: { kind: 'bool', optional: true }
 		}
 	}
 });

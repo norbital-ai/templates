@@ -16,7 +16,9 @@ export default model({
 		/** The schemes whose `ALLOWANCES` base every line of this class enters. */
 		counts_toward: { kind: 'custom', of: 'code_list' },
 		/** Whether an unpaid day comes off this class; null follows `payroll.allowance_npl_prorates`. */
-		npl_prorates: { kind: 'bool', optional: true }
+		npl_prorates: { kind: 'bool', optional: true },
+		/** A class the statute owes whoever its eligibility admits: priced with no contract row (VN LC art.168(3)). */
+		owed: { kind: 'bool', optional: true }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
 	search: { text: ['code', 'name'] }

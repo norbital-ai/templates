@@ -92,6 +92,8 @@ export type Configuration = {
 	/** In the order MEASURE walks: the family pipeline, each family by code. */
 	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly holidayRestPrecedence: Work['holiday_rest_precedence'];
+	/** `work_rules.last_rest_day_only`: a week's earlier REST days resolve as OFF (MY s.59(1)). */
+	readonly lastRestDayOnly?: boolean | undefined;
 	/** The named hour ceilings; schedules must respect them, payroll reports overruns. */
 	readonly limits: readonly WorkLimit[];
 	/** The break obligations, as CEL over the work-day context. */
@@ -307,7 +309,8 @@ export function configurationSnapshot(
 				row.definition,
 				row.eligibility,
 				row.bands,
-				row.npl_prorates ?? null
+				row.npl_prorates ?? null,
+				row.owed ?? null
 			])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// The effective range and the complete nested value are retained together. A PAID run can

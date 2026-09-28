@@ -797,7 +797,7 @@ test('Shanghai — a mid-month joiner and a leaver on the 21.75-day conversion (
 	// 10,114.94. Leaver on Thursday the 15th: 11 (1–2, 5–9, 12–15; 元旦 is not planted) → 11,126.44.
 	assert.deepEqual(basic(slips.get('SH-JOINER')!), [[10, 21.75, 10_114.94]]);
 	assert.deepEqual(basic(slips.get('SH-LEAVER')!), [[11, 21.75, 11_126.44]]);
-	// A first-ever fund worker pays from the second month (Regulation art.16; CN-SH43): no fund row.
+	// A first-ever fund worker pays from the second month (Regulation art.17; CN-SH43): no fund row.
 	assert.equal(
 		slips.get('SH-JOINER')!.statutory.find((row) => row.scheme_code === 'HOUSING_FUND'),
 		undefined
@@ -810,6 +810,32 @@ test('Shanghai — a mid-month joiner and a leaver on the 21.75-day conversion (
 	// exit-month rule; the charge is the month the employment exists in): 11,126.44 − (1,760 + 440 +
 	// 110 + 1,540) − 5,000 = 2,276.44 × 3% = 68.2932 → 68.29.
 	assert.deepEqual(charge(slips.get('SH-LEAVER')!, 'IIT'), [11_126.44, 68.29, 0]);
+});
+
+test('Shanghai — the fund month after a first-ever join, and a transferred joiner (Regulation art.17; CN-SH43)', () => {
+	// Regulation art.17 (Order 844 text): a new worker pays from the second month, a transferred
+	// worker from the first wage the new unit pays, each on 本人当月工资 × rate. The seed takes that
+	// month's wage as the declared `contribution_base` (register CN-SH43).
+	const feb = buildStatutory({
+		code: SH,
+		period: '2026-02',
+		region: 'SHANGHAI',
+		companyFacts: SH_2026_FACTS,
+		people: [
+			person('SH-JOINER', 22_000, { hire_date: '2026-01-19', hf: { first_ever_account: true } })
+		]
+	});
+	// Second month: 22,000 × 7% = 1,540 each side.
+	assert.deepEqual(charge(feb.slips.get('SH-JOINER')!, 'HOUSING_FUND'), [22_000, 1540, 1540]);
+	const jan = buildStatutory({
+		code: SH,
+		period: '2026-01',
+		region: 'SHANGHAI',
+		companyFacts: SH_2026_FACTS,
+		people: [person('SH-TRANSFER', 22_000, { hire_date: '2026-01-19' })]
+	});
+	// Transferred (not first-ever): due in the join month, 22,000 × 7% = 1,540 each side.
+	assert.deepEqual(charge(jan.slips.get('SH-TRANSFER')!, 'HOUSING_FUND'), [22_000, 1540, 1540]);
 });
 
 test('Shanghai — a mid-month rise leaves the insured base alone (CN-SH05); the pay side is below', () => {
@@ -1087,6 +1113,46 @@ test('Kunming — the same national annual-leave cash-out on the seeded row (CN-
 	const withPrior = annualLeaveOnExit(KM, 'KM-AL-LEAVER', 36, KM_2026_FACTS, 'CATEGORY_I');
 	assert.equal(withPrior.days, 4);
 	assert.equal(withPrior.paid, 8_091.95);
+});
+
+test('Both cities — the first eligible year and a mid-year band crossing are granted in full (CN-N05 recorded defaults)', () => {
+	// 人社厅函〔2009〕149号 answers only the twelve months and cumulative service; 实施办法 arts.5
+	// and 12 pro-rate a new hire's and a leaver's year, nothing else. Owner rule 2026-09-28: the
+	// seed grants the year's band in full from the day it is reached.
+	for (const code of [SH, KM]) {
+		const row = leaveCatalogue(code).find(
+			(item) =>
+				item.settings_id === settingsIdOn(code, '2026-06-30') && item.code === 'ANNUAL_LEAVE'
+		)!;
+		const days = (hire: string, asOf: string, exit: string | null = null) => {
+			const personOn = (date: string) =>
+				personContext({
+					employee: null,
+					employment: { service_start: hire, exit_date: exit, prior_service_months: 0 },
+					terms: {},
+					asOf: date
+				});
+			return computedEntitlement({
+				rule: row.entitlement as never,
+				window: leaveWindowOf(asOf, row.entitlement as never),
+				asOf,
+				hireDate: hire,
+				exitDate: exit,
+				servedOn: () => true,
+				eligibleOn: (date) => isEligible(row.eligibility as string, personOn(date)),
+				personOn
+			}).available;
+		};
+		// Hired 1 October 2025, no earlier service: twelve months on 1 October 2026. Nothing before
+		// it; from it the whole 5 (a pro-rata from that day would be 92 ÷ 365 × 5 = 1.26 → 1).
+		assert.equal(days('2025-10-01', '2026-09-30'), 0);
+		assert.equal(days('2025-10-01', '2026-10-01'), 5);
+		// A 31 December 2026 exit: 365 ÷ 365 × 5 = 5 paid out.
+		assert.equal(days('2025-10-01', '2026-12-31', '2026-12-31'), 5);
+		// Hired 1 July 2016: 119 months on 30 June 2026 → 5; 120 on 1 July → the whole 10.
+		assert.equal(days('2016-07-01', '2026-06-30'), 5);
+		assert.equal(days('2016-07-01', '2026-07-01'), 10);
+	}
 });
 
 test('Shanghai — a full-time contract under 2,740 gross is blocked (CN-SH01)', () => {
@@ -1432,7 +1498,7 @@ test('Kunming — a joiner and a leaver on the 21.75-day conversion, one unpaid 
 	assert.equal(slips.get('KM-NPL')!.gross, 20_750);
 	// Insured on the declared 21,750 (inside both years' bounds): pension 8% 1,740, medical 2% 435,
 	// unemployment 0.3% 65.25 (the recorded rate), fund 12% 2,610 each side. A first-ever fund
-	// account pays from the second month (Regulation art.16): the joiner has no fund row.
+	// account pays from the second month (Regulation art.17): the joiner has no fund row.
 	for (const key of ['KM-JOINER', 'KM-LEAVER', 'KM-NPL']) {
 		assert.deepEqual(charge(slips.get(key)!, 'PENSION'), [21_750, 1740, 3480]);
 		assert.deepEqual(charge(slips.get(key)!, 'MEDICAL'), [21_750, 435, 1522.5]);
@@ -1455,6 +1521,40 @@ test('Kunming — a joiner and a leaver on the 21.75-day conversion, one unpaid 
 	assert.equal(charge(slips.get('KM-BONUS')!, 'IIT')[1], 616.2);
 	assert.equal(charge(slips.get('KM-YEB')!, 'IIT_BONUS')[1], 1080);
 	assert.equal(charge(slips.get('KM-YEB')!, 'IIT')[1], 316.2);
+});
+
+test('Kunming — a non-resident’s multi-month bonus: ÷ 6 on the monthly table, × 6, apart from the wage, once a year (MOF/STA 2019 No.35 item 3(2); CN-KM-A1)', () => {
+	const run = (period: string, code: string, prior = false) =>
+		buildStatutory(
+			{
+				code: KM,
+				period,
+				region: 'CATEGORY_I',
+				companyFacts: { ...KM_2026_FACTS, injury_rate: 0.4, housing_fund_rate: 5 },
+				people: [
+					person('KM-NR-BONUS', 30_000, { citizenship: 'FOREIGNER', tax_residency: 'NON_RESIDENT' })
+				]
+			},
+			(world) => {
+				if (prior)
+					priorSlips(world, 'KM-NR-BONUS', [
+						{ period: '2026-01', rows: { IIT_BONUS: [60_000, 4740], IIT: [30_000, 3590] } }
+					]);
+				adhoc(world, 'KM-NR-BONUS', code, 60_000, `${period}-20`, KM);
+			}
+		).slips.get('KM-NR-BONUS')!;
+	// 60,000 ÷ 6 = 10,000 → 10% less 210 = 790; × 6 = 4,740. The wage alone: 30,000 − 5,000 = 25,000
+	// on the monthly table → 990 + 13,000 × 20% = 3,590. Total 8,330, on every 2025–2026 version.
+	for (const period of ['2025-12', '2026-01', '2026-09']) {
+		const slip = run(period, 'ANNUAL_BONUS_SEPARATE');
+		assert.deepEqual(charge(slip, 'IIT_BONUS'), [60_000, 4740, 0], period);
+		assert.deepEqual(charge(slip, 'IIT'), [30_000, 3590, 0], period);
+	}
+	// A bonus not for several months is wages of the month: 90,000 − 5,000 = 85,000 → 45% − 15,160 =
+	// 23,090 (STA 2018 No.61 art.9).
+	assert.deepEqual(charge(run('2026-01', 'BONUS'), 'IIT'), [90_000, 23_090, 0]);
+	// Once per non-resident per calendar year.
+	assert.throws(() => run('2026-02', 'ANNUAL_BONUS_SEPARATE', true), /once per tax year/);
 });
 
 test('Kunming — overtime at 150% / 200% on the 21.75-day hour (CN-N01, N02, KM-WP08)', () => {
@@ -1656,6 +1756,24 @@ test('Shanghai — 经济补偿: a month a year, a half year rounds up, under si
 			ground: 'ART_36_EMPLOYER',
 			average: 12_434
 		},
+		// 2023-06-16: 3 years and 15 days (16 June 2026 – 30 June). The 15 days are 不满六个月 →
+		// half a month: 3.5 × 22,000 = 77,000 (register CN-N41). Art.87 doubles it: 154,000.
+		{
+			key: 'SH-SEV-3Y15D',
+			wage: 22_000,
+			hire: '2023-06-16',
+			exit: '2026-06-30',
+			ground: 'ART_41',
+			average: 12_434
+		},
+		{
+			key: 'SH-SEV-3Y15D-87',
+			wage: 22_000,
+			hire: '2023-06-16',
+			exit: '2026-06-30',
+			ground: 'ART_87',
+			average: 12_434
+		},
 		// 2026-02-01: 5 months → half a month, 11,000 (the average over the months employed).
 		{
 			key: 'SH-SEV-5M',
@@ -1724,6 +1842,8 @@ test('Shanghai — 经济补偿: a month a year, a half year rounds up, under si
 	assert.equal(severancePaid(slips.get('SH-SEV-RED')), 154_000);
 	assert.equal(severancePaid(slips.get('SH-SEV-5Y5M')), 121_000);
 	assert.equal(severancePaid(slips.get('SH-SEV-5M')), 11_000);
+	assert.equal(severancePaid(slips.get('SH-SEV-3Y15D')), 77_000);
+	assert.equal(severancePaid(slips.get('SH-SEV-3Y15D-87')), 154_000);
 	assert.equal(severancePaid(slips.get('SH-SEV-40')), 176_000);
 	assert.equal(severancePaid(slips.get('SH-SEV-40N')), 154_000);
 	assert.equal(severancePaid(slips.get('SH-SEV-87')), 308_000);
@@ -1826,6 +1946,56 @@ test('Kunming — 经济补偿 on the national formula, the Yunnan minimum-wage 
 	assert.equal(severancePaid(slips.get('KM-SEV-HIGH')), 430_521.88);
 	assert.deepEqual(charge(slips.get('KM-SEV-HIGH')!, 'IIT_SEVERANCE'), [430_521.88, 1_480, 0]);
 	assert.deepEqual(charge(slips.get('KM-SEV-RED')!, 'IIT_SEVERANCE'), [40_000, 0, 0]);
+});
+
+test('Both cities — 经济补偿 for a leaver hired in the exit month: the one month worked at the wage due (CN-SH-A2)', () => {
+	// LCL art.47: under six months is half a month; 工作不满12个月的，按照实际工作的月数计算平均工资.
+	// Regulation art.27: the wage due (应得工资). Hired 11 June, out 30 June 2026: no earlier month,
+	// so the average is the contract month, 22,000 (register CN-SH-A2): 0.5 × 22,000 = 11,000.
+	// Art.40 without notice adds art.20's previous month, none here, so the contract month too:
+	// 11,000 + 22,000 = 33,000.
+	const june = severance(SH, '2026-06', 'SHANGHAI', SH_2026_FACTS, [
+		{
+			key: 'SH-SEV-NEW-CLOSE',
+			wage: 22_000,
+			hire: '2026-06-11',
+			exit: '2026-06-30',
+			ground: 'ART_44_4_5',
+			average: 12_434
+		},
+		{
+			key: 'SH-SEV-NEW-RED',
+			wage: 22_000,
+			hire: '2026-06-11',
+			exit: '2026-06-30',
+			ground: 'ART_41',
+			average: 12_434
+		},
+		{
+			key: 'SH-SEV-NEW-40',
+			wage: 22_000,
+			hire: '2026-06-11',
+			exit: '2026-06-30',
+			ground: 'ART_40',
+			notice: 0,
+			average: 12_434
+		}
+	]);
+	assert.equal(severancePaid(june.slips.get('SH-SEV-NEW-CLOSE')), 11_000);
+	assert.equal(severancePaid(june.slips.get('SH-SEV-NEW-RED')), 11_000);
+	assert.equal(severancePaid(june.slips.get('SH-SEV-NEW-40')), 33_000);
+	// Kunming: hired 11 September, out 30 September 2026 at 10,000: 0.5 × 10,000 = 5,000.
+	const september = severance(KM, '2026-09', 'CATEGORY_I', KM_2026_FACTS, [
+		{
+			key: 'KM-SEV-NEW',
+			wage: 10_000,
+			hire: '2026-09-11',
+			exit: '2026-09-30',
+			ground: 'ART_41',
+			average: 10_847.83
+		}
+	]);
+	assert.equal(severancePaid(september.slips.get('KM-SEV-NEW')), 5_000);
 });
 
 test('Shanghai — 经济补偿 in the first sealed version (December 2025): six whole years (CN-N41)', () => {

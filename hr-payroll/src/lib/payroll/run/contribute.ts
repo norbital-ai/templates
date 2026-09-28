@@ -207,6 +207,8 @@ type SchemeAssessment = {
 		readonly start: string;
 		readonly end: string;
 		readonly months_employed: number;
+		/** The payments due in the tax year at this cadence (P.96/2543 cl.1(1)). */
+		readonly payments: number;
 	};
 	/** How far this payslip projects: the payslips left in the year, and the size of the year after it. */
 	readonly projection: PayProjection;
@@ -234,6 +236,8 @@ type Produced = {
 	readonly employee: number;
 	/** The contribution on ordinary remuneration, before any additional payment. */
 	readonly ordinaryEmployee?: number | undefined;
+	/** A month-assessed scheme at a finer cadence: the employee share on this instalment scaled to the month. */
+	readonly monthEstimate?: number | undefined;
 	readonly employer: number;
 };
 
@@ -283,8 +287,14 @@ function reliefReads(options: {
 				0,
 				Math.min(row.employee_share_annual_cap, row.employee_share_annual_cap - relievable)
 			);
+			// LHDN MTD 2026 K2 is the per-month balance at two decimals, later figures omitted (E(1)),
+			// so a full-year projection totals 3,999.93, not the 4,000 cap.
 			if (future > 0)
-				relievable += Math.min(Math.max(0, ordinaryEmployee), remainingCap / future) * future;
+				relievable +=
+					Math.min(
+						Math.max(0, ordinaryEmployee),
+						roundMoney(remainingCap / future, 'TRUNCATE_CENT')
+					) * future;
 		}
 		const poolKey = row.shared_cap_group ?? code;
 		const pool = pools.get(poolKey) ?? {
@@ -712,6 +722,7 @@ function producedObject(
 			// VN art.7) relieves the contribution deducted from this pay, and the annual read above
 			// would relieve January's SSS again in February and every month after.
 			employee_this_period: Math.max(0, result.employee),
+			employee_month_estimate: result.monthEstimate ?? Math.max(0, result.employee),
 			employer: result.employer
 		};
 	}
@@ -1060,6 +1071,7 @@ function monthlyAssessment(input: SchemeAssessment): SchemeAssessment {
 				: {
 						...input.person,
 						period: {
+							...input.person.period,
 							working_days: input.monthlyContributionDays.working,
 							unpaid_days: input.monthlyContributionDays.unpaid,
 							unpaid_full_days: input.monthlyContributionDays.fullyUnpaid,
@@ -1237,6 +1249,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 						expression: ordinaryOn
 					}).base;
 		let ordinaryEmployee: number | undefined;
+		let monthEstimate: number | undefined;
 		const warnings = new Set<string>();
 		// Set from the person once the context exists; a charge before that is an unregistered zero.
 		let remittanceRounding: ContributionCharge['remittanceRounding'] =
@@ -1255,7 +1268,8 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				base,
 				employee: employee - directed,
 				employer,
-				ordinaryEmployee
+				ordinaryEmployee,
+				monthEstimate
 			});
 			if (!monthlyAssessed) {
 				const prior = input.monthPrior?.charged.get(code);
@@ -1433,6 +1447,39 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			continue;
 		}
 		context = selectedRuleContext(rule, context, schemeEngine, code, warnings);
+		// What a per-payment withholding annualises: the month's charge were every instalment this
+		// one (TH P.96/2543 cl.1(2)), never the month-to-date share this instalment happened to take.
+		if (monthlyAssessed) {
+			const scaled = {
+				...context,
+				base: assessedBase({
+					input: schemeInput,
+					contribution,
+					accumulation: scaleAccumulation(
+						input.accumulation,
+						input.period.monthFactor ?? input.period.instalments
+					),
+					produced: schemeProduced,
+					reads: reliefs,
+					ordinaryReads: ordinaryReliefs
+				}).base
+			};
+			const estimateRule = selectRule(contribution.row.rules, scaled, schemeEngine);
+			monthEstimate =
+				estimateRule == null
+					? 0
+					: Math.max(
+							0,
+							cents(
+								evaluateNumber(
+									schemeEngine,
+									estimateRule.employee,
+									selectedRuleContext(estimateRule, scaled, schemeEngine, code, new Set())
+								),
+								input.currency
+							)
+						);
+		}
 		if (contribution.row.project_relief_annually && ordinary != null) {
 			const normalContext = { ...context, base: context.ordinary };
 			requireSchemeFacts(contribution, status, normalContext, schemeEngine);

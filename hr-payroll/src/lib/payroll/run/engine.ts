@@ -37,6 +37,7 @@ import { isFinalPayslip, loanShortfallIssues } from '../../../lib/payroll/loan.j
 import {
 	finalPayIssues,
 	minimumWageIssues,
+	raiseToMinimumWage,
 	windowMinimumWage
 } from '../../../lib/payroll/contribution.js';
 import {
@@ -125,11 +126,16 @@ export function gatherPayrollRun(options: {
  * Every refusal in here happens before anything is written, because there is nothing to write with.
  */
 export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
-	const { configuration, gathered, window, period } = prepared;
+	const { configuration, window, period } = prepared;
 
 	// 2 — VALIDATE
 	const issues: RunIssue[] = validateConfiguration(configuration);
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
+	// A floor that substitutes itself for the agreed wage (TW 最低工資法 §5) re-rates the terms
+	// before anything is measured, so pay, proration and every rate derived from it read the floor.
+	const raised = raiseToMinimumWage(configuration, prepared.gathered.bundles);
+	const gathered: GatheredRun = { ...prepared.gathered, bundles: raised.bundles };
+	issues.push(...raised.issues);
 
 	// A cadence the company has written no calendar for stops the run here, before a single
 	// employment is measured, so the operator reads the issue that names them rather than an
@@ -281,7 +287,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 				if (row.remittance_rounding !== 'FLOOR_MAJOR_UNIT') return [];
 				const currency = configuration.jurisdiction.payroll.currency;
 				// Each part of the month apart: the charges the scheme rounds (SG SDL for local
-				// employees, paid with CPF) floored, the rest remitted as they are (SWDA SDL FAQ F.7).
+				// employees, paid with CPF) floored, the rest remitted as they are (SSG SDL NOA 2023 FAQ F.7).
 				const unroundedPrior = gathered.companyMonthPrior?.unrounded.get(row.code) ?? 0;
 				const prior = {
 					FLOOR_MAJOR_UNIT:

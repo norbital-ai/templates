@@ -1,5 +1,5 @@
 <script lang="ts">
-	/** One allowance class: the shared catalogue form, plus its authority and whether an unpaid day comes off it. */
+	/** One allowance class: the shared catalogue form, plus its authority, whether an unpaid day comes off it and whether the law owes it uncontracted. */
 	import { bolt } from '$bolt';
 	import { Field } from '@norbital-ai/ui';
 	import type { RecordView } from '@norbital-ai/ui';
@@ -17,6 +17,7 @@
 				label={bolt.t('component.npl_prorates')}
 				help={bolt.t('component.npl_prorates_hint')}
 			/>
+			<Field name="owed" label={bolt.t('component.owed')} help={bolt.t('component.owed_hint')} />
 		{/if}
 	{/snippet}
 </CatalogueForm>

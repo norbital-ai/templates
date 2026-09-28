@@ -22,7 +22,7 @@
  *   ch.2 §D (regular holiday: 100% unworked, 200% worked), ch.3 §C (special day: no work no pay;
  *   worked 130%), ch.4 §D table ("equivalent pay"), ch.15 (retirement: daily rate × 22.5 days
  *   per year, a fraction of six months a year).
- *   https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf
+ *   https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf
  * - RA 11210 s.5 with BIR RMC 105-2019: the SSS maternity benefit and the employer's salary
  *   differential are exempt from income tax and withholding on compensation.
  */

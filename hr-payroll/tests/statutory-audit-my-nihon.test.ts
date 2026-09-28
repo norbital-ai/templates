@@ -4,8 +4,8 @@
  *
  * Every figure below is derived by hand from the instrument named beside it. Nothing here was
  * read off the engine. Sources, all fetched for this audit:
- *   EA   Employment Act 1955 (Act 265) reprint, JTKSM
- *        https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20(Akta%20265).pdf
+ *   EA   Employment Act 1955 (Act 265) reprint as at 1 August 2023, AGC
+ *        https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf
  *   OTR  Employment (Limitation of Overtime Work) Regulations 1980, JTKSM (reg.2: 104 hours)
  *   KWSP mandatory-contribution page (rates, worked examples 1.1–2.4), Wayback 2026-08-10
  *        https://web.archive.org/web/20260810072920id_/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution
@@ -235,7 +235,8 @@ test('MY-nihon — a weekday’s overtime is hours × round(basic ÷ 195) × 1.5
 test('MY-nihon — every planned hour at its column multiple: 1.5 off day, 2.0 rest day, 2.0 then 3.0 holiday', () => {
 	// The bands alone, on the planned hours a day carries (`overtime_hours`): the customer's sheet
 	// pays an off day's hours at 1.5, every rest-day hour at 2.0, and a holiday's normal hours at 2.0
-	// with the hours beyond at 3.0 — no day-wage awards.
+	// with the hours beyond at 3.0. With no contract terms the Act's day awards floor them at
+	// nothing; `statutory-golden-my` proves the floor.
 	const version = settingsVersions('MY-nihon')[0]!;
 	const person = personContext({
 		employee: null,

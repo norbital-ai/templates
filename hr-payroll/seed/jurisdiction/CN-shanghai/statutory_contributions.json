@@ -172,7 +172,7 @@
 				"scope": "EMPLOYMENT",
 				"default_value": false,
 				"label": "First-ever fund worker",
-				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.16)."
+				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.17)."
 			},
 			{
 				"key": "voluntary_agreement",
@@ -477,7 +477,7 @@
 				"scope": "EMPLOYMENT",
 				"default_value": false,
 				"label": "First-ever fund worker",
-				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.16)."
+				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.17)."
 			},
 			{
 				"key": "voluntary_agreement",
@@ -782,7 +782,7 @@
 				"scope": "EMPLOYMENT",
 				"default_value": false,
 				"label": "First-ever fund worker",
-				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.16)."
+				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.17)."
 			},
 			{
 				"key": "voluntary_agreement",
@@ -1087,7 +1087,7 @@
 				"scope": "EMPLOYMENT",
 				"default_value": false,
 				"label": "First-ever fund worker",
-				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.16)."
+				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.17)."
 			},
 			{
 				"key": "voluntary_agreement",

@@ -626,6 +626,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 							? {
 									small_establishment: false,
 									retirement_exempt_establishment: false,
+									// The seam goldens price wages below the floor, which refuses a run unless the
+									// board has exempted the establishment (RA 6727 s.4(c)); a floor golden sets false.
+									minimum_wage_exemption_approved: true,
 									...options.companyFacts
 								}
 							: code === 'SG'
@@ -881,7 +884,7 @@ export type BuiltPayslip = ReturnType<typeof buildPayrollRun>['payslip_payroll_r
  * The resolved schedule is the engine's own (`prepareWorkContext`), so the boundary is the day the
  * run will price — shift, holiday and pattern included — and never a fixture's idea of a normal day.
  */
-function keyClockOverruns(prepared: PreparedRun): void {
+function keyClockOverruns(prepared: PreparedRun, code: string): void {
 	for (const bundle of prepared.gathered.bundles) {
 		const punched = bundle.workDays.filter((entry) => entry.worked_intervals != null);
 		if (punched.length === 0) continue;
@@ -905,7 +908,11 @@ function keyClockOverruns(prepared: PreparedRun): void {
 			const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate);
 			const observed = dailyWorkedHours(clocked, day, offset);
 			// A rest, off or holiday day plans every worked hour, less a statutory break the day owed
-			// and did not take where the statute says it is not work (ID ps.79(2)(a)).
+			// and did not take where the statute says it is not work (ID ps.79(2)(a)). Not in Taiwan:
+			// 勞基法 §24(2) pays every hour worked on a 休息日, and a §35 break owed and not taken is a
+			// breach the run reports (`restBreak`), not unpaid time; production deducts nothing (TW-D3).
+			// ponytail: lineage-gated; the ID/PH/VN goldens still price the deduction production never
+			// makes — drop the whole block once those lineages are re-verified.
 			const night = configuration.nightPremium;
 			const measuredNight =
 				night == null ? null : nightWindowHours(clocked, night, day.shift, offset);
@@ -918,7 +925,7 @@ function keyClockOverruns(prepared: PreparedRun): void {
 				person: work.subject
 			});
 			const unpaid =
-				shortfall.rule?.counts_as_worked_time === false
+				code !== 'TW' && shortfall.rule?.counts_as_worked_time === false
 					? (shortfall.shortfallMinutes ?? 0) / 60
 					: 0;
 			entry.approved_overtime_hours = roundMinute(
@@ -982,7 +989,7 @@ export function buildStatutory(
 		companyId: COMPANY_ID,
 		period: options.period
 	});
-	keyClockOverruns(prepared);
+	keyClockOverruns(prepared, options.code);
 	recordPriced(options.code, prepared);
 	const built = buildPayrollRun(prepared);
 	const numbers = new Map(
@@ -1026,7 +1033,7 @@ export function assessStatutoryUnvalidated(
 		companyId: COMPANY_ID,
 		period: options.period
 	});
-	keyClockOverruns(prepared);
+	keyClockOverruns(prepared, options.code);
 	recordPriced(options.code, prepared);
 	const { measuredContracts, chargesByEmployment, companyCharges } = calculateFamilyAssessments({
 		configuration: prepared.configuration,

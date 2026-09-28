@@ -34,6 +34,7 @@ import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
 import { observedHolidays } from '../src/lib/scheduling/work-limits.ts';
 import {
 	adhocCatalogue,
+	contributionSchemes,
 	allowanceCatalogue,
 	leaveCatalogue,
 	rowIn,
@@ -234,6 +235,54 @@ test('Philippines — the rice subsidy is de minimis and outside withholding (RR
 		// December is the year-end rung (RR 11-2018 s.16): the annual table on one month's income
 		// owes nothing, so only the January period reads the monthly column.
 		if (period === '2026-01') expectStatutory(book, 'OPSPH003', 'WTAX', 1667.55, 0);
+	}
+});
+
+test('Philippines — RR 29-2025’s ₱2,500 rice ceiling, in the formula and its authority (PH-S6)', () => {
+	// RR 29-2025 s.2.78.1(A)(3)(d): rice subsidy of ₱2,500 a month, from 6 January 2026. February
+	// 2026, OPSPH003: ₱32,000 basic, ₱2,700 transport, ₱2,400 rice. The rice sits under ₱2,500, so
+	// the WTAX base is 32,000 + 2,700 = 34,700 (₱2,000 would tax 400 more: 35,100). Less SSS 1,000,
+	// MPF 750, PhilHealth 800, Pag-IBIG 200: 31,950; 15% × (31,950 − 20,833) = 1,667.55.
+	// SSS reads 37,100, capped at MSC 35,000.
+	const period = '2026-02';
+	const settings = settingsIdOn('PH', `${period}-01`);
+	const book = assessStatutory(
+		{ code: 'PH', period, people: [{ key: 'OPSPH003', wage: 32_000 }] },
+		(world) => {
+			const employment = world.employments[0]!;
+			for (const [index, [code, amount]] of (
+				[
+					['meal', 2400],
+					['transport', 2700]
+				] as const
+			).entries())
+				assignAllowance(world, {
+					id: `d3100000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+					employment_id: employment.id,
+					catalogue_id: rowIn(allowanceCatalogue('PH'), settings, code),
+					amount,
+					effective_from: `${period}-01`,
+					effective_to: null,
+					reason: '',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+		}
+	);
+	expectStatutoryBase(book, 'OPSPH003', 'SSS', 37_100);
+	expectStatutory(book, 'OPSPH003', 'SSS', 1000, 2000);
+	expectStatutoryBase(book, 'OPSPH003', 'WTAX', 34_700);
+	expectStatutory(book, 'OPSPH003', 'WTAX', 1667.55, 0);
+	// Every version's WTAX authority names the ceiling its formula reads, and no other.
+	const starts = new Map(settingsVersions('PH').map((v) => [v.id, v.effective_range.start]));
+	for (const scheme of contributionSchemes('PH').filter((row) => row.code === 'WTAX')) {
+		const text = JSON.stringify(scheme.assessed_on);
+		const ceiling = /monthly_excess\('WTAX\.RICE', (\d+)\.0\)/.exec(text)?.[1];
+		const expected = String(starts.get(scheme.settings_id)) >= '2026-01-06' ? '2500' : '2000';
+		assert.equal(ceiling, expected, `${scheme.settings_id} formula`);
+		const stale = expected === '2500' ? '₱2,000 a month' : '₱2,500 a month';
+		assert.ok(!scheme.authority.includes(`de minimis to ${stale}`), `${scheme.settings_id} text`);
 	}
 });
 
@@ -570,6 +619,47 @@ test('Philippines — NCR-DW-06 holds a kasambahay to ₱7,800 from 7 February 2
 	assert.match(
 		february[0]!,
 		/DW-7500 is contracted at 7500 a month, below the NCR minimum wage of 7800/
+	);
+});
+
+test('Philippines — NCR-28’s ₱755 is mandatory: an unexempted contract below the five-day floor of 16,421.25 refuses the run', () => {
+	// Wage Order No. NCR-28 s.2 (₱755 non-agriculture, effective 26 September 2026) s.4 (all minimum
+	// wage earners in the private sector) s.6 (non-payment under RA 6727 s.12); only an exemption
+	// the board approves lowers it (RA 6727 s.4(c)). A five-day worker whose rest days are unpaid is
+	// held to 755 × 261 ÷ 12 = 16,421.25 a month (DOLE Handbook ch.2), not the 313-day 19,692.92.
+	const run = (wage: number, exempt = false) =>
+		buildStatutory({
+			code: 'PH',
+			period: '2026-11',
+			region: 'NCR',
+			companyFacts: { minimum_wage_exemption_approved: exempt },
+			people: [{ key: 'J', wage, hire_date: '2026-11-17' }]
+		});
+	assert.throws(
+		() => run(7_777.77),
+		/MINIMUM_WAGE_BELOW: J is contracted at 7777\.77 a month, below the NCR minimum wage of 16421\.25 \(19692\.92 restated on this person's factor\)/
+	);
+	// A centavo under the floor still refuses; the floor itself does not.
+	assert.throws(() => run(16_421.24), /MINIMUM_WAGE_BELOW: J .*16421\.25/);
+	// Hired Tuesday 17 November: 10 working days (17–20, 23–27, 30) of 21.75 —
+	// 16,421.25 × 10 ÷ 21.75 = 755 × 10 = 7,550.00.
+	const floor = run(16_421.25);
+	assert.deepEqual(
+		floor.warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW')),
+		[]
+	);
+	assert.equal(floor.slips.get('J')?.gross, 7_550);
+	// An approved exemption pays the contract (7,777.77 × 10 ÷ 21.75 = 3,575.99) and warns.
+	const exempted = run(7_777.77, true);
+	assert.equal(exempted.slips.get('J')?.gross, 3_575.99);
+	assert.match(
+		exempted.warnings.find((line) => line.startsWith('MINIMUM_WAGE_BELOW')) ?? '',
+		/J is contracted at 7777\.77 a month, below the NCR minimum wage of 16421\.25/
+	);
+	// 20,000 is below the six-day 19,692.92 but above this person's 16,421.25: no warning.
+	assert.deepEqual(
+		run(20_000).warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW')),
+		[]
 	);
 });
 
@@ -1310,7 +1400,9 @@ test('Philippines — a minimum-wage earner’s overtime and night differential 
 	// 22 paid days, 19 to the 25th and 3 from the 26th (28–30), so ₱16,000 × 3 ÷ 22 = ₱2,181.82 is
 	// exempt and ₱16,000 × 19 ÷ 22 = ₱13,818.18 taxed. October is exempt whole. This golden once
 	// said September was exempt (NCR-28 read back to the 1st, audit PH §5G), then taxed it whole
-	// against the day-weighted floor (15,333.75); both were wrong.
+	// against the day-weighted floor (15,333.75); both were wrong. The NWPC matrix as of 28 September
+	// 2026 (PH-S1) also lists NCR-28 effective 26 September; its withdrawn 11 September predecessor
+	// said the 21st, which would have taxed only 14 of the 22 days: 16,000 × 14 ÷ 22 = 10,181.82.
 	assert.deepEqual(
 		settingsVersions('PH')
 			.filter((version) => String(version.effective_range.start).slice(0, 10) >= '2026-04-01')
@@ -2576,4 +2668,218 @@ test('Philippines — the 13th month: a commission is outside the basic, piece-r
 	assert.deepEqual(thirteenth(run('TASK_BASIS')), []);
 	// The commission itself is paid whatever the category.
 	assert.ok(run('TASK_BASIS').adjustments.some((row) => row.component_code === 'COMMISSION'));
+});
+
+test('Philippines — a settlement run after the exit month charges no PhilHealth or Pag-IBIG: no employment, no monthly basic, no fund salary (RA 11223 s.10; RA 9679 s.7)', () => {
+	// PhilHealth is a premium on the monthly basic salary of an employed member (RA 11223 s.10;
+	// Advisory 2025-0002 ¶1); Pag-IBIG 2% of an employee's monthly fund salary (RA 9679 s.7; HDMF
+	// Circular 460 pp.1-2). A month after the last day has neither: separation pay and the 13th
+	// month are not basic salary. Redundancy on 31 October 2026 at ₱35,000, hired 1 July 2023:
+	// 3 years 4 months, the fraction under six months dropped (art.298: one month a year) =
+	// 3 × 35,000 = 105,000, settled in November (event 31 October, after the 20th cut-off).
+	// ₱35,000 a month as the table charges it: SSS MSC 35,000 → Regular SS 20,000 at 5% / 10% =
+	// 1,000 / 2,000, MPF 15,000 → 750 / 1,500, EC ₱30; PHIC 5% × 35,000 = 1,750 → 875 each; HDMF
+	// 200; WTAX 35,000 − 2,825 = 32,175 → 15% × (32,175 − 20,833) = 1,701.30.
+	const PAID_35000 = [
+		['WTAX', 1701.3, 0],
+		['SSS', 1000, 2000],
+		['SSS_MPF', 750, 1500],
+		['SSS_EC', 0, 30],
+		['PHIC', 875, 875],
+		['HDMF', 200, 200]
+	] as const;
+	const months = (through: number) =>
+		Array.from({ length: through }, (_, index) => `2026-${String(index + 1).padStart(2, '0')}`);
+	const { slips } = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-11',
+			people: [
+				{
+					key: 'PH-RED',
+					wage: 35_000,
+					hire_date: '2023-07-01',
+					exit_date: '2026-10-31',
+					exit_reason: 'REDUNDANCY'
+				}
+			]
+		},
+		(world) => {
+			world.employments[0]!.exit_facts = { termination_cause: 'REDUNDANCY' };
+			paidMonths(world, 'PH-RED', months(10), 35_000, PAID_35000);
+			adhoc(world, 40, 'SEPARATION_PAY', '2026-10-31', 0);
+		}
+	);
+	const slip = slips.get('PH-RED')!;
+	assert.deepEqual(slip.base, []);
+	assert.equal(
+		slip.adjustments.find((row) => row.component_code === 'SEPARATION_PAY')!.amount,
+		105_000
+	);
+	const codes = slip.statutory.map((row) => row.scheme_code);
+	assert.ok(!codes.includes('PHIC'), 'no PhilHealth after the exit month');
+	assert.ok(!codes.includes('HDMF'), 'no Pag-IBIG after the exit month');
+	// The last payment annualises (RR 11-2018 s.2.79(B)(5)(b)); the separation pay is excluded
+	// (NIRC s.32(B)(6)(b)). 350,000 − 10 × 2,825 = 321,750 → 15% × 71,750 = 10,762.50 due against
+	// 10 × 1,701.30 = 17,013.00 withheld: 6,250.50 refunded.
+	assert.equal(slip.statutory.find((row) => row.scheme_code === 'WTAX')!.employee_amount, -6250.5);
+
+	// A 15 October resignation whose 13th month is settled in November: the same, nothing due.
+	const late13 = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-11',
+			people: [
+				{
+					key: 'PH-RES',
+					wage: 35_000,
+					hire_date: '2023-07-01',
+					exit_date: '2026-10-15',
+					exit_reason: 'RESIGNATION'
+				}
+			]
+		},
+		(world) => {
+			paidMonths(world, 'PH-RES', months(10), 35_000, PAID_35000);
+			adhoc(world, 41, 'THIRTEENTH_MONTH_PAY', '2026-10-25', 1);
+		}
+	).slips.get('PH-RES')!;
+	const lateCodes = late13.statutory.map((row) => row.scheme_code);
+	assert.ok(!lateCodes.includes('PHIC') && !lateCodes.includes('HDMF'), lateCodes.join(','));
+});
+
+// DOLE Handbook 2024 edition, ch.7 §D Conversion — the only edition on the NWPC handbook page
+// (https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/), superseding 2023:
+// https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf
+// Its illustration: 5.000 + 2/12 × 5 = 5.833 days at the ₱610.00 daily rate on the commutation
+// date = 5.833 × 610 = ₱3,558.13.
+const HANDBOOK_2024 =
+	'https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf';
+test('Philippines — every version cites the 2024 Handbook and prices its SIL illustration', () => {
+	for (const version of settingsVersions('PH')) {
+		const text = JSON.stringify(version);
+		assert.ok(!text.includes('2023_edition'), version.id);
+		assert.ok(version.sources.urls.includes(HANDBOOK_2024), version.id);
+		assert.ok(version.work_rules.encashment.authority.includes(HANDBOOK_2024), version.id);
+	}
+	const { slips } = buildStatutory(
+		{ code: 'PH', period: '2026-03', people: [{ key: 'SIL', wage: 610, pay_frequency: 'DAILY' }] },
+		(world) => {
+			world.leave_catalogue.push(
+				...leaveCatalogue('PH').map((row) => ({ ...row, approval_id: null }))
+			);
+			const catalogue = world.leave_catalogue.find(
+				(row) => row.settings_id === settingsIdOn('PH', '2026-03-01') && row.code === 'ANNUAL_LEAVE'
+			)!;
+			world.leave_entries.push({
+				id: 'f2400000-0000-4000-8000-000000000001',
+				employment_id: world.employments[0]!.id,
+				catalogue_id: catalogue.id,
+				leave_code: catalogue.code,
+				reference: 'SIL-HANDBOOK-2024',
+				from_date: '2026-01-01',
+				to_date: '2026-12-31',
+				days: 5.833,
+				encash_days: 5.833,
+				effective_on: '2026-03-01',
+				due_on: '2026-03-20',
+				charges: [],
+				allocations: [],
+				approval_id: null,
+				payslip_id: null,
+				as_adjustment_entry: false
+			} as never);
+		}
+	);
+	const line = slips
+		.get('SIL')!
+		.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT');
+	assert.equal(line?.amount, 3558.13);
+});
+
+// PH-SRC04: the pagibigfund.gov.ph Circular 275 PDF answers a reCAPTCHA page, and the HDMF scheme
+// applies Circular 460, which the issuer's host will not serve. Its readable copy is the annex to
+// DMW Advisory 37-2025 (6 scanned pages; Circular 460 on pp.2–6).
+const CIRCULAR_460_ANNEX = 'https://wcms.dmw.gov.ph/uploads/DMW_ADVISORY_37_2025_01225b9fec.pdf';
+const CIRCULAR_275_LIVE =
+	'https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf';
+
+test('Philippines — every version cites Circular 460 from the DMW annex and prices its table (PH-SRC04)', () => {
+	const schemes = readLawFile(
+		fileURLToPath(new URL('../seed/jurisdiction/PH/statutory_contributions', import.meta.url))
+	);
+	for (const version of settingsVersions('PH')) {
+		assert.ok(version.sources.urls.includes(CIRCULAR_460_ANNEX), version.id);
+		assert.ok(!version.sources.urls.includes(CIRCULAR_275_LIVE), version.id);
+		const remittance = version.obligations.find(
+			(row: { code: string }) => row.code === 'HDMF_CONTRIBUTION_REMITTANCE'
+		);
+		assert.ok(remittance.authority.includes(CIRCULAR_460_ANNEX), version.id);
+		const hdmf = schemes.find(
+			(row: { settings_id: string; code: string }) =>
+				row.settings_id === version.id && row.code === 'HDMF'
+		);
+		assert.ok(hdmf.authority.includes(CIRCULAR_460_ANNEX), version.id);
+	}
+	// Circular 460 p.1: "Over P1,500" is 2% each; p.2: the maximum fund salary is ₱10,000.
+	// ₱1,500.01 × 2% = 30.0002 → 30.00 each; ₱25,000 is held to ₱10,000 → 200 each.
+	for (const period of ['2025-12', '2026-10']) {
+		const book = assessStatutory({
+			code: 'PH',
+			period,
+			people: [
+				{ key: 'H-1500.01', wage: 1500.01 },
+				{ key: 'H-25000', wage: 25_000 }
+			]
+		});
+		expectStatutory(book, 'H-1500.01', 'HDMF', 30, 30);
+		expectStatutoryBase(book, 'H-25000', 'HDMF', 25_000);
+		expectStatutory(book, 'H-25000', 'HDMF', 200, 200);
+	}
+});
+
+// PH-S4: PA2025-0002 ¶1 names PhilHealth Circular 2020-0005 (Revision 1) as the premium schedule;
+// 2019-0009 is the one it superseded. PH-S5: PA2026-0042 is an OFW overseas-reimbursement and
+// payment-mode advisory, not an employer premium advisory, and PA2026-0001–0050 carry no CY2026
+// premium change, so PA2025-0002 with the circular stays the cited pair in every version. The circular is a 5-page scan: §V.A the
+// 2024–2025 row (₱10,000 → ₱500; ₱10,000.01–₱99,999.99 → ₱500–₱5,000; ₱100,000 → ₱5,000 at 5%),
+// §V.B "equally shared between the employee and employer", §V.C the floor and ceiling.
+const PC_2020_0005 = 'https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf';
+const PA_2025_0002 = 'https://www.philhealth.gov.ph/advisories/2025/PA2025-0002.pdf';
+
+test('Philippines — every version cites PhilHealth Circular 2020-0005 Rev.1 and PA2025-0002, not PA2026-0042, and prices its schedule (PH-S4, PH-S5)', () => {
+	const schemes = readLawFile(
+		fileURLToPath(new URL('../seed/jurisdiction/PH/statutory_contributions', import.meta.url))
+	);
+	for (const version of settingsVersions('PH')) {
+		assert.ok(version.sources.urls.includes(PC_2020_0005), version.id);
+		assert.ok(version.sources.urls.includes(PA_2025_0002), version.id);
+		assert.ok(!version.sources.urls.some((url: string) => url.includes('PA2026-0042')), version.id);
+		const phic = schemes.find(
+			(row: { settings_id: string; code: string }) =>
+				row.settings_id === version.id && row.code === 'PHIC'
+		);
+		assert.ok(phic.authority.includes(PC_2020_0005), version.id);
+		assert.ok(!phic.authority.includes('2019-0009'), version.id);
+	}
+	// 5% × 8,000 floored to 10,000 = 500 → 250 / 250; 5% × 100,000 = 5,000 → 2,500 / 2,500;
+	// 5% × 150,000 capped at 100,000 = 5,000; 5% × 57,777 = 2,888.85 → 1,444.425 a side: the
+	// circular is silent on the odd centavo, so the employee half truncates (1,444.42) and the
+	// employer carries the remainder (1,444.43), the default recorded in PH-SRC01.
+	for (const period of ['2025-12', '2026-10']) {
+		const book = assessStatutory({
+			code: 'PH',
+			period,
+			people: [
+				{ key: 'P-8000', wage: 8000 },
+				{ key: 'P-100000', wage: 100_000 },
+				{ key: 'P-150000', wage: 150_000 },
+				{ key: 'P-57777', wage: 57_777 }
+			]
+		});
+		expectStatutory(book, 'P-8000', 'PHIC', 250, 250);
+		expectStatutory(book, 'P-100000', 'PHIC', 2500, 2500);
+		expectStatutory(book, 'P-150000', 'PHIC', 2500, 2500);
+		expectStatutory(book, 'P-57777', 'PHIC', 1444.42, 1444.43);
+	}
 });

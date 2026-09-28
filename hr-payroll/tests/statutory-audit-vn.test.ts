@@ -233,13 +233,15 @@ test('VN audit — the 10% flat withholding threshold is 2,000,000 in 2025 and 5
 		hire_date: hire,
 		exit_date: exit
 	});
+	// A part-timer under the 2,340,000 floor is outside SI, HI and UI and owed 21.5% of the floor,
+	// 503,100, with the wage (LC art.168(3)): the payment is the wage plus it.
 	const december = assessStatutory({
 		code: 'VN',
 		period: '2025-12',
 		region: 'I',
 		people: [
-			short('AT', 2_000_000, '2025-12-01', '2026-01-31'),
-			short('UNDER', 1_999_999, '2025-12-01', '2026-01-31')
+			short('AT', 1_496_900, '2025-12-01', '2026-01-31'),
+			short('UNDER', 1_496_899, '2025-12-01', '2026-01-31')
 		]
 	});
 	expectStatutory(december, 'AT', 'PIT', 200_000, 0);

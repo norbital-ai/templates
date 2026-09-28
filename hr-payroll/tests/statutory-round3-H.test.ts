@@ -59,20 +59,20 @@ const limitWarnings = (options: { consent: boolean; emergencySaturday: boolean }
 			// Ten weekdays 09:00–22:00 less the shift's one-hour break: 12 worked, 4 extended each —
 			// 40 extended hours, under 46 on their own, and 12 a day is inside §32(2)'s daily cap.
 			for (const day of WEEKDAYS) punch(world, TW_PERSON.key, `2026-01-${day}`, '09:00', '22:00');
-			// The 休息日 09:00–17:30: 8.5 hours of clock with no break taken; §35 owes 30 minutes that
-			// are not working time, so 8 hours worked — every one of them an §36(3) hour.
+			// The 休息日 09:00–17:30: 8.5 hours of clock with no break taken; §24(2) pays every hour and
+			// an untaken §35 break is not unpaid time (TW-D3), so 8.5 hours — every one an §36(3) hour.
 			punch(world, TW_PERSON.key, '2026-01-10', '09:00', '17:30', options.emergencySaturday);
 		}
 	).warnings.filter((warning) => warning.startsWith('OVERTIME_LIMIT_EXCEEDED'));
 
-test('Taiwan round 3 H — §36(3): 40 weekday hours + 8 休息日 hours = 48 > 46 is reported', () => {
+test('Taiwan round 3 H — §36(3): 40 weekday hours + 8.5 休息日 hours = 48.5 > 46 is reported', () => {
 	const warnings = limitWarnings({ consent: false, emergencySaturday: false });
 	assert.equal(warnings.length, 1, warnings.join('\n'));
-	// 40 + 8 = 48 against the 46-hour month; the quarter (48 ≤ 138) is inside its ceiling.
-	assert.match(warnings[0]!, /worked 48 regulated overtime hours in 2026-01, against a 46-hour/);
+	// 40 + 8.5 = 48.5 against the 46-hour month; the quarter (48.5 ≤ 138) is inside its ceiling.
+	assert.match(warnings[0]!, /worked 48\.5 regulated overtime hours in 2026-01, against a 46-hour/);
 });
 
-test('Taiwan round 3 H — §32(2) consent: the same 48 hours sit inside the 54-hour month', () => {
+test('Taiwan round 3 H — §32(2) consent: the same 48.5 hours sit inside the 54-hour month', () => {
 	assert.deepEqual(limitWarnings({ consent: true, emergencySaturday: false }), []);
 });
 

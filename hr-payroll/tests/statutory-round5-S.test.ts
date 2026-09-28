@@ -109,9 +109,12 @@ for (const period of PERIODS) {
 
 test('PH D15: both establishment-size exemptions are required entity facts in every version', () => {
 	for (const version of settingsVersions('PH')) {
-		const keys = version.facts.filter((field) => field.required).map((field) => field.key);
-		assert.deepEqual(keys, ['small_establishment', 'retirement_exempt_establishment']);
-		assert.ok(version.facts.every((field) => field.default_value === undefined));
+		const required = version.facts.filter((field) => field.required);
+		assert.deepEqual(
+			required.map((field) => field.key),
+			['small_establishment', 'retirement_exempt_establishment']
+		);
+		assert.ok(required.every((field) => field.default_value === undefined));
 	}
 });
 

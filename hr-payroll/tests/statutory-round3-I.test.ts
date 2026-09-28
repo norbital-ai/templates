@@ -270,7 +270,7 @@ test('Taiwan round 3 I — §32(2): hours past eight on a §37 休假日 and a �
 	assert.deepEqual(month([['2026-01-01', '09:00', '18:00']]), []);
 	// The holiday worked 09:00–21:00: 11 hours, 3 past eight — 44 + 3 = 47 > 46.
 	assert.deepEqual(month([['2026-01-01', '09:00', '21:00']]), [['47', '2026-01']]);
-	// Sunday the 11th, the 例假, worked 09:00–21:00: 12 hours of clock with no break taken, §35's
-	// thirty minutes not working time — 11.5 hours, 3.5 past eight: 44 + 3.5 = 47.5 > 46.
-	assert.deepEqual(month([['2026-01-11', '09:00', '21:00']]), [['47.5', '2026-01']]);
+	// Sunday the 11th, the 例假, worked 09:00–21:00: 12 hours of clock with no break taken, none
+	// deducted (TW-D3) — 4 past eight: 44 + 4 = 48 > 46.
+	assert.deepEqual(month([['2026-01-11', '09:00', '21:00']]), [['48', '2026-01']]);
 });

@@ -76,6 +76,8 @@ export type FamilyPayItem = {
 	 * deduction's wage (SG's travel, food and housing allowances; MY's travelling allowance).
 	 */
 	readonly npl_prorates?: boolean | null | undefined;
+	/** An allowance class priced for every eligible employment, listed on the contract or not. */
+	readonly owed?: boolean | null | undefined;
 };
 
 import type { InLieuSlice } from '../datatypes/payroll_trace.js';

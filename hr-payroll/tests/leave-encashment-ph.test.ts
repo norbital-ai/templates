@@ -5,7 +5,7 @@ import { buildStatutory, leaveCatalogue } from './fixtures/statutory-world.ts';
 // DOLE Handbook, Service Incentive Leave, Conversion: use the salary rate at
 // conversion, including pro-rata leave. A daily contract already states that rate;
 // an hourly contract needs the reference pattern's normal hours for one workday.
-// https://nwpc.dole.gov.ph/wp-content/uploads/2023/08/2023-07-25-Handbook-on-Workers-Statutory-Monetary-Benefits-2023_edition.pdf
+// https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf
 for (const period of ['2025-12', '2026-01', '2026-04', '2026-10']) {
 	for (const frequency of ['DAILY', 'HOURLY'] as const) {
 		test(`PH ${period}: ${frequency} SIL conversion pays 1.5 days at the conversion-date wage`, () => {

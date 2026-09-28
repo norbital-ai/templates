@@ -102,7 +102,10 @@ import * as Predicate from 'effect/Predicate';
 /** Work resolves its catalogue from the version's rules. */
 export function prepareWorkCatalogue(
 	jurisdiction: Configuration['jurisdiction']
-): Pick<Configuration, 'work' | 'holidayRestPrecedence' | 'limits' | 'breaks' | 'nightPremium'> {
+): Pick<
+	Configuration,
+	'work' | 'holidayRestPrecedence' | 'lastRestDayOnly' | 'limits' | 'breaks' | 'nightPremium'
+> {
 	const work: Configuration['work'] = {
 		// the custom field's check admits only `WorkRules` (`lib/datatypes/work_rules.ts`)
 		...(jurisdiction.work_rules as WorkRules),
@@ -112,6 +115,7 @@ export function prepareWorkCatalogue(
 	return {
 		work,
 		holidayRestPrecedence: work.holiday_rest_precedence,
+		lastRestDayOnly: work.last_rest_day_only === true,
 		// The hours limits payroll reports on; the rest-days limit is judged at the roster gate.
 		limits: work.limits.filter((limit) => limit.measure !== 'CONSECUTIVE_WORK_DAYS'),
 		breaks: work.breaks,
@@ -730,8 +734,36 @@ export function prepareWorkContext(
 		});
 	};
 
-	const absentDaysIn = (window: PayRange) =>
-		bundle.workDays.flatMap((day) => {
+	const workedOn = new Set(
+		bundle.workDays
+			.filter((day) => (day.worked_intervals?.length ?? 0) > 0)
+			.map((day) => requiredDateKey(day.work_date, 'work_days.work_date'))
+	);
+	const workingDayOn = (date: string) => {
+		const day = prorationScheduleIn(monthBounds(monthKey(date))).get(date);
+		return day?.shift != null && (day.dayType === 'ORDINARY' || day.dayType === 'PUBLIC_HOLIDAY');
+	};
+	/**
+	 * The unworked public holidays on a working day whose working day immediately before or after
+	 * is `date` (SG EA s.88(3)); a substituted day is a holiday row like any other.
+	 */
+	const adjacentHolidays = (date: string): string[] =>
+		[-1, 1].flatMap((step) => {
+			// ponytail: a month's walk; no roster rests longer than that between two working days.
+			for (let offset = 1; offset <= 31; offset += 1) {
+				const candidate = addDays(date, step * offset);
+				if (!workingDayOn(candidate)) continue;
+				if (!configuration.holidays.has(candidate)) return [];
+				if (!workedOn.has(candidate)) return [candidate];
+				return [];
+			}
+			return [];
+		});
+	const holidayAdjacentAbsence =
+		configuration.jurisdiction.payroll.holiday_adjacent_absence_unpaid === true;
+	const absentDaysIn = (window: PayRange) => {
+		const forfeited = new Set<string>();
+		return bundle.workDays.flatMap((day) => {
 			if (day.worked_intervals != null && day.worked_intervals.length > 0) return [];
 			const date = requiredDateKey(day.work_date, 'work_days.work_date');
 			if (date < window.start || date > window.end) return [];
@@ -739,8 +771,18 @@ export function prepareWorkContext(
 			if (uncovered <= 0) return [];
 			const scheduled = schedule.get(date);
 			if (scheduled?.shift == null || scheduled.dayType !== 'ORDINARY') return [];
-			return [{ id: day.id, date, days: uncovered }];
+			// An absence recorded as neither leave nor work had no prior consent (owner default,
+			// register SG): the holiday beside it loses its pay, once, charged to the absent day.
+			const holidays = holidayAdjacentAbsence
+				? adjacentHolidays(date).filter((holiday) => !forfeited.has(holiday))
+				: [];
+			for (const holiday of holidays) forfeited.add(holiday);
+			return [
+				{ id: day.id, date, days: uncovered },
+				...holidays.map((holiday) => ({ id: day.id, date: holiday, days: 1 }))
+			];
 		});
+	};
 	return {
 		attendance,
 		absentDaysIn,
@@ -1745,16 +1787,28 @@ function measureAbsence(options: {
 				`does not cover this employment. Broaden its eligibility or point the company at one that does.`
 		);
 	}
-	return options.days.map((day) => ({
-		input: { family: 'WORK_DAY' as const, id: day.id },
-		catalogueComponent: component,
-		bucket: settlementBucket(component.destination, component.direction),
-		label: component.code,
-		amount: cents(options.dayWage * day.days, options.currency),
-		quantity: day.days,
-		rate: cents(options.dayWage),
-		statutoryRuleKey: null
-	}));
+	// Round the running total, not each day (as Leave does): 22 days of cents(3,000 ÷ 22) are
+	// 0.08 short of the month, and s.20A(1)(c) leaves a wholly absent month at exactly nil.
+	let priced = 0;
+	return options.days
+		.toSorted((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
+		.map((day) => {
+			const previous = priced;
+			priced += options.dayWage * day.days;
+			return {
+				input: { family: 'WORK_DAY' as const, id: day.id },
+				catalogueComponent: component,
+				bucket: settlementBucket(component.destination, component.direction),
+				label: component.code,
+				amount: cents(
+					cents(priced, options.currency) - cents(previous, options.currency),
+					options.currency
+				),
+				quantity: day.days,
+				rate: cents(options.dayWage),
+				statutoryRuleKey: null
+			};
+		});
 }
 
 /**

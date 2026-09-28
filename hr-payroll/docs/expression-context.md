@@ -80,6 +80,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
 | `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
@@ -160,6 +161,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `period.working_days` | Scheduled working days of the pay month |
 | `period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
+| `period.arrears` | The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1)) |
 
 | Function | Meaning |
 | --- | --- |
@@ -222,6 +224,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
 | `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `person.employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
@@ -302,6 +305,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `person.period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
+| `person.period.arrears` | The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1)) |
 | `entry.amount` | The keyed amount; zero where the entry carries none |
 | `entry.days` | Charged days |
 | `entry.hours` | Recorded hours |
@@ -413,6 +417,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
 | `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `person.employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
@@ -493,6 +498,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `person.period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
+| `person.period.arrears` | The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1)) |
 | `date` | The day |
 | `day_type` | ORDINARY \| REST_DAY \| PUBLIC_HOLIDAY \| SPECIAL_HOLIDAY \| OFF_DAY |
 | `worked_hours` | Net worked hours |
@@ -580,6 +586,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
 | `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `person.employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
@@ -660,6 +667,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `person.period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
+| `person.period.arrears` | The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1)) |
 | `period.key` | YYYY-MM or YYYY-MM-n |
 | `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
@@ -676,6 +684,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
 | `year.earned.ABSENCE` | Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned |
+| `year.payments` | The payments due in the tax year at this cadence, from the join to the year end (monthly: months, adding declared prior-employer months as `months_employed` does; semi-monthly: halves; weekly: paydays) |
 | `scheme.code` | The scheme code |
 | `scheme.assessment_period` | PAY_PERIOD \| MONTH \| MONTH_TO_DATE |
 | `scheme.registration_status` | REGISTERED, NOT_REGISTERED or UNDECLARED when no effective statutory declaration exists |
@@ -709,6 +718,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `produced.<code>.employee` | The relievable employee share, capped and projected; for an uncapped producer it is the year to date plus this period |
 | `produced.<code>.employee_normal` | The relievable employee share for normal-pay tax: excludes current additional remuneration from projected producers, with the same prior-year-to-date contributions and annual cap |
 | `produced.<code>.employee_this_period` | The employee share charged this period alone, floored at zero — the relief a per-period withholding table subtracts |
+| `produced.<code>.employee_month_estimate` | The employee share a month-assessed producer would charge on this instalment’s wage scaled to the month (`period.month_factor`); `employee_this_period` where the month is paid at once — the monthly contribution a per-payment withholding annualises (TH P.96/2543 cl.1(2)) |
 | `produced.<code>.employer` | The employer share |
 | `produced.<code>.base` | The producer’s assessed base before instalment allocation. Company assessments read the sum of settled bases across their assessment interval. |
 | `history.<code>.periods` | Prior paid and declared opening assessment periods normalized to the current cadence; excludes this period |
@@ -812,6 +822,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
 | `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `person.employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `person.employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `person.employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
@@ -892,6 +903,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.period.working_days` | Scheduled working days of the pay month |
 | `person.period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `person.period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
+| `person.period.arrears` | The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1)) |
 | `period.key` | YYYY-MM or YYYY-MM-n |
 | `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
@@ -908,6 +920,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `year.months_employed` | The calendar months of the tax year this employment touches through the period end, the join and exit months counted whole |
 | `year.earned.<code>` | Earned under a component code this tax year: earlier PAID payslips only, plus this run’s own lines where the site prices them |
 | `year.earned.ABSENCE` | Every unpaid day this tax year, absence and no-pay leave, as a magnitude: `earned.BASIC - earned.ABSENCE` is the basic actually earned |
+| `year.payments` | The payments due in the tax year at this cadence, from the join to the year end (monthly: months, adding declared prior-employer months as `months_employed` does; semi-monthly: halves; weekly: paydays) |
 | `scheme.code` | The scheme code |
 | `scheme.assessment_period` | PAY_PERIOD \| MONTH \| MONTH_TO_DATE |
 | `scheme.registration_status` | REGISTERED, NOT_REGISTERED or UNDECLARED when no effective statutory declaration exists |
@@ -941,6 +954,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `produced.<code>.employee` | The relievable employee share, capped and projected; for an uncapped producer it is the year to date plus this period |
 | `produced.<code>.employee_normal` | The relievable employee share for normal-pay tax: excludes current additional remuneration from projected producers, with the same prior-year-to-date contributions and annual cap |
 | `produced.<code>.employee_this_period` | The employee share charged this period alone, floored at zero — the relief a per-period withholding table subtracts |
+| `produced.<code>.employee_month_estimate` | The employee share a month-assessed producer would charge on this instalment’s wage scaled to the month (`period.month_factor`); `employee_this_period` where the month is paid at once — the monthly contribution a per-payment withholding annualises (TH P.96/2543 cl.1(2)) |
 | `produced.<code>.employer` | The employer share |
 | `produced.<code>.base` | The producer’s assessed base before instalment allocation. Company assessments read the sum of settled bases across their assessment interval. |
 | `history.<code>.periods` | Prior paid and declared opening assessment periods normalized to the current cadence; excludes this period |
@@ -1024,6 +1038,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
 | `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
@@ -1104,6 +1119,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `period.working_days` | Scheduled working days of the pay month |
 | `period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
+| `period.arrears` | The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1)) |
 | `leave.month_index` | Which month of the leave the day is in, from 1 |
 | `leave.day_index` | Which calendar day of the leave, from 1 |
 | `leave.days` | The days the whole entry charges |
@@ -1174,6 +1190,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
 | `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
+| `employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
 | `employment.average_daily_wage(months, codes)` | Those wages over the calendar days of the `months` months before the rule date’s month, with the days 施行細則 §2 leaves out removed with their wages: every calendar day the named leave codes’ approved time off spans, paid or not, and — with a third list, `average_daily_wage(months, codes, reduced)` — the days those codes cut the wage (TW 勞基法 §2(4)). Refused where a month of service has no payslip; read on a pay request only |
 | `employment.average_monthly_wage(months, codes)` | That daily average times the covered months’ average days — one month’s average wage (勞動部 台(83)勞動二字第25564號: six months’ wages ÷ 6 where nothing is left out) |
@@ -1254,6 +1271,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `period.working_days` | Scheduled working days of the pay month |
 | `period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
+| `period.arrears` | The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1)) |
 | `consecutive_hours` | The longest unbroken work run in the day |
 | `overtime_hours` | Payable overtime hours: the approved hours plus the day type’s clock-derived premium |
 | `continuous_attendance` | Work that must be carried on continuously |

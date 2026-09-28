@@ -134,6 +134,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.taken(string): double', leaveTaken],
 	['map.earned_monthly_average(int): double', earnedMonthlyAverage],
 	['map.earned_monthly_average(int, list): double', earnedMonthlyAverage],
+	['map.earned_monthly_average(int, list, dyn): double', earnedMonthlyAverage],
 	['map.average_daily_wage(int, list): double', averageDailyWage],
 	['map.average_monthly_wage(int, list): double', averageMonthlyWage],
 	['map.average_daily_wage(int, list, list): double', averageDailyWage],

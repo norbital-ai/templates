@@ -10,8 +10,9 @@
  * 四捨五入, and the 分擔金額表 both bureaus publish — the figures an employer deducts and is billed —
  * are the per-scheme exact share rounded to the dollar. 勞保 and 就保 round separately, which is
  * exactly how the Bureau's combined table is built (29,500: 勞工 679 + 59 = 738, 單位 2,375 + 207 =
- * 2,582 — BLI Files/25697, 30-day row). Withholding tax discards fractional dollars under
- * 財政部財政資訊中心受託代印繳款書及相關作業要點 §5.
+ * 2,582 — BLI Files/25696, 30-day row). Withholding tax discards fractional dollars under
+ * 各級公庫代理銀行代辦機構及代收稅款機構稅款解繳作業辦法 §5 (FL051526, 修正 101-08-17: 稅捐本稅…一律收至元為止，
+ * 角以下免收).
  *
  * A part month insures at the declared grade for the enrolled days on a thirty-day month (勞保施行
  * 細則 §28-1; the scheme rules read `period.days_employed` and `period.days_in_month`), and 健保 is
@@ -117,9 +118,13 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 			period === '2025-12' ? 28590 : 29500
 		);
 		assert.equal(rows.find((row) => row.scheme_code === 'NHI_SUPPLEMENT')?.employee_amount ?? 0, 0);
+		// The 12,000 contract for a 20-hour week is below the part-time floor, so 最低工資法 §5 pays
+		// the floor: 28,590 × 20/40 = 14,295 (29,500 × 20/40 = 14,750 from 2026). The employer's
+		// supplementary premium is 2.11% of the month's salaries over the insured grade:
+		// (14,295 + 60,000 − 28,590) × 2.11% = 964.38 → 964; (14,750 + 60,000 − 29,500) × 2.11% = 954.78 → 955.
 		assert.deepEqual(companyCharges.get('NHI_SUPPLEMENT_EMPLOYER'), [
-			72000,
-			period === '2025-12' ? 916 : 897
+			period === '2025-12' ? 74_295 : 74_750,
+			period === '2025-12' ? 964 : 955
 		]);
 	});
 
@@ -274,7 +279,7 @@ test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 
 
 	// Employment insurance: 1% on the same ladder and the same 20/70/10 split.
 	// 29,500 × 1% = 295 → 59 / 206.50 → 207. Together with LI that is the 12.5% combined premium
-	// BLI publishes for grade 29,500: 738 insured / 2,582 employer (Files/25697, 30 days).
+	// BLI publishes for grade 29,500: 738 insured / 2,582 employer (Files/25696, 30 days).
 	expectStatutory(book, 'TW-28590', 'EI', 59, 207);
 	expectStatutory(book, 'TW-40000', 'EI', 80, 281); // 401 → 80.20 → 80 / 280.70 → 281 (table 1,002 / 3,509)
 	expectStatutory(book, 'TW-60000', 'EI', 92, 321); // 458 → 91.60 → 92 / 320.60 → 321 (table 1,145 / 4,008)
@@ -612,6 +617,33 @@ test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemp
 	expectStatutory(book, 'TW-60000', 'INCOME_TAX', 3000, 0);
 });
 
+test('Taiwan — withholding cuts to the 元 under 稅款解繳作業辦法 §5, the one authority every version cites', () => {
+	// 各級公庫代理銀行代辦機構及代收稅款機構稅款解繳作業辦法 §5 (修正 101-08-17): 稅捐本稅…一律收至元為止，
+	// 角以下免收 — the 角 are dropped, never rounded. 5% × 45,019 = 2,250.95 → 2,250 (not 2,251),
+	// above §13's NT$2,000, so withheld.
+	for (const row of contributionSchemes('TW').filter((row) => row.code.startsWith('INCOME_TAX'))) {
+		const cited = JSON.stringify(row);
+		assert.ok(cited.includes('FL051526'), String(row.id));
+		assert.ok(!cited.includes('代印繳款書'), String(row.id));
+	}
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		people: [
+			{
+				key: 'TW-45019',
+				wage: 45_019,
+				citizenship: 'CITIZEN',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			}
+		]
+	});
+	expectStatutory(book, 'TW-45019', 'INCOME_TAX', 2250, 0);
+});
+
 test('Taiwan — a non-resident is withheld at 18%, and is outside employment insurance', () => {
 	const book = assessStatutory({
 		code: 'TW',
@@ -683,7 +715,7 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 	expectStatutory(book, 'TW-28590', 'LI', 658, 2301);
 	// Employment insurance 1% on the same ladder and split: 285.90 → 57.18 → 57 / 200.13 → 200.
 	// BLI's 114年 combined row for 28,590 is 715 / 2,501 (still printed as a part-time grade on
-	// the 115年 table): 658 + 57 and 2,301 + 200 (Files/25697).
+	// the 115年 table): 658 + 57 and 2,301 + 200 (Files/25696).
 	expectStatutory(book, 'TW-28590', 'EI', 57, 200);
 	// Health insurance 5.17%, insured 30%, insured unit 60% × (1 + 0.56): 28,590 × 5.17% =
 	// 1,478.10 → 443.43 → 443, and 1,478.10 × 0.936 = 1,383.50 → 1,384.
@@ -901,6 +933,45 @@ test('Taiwan — one national minimum wage, 28,590 in 2025 and 29,500 from 2026 
 		['2026-01-01', { Taiwan: 29_500 }, 'employment.type != "INTERN"'],
 		['2027-01-01', { Taiwan: 29_500 }, 'employment.type != "INTERN"']
 	]);
+});
+
+test('Taiwan — a wage agreed below the minimum is paid the minimum (最低工資法 §5)', () => {
+	// §5: 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額. The wage of a monthly contract
+	// at 7,777.77 is 29,500 by law, and the part month from 17 May is 29,500 × 15/30 = 14,750.
+	// https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5
+	const { slips, warnings } = buildStatutory({
+		code: 'TW',
+		period: '2026-05',
+		riskClass: '1',
+		people: [{ key: 'TW-BELOW', wage: 7_777.77, citizenship: 'CITIZEN', hire_date: '2026-05-17' }]
+	});
+	const slip = slips.get('TW-BELOW')!;
+	assert.deepEqual(
+		slip.proration.map((row) => [
+			row.component_code,
+			row.days,
+			row.denominator,
+			row.prorated_amount
+		]),
+		[['BASIC', 15, 30, 14_750]]
+	);
+	assert.equal(slip.gross, 14_750);
+	// The insured legs were already on the 29,500 first grade, for the 14 enrolled days of a
+	// thirty-day month (勞保施行細則 §28-1: 30 − 17 + 1): LI 679 × 14/30 = 316.87 → 317 and
+	// 2,374.75 × 14/30 = 1,108.22 → 1,108; EI 59 × 14/30 = 27.53 → 28 and 206.50 × 14/30 = 96.37 → 96;
+	// pension 1,770 × 14/30 = 826; NHI is the whole month, 458 / 1,428.
+	assert.deepEqual(charge(slip, 'LI'), [29_500, 317, 1_108]);
+	assert.deepEqual(charge(slip, 'EI'), [29_500, 28, 96]);
+	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [29_500, 0, 826]);
+	assert.deepEqual(charge(slip, 'NHI'), [29_500, 458, 1_428]);
+	assert.ok(
+		warnings.some((line) =>
+			/^MINIMUM_WAGE_BELOW: TW-BELOW is contracted at 7777\.77 a month.*the run pays 29500 in place of the agreed 7777\.77/.test(
+				line
+			)
+		),
+		warnings.join('\n')
+	);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -1261,6 +1332,48 @@ test('every sealed version of `TW` is priced by a golden here', () => {
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
 	// by nothing and stays green.
 	assertEveryVersionPriced('TW');
+});
+
+test('Taiwan — every version cites the BLI grade and 分擔金額表 PDFs, not their .docx/.ods siblings', () => {
+	// BLI Files/25661 is the 115年 勞工保險投保薪資分級表 PDF (勞動保2字第1140091863號) and 25696 the
+	// 合計分擔金額表 PDF (自115年1月1日起適用), whose 30-day row for grade 29,500 prints 738 / 2,582:
+	// 勞保 29,500 × 11.5% = 3,392.50 → 678.50 → 679 / 2,374.75 → 2,375, plus 就保 295 → 59 / 206.50 → 207.
+	// 25659 (.docx) and 25697 (.ods) are the same tables as downloads.
+	for (const version of settingsVersions('TW')) {
+		const cited = JSON.stringify(version.sources);
+		assert.ok(
+			cited.includes('25661') && cited.includes('25696'),
+			String(version.effective_range.start)
+		);
+		assert.ok(!/\b(25659|25697)\b/.test(cited), String(version.effective_range.start));
+	}
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2026-02',
+		riskClass: '1',
+		people: [{ key: 'TW-29500', wage: 29_500, age: 30, citizenship: 'CITIZEN' }]
+	});
+	expectStatutory(book, 'TW-29500', 'LI', 679, 2375);
+	expectStatutory(book, 'TW-29500', 'EI', 59, 207);
+});
+
+test('Taiwan — 職災 is priced from the 行業別及費率表 (Files/24759), not the 職業工會 月負擔金額表 (25669)', () => {
+	// BLI Files/24759 is the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 公告, from 114-01-01):
+	// 編號二五 建築工程業 0.50% + 上下班 0.07% = 0.57%. An employer-insured worker on the 40,100 grade
+	// is wholly employer-borne (災保法 §19(1)): 40,100 × 0.57% = 228.57 → 229, worker 0. Files/25669
+	// is the table for §7(1) 職業工會 members, who bear 60%: its row 25 at 40,100 prints 137.
+	for (const version of settingsVersions('TW')) {
+		const urls = version.sources.urls.join(' ');
+		assert.ok(urls.includes('/Files/24759'), String(version.effective_range.start));
+		assert.ok(!urls.includes('/Files/25669'), String(version.effective_range.start));
+	}
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '25',
+		people: [{ key: 'TW-40000', wage: 40_000, citizenship: 'CITIZEN' }]
+	});
+	expectStatutory(book, 'TW-40000', 'OCC_INJURY', 0, 229);
 });
 
 test('Taiwan — a part-timer insures at the part-time grades, the worker’s voluntary pension is outside tax, and the table election withholds nothing under NT$90,501', () => {
@@ -1725,10 +1838,10 @@ test('Taiwan — a monthly worker retains the declared grade including regular o
 
 test('Taiwan — work on the 例假 earns a further day’s wage whatever the hours (勞基法 §40); the 休息日 keeps §24(2)', () => {
 	// Sunday is the REST code marked statutory (例假), Saturday the plain rest day (休息日). 60,000
-	// a month, 2,000 a day. A four-hour clock on the Sunday, in an emergency, is 3.5 hours net of
-	// the §35 break and earns one further day's wage, 2,000, not the 休息日's 4/3 and 5/3 hours
-	// (and a day off in lieu is owed, a CREDITED leave row HR raises). The same clock on the
-	// Saturday: 2 × 333.33 + 1.5 × 416.67 = 1,291.67.
+	// a month, 2,000 a day. A four-hour clock on the Sunday, in an emergency, is four hours worked
+	// (a §35 break owed and not taken is a breach, never unpaid time) and earns one further day's
+	// wage, 2,000, not the 休息日's 4/3 and 5/3 hours (and a day off in lieu is owed, a CREDITED
+	// leave row HR raises). The same clock on the Saturday: 2 × 333.33 + 2 × 416.67 = 1,500.
 	const STATUTORY_REST = 'c0000000-0000-4000-8000-0000000000e9';
 	const { slips } = buildStatutory(
 		{
@@ -1752,8 +1865,35 @@ test('Taiwan — work on the 例假 earns a further day’s wage whatever the ho
 	);
 	assert.deepEqual(workLines(slips.get('TW-LIJIA')!), [
 		['2026-01-10', THIRD, 2, 666.67],
-		['2026-01-10', TWO_THIRDS, 1.5, 625],
-		['2026-01-11', 'REST-STATUTORY-DOUBLE', 3.5, 2000]
+		['2026-01-10', TWO_THIRDS, 2, 833.33],
+		['2026-01-11', 'REST-STATUTORY-DOUBLE', 4, 2000]
+	]);
+});
+
+test('Taiwan — a 休息日 pays every hour worked; an untaken §35 break is not deducted (勞基法 §24(2), §35)', () => {
+	// 48,000 a month: 48,000 ÷ 30 ÷ 8 = 200 an hour. Two Saturday 休息日 clocks with no break. §24(2)
+	// prices the first two hours at 200 × 4/3 and every hour after at 200 × 5/3. §35 owes 30
+	// minutes after four continuous hours; a break owed and not taken is a compliance breach, and
+	// the minutes were worked, so every clocked hour is paid.
+	// 4 h: 2 × 266.67 = 533.33 + 2 × 333.33 = 666.67 → 1,200.
+	// 10 h: 533.33 + 8 × 333.33 = 2,666.67 → 3,200.
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-05',
+			riskClass: '1',
+			people: [{ key: 'TW-S8', wage: 48_000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			punch(world, 'TW-S8', '2026-05-09', '09:00', '13:00'); // Saturday 休息日: 4 h
+			punch(world, 'TW-S8', '2026-05-16', '09:00', '19:00'); // Saturday 休息日: 10 h
+		}
+	);
+	assert.deepEqual(workLines(slips.get('TW-S8')!), [
+		['2026-05-09', THIRD, 2, 533.33],
+		['2026-05-09', TWO_THIRDS, 2, 666.67],
+		['2026-05-16', THIRD, 2, 533.33],
+		['2026-05-16', TWO_THIRDS, 8, 2666.67]
 	]);
 });
 
@@ -2957,4 +3097,43 @@ test('Taiwan — 公傷病假 keeps the 原領工資 whole in a thirty- and a th
 		);
 		assert.equal(slip.gross, 36_000, period);
 	}
+});
+
+test('Taiwan — a joiner on the 31st is owed that day: 1/30 of the month, now or as next-run arrears', () => {
+	// 勞動基準法 §22(2): the day worked is paid in full. On the calendar-month cycle (cutoff 1) the
+	// 31st is 45,000 × 1/30 = 1,500, net 1,500 − LI 35 − EI 3 − NHI 710 = 752. On a cutoff-21 cycle
+	// the 31st falls after the window closed, so March pays nothing and April pays 45,000 + 1,500.
+	const run = (period: string, hire: string, cutoff: number) =>
+		buildStatutory(
+			{
+				code: 'TW',
+				period,
+				riskClass: '1',
+				people: [{ key: 'J31', wage: 45_000, citizenship: 'CITIZEN', hire_date: hire }]
+			},
+			(world) => {
+				world.companies[0]!.pay_cutoff_day = cutoff;
+			}
+		).slips.get('J31')!;
+	for (const [period, hire] of [
+		['2026-03', '2026-03-31'],
+		['2026-05', '2026-05-31']
+	] as const) {
+		const slip = run(period, hire, 1);
+		assert.deepEqual(
+			slip.proration.map((row) => [
+				row.component_code,
+				row.days,
+				row.denominator,
+				row.prorated_amount
+			]),
+			[['BASIC', 1, 30, 1500]],
+			period
+		);
+		assert.equal(slip.gross, 1500, period);
+		assert.equal(slip.net, 752, period);
+		assert.equal(slip.unfunded_contributions, 0, period);
+	}
+	assert.equal(run('2026-03', '2026-03-31', 21).gross, 0);
+	assert.equal(run('2026-04', '2026-03-31', 21).gross, 46_500);
 });

@@ -86,7 +86,8 @@ const settings = collection('jurisdiction_settings', {
 							'bands',
 							'eligibility',
 							'counts_toward',
-							'npl_prorates'
+							'npl_prorates',
+							'owed'
 						]
 					}
 				},

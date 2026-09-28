@@ -33,7 +33,9 @@ type Terms = EmploymentBundle['terms'][number];
  * One step per allowance class any terms row of the period lists. The class's bands price the
  * monthly figure from the listed amount and the person on that row (`entry.amount` is the
  * contract's figure; VN's insurance-equivalent allowance prices itself from the wage); the walk
- * then prorates it. A class the person is not eligible for prices nothing.
+ * then prorates it. A class the person is not eligible for prices nothing. A class marked
+ * `owed` (VN's insurance-equivalent allowance, LC art.168(3)) is priced for every employment its
+ * eligibility admits, listed or not: the statute owes it without an HR row.
  */
 export function prepareAllowanceSteps(
 	options: Omit<MeasureComponentOptions, 'component' | 'entry'>
@@ -67,7 +69,7 @@ export function prepareAllowanceSteps(
 			placeWage(configuration.jurisdiction.work_rules.wages?.by_region ?? {}, region) ?? 0
 	});
 	return configuration.catalogueComponents
-		.filter((component) => listed.has(component))
+		.filter((component) => listed.has(component) || component.owed === true)
 		.map((component) => ({
 			item: component,
 			calculate: () => {
@@ -97,6 +99,8 @@ export function prepareAllowanceSteps(
 					});
 				const closing = termsAt(bundle, options.contracted.end);
 				if (!isEligible(component.eligibility, subjectOn(closing))) {
+					// An owed class no contract lists is simply not owed to this person.
+					if (!listed.has(component)) return null;
 					// A class on the contract the person is not eligible for leaves no line to explain
 					// itself: the decision is reported so the operator sees it.
 					options.note({
@@ -115,8 +119,9 @@ export function prepareAllowanceSteps(
 					const row = listedAllowances(terms).find(
 						(entry) => contractAllowanceClass(configuration, entry.catalogue_id) === component
 					);
-					if (row == null) return 0;
-					const amount = row.amount;
+					// An owed class prices itself from the person when no contract row lists it.
+					if (row == null && component.owed !== true) return 0;
+					const amount = row?.amount ?? 0;
 					if (component.bands.length === 0) return amount;
 					const subject = subjectOn(terms);
 					const context = entryContext({

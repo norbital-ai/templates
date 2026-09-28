@@ -114,6 +114,7 @@ const f = customField({
 				}
 			},
 			holiday_in_no_pay_leave_unpaid: { kind: 'bool', optional: true },
+			holiday_adjacent_absence_unpaid: { kind: 'bool', optional: true },
 			special_holiday_unworked_unpaid: { kind: 'bool', optional: true },
 			regular_holiday_prior_workday: { kind: 'bool', optional: true },
 			short_day_half_hours: { kind: 'number', optional: true },

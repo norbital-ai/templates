@@ -77,7 +77,7 @@ export type PersonContext = {
 		readonly service_start: string;
 		/** Last day of work, or empty while the stint is open. */
 		readonly exit_date: string;
-		/** Whether the contract states no end: a fixed-term contract's end is its `exit_date`. */
+		/** Whether the contract states no end: a fixed-term contract's end is its `exit_date`, unless an early `exit_reason` cut it short. */
 		readonly open_ended: boolean;
 		/** Whole months of a fixed-term contract, first day to last; 0 where open-ended. */
 		readonly contract_months: number;
@@ -219,6 +219,8 @@ export type PersonContext = {
 		readonly leave_pay: Readonly<Record<string, number>>;
 		/** Dates in the assessment window with overtime or night-window hours. */
 		readonly overtime_days: number;
+		/** The deferred earlier period's wage this payslip pays as back pay — already inside BASE. */
+		readonly arrears: number;
 	};
 	/**
 	 * The employment's statutory facts by scheme code, where the caller supplied them: whether it
@@ -352,6 +354,7 @@ export type PersonInput = {
 		readonly leave_days?: Readonly<Record<string, number>> | null | undefined;
 		readonly leave_pay?: Readonly<Record<string, number>> | null | undefined;
 		readonly overtime_days?: number | null | undefined;
+		readonly arrears?: number | null | undefined;
 	} | null;
 	readonly children?:
 		| ReadonlyArray<{
@@ -457,6 +460,11 @@ export function personContext(input: PersonInput): PersonContext {
 	const day = input.asOf.slice(0, 10);
 	const served = exit !== '' && exit < day ? exit : day;
 	const through = exit !== '' && exit <= served ? addDays(exit, 1) : day;
+	// The recorded end is the contract's stated term only while nothing cut the stint short: a
+	// resignation, dismissal or other early exit ends an indefinite contract without giving it a
+	// term (Labour Code 2019 art.20(1)(a)), and the model records no other term.
+	const reason = input.employment.exit_reason ?? '';
+	const fixedTerm = exit !== '' && start !== '' && (reason === '' || reason === 'END_OF_CONTRACT');
 	const children = (input.children ?? []).filter((child) => {
 		const birth = dateKey(child.child_birthdate);
 		return (
@@ -511,10 +519,9 @@ export function personContext(input: PersonInput): PersonContext {
 			service_years: start === '' ? 0 : completedYears(start, through),
 			service_start: start,
 			exit_date: exit,
-			open_ended: exit === '',
-			contract_months:
-				exit === '' || start === '' || exit < start ? 0 : completedMonths(start, addDays(exit, 1)),
-			contract_days: exit === '' || start === '' || exit < start ? 0 : inclusiveDays(start, exit),
+			open_ended: !fixedTerm,
+			contract_months: !fixedTerm || exit < start ? 0 : completedMonths(start, addDays(exit, 1)),
+			contract_days: !fixedTerm || exit < start ? 0 : inclusiveDays(start, exit),
 			exit_reason: input.employment.exit_reason ?? '',
 			exit_facts: scalarFacts(input.employment.exit_facts),
 			exit_fact_keys:
@@ -629,7 +636,8 @@ export function personContext(input: PersonInput): PersonContext {
 			leave_full_days: input.period?.leave_full_days ?? {},
 			leave_days: input.period?.leave_days ?? {},
 			leave_pay: input.period?.leave_pay ?? {},
-			overtime_days: decodeNumber(input.period?.overtime_days ?? 0)
+			overtime_days: decodeNumber(input.period?.overtime_days ?? 0),
+			arrears: decodeNumber(input.period?.arrears ?? 0)
 		},
 		event: {
 			kind: input.event?.kind ?? '',

@@ -405,6 +405,8 @@ export default messages({
 	'component.net': '净额',
 	'component.next_month': '下个月',
 	'component.no_email_recorded': '未记录邮箱',
+	'component.owed': '法定应付',
+	'component.owed_hint': '无需合同条目，凡符合资格的雇佣均支付（越南《劳动法》第168条第3款）。',
 	'component.npl_prorates': '按无薪假扣减',
 	'component.npl_prorates_hint':
 		'无薪假是否扣减本津贴。未设置时按版本的默认处理；法律不计入扣减工资基数的类别（交通、餐食或住房津贴）选择“否”。',

@@ -293,7 +293,7 @@ test('Indonesia — the December 2025 version, whose Kesehatan floor is the 2025
 
 test('Indonesia — December is the annual reckoning against the year the TER already withheld', () => {
 	// PMK 168/2023 art.20: the last tax period reconciles. PPh 21 for the year is computed on
-	// PKP = annual gross − biaya jabatan (5%, at most 6,000,000 a year; PMK 250/PMK.03/2008) − the
+	// PKP = annual gross − biaya jabatan (5%, at most 6,000,000 a year; PMK 168/2023 art.10(2)) − the
 	// year's employee JP AND JHT (PMK 168/2023 art.10(1)(b): iuran terkait program pensiun dan hari
 	// tua paid through the employer to BPJS Ketenagakerjaan) − PTKP 54,000,000 TK/0, rounded down
 	// to the whole thousand (UU PPh art.17(4); PMK 168/2023 art.8(4)), at 5% to 60,000,000 and 15% above; December charges
@@ -1027,7 +1027,7 @@ test('Indonesia — the Kesehatan floor is on the wage per month, not on a part 
 	expectStatutory(book, 'ID-JOIN-5M', 'KESEHATAN', 31_422, 125_688);
 });
 
-test('Indonesia — biaya jabatan is capped per month of income, the join month whole (PMK 250/PMK.03/2008 art.1(1))', () => {
+test('Indonesia — biaya jabatan is capped per month of income, the join month whole (PMK 168/2023 art.10(2))', async () => {
 	// A joiner on 15 July at 20,000,000. On file: July's 17 of 31 days, 10,967,742, then four
 	// months of 20,000,000 (1,600,000 withheld each, JP 110,863 on the ceiling, JHT 2%). December's
 	// gross is 20,648,000 with the employer premiums (Kesehatan 480,000 on the 12,000,000 cap,
@@ -1090,6 +1090,20 @@ test('Indonesia — biaya jabatan is capped per month of income, the join month 
 		}
 	);
 	expectStatutory(book, 'ID-JUL15', 'PPH21', 2_586_550 - 6_400_000, 0);
+	// PMK 168/2023 art.24(a) revoked PMK 250/PMK.03/2008: every sealed PPH21 version cites art.10(2)
+	// for the cap and art.10(1)(b) for the JP/JHT deduction.
+	const { readFileSync } = await import('node:fs');
+	const versions = (
+		JSON.parse(readFileSync('seed/jurisdiction/ID/statutory_contributions.json', 'utf8')) as {
+			code: string;
+			authority: string;
+		}[]
+	).filter((scheme) => scheme.code === 'PPH21');
+	assert.equal(versions.length, 3);
+	for (const { authority } of versions) {
+		assert.match(authority, /at most 6,000,000; PMK 168\/2023 art\.10\(2\)/);
+		assert.match(authority, /employee JP and JHT \(PMK 168\/2023 art\.10\(1\)\(b\)/);
+	}
 });
 
 test('Indonesia — a foreign worker joins JKK, JKM and JHT from six months of work (PP 44/2015, PP 46/2015 art.2(2))', () => {
@@ -1273,6 +1287,48 @@ const priorSlips = (
 	}
 };
 
+test('Indonesia — a joiner after the cut-off: November is its own JP and Kesehatan month on the December slip (ID-AUD-1)', () => {
+	// Hired 25 November 2026 at 124,000,000, after the 21st cut-off: November is deferred and paid
+	// as back pay in December, 6 of 30 days = 24,800,000. Contributions are owed month by month
+	// from the first day of work (PP 46/2015 art.9(2); PP 44/2015 art.8(2); PP 45/2015 arts.28–29;
+	// Perpres 82/2018 arts.30, 32). The November slip carries November's JHT, JKK and JKM on the
+	// monthly rate (ID-161): 2% / 3.7% of 124,000,000 = 2,480,000 / 4,588,000, JKK class I 0.24% =
+	// 297,600, JKM 0.30% = 372,000. JP and Kesehatan are on the month's wage (PP 45/2015 art.29(1)
+	// "pada bulan yang bersangkutan"), so November's are priced on the 24,800,000 when it is paid,
+	// capped as its own month: JP 1% / 2% of 11,086,300 = 110,863 / 221,726; Kesehatan 1% / 4% of
+	// 12,000,000 = 120,000 / 480,000. December's own 124,000,000 adds the same capped figures:
+	// JP 221,726 / 443,452, Kesehatan 240,000 / 960,000 on the one slip.
+	const world = (period: string) => ({
+		code: 'ID' as const,
+		period,
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		people: [{ key: 'S7b', wage: 124_000_000, age: 40, hire_date: '2026-11-25' }]
+	});
+	const november = buildStatutory(world('2026-11')).slips.get('S7b')!;
+	assert.deepEqual(november.base, []);
+	const nov = charges(november);
+	assert.deepEqual(nov.JHT, [2_480_000, 4_588_000]);
+	assert.deepEqual(nov.JKK, [0, 297_600]);
+	assert.deepEqual(nov.JKM, [0, 372_000]);
+	assert.equal(nov.JP, undefined);
+	assert.equal(nov.KESEHATAN, undefined);
+	const december = buildStatutory(world('2026-12')).slips.get('S7b')!;
+	assert.deepEqual(
+		december.base.map((row) => [row.component_code, row.amount]),
+		[
+			['BASIC', 24_800_000],
+			['BASIC', 124_000_000]
+		]
+	);
+	const dec = charges(december);
+	assert.deepEqual(dec.JHT, [2_480_000, 4_588_000]);
+	assert.deepEqual(dec.JKK, [0, 297_600]);
+	assert.deepEqual(dec.JKM, [0, 372_000]);
+	assert.deepEqual(dec.JP, [221_726, 443_452]);
+	assert.deepEqual(dec.KESEHATAN, [240_000, 960_000]);
+});
+
 test('Indonesia — a full month, a joiner on the 16th and a raise on the 16th, April 2026', () => {
 	const { slips } = buildStatutory(
 		scenario('2026-04', [
@@ -1407,6 +1463,63 @@ test('Indonesia — two unpaid days (PP 36/2021 art.40(1)), priced on the seed�
 	});
 });
 
+test('Indonesia — the part-month default is calendar days on every version, recorded as ID-106', () => {
+	// No instrument divides a monthly wage for a part month (register ID-106), so the seed records
+	// its default: monthly ÷ the month's calendar days. One unpaid day on 9,300,000 is 9,300,000 ÷ 30
+	// = 310,000 in April and 9,300,000 ÷ 31 = 300,000 in May.
+	for (const version of settingsVersions('ID')) {
+		assert.deepEqual(version.work_rules.proration, { by: 'CALENDAR_DAYS' }, version.id);
+		assert.match(version.work_rules.authority, /Recorded default 2026-09-28 \(register ID-106\)/);
+	}
+	const unpaidDay = (period: string, date: string) => {
+		const { slips } = buildStatutory(
+			scenario(period, [{ key: 'ID-DAY', wage: 9_300_000 }]),
+			(world) => {
+				world.leave_catalogue.push(
+					...leaveCatalogue('ID').map((row) => ({ ...row, approval_id: null }))
+				);
+				const unpaid = world.leave_catalogue.find(
+					(row) => row.settings_id === MARCH_2026 && row.code === 'UNPAID_LEAVE'
+				)!;
+				world.leave_entries.push({
+					id: 'e1000000-0000-4000-8000-000000000099',
+					employment_id: world.employments[0]!.id,
+					catalogue_id: unpaid.id,
+					leave_code: 'UNPAID_LEAVE',
+					reference: `NPL-${date}`,
+					from_date: date,
+					to_date: date,
+					half_day_start: false,
+					half_day_end: false,
+					days: 1,
+					effective_on: date,
+					reason: 'Unpaid day',
+					allocations: [],
+					charges: [
+						{
+							date,
+							days: 1,
+							catalogue_id: unpaid.id,
+							employment_term_id: world.employment_terms[0]!.id,
+							holiday_id: null,
+							shift_definition_id: null,
+							work_day_id: null
+						}
+					],
+					approval_id: null,
+					payslip_id: null
+				} as never);
+			}
+		);
+		return slips
+			.get('ID-DAY')!
+			.adjustments.filter((row) => row.component_code === 'UNPAID_LEAVE')
+			.reduce((total, row) => total + row.amount, 0);
+	};
+	assert.equal(unpaidDay('2026-04', '2026-04-07'), 310_000);
+	assert.equal(unpaidDay('2026-05', '2026-05-12'), 300_000);
+});
+
 test('Indonesia — a bonus month: TER on the whole gross, no BPJS on the bonus (PP 36/2021 art.8)', () => {
 	const bonus = (residency: 'RESIDENT' | 'NON_RESIDENT') =>
 		buildStatutory(
@@ -1452,7 +1565,7 @@ test('Indonesia — a bonus month: TER on the whole gross, no BPJS on the bonus 
 	assert.equal(nonResident.PPH21, undefined, 'PPh 21 does not reach a non-resident');
 });
 
-test('Indonesia — a resigner on 15 June: final pay, untaken leave as UPH, and the leaver-month reckoning', () => {
+test('Indonesia — a resigner on 15 June: final pay, untaken leave as UPH, and the leaver-month reckoning', async () => {
 	// Five years' service at 10,000,000, resigning (PP 35/2021 art.36(i), art.50: UPH and any uang
 	// pisah). Five untaken, unlapsed annual-leave days are UPH (PP 35/2021 art.40(4)(a)), valued on
 	// the PKB basis the entity declared (UU 13/2003 art.79(4)): basic ÷ 21 = 476,190.48 a day, ×5 =
@@ -1550,6 +1663,25 @@ test('Indonesia — a resigner on 15 June: final pay, untaken leave as UPH, and 
 		warnings.filter((warning) => warning.includes('FINAL_PAY_LATE')),
 		[]
 	);
+	// Every sealed version cites the signed Kemnaker SALINAN of PP 36/2021 (a scan: arts 15–17
+	// checked against the page images, pp. 10–11), never a commercial copy.
+	const { readFileSync } = await import('node:fs');
+	const settings = JSON.parse(
+		readFileSync('seed/jurisdiction/ID/jurisdiction_settings.json', 'utf8')
+	) as { work_rules: { encashment: { authority: string } } }[];
+	assert.equal(settings.length, 3);
+	for (const version of settings) {
+		const { authority } = version.work_rules.encashment;
+		assert.match(
+			authority,
+			/Source: https:\/\/jdih\.kemnaker\.go\.id\/asset\/data_puu\/PP362021\.pdf/
+		);
+		assert.match(
+			authority,
+			/PP 36\/2021 art\.17 \(monthly wage ÷25 on a six-day week, ÷21 on a five-day week\)/
+		);
+		assert.doesNotMatch(authority, /hukumonline/);
+	}
 });
 
 test('Indonesia — final pay falls due on the agreed payday of the exit period (PP 36/2021 art.55)', () => {
@@ -1724,9 +1856,10 @@ test('Indonesia — JP reaches a foreign worker only on a recorded BPJS registra
 	// PP 45/2015 art.2 names every worker of a non-state employer and has no nationality clause;
 	// art.3(1) starts participation only once the worker is registered and the first contribution
 	// paid. BPJS Ketenagakerjaan does not register a foreign national for JP (its FAQ), so the
-	// default record is NOT_REGISTERED and nothing is charged; a registration on file is charged
+	// default record is NOT_REGISTERED and nothing is charged (the rule `when`, not the unregistered
+	// action: a local worker's missing registration is still charged); a registration on file is charged
 	// like anyone else's. JHT has no such gate once the six-month rule is met (PP 46/2015 art.2(2)).
-	const { slips } = buildStatutory(
+	const { slips, warnings } = buildStatutory(
 		scenario('2026-04', [
 			{
 				key: 'ID-TKA-NOJP',
@@ -1737,22 +1870,27 @@ test('Indonesia — JP reaches a foreign worker only on a recorded BPJS registra
 			{ key: 'ID-TKA-JP', wage: 20_000_000, citizenship: 'FOREIGNER' }
 		])
 	);
-	assert.deepEqual(charges(slips.get('ID-TKA-NOJP')!).JP, [0, 0]);
+	const noJp = charges(slips.get('ID-TKA-NOJP')!).JP;
+	assert.ok(
+		noJp == null || (noJp[0] === 0 && noJp[1] === 0),
+		'no JP for an unregistrable foreigner'
+	);
+	assert.ok(!warnings.some((line) => line.includes('JP: registration incomplete')));
 	// 20,000,000 is above the Rp11,086,300 ceiling (PP 45/2015 art.29): 1% / 2% of the ceiling.
 	assert.deepEqual(charges(slips.get('ID-TKA-JP')!).JP, [110_863, 221_726]);
 	// JHT 2% / 3.7% of 20,000,000, uncapped.
 	assert.deepEqual(charges(slips.get('ID-TKA-NOJP')!).JHT, [400_000, 740_000]);
 });
 
-test('Indonesia — a missing BPJS registration does not waive JHT, JKK, JKM or Kesehatan; JP waits for registration (R46)', () => {
+test('Indonesia — a missing BPJS registration does not waive JHT, JP, JKK, JKM or Kesehatan (R46, JP-LOCAL)', () => {
 	// UU 24/2011 art.15(1) and art.19(1)–(2): the employer must register its workers and collect and
 	// pay the contribution. PP 46/2015 art.2(1), 9(2), 11(4) (JHT) and PP 44/2015 art.4(1), 8(2)–(3),
 	// 10(4) (JKK, JKM) run the contribution from the first day of work and make a negligent employer
 	// pay it; Perpres 82/2018 art.13(1) registers the worker "dengan membayar Iuran". So an
-	// unregistered local worker is charged exactly as a registered one, with a warning. JP differs:
-	// PP 45/2015 art.3(1) starts participation only once the worker is registered and the first
-	// contribution paid, and art.6 answers a missing registration with the employer's own benefit
-	// liability, so a NOT_REGISTERED JP record charges nothing.
+	// unregistered local worker is charged exactly as a registered one, with a warning. JP too:
+	// PP 45/2015 art.4(1)–(2) makes registration mandatory within 30 days of starting work and
+	// art.5(5) obliges the negligent employer to collect and pay both shares; art.3(1) only dates
+	// the benefit protection and art.6 adds the employer's own benefit liability meanwhile.
 	const unregistered = Object.fromEntries(
 		['JHT', 'JP', 'JKK', 'JKM', 'KESEHATAN'].map((code) => [
 			code,
@@ -1777,15 +1915,13 @@ test('Indonesia — a missing BPJS registration does not waive JHT, JKK, JKM or 
 		assert.deepEqual(charge.JKM, [0, 30_000]);
 		assert.deepEqual(charge.KESEHATAN, [100_000, 400_000]);
 	}
-	// JP 1% / 2% of 10,000,000 (under the Rp11,086,300 ceiling) only on a recorded registration.
-	assert.deepEqual(reg.JP, [100_000, 200_000]);
-	assert.ok(unreg.JP == null || (unreg.JP[0] === 0 && unreg.JP[1] === 0), 'no JP unregistered');
-	for (const code of ['JHT', 'JKK', 'JKM', 'KESEHATAN'])
+	// JP 1% / 2% of 10,000,000 = 100,000 / 200,000, under the Rp11,086,300 ceiling (art.29).
+	for (const charge of [unreg, reg]) assert.deepEqual(charge.JP, [100_000, 200_000]);
+	for (const code of ['JHT', 'JP', 'JKK', 'JKM', 'KESEHATAN'])
 		assert.ok(
 			warnings.some((line) => line.includes(`${code}: registration incomplete`)),
 			`${code} warns that registration is outstanding`
 		);
-	assert.ok(!warnings.some((line) => line.includes('JP: registration incomplete')));
 });
 
 test('Indonesia — a missing tax registration does not waive PPh 26 (UU PPh arts.21(5a), 26(1); R46)', () => {
@@ -2433,6 +2569,27 @@ test('Indonesia — the monthly floor is the workplace’s, raised by the sector
 		() => assessStatutory(book([{ key: 'JT', wage: 2_000_000, worksite: 'Provinsi Jawa Tengah' }])),
 		/KESEHATAN bounds its base by the regional minimum wage/
 	);
+});
+
+test('Indonesia — a labour-intensive employer’s JKK is halved through January 2026 (PP 7/2025, PP 36/2025; ID-52)', () => {
+	// PP 7/2025 art.4(1): JKK cut by 50% to I 0.120%, II 0.270%, III 0.445%, IV 0.635%, V 0.870%;
+	// art.10 February–July 2025, extended by PP 36/2025 art.10A through the January 2026 month.
+	// DKI Jakarta, a 10,000,000 monthly wage (the JKK base has no ceiling).
+	const jkk = (period: string, riskClass: string, relief: boolean) =>
+		charges(
+			buildStatutory({
+				...scenario(period, [{ key: 'P', wage: 10_000_000 }]),
+				riskClass,
+				companyFacts: { jkk_padat_karya: relief }
+			}).slips.get('P')!
+		).JKK;
+	assert.deepEqual(jkk('2025-12', 'II', true), [0, 27_000]); // 0.270% × 10,000,000
+	assert.deepEqual(jkk('2026-01', 'I', true), [0, 12_000]); // 0.120%
+	assert.deepEqual(jkk('2026-01', 'III', true), [0, 44_500]); // 0.445%
+	assert.deepEqual(jkk('2026-01', 'V', true), [0, 87_000]); // 0.870%
+	// The relief ends with the January 2026 month; an unverified employer never has it.
+	assert.deepEqual(jkk('2026-02', 'I', true), [0, 24_000]); // PP 44/2015 art.16(1) 0.24%
+	assert.deepEqual(jkk('2026-01', 'I', false), [0, 24_000]);
 });
 
 test('Indonesia — a non-resident’s regular wage is PPh 26 at 20% of gross, with no PPh 21 (UU PPh art.26(1))', () => {

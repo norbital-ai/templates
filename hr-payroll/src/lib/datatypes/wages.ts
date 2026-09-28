@@ -119,6 +119,12 @@ export const wagesValueSchema = Schema.Struct({
 	net_of_employee_schemes: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.String))),
 	/** A covered under-floor contract that must prevent a payroll run, over the person. */
 	block_below_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * The order substitutes itself for a covered contract below it (TW 最低工資法 §5: 議定之工資低於
+	 * 最低工資者，以本法所定之最低工資為其工資數額): the run pays the floor, restated in the contract's
+	 * own unit, in place of the agreed rate, and warns. Absent pays the contract and warns.
+	 */
+	substitutes_below: Schema.optionalKey(Schema.Boolean),
 	/** The wage order this table transcribes, in the operator's words; the engine never reads it. */
 	authority: Schema.optionalKey(Schema.NullOr(Schema.String))
 }).check(

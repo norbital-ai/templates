@@ -283,7 +283,13 @@ export const workRulesValueSchema = Schema.Struct({
 			})
 		)
 	),
-	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE'])
+	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']),
+	/**
+	 * Where one Monday–Sunday week holds more than one REST day, only its last is the rest day and
+	 * the earlier ones resolve as OFF days (MY Employment Act 1955 s.59(1): "the last of such rest
+	 * days shall be the rest day for the purposes of this Part"). Absent: every REST day is one.
+	 */
+	last_rest_day_only: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
 }).check(
 	Schema.makeFilter((rules) => {
 		if (
