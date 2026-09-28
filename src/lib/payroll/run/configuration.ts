@@ -10,13 +10,18 @@ import type { WorkspaceRow } from '../../../lib/rows.js';
 import type { PayrollWorld } from '../world.js';
 import { prepareWorkCatalogue } from '../work.js';
 import { workPayItems } from '../work-lines.js';
-import { prepareMoneyCatalogues } from '../money.js';
+import { prepareMoneyCatalogues, type ReligiousHoliday } from '../money.js';
 import { prepareLoanCatalogue } from '../loan.js';
 import { prepareContributionCatalogue } from '../contribution.js';
 import { prepareLeaveCatalogue } from '../../leave/payroll.js';
 import { daysBetween, monthBounds, monthKey, type IsoDate } from './dates.js';
-import { resolveHolidayInputs, type PreparedHolidayInput } from '../../../lib/holiday-calendar.js';
-import { effectiveOn, live } from './effective.js';
+import {
+	resolveHolidayInputs,
+	resolveHolidays,
+	type HolidayRow,
+	type PreparedHolidayInput
+} from '../../../lib/holiday-calendar.js';
+import { coversDate, effectiveOn, live } from './effective.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
 import { dateKey } from '../../../lib/iso-day.js';
@@ -103,6 +108,16 @@ export type Configuration = {
 	readonly holidays: ReadonlyMap<IsoDate, HolidaySnapshot>;
 	readonly holidaySnapshots: readonly HolidaySnapshot[];
 	readonly holidayInputs: readonly PreparedHolidayInput[];
+	/** The published rows `holidays` was read from, so one employment can be re-read at its worksite. */
+	readonly holidayRows: readonly HolidayRow[];
+	/** The window `holidays` covers. */
+	readonly holidayWindow: { readonly start: IsoDate; readonly end: IsoDate };
+	/**
+	 * Every published day of the calendar years the window touches that names a religion, whatever
+	 * the window: a THR ceiling counts the worker's holidays across the whole year (ID Permenaker
+	 * 6/2016 art.5(2)).
+	 */
+	readonly religiousHolidays: readonly ReligiousHoliday[];
 	readonly catalogueLeaves: readonly CatalogueLeave[];
 	/** Every live version of the company's lineage, for the readers that cite older revisions. */
 	readonly lineageVersions: readonly Jurisdiction[];
@@ -216,8 +231,34 @@ export function pickConfiguration(options: {
 		patternById: new Map(patternRows.map((row) => [row.id, row as ShiftPattern])),
 		holidays: resolvedCalendar.holidays,
 		holidaySnapshots: resolvedCalendar.snapshots,
-		holidayInputs: resolvedCalendar.inputs
+		holidayInputs: resolvedCalendar.inputs,
+		holidayRows,
+		holidayWindow: { start: windowStart, end: windowEnd },
+		religiousHolidays: ofCompany(world.jurisdiction_holidays, company.id).flatMap((row) =>
+			row.published_at != null && (row.religion ?? '').trim() !== ''
+				? [{ date: dateKey(row.date), religion: row.religion! }]
+				: []
+		)
 	};
+}
+
+/**
+ * The configuration as one employment observes it: the company's holidays plus the local days of
+ * the worksite its terms record on each date (PH RA 12271, Navotas). Unchanged when no row is local.
+ */
+export function atWorksite<T extends Configuration>(
+	configuration: T,
+	terms: readonly Pick<WorkspaceRow<'employment_terms'>, 'effective_range' | 'worksite'>[]
+): T {
+	if (!configuration.holidayRows.some((row) => row.worksite?.trim())) return configuration;
+	const holidays = resolveHolidays(
+		configuration.holidayRows,
+		configuration.company.id,
+		configuration.holidayWindow.start,
+		configuration.holidayWindow.end,
+		(date) => terms.find((term) => coversDate(term.effective_range, date))?.worksite
+	);
+	return { ...configuration, holidays };
 }
 
 /**
@@ -283,6 +324,10 @@ export function configurationSnapshot(
 			date,
 			observation: configuration.holidays.get(date) ?? null
 		})),
+		// Local days reach only their worksite, so they are identity apart from the dates above.
+		...(configuration.holidaySnapshots.some((row) => row.worksite != null)
+			? { local_holidays: configuration.holidaySnapshots.filter((row) => row.worksite != null) }
+			: {}),
 		leave_catalogue: configuration.catalogueLeaves
 			.map((row) => [
 				row.code,

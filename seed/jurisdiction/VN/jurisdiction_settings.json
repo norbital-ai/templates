@@ -17,6 +17,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -639,6 +640,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -1260,6 +1262,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -1881,6 +1884,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -2506,6 +2510,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -3129,6 +3134,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -3751,6 +3757,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -4373,6 +4380,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -4999,6 +5007,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -5623,6 +5632,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -6246,6 +6256,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -6869,6 +6880,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -7496,6 +7508,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -8120,6 +8133,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -8744,6 +8758,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -9372,6 +9387,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -9997,6 +10013,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -10622,6 +10639,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -11247,6 +11265,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -11871,11 +11890,12 @@
 			"end": "2026-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "VN",
-		"change_summary": "December 2025 law: SI 8%/17.5% and HI 1.5%/3% on the 20 × 2,340,000 = 46,800,000 cap; unemployment insurance 1%/1% on 20 regional minimum wages (Region I 4,960,000); the 2% union fee; and the seven-rung PIT scale with the Resolution 954/2020 deductions of 132,000,000 and 52,800,000. Sealed the six contractual wage months for severance/job-loss pay under Decree 145/2020 art.8(5). Correction 26 September 2026: Decree 74/2024 and Decree 293/2025 art. 4(3)(a) convert weekly pay to a monthly minimum-wage comparator at 52/12. No statutory amount or commencement date changes. Covered full-time monthly, hourly and weekly contracts below their applicable minimum now block payroll; each effective contract interval is checked. Decrees 74/2024 and 293/2025 art.4(3): weekly/daily wages may meet the monthly or hourly minimum after conversion on the normal schedule; under-floor daily wages now block payment.",
+		"change_summary": "December 2025 law: SI 8%/17.5% and HI 1.5%/3% on the 20 × 2,340,000 = 46,800,000 cap; unemployment insurance 1%/1% on 20 regional minimum wages (Region I 4,960,000); the 2% union fee; and the seven-rung PIT scale with the Resolution 954/2020 deductions of 132,000,000 and 52,800,000. Sealed the six contractual wage months for severance/job-loss pay under Decree 145/2020 art.8(5). Correction 26 September 2026: Decree 74/2024 and Decree 293/2025 art. 4(3)(a) convert weekly pay to a monthly minimum-wage comparator at 52/12. No statutory amount or commencement date changes. Covered full-time monthly, hourly and weekly contracts below their applicable minimum now block payroll; each effective contract interval is checked. Decrees 74/2024 and 293/2025 art.4(3): weekly/daily wages may meet the monthly or hourly minimum after conversion on the normal schedule; under-floor daily wages now block payment. Correction 28 September 2026: authority text only — the insurance salary is re-sourced to Law 41/2024 art.31(1)(b) and Decree 158/2025 art.7(1) (Circular 06/2021 was repealed from 1 July 2025 by Circular 12/2025/TT-BNV art.20), the health-insurance rate to Decree 188/2025 art.6(1)(a) (Decree 146/2018 repealed), and the union-dues opening sentence to the 0.5% of Decision 61/QĐ-TLĐ the rule already applies. No statutory amount or commencement date changes.",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -12098,7 +12118,10 @@
 				"https://baochinhphu.vn/chinh-sach-moi.rss",
 				"https://baochinhphu.vn/nghi-tet-nguyen-dan-2027.html",
 				"https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx",
-				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168"
+				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168",
+				"https://vanban.chinhphu.vn/?pageid=27160&docid=214515",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-12-2025-tt-bnv-quy-dinh-chi-tiet-mot-so-dieu-cua-luat-bhxh-ve-bhxh-bat-buoc-11925070415595016.htm"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nvanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403).\n\nFinding changes (read these before comparing, every run):\nEvery month open vanban.chinhphu.vn/he-thong-van-ban?classid=1&mode=1&orggroupid=2 (decrees) and ...&typegroupid=3 (laws). Rows are 'số ký hiệu | ngày ban hành | trích yếu', newest first. Flag anything whose title mentions lương tối thiểu, lương cơ sở, mức tham chiếu, bảo hiểm xã hội/y tế/thất nghiệp, thuế thu nhập cá nhân, giảm trừ gia cảnh, công đoàn, nghỉ lễ/Tết, or Bộ luật Lao động. Open the item page (?pageid=27160&docid=N) for the effective date. The site search does not work through the URL (keyword params are ignored), so scan the lists. Next read congbao.chinhphu.vn/cac-van-ban-moi-ban-hanh.rss and the Bộ Nội vụ (c5) and Bộ Tài chính (c10) gazette lists for MOHA/MOF circulars. Congbao item pages link a .docx, so use it when the vanban PDF is a scan. For VSS rules read baohiemxahoi.gov.vn/vanban/Pages/default.aspx. For readable wording and the Tết/holiday decisions read xaydungchinhsach.chinhphu.vn/chinh-sach-moi.rss and baochinhphu.vn topic pages. gdt.gov.vn, mof.gov.vn, moha.gov.vn and phapluat.gov.vn listings cannot be read, so do not use them. Discovery only (always cite the vanban/congbao instrument): kpmg.com/vn insights. Treat a Bộ Nội vụ 'đề xuất' or a National Wage Council recommendation as pending until the Nghị định exists."
 		},
@@ -12497,11 +12520,12 @@
 			"end": "2026-05-16T00:00:00.000Z"
 		},
 		"jurisdiction_code": "VN",
-		"change_summary": "From the 2026 tax period: the five-rung PIT table of Law 109/2025 (art.29(2)) with Resolution 110/2025’s 186,000,000/74,400,000 deductions; Decree 293/2025 raises regional minimum wages 7.2%; Law 74/2025 replaces the Law on Employment. Sealed the six contractual wage months for severance/job-loss pay under Decree 145/2020 art.8(5). Correction 26 September 2026: Decree 74/2024 and Decree 293/2025 art. 4(3)(a) convert weekly pay to a monthly minimum-wage comparator at 52/12. No statutory amount or commencement date changes. Correction 26 September 2026: Decree 293/2025 art. 5(5) retains the 31 December 2025 minimum wage for workers hired by then when locality reassignment lowers their floor. Historical worksite region is a required input where a higher former floor is possible. Covered full-time monthly, hourly and weekly contracts below their applicable minimum now block payroll; each effective contract interval is checked. Decrees 74/2024 and 293/2025 art.4(3): weekly/daily wages may meet the monthly or hourly minimum after conversion on the normal schedule; under-floor daily wages now block payment.",
+		"change_summary": "From the 2026 tax period: the five-rung PIT table of Law 109/2025 (art.29(2)) with Resolution 110/2025’s 186,000,000/74,400,000 deductions; Decree 293/2025 raises regional minimum wages 7.2%; Law 74/2025 replaces the Law on Employment. Sealed the six contractual wage months for severance/job-loss pay under Decree 145/2020 art.8(5). Correction 26 September 2026: Decree 74/2024 and Decree 293/2025 art. 4(3)(a) convert weekly pay to a monthly minimum-wage comparator at 52/12. No statutory amount or commencement date changes. Correction 26 September 2026: Decree 293/2025 art. 5(5) retains the 31 December 2025 minimum wage for workers hired by then when locality reassignment lowers their floor. Historical worksite region is a required input where a higher former floor is possible. Covered full-time monthly, hourly and weekly contracts below their applicable minimum now block payroll; each effective contract interval is checked. Decrees 74/2024 and 293/2025 art.4(3): weekly/daily wages may meet the monthly or hourly minimum after conversion on the normal schedule; under-floor daily wages now block payment. Correction 28 September 2026: authority text only — the insurance salary is re-sourced to Law 41/2024 art.31(1)(b) and Decree 158/2025 art.7(1) (Circular 06/2021 was repealed from 1 July 2025 by Circular 12/2025/TT-BNV art.20), the health-insurance rate to Decree 188/2025 art.6(1)(a) (Decree 146/2018 repealed), and the union-dues opening sentence to the 0.5% of Decision 61/QĐ-TLĐ the rule already applies. No statutory amount or commencement date changes. Severance and job-loss allowances are outside taxable salary income (Decree 253/2026 art.8(3)(h), resident salary from tax period 2026 under art.69(1)(a)).",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -12724,7 +12748,11 @@
 				"https://baochinhphu.vn/chinh-sach-moi.rss",
 				"https://baochinhphu.vn/nghi-tet-nguyen-dan-2027.html",
 				"https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx",
-				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168"
+				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168",
+				"https://vanban.chinhphu.vn/?pageid=27160&docid=214515",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-12-2025-tt-bnv-quy-dinh-chi-tiet-mot-so-dieu-cua-luat-bhxh-ve-bhxh-bat-buoc-11925070415595016.htm",
+				"https://vanban.chinhphu.vn/?docid=215927&pageid=27160"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nvanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403).\n\nFinding changes (read these before comparing, every run):\nEvery month open vanban.chinhphu.vn/he-thong-van-ban?classid=1&mode=1&orggroupid=2 (decrees) and ...&typegroupid=3 (laws). Rows are 'số ký hiệu | ngày ban hành | trích yếu', newest first. Flag anything whose title mentions lương tối thiểu, lương cơ sở, mức tham chiếu, bảo hiểm xã hội/y tế/thất nghiệp, thuế thu nhập cá nhân, giảm trừ gia cảnh, công đoàn, nghỉ lễ/Tết, or Bộ luật Lao động. Open the item page (?pageid=27160&docid=N) for the effective date. The site search does not work through the URL (keyword params are ignored), so scan the lists. Next read congbao.chinhphu.vn/cac-van-ban-moi-ban-hanh.rss and the Bộ Nội vụ (c5) and Bộ Tài chính (c10) gazette lists for MOHA/MOF circulars. Congbao item pages link a .docx, so use it when the vanban PDF is a scan. For VSS rules read baohiemxahoi.gov.vn/vanban/Pages/default.aspx. For readable wording and the Tết/holiday decisions read xaydungchinhsach.chinhphu.vn/chinh-sach-moi.rss and baochinhphu.vn topic pages. gdt.gov.vn, mof.gov.vn, moha.gov.vn and phapluat.gov.vn listings cannot be read, so do not use them. Discovery only (always cite the vanban/congbao instrument): kpmg.com/vn insights. Treat a Bộ Nội vụ 'đề xuất' or a National Wage Council recommendation as pending until the Nghị định exists."
 		},
@@ -13123,11 +13151,12 @@
 			"end": "2026-07-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "VN",
-		"change_summary": "Decree 105/2026/NĐ-CP (issued 16 April 2026, in force 16 May 2026) replaces Decree 191/2013 for the trade union fee: still 2% of the social-insurance salary fund (Law 50/2024 art.29(1)(b)), now paid by the last day of the month after the month instead of with compulsory SI. An obligations change only: no rate, cap or figure moves. Sealed the six contractual wage months for severance/job-loss pay under Decree 145/2020 art.8(5). Correction 26 September 2026: Decree 74/2024 and Decree 293/2025 art. 4(3)(a) convert weekly pay to a monthly minimum-wage comparator at 52/12. No statutory amount or commencement date changes. Correction 26 September 2026: Decree 293/2025 art. 5(5) retains the 31 December 2025 minimum wage for workers hired by then when locality reassignment lowers their floor. Historical worksite region is a required input where a higher former floor is possible. Covered full-time monthly, hourly and weekly contracts below their applicable minimum now block payroll; each effective contract interval is checked. Decrees 74/2024 and 293/2025 art.4(3): weekly/daily wages may meet the monthly or hourly minimum after conversion on the normal schedule; under-floor daily wages now block payment.",
+		"change_summary": "Decree 105/2026/NĐ-CP (issued 16 April 2026, in force 16 May 2026) replaces Decree 191/2013 for the trade union fee: still 2% of the social-insurance salary fund (Law 50/2024 art.29(1)(b)), now paid by the last day of the month after the month instead of with compulsory SI. An obligations change only: no rate, cap or figure moves. Sealed the six contractual wage months for severance/job-loss pay under Decree 145/2020 art.8(5). Correction 26 September 2026: Decree 74/2024 and Decree 293/2025 art. 4(3)(a) convert weekly pay to a monthly minimum-wage comparator at 52/12. No statutory amount or commencement date changes. Correction 26 September 2026: Decree 293/2025 art. 5(5) retains the 31 December 2025 minimum wage for workers hired by then when locality reassignment lowers their floor. Historical worksite region is a required input where a higher former floor is possible. Covered full-time monthly, hourly and weekly contracts below their applicable minimum now block payroll; each effective contract interval is checked. Decrees 74/2024 and 293/2025 art.4(3): weekly/daily wages may meet the monthly or hourly minimum after conversion on the normal schedule; under-floor daily wages now block payment. Correction 28 September 2026: authority text only — the insurance salary is re-sourced to Law 41/2024 art.31(1)(b) and Decree 158/2025 art.7(1) (Circular 06/2021 was repealed from 1 July 2025 by Circular 12/2025/TT-BNV art.20), the health-insurance rate to Decree 188/2025 art.6(1)(a) (Decree 146/2018 repealed), and the union-dues opening sentence to the 0.5% of Decision 61/QĐ-TLĐ the rule already applies. No statutory amount or commencement date changes. Severance and job-loss allowances are outside taxable salary income (Decree 253/2026 art.8(3)(h), resident salary from tax period 2026 under art.69(1)(a)).",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -13350,7 +13379,11 @@
 				"https://baochinhphu.vn/chinh-sach-moi.rss",
 				"https://baochinhphu.vn/nghi-tet-nguyen-dan-2027.html",
 				"https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx",
-				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168"
+				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168",
+				"https://vanban.chinhphu.vn/?pageid=27160&docid=214515",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-12-2025-tt-bnv-quy-dinh-chi-tiet-mot-so-dieu-cua-luat-bhxh-ve-bhxh-bat-buoc-11925070415595016.htm",
+				"https://vanban.chinhphu.vn/?docid=215927&pageid=27160"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nvanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403).\n\nFinding changes (read these before comparing, every run):\nEvery month open vanban.chinhphu.vn/he-thong-van-ban?classid=1&mode=1&orggroupid=2 (decrees) and ...&typegroupid=3 (laws). Rows are 'số ký hiệu | ngày ban hành | trích yếu', newest first. Flag anything whose title mentions lương tối thiểu, lương cơ sở, mức tham chiếu, bảo hiểm xã hội/y tế/thất nghiệp, thuế thu nhập cá nhân, giảm trừ gia cảnh, công đoàn, nghỉ lễ/Tết, or Bộ luật Lao động. Open the item page (?pageid=27160&docid=N) for the effective date. The site search does not work through the URL (keyword params are ignored), so scan the lists. Next read congbao.chinhphu.vn/cac-van-ban-moi-ban-hanh.rss and the Bộ Nội vụ (c5) and Bộ Tài chính (c10) gazette lists for MOHA/MOF circulars. Congbao item pages link a .docx, so use it when the vanban PDF is a scan. For VSS rules read baohiemxahoi.gov.vn/vanban/Pages/default.aspx. For readable wording and the Tết/holiday decisions read xaydungchinhsach.chinhphu.vn/chinh-sach-moi.rss and baochinhphu.vn topic pages. gdt.gov.vn, mof.gov.vn, moha.gov.vn and phapluat.gov.vn listings cannot be read, so do not use them. Discovery only (always cite the vanban/congbao instrument): kpmg.com/vn insights. Treat a Bộ Nội vụ 'đề xuất' or a National Wage Council recommendation as pending until the Nghị định exists."
 		},
@@ -13749,11 +13782,12 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"jurisdiction_code": "VN",
-		"change_summary": "Decree 161/2026 raises the reference level to 2,530,000, so the SI/HI/union-fee cap becomes 50,600,000; Decree 253/2026 implements the PIT law, including the overtime and night-pay exemption (Law 109/2025 art.4(8): the whole overtime wage, so the OVERTIME bands carry no PIT opt-in); the Law on Population 113/2025 gives a second child 7 months’ maternity and 10 days’ paternity; Nghị quyết 28/2026 adds 24 November as a paid holiday. Sealed the six contractual wage months for severance/job-loss pay under Decree 145/2020 art.8(5). Correction 26 September 2026: Decree 74/2024 and Decree 293/2025 art. 4(3)(a) convert weekly pay to a monthly minimum-wage comparator at 52/12. No statutory amount or commencement date changes. Correction 26 September 2026: Decree 293/2025 art. 5(5) retains the 31 December 2025 minimum wage for workers hired by then when locality reassignment lowers their floor. Historical worksite region is a required input where a higher former floor is possible. Covered full-time monthly, hourly and weekly contracts below their applicable minimum now block payroll; each effective contract interval is checked. Decrees 74/2024 and 293/2025 art.4(3): weekly/daily wages may meet the monthly or hourly minimum after conversion on the normal schedule; under-floor daily wages now block payment.",
+		"change_summary": "Decree 161/2026 raises the reference level to 2,530,000, so the SI/HI/union-fee cap becomes 50,600,000; Decree 253/2026 implements the PIT law, including the overtime and night-pay exemption (Law 109/2025 art.4(8): the whole overtime wage, so the OVERTIME bands carry no PIT opt-in); the Law on Population 113/2025 gives a second child 7 months’ maternity and 10 days’ paternity; Nghị quyết 28/2026 adds 24 November as a paid holiday. Sealed the six contractual wage months for severance/job-loss pay under Decree 145/2020 art.8(5). Correction 26 September 2026: Decree 74/2024 and Decree 293/2025 art. 4(3)(a) convert weekly pay to a monthly minimum-wage comparator at 52/12. No statutory amount or commencement date changes. Correction 26 September 2026: Decree 293/2025 art. 5(5) retains the 31 December 2025 minimum wage for workers hired by then when locality reassignment lowers their floor. Historical worksite region is a required input where a higher former floor is possible. Covered full-time monthly, hourly and weekly contracts below their applicable minimum now block payroll; each effective contract interval is checked. Decrees 74/2024 and 293/2025 art.4(3): weekly/daily wages may meet the monthly or hourly minimum after conversion on the normal schedule; under-floor daily wages now block payment. Correction 28 September 2026: authority text only — the insurance salary is re-sourced to Law 41/2024 art.31(1)(b) and Decree 158/2025 art.7(1) (Circular 06/2021 was repealed from 1 July 2025 by Circular 12/2025/TT-BNV art.20), the health-insurance rate to Decree 188/2025 art.6(1)(a) (Decree 146/2018 repealed), and the union-dues opening sentence to the 0.5% of Decision 61/QĐ-TLĐ the rule already applies. No statutory amount or commencement date changes. The salary PIT return is quarterly only from 1 July 2026 (Circular 89/2026/TT-BTC art.22(1)(a)(a.1); Decree 252/2026 art.10(3)); the PIT authority cites Circular 87/2026/TT-BTC, which replaces Circular 111/2013 (art.6(2)). Severance and job-loss allowances are outside taxable salary income (Decree 253/2026 art.8(3)(h), resident salary from tax period 2026 under art.69(1)(a)).",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
+			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
 			"overtime_when": "",
 			"bands": [
@@ -13980,7 +14014,14 @@
 				"https://baochinhphu.vn/chinh-sach-moi.rss",
 				"https://baochinhphu.vn/nghi-tet-nguyen-dan-2027.html",
 				"https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx",
-				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168"
+				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168",
+				"https://vanban.chinhphu.vn/?pageid=27160&docid=214515",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-12-2025-tt-bnv-quy-dinh-chi-tiet-mot-so-dieu-cua-luat-bhxh-ve-bhxh-bat-buoc-11925070415595016.htm",
+				"https://vanban.chinhphu.vn/?docid=218772&pageid=27160",
+				"https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf",
+				"https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf",
+				"https://vanban.chinhphu.vn/?docid=215927&pageid=27160"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nvanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403).\n\nFinding changes (read these before comparing, every run):\nEvery month open vanban.chinhphu.vn/he-thong-van-ban?classid=1&mode=1&orggroupid=2 (decrees) and ...&typegroupid=3 (laws). Rows are 'số ký hiệu | ngày ban hành | trích yếu', newest first. Flag anything whose title mentions lương tối thiểu, lương cơ sở, mức tham chiếu, bảo hiểm xã hội/y tế/thất nghiệp, thuế thu nhập cá nhân, giảm trừ gia cảnh, công đoàn, nghỉ lễ/Tết, or Bộ luật Lao động. Open the item page (?pageid=27160&docid=N) for the effective date. The site search does not work through the URL (keyword params are ignored), so scan the lists. Next read congbao.chinhphu.vn/cac-van-ban-moi-ban-hanh.rss and the Bộ Nội vụ (c5) and Bộ Tài chính (c10) gazette lists for MOHA/MOF circulars. Congbao item pages link a .docx, so use it when the vanban PDF is a scan. For VSS rules read baohiemxahoi.gov.vn/vanban/Pages/default.aspx. For readable wording and the Tết/holiday decisions read xaydungchinhsach.chinhphu.vn/chinh-sach-moi.rss and baochinhphu.vn topic pages. gdt.gov.vn, mof.gov.vn, moha.gov.vn and phapluat.gov.vn listings cannot be read, so do not use them. Discovery only (always cite the vanban/congbao instrument): kpmg.com/vn insights. Treat a Bộ Nội vụ 'đề xuất' or a National Wage Council recommendation as pending until the Nghị định exists."
 		},
@@ -14240,11 +14281,11 @@
 			},
 			{
 				"code": "PIT_WITHHOLDING_DECLARATION",
-				"description": "Declare and pay the PIT withheld from salaries (form 05/KK-TNCN). Engine: the monthly withholding is computed; the declaration and payment are outside.",
-				"trigger": "Each month (or quarter) in which PIT was withheld.",
-				"timing": "Monthly by the 20th of the following month, or quarterly by the last day of the first month of the following quarter; payment by the same day.",
+				"description": "Declare and pay the PIT withheld from salaries each quarter (form 05/KK-TNCN); from 1 July 2026 a salary payer has no monthly option. Engine: the monthly withholding is computed; the declaration and payment are outside.",
+				"trigger": "Each quarter in which PIT was withheld from salary; a tax period before 1 July 2026 (June or the second quarter of 2026) is declared under the version then in force.",
+				"timing": "Quarterly, by the last day of the first month of the following quarter (the third quarter of 2026 by 31 October 2026); payment by the same day.",
 				"owner": "Finance / declaration and payment receipt",
-				"authority": "Law on Tax Administration 108/2025/QH15 (in force 1 July 2026) art.12(8) (deadlines set by the Government), art.14(1) (payment by the filing deadline), art.16(2)(a) (late-payment interest 0.03% a day) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1; Decree 252/2026/NĐ-CP art.10 (monthly by the 20th, quarterly by the last day of the first month of the next quarter) — the decree article as reported by https://luatvietnam.vn/thue-phi-le-phi/lich-nop-cac-loai-thue-danh-cho-doanh-nghiep-cap-nhat-tu-01-7-2026-565-110822-article.html",
+				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.1) (in force 1 July 2026): the salary payer declares the tax withheld quarterly https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(3): a quarterly return is due by the last day of the first month of the following quarter https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Law on Tax Administration 108/2025/QH15 art.12(8) (deadlines set by the Government), art.14(1) (payment by the filing deadline), art.16(2)(a) (late-payment interest 0.03% a day) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1. Corrected 2026-09-28: this version offered monthly filing by the 20th, which Circular 89/2026 removed for salary returns.",
 				"status": "PARTIAL"
 			},
 			{
@@ -14262,7 +14303,7 @@
 				"trigger": "End of the tax year.",
 				"timing": "By the last day of the third month after the tax year (31 March).",
 				"owner": "Finance / finalisation receipt",
-				"authority": "Law 108/2025/QH15 and Decree 252/2026/NĐ-CP: the employer's annual PIT finalisation (form 05/QTT-TNCN) is due by the last day of the third month after the tax year https://luatvietnam.vn/thue-phi-le-phi/lich-nop-cac-loai-thue-danh-cho-doanh-nghiep-cap-nhat-tu-01-7-2026-565-110822-article.html; Decree 253/2026/NĐ-CP arts.51, 68 (finalisation on behalf of authorising employees) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
+				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.2) (the salary payer finalises for itself and for each individual who authorises it, whether or not tax was withheld) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(5)(a): a finalisation return is due by the last day of the third month after the tax period ends https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Decree 253/2026/NĐ-CP arts.51, 68 (finalisation on behalf of authorising employees) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
 				"status": "PARTIAL"
 			},
 			{

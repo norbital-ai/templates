@@ -76,6 +76,7 @@ holiday_import.run(async (input, ctx) => {
 			where: {
 				company_id: { eq: source.company_id as Id<'companies'> },
 				date: { gte: PlainDate(`${year}-01-01`), lte: PlainDate(`${year}-12-31`) },
+				worksite: { isNull: true },
 				approval_id: { isNull: true }
 			},
 			select: { date: true },

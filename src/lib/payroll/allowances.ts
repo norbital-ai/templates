@@ -11,6 +11,7 @@
  */
 
 import { decodeNumber } from '../wire.js';
+import { placeWage } from '../datatypes/wages.js';
 import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
 import { isEligible, personContext } from '../../lib/payroll/run/eligibility.js';
 import { stint } from '../employment-contract.js';
@@ -62,7 +63,8 @@ export function prepareAllowanceSteps(
 		}
 	const prorates = configuration.jurisdiction.payroll.allowance_npl_prorates === true;
 	const engine = runtimeExpressionEngine({
-		minimumWage: (region) => configuration.jurisdiction.work_rules.wages?.by_region?.[region] ?? 0
+		minimumWage: (region) =>
+			placeWage(configuration.jurisdiction.work_rules.wages?.by_region ?? {}, region) ?? 0
 	});
 	return configuration.catalogueComponents
 		.filter((component) => listed.has(component))
@@ -77,7 +79,7 @@ export function prepareAllowanceSteps(
 				const subjectOn = (terms: Terms) =>
 					personContext({
 						employee: bundle.employee,
-						employment: stint(bundle.employment),
+						employment: stint(bundle.employment, configuration.jurisdiction.exit_facts ?? []),
 						fixedAllowances: contractAllowancesOn(bundle, configuration, options.salary.end),
 						terms,
 						children: bundle.children,

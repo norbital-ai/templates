@@ -11,6 +11,8 @@ const f = customField({
 				scheme_code: { kind: 'text' },
 				month: { kind: 'text' },
 				currency: { kind: 'text' },
+				/** FLOOR_MAJOR_UNIT: the part rounded down; NONE: the part remitted at the actual amount. */
+				remittance_rounding: { kind: 'enum', values: ['NONE', 'FLOOR_MAJOR_UNIT'] },
 				accrued_amount: { kind: 'number' },
 				payable_amount: { kind: 'number' }
 			}

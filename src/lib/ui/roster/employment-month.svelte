@@ -254,7 +254,8 @@
 					const term = terms.find((row) => coversDate(row.effective_range, date));
 					const row = term == null ? null : termPatternRow(term);
 					return row == null ? null : { pattern: row.pattern, anchor: patternAnchor(row) };
-				}
+				},
+				worksiteOn: (date) => terms.find((row) => coversDate(row.effective_range, date))?.worksite
 			});
 			return new Map([[employmentId, observed]]);
 		} catch {

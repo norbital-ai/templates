@@ -168,6 +168,14 @@ export const workRulesValueSchema = Schema.Struct({
 		Schema.NullOr(Schema.Array(Schema.Struct({ when: cel, basis: prorationBasisValueSchema })))
 	),
 	/**
+	 * The law states no part-month divisor, so the contract's does: a terms row's `proration`
+	 * replaces `proration` and `proration_by` for that row (VN Decree 145/2020 art.55(1)(a) prices
+	 * overtime on the hours actually worked, Decree 293/2025 art.4 the floor on the full month,
+	 * Law 41/2024 arts.33(5), 34(3) insurance on unpaid days — none fixes the divisor). Absent where
+	 * a statute prescribes one, and a contract basis there is ignored.
+	 */
+	proration_contractual: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
 	 * Days over the person: the statutory divisor the monthly wage is spread over to price one
 	 * ordinary day, e.g. `26.0` (Malaysia), `period.working_days` (Vietnam), or a ternary over the
 	 * week shape (the Philippines). The hour is that day over the contract's normal daily hours.

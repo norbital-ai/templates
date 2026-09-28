@@ -151,11 +151,12 @@
 			grade: text(draft.grade),
 			ordinary_hours_per_week: row.ordinary_hours_per_week,
 			shift_pattern_id: draft.shiftPatternId,
-			// Carried unchanged: the successor keeps the pass, tax residency, notice and paid-day basis of the row it replaces.
+			// Carried unchanged: the successor keeps the pass, tax residency, notice, paid-day and proration basis of the row it replaces.
 			pass_type: row.pass_type,
 			tax_residency: row.tax_residency,
 			notice_days: row.notice_days,
-			paid_rest_days: row.paid_rest_days
+			paid_rest_days: row.paid_rest_days,
+			proration: row.proration
 		};
 		try {
 			return buildChangeTermsWrites({

@@ -2,6 +2,8 @@ import type { Id, Row, TransformCtx } from '@norbital-ai/bolt';
 import { refuse } from './refuse.js';
 import type { WorkspaceRow } from './rows.js';
 import { scalarFacts } from './payroll/run/eligibility.js';
+import { resolveFactValues } from './declared-facts.js';
+import type { FactKey } from './datatypes/fact_keys.js';
 import { coversDate, readRange, type StoredRange } from '../lib/payroll/run/effective.js';
 import { dateKey } from './iso-day.js';
 import type { LeaveCharge } from './datatypes/leave_charges.js';
@@ -196,23 +198,37 @@ export function serviceStart(employment: { readonly effective_range: StoredRange
 	return employment.effective_range == null ? '' : dateKey(employment.effective_range.start);
 }
 
-/** The stint as the person contexts read it: first day, last day of work and why it ended. */
-export function stint(employment: {
-	readonly effective_range: StoredRange | null;
-	readonly exit_reason?: string | null | undefined;
-	readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
-}): {
+/**
+ * The stint as the person contexts read it: first day, last day of work and why it ended. The
+ * departure inputs the governing version declares resolve to their defaults on every site;
+ * `exit_fact_keys` stays what was recorded, and requiredness is enforced where a final service
+ * day is priced (money.ts).
+ */
+export function stint(
+	employment: {
+		readonly effective_range: StoredRange | null;
+		readonly exit_reason?: string | null | undefined;
+		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
+		readonly prior_service_months?: number | null | undefined;
+	},
+	declared: readonly FactKey[]
+): {
 	service_start: string;
+	prior_service_months: number;
 	exit_date: string | null;
 	exit_reason: string | null;
 	exit_facts: Readonly<Record<string, string | number | boolean>>;
+	exit_fact_keys: readonly string[];
 } {
 	const end = employment.effective_range?.end;
+	const recorded = scalarFacts(employment.exit_facts);
 	return {
 		service_start: serviceStart(employment),
+		prior_service_months: employment.prior_service_months ?? 0,
 		exit_date: end == null ? null : dateKey(end),
 		exit_reason: employment.exit_reason ?? null,
-		exit_facts: scalarFacts(employment.exit_facts)
+		exit_facts: { ...recorded, ...resolveFactValues(declared, recorded, 'Departure', false) },
+		exit_fact_keys: Object.keys(recorded)
 	};
 }
 

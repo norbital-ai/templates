@@ -1,6 +1,7 @@
 import { refuse } from './refuse.js';
 import { readAll, type Reads } from './reads.js';
 import { decodeNumber } from './wire.js';
+import { dateKey } from './iso-day.js';
 import { capSubjects } from './component_entry_cap_subject.js';
 import {
 	entryLimitRefusal,
@@ -126,11 +127,37 @@ export async function admitPayRequests(
 					}
 				];
 	});
-	const revisionRows = await readAll<CatalogueRow>(reads, guard.catalogue, {
-		settings_id: { in: [...new Set(lineage.flatMap((entry) => entry.versionIds))] },
-		code: { in: [...new Set(lineage.map((entry) => entry.code))] },
-		approval_id: { isNull: true }
-	});
+	const companyIds = [
+		...new Set(
+			candidates.flatMap((row) => {
+				const date = guard.eventDate(row);
+				const companyId =
+					date == null ? null : subjectOf(String(row.employment_id ?? ''), date)?.companyId;
+				return companyId == null ? [] : [companyId];
+			})
+		)
+	];
+	const [revisionRows, religiousHolidays] = await Promise.all([
+		readAll<CatalogueRow>(reads, guard.catalogue, {
+			settings_id: { in: [...new Set(lineage.flatMap((entry) => entry.versionIds))] },
+			code: { in: [...new Set(lineage.map((entry) => entry.code))] },
+			approval_id: { isNull: true }
+		}),
+		// The days a THR ceiling counts (ID Permenaker 6/2016 art.5(2)), as the run reads them.
+		readAll<{ readonly company_id: string; readonly date: string; readonly religion: string }>(
+			reads,
+			'jurisdiction_holidays',
+			{
+				company_id: { in: companyIds },
+				religion: { isNull: false },
+				published_at: { isNull: false },
+				approval_id: { isNull: true }
+			},
+			undefined,
+			{ company_id: true, date: true, religion: true }
+		)
+	]);
+	const revisionById = new Map(revisionRows.map((row) => [row.id, row]));
 	const payslipById = new Map(payslips.map((row) => [row.id, row]));
 
 	for (const [index, candidate] of candidates.entries()) {
@@ -199,27 +226,50 @@ export async function admitPayRequests(
 					);
 					const signOf = (row: Readonly<Record<string, unknown>>) =>
 						(guard.sign ?? 1) * (row.as_adjustment_entry === true ? -1 : 1);
-					const context = entryContext({
-						entry: {
-							amount,
-							event_date: eventDate,
-							incurred_on: candidate.incurred_on as string | null,
-							medical_reimbursement:
-								candidate.medical_reimbursement as PayRequest['medical_reimbursement']
-						},
-						subject: person.subject,
-						period: eventDate.slice(0, 7),
-						periodStart: `${eventDate.slice(0, 7)}-01`,
-						periodEnd: `${eventDate.slice(0, 7)}-01`,
-						instalments: 1,
-						// A write-time guard prices the entry outside any run: no proration is known here.
-						daysEmployed: 0,
-						daysInMonth: 0,
-						ordinaryDay: 0,
-						ordinaryHour: 0,
-						limits: {},
-						captures: { paidToDate: 0, remaining: amount }
-					});
+					const ownHolidays = religiousHolidays
+						.filter((row) => row.company_id === person.companyId)
+						.map((row) => ({ date: dateKey(row.date), religion: row.religion }));
+					const contextOf = (row: Readonly<Record<string, unknown>>, date: string) => {
+						const keyed = decodeNumber(row.amount);
+						return entryContext({
+							entry: {
+								amount: keyed,
+								event_date: date,
+								incurred_on: row.incurred_on as string | null,
+								medical_reimbursement:
+									row.medical_reimbursement as PayRequest['medical_reimbursement'],
+								late_wage: row.late_wage as PayRequest['late_wage']
+							},
+							// A sibling is priced for this entry's person, as the run prices it (money.ts).
+							subject: person.subject,
+							period: date.slice(0, 7),
+							periodStart: `${date.slice(0, 7)}-01`,
+							periodEnd: `${date.slice(0, 7)}-01`,
+							instalments: 1,
+							// A write-time guard prices the entry outside any run: no proration is known here.
+							daysEmployed: 0,
+							daysInMonth: 0,
+							ordinaryDay: 0,
+							ordinaryHour: 0,
+							limits: {},
+							captures: { paidToDate: 0, remaining: keyed },
+							religiousHolidays: ownHolidays
+						});
+					};
+					// What a request consumes of a ceiling is what its band prices it at, as the run
+					// values it (money.ts): ID's THR is one month's wage whatever is keyed (Permenaker
+					// 6/2016 art.3(1)). No band covering a banded class is nothing; no bands, the keyed sum.
+					const pricedAt = (
+						row: Readonly<Record<string, unknown>>,
+						date: string,
+						bands: CatalogueRow['bands']
+					): number => {
+						const own = contextOf(row, date);
+						const priced = bandFor(bands, own);
+						if (priced != null) return evaluateNumber(expressionEngine, String(priced.amount), own);
+						return bands.length > 0 ? 0 : decodeNumber(row.amount);
+					};
+					const context = contextOf(candidate, eventDate);
 					if (
 						(component.qualifies_when ?? '').trim() !== '' &&
 						!evaluateBoolean(expressionEngine, component.qualifies_when!, context)
@@ -240,9 +290,21 @@ export async function admitPayRequests(
 								employment_id: employmentId,
 								event_date: guard.eventDate(row)
 							};
-							return prior.length > 0
-								? prior.map((capture) => ({ ...common, amount: signOf(row) * capture.amount }))
-								: [{ ...common, amount: signOf(row) * decodeNumber(row.amount) }];
+							if (prior.length > 0)
+								return prior.map((capture) => ({
+									...common,
+									amount: signOf(row) * capture.amount
+								}));
+							const bands = (revisionById.get(row.catalogue_id) ?? component).bands;
+							return [
+								{
+									...common,
+									amount:
+										common.event_date == null
+											? 0
+											: signOf(row) * pricedAt(row, common.event_date, bands)
+								}
+							];
 						});
 						const resolved = resolveEntryLimit({
 							limit,
@@ -260,7 +322,7 @@ export async function admitPayRequests(
 										resolved,
 										componentCode: component.code,
 										subject: person.label,
-										proposed: signOf(candidate) * amount
+										proposed: signOf(candidate) * pricedAt(candidate, eventDate, component.bands)
 									});
 						if (refusal !== null) refuse(refusal);
 					}

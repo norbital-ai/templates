@@ -12,6 +12,7 @@
  * both register it.
  */
 import { isCalendarDate } from '../iso-day.js';
+import { refuse } from '../refuse.js';
 
 export function childUnder(children: unknown, age: unknown): bigint {
 	return countUnder((children as { ages?: unknown }).ages, age);
@@ -51,6 +52,19 @@ export function childBornOn(children: unknown, date: unknown): bigint {
 	if (!Array.isArray(birthdates)) return 0n;
 	const day = String(date).slice(0, 10);
 	return BigInt(birthdates.filter((value) => String(value).slice(0, 10) === day).length);
+}
+
+/**
+ * `children.multiple_born_on(date)` — the infants of a multiple birth: the children recorded as born
+ * that day. The records are the infant count (CN Order 619 art.7: 15 days per extra infant), so
+ * fewer than two refuses rather than granting a multiple birth's days over an incomplete record.
+ * The compile check's blank person (no records) evaluates without refusing.
+ */
+export function childMultipleBornOn(children: unknown, date: unknown): bigint {
+	const infants = childBornOn(children, date);
+	if (infants < 2n && (children as { records?: unknown }).records != null)
+		refuse('A multiple birth needs every infant recorded as a child born on the event date.');
+	return infants;
 }
 
 type DatedChild = {

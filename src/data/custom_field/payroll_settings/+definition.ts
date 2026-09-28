@@ -1,5 +1,8 @@
 import { customField } from '@norbital-ai/bolt';
-import { payrollSettingsFault } from '../../../lib/datatypes/payroll_settings.js';
+import {
+	INCOME_RETURN_ITEMS,
+	payrollSettingsFault
+} from '../../../lib/datatypes/payroll_settings.js';
 
 const CATEGORIES = [
 	'TAX_CLEARANCE',
@@ -113,7 +116,42 @@ const f = customField({
 			holiday_in_no_pay_leave_unpaid: { kind: 'bool', optional: true },
 			special_holiday_unworked_unpaid: { kind: 'bool', optional: true },
 			regular_holiday_prior_workday: { kind: 'bool', optional: true },
-			short_day_half_hours: { kind: 'number', optional: true }
+			short_day_half_hours: { kind: 'number', optional: true },
+			income_return: {
+				kind: 'object',
+				optional: true,
+				fields: {
+					form: { kind: 'enum', values: ['IR8A'] },
+					items: {
+						kind: 'list',
+						of: {
+							kind: 'object',
+							fields: {
+								code: { kind: 'text' },
+								item: { kind: 'enum', values: INCOME_RETURN_ITEMS }
+							}
+						}
+					},
+					compulsory_scheme: { kind: 'text' },
+					donation_schemes: { kind: 'list', of: { kind: 'text' } },
+					mosque_fund: {
+						kind: 'object',
+						optional: true,
+						fields: {
+							scheme: { kind: 'text' },
+							allocation: {
+								kind: 'list',
+								of: {
+									kind: 'object',
+									fields: { total: { kind: 'number' }, mosque: { kind: 'number' } }
+								}
+							},
+							authority: { kind: 'text' }
+						}
+					},
+					authority: { kind: 'text' }
+				}
+			}
 		}
 	}
 });

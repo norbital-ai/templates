@@ -36,7 +36,8 @@ const c = collection('leave_entries', {
 				'event_kind',
 				'event_relationship',
 				'event_child_index',
-				'event_date'
+				'event_date',
+				'agreed_pay_fraction'
 			]
 		}
 	},

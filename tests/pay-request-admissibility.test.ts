@@ -256,3 +256,57 @@ test('a captured claim refuses an edit and a delete; an uncaptured one takes bot
 	assert.equal(deletable(stored('paid-slip')), false);
 	assert.equal(deletable(stored(null)), true);
 });
+
+test('a ceiling is spent at the band price, and a religious holiday twice in the year is two ceilings (ID Permenaker 6/2016 arts.3(1), 5(2))', async () => {
+	// THR's shape: the band prices one month's wage whatever is keyed, and the calendar-year
+	// ceiling is one of them per tagged holiday of the worker's religion, never fewer than one.
+	const thr = {
+		code: 'BONUS',
+		evidence: 'NONE',
+		eligibility: '',
+		bands: [
+			{
+				when: '',
+				amount: '100.0',
+				limit: {
+					period: 'CALENDAR_YEAR',
+					on_exceed: 'BLOCK',
+					amount: '100.0 * (entry.religious_holidays > 1.0 ? entry.religious_holidays : 1.0)'
+				}
+			}
+		]
+	};
+	const world = (holidays) => {
+		const tables = requestWorld(thr);
+		tables.employees[0].religion = 'ISLAM';
+		tables.adhoc_requests = [
+			{
+				...ADHOC,
+				id: 'adhoc-first',
+				as_adjustment_entry: false,
+				payslip_id: null,
+				approval_id: null
+			}
+		];
+		tables.jurisdiction_holidays = holidays.map((date) => ({
+			id: `holiday-${date}`,
+			company_id: COMPANY_ID,
+			date,
+			name: 'Idul Fitri (synthetic)',
+			religion: 'ISLAM',
+			published_at: '2025-12-01T00:00:00.000Z',
+			approval_id: null
+		}));
+		return tables;
+	};
+	// Both keyed at 0: the first is still 100 of the ceiling, so the second is over it.
+	await assert.rejects(write(adhocRequests, ADHOC, world([])), /BONUS entitlement exceeded/);
+	await assert.rejects(
+		write(adhocRequests, ADHOC, world(['2026-01-02'])),
+		/BONUS entitlement exceeded/
+	);
+	assert.equal(
+		(await write(adhocRequests, ADHOC, world(['2026-01-02', '2026-12-22']))).employment_id,
+		EMPLOYMENT_ID
+	);
+});

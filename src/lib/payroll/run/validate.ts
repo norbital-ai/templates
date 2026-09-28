@@ -177,7 +177,7 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 				message:
 					`${options.employeeNumber} worked ${hours} regulated overtime hours in ${bucket}, ` +
 					`against a ${limit.max_hours}-hour calendar-${period.toLowerCase()} ceiling ` +
-					`(${options.configuration.work.authority ?? 'the Work rules'}). The run will still ` +
+					`(${limit.authority ?? options.configuration.work.authority ?? 'the Work rules'}). The run will still ` +
 					'be built; the schedule gate is where this ceiling refuses.',
 				collection: 'jurisdiction_settings',
 				recordId: options.configuration.jurisdiction.id
@@ -186,6 +186,8 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 	}
 	return issues;
 }
+
+const cite = (authority: string | undefined): string => (authority ? ` (${authority})` : '');
 
 /**
  * A day past the hours-of-work limit.
@@ -198,6 +200,8 @@ export function validateDailyWorkLimit(options: {
 	readonly employeeNumber: string;
 	readonly days: readonly DailyOvertime[];
 	readonly maxWorkHours: number;
+	/** The limit's own citation, printed as the period ceilings print theirs. */
+	readonly authority?: string | undefined;
 	/** A CLOCK_HOURS limit is a span: its evaluated ceiling subtracts the day's recorded break. */
 	readonly unit?: 'WORKED_HOURS' | 'CLOCK_HOURS' | undefined;
 }): RunIssue[] {
@@ -212,7 +216,7 @@ export function validateDailyWorkLimit(options: {
 			severity: 'WARNING' as const,
 			message:
 				`${options.employeeNumber} worked ${day.totalWorkHours.toFixed(2)} hours on ${day.date}, ` +
-				`above the ${maximum(day)}-hour daily limit. The run will still be built; ` +
+				`above the ${maximum(day)}-hour daily limit${cite(options.authority)}. The run will still be built; ` +
 				'correct the attendance for that day, or record why the hours stand.',
 			collection: 'work_days',
 			recordId: day.workDayId
@@ -230,6 +234,8 @@ export function validateDailyOvertimeHoursLimit(options: {
 	readonly employeeNumber: string;
 	readonly days: readonly DailyOvertime[];
 	readonly maxOvertimeHours: number;
+	/** The limit's own citation, printed as the period ceilings print theirs. */
+	readonly authority?: string | undefined;
 }): RunIssue[] {
 	return options.days
 		.filter(
@@ -240,7 +246,8 @@ export function validateDailyOvertimeHoursLimit(options: {
 			severity: 'WARNING' as const,
 			message:
 				`${options.employeeNumber} worked ${day.hours.toFixed(2)} overtime hours on ${day.date}, ` +
-				`above the ${options.maxOvertimeHours}-hour daily overtime limit. The run will still be built; ` +
+				`above the ${options.maxOvertimeHours}-hour daily overtime limit${cite(options.authority)}. ` +
+				'The run will still be built; ' +
 				'the hours past the ceiling are planned as incentive hours.',
 			collection: 'work_days',
 			recordId: day.workDayId
@@ -429,6 +436,8 @@ export function validateRosteredExpectations(options: {
 		readonly employee_number: string;
 		readonly terms: readonly RosteredValidationTerms[];
 		readonly workDays: readonly RosteredValidationDay[];
+		/** The holidays this person observes: a paid day the roster cannot assign, so it meets the guarantee as a day. */
+		readonly holidayDates?: ReadonlySet<string> | undefined;
 		/**
 		 * The attendance window this employment is paid over, when it is not the run's: at a
 		 * semi-monthly company the run's window is the envelope of two cadences, and a load is
@@ -439,8 +448,6 @@ export function validateRosteredExpectations(options: {
 	readonly workCodeIds: ReadonlySet<string>;
 	/** Holiday and company-off codes: a day the schedule cannot use, so the guarantee does not count it. */
 	readonly offCodeIds?: ReadonlySet<string> | undefined;
-	/** The calendar's holidays: a paid day the roster cannot assign, so it meets the guarantee as a day. */
-	readonly holidayDates?: ReadonlySet<string> | undefined;
 	readonly paidMinutesByCode: ReadonlyMap<string, number>;
 }): RunIssue[] {
 	const issues: RunIssue[] = [];
@@ -513,7 +520,7 @@ export function validateRosteredExpectations(options: {
 				return codeId != null && options.workCodeIds.has(codeId);
 			});
 			const holidays = activeDates.filter(
-				(date) => options.holidayDates?.has(date) === true && !worked.includes(date)
+				(date) => employment.holidayDates?.has(date) === true && !worked.includes(date)
 			);
 			const actualDays = worked.length + holidays.length;
 			const workedMinutes = worked.reduce(

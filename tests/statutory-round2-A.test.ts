@@ -405,7 +405,9 @@ test('SG IR21: every non-citizen is held, except a permanent resident not leavin
 				'leaving_singapore',
 				'misconduct_dismissal',
 				'final_pay_not_possible',
-				'clearance_awareness_on'
+				'clearance_awareness_on',
+				// Form IR21 states the departure where known (s.68(5)–(6)).
+				'departure_on'
 			]
 		);
 	}

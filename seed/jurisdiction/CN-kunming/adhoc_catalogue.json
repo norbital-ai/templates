@@ -1,0 +1,242 @@
+[
+	{
+		"id": "bd59a4e1-fd7d-5844-9b18-13f92a66b61e",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "ANNUAL_BONUS_SEPARATE",
+		"name": "Annual one-off bonus, taxed separately (全年一次性奖金单独计税)",
+		"authority": "MOF/STA 2023 No.30: a resident’s qualifying annual one-off bonus (including year-end pay rises and a 13th month under 国税发〔2005〕9号) may be taxed apart from wages until 31 December 2027. No statute obliges a bonus or 13th month (register CN-N53); the amount is contractual.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_BONUS", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f93dc9ac-3179-574a-bae7-bc0f99ffe02f",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "BONUS",
+		"name": "Bonus in wages (奖金)",
+		"authority": "STA 2018 No.61 art.6: a bonus not separately taxed is wage income of the month paid, withheld cumulatively. Contractual; no statutory amount (register CN-N53).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "5e463ae1-a7d2-5ab4-89a2-44eb7bbff275",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "ANNUAL_BONUS_SEPARATE",
+		"name": "Annual one-off bonus, taxed separately (全年一次性奖金单独计税)",
+		"authority": "MOF/STA 2023 No.30: a resident’s qualifying annual one-off bonus (including year-end pay rises and a 13th month under 国税发〔2005〕9号) may be taxed apart from wages until 31 December 2027. No statute obliges a bonus or 13th month (register CN-N53); the amount is contractual.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_BONUS", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "81d3057e-0333-57c0-8dac-e22644c14c65",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "BONUS",
+		"name": "Bonus in wages (奖金)",
+		"authority": "STA 2018 No.61 art.6: a bonus not separately taxed is wage income of the month paid, withheld cumulatively. Contractual; no statutory amount (register CN-N53).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "53cfeec4-7f38-50ce-b380-0644b2b9cc92",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "ANNUAL_BONUS_SEPARATE",
+		"name": "Annual one-off bonus, taxed separately (全年一次性奖金单独计税)",
+		"authority": "MOF/STA 2023 No.30: a resident’s qualifying annual one-off bonus (including year-end pay rises and a 13th month under 国税发〔2005〕9号) may be taxed apart from wages until 31 December 2027. No statute obliges a bonus or 13th month (register CN-N53); the amount is contractual.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_BONUS", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "66b0e73a-a3f6-5c4e-8938-86dcdd7a0efc",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "BONUS",
+		"name": "Bonus in wages (奖金)",
+		"authority": "STA 2018 No.61 art.6: a bonus not separately taxed is wage income of the month paid, withheld cumulatively. Contractual; no statutory amount (register CN-N53).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "14c75c46-ce2c-5f09-82b0-acac9610656a",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "SEVERANCE_PAY",
+		"name": "Economic compensation (经济补偿)",
+		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month; a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending. Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases.",
+		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12) > minimum_wage(person.company.region) ? person.employment.earned_monthly_average(12) : minimum_wage(person.company.region)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12) > minimum_wage(person.company.region) ? person.employment.earned_monthly_average(12) : minimum_wage(person.company.region)) * (floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_SEVERANCE"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "f7119554-8623-51cd-b3d8-39ea41df02c6",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "SEVERANCE_PAY",
+		"name": "Economic compensation (经济补偿)",
+		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month; a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending. Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases.",
+		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12) > minimum_wage(person.company.region) ? person.employment.earned_monthly_average(12) : minimum_wage(person.company.region)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12) > minimum_wage(person.company.region) ? person.employment.earned_monthly_average(12) : minimum_wage(person.company.region)) * (floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_SEVERANCE"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "4142c62e-e9e7-5238-be3b-74ec0f2a11e0",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "SEVERANCE_PAY",
+		"name": "Economic compensation (经济补偿)",
+		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month; a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending. Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases.",
+		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12) > minimum_wage(person.company.region) ? person.employment.earned_monthly_average(12) : minimum_wage(person.company.region)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12) > minimum_wage(person.company.region) ? person.employment.earned_monthly_average(12) : minimum_wage(person.company.region)) * (floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1) : 0.0))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_SEVERANCE"],
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "2dd0e975-f48b-557f-a460-3bc03cc67de5",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "MATERNITY_ALLOWANCE_OFFSET",
+		"name": "Maternity allowance paid to the worker (生育津贴冲抵)",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml) item 17: the agency may pay the allowance to the employer or the worker; neither they nor 云政办发〔2011〕121号 (https://hrss.yn.gov.cn/jyj/NewsView.aspx?ClassID=1098&NewsID=52165, arts.12–13) state who bears a shortfall below the wage. Owner rule 2026-09-28: law silent; default: the employer tops up to the wage, because 女职工劳动保护特别规定 art.5 forbids reducing wages for birth and the Yunnan regulation pays 生育假 as maternity leave. MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. The allowance is a fund benefit, not wages, so the offset leaves the IIT base and the art.47 average. Where the fund paid the employer, no line is raised.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4f10e3fe-54f1-58c1-acf7-956eb0af26e5",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "MATERNITY_ALLOWANCE_OFFSET",
+		"name": "Maternity allowance paid to the worker (生育津贴冲抵)",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml) item 17: the agency may pay the allowance to the employer or the worker; neither they nor 云政办发〔2011〕121号 (https://hrss.yn.gov.cn/jyj/NewsView.aspx?ClassID=1098&NewsID=52165, arts.12–13) state who bears a shortfall below the wage. Owner rule 2026-09-28: law silent; default: the employer tops up to the wage, because 女职工劳动保护特别规定 art.5 forbids reducing wages for birth and the Yunnan regulation pays 生育假 as maternity leave. MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. The allowance is a fund benefit, not wages, so the offset leaves the IIT base and the art.47 average. Where the fund paid the employer, no line is raised.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "2fb22daa-23c1-5a7a-a798-ec803e208596",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "MATERNITY_ALLOWANCE_OFFSET",
+		"name": "Maternity allowance paid to the worker (生育津贴冲抵)",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml) item 17: the agency may pay the allowance to the employer or the worker; neither they nor 云政办发〔2011〕121号 (https://hrss.yn.gov.cn/jyj/NewsView.aspx?ClassID=1098&NewsID=52165, arts.12–13) state who bears a shortfall below the wage. Owner rule 2026-09-28: law silent; default: the employer tops up to the wage, because 女职工劳动保护特别规定 art.5 forbids reducing wages for birth and the Yunnan regulation pays 生育假 as maternity leave. MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. The allowance is a fund benefit, not wages, so the offset leaves the IIT base and the art.47 average. Where the fund paid the employer, no line is raised.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	}
+]

@@ -203,9 +203,11 @@ export function computedEntitlement(options: {
 				? Math.ceil(value * 2 - 1e-9) / 2
 				: rule.rounding === 'WHOLE_DAY'
 					? Math.floor(value + 0.5 + 1e-9)
-					: rule.rounding === 'EXACT'
-						? value
-						: roundHalfDay(value)
+					: rule.rounding === 'WHOLE_DAY_DOWN'
+						? Math.floor(value + 1e-9)
+						: rule.rounding === 'EXACT'
+							? value
+							: roundHalfDay(value)
 		);
 	const entitlement = round(target * fraction(end));
 	const earned = round(target * fraction(through));

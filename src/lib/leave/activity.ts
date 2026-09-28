@@ -69,7 +69,16 @@ export function measureLeaveDay(
 	throughHoliday = false
 ) {
 	const settings = rules.settingsOn(date);
-	const resolved = resolveHolidays(context.holidays, rules.company.id, date, date);
+	const resolved = resolveHolidays(
+		context.holidays,
+		rules.company.id,
+		date,
+		date,
+		() =>
+			context.terms.find(
+				(row) => row.employment_id === rules.employment.id && coversDate(row.effective_range, date)
+			)?.worksite
+	);
 	const evidence = {
 		company_id: rules.company.id,
 		date,
@@ -198,7 +207,8 @@ export function planLeaveActivity(
 		event_kind: input.event_kind ?? null,
 		event_relationship: input.event_relationship ?? null,
 		event_child_index: input.event_child_index ?? null,
-		event_date: input.event_date ?? null
+		event_date: input.event_date ?? null,
+		agreed_pay_fraction: input.agreed_pay_fraction ?? null
 	};
 	const charges: LeaveCharge[] = [];
 	const allocations: LeaveAllocation[] = [];
@@ -469,6 +479,40 @@ export function planLeaveActivity(
 				);
 			return true;
 		}
+		if (rule.child_years === true) {
+			// Every day, earlier or asked for, on the pool of a child whose year from its birth date
+			// holds it: a transport problem (days to child-years), answered by maximum flow.
+			const own = activeTimeOff(sameLeave).filter((row) => row.leave_code === rules.selected.code);
+			const earlier = [...own, ...priorTimeOff()].flatMap((row) => row.charges);
+			const room = new Map<string, number>();
+			/** The child-years holding a day: each child's year from the last birthday on or before it. */
+			const yearsOf = (date: string): string[] =>
+				rules.children.flatMap((row, child) => {
+					const born = dateKey(row.child_birthdate);
+					if (born == null || born > date) return [];
+					const [m, d] = [born.slice(5, 7), born.slice(8, 10)].map(Number) as [number, number];
+					const y = Number.parseInt(date.slice(0, 4), 10);
+					const start =
+						monthDay(y, m - 1, d) <= date ? monthDay(y, m - 1, d) : monthDay(y - 1, m - 1, d);
+					const key = `${child}/${start}`;
+					if (!room.has(key)) room.set(key, grantedDays(rule, rules.childPersonOn(start, child)));
+					return [key];
+				});
+			const reach = [...earlier, ...charged].map((row) => yearsOf(row.date));
+			const keys = [...room.keys()];
+			const placed = (count: number) =>
+				placeable(
+					[...earlier, ...charged].slice(0, count).map((row) => row.days),
+					keys.map((key) => room.get(key)!),
+					reach.slice(0, count).map((row) => keys.map((key) => row.includes(key)))
+				);
+			const before = placed(earlier.length);
+			if (placed(reach.length) - before + 1e-9 < quantity)
+				refuse(
+					`${rules.selected.code} grants its days in each year from a child's birth date; ${before} are already taken and this would add ${quantity}.`
+				);
+			return true;
+		}
 		if (rule.rolling_months != null) {
 			for (const charge of charged) {
 				const from = rollingFrom(charge.date, rule.rolling_months);
@@ -518,6 +562,9 @@ export function planLeaveActivity(
 						refuse(`Leave overlaps an approved or pending ${half.toLowerCase()} half on ${date}.`);
 					halves += 1;
 				}
+				// TW Leave Regulations art. 7(2): the hour is a unit only where the catalogue says so.
+				if (fields.hours != null && day.catalogue.unit !== 'HOUR')
+					refuse(`${day.catalogue.code} is taken by the day or half day, not by the hour.`);
 				const days =
 					day.catalogue.unit === 'HOUR' && fields.hours != null
 						? hourlyShare(fields.hours, range, day.shift.variant)

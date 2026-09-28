@@ -8,7 +8,7 @@ import { refuseUnlessDraftOnBoth, versionsById } from '../../../lib/settings_sea
 import { readAll } from '../../../lib/reads.js';
 import { plain } from '../../../lib/wire.js';
 import { orderSchemes, producedMentions } from '../../../lib/payroll/run/mentions.js';
-import type { DeclaredKey } from '../../../lib/expressions/compile.js';
+import { compileExpression, type DeclaredKey } from '../../../lib/expressions/compile.js';
 import type { ContributionRule } from '../../../lib/datatypes/contribution_rules.js';
 import { getErrorMessage } from '../../../lib/refuse.js';
 
@@ -32,6 +32,7 @@ const c = collection('statutory_contributions', {
 				'assessment_period',
 				'assessment_scope',
 				'remittance_rounding',
+				'remittance_rounding_when',
 				'unregistered_action',
 				'registration_subject',
 				'opening_scope',
@@ -58,6 +59,7 @@ const c = collection('statutory_contributions', {
 				'assessment_period',
 				'assessment_scope',
 				'remittance_rounding',
+				'remittance_rounding_when',
 				'unregistered_action',
 				'registration_subject',
 				'opening_scope',
@@ -86,6 +88,7 @@ type Scheme = {
 	readonly assessment_period?: string;
 	readonly assessment_scope?: string;
 	readonly remittance_rounding?: string;
+	readonly remittance_rounding_when?: string;
 	readonly assessed_on?: string;
 	readonly ordinary_on?: string;
 	readonly elections?: readonly DeclaredKey[];
@@ -158,6 +161,18 @@ c.transform(async (inputs, ctx) => {
 			ctx.refuse(
 				`${what}: aggregate remittance rounding requires an employment-scoped monthly scheme.`
 			);
+		const roundedWhen = row.remittance_rounding_when ?? '';
+		if (roundedWhen.trim() !== '') {
+			if (row.remittance_rounding !== 'FLOOR_MAJOR_UNIT')
+				ctx.refuse(`${what}: a remittance-rounding condition requires a remittance rounding.`);
+			const fault = compileExpression({
+				expression: roundedWhen,
+				site: 'scheme',
+				type: 'boolean',
+				elections: row.elections ?? []
+			});
+			if (fault != null) ctx.refuse(`${what} remittance-rounding condition: ${fault}`);
+		}
 		const assessedOn = row.assessed_on ?? '';
 		const others = siblings.filter(
 			(other) =>

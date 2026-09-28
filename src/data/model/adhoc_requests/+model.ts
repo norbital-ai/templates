@@ -16,6 +16,8 @@ export default model({
 		evidence_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
 		/** Settle against the catalogue's direction (a claw-back). */
 		as_adjustment_entry: { kind: 'bool', default: false },
+		/** A wage paid late: the amount is the late sum, priced by the class (VN LC art.97(4)). */
+		late_wage: { kind: 'custom', of: 'late_wage', optional: true },
 		pay_period: { kind: 'text', optional: true }
 	},
 	index: [

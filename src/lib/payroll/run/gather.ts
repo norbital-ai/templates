@@ -21,7 +21,7 @@ import {
 import { prepareFamilyHistory } from '../../../lib/payroll/families.js';
 import { prepareWorkInputs } from '../work.js';
 import { prepareLoanPayroll } from '../loan.js';
-import { prepareContributionInputs } from '../contribution.js';
+import { contributionYearToDate, prepareContributionInputs } from '../contribution.js';
 import {
 	completedMonths,
 	completedYears,
@@ -150,6 +150,13 @@ export type GatheredRun = {
 		string,
 		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
 	>;
+	/** `${employee_id}:${contribution_code}` → what was charged in the tax year before this one. */
+	readonly lastYear?: ReadonlyMap<
+		string,
+		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
+	>;
+	/** `${employee_id}:${contribution_code}` → the earliest tax year an earlier slip charged a base. */
+	readonly firstYear?: ReadonlyMap<string, number>;
 	/** employee id → earlier paid statutory assessments in this tax year, grouped by payroll period. */
 	readonly statutoryHistory: ReadonlyMap<string, readonly StatutoryPeriodHistory[]>;
 	/** employee id → component code → what the person's earlier payslips earned this tax year. */
@@ -421,6 +428,11 @@ type PriorSettlement = {
 		string,
 		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
 	>;
+	readonly lastYear: ReadonlyMap<
+		string,
+		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
+	>;
+	readonly firstYear: ReadonlyMap<string, number>;
 	readonly yearEarned: Map<string, Map<string, number>>;
 	readonly yearQuantityPayments: Map<string, Map<string, QuantityPayment[]>>;
 	readonly earnedByMonth: Map<string, Map<string, Map<string, number>>>;
@@ -509,6 +521,15 @@ function gatherPriorSettlement(options: GatherPriorSettlementOptions): PriorSett
 				payslips.map((slip) => accumulateSettledPayslip(slip, components))
 			),
 			produced: totals(payslips.flatMap((slip) => slip.statutory)),
+			unrounded: new Map(
+				[
+					...totals(
+						payslips
+							.flatMap((slip) => slip.statutory)
+							.filter((row) => row.remittance_rounding === 'NONE')
+					)
+				].map(([code, sums]) => [code, sums.employer])
+			),
 			charged: totals(monthRuns.flatMap((run) => run.company_charges ?? []))
 		};
 	}
@@ -521,6 +542,14 @@ function gatherPriorSettlement(options: GatherPriorSettlementOptions): PriorSett
 			)
 			.map((run) => run.id)
 	);
+	// PP 68/2009 art.2(2): parts of one severance paid within two calendar years are taxed as one,
+	// so the year before this one is read too — only through `scheme.last_year`.
+	const lastTaxYear = String(decodeNumber(taxYearOf(options.period, startMonth)) - 1);
+	const inLastTaxYear = new Set(
+		priorRuns
+			.filter((run) => taxYearOf(run.period, startMonth) === lastTaxYear)
+			.map((run) => run.id)
+	);
 	const totals = new Map<
 		string,
 		{ employee: number; employer: number; base: number; ordinary: number }
@@ -529,6 +558,8 @@ function gatherPriorSettlement(options: GatherPriorSettlementOptions): PriorSett
 	const empty = {
 		companyMonthPrior,
 		yearToDate: totals,
+		lastYear: totals,
+		firstYear: new Map<string, number>(),
 		statutoryHistory: new Map<string, readonly StatutoryPeriodHistory[]>(),
 		yearEarned: new Map<string, Map<string, number>>(),
 		yearQuantityPayments: new Map<string, Map<string, QuantityPayment[]>>(),
@@ -553,6 +584,19 @@ function gatherPriorSettlement(options: GatherPriorSettlementOptions): PriorSett
 		(slip) => priorRunIds.has(slip.payroll_run_id) && employmentToEmployee.has(slip.employment_id)
 	);
 	if (priorPayslips.length === 0) return empty;
+	// PP 68/2009 art.6(1): a severance part paid in the third calendar year counted from the first
+	// part leaves the art.2(2) window, so the year of the first charged base is read too.
+	const periodByRun = new Map(priorRuns.map((run) => [run.id, run.period]));
+	const firstYear = new Map<string, number>();
+	for (const slip of priorPayslips) {
+		const year = decodeNumber(taxYearOf(periodByRun.get(slip.payroll_run_id)!, startMonth));
+		const employeeId = employmentToEmployee.get(slip.employment_id)!;
+		for (const charge of slip.statutory) {
+			if (charge.base_amount <= 0) continue;
+			const key = `${employeeId}:${charge.scheme_code}`;
+			if (year < (firstYear.get(key) ?? Infinity)) firstYear.set(key, year);
+		}
+	}
 
 	return {
 		companyMonthPrior,
@@ -561,9 +605,15 @@ function gatherPriorSettlement(options: GatherPriorSettlementOptions): PriorSett
 			payslips: priorPayslips,
 			inTaxYear,
 			employmentToEmployee,
-			periodByRun: new Map(priorRuns.map((run) => [run.id, run.period])),
+			periodByRun,
 			traceByRun: new Map(priorRuns.map((run) => [run.id, run.calculation_trace])),
 			catalogueComponents: options.configuration.catalogueComponents
-		})
+		}),
+		lastYear: contributionYearToDate({
+			payslips: priorPayslips,
+			inTaxYear: inLastTaxYear,
+			employmentToEmployee
+		}),
+		firstYear
 	};
 }

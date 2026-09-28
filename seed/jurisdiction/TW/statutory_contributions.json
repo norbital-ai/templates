@@ -258,7 +258,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -487,7 +487,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -938,7 +938,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -1710,7 +1710,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -1769,7 +1769,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -2034,7 +2034,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2263,7 +2263,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -2709,7 +2709,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -3481,7 +3481,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -3540,7 +3540,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -3805,7 +3805,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -4034,7 +4034,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -4480,7 +4480,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -5252,7 +5252,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -5311,7 +5311,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -5328,7 +5328,7 @@
 		"id": "413accf3-5de7-55c7-ad32-0eadbaa5f15f",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -5353,7 +5353,7 @@
 		"id": "94f8df31-41f8-59a1-a0cc-fd1fc7277e17",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -5378,7 +5378,7 @@
 		"id": "00362fb1-00b9-54ea-bfce-241d560979d5",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -5535,7 +5535,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (台財稅字第11204674210號公告): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (財政部 113年11月28日台財稅字第11304670610號公告, https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10: unchanged from 113年度, CPI rise 2.29% under the 3% trigger — citation corrected 2026-09-28: the number formerly cited is the 113年度 order): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -5563,7 +5563,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "c967118f-55ab-46ce-989f-f20577bcbd49",
@@ -5600,7 +5600,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -5628,7 +5628,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "c4004336-ab78-45d0-835e-bb6dd90c142f",
@@ -5665,7 +5665,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -5693,7 +5693,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "d7017cd0-9ebc-4093-ad16-b2e942862701",
@@ -6125,7 +6125,7 @@
 		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -6354,7 +6354,7 @@
 		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -6805,7 +6805,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -7577,7 +7577,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -7636,7 +7636,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -7901,7 +7901,7 @@
 		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -8130,7 +8130,7 @@
 		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -8576,7 +8576,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -9348,7 +9348,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -9407,7 +9407,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -9672,7 +9672,7 @@
 		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -9901,7 +9901,7 @@
 		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -10347,7 +10347,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -11119,7 +11119,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -11178,7 +11178,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -11195,7 +11195,7 @@
 		"id": "434fa8c2-f1d4-5e05-8f2e-70818c272aed",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -11220,7 +11220,7 @@
 		"id": "91170cf4-277b-516f-89de-2b6996f844d3",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -11245,7 +11245,7 @@
 		"id": "ae278597-78fd-5e5a-8f28-8e5d20208fbc",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -11402,7 +11402,7 @@
 		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (台財稅字第11204674210號公告): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (財政部 113年11月28日台財稅字第11304670610號公告, https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10: unchanged from 113年度, CPI rise 2.29% under the 3% trigger — citation corrected 2026-09-28: the number formerly cited is the 113年度 order): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -11430,7 +11430,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "4d1a7106-14f6-5ea9-ab9c-c655cc836834",
@@ -11467,7 +11467,7 @@
 		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -11495,7 +11495,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "e9e1acda-3afb-5931-9b78-2441ade49c12",
@@ -11532,7 +11532,7 @@
 		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -11560,7 +11560,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "56545d82-7da0-5e8d-9f23-94fbdb3128cd",
@@ -11992,7 +11992,7 @@
 		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -12221,7 +12221,7 @@
 		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -12672,7 +12672,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -13444,7 +13444,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -13503,7 +13503,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -13768,7 +13768,7 @@
 		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -13997,7 +13997,7 @@
 		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -14443,7 +14443,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -15215,7 +15215,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -15274,7 +15274,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -15539,7 +15539,7 @@
 		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -15768,7 +15768,7 @@
 		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -16214,7 +16214,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -16986,7 +16986,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -17045,7 +17045,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -17062,7 +17062,7 @@
 		"id": "78c927d0-fc34-5b3c-891e-c036a3055c83",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -17087,7 +17087,7 @@
 		"id": "da6eb4ad-679c-5aef-bfe9-39e8fc5f9cbc",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -17112,7 +17112,7 @@
 		"id": "d59f7f75-652a-574e-a970-187870e55ff0",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -17269,7 +17269,7 @@
 		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (台財稅字第11204674210號公告): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (財政部 113年11月28日台財稅字第11304670610號公告, https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10: unchanged from 113年度, CPI rise 2.29% under the 3% trigger — citation corrected 2026-09-28: the number formerly cited is the 113年度 order): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -17297,7 +17297,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "9bd0a01a-8a86-517c-b48d-2c9486b7b531",
@@ -17334,7 +17334,7 @@
 		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -17362,7 +17362,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "54d1702b-d2b5-5a9d-a256-4858391830fa",
@@ -17399,7 +17399,7 @@
 		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -17427,7 +17427,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "d295ecc1-0eb3-542f-864d-270620abb6fe",
@@ -17859,7 +17859,7 @@
 		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -18088,7 +18088,7 @@
 		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -18534,7 +18534,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -19306,7 +19306,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -19365,7 +19365,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -19630,7 +19630,7 @@
 		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -19859,7 +19859,7 @@
 		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -20305,7 +20305,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -21077,7 +21077,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -21136,7 +21136,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -21153,7 +21153,7 @@
 		"id": "be96adae-9401-5a2b-9b5c-13418d41d945",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -21178,7 +21178,7 @@
 		"id": "f87573be-4e68-5ada-9bee-253227e8085b",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -21299,7 +21299,7 @@
 		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -21327,7 +21327,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "cd0b1a48-3ae1-58cf-9e10-2f715b29eb01",
@@ -21364,7 +21364,7 @@
 		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -21392,7 +21392,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "3ee6b1ee-bff5-5bc1-84e5-8f376d997b7a",
@@ -21767,7 +21767,7 @@
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged. BLI eligibility and document classification: https://www.bli.gov.tw/0007747.html",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged. BLI eligibility and document classification: https://www.bli.gov.tw/0007747.html",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -22016,7 +22016,7 @@
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -22467,7 +22467,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -23239,7 +23239,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -23298,7 +23298,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -23315,7 +23315,7 @@
 		"id": "80134875-2bb3-5f7f-b420-58c3a7bbcdb9",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -23400,7 +23400,7 @@
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (台財稅字第11204674210號公告): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (財政部 113年11月28日台財稅字第11304670610號公告, https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10: unchanged from 113年度, CPI rise 2.29% under the 3% trigger — citation corrected 2026-09-28: the number formerly cited is the 113年度 order): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -23428,7 +23428,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "2466eea0-fb58-515a-a521-224aac1d8b8f",
@@ -23746,7 +23746,7 @@
 		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged. BLI eligibility and document classification: https://www.bli.gov.tw/0007747.html",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged. BLI eligibility and document classification: https://www.bli.gov.tw/0007747.html",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -23995,7 +23995,7 @@
 		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -24441,7 +24441,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -25213,7 +25213,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -25272,7 +25272,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -25537,7 +25537,7 @@
 		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged. BLI eligibility and document classification: https://www.bli.gov.tw/0007747.html",
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html Applied 2026-09-23: 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged. BLI eligibility and document classification: https://www.bli.gov.tw/0007747.html",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -25786,7 +25786,7 @@
 		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy (臺北市政府社會局, citing 衛生福利部). Sources: https://www.nhi.gov.tw/en/cp-68-8652 f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74 b 0 f-2613-1.html",
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. Applied 2026-09-23: 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round_unit(per-person premium × share) and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -26232,7 +26232,7 @@
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"elections": [
 			{
 				"key": "exempt",
@@ -27004,7 +27004,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
+		"assessed_on": "(BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee_this_period)",
 		"elections": [
 			{
 				"key": "five_percent_withholding",
@@ -27063,7 +27063,7 @@
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
 		],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE",
 		"short_name": null,
 		"listing_order": 42,
 		"listing_group": null,
@@ -27080,7 +27080,7 @@
 		"id": "b85290ee-8ab3-5648-94fe-c1398add6aa9",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -27105,7 +27105,7 @@
 		"id": "547c791e-35c2-538f-856e-950af260bf64",
 		"assessment_scope": "COMPANY",
 		"elections": [],
-		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
+		"assessed_on": "BASE + INCENTIVE + (ALLOWANCES + ADHOC) - (code('MEAL_ALLOWANCE') > 3000.0 ? 3000.0 : code('MEAL_ALLOWANCE')) - ABSENCE - NO_PAY_LEAVE - produced.LABOR_PENSION.employee",
 		"rules": [
 			{
 				"when": "base > produced.NHI.base",
@@ -27226,7 +27226,7 @@
 		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -27254,7 +27254,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "0e9712b5-7b56-5cea-a296-21e3ad5b0542",
@@ -27291,7 +27291,7 @@
 		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
 		"code": "SEVERANCE_TAX",
 		"name": "Severance withholding (退職所得扣繳)",
-		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 is 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (台財稅字第11304670610號公告): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 115年度 (財政部 114年11月27日台財稅字第11404664070號公告, CPI +4.13% over 113年度; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10; https://www.dot.gov.tw/singlehtml/ch26?cntId=cf5db69f558d42409aa56c70838e8802 — citation corrected 2026-09-28: the number formerly cited is a 2024 order): a lump sum is exempt to 206,000 × 退職服務年資, half taxable to 414,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only. The 116年度 announcement was not yet published when this version was sealed; the 115年度 figures carry.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -27319,7 +27319,7 @@
 		"short_name": null,
 		"listing_order": null,
 		"listing_group": null,
-		"assessed_on": "code('SEVERANCE_PAY')"
+		"assessed_on": "code('SEVERANCE_PAY') + code('RETIREMENT_PAY')"
 	},
 	{
 		"id": "8ec6e016-e265-5906-8ae8-c245c0243643",

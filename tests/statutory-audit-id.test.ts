@@ -28,7 +28,12 @@ import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 
-const world = (period: string, people: Person[], riskClass = 'II', region = 'DKI Jakarta') => ({
+const world = (
+	period: string,
+	people: Person[],
+	riskClass = 'II',
+	region = 'Provinsi DKI Jakarta'
+) => ({
 	code: 'ID' as const,
 	period,
 	region,

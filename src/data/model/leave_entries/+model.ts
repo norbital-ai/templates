@@ -50,6 +50,8 @@ export default model({
 		event_relationship: { kind: 'text', optional: true },
 		event_child_index: { kind: 'int', min: 1, optional: true },
 		event_date: { kind: 'date', optional: true },
+		/** Stoppage paid at an agreed share of the day wage (VN Labour Code art.99(2), (3)): 0.7 is 70%. */
+		agreed_pay_fraction: { kind: 'decimal', scale: 4, min: 0, max: 1, optional: true },
 		/** The activity and the day it turns on, composed by the planner. */
 		summary: { kind: 'text', optional: true }
 	},

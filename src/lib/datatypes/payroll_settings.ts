@@ -1,5 +1,45 @@
 type Codes = readonly string[] | null;
 
+/** The return item a settled class is reported on (SG Form IR8A items a–d8 and deductions). */
+export const INCOME_RETURN_ITEMS = [
+	'A_SALARY',
+	'B_CONTRACTUAL_BONUS',
+	'B_NON_CONTRACTUAL_BONUS',
+	'C_DIRECTOR_FEES',
+	'D1_ALLOWANCE',
+	'D1_OCLA',
+	'D2_COMMISSION',
+	'D3_LUMP_SUM',
+	'COMPENSATION_FOR_LOSS_OF_OFFICE',
+	'D4_PENSION',
+	'D5_OVERSEAS_PENSION_FUND',
+	'D7_GAINS_S10_1_B',
+	'D7_GAINS_S10_1_G',
+	'D8_BENEFITS_IN_KIND',
+	'DONATION',
+	'LIFE_INSURANCE',
+	'NOT_INCOME'
+] as const;
+export type IncomeReturnItem = (typeof INCOME_RETURN_ITEMS)[number];
+
+/** How settled payslips become the employer's annual employment-income return. */
+export type IncomeReturnSettings = {
+	readonly form: 'IR8A';
+	/** Class code → item; an unnamed earning is item a, an unnamed allowance item d1. */
+	readonly items: readonly { readonly code: string; readonly item: IncomeReturnItem }[];
+	/** The scheme whose employee share is the compulsory-contribution deduction. */
+	readonly compulsory_scheme: string;
+	/** Schemes whose employee share is a donation deducted from salary. */
+	readonly donation_schemes: readonly string[];
+	/** A combined fund whose Mosque Building part is reported apart, the rest as a donation. */
+	readonly mosque_fund?: {
+		readonly scheme: string;
+		readonly allocation: readonly { readonly total: number; readonly mosque: number }[];
+		readonly authority: string;
+	} | null;
+	readonly authority: string;
+};
+
 /**
  * The payroll facts of one jurisdiction settings version: currency, the IANA zone of its wall clock
  * (a punch is an instant, a shift start a wall-clock time), the month its tax year opens and whether
@@ -95,6 +135,7 @@ export type PayrollSettings = {
 	readonly regular_holiday_prior_workday?: boolean | null;
 	/** A contracted day of at most this many hours is half a working day (SG EA s.20A(2)). */
 	readonly short_day_half_hours?: number | null;
+	readonly income_return?: IncomeReturnSettings | null;
 };
 
 const share = (value: number | null | undefined) => value == null || (value >= 0 && value <= 1);
@@ -142,5 +183,10 @@ export function payrollSettingsFault(value: PayrollSettings): string | undefined
 	)
 		return 'tax_clearance: tax_payment_days must be a positive integer';
 	if ((value.short_day_half_hours ?? 1) <= 0) return 'short_day_half_hours: must be positive';
+	const income = value.income_return;
+	if (income != null && (income.compulsory_scheme === '' || income.authority === ''))
+		return 'income_return: compulsory scheme and authority are required';
+	if (income?.mosque_fund?.allocation.some((row) => row.mosque < 0 || row.mosque > row.total))
+		return 'income_return: a Mosque Building part lies between zero and its total';
 	return undefined;
 }

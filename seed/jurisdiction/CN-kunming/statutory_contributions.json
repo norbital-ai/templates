@@ -1,0 +1,1016 @@
+[
+	{
+		"id": "132fcc4d-cce9-5c5b-a7e2-155c499db907",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "PENSION",
+		"name": "Basic pension insurance (养老保险)",
+		"authority": "Yunnan HRSS: employer 16%, employee 8% (https://www.yncxym.gov.cn/info/1011/286437.htm; https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28618.html Q82). Yunnan base 4,357–21,789 for pension, unemployment and injury. The base is the declared prior-year monthly average wage clamped to the bounds. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(\"contribution_base\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * 8.0 / 100.0)",
+				"employer": "round_cent(base * 16.0 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (scheme.elections.contribution_base < 4357.0 ? 4357.0 : (scheme.elections.contribution_base > 21789.0 ? 21789.0 : scheme.elections.contribution_base))",
+		"short_name": "Pension",
+		"listing_order": 10,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "contribution_base",
+				"type": "number",
+				"minimum": 0,
+				"required": true,
+				"label": "Social-insurance contribution base (monthly)",
+				"description": "The prior calendar year’s monthly average wage at this employer, or a new hire’s first full month’s wage, before the published floor and ceiling. Every social-insurance scheme of this version reads it."
+			}
+		]
+	},
+	{
+		"id": "03ef16ba-b3aa-546f-a274-28a4cb0dc838",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "MEDICAL",
+		"name": "Employee basic medical insurance (基本医疗保险)",
+		"authority": "Kunming Medical Security Bureau notice of 30 December 2022, from 1 January 2023: employer 7% excluding maternity (https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml); employee 2% is implied by the 2% account credit, not stated (register CN-KM04, open). Medical base 4,357–21,789. Long-term care is funded from the medical funds, no extra deduction (CN-KM16). The per-head major-medical charge is not seeded: its only source is a reproduced agency notice. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * 2.0 / 100.0)",
+				"employer": "round_cent(base * 7.0 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4357.0 ? 4357.0 : (person.facts.PENSION.elections.contribution_base > 21789.0 ? 21789.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Medical",
+		"listing_order": 20,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "5ef586a4-2af9-5f8d-a693-ee025cbaa95d",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "MATERNITY",
+		"name": "Maternity insurance (生育保险)",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml): employer 0.9% on the medical base; the worker pays nothing. Medical base 4,357–21,789. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_cent(base * 0.9 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4357.0 ? 4357.0 : (person.facts.PENSION.elections.contribution_base > 21789.0 ? 21789.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Maternity",
+		"listing_order": 25,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "83f48191-593a-5e6f-9d2e-2f6f06e8eae6",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "UNEMPLOYMENT",
+		"name": "Unemployment insurance (失业保险)",
+		"authority": "Yunnan 2025: employer 0.7%, employee 0.3% to 31 December 2025 (https://www.hhpb.gov.cn/info/5861/518871.htm). Yunnan base 4,357–21,789 for pension, unemployment and injury. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * 0.3 / 100.0)",
+				"employer": "round_cent(base * 0.7 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4357.0 ? 4357.0 : (person.facts.PENSION.elections.contribution_base > 21789.0 ? 21789.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Unemployment",
+		"listing_order": 30,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "08ef9c29-218f-5b70-9d0f-16204d32b33c",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "INJURY",
+		"name": "Work-injury insurance (工伤保险)",
+		"authority": "Employer only; industry classes I–VIII at 0.2/0.4/0.7/0.9/1.1/1.3/1.6/1.9% then the assigned float (云人社发〔2020〕14号; https://www.yncxym.gov.cn/info/1011/286437.htm), entity fact `injury_rate`. Yunnan base 4,357–21,789 for pension, unemployment and injury. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_cent(base * person.company.facts.injury_rate / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4357.0 ? 4357.0 : (person.facts.PENSION.elections.contribution_base > 21789.0 ? 21789.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Injury",
+		"listing_order": 40,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "2045cd9f-bac4-52fd-ab0e-729d3110afb9",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "HOUSING_FUND",
+		"name": "Housing provident fund (住房公积金)",
+		"authority": "Kunming housing fund: ceiling 32,470; floor 2,170 (category I) / 2,020 for new, opened and transferred accounts from October 2025; the floor of an unchanged existing account after October is unresolved (register CN-KM05), so a base below the new floor refuses. Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). Kunming has no supplementary fund: `housing_fund_supplementary_rate` must stay 0. Each share is rounded to the whole yuan (四舍五入) separately — ordinary and supplementary alike — and the shares are then summed.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(\"contribution_base\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the housing-fund contribution base (`contribution_base`): the prior year’s monthly average wage, or the first-ever / transferred worker’s qualifying month."
+			},
+			{
+				"when": "!person.employee.receiving_pension && !(person.employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record citizenship on the employment terms: a foreign or permanent-resident worker joins the housing fund only by agreement."
+			},
+			{
+				"when": "!person.employee.receiving_pension && scheme.elections.contribution_base < (person.company.region == \"CATEGORY_I\" ? 2170.0 : 2020.0)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "The declared housing-fund base is below the published floor, and the floor that governs this account is not settled by the retrieved Kunming notices (register CN-KM05); record the base at or above the floor or the agency’s written determination."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_unit(base * person.company.facts.housing_fund_rate / 100.0) + round_unit(base * person.company.facts.housing_fund_supplementary_rate / 100.0)",
+				"employer": "round_unit(base * person.company.facts.housing_fund_rate / 100.0) + round_unit(base * person.company.facts.housing_fund_supplementary_rate / 100.0)"
+			}
+		],
+		"assessed_on": "(person.employee.receiving_pension || (person.employee.citizenship != \"CITIZEN\" && !scheme.elections.voluntary_agreement) || (scheme.elections.first_ever_account && person.employment.service_start >= period.start)) ? 0.0 : (scheme.elections.contribution_base < (person.company.region == \"CATEGORY_I\" ? 2170.0 : 2020.0) ? (person.company.region == \"CATEGORY_I\" ? 2170.0 : 2020.0) : (scheme.elections.contribution_base > 32470.0 ? 32470.0 : scheme.elections.contribution_base))",
+		"short_name": "Housing fund",
+		"listing_order": 50,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "contribution_base",
+				"type": "number",
+				"minimum": 0,
+				"required": true,
+				"label": "Housing-fund contribution base (monthly)",
+				"description": "The prior calendar year’s monthly average wage, or the first-ever / transferred worker’s qualifying month, before the published bounds."
+			},
+			{
+				"key": "first_ever_account",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "First-ever fund worker",
+				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.16)."
+			},
+			{
+				"key": "voluntary_agreement",
+				"type": "boolean",
+				"default_value": false,
+				"label": "Agreed participation (foreign / permanent-resident worker)",
+				"description": "A foreign or permanent-resident worker contributes only on mutual agreement; nationality alone never enrols them."
+			}
+		]
+	},
+	{
+		"id": "5a985cc7-2c04-5161-8ac7-75c060ca6cda",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "IIT",
+		"name": "Individual income tax on wages (工资薪金个人所得税)",
+		"authority": "IIT Law art.3 and art.6(1); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record tax residence as resident or non-resident on the employment terms: the IIT Law art.1 withholding method depends on it and no default exists."
+			},
+			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_cent(progressive(base - 5000.0 > 0.0 ? base - 5000.0 : 0.0, [0.0, 0.0, 3.0, 3000.0, 90.0, 10.0, 12000.0, 990.0, 20.0, 25000.0, 3590.0, 25.0, 35000.0, 6090.0, 30.0, 55000.0, 12090.0, 35.0, 80000.0, 20840.0, 45.0]))",
+				"employer": "0.0"
+			},
+			{
+				"when": "has(scheme.deductions.HOUSING_RENT) && has(scheme.deductions.HOUSING_LOAN_INTEREST) && scheme.deductions.HOUSING_RENT > 0.0 && scheme.deductions.HOUSING_LOAN_INTEREST > 0.0",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Housing rent and housing-loan interest cannot both be deducted in one year (国发〔2018〕41号)."
+			},
+			{
+				"when": "true",
+				"employee": "round_cent((progressive((scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) > 0.0 ? (scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) : 0.0, [0.0, 0.0, 3.0, 36000.0, 1080.0, 10.0, 144000.0, 11880.0, 20.0, 300000.0, 43080.0, 25.0, 420000.0, 73080.0, 30.0, 660000.0, 145080.0, 35.0, 960000.0, 250080.0, 45.0]) - scheme.year_to_date.employee) > 0.0 ? (progressive((scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) > 0.0 ? (scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) : 0.0, [0.0, 0.0, 3.0, 36000.0, 1080.0, 10.0, 144000.0, 11880.0, 20.0, 300000.0, 43080.0, 25.0, 420000.0, 73080.0, 30.0, 660000.0, 145080.0, 35.0, 960000.0, 250080.0, 45.0]) - scheme.year_to_date.employee) : 0.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "BASE + ALLOWANCES + ADHOC + OVERTIME + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": "IIT",
+		"listing_order": 90,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "first_wage_income_this_year",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "First wage income of the year (STA 2020 No.13)",
+				"description": "The resident declared no wage income earlier this year: CNY5,000 is deducted for every month from January."
+			},
+			{
+				"key": "annual_60000_from_january",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "CNY60,000 deducted from January (STA 2020 No.19)",
+				"description": "Qualifying continuing employee: declared by this employer every month of the prior year with that year’s wages at most CNY60,000."
+			}
+		]
+	},
+	{
+		"id": "6c3a3ec6-de76-5b5e-9cdc-e0dd93d182bd",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "IIT_BONUS",
+		"name": "IIT on an annual one-off bonus taxed separately (全年一次性奖金)",
+		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. Non-resident bonus treatment (MOF/STA 2019 No.35) is not transcribed and refuses.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "A separately taxed annual bonus is a resident election (MOF/STA 2023 No.30); the non-resident bonus rule (MOF/STA 2019 No.35) is not transcribed."
+			},
+			{
+				"when": "base > 0.0 && scheme.year_to_date.base > 0.0",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号); pay a second bonus as an ordinary bonus."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base / 12.0 <= 3000.0 ? base * 0.03 : base / 12.0 <= 12000.0 ? base * 0.10 - 210.0 : base / 12.0 <= 25000.0 ? base * 0.20 - 1410.0 : base / 12.0 <= 35000.0 ? base * 0.25 - 2660.0 : base / 12.0 <= 55000.0 ? base * 0.30 - 4410.0 : base / 12.0 <= 80000.0 ? base * 0.35 - 7160.0 : base * 0.45 - 15160.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "ADHOC",
+		"short_name": "IIT bonus",
+		"listing_order": 91,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "4b35bffb-afa2-5a7e-8333-5f4c16219df8",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "IIT_SEVERANCE",
+		"name": "IIT on a lump sum on ending the labour relationship (解除劳动关系一次性补偿收入)",
+		"authority": "财税〔2018〕164号 item 5(1) (from 1 Jan 2019, http://szs.mof.gov.cn/zhengcefabu/201812/t20181227_3110164.htm): a lump sum a resident receives on ending the labour relationship (economic compensation, living subsidy and similar) is exempt up to three times the local prior-year average annual wage; the excess is not added to the year’s comprehensive income and is taxed alone on the annual comprehensive-income table (STA 2018 No.61 annex). The average is the exit fact lcl47_average_monthly_wage × 12, or unrecorded the version’s default for it; the same series and year as LCL art.47 (owner rule 2026-09-28, register CN-N39 / CN-SH50). A non-resident’s termination pay is not transcribed and refuses.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "财税〔2018〕164号 item 5(1) is read for a resident; a non-resident’s termination pay is not transcribed."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "(base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 0.0 ? 0.0 : round_cent((base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 36000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.03 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 144000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.10 - 2520.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 300000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.20 - 16920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 420000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.25 - 31920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 660000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.30 - 52920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 960000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.35 - 85920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.45 - 181920.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "ADHOC",
+		"short_name": "IIT severance",
+		"listing_order": 92,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "60b4adf8-0fb1-58ec-b2f1-0545c4598afd",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "PENSION",
+		"name": "Basic pension insurance (养老保险)",
+		"authority": "Yunnan HRSS: employer 16%, employee 8% (https://www.yncxym.gov.cn/info/1011/286437.htm; https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28618.html Q82). Yunnan base 4,403–22,017 for pension, unemployment and injury from 1 January 2026 (云人社发〔2026〕8号 as reproduced, register CN-KM03). Owner rule 2026-09-28: the notice states a 1 September start for medical only; for these funds it names the bounds 2026年度 and the 31 Aug 2026 flexible-worker notice (https://hrss.yn.gov.cn/NewsView.aspx?NewsID=65797&ClassID=558) applies the same bounds to the whole 2026 year, so the default is the calendar year from 1 January, with any January–August difference owed as a true-up. The base is the declared prior-year monthly average wage clamped to the bounds. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(\"contribution_base\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * 8.0 / 100.0)",
+				"employer": "round_cent(base * 16.0 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (scheme.elections.contribution_base < 4403.0 ? 4403.0 : (scheme.elections.contribution_base > 22017.0 ? 22017.0 : scheme.elections.contribution_base))",
+		"short_name": "Pension",
+		"listing_order": 10,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "contribution_base",
+				"type": "number",
+				"minimum": 0,
+				"required": true,
+				"label": "Social-insurance contribution base (monthly)",
+				"description": "The prior calendar year’s monthly average wage at this employer, or a new hire’s first full month’s wage, before the published floor and ceiling. Every social-insurance scheme of this version reads it."
+			}
+		]
+	},
+	{
+		"id": "6a658316-ffed-54b4-ad14-392943e00f12",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "MEDICAL",
+		"name": "Employee basic medical insurance (基本医疗保险)",
+		"authority": "Kunming Medical Security Bureau notice of 30 December 2022, from 1 January 2023: employer 7% excluding maternity (https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml); employee 2% is implied by the 2% account credit, not stated (register CN-KM04, open). Medical base 4,357–21,789. Long-term care is funded from the medical funds, no extra deduction (CN-KM16). The per-head major-medical charge is not seeded: its only source is a reproduced agency notice. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * 2.0 / 100.0)",
+				"employer": "round_cent(base * 7.0 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4357.0 ? 4357.0 : (person.facts.PENSION.elections.contribution_base > 21789.0 ? 21789.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Medical",
+		"listing_order": 20,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "907b80bb-80be-5ede-afb5-cb6d09be5460",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "MATERNITY",
+		"name": "Maternity insurance (生育保险)",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml): employer 0.9% on the medical base; the worker pays nothing. Medical base 4,357–21,789. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_cent(base * 0.9 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4357.0 ? 4357.0 : (person.facts.PENSION.elections.contribution_base > 21789.0 ? 21789.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Maternity",
+		"listing_order": 25,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "2ff16769-703c-520c-936b-953cef346999",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "UNEMPLOYMENT",
+		"name": "Unemployment insurance (失业保险)",
+		"authority": "The 2025 reduction ended 31 December 2025; the 7 September 2026 county notice reports 0.7/0.3 again active but no successor instrument or start date was located (register CN-KM27): the agency-assessed rates are entity facts. Yunnan base 4,403–22,017 for pension, unemployment and injury from 1 January 2026 (云人社发〔2026〕8号 as reproduced, register CN-KM03). Owner rule 2026-09-28: the notice states a 1 September start for medical only; for these funds it names the bounds 2026年度 and the 31 Aug 2026 flexible-worker notice (https://hrss.yn.gov.cn/NewsView.aspx?NewsID=65797&ClassID=558) applies the same bounds to the whole 2026 year, so the default is the calendar year from 1 January, with any January–August difference owed as a true-up. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * person.company.facts.unemployment_employee_rate / 100.0)",
+				"employer": "round_cent(base * person.company.facts.unemployment_employer_rate / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4403.0 ? 4403.0 : (person.facts.PENSION.elections.contribution_base > 22017.0 ? 22017.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Unemployment",
+		"listing_order": 30,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "a5ea35e8-15ce-53e2-a8ad-c86da2e1c562",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "INJURY",
+		"name": "Work-injury insurance (工伤保险)",
+		"authority": "Employer only; industry classes I–VIII at 0.2/0.4/0.7/0.9/1.1/1.3/1.6/1.9% then the assigned float (云人社发〔2020〕14号; https://www.yncxym.gov.cn/info/1011/286437.htm), entity fact `injury_rate`. Yunnan base 4,403–22,017 for pension, unemployment and injury from 1 January 2026 (云人社发〔2026〕8号 as reproduced, register CN-KM03). Owner rule 2026-09-28: the notice states a 1 September start for medical only; for these funds it names the bounds 2026年度 and the 31 Aug 2026 flexible-worker notice (https://hrss.yn.gov.cn/NewsView.aspx?NewsID=65797&ClassID=558) applies the same bounds to the whole 2026 year, so the default is the calendar year from 1 January, with any January–August difference owed as a true-up. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_cent(base * person.company.facts.injury_rate / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4403.0 ? 4403.0 : (person.facts.PENSION.elections.contribution_base > 22017.0 ? 22017.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Injury",
+		"listing_order": 40,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "a2991f09-6faa-5b4f-92fc-253362781a64",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "HOUSING_FUND",
+		"name": "Housing provident fund (住房公积金)",
+		"authority": "Kunming housing fund: ceiling 32,543; floor 2,170 / 2,020 for all contributors pending final data (centre interim notice of 4 January 2026, https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml); final ceiling 32,543 retroactive to 1 January 2026 (昆公积金〔2026〕69号, reproduced text, register CN-KM05). Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). Kunming has no supplementary fund: `housing_fund_supplementary_rate` must stay 0. Each share is rounded to the whole yuan (四舍五入) separately — ordinary and supplementary alike — and the shares are then summed.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(\"contribution_base\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the housing-fund contribution base (`contribution_base`): the prior year’s monthly average wage, or the first-ever / transferred worker’s qualifying month."
+			},
+			{
+				"when": "!person.employee.receiving_pension && !(person.employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record citizenship on the employment terms: a foreign or permanent-resident worker joins the housing fund only by agreement."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_unit(base * person.company.facts.housing_fund_rate / 100.0) + round_unit(base * person.company.facts.housing_fund_supplementary_rate / 100.0)",
+				"employer": "round_unit(base * person.company.facts.housing_fund_rate / 100.0) + round_unit(base * person.company.facts.housing_fund_supplementary_rate / 100.0)"
+			}
+		],
+		"assessed_on": "(person.employee.receiving_pension || (person.employee.citizenship != \"CITIZEN\" && !scheme.elections.voluntary_agreement) || (scheme.elections.first_ever_account && person.employment.service_start >= period.start)) ? 0.0 : (scheme.elections.contribution_base < (person.company.region == \"CATEGORY_I\" ? 2170.0 : 2020.0) ? (person.company.region == \"CATEGORY_I\" ? 2170.0 : 2020.0) : (scheme.elections.contribution_base > 32543.0 ? 32543.0 : scheme.elections.contribution_base))",
+		"short_name": "Housing fund",
+		"listing_order": 50,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "contribution_base",
+				"type": "number",
+				"minimum": 0,
+				"required": true,
+				"label": "Housing-fund contribution base (monthly)",
+				"description": "The prior calendar year’s monthly average wage, or the first-ever / transferred worker’s qualifying month, before the published bounds."
+			},
+			{
+				"key": "first_ever_account",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "First-ever fund worker",
+				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.16)."
+			},
+			{
+				"key": "voluntary_agreement",
+				"type": "boolean",
+				"default_value": false,
+				"label": "Agreed participation (foreign / permanent-resident worker)",
+				"description": "A foreign or permanent-resident worker contributes only on mutual agreement; nationality alone never enrols them."
+			}
+		]
+	},
+	{
+		"id": "72ef00df-daf9-592b-8e8b-cfa02e0287f0",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "IIT",
+		"name": "Individual income tax on wages (工资薪金个人所得税)",
+		"authority": "IIT Law art.3 and art.6(1); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record tax residence as resident or non-resident on the employment terms: the IIT Law art.1 withholding method depends on it and no default exists."
+			},
+			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_cent(progressive(base - 5000.0 > 0.0 ? base - 5000.0 : 0.0, [0.0, 0.0, 3.0, 3000.0, 90.0, 10.0, 12000.0, 990.0, 20.0, 25000.0, 3590.0, 25.0, 35000.0, 6090.0, 30.0, 55000.0, 12090.0, 35.0, 80000.0, 20840.0, 45.0]))",
+				"employer": "0.0"
+			},
+			{
+				"when": "has(scheme.deductions.HOUSING_RENT) && has(scheme.deductions.HOUSING_LOAN_INTEREST) && scheme.deductions.HOUSING_RENT > 0.0 && scheme.deductions.HOUSING_LOAN_INTEREST > 0.0",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Housing rent and housing-loan interest cannot both be deducted in one year (国发〔2018〕41号)."
+			},
+			{
+				"when": "true",
+				"employee": "round_cent((progressive((scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) > 0.0 ? (scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) : 0.0, [0.0, 0.0, 3.0, 36000.0, 1080.0, 10.0, 144000.0, 11880.0, 20.0, 300000.0, 43080.0, 25.0, 420000.0, 73080.0, 30.0, 660000.0, 145080.0, 35.0, 960000.0, 250080.0, 45.0]) - scheme.year_to_date.employee) > 0.0 ? (progressive((scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) > 0.0 ? (scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) : 0.0, [0.0, 0.0, 3.0, 36000.0, 1080.0, 10.0, 144000.0, 11880.0, 20.0, 300000.0, 43080.0, 25.0, 420000.0, 73080.0, 30.0, 660000.0, 145080.0, 35.0, 960000.0, 250080.0, 45.0]) - scheme.year_to_date.employee) : 0.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "BASE + ALLOWANCES + ADHOC + OVERTIME + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": "IIT",
+		"listing_order": 90,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "first_wage_income_this_year",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "First wage income of the year (STA 2020 No.13)",
+				"description": "The resident declared no wage income earlier this year: CNY5,000 is deducted for every month from January."
+			},
+			{
+				"key": "annual_60000_from_january",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "CNY60,000 deducted from January (STA 2020 No.19)",
+				"description": "Qualifying continuing employee: declared by this employer every month of the prior year with that year’s wages at most CNY60,000."
+			}
+		]
+	},
+	{
+		"id": "110f0538-636e-5748-a363-1200400587ca",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "IIT_BONUS",
+		"name": "IIT on an annual one-off bonus taxed separately (全年一次性奖金)",
+		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. Non-resident bonus treatment (MOF/STA 2019 No.35) is not transcribed and refuses.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "A separately taxed annual bonus is a resident election (MOF/STA 2023 No.30); the non-resident bonus rule (MOF/STA 2019 No.35) is not transcribed."
+			},
+			{
+				"when": "base > 0.0 && scheme.year_to_date.base > 0.0",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号); pay a second bonus as an ordinary bonus."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base / 12.0 <= 3000.0 ? base * 0.03 : base / 12.0 <= 12000.0 ? base * 0.10 - 210.0 : base / 12.0 <= 25000.0 ? base * 0.20 - 1410.0 : base / 12.0 <= 35000.0 ? base * 0.25 - 2660.0 : base / 12.0 <= 55000.0 ? base * 0.30 - 4410.0 : base / 12.0 <= 80000.0 ? base * 0.35 - 7160.0 : base * 0.45 - 15160.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "ADHOC",
+		"short_name": "IIT bonus",
+		"listing_order": 91,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "286d6087-bbda-5fa1-a558-2904afa51f8c",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "IIT_SEVERANCE",
+		"name": "IIT on a lump sum on ending the labour relationship (解除劳动关系一次性补偿收入)",
+		"authority": "财税〔2018〕164号 item 5(1) (from 1 Jan 2019, http://szs.mof.gov.cn/zhengcefabu/201812/t20181227_3110164.htm): a lump sum a resident receives on ending the labour relationship (economic compensation, living subsidy and similar) is exempt up to three times the local prior-year average annual wage; the excess is not added to the year’s comprehensive income and is taxed alone on the annual comprehensive-income table (STA 2018 No.61 annex). The average is the exit fact lcl47_average_monthly_wage × 12, or unrecorded the version’s default for it; the same series and year as LCL art.47 (owner rule 2026-09-28, register CN-N39 / CN-SH50). A non-resident’s termination pay is not transcribed and refuses.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "财税〔2018〕164号 item 5(1) is read for a resident; a non-resident’s termination pay is not transcribed."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "(base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 0.0 ? 0.0 : round_cent((base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 36000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.03 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 144000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.10 - 2520.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 300000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.20 - 16920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 420000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.25 - 31920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 660000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.30 - 52920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 960000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.35 - 85920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.45 - 181920.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "ADHOC",
+		"short_name": "IIT severance",
+		"listing_order": 92,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "45c5ea50-9c09-52ea-b183-0f2fa4923fb0",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "PENSION",
+		"name": "Basic pension insurance (养老保险)",
+		"authority": "Yunnan HRSS: employer 16%, employee 8% (https://www.yncxym.gov.cn/info/1011/286437.htm; https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28618.html Q82). Yunnan base 4,403–22,017 for pension, unemployment and injury. The base is the declared prior-year monthly average wage clamped to the bounds. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(\"contribution_base\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * 8.0 / 100.0)",
+				"employer": "round_cent(base * 16.0 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (scheme.elections.contribution_base < 4403.0 ? 4403.0 : (scheme.elections.contribution_base > 22017.0 ? 22017.0 : scheme.elections.contribution_base))",
+		"short_name": "Pension",
+		"listing_order": 10,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "contribution_base",
+				"type": "number",
+				"minimum": 0,
+				"required": true,
+				"label": "Social-insurance contribution base (monthly)",
+				"description": "The prior calendar year’s monthly average wage at this employer, or a new hire’s first full month’s wage, before the published floor and ceiling. Every social-insurance scheme of this version reads it."
+			}
+		]
+	},
+	{
+		"id": "a02a2f18-8909-5398-902b-982a8ce0efcf",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "MEDICAL",
+		"name": "Employee basic medical insurance (基本医疗保险)",
+		"authority": "Kunming Medical Security Bureau notice of 30 December 2022, from 1 January 2023: employer 7% excluding maternity (https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml); employee 2% is implied by the 2% account credit, not stated (register CN-KM04, open). Medical base 4,403–22,017. Long-term care is funded from the medical funds, no extra deduction (CN-KM16). The per-head major-medical charge is not seeded: its only source is a reproduced agency notice. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * 2.0 / 100.0)",
+				"employer": "round_cent(base * 7.0 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4403.0 ? 4403.0 : (person.facts.PENSION.elections.contribution_base > 22017.0 ? 22017.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Medical",
+		"listing_order": 20,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "489d09c0-ca55-5cc2-a45d-6a751c9ef1e6",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "MATERNITY",
+		"name": "Maternity insurance (生育保险)",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml): employer 0.9% on the medical base; the worker pays nothing. Medical base 4,403–22,017. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_cent(base * 0.9 / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4403.0 ? 4403.0 : (person.facts.PENSION.elections.contribution_base > 22017.0 ? 22017.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Maternity",
+		"listing_order": 25,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "3ae8e9ed-46e7-528b-9bed-3817940c7290",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "UNEMPLOYMENT",
+		"name": "Unemployment insurance (失业保险)",
+		"authority": "The 2025 reduction ended 31 December 2025; the 7 September 2026 county notice reports 0.7/0.3 again active but no successor instrument or start date was located (register CN-KM27): the agency-assessed rates are entity facts. Yunnan base 4,403–22,017 for pension, unemployment and injury. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base * person.company.facts.unemployment_employee_rate / 100.0)",
+				"employer": "round_cent(base * person.company.facts.unemployment_employer_rate / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4403.0 ? 4403.0 : (person.facts.PENSION.elections.contribution_base > 22017.0 ? 22017.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Unemployment",
+		"listing_order": 30,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "c6493d5c-d5e6-598f-b17c-df32256cc742",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "INJURY",
+		"name": "Work-injury insurance (工伤保险)",
+		"authority": "Employer only; industry classes I–VIII at 0.2/0.4/0.7/0.9/1.1/1.3/1.6/1.9% then the assigned float (云人社发〔2020〕14号; https://www.yncxym.gov.cn/info/1011/286437.htm), entity fact `injury_rate`. Yunnan base 4,403–22,017 for pension, unemployment and injury. Rounded to the fen per side: the instruments read here state no other rounding (the Kunming 2026 employer notice’s own examples are to the fen).",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(has(person.facts.PENSION.elections.contribution_base))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the social-insurance contribution base on the pension registration (`contribution_base`): the prior year’s monthly average wage, or a new hire’s first full month. It controls every insured amount and has no default."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "0.0",
+				"employer": "round_cent(base * person.company.facts.injury_rate / 100.0)"
+			}
+		],
+		"assessed_on": "person.employee.receiving_pension ? 0.0 : (person.facts.PENSION.elections.contribution_base < 4403.0 ? 4403.0 : (person.facts.PENSION.elections.contribution_base > 22017.0 ? 22017.0 : person.facts.PENSION.elections.contribution_base))",
+		"short_name": "Injury",
+		"listing_order": 40,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "717cce01-b14d-583e-b7f6-b3bf3a7192ff",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "HOUSING_FUND",
+		"name": "Housing provident fund (住房公积金)",
+		"authority": "Kunming housing fund: ceiling 32,543; floor 2,270 (category I) / 2,120 for new, transferred and reopened accounts from 1 September 2026 (昆公积金〔2026〕69号); an unchanged existing account’s floor is not stated, so a base below the new floor refuses. Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). Kunming has no supplementary fund: `housing_fund_supplementary_rate` must stay 0. Each share is rounded to the whole yuan (四舍五入) separately — ordinary and supplementary alike — and the shares are then summed.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "!person.employee.receiving_pension && !(\"contribution_base\" in scheme.election_keys)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record the housing-fund contribution base (`contribution_base`): the prior year’s monthly average wage, or the first-ever / transferred worker’s qualifying month."
+			},
+			{
+				"when": "!person.employee.receiving_pension && !(person.employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record citizenship on the employment terms: a foreign or permanent-resident worker joins the housing fund only by agreement."
+			},
+			{
+				"when": "!person.employee.receiving_pension && scheme.elections.contribution_base < (person.company.region == \"CATEGORY_I\" ? 2270.0 : 2120.0)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "The declared housing-fund base is below the published floor, and the floor that governs this account is not settled by the retrieved Kunming notices (register CN-KM05); record the base at or above the floor or the agency’s written determination."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_unit(base * person.company.facts.housing_fund_rate / 100.0) + round_unit(base * person.company.facts.housing_fund_supplementary_rate / 100.0)",
+				"employer": "round_unit(base * person.company.facts.housing_fund_rate / 100.0) + round_unit(base * person.company.facts.housing_fund_supplementary_rate / 100.0)"
+			}
+		],
+		"assessed_on": "(person.employee.receiving_pension || (person.employee.citizenship != \"CITIZEN\" && !scheme.elections.voluntary_agreement) || (scheme.elections.first_ever_account && person.employment.service_start >= period.start)) ? 0.0 : (scheme.elections.contribution_base < (person.company.region == \"CATEGORY_I\" ? 2270.0 : 2120.0) ? (person.company.region == \"CATEGORY_I\" ? 2270.0 : 2120.0) : (scheme.elections.contribution_base > 32543.0 ? 32543.0 : scheme.elections.contribution_base))",
+		"short_name": "Housing fund",
+		"listing_order": 50,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "contribution_base",
+				"type": "number",
+				"minimum": 0,
+				"required": true,
+				"label": "Housing-fund contribution base (monthly)",
+				"description": "The prior calendar year’s monthly average wage, or the first-ever / transferred worker’s qualifying month, before the published bounds."
+			},
+			{
+				"key": "first_ever_account",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "First-ever fund worker",
+				"description": "A worker contributing for the first time pays from the second month of employment (Housing Provident Fund Regulation art.16)."
+			},
+			{
+				"key": "voluntary_agreement",
+				"type": "boolean",
+				"default_value": false,
+				"label": "Agreed participation (foreign / permanent-resident worker)",
+				"description": "A foreign or permanent-resident worker contributes only on mutual agreement; nationality alone never enrols them."
+			}
+		]
+	},
+	{
+		"id": "08fe428a-3beb-5af4-8466-1fa97b43cb92",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "IIT",
+		"name": "Individual income tax on wages (工资薪金个人所得税)",
+		"authority": "IIT Law art.3 and art.6(1); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Record tax residence as resident or non-resident on the employment terms: the IIT Law art.1 withholding method depends on it and no default exists."
+			},
+			{
+				"when": "person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_cent(progressive(base - 5000.0 > 0.0 ? base - 5000.0 : 0.0, [0.0, 0.0, 3.0, 3000.0, 90.0, 10.0, 12000.0, 990.0, 20.0, 25000.0, 3590.0, 25.0, 35000.0, 6090.0, 30.0, 55000.0, 12090.0, 35.0, 80000.0, 20840.0, 45.0]))",
+				"employer": "0.0"
+			},
+			{
+				"when": "has(scheme.deductions.HOUSING_RENT) && has(scheme.deductions.HOUSING_LOAN_INTEREST) && scheme.deductions.HOUSING_RENT > 0.0 && scheme.deductions.HOUSING_LOAN_INTEREST > 0.0",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Housing rent and housing-loan interest cannot both be deducted in one year (国发〔2018〕41号)."
+			},
+			{
+				"when": "true",
+				"employee": "round_cent((progressive((scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) > 0.0 ? (scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) : 0.0, [0.0, 0.0, 3.0, 36000.0, 1080.0, 10.0, 144000.0, 11880.0, 20.0, 300000.0, 43080.0, 25.0, 420000.0, 73080.0, 30.0, 660000.0, 145080.0, 35.0, 960000.0, 250080.0, 45.0]) - scheme.year_to_date.employee) > 0.0 ? (progressive((scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) > 0.0 ? (scheme.year_to_date.base + base - (produced.PENSION.employee + produced.MEDICAL.employee + produced.UNEMPLOYMENT.employee + produced.HOUSING_FUND.employee) - (scheme.elections.annual_60000_from_january ? 60000.0 : (scheme.elections.first_wage_income_this_year ? 5000.0 * double(period.month) : 5000.0 * double(year.months_employed))) - ((has(scheme.deductions.CHILD_EDUCATION) ? scheme.deductions.CHILD_EDUCATION : 0.0) + (has(scheme.deductions.INFANT_CARE) ? scheme.deductions.INFANT_CARE : 0.0) + (has(scheme.deductions.CONTINUING_EDUCATION) ? scheme.deductions.CONTINUING_EDUCATION : 0.0) + (has(scheme.deductions.HOUSING_LOAN_INTEREST) ? scheme.deductions.HOUSING_LOAN_INTEREST : 0.0) + ((has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0) > 1500.0 * double(period.month) ? 1500.0 * double(period.month) : (has(scheme.deductions.HOUSING_RENT) ? scheme.deductions.HOUSING_RENT : 0.0)) + (has(scheme.deductions.ELDERLY_SUPPORT) ? scheme.deductions.ELDERLY_SUPPORT : 0.0))) : 0.0, [0.0, 0.0, 3.0, 36000.0, 1080.0, 10.0, 144000.0, 11880.0, 20.0, 300000.0, 43080.0, 25.0, 420000.0, 73080.0, 30.0, 660000.0, 145080.0, 35.0, 960000.0, 250080.0, 45.0]) - scheme.year_to_date.employee) : 0.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "BASE + ALLOWANCES + ADHOC + OVERTIME + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
+		"short_name": "IIT",
+		"listing_order": 90,
+		"listing_group": null,
+		"elections": [
+			{
+				"key": "first_wage_income_this_year",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "First wage income of the year (STA 2020 No.13)",
+				"description": "The resident declared no wage income earlier this year: CNY5,000 is deducted for every month from January."
+			},
+			{
+				"key": "annual_60000_from_january",
+				"type": "boolean",
+				"scope": "EMPLOYMENT",
+				"default_value": false,
+				"label": "CNY60,000 deducted from January (STA 2020 No.19)",
+				"description": "Qualifying continuing employee: declared by this employer every month of the prior year with that year’s wages at most CNY60,000."
+			}
+		]
+	},
+	{
+		"id": "aa2baa32-4968-5c38-8797-2bb5f367f265",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "IIT_BONUS",
+		"name": "IIT on an annual one-off bonus taxed separately (全年一次性奖金)",
+		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. Non-resident bonus treatment (MOF/STA 2019 No.35) is not transcribed and refuses.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "A separately taxed annual bonus is a resident election (MOF/STA 2023 No.30); the non-resident bonus rule (MOF/STA 2019 No.35) is not transcribed."
+			},
+			{
+				"when": "base > 0.0 && scheme.year_to_date.base > 0.0",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号); pay a second bonus as an ordinary bonus."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "round_cent(base / 12.0 <= 3000.0 ? base * 0.03 : base / 12.0 <= 12000.0 ? base * 0.10 - 210.0 : base / 12.0 <= 25000.0 ? base * 0.20 - 1410.0 : base / 12.0 <= 35000.0 ? base * 0.25 - 2660.0 : base / 12.0 <= 55000.0 ? base * 0.30 - 4410.0 : base / 12.0 <= 80000.0 ? base * 0.35 - 7160.0 : base * 0.45 - 15160.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "ADHOC",
+		"short_name": "IIT bonus",
+		"listing_order": 91,
+		"listing_group": null,
+		"elections": []
+	},
+	{
+		"id": "5e6cfb13-5fd4-5115-8bf8-74e1e6154667",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "IIT_SEVERANCE",
+		"name": "IIT on a lump sum on ending the labour relationship (解除劳动关系一次性补偿收入)",
+		"authority": "财税〔2018〕164号 item 5(1) (from 1 Jan 2019, http://szs.mof.gov.cn/zhengcefabu/201812/t20181227_3110164.htm): a lump sum a resident receives on ending the labour relationship (economic compensation, living subsidy and similar) is exempt up to three times the local prior-year average annual wage; the excess is not added to the year’s comprehensive income and is taxed alone on the annual comprehensive-income table (STA 2018 No.61 annex). The average is the exit fact lcl47_average_monthly_wage × 12, or unrecorded the version’s default for it; the same series and year as LCL art.47 (owner rule 2026-09-28, register CN-N39 / CN-SH50). A non-resident’s termination pay is not transcribed and refuses.",
+		"assessment_period": "MONTH",
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
+			{
+				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "财税〔2018〕164号 item 5(1) is read for a resident; a non-resident’s termination pay is not transcribed."
+			},
+			{
+				"when": "base > 0.0",
+				"employee": "(base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 0.0 ? 0.0 : round_cent((base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 36000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.03 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 144000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.10 - 2520.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 300000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.20 - 16920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 420000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.25 - 31920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 660000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.30 - 52920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) <= 960000.0 ? (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.35 - 85920.0 : (base - 36.0 * person.employment.exit_facts.lcl47_average_monthly_wage) * 0.45 - 181920.0)",
+				"employer": "0.0"
+			}
+		],
+		"assessed_on": "ADHOC",
+		"short_name": "IIT severance",
+		"listing_order": 92,
+		"listing_group": null,
+		"elections": []
+	}
+]

@@ -75,5 +75,37 @@ export const STATUTORY_SOURCES: Readonly<Record<string, readonly string[]>> = {
 		'https://www.baohiemxahoi.gov.vn',
 		'https://mof.gov.vn',
 		'https://nief.mof.gov.vn'
+	],
+	TH: [
+		'https://ratchakitcha.soc.go.th',
+		'https://www.ocs.go.th',
+		'https://www.mol.go.th',
+		'https://www.sso.go.th',
+		'https://www.rd.go.th',
+		'https://infocenter.oic.go.th'
+	],
+	// One jurisdiction code for both cities: national issuers, then Shanghai, then Yunnan and Kunming.
+	CN: [
+		'https://flk.npc.gov.cn',
+		'https://www.npc.gov.cn',
+		'https://www.gov.cn',
+		'https://xzfg.moj.gov.cn',
+		'https://www.mohrss.gov.cn',
+		'https://www.chinatax.gov.cn',
+		'https://fgk.chinatax.gov.cn',
+		'https://www.nhsa.gov.cn',
+		'https://rsj.sh.gov.cn',
+		'https://ybj.sh.gov.cn',
+		'https://www.shzfgjj.cn',
+		'https://shanghai.chinatax.gov.cn',
+		'https://www.shanghai.gov.cn',
+		'https://service.shanghai.gov.cn',
+		'https://czj.sh.gov.cn',
+		'https://hrss.yn.gov.cn',
+		'https://www.yn.gov.cn',
+		'https://ylbz.yn.gov.cn',
+		'https://www.kmrd.gov.cn',
+		'https://ybj.km.gov.cn',
+		'https://zfgjj.km.gov.cn'
 	]
 };

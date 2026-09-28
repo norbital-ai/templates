@@ -177,7 +177,7 @@ test('ID round 3 — the December reckoning reads the PTKP declared for 1 Januar
 		}
 	];
 	const book = assessStatutory(
-		{ code: 'ID', period: '2026-12', region: 'DKI Jakarta', riskClass: 'II', people },
+		{ code: 'ID', period: '2026-12', region: 'Provinsi DKI Jakarta', riskClass: 'II', people },
 		(world) => {
 			const employee = world.employees.find((row) =>
 				world.employments.some(

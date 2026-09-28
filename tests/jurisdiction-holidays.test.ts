@@ -25,17 +25,33 @@ test('a captured holiday cannot be unpublished, moved or deleted; an uncaptured 
 		one({ published_at: null }, captured),
 		/captured by payroll run 2026-05 and cannot be unpublished/
 	);
-	await assert.rejects(one({ date: '2026-05-02' }, captured), /move its day or entity/);
+	await assert.rejects(one({ date: '2026-05-02' }, captured), /move its day, entity or worksite/);
+	await assert.rejects(one({ worksite: 'Navotas' }, captured), /move its day, entity or worksite/);
 	await assert.rejects(one({ $delete: true }, captured), /cannot be deleted/);
 	await one({ name: 'Hari Pekerja' }, captured);
 	await one({ published_at: null }, {});
 	await one({ $delete: true }, {});
 });
 
+test('one row per entity, day and worksite: two cities keep their own day on one date; blank is company-wide', async () => {
+	// RA 7669 s.1 (San Juan) and Proclamation 1186 (Las Piñas) both fall on 27 March 2026.
+	const model = (await import('../src/data/model/jurisdiction_holidays/+model.ts')).default;
+	assert.deepEqual(model.unique, [{ fields: ['company_id', 'date', 'worksite'] }]);
+	const [row] = await transform(holidays, [{ ...holiday, id: undefined, worksite: '  ' }], {
+		existing: [undefined],
+		tables: {}
+	});
+	assert.equal(row.worksite, null);
+});
+
 test('the spreadsheet resolves entities by name, skips days on file and reports what it did not write', async () => {
 	const tables = {
 		companies: [{ id: 'entity', name: 'Public Fixture Co', registration_number: 'PUB-1' }],
-		jurisdiction_holidays: [{ company_id: 'entity', date: '2027-01-01', approval_id: null }]
+		// A worksite's local day does not hold the company-wide date: 2027-02-01 still imports.
+		jurisdiction_holidays: [
+			{ company_id: 'entity', date: '2027-01-01', approval_id: null },
+			{ company_id: 'entity', date: '2027-02-01', worksite: 'Navotas', approval_id: null }
+		]
 	};
 	const row = (date, name, legal_entity = 'Public Fixture Co') => ({ legal_entity, date, name });
 	const ctx = caller({ tables });

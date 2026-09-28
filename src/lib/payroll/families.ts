@@ -1,6 +1,10 @@
 /** Families prepare their own inputs and calculations. This coordinator preserves the family pipeline and contribution staging. */
 import { decodeNumber } from '../wire.js';
-import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
+import {
+	atWorksite,
+	type CatalogueComponent,
+	type Configuration
+} from '../../lib/payroll/run/configuration.js';
 import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
 import {
 	accumulateSettledPayslip,
@@ -89,7 +93,13 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				throw new Error('An ended employment cannot acquire new time-off charges in this period.');
 			},
 			encashmentRate: (entry) =>
-				leaveEncashmentRate({ bundle, configuration, entry, referenceWageIds })
+				leaveEncashmentRate({
+					bundle,
+					configuration,
+					entry,
+					referenceWageIds,
+					earnedByMonth: options.earnedByMonth
+				})
 		});
 		const finalTerms = termsAt(bundle, finalDate);
 		const cadence: PayCadence = {
@@ -111,7 +121,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const adjustments: MeasuredAdjustment[] = [...leave.adjustments];
 		const subject = personContext({
 			employee: bundle.employee,
-			employment: stint(bundle.employment),
+			employment: stint(bundle.employment, configuration.jurisdiction.exit_facts ?? []),
 			fixedAllowances: contractAllowancesOn(bundle, configuration, finalDate),
 			terms: finalTerms,
 			children: bundle.children,
@@ -288,7 +298,13 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		currency,
 		absenceRate: work.absenceRate,
 		encashmentRate: (entry) =>
-			leaveEncashmentRate({ bundle, configuration, entry, referenceWageIds })
+			leaveEncashmentRate({
+				bundle,
+				configuration,
+				entry,
+				referenceWageIds,
+				earnedByMonth: options.earnedByMonth
+			})
 	});
 
 	const componentAmounts = new Map<string, number>();
@@ -353,9 +369,25 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		);
 		componentAmounts.set(component.code, arrears.amount);
 	}
+	const salaryBase = () =>
+		base.reduce(
+			(sum, line) => (line.catalogueComponent.output === 'salary' ? sum + line.amount : sum),
+			0
+		);
+	/**
+	 * The leave this payslip settles — the attendance window's, as the leave lines above charge it —
+	 * priced on the salary lines measured so far, so an entry reads it after the wage steps.
+	 */
+	const settledLeave = leaveCoverage(bundle.leave, attendance, work.isOrdinaryWorkingDay);
+	const leavePeriod = () => ({
+		leave_days: settledLeave.byCode,
+		leave_full_days: settledLeave.fullDaysByCode,
+		leave_pay: leavePay(settledLeave.byCode, salaryBase(), workingDaysIn(attendance), currency)
+	});
 	const stepOptions = {
 		bundle,
 		configuration,
+		leavePeriod,
 		year: () =>
 			yearContextOf({
 				bundle,
@@ -447,10 +479,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	});
 	const periodLeave = leaveCoverage(bundle.leave, options.salary, work.isOrdinaryWorkingDay);
 	const monthlyLeave = leaveCoverage(bundle.leave, monthThrough, work.isOrdinaryWorkingDay);
-	const salaryBase = base.reduce(
-		(sum, line) => (line.catalogueComponent.output === 'salary' ? sum + line.amount : sum),
-		0
-	);
 	const periodWorking = workingDaysIn(options.salary);
 	const monthWorking = workingDaysIn(month);
 
@@ -494,7 +522,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		),
 		periodLeaveDays: periodLeave.byCode,
 		periodFullLeaveDays: periodLeave.fullDaysByCode,
-		periodLeavePay: leavePay(periodLeave.byCode, salaryBase, periodWorking, currency),
+		periodLeavePay: leavePay(periodLeave.byCode, salaryBase(), periodWorking, currency),
 		periodOvertimeDays: [...workAttendance.overtimeOrNightDates].filter(
 			(date) => date >= attendance.start && date <= attendance.end
 		).length,
@@ -1079,7 +1107,7 @@ export function calculateFamilyAssessments(options: {
 		const earnedByMonth = gathered.earnedByMonth.get(bundle.employment.employee_id) ?? new Map();
 		const wages = calculateFamilies({
 			bundle,
-			configuration,
+			configuration: atWorksite(configuration, bundle.termsHistory),
 			period,
 			salary: bundle.window.salary,
 			periodsRemaining: projection.payslipsRemaining,
@@ -1170,6 +1198,8 @@ export function calculateFamilyAssessments(options: {
 				configuration,
 				projection,
 				yearToDate: gathered.yearToDate,
+				lastYear: gathered.lastYear,
+				firstYear: gathered.firstYear,
 				statutoryHistory:
 					gathered.statutoryHistory.get(run.measured.bundle.employment.employee_id) ?? [],
 				yearQuantityPayments: gathered.yearQuantityPayments?.get(

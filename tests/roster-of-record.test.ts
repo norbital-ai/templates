@@ -83,6 +83,7 @@ const precheckConfiguration = {
 	holidayRestPrecedence: 'REST_DAY',
 	shiftById,
 	holidays: new Map(),
+	holidayRows: [],
 	patternById: new Map(),
 	jurisdiction: { id: 'j', code: 'TEST' },
 	work: { proration: { by: 'CALENDAR_DAYS' }, bands: [], limits: [] },

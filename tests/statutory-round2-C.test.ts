@@ -427,7 +427,7 @@ test('ID — without an NPWP or a NIK valid as one, PPh 21 is withheld 20% highe
 	const book = assessStatutoryUnvalidated({
 		code: 'ID',
 		period: '2026-01',
-		region: 'DKI Jakarta',
+		region: 'Provinsi DKI Jakarta',
 		riskClass: 'II',
 		people: [
 			{ key: 'NIK', wage: 15_000_000, marital_status: 'SINGLE' },

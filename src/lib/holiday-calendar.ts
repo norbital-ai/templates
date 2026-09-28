@@ -7,8 +7,27 @@ import { dateKey } from './iso-day.js';
 /** What a consumer reads off a holiday row; the snapshot is the same columns, dates as day keys. */
 export type HolidayRow = Pick<
 	WorkspaceRow<'jurisdiction_holidays'>,
-	'id' | 'company_id' | 'date' | 'name' | 'kind' | 'replaces' | 'given_to' | 'published_at'
+	| 'id'
+	| 'company_id'
+	| 'date'
+	| 'name'
+	| 'kind'
+	| 'replaces'
+	| 'given_to'
+	| 'worksite'
+	| 'published_at'
 >;
+
+/** How much a kind pays over an ordinary day: DOUBLE is two regular holidays, SPECIAL the least. */
+const RANK: Record<HolidayRow['kind'], number> = {
+	SPECIAL_HOLIDAY: 0,
+	PUBLIC_HOLIDAY: 1,
+	SUBSTITUTE: 1,
+	DOUBLE_HOLIDAY: 2
+};
+
+/** A worksite as both sides record it; blank is none. */
+const siteOf = (worksite: string | null | undefined) => worksite?.trim() || null;
 
 /** The row exactly as a run captures it. An unpublished pin is still evidence, so it is not refused. */
 function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
@@ -21,6 +40,7 @@ function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
 		replaces: row.replaces == null ? null : dateKey(row.replaces),
 		given_to:
 			row.given_to === 'ONLY_IF_OFF_ON_REPLACED_DATE' ? 'ONLY_IF_OFF_ON_REPLACED_DATE' : 'EVERYONE',
+		...(siteOf(row.worksite) == null ? {} : { worksite: siteOf(row.worksite) }),
 		published_at: row.published_at == null ? '' : row.published_at
 	};
 }
@@ -31,12 +51,17 @@ function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
  * Publication is per holiday: a published row is a holiday, an unpublished one is not there.
  * Nothing asks a year to be complete first. A day a work day pinned is read back by id elsewhere,
  * published or not, because the pin is what the day was classified against.
+ *
+ * A row naming a worksite is a local day (PH RA 12271: "in the City of Navotas"): it reaches only
+ * the days `worksiteOn` places at that site. Without it, the company's own calendar: rows with no
+ * worksite. A local day on a company-wide date keeps the dearer of the two.
  */
 export function resolveHolidays(
 	rows: readonly HolidayRow[],
 	companyId: string,
 	start: string,
-	end: string
+	end: string,
+	worksiteOn: (date: string) => string | null | undefined = () => null
 ): ReadonlyMap<string, HolidaySnapshot> {
 	if (!isCalendarDate(start) || !isCalendarDate(end) || start > end)
 		refuse('Holiday coverage needs a valid ordered date range.');
@@ -45,7 +70,17 @@ export function resolveHolidays(
 		if (row.company_id !== companyId || row.published_at == null) continue;
 		const date = dateKey(row.date);
 		if (date < start || date > end) continue;
-		if (holidays.has(date)) refuse(`Entity ${companyId} has two published holidays on ${date}.`);
+		const site = siteOf(row.worksite);
+		if (site != null && site !== siteOf(worksiteOn(date))) continue;
+		const held = holidays.get(date);
+		if (held != null) {
+			if ((held.worksite != null) === (site != null))
+				refuse(`Entity ${companyId} has two published holidays on ${date}.`);
+			// Owner rule 2026-09-28: the law is silent on a local day falling on a company-wide one; the
+			// dearer kind stands, the company-wide row on a tie. Paying the higher meets both.
+			const gain = RANK[row.kind] - RANK[held.kind];
+			if (gain < 0 || (gain === 0 && site != null)) continue;
+		}
 		holidays.set(date, holidaySnapshot(row));
 	}
 	return holidays;
@@ -70,7 +105,15 @@ export function resolveHolidayInputs(
 } {
 	const ordered = [...new Set(dates.map(dateKey))].sort();
 	if (!ordered.length) return { holidays: new Map(), snapshots: [], inputs: [] };
-	const holidays = new Map(resolveHolidays(rows, companyId, ordered[0]!, ordered.at(-1)!));
+	const [start, end] = [ordered[0]!, ordered.at(-1)!];
+	const holidays = new Map(resolveHolidays(rows, companyId, start, end));
+	// The local days no company-wide read returns; a run still captures them as evidence.
+	const local = rows
+		.filter(
+			(row) => row.company_id === companyId && row.published_at != null && siteOf(row.worksite)
+		)
+		.filter((row) => dateKey(row.date) >= start && dateKey(row.date) <= end)
+		.map(holidaySnapshot);
 	const inputs = ordered.map((date) => ({
 		company_id: companyId,
 		date,
@@ -78,7 +121,7 @@ export function resolveHolidayInputs(
 	}));
 	return {
 		holidays,
-		snapshots: [...holidays.values()].toSorted((a, b) => a.date.localeCompare(b.date)),
+		snapshots: [...holidays.values(), ...local].toSorted((a, b) => a.date.localeCompare(b.date)),
 		inputs
 	};
 }

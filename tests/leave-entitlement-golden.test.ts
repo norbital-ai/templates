@@ -981,6 +981,137 @@ test('Indonesia — the UU 13/2003 leave heads, on all three sealed versions', (
 	}
 });
 
+/** The pay fraction of a lineage version's `code` row for one charged day. */
+function payFraction(
+	lineage: Lineage,
+	version: number,
+	code: string,
+	leave: { readonly day_index: number; readonly year_taken?: Record<string, number> }
+): number {
+	const settingsId = settingsVersions(lineage).toSorted((left, right) =>
+		String(left.effective_range.start).localeCompare(String(right.effective_range.start))
+	)[version]!.id;
+	const row = leaveCatalogue(lineage).find(
+		(candidate) => candidate.settings_id === settingsId && candidate.code === code
+	)!;
+	return evaluateNumberOver(row.pay_fraction ?? '1.0', {
+		...personContext({
+			employee: {
+				gender: 'FEMALE',
+				date_of_birth: '1990-01-01',
+				marital_status: null,
+				solo_parent: null,
+				disabled: null
+			},
+			employment: { service_start: '2020-01-01' },
+			terms: {
+				residency_status: 'CITIZEN',
+				work_classification: null,
+				employment_type: 'PERMANENT',
+				statutory_work_category: null
+			},
+			children: [],
+			event: { kind: 'BIRTH', date: '2026-04-01' },
+			facts: [],
+			asOf: '2026-05-01'
+		}),
+		leave: { month_index: 1, days: 1, year_taken: {}, ...leave }
+	});
+}
+
+test('Thailand — the Labour Protection Act leaves, across the Act No.9 cutover', () => {
+	const BIRTH = { event: { kind: 'BIRTH' } } as const;
+	for (const version of settingsVersions('TH').keys()) {
+		// LPA s.30: six working days after twelve months' continuous service.
+		assert.deepEqual(ladder('TH', version, 'ANNUAL_LEAVE'), [null, 6, 6]);
+		// ss.32, 57: sick leave as actually ill, unmetered; paid for the first 30 days of the year.
+		assert.deepEqual(ladder('TH', version, 'SICK_LEAVE'), [null, null, null]);
+		assert.equal(
+			payFraction('TH', version, 'SICK_LEAVE', { day_index: 1, year_taken: { SICK_LEAVE: 29 } }),
+			1
+		);
+		assert.equal(
+			payFraction('TH', version, 'SICK_LEAVE', { day_index: 1, year_taken: { SICK_LEAVE: 30 } }),
+			0
+		);
+		// ss.34, 57/1: three paid working days of personal business leave a year.
+		assert.deepEqual(ladder('TH', version, 'PERSONAL_BUSINESS_LEAVE'), [3, 3, 3]);
+		// s.41 with s.59: 98 days, 45 paid, until Act No.9 B.E.2568 (from 7 Dec 2025): 120 days, 60 paid.
+		const [days, paid] = version === 0 ? [98, 45] : [120, 60];
+		assert.deepEqual(ladder('TH', version, 'MATERNITY_LEAVE', { ...FEMALE, ...BIRTH }), [
+			days,
+			days,
+			days
+		]);
+		assert.deepEqual(ladder('TH', version, 'MATERNITY_LEAVE', { ...MALE, ...BIRTH }), [
+			null,
+			null,
+			null
+		]);
+		assert.equal(payFraction('TH', version, 'MATERNITY_LEAVE', { day_index: paid }), 1);
+		assert.equal(payFraction('TH', version, 'MATERNITY_LEAVE', { day_index: paid + 1 }), 0);
+		// Act No.9 B.E.2568: fifteen days' spouse-birth leave and fifteen days' child-care leave at 50%.
+		if (version === 0) continue;
+		assert.deepEqual(ladder('TH', version, 'CHILD_BIRTH_LEAVE', BIRTH), [15, 15, 15]);
+		assert.deepEqual(
+			ladder('TH', version, 'CHILD_CARE_LEAVE', { ...FEMALE, ...BIRTH }),
+			[15, 15, 15]
+		);
+		assert.equal(payFraction('TH', version, 'CHILD_CARE_LEAVE', { day_index: 1 }), 0.5);
+	}
+});
+
+for (const lineage of ['CN-shanghai', 'CN-kunming'] as const) {
+	test(`${lineage} — unpaid leave is unmetered on every sealed version`, () => {
+		for (const version of settingsVersions(lineage).keys())
+			assert.deepEqual(ladder(lineage, version, 'UNPAID_LEAVE'), [null, null, null]);
+	});
+	test(`${lineage} — annual, maternity, paternity and marriage leave on every sealed version`, () => {
+		// Shanghai: 沪府规〔2022〕18号 art.2 (to 31 Oct 2027) — marriage +7, 生育假 +60, 配偶陪产假 10.
+		// Yunnan: 云南省人口与计划生育条例 art.18 (17 Jan 2022) — marriage +15, 生育假 +60, 护理假 30.
+		const city =
+			lineage === 'CN-shanghai'
+				? { extra: 60, paternity: 10, marriage: 10 }
+				: { extra: 60, paternity: 30, marriage: 18 };
+		for (const version of settingsVersions(lineage).keys()) {
+			// 职工带薪年休假条例 art.2: twelve months' continuous work first — the three-month hire is
+			// outside the row; arts.3: 1–10 years' cumulative service is 5 days.
+			assert.deepEqual(ladder(lineage, version, 'ANNUAL_LEAVE'), [null, 5, 5]);
+			// 女职工劳动保护特别规定 art.7: 98 days, +15 difficult birth, +15 the second infant;
+			// miscarriage 15 under four months, 42 from four; the city 生育假 adds 60 to a birth only.
+			const days = (kind: string) =>
+				ladder(lineage, version, 'MATERNITY_LEAVE', { ...FEMALE, event: { kind } })[1];
+			assert.equal(days('BIRTH'), 98 + city.extra);
+			assert.equal(days('DIFFICULT_BIRTH'), 98 + 15 + city.extra);
+			// Twins are two children recorded on the event date; none recorded refuses (CN-N20).
+			assert.throws(() => days('MULTIPLE_BIRTH'), /multiple birth/i);
+			assert.throws(() => days('DIFFICULT_MULTIPLE_BIRTH'), /multiple birth/i);
+			assert.equal(days('MISCARRIAGE_UNDER_4M'), 15);
+			assert.equal(days('MISCARRIAGE_4M'), 42);
+			assert.deepEqual(
+				ladder(lineage, version, 'MATERNITY_LEAVE', { ...MALE, event: { kind: 'BIRTH' } }),
+				[null, null, null]
+			);
+			// The partner's leave is the husband's (夫妻 / 男方), from day one of service.
+			const BIRTH = { kind: 'BIRTH' } as const;
+			assert.deepEqual(
+				ladder(lineage, version, 'PATERNITY_LEAVE', { ...MARRIED_MALE, event: BIRTH }),
+				[city.paternity, city.paternity, city.paternity]
+			);
+			assert.deepEqual(ladder(lineage, version, 'PATERNITY_LEAVE', { ...MALE, event: BIRTH }), [
+				null,
+				null,
+				null
+			]);
+			// 国劳总薪字〔1980〕29号 1–3 days (the seed grants 3) plus the city's addition.
+			assert.deepEqual(
+				ladder(lineage, version, 'MARRIAGE_LEAVE', { event: { kind: 'MARRIAGE' } }),
+				[city.marriage, city.marriage, city.marriage]
+			);
+		}
+	});
+}
+
 test('every sealed version of every lineage has a leave golden', () => {
 	// Not "were the numbers checked" — the tests above do that — but "was any version skipped".
 	const missing: string[] = [];

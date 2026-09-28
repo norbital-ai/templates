@@ -28,7 +28,9 @@ import { cents } from '../../lib/payroll/run/rounding.js';
 import { personFactsForVersion } from '../payroll/facts.js';
 import { resolveCompanyFacts } from '../declared-facts.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
+import { personWageFloor } from '../payroll/contribution.js';
 import type { WorkspaceRow } from '../rows.js';
+import { decodeNumber } from '../wire.js';
 
 export { encashmentCode } from './codes.js';
 
@@ -227,8 +229,20 @@ export function withLeaveDeductionEligibility(
 			days: charge.days
 		}))
 	);
-	for (const entry of activeTimeOff(gathered.entries)) {
+	const timeOff = activeTimeOff(gathered.entries);
+	for (const entry of timeOff) {
 		const chargedDays = entry.charges.reduce((sum, charge) => sum + charge.days, 0);
+		// One stoppage or other event filed as several entries (one per pay period) is one event:
+		// the entries of this code naming the same event date; an entry naming none is its own.
+		const eventCharges = timeOff
+			.filter(
+				(row) =>
+					row.id === entry.id ||
+					(entry.event_date != null &&
+						row.leave_code === entry.leave_code &&
+						row.event_date === entry.event_date)
+			)
+			.flatMap((row) => row.charges);
 		const opening = entry.charges.map((charge) => charge.date).toSorted()[0] ?? '';
 		for (const charge of entry.charges) {
 			const catalogue = gathered.catalogues.find((row) => row.id === charge.catalogue_id);
@@ -237,6 +251,11 @@ export function withLeaveDeductionEligibility(
 			const term = options.terms.find((row) => row.id === charge.employment_term_id);
 			if (!term || !coversDate(term.effective_range, charge.date))
 				refuse('Approved leave has no effective captured employment terms.');
+			const version = settingsInForce(
+				configuration.lineageVersions,
+				configuration.company.settings_code,
+				charge.date
+			);
 			const person = personContext({
 				event: {
 					kind: entry.event_kind,
@@ -245,7 +264,7 @@ export function withLeaveDeductionEligibility(
 					date: entry.event_date
 				},
 				employee: options.employee,
-				employment: stint(options.employment),
+				employment: stint(options.employment, version?.exit_facts ?? []),
 				servicePeriods: options.servicePeriods,
 				terms: term,
 				asOf: charge.date,
@@ -253,11 +272,7 @@ export function withLeaveDeductionEligibility(
 				company: {
 					...configuration.company,
 					facts: resolveCompanyFacts(
-						settingsInForce(
-							configuration.lineageVersions,
-							configuration.company.settings_code,
-							charge.date
-						)?.facts ?? [],
+						version?.facts ?? [],
 						{ ...configuration.company, facts: configuration.recordedCompanyFacts },
 						{ asOf: charge.date, revisions: configuration.companyFactRevisions }
 					)
@@ -283,10 +298,19 @@ export function withLeaveDeductionEligibility(
 						yearTaken[row.code] = (yearTaken[row.code] ?? 0) + row.days;
 				const paid = evaluateNumberOver(catalogue.pay_fraction, {
 					...person,
+					// The floor on the day (VN Labour Code art.99: stoppage pay not below the minimum wage).
+					wage_floor:
+						version == null || !catalogue.pay_fraction.includes('wage_floor')
+							? 0
+							: personWageFloor({ company: configuration.company, jurisdiction: version }, person),
 					leave: {
 						month_index: wholeMonthsBetween(opening, charge.date) + 1,
 						day_index: inclusiveDays(opening, charge.date),
 						days: chargedDays,
+						event_day: eventCharges
+							.filter((row) => row.date <= charge.date)
+							.reduce((sum, row) => sum + row.days, 0),
+						agreed_fraction: decodeNumber(entry.agreed_pay_fraction ?? 0),
 						year_taken: yearTaken
 					}
 				});

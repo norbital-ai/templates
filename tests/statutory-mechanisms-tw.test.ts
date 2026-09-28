@@ -206,12 +206,13 @@ test('Taiwan — deferred joining wages retain the joining month insurance liabi
 	const february = build('2026-02').payslip_payroll_run[0]!;
 	// The seven calendar days of January wage settle in February, but its six insurance
 	// days were already assessed in January and do not recur in February's premiums.
-	assert.equal(february.gross, 42658.06);
+	// 34,800 × 7/30 = 8,120 + 34,800: flat 30-day month (TW-WAGE-05; 勞動2字第1020083156號函).
+	assert.equal(february.gross, 42920);
 	assert.equal(february.statutory.find((row) => row.scheme_code === 'LI')!.employee_amount, 800);
 	assert.equal(february.statutory.find((row) => row.scheme_code === 'EI')!.employee_amount, 70);
 	assert.equal(february.statutory.find((row) => row.scheme_code === 'NHI')!.employee_amount, 540);
 	assert.equal(february.unfunded_contributions, 0);
-	assert.equal(february.net, 41248.06);
+	assert.equal(february.net, 41510);
 });
 
 test('Taiwan — occupational accident premium rounds only after covered-day proration', () => {

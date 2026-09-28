@@ -70,7 +70,7 @@ for (const period of ['2025-12', '2026-01', '2026-03'])
 				assessStatutoryUnvalidated({
 					code: 'ID',
 					period,
-					region: 'DKI Jakarta',
+					region: 'Provinsi DKI Jakarta',
 					riskClass: 'II',
 					people: [{ key: 'ID-UNKNOWN', wage: 10_000_000, tax_residency: null }]
 				}),
@@ -314,15 +314,17 @@ test('VN and ID D15: every election, entity fact and departure input is required
 				if (!settled(field) && !atUse.has(field.key))
 					undeclared.push(`${start(version)} ${field.key}`);
 		}
-		// An election a rule of the scheme warns of when undeclared (`"<key>" in
-		// scheme.election_keys` under a `warning`) is settled by that rule: nothing is charged on a
-		// guess, and the run names the person.
+		// An election a rule of the scheme warns of or refuses on when undeclared (`"<key>" in
+		// scheme.election_keys` under a `warning` or `refusal`) is settled by that rule: nothing is
+		// charged on a guess, and the run names the person.
 		const warned = (
-			scheme: { rules: readonly { warning?: string; when: string }[] },
+			scheme: { rules: readonly { warning?: string; refusal?: string; when: string }[] },
 			key: string
 		) =>
 			scheme.rules.some(
-				(rule) => rule.warning != null && rule.when.includes(`"${key}" in scheme.election_keys`)
+				(rule) =>
+					(rule.warning != null || rule.refusal != null) &&
+					rule.when.includes(`"${key}" in scheme.election_keys`)
 			);
 		for (const scheme of contributionSchemes(lineage))
 			for (const field of scheme.elections ?? [])
@@ -355,7 +357,7 @@ test('ID D15: a resident without the declared tax identity withholds no PPh 21 a
 		{
 			code: 'ID',
 			period: '2026-03',
-			region: 'DKI Jakarta',
+			region: 'Provinsi DKI Jakarta',
 			riskClass: 'II',
 			people: [{ key: 'ID-NO-ID', wage: 10_000_000 }]
 		},
@@ -380,7 +382,7 @@ test('ID D15: a declared missing tax identity withholds 20% more (UU PPh art.21(
 			assessStatutoryUnvalidated({
 				code: 'ID',
 				period: '2026-03',
-				region: 'DKI Jakarta',
+				region: 'Provinsi DKI Jakarta',
 				riskClass: 'II',
 				people: [
 					{
@@ -433,7 +435,7 @@ for (const [lineage, person, message] of [
 				assessStatutoryUnvalidated({
 					code: lineage,
 					period: '2026-07',
-					region: lineage === 'VN' ? 'I' : 'DKI Jakarta',
+					region: lineage === 'VN' ? 'I' : 'Provinsi DKI Jakarta',
 					riskClass: 'II',
 					people: [person]
 				}),
@@ -447,7 +449,7 @@ test('ID D16: an entity with no JKK risk group stops the run (PP 44/2015 art.16)
 			assessStatutoryUnvalidated({
 				code: 'ID',
 				period: '2026-07',
-				region: 'DKI Jakarta',
+				region: 'Provinsi DKI Jakarta',
 				riskClass: '1',
 				people: [{ key: 'X', wage: 10_000_000 }]
 			}),
@@ -469,7 +471,7 @@ test('ID G14: a 2027 departure is judged against the 2027 religious holiday, not
 	const world = createStatutoryWorld({
 		code: 'ID',
 		period: '2027-02',
-		region: 'DKI Jakarta',
+		region: 'Provinsi DKI Jakarta',
 		riskClass: 'II',
 		people: [
 			{ key: 'PKWTT-15FEB', wage: 10_000_000, hire_date: '2020-01-01', exit_date: '2027-02-15' },
@@ -534,7 +536,7 @@ test('ID G14: a departure without the declared holiday skips the THR, and a malf
 		const w = createStatutoryWorld({
 			code: 'ID',
 			period: '2027-02',
-			region: 'DKI Jakarta',
+			region: 'Provinsi DKI Jakarta',
 			riskClass: 'II',
 			people: [
 				{ key: 'LEAVER', wage: 10_000_000, hire_date: '2020-01-01', exit_date: '2027-02-15' }

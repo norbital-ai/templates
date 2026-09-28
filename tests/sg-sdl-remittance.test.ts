@@ -12,10 +12,11 @@ import payrollRuns from '../src/data/collection/payroll_runs/+collection.ts';
 import { runTransform } from './helpers/ctx.ts';
 import { weeklyInstalments } from '../src/lib/payroll/run/period.ts';
 
+// CPF Board FAQ worked example: five local employees, SDL paid with CPF, $40.75 floored to $40.
 const people = [609.5, 2000, 4500, 4502.03, 10000].map((wage, index) => ({
 	key: `SDL-${index}`,
 	wage,
-	citizenship: 'FOREIGNER',
+	citizenship: 'CITIZEN',
 	pay_frequency: 'SEMI_MONTHLY' as const
 }));
 
@@ -445,6 +446,7 @@ for (const period of ['2025-12', '2026-01', '2026-04', '2026-07', '2027-01'])
 				scheme_code: 'SDL',
 				month: period,
 				currency: 'SGD',
+				remittance_rounding: 'FLOOR_MAJOR_UNIT',
 				accrued_amount: 40.75,
 				payable_amount: 40
 			}
@@ -466,6 +468,7 @@ test('SG payroll run write includes the separate SDL remittance payable', async 
 			scheme_code: 'SDL',
 			month: period,
 			currency: 'SGD',
+			remittance_rounding: 'FLOOR_MAJOR_UNIT',
 			accrued_amount: 40.75,
 			payable_amount: 40
 		}
@@ -493,6 +496,7 @@ for (const cutoff of ['FIRST', 'SPLIT', 'LAST'] as const)
 				scheme_code: 'SDL',
 				month: '2026-07',
 				currency: 'SGD',
+				remittance_rounding: 'FLOOR_MAJOR_UNIT',
 				accrued_amount: 40.75,
 				payable_amount: 40
 			}
@@ -522,7 +526,14 @@ for (const month of ['2026-02', '2026-03'])
 			const runs = weeks.map((week) => settle(world, `${month}-${week.sequence}`));
 			assert.ok(runs.slice(0, -1).every((run) => run.company_remittances.length === 0));
 			assert.deepEqual(runs.at(-1)!.company_remittances, [
-				{ scheme_code: 'SDL', month, currency: 'SGD', accrued_amount: 40.75, payable_amount: 40 }
+				{
+					scheme_code: 'SDL',
+					month,
+					currency: 'SGD',
+					remittance_rounding: 'FLOOR_MAJOR_UNIT',
+					accrued_amount: 40.75,
+					payable_amount: 40
+				}
 			]);
 			const costs = runs
 				.flatMap((run) => run.payslip_payroll_run)
@@ -531,3 +542,67 @@ for (const month of ['2026-02', '2026-03'])
 				.reduce((sum, row) => sum + row.employer_amount, 0);
 			assert.equal(costs, 40.75);
 		});
+
+// SWDA SDL FAQ (https://file.go.gov.sg/sdl-noa2023faqs.pdf) p.15 F.7: "You should indicate the
+// actual amount payable under the 'Skills Development Levy (SDL) – For foreign employees' field";
+// the CPF Board's round-down covers the SDL paid with CPF for local employees. Each employee's
+// levy is to the cent (Owner rule SG-SDL13): 3,999.99 × 0.25% → 10.00; 1,234.56 × 0.25% → 3.09.
+for (const period of ['2025-12', '2026-01', '2026-04', '2026-07', '2027-01']) {
+	test(`SG SDL ${period} submits foreign employees' levy at the actual amount (SWDA SDL FAQ F.7)`, () => {
+		const world = createStatutoryWorld({
+			code: 'SG',
+			period,
+			people: [
+				{ key: 'SP-A', wage: 3999.99, citizenship: 'FOREIGNER', pass_type: 'S_PASS' },
+				{ key: 'SP-B', wage: 1234.56, citizenship: 'FOREIGNER', pass_type: 'S_PASS' }
+			]
+		});
+		assert.deepEqual(settle(world, period).company_remittances, [
+			{
+				scheme_code: 'SDL',
+				month: period,
+				currency: 'SGD',
+				remittance_rounding: 'NONE',
+				accrued_amount: 13.09,
+				payable_amount: 13.09
+			}
+		]);
+	});
+
+	test(`SG SDL ${period} floors the local part only and keeps the foreign part apart`, () => {
+		// Local: citizen 3,999.99 → 10.00 and PR 1,234.56 → 3.09, $13.09 floored to $13. Foreign:
+		// S Pass 2,345.67 × 0.25% = 5.864175 → 5.86, remitted as it is.
+		const world = createStatutoryWorld({
+			code: 'SG',
+			period,
+			people: [
+				{ key: 'SC', wage: 3999.99, citizenship: 'CITIZEN' },
+				{
+					key: 'PR',
+					wage: 1234.56,
+					citizenship: 'PERMANENT_RESIDENT',
+					residency_since: '2015-01-01'
+				},
+				{ key: 'SP', wage: 2345.67, citizenship: 'FOREIGNER', pass_type: 'S_PASS' }
+			]
+		});
+		assert.deepEqual(settle(world, period).company_remittances, [
+			{
+				scheme_code: 'SDL',
+				month: period,
+				currency: 'SGD',
+				remittance_rounding: 'FLOOR_MAJOR_UNIT',
+				accrued_amount: 13.09,
+				payable_amount: 13
+			},
+			{
+				scheme_code: 'SDL',
+				month: period,
+				currency: 'SGD',
+				remittance_rounding: 'NONE',
+				accrued_amount: 5.86,
+				payable_amount: 5.86
+			}
+		]);
+	});
+}

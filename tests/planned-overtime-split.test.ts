@@ -456,7 +456,8 @@ test('the observed holiday is the one payroll prices: a Sunday holiday is carrie
 				precedence,
 				plans: [],
 				rosterPeriods: [],
-				patternOn: () => ({ pattern, anchor: '2026-06-29' })
+				patternOn: () => ({ pattern, anchor: '2026-06-29' }),
+				worksiteOn: () => null
 			})
 		].toSorted();
 	// Sunday the 5th is the rest day: under SUBSTITUTE the holiday is observed on Monday the 6th,
@@ -471,7 +472,8 @@ test('the observed holiday is the one payroll prices: a Sunday holiday is carrie
 		precedence: 'SUBSTITUTE',
 		plans: [],
 		rosterPeriods: [],
-		patternOn: () => ({ pattern, anchor: '2026-06-29' })
+		patternOn: () => ({ pattern, anchor: '2026-06-29' }),
+		worksiteOn: () => null
 	});
 	assert.deepEqual(named.get(dayOf(6)), { name: 'Holiday', from: dayOf(5) });
 	// A calendar that publishes the replacement itself is read as published.

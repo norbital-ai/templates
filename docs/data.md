@@ -61,7 +61,7 @@ A contract owns its dated terms: `employment_terms` rows, one in force on any da
 engagement's pay (`base_salary`, `pay_frequency`), standing (`residency_status`, `residency_since`,
 `work_classification`, `statutory_work_category`, `employment_type`, `grade`, `pass_type`,
 `tax_residency`, `notice_days`, `paid_rest_days` — declared standing the statutory rules read, never derived),
-organisation (`department`, `job_title`, `payroll_group`) and shift assignment; a contract change
+organisation (`department`, `job_title`, `payroll_group`), shift assignment and, where the version leaves the divisor to the contract, a part-month `proration` basis; a contract change
 carries the four declared facts to the successor row unchanged. The contract is the unit the
 profile shows and the engine reads; a revision is a new dated row under the same contract, never a
 second contract. The shift assignment is `employment_terms.shift_pattern_id` (required): the
@@ -140,7 +140,7 @@ can change within a year. Distinguish missing policy on an actual activity date 
 future year-end valuation. Do not invent opening adjustments or carry-forward credits merely to
 make an old usage total fit a formula.
 
-Holidays are standalone **entity** rows — `unique(company_id, date)` — one per observed day, each
+Holidays are standalone **entity** rows — `unique(company_id, date, worksite)` — one per observed day, each
 published on its own, with a `kind` (`PUBLIC`, `SPECIAL`, `SUBSTITUTE`) the run classifies the day
 by and freezes with it. There is no per-jurisdiction holiday concept: two entities in one country
 keep different holiday sets, and the seed bank carries each entity's own rows under

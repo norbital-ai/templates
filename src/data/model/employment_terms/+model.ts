@@ -30,6 +30,10 @@ export default model({
 		minimum_wage_2025_region: { kind: 'text', optional: true },
 		/** True only when the same worksite was assigned a lower 2026 region by the decree. */
 		minimum_wage_2026_area_reclassified: { kind: 'bool', optional: true },
+		/** The worksite a daily wage table names: a province or `province/district` (TH Notice 14). */
+		worksite: { kind: 'text', optional: true },
+		/** The worksite's sector a daily wage table names, e.g. HOTEL_TYPE_2 (TH Notice 14 cl.2). */
+		worksite_sector: { kind: 'text', optional: true },
 		/** The allowances the contract carries; `[]` when none. */
 		allowances: { kind: 'custom', of: 'contract_allowances', default: [] },
 		pay_frequency: {
@@ -37,7 +41,12 @@ export default model({
 			values: ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY']
 		},
 		work_classification: { kind: 'enum', values: ['EA_COVERED', 'NON_EA', 'MANAGERIAL'] },
-		/** First Schedule work category (MY RM4,000 exclusion); PH art.82 field personnel and paid-by-results. */
+		/**
+		 * First Schedule work category (MY RM4,000 exclusion); PH art.82 field personnel and workers
+		 * paid by results, split as PD 851 splits them (DOLE Handbook 2024 ch.13 §B.4, §F.1):
+		 * PIECE_RATE (a standard amount per piece) keeps the 13th month and SIL; TASK_BASIS (task,
+		 * contract, pakyaw, boundary, purely commission or a fixed amount for specific work) has neither.
+		 */
 		statutory_work_category: {
 			kind: 'enum',
 			values: [
@@ -47,7 +56,8 @@ export default model({
 				'COMMERCIAL_VEHICLE_OPERATOR',
 				'VESSEL_WORK',
 				'FIELD_PERSONNEL',
-				'PAID_BY_RESULTS'
+				'PIECE_RATE',
+				'TASK_BASIS'
 			],
 			default: 'NON_MANUAL'
 		},
@@ -69,6 +79,12 @@ export default model({
 		department: { kind: 'text', optional: true },
 		job_title: { kind: 'text', optional: true },
 		payroll_group: { kind: 'text', optional: true },
+		/**
+		 * The part-month divisor the contract states, where the law leaves it to the contract
+		 * (`work_rules.proration_contractual`; VN Decree 145/2020 art.55(1)(a), Law 41/2024
+		 * arts.33(5), 34(3)). Absent is the version's own basis; dated by `effective_range`.
+		 */
+		proration: { kind: 'custom', of: 'proration_basis', optional: true },
 		/** Monthly-paid: every day of the month paid (DOLE Handbook ch.2 §D, factor 365). */
 		paid_rest_days: { kind: 'bool', default: false },
 		/** The entity's own benefit tier; `terms.grade`. */

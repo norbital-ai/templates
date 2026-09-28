@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import statutoryDrift from '../src/automation/+statutory_drift.automation.ts';
 import { STATUTORY_SOURCES } from '../src/lib/statutory_sources.ts';
+import { LINEAGES, settingsVersions } from './fixtures/statutory-world.ts';
 
 const version = (code: string) => ({
 	id: `v-${code}`,
@@ -109,6 +110,15 @@ test(
 		}
 	}
 );
+
+test('every seeded jurisdiction has official sources to research', () => {
+	for (const lineage of LINEAGES)
+		for (const { jurisdiction_code } of settingsVersions(lineage))
+			assert.ok(
+				STATUTORY_SOURCES[jurisdiction_code]?.length,
+				`${lineage}: no sources for ${jurisdiction_code}`
+			);
+});
 
 test('changes become one unsealed draft; no changes, no draft', { timeout: 2000 }, async () => {
 	const { result, writes } = await run(['MY', 'SG'], (code) => ({

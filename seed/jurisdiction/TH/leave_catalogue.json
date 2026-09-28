@@ -1,0 +1,1569 @@
+[
+	{
+		"id": "f925df78-c59f-58b6-a519-991e2e8e0099",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"eligibility": "employment.service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "EXACT",
+			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 6
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "42f18ff1-72fd-5c8a-acff-b8c36e0c009c",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": 3,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ced67e9a-13ad-52ab-93c0-f8577e90f434",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Necessary personal business leave (ลากิจธุระอันจำเป็น)",
+		"authority": "Labour Protection Act s.34: at least three working days a year; s.57/1 (No.7 B.E.2562): paid up to three working days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "5ace408b-ea41-5ad1-83c2-6183f9a4cfbe",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"authority": "Labour Protection Act s.33: leave for sterilisation and for the sickness it causes, as a first-class physician prescribes and certifies; s.57 para.2: paid.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b29b9573-0f33-5a2e-80e6-df32011919d2",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลาเพื่อรับราชการทหาร)",
+		"authority": "Labour Protection Act s.35: leave for military inspection, training or readiness testing; s.58: paid for the days of leave, up to 60 days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.taken(\"MILITARY_LEAVE\") < 60.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cfdb5558-d799-5658-991f-d5655271f08d",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
+		"authority": "Labour Protection Act s.41 before No.9 B.E.2568 (to 6 December 2025): up to 98 days for each pregnancy, holidays counted; s.59: the employer pays wages for up to 45 days of it.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 98
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.day_index > 45 ? 0.0 : 1.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ecebfa22-9d5c-5321-ac36-77e182882e76",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave (ลาโดยไม่รับค่าจ้าง)",
+		"authority": "No statutory leave: leave the employer agrees outside ss.30–36 is not paid by ss.56–59, so the day’s wage is not earned. Deducted at the month’s calendar-day rate (work_rules proration; register TH-WORK-05).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "13b379c2-317c-5d76-b8dc-dcd0f8961221",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"eligibility": "employment.service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "EXACT",
+			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 6
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "ec3d7ed2-c357-5310-99ce-60f559fc7a05",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": 3,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "99cc4101-0798-5bcc-a89a-b35beffaa102",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Necessary personal business leave (ลากิจธุระอันจำเป็น)",
+		"authority": "Labour Protection Act s.34: at least three working days a year; s.57/1 (No.7 B.E.2562): paid up to three working days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "633c8a2e-b3df-5b91-ad71-eab269154ab4",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"authority": "Labour Protection Act s.33: leave for sterilisation and for the sickness it causes, as a first-class physician prescribes and certifies; s.57 para.2: paid.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "1b3d734b-5cb3-5af0-93e2-8036588c25fe",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลาเพื่อรับราชการทหาร)",
+		"authority": "Labour Protection Act s.35: leave for military inspection, training or readiness testing; s.58: paid for the days of leave, up to 60 days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.taken(\"MILITARY_LEAVE\") < 60.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "6a58f8b5-8b34-52ea-9390-6d0d39bbea83",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 120
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e4fdd489-131a-5ec0-acd3-8a8ce383ecb3",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave (ลาโดยไม่รับค่าจ้าง)",
+		"authority": "No statutory leave: leave the employer agrees outside ss.30–36 is not paid by ss.56–59, so the day’s wage is not earned. Deducted at the month’s calendar-day rate (work_rules proration; register TH-WORK-05).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "07a23b8f-3bec-51ea-929e-5f092232c668",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "CHILD_BIRTH_LEAVE",
+		"name": "Leave to care for a spouse and newborn (ลาเพื่อช่วยเหลือภริยาที่คลอดบุตร)",
+		"authority": "Labour Protection Act s.41/1 and s.59/2 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 15 working days, before or within 90 days after the birth, paid in full (register TH-LEAVE-03). The 90-day window is not enforced here.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "971ddba2-45f5-54fa-8c0c-6bb87e35f9e1",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "CHILD_CARE_LEAVE",
+		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
+		"authority": "Labour Protection Act s.41 para.4 and s.49/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 working days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"pay_fraction": "0.5",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "e837e29b-c205-5b30-92b7-3fc3413677be",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"eligibility": "employment.service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "EXACT",
+			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 6
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "cc815e96-fe60-53b2-9408-df2bdaa77101",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": 3,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ac64c8fb-953f-57bd-9ae7-d0fea892f724",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Necessary personal business leave (ลากิจธุระอันจำเป็น)",
+		"authority": "Labour Protection Act s.34: at least three working days a year; s.57/1 (No.7 B.E.2562): paid up to three working days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "94b7d3de-fee9-5e05-8701-a175b3976adb",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"authority": "Labour Protection Act s.33: leave for sterilisation and for the sickness it causes, as a first-class physician prescribes and certifies; s.57 para.2: paid.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b9026167-5024-509e-9c66-beaf583a462d",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลาเพื่อรับราชการทหาร)",
+		"authority": "Labour Protection Act s.35: leave for military inspection, training or readiness testing; s.58: paid for the days of leave, up to 60 days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.taken(\"MILITARY_LEAVE\") < 60.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "5a412182-f70f-5f32-b6c3-bb1f6d69f9c3",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 120
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "19ccfabd-4dac-5d03-bba9-d4f9049ffdba",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave (ลาโดยไม่รับค่าจ้าง)",
+		"authority": "No statutory leave: leave the employer agrees outside ss.30–36 is not paid by ss.56–59, so the day’s wage is not earned. Deducted at the month’s calendar-day rate (work_rules proration; register TH-WORK-05).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "821941be-248e-5332-a184-7e1f18088489",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "CHILD_BIRTH_LEAVE",
+		"name": "Leave to care for a spouse and newborn (ลาเพื่อช่วยเหลือภริยาที่คลอดบุตร)",
+		"authority": "Labour Protection Act s.41/1 and s.59/2 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 15 working days, before or within 90 days after the birth, paid in full (register TH-LEAVE-03). The 90-day window is not enforced here.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "a6ecde90-54b7-5087-9b43-06bc3393e306",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "CHILD_CARE_LEAVE",
+		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
+		"authority": "Labour Protection Act s.41 para.4 and s.49/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 working days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"pay_fraction": "0.5",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "c05f841d-cbc3-5892-bc52-260d217bdd27",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"eligibility": "employment.service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "EXACT",
+			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 6
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "45f9c59e-8c33-5a35-867d-4bff28bb0de2",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": 3,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "bdb59316-c750-500b-b065-45085b33d1c1",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Necessary personal business leave (ลากิจธุระอันจำเป็น)",
+		"authority": "Labour Protection Act s.34: at least three working days a year; s.57/1 (No.7 B.E.2562): paid up to three working days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "519611d4-674b-5d30-ae47-dce1435f75c3",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"authority": "Labour Protection Act s.33: leave for sterilisation and for the sickness it causes, as a first-class physician prescribes and certifies; s.57 para.2: paid.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "a76ff334-cd06-53f0-ab6f-df5661bae137",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลาเพื่อรับราชการทหาร)",
+		"authority": "Labour Protection Act s.35: leave for military inspection, training or readiness testing; s.58: paid for the days of leave, up to 60 days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.taken(\"MILITARY_LEAVE\") < 60.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "156f68b3-f1cc-52f5-bfde-0fbf439118d9",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 120
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "af0f9dc1-7bc2-5ddb-821d-5ae07f9f62de",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave (ลาโดยไม่รับค่าจ้าง)",
+		"authority": "No statutory leave: leave the employer agrees outside ss.30–36 is not paid by ss.56–59, so the day’s wage is not earned. Deducted at the month’s calendar-day rate (work_rules proration; register TH-WORK-05).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "86aa1610-33c1-5765-96bd-4d9c9214b8a0",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "CHILD_BIRTH_LEAVE",
+		"name": "Leave to care for a spouse and newborn (ลาเพื่อช่วยเหลือภริยาที่คลอดบุตร)",
+		"authority": "Labour Protection Act s.41/1 and s.59/2 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 15 working days, before or within 90 days after the birth, paid in full (register TH-LEAVE-03). The 90-day window is not enforced here.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "32762b31-4b74-5953-8f97-8922b869d38a",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "CHILD_CARE_LEAVE",
+		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
+		"authority": "Labour Protection Act s.41 para.4 and s.49/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 working days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"pay_fraction": "0.5",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cf32b810-5f85-5743-8e25-6195dd106ed9",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"eligibility": "employment.service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "EXACT",
+			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 6
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "e3a94d02-40c8-5f35-bc93-c31b8124fffc",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": 3,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "be35f9c2-e87f-5ab2-bbea-082b38a9b928",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Necessary personal business leave (ลากิจธุระอันจำเป็น)",
+		"authority": "Labour Protection Act s.34: at least three working days a year; s.57/1 (No.7 B.E.2562): paid up to three working days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "61a3d347-ad59-5806-8a76-a532d747177c",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"authority": "Labour Protection Act s.33: leave for sterilisation and for the sickness it causes, as a first-class physician prescribes and certifies; s.57 para.2: paid.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "0781a972-4f5f-5e40-99e6-04c4f44ba95e",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลาเพื่อรับราชการทหาร)",
+		"authority": "Labour Protection Act s.35: leave for military inspection, training or readiness testing; s.58: paid for the days of leave, up to 60 days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.taken(\"MILITARY_LEAVE\") < 60.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "54d3682f-84a4-5cd3-9d8c-392250a2a391",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 120
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "7a01fb51-e1cc-5e55-b1c4-5be8bb42b9fc",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave (ลาโดยไม่รับค่าจ้าง)",
+		"authority": "No statutory leave: leave the employer agrees outside ss.30–36 is not paid by ss.56–59, so the day’s wage is not earned. Deducted at the month’s calendar-day rate (work_rules proration; register TH-WORK-05).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "87a3115a-0182-5a27-9915-a4c76245c3d6",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "CHILD_BIRTH_LEAVE",
+		"name": "Leave to care for a spouse and newborn (ลาเพื่อช่วยเหลือภริยาที่คลอดบุตร)",
+		"authority": "Labour Protection Act s.41/1 and s.59/2 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 15 working days, before or within 90 days after the birth, paid in full (register TH-LEAVE-03). The 90-day window is not enforced here.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "07adeaf7-bc18-557b-9837-ace3b7184e88",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "CHILD_CARE_LEAVE",
+		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
+		"authority": "Labour Protection Act s.41 para.4 and s.49/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 working days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"pay_fraction": "0.5",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "a259d4e3-8fab-5319-a734-22202c96de7f",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"eligibility": "employment.service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "EXACT",
+			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 6
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "643c9e3b-9e7d-50bf-9851-85ef514d63ac",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"eligibility": "employment.service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "EXACT",
+			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 6
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "056cf161-571b-50e7-b9f3-2dc2ca175934",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": 3,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "fe8bd414-a5cf-5f40-bafe-445521066549",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": 3,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b5e710cd-6cd6-5ede-8d47-6094ae0d530c",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Necessary personal business leave (ลากิจธุระอันจำเป็น)",
+		"authority": "Labour Protection Act s.34: at least three working days a year; s.57/1 (No.7 B.E.2562): paid up to three working days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b7c677eb-3eaa-5fd8-b343-1d61f534ae17",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Necessary personal business leave (ลากิจธุระอันจำเป็น)",
+		"authority": "Labour Protection Act s.34: at least three working days a year; s.57/1 (No.7 B.E.2562): paid up to three working days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "335a0efa-8cdc-52fb-9564-d23ccd4bcb08",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"authority": "Labour Protection Act s.33: leave for sterilisation and for the sickness it causes, as a first-class physician prescribes and certifies; s.57 para.2: paid.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d2579773-9271-50f6-8681-f85bba396254",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"authority": "Labour Protection Act s.33: leave for sterilisation and for the sickness it causes, as a first-class physician prescribes and certifies; s.57 para.2: paid.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d7f85c1e-f26c-55ce-bf47-42e78e40cdce",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลาเพื่อรับราชการทหาร)",
+		"authority": "Labour Protection Act s.35: leave for military inspection, training or readiness testing; s.58: paid for the days of leave, up to 60 days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.taken(\"MILITARY_LEAVE\") < 60.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "2647774e-3ce8-50f8-b0a3-7598567420ac",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลาเพื่อรับราชการทหาร)",
+		"authority": "Labour Protection Act s.35: leave for military inspection, training or readiness testing; s.58: paid for the days of leave, up to 60 days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.taken(\"MILITARY_LEAVE\") < 60.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "4a4b3fa4-2153-5df1-988a-4f6ab771131e",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 120
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cccaba37-7ed1-587f-8984-896b0ea56df4",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 120
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "301cd77d-f2d8-51c2-a213-f1a0cad6dfa7",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave (ลาโดยไม่รับค่าจ้าง)",
+		"authority": "No statutory leave: leave the employer agrees outside ss.30–36 is not paid by ss.56–59, so the day’s wage is not earned. Deducted at the month’s calendar-day rate (work_rules proration; register TH-WORK-05).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "54dc4234-a99c-52dd-95b5-fac07321bfaa",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave (ลาโดยไม่รับค่าจ้าง)",
+		"authority": "No statutory leave: leave the employer agrees outside ss.30–36 is not paid by ss.56–59, so the day’s wage is not earned. Deducted at the month’s calendar-day rate (work_rules proration; register TH-WORK-05).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "9e59302a-18e0-520b-baf2-23e99aff36c1",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "CHILD_BIRTH_LEAVE",
+		"name": "Leave to care for a spouse and newborn (ลาเพื่อช่วยเหลือภริยาที่คลอดบุตร)",
+		"authority": "Labour Protection Act s.41/1 and s.59/2 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 15 working days, before or within 90 days after the birth, paid in full (register TH-LEAVE-03). The 90-day window is not enforced here.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d2588dbc-4b6e-52f4-ad2f-97b3def95209",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "CHILD_BIRTH_LEAVE",
+		"name": "Leave to care for a spouse and newborn (ลาเพื่อช่วยเหลือภริยาที่คลอดบุตร)",
+		"authority": "Labour Protection Act s.41/1 and s.59/2 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 15 working days, before or within 90 days after the birth, paid in full (register TH-LEAVE-03). The 90-day window is not enforced here.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ac8906da-af0b-523e-a31a-ef9be8f32856",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "CHILD_CARE_LEAVE",
+		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
+		"authority": "Labour Protection Act s.41 para.4 and s.49/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 working days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"pay_fraction": "0.5",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "28d044c7-3d1f-5674-843f-bf4b1d3fcb26",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "CHILD_CARE_LEAVE",
+		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
+		"authority": "Labour Protection Act s.41 para.4 and s.49/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 working days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"pay_fraction": "0.5",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8e888c93-5381-5a75-a7a9-400044dc2bf8",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"eligibility": "employment.service_months >= 12",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "CALENDAR_DAYS",
+			"rounding": "EXACT",
+			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 6
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": true,
+		"encash_on_exit": true
+	},
+	{
+		"id": "fe4f577f-9157-567a-a8a3-b603d3516b88",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": 3,
+		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "9e3bf184-b75b-52f3-8da7-54ca62aeebdc",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Necessary personal business leave (ลากิจธุระอันจำเป็น)",
+		"authority": "Labour Protection Act s.34: at least three working days a year; s.57/1 (No.7 B.E.2562): paid up to three working days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "f31ab84d-2ce7-509c-b2d8-bbc5409defd1",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"authority": "Labour Protection Act s.33: leave for sterilisation and for the sickness it causes, as a first-class physician prescribes and certifies; s.57 para.2: paid.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "92635222-9600-5e80-b3db-34cd72328636",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลาเพื่อรับราชการทหาร)",
+		"authority": "Labour Protection Act s.35: leave for military inspection, training or readiness testing; s.58: paid for the days of leave, up to 60 days a year.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.taken(\"MILITARY_LEAVE\") < 60.0 ? 1.0 : 0.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "756913bb-c44f-581e-a658-f3bd69055f54",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 120
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "5baae757-8bf3-5a9e-9a7c-a4fbcb68775b",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave (ลาโดยไม่รับค่าจ้าง)",
+		"authority": "No statutory leave: leave the employer agrees outside ss.30–36 is not paid by ss.56–59, so the day’s wage is not earned. Deducted at the month’s calendar-day rate (work_rules proration; register TH-WORK-05).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cfaea3be-7206-5efc-8acf-4d17291768b5",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "CHILD_BIRTH_LEAVE",
+		"name": "Leave to care for a spouse and newborn (ลาเพื่อช่วยเหลือภริยาที่คลอดบุตร)",
+		"authority": "Labour Protection Act s.41/1 and s.59/2 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 15 working days, before or within 90 days after the birth, paid in full (register TH-LEAVE-03). The 90-day window is not enforced here.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "1d8c1a67-8741-5f5d-b6f7-91d27fa71509",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "CHILD_CARE_LEAVE",
+		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
+		"authority": "Labour Protection Act s.41 para.4 and s.49/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 working days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 15
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"pay_fraction": "0.5",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	}
+]

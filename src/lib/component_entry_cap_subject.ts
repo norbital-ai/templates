@@ -33,6 +33,7 @@ type CapSubject = {
 	readonly at: (date: string) => PersonContext;
 	/** How a refusal names the person: their employee number, as the run's own message does. */
 	readonly label: string;
+	readonly companyId: string;
 };
 
 type CapEmployment = {
@@ -90,7 +91,7 @@ export async function capSubjects(
 		const at = (date: string): PersonContext =>
 			personContext({
 				employee: employee as never,
-				employment: stint({ ...contract, exit_reason: employment.exit_reason }),
+				employment: stint({ ...contract, exit_reason: employment.exit_reason }, []),
 				terms: payRequestTerms(ownTerms, contract, date) as never,
 				children: childrenOn(employee?.children ?? [], date),
 				company: company as never,
@@ -102,7 +103,8 @@ export async function capSubjects(
 			label:
 				employment.employee_number == null || employment.employee_number === ''
 					? employmentId
-					: employment.employee_number
+					: employment.employee_number,
+			companyId: employment.company_id
 		};
 	};
 }

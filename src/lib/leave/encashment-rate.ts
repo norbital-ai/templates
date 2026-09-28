@@ -35,6 +35,8 @@ export function leaveEncashmentRate(options: {
 	readonly entry: LeaveActivity;
 	/** Consumed dated wage history, recorded for the payslip capture. */
 	readonly referenceWageIds?: Set<string> | undefined;
+	/** calendar month → code → what earlier payslips filed, for `employment.earned_monthly_average`. */
+	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 }): number {
 	const { bundle, configuration, entry } = options;
 	if (!entry.effective_on) throw new Error('Leave cash-out requires a conversion date.');
@@ -262,7 +264,7 @@ export function leaveEncashmentRate(options: {
 			);
 	const person = personContext({
 		employee: bundle.employee,
-		employment: stint(bundle.employment),
+		employment: stint(bundle.employment, version?.exit_facts ?? []),
 		terms,
 		fixedAllowances,
 		week: { ordinary_hours_per_week: hoursPerWeek, working_days_per_week: daysPerWeek },
@@ -278,6 +280,7 @@ export function leaveEncashmentRate(options: {
 			)
 		},
 		period: { working_days: workingDays },
+		earnings: options.earnedByMonth ?? null,
 		asOf: referenceDate
 	});
 	const rate = evaluateNumber(expressionEngine, rule.day_amount, person);

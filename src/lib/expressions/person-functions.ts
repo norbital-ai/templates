@@ -82,6 +82,12 @@ export function leaveTaken(leave: unknown, code: unknown): number {
 	return decodeNumber(taken?.[String(code)] ?? 0);
 }
 
+/** `leave.days(code)` on the entry site: the days of that code charged in the salary window. */
+export function leaveDays(leave: unknown, code: unknown): number {
+	const charged = (leave as { charged?: Record<string, unknown> }).charged;
+	return decodeNumber(charged?.[String(code)] ?? 0);
+}
+
 /** Calendar anniversary matching age_on; a leap-day birth reaches the age on 1 March in a non-leap year. */
 export function birthday(employee: unknown, age: unknown): string {
 	const born = String((employee as { birth_date?: unknown }).birth_date ?? '');
@@ -171,15 +177,26 @@ function wageMonths(employment: unknown, months: unknown, what: string) {
 }
 
 /**
- * `employment.earned_monthly_average(months)`: the wages earlier payslips paid over the `months`
- * calendar months before the rule date's month, per month of service — a part first month counts
- * as its covered share (ID Permenaker 6/2016 art.3(3)–(4): the average wage received each month;
- * MY reg.6(2): twelve months' wages is twelve such months).
+ * `employment.earned_monthly_average(months[, excluded])`: the wages earlier payslips paid over the
+ * `months` calendar months before the rule date's month, per month of service — a part first month
+ * counts as its covered share (ID Permenaker 6/2016 art.3(3)–(4): the average wage received each
+ * month; MY reg.6(2): twelve months' wages is twelve such months). `excluded` names filed codes
+ * taken back out, `["OVERTIME"]` every priced work-day line (CN 企业职工带薪年休假实施办法 art.11:
+ * the twelve months' average 剔除加班工资).
  */
-export function earnedMonthlyAverage(employment: unknown, months: unknown): number {
+export function earnedMonthlyAverage(
+	employment: unknown,
+	months: unknown,
+	excluded: unknown = []
+): number {
 	const rows = wageMonths(employment, months, 'Earned monthly average');
 	if (rows == null) return 0;
-	const wages = rows.reduce((sum, row) => sum + (row.codes[WAGES] ?? 0), 0);
+	const out = (Array.isArray(excluded) ? excluded : []).map(String);
+	const wages = rows.reduce(
+		(sum, row) =>
+			sum + (row.codes[WAGES] ?? 0) - out.reduce((less, code) => less + (row.codes[code] ?? 0), 0),
+		0
+	);
 	return wages / rows.reduce((sum, row) => sum + row.covered / row.days, 0);
 }
 
@@ -258,6 +275,20 @@ export function averageMonthlyWage(
 ): number {
 	const average = dailyAverage(employment, months, codes, reduced, 'Average daily wage');
 	return average == null ? 0 : average.day * average.monthDays;
+}
+
+/**
+ * `employment.on_leave(date, codes)`: whether approved time off of one of the named leave codes
+ * spans that day — TW 勞基法 §13 forbids an employer termination inside the §50 stop or the §59
+ * medical period, which are those leave entries' own dates. A person built without the leave
+ * record reads none.
+ */
+export function onLeave(employment: unknown, date: unknown, codes: unknown): boolean {
+	const day = String(date);
+	const named = new Set((Array.isArray(codes) ? codes : []).map(String));
+	return ((employment as Stint).history?.leave ?? []).some(
+		(span) => named.has(span.code) && span.from <= day && day <= span.to
+	);
 }
 
 /**

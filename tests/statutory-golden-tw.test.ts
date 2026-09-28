@@ -1154,32 +1154,33 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 		assert.equal(line.amount, segment!.prorated_amount, `${key}: the line is the segment`);
 		return [segment!.days, segment!.denominator, segment!.unpaid_days, segment!.prorated_amount];
 	};
-	// `work_rules.proration` is CALENDAR_DAYS: a joiner on the 16th takes 16 of January's 31 days
-	// on the salary and on the allowance alike, one entry each, on the same basis.
+	// `work_rules.proration` is calendar days over a flat 30 (民法 §123(2); 勞動2字第1020083156號: the
+	// agreed day — 30 here — prices the part month, the 事假 day and §39 alike): a joiner on the 16th
+	// is paid 16 days of 40,000 ÷ 30 = 21,333.33 and of the allowance 3,100 ÷ 30 × 16 = 1,653.33.
 	assert.deepEqual(
 		slips
 			.get('TW-JOINER')!
 			.proration.filter((row) => row.component_code === 'BASIC')
 			.map((row) => [row.days, row.denominator, row.prorated_amount]),
-		[[16, 31, 20_645.16]]
+		[[16, 30, 21_333.33]]
 	);
-	assert.deepEqual(facts('TW-JOINER'), [16, 31, 0, 1600]);
+	assert.deepEqual(facts('TW-JOINER'), [16, 30, 0, 1653.33]);
 	assert.deepEqual(
 		slips
 			.get('TW-LEAVER')!
 			.proration.filter((row) => row.component_code === 'BASIC')
 			.map((row) => [row.days, row.denominator, row.prorated_amount]),
-		[[15, 31, 19_354.84]]
+		[[15, 30, 20_000]]
 	);
-	assert.deepEqual(facts('TW-LEAVER'), [15, 31, 0, 1500]);
-	assert.deepEqual(facts('TW-WHOLE'), [31, 31, 0, 3100]);
+	assert.deepEqual(facts('TW-LEAVER'), [15, 30, 0, 1550]);
+	assert.deepEqual(facts('TW-WHOLE'), [30, 30, 0, 3100]);
 	// 勞工請假規則 §7: 事假 is unpaid — one calendar day of wage comes off the salary line, and
-	// 勞基法 §2(3) makes the recurring 交通津貼 工資, so the allowance loses its day too:
-	// (40,000 + 3,100) ÷ 31 = 1,390.32 in all, split across the two lines.
-	assert.deepEqual(facts('TW-NPL'), [30, 31, 1, 3000]);
+	// 勞基法 §2(3) makes the recurring 交通津貼 工資, so the allowance loses its day too, both over the
+	// agreed 30: 40,000 ÷ 30 = 1,333.33 off the salary and 3,100 ÷ 30 = 103.33 off the allowance.
+	assert.deepEqual(facts('TW-NPL'), [29, 30, 1, 2996.67]);
 	const absence = slips.get('TW-NPL')!.adjustments.find((row) => row.bucket === 'ABSENCE')!;
-	assert.deepEqual([absence.quantity, absence.amount], [1, 1290.32]);
-	assert.equal(slips.get('TW-NPL')!.gross, 40_000 - 1290.32 + 3000);
+	assert.deepEqual([absence.quantity, absence.amount], [1, 1333.33]);
+	assert.equal(slips.get('TW-NPL')!.gross, 40_000 - 1333.33 + 2996.67);
 	// 勞基法 §2(3): a recurring 交通津貼 is 工資, so it is in the insured wage and the taxable pay:
 	// the contractual 40,000 + 3,100 = 43,100 insures at grade 43,900 (× 11.5% = 5,048.50 →
 	// 1,010 / 3,534), and a day of 事假 does not re-declare the grade; the whole month's 薪資所得
@@ -1189,7 +1190,7 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 	assert.deepEqual(charge(slips.get('TW-WHOLE')!, 'INCOME_TAX'), [43_100, 2155, 0]);
 
 	// BLI's thirty-day calendar gives Jan 16–31 fifteen insured days. Salary proration
-	// remains 16/31. Insurance uses the declared 43,900 grade, rounded after the 15/30 share.
+	// is 16/30. Insurance uses the declared 43,900 grade, rounded after the 15/30 share.
 	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LI'), [43_900, 505, 1767]);
 	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'EI'), [43_900, 44, 154]);
 	assert.deepEqual(charge(slips.get('TW-JOINER')!, 'LABOR_PENSION'), [43_900, 0, 1317]);
@@ -1201,9 +1202,10 @@ test('Taiwan — a part month prorates on calendar days, an allowance with it, a
 		slips.get('TW-LEAVER')!.statutory.find((entry) => entry.scheme_code === 'NHI'),
 		undefined
 	);
-	// The leaver's fifteen enrolled days — BLI's 15-day row at 40,100 is 501 / 1,754 combined
-	// (Files/24807): 勞保 461.15 → 461 / 1,614.025 → 1,614; 就保 40.1 → 40 / 280.7 × ½ = 140.35 →
-	// 140, where the whole-month row 281 halved would round to 141; 勞退 2,406 × 15/30 = 1,203.
+	// The leaver's fifteen enrolled days on the declared 43,900: 勞保 5,048.50 × 20% × ½ = 504.85 →
+	// 505 / × 70% × ½ = 1,766.98 → 1,767; 就保 43.90 → 44 / 153.65 → 154; 勞退 2,634 × ½ = 1,317 —
+	// the joiner's figures. (The 40,100 fifteen-day row, 461 / 1,614 and 40 / 140, is priced by the
+	// mid-month leaver golden below.)
 	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LI'), [43_900, 505, 1767]);
 	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'EI'), [43_900, 44, 154]);
 	assert.deepEqual(charge(slips.get('TW-LEAVER')!, 'LABOR_PENSION'), [43_900, 0, 1317]);
@@ -1572,7 +1574,7 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 });
 
 test('Taiwan — thirty half-paid 普通傷病假 days a year, hospitalised or not, across entries (勞工請假規則 §4(3))', () => {
-	// 62,000 a month, 2,000 a day on March's 31 calendar days. Thirty days of sick leave in
+	// 60,000 a month, 2,000 a day over the agreed 30 (勞動2字第1020083156號). Thirty days of sick leave in
 	// January and February on file, then ten
 	// hospitalised days in March: the year's thirty half-paid days are spent, so the ten are
 	// unpaid — a whole day each comes off, not a half.
@@ -1632,7 +1634,7 @@ test('Taiwan — thirty half-paid 普通傷病假 days a year, hospitalised or n
 				code: 'TW',
 				period: '2026-03',
 				riskClass: '1',
-				people: [{ key: 'TW-SICK', wage: 62_000, citizenship: 'CITIZEN' }]
+				people: [{ key: 'TW-SICK', wage: 60_000, citizenship: 'CITIZEN' }]
 			},
 			(world) => {
 				world.leave_catalogue.push(
@@ -1658,7 +1660,7 @@ test('Taiwan — thirty half-paid 普通傷病假 days a year, hospitalised or n
 			.filter((row) => row.family === 'LEAVE')
 			.map((row) => [row.quantity, row.amount, row.bucket] as const);
 	const off = (slip: BuiltPayslip) => lines(slip).reduce((sum, line) => sum + line[1], 0);
-	// The year's first hospitalised days: half-paid, ten days at half of 62,000 ÷ 31 = 1,000 off.
+	// The year's first hospitalised days: half-paid, ten days at half of 60,000 ÷ 30 = 1,000 off.
 	assert.equal(lines(build(false).slips.get('TW-SICK')!).length, 10);
 	assert.equal(off(build(false).slips.get('TW-SICK')!), 10_000);
 	// After thirty sick days earlier in the year: unpaid, ten whole days of 2,000 off.
@@ -1794,7 +1796,7 @@ test('Taiwan — the old-system pension reserve is the entity’s declared 2–1
 
 test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on the excess over the 定額免稅', () => {
 	// Seven years’ service on a 1,000,000 wage pays 0.5 month per year: 3,500,000. 115年度
-	// (台財稅字第11304670610號公告): 206,000 × 7 = 1,442,000 is exempt, the band to 414,000 × 7 =
+	// (財政部 114年11月27日 公告; DOT 115年度綜合所得稅公告重點): 206,000 × 7 = 1,442,000 is exempt, the band to 414,000 × 7 =
 	// 2,898,000 half taxable, the rest whole — so 3,500,000 is taxed on 728,000 + 602,000 =
 	// 1,330,000, withheld at 6% = 79,800. A 400,000 wage pays 1,400,000, under the exempt
 	// ceiling: nothing withheld. A non-resident withholds 18% of the same 1,330,000.
@@ -1879,7 +1881,7 @@ test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on th
 		.get('TW-SEV-LARGE')!
 		.statutory.find((row) => row.scheme_code === 'LABOR_PENSION')!.employee_amount;
 	assert.equal(charge(slips.get('TW-SEV-LARGE')!, 'INCOME_TAX')[0], 1_000_000 - pension);
-	// The 民國114年 figures, 198,000 / 398,000 (台財稅字第11204674210號公告), govern a severance
+	// The 民國114年 figures, 198,000 / 398,000 (財政部 113年11月28日 公告, unchanged), govern a severance
 	// paid in December 2025: the same 3,500,000 is taxed on 1,414,000, withheld 84,840.
 	const december = buildStatutory(
 		{
@@ -1901,4 +1903,1058 @@ test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on th
 		charge(december.slips.get('TW-SEV-2025')!, 'SEVERANCE_TAX'),
 		[3_500_000, 84_840, 0]
 	);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Whole payslips, computed by hand from the law (verification pass 2026-09-28). Each figure is
+// the statute's; the engine is only compared with it.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+test('Taiwan — a full month, end to end: every leg, gross, net and the employer’s cost (民國115年)', () => {
+	// 50,000 a month, whole of January 2026, 5% election, 費率編號 1.
+	// 勞保 §13–15 on the 45,800 ceiling (11.5%, 20/70): 5,267 → 1,053.40 → 1,053 / 3,686.90 → 3,687.
+	// 就保 §40 1%: 458 → 91.60 → 92 / 320.60 → 321.
+	// 健保 §27, §29: grade 50,600 × 5.17% = 2,616.02 → × 30% = 784.81 → 785; × 60% × 1.56 = 2,448.59 → 2,449.
+	// 勞退 §14: 50,600 × 6% = 3,036. 職災 §16, §19: 50,600 × 0.25% = 126.50 → 127 (四捨五入).
+	// 扣繳率標準 §2(1), 薪資所得扣繳辦法 §6: 50,000 × 5% = 2,500 (> 2,000).
+	// 勞基法 §28 墊償基金 0.025% of the 勞保 grade, at company level: 11.45 → 11.
+	const { slips, companyCharges } = buildStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		people: [
+			{
+				key: 'TW-FULL',
+				wage: 50_000,
+				citizenship: 'CITIZEN',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			}
+		]
+	});
+	const slip = slips.get('TW-FULL')!;
+	assert.equal(slip.gross, 50_000);
+	assert.deepEqual(charge(slip, 'LI'), [45_800, 1053, 3687]);
+	assert.deepEqual(charge(slip, 'EI'), [45_800, 92, 321]);
+	assert.deepEqual(charge(slip, 'NHI'), [50_600, 785, 2449]);
+	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [50_600, 0, 3036]);
+	assert.deepEqual(charge(slip, 'OCC_INJURY'), [50_600, 0, 127]);
+	assert.deepEqual(charge(slip, 'INCOME_TAX'), [50_000, 2500, 0]);
+	assert.equal(slip.total_deductions, 4430); // 1,053 + 92 + 785 + 2,500
+	assert.equal(slip.net, 45_570);
+	assert.equal(slip.employer_cost, 9620); // 3,687 + 321 + 2,449 + 3,036 + 127
+	assert.deepEqual(companyCharges.get('WAGE_ARREARS_FUND'), [45_800, 11]);
+	assert.equal(companyCharges.get('NHI_SUPPLEMENT_EMPLOYER'), undefined); // 50,000 < 50,600
+});
+
+test('Taiwan — a mid-month raise prorates each rate on calendar days; the insured grade waits for notification', () => {
+	// 40,000 to 50,000 from 16 January 2026, employed the whole month: 30 days (民法 §123(2)) shared
+	// by calendar day — 30 × 15/31 at 40,000 ÷ 30 = 19,354.84 and 30 × 16/31 at 50,000 ÷ 30 =
+	// 25,806.45; gross 45,161.29, between the two whole months. Owner rule 2026-09-28: the law is
+	// silent on a mid-month rate change; each rate takes its calendar share of the one month. 勞保條例 §14(2), 就保法 §40, 勞退條例
+	// §15(2): an adjusted grade takes effect 自通知之次月一日, so January stays on the declared 40,100:
+	// 勞保 922 / 3,228, 就保 80 / 281, 健保 622 / 1,940, 勞退 2,406. 5% of 45,161.29 = 2,258.06 → 2,258.
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: [
+				{
+					key: 'TW-RAISE',
+					wage: 40_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+					}
+				}
+			]
+		},
+		(world) => {
+			declareInsuredAmount(world, 'TW-RAISE', 40100);
+			const old = world.employment_terms[0]!;
+			world.employment_terms.push({
+				...old,
+				id: 'b0000000-0000-4000-8000-00000000b001',
+				base_salary: 50_000,
+				effective_range: { start: '2026-01-16', end: null }
+			});
+			old.effective_range = { start: String(old.effective_range.start), end: '2026-01-15' };
+		}
+	);
+	const slip = slips.get('TW-RAISE')!;
+	assert.deepEqual(
+		slip.proration
+			.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		[
+			[(30 * 15) / 31, 30, 19_354.84],
+			[(30 * 16) / 31, 30, 25_806.45]
+		]
+	);
+	assert.equal(slip.gross, 45_161.29);
+	assert.deepEqual(charge(slip, 'LI'), [40_100, 922, 3228]);
+	assert.deepEqual(charge(slip, 'EI'), [40_100, 80, 281]);
+	assert.deepEqual(charge(slip, 'NHI'), [40_100, 622, 1940]);
+	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [40_100, 0, 2406]);
+	assert.deepEqual(charge(slip, 'INCOME_TAX'), [45_161.29, 2258, 0]);
+	assert.equal(slip.net, 45_161.29 - (922 + 80 + 622 + 2258));
+});
+
+test('Taiwan — a mid-month leaver: final pay, unused 特別休假 paid out, fifteen insured days and no 健保', () => {
+	// Exit 15 January 2026 on 40,000 (grade 40,100), three unused days. 勞基法 §38(4) pays them on
+	// termination; 施行細則 §24-1(2)(1): 一日工資 is the latest month's normal-hours wage ÷ 30 —
+	// December 2025, 40,000 → 1,333.33… × 3 = 4,000. Salary 40,000 × 15/30 = 20,000 (民法 §123(2)).
+	// 勞保施行細則 §28-1 (30-day month): 15 days. 勞保 4,611.50 × 20% × ½ = 461.15 → 461 / × 70% × ½ =
+	// 1,614.03 → 1,614; 就保 40.10 → 40 / 140.35 → 140 (BLI 15-day row 501 / 1,754); 勞退 1,203;
+	// 職災 100.25 × ½ = 50.13 → 50. 健保法 §30: not insured here at month end, no premium.
+	// 5% of the salary 20,000 = 1,000 ≤ 2,000 → nothing withheld (§13).
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: [
+				{
+					key: 'TW-EXIT',
+					wage: 40_000,
+					citizenship: 'CITIZEN',
+					hire_date: '2020-01-01',
+					exit_date: '2026-01-15',
+					exit_reason: 'RESIGNATION',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+					}
+				}
+			]
+		},
+		(world) => {
+			const employment = world.employments[0]!;
+			const annual = leaveCatalogue('TW').find(
+				(row) => row.code === 'ANNUAL_LEAVE' && row.settings_id === TW_2026
+			)!;
+			world.leave_catalogue.push({ ...annual, approval_id: null } as never);
+			world.leave_entries.push({
+				id: 'e1000000-0000-4000-8000-0000000exit2',
+				employment_id: employment.id,
+				catalogue_id: annual.id,
+				leave_code: 'ANNUAL_LEAVE',
+				reference: 'EXIT-TW',
+				from_date: '2026-01-01',
+				to_date: '2026-01-15',
+				half_day_start: false,
+				half_day_end: false,
+				days: 3,
+				encash_days: 3,
+				effective_on: '2026-01-15',
+				due_on: '2026-01-15',
+				reason: 'Termination',
+				allocations: [],
+				charges: [],
+				approval_id: null
+			} as never);
+			world.employment_wage_periods = [
+				{
+					id: 'e1000000-0000-4000-8000-0000000exit3',
+					employment_id: employment.id,
+					period: { start: '2025-12-01', end: '2025-12-31' },
+					currency: 'TWD',
+					normal_wages: 40_000,
+					ordinary_wages: null,
+					ordinary_days: null,
+					due_on: '2025-12-31',
+					paid_on: '2025-12-31',
+					reference: 'December 2025 payslip',
+					approval_id: null
+				} as never
+			];
+		}
+	);
+	const slip = slips.get('TW-EXIT')!;
+	assert.equal(
+		slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')?.amount,
+		4000
+	);
+	assert.equal(slip.gross, 24_000);
+	assert.deepEqual(charge(slip, 'LI'), [40_100, 461, 1614]);
+	assert.deepEqual(charge(slip, 'EI'), [40_100, 40, 140]);
+	assert.deepEqual(charge(slip, 'LABOR_PENSION'), [40_100, 0, 1203]);
+	assert.deepEqual(charge(slip, 'OCC_INJURY'), [40_100, 0, 50]);
+	assert.equal(
+		slip.statutory.find((row) => row.scheme_code === 'NHI'),
+		undefined
+	);
+	assert.equal(
+		slip.statutory.find((row) => row.scheme_code === 'INCOME_TAX')?.employee_amount ?? 0,
+		0
+	);
+	assert.equal(slip.net, 24_000 - 501);
+});
+
+test('Taiwan — a year-end bonus: 5% withheld apart from salary, the §31 premium on the excess over four grades, the §34 employer levy', () => {
+	// 40,000 (grade 40,100) with a 200,000 bonus in January 2026.
+	// 扣繳辦法 §7 / etax 薪資扣繳 (115-04-10): 非每月給付之薪資 按給付額扣取5%，免併入全月給付總額 —
+	// 200,000 ≥ 90,501 → 10,000; the salary alone is 40,000 × 5% = 2,000, not over 2,000 → 0.
+	// 健保法 §31(1)(1): bonus over 4 × 40,100 = 160,400 → 39,600 × 2.11% = 835.56 → 836.
+	// 健保法 §34: (240,000 − 40,100) × 2.11% = 4,217.89 → 4,218.
+	const { slips, companyCharges } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: [
+				{
+					key: 'TW-BONUS',
+					wage: 40_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+					}
+				}
+			]
+		},
+		(world) => {
+			const bonus = world.adhoc_catalogue!.find(
+				(row) => row.code === 'bonus' && row.settings_id === TW_2026
+			)!;
+			world.adhoc_requests!.push({
+				id: 'd4000000-0000-4000-8000-000000000001',
+				employment_id: world.employments[0]!.id,
+				catalogue_id: bonus.id,
+				amount: 200_000,
+				event_date: '2026-01-01',
+				pay_period: null,
+				payslip_id: null,
+				reason: 'Year-end bonus',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+		}
+	);
+	const slip = slips.get('TW-BONUS')!;
+	assert.equal(slip.gross, 240_000);
+	assert.deepEqual(charge(slip, 'INCOME_TAX_BONUS'), [200_000, 10_000, 0]);
+	assert.equal(
+		slip.statutory.find((row) => row.scheme_code === 'INCOME_TAX')?.employee_amount ?? 0,
+		0
+	);
+	assert.deepEqual(charge(slip, 'NHI_SUPPLEMENT'), [200_000, 836, 0]);
+	assert.deepEqual(companyCharges.get('NHI_SUPPLEMENT_EMPLOYER'), [240_000, 4218]);
+	assert.equal(slip.net, 240_000 - (922 + 80 + 622 + 10_000 + 836));
+});
+
+test('Taiwan — the §31 bonus premium runs on the year’s accumulated bonuses, charged only on this payment’s share of the excess', () => {
+	// 健保法 §31(1)(1): 全年累計逾當月投保金額四倍部分之獎金. 40,100 grade → threshold 160,400.
+	// A 100,000 bonus paid in January (under it, nothing), then 100,000 in February: the year
+	// reaches 200,000, 39,600 over → × 2.11% = 835.56 → 836, all of it inside this payment.
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-02',
+			riskClass: '1',
+			people: [{ key: 'TW-BONUS-2', wage: 40_000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			const employment = world.employments[0]!;
+			world.payroll_runs.push({ id: 'tw-jan-bonus', company_id: COMPANY_ID, period: '2026-01' });
+			world.payslips.push({
+				id: 'tw-jan-bonus-slip',
+				payroll_run_id: 'tw-jan-bonus',
+				employment_id: employment.id,
+				status: 'PAID',
+				paid_at: '2026-01-28T00:00:00.000Z',
+				currency: 'TWD',
+				base: [{ component_code: 'BASIC', amount: 40_000 }],
+				adjustments: [
+					{ family: 'ADHOC', component_code: 'bonus', bucket: 'EARNING', amount: 100_000 }
+				],
+				statutory: []
+			} as never);
+			const bonus = world.adhoc_catalogue!.find(
+				(row) => row.code === 'bonus' && row.settings_id === TW_2026
+			)!;
+			world.adhoc_requests!.push({
+				id: 'd4000000-0000-4000-8000-000000000002',
+				employment_id: employment.id,
+				catalogue_id: bonus.id,
+				amount: 100_000,
+				event_date: '2026-02-01',
+				pay_period: null,
+				payslip_id: null,
+				reason: 'Second bonus',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+		}
+	);
+	assert.deepEqual(charge(slips.get('TW-BONUS-2')!, 'NHI_SUPPLEMENT'), [100_000, 836, 0]);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Round-2 gap closure (2026-09-28). Each figure is computed by hand from the cited provision.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+test('Taiwan — 資遣費: the new system caps at six months (勞退條例 §12(1)); retained old-system years pay a month each, a part month whole, uncapped (勞基法 §17)', () => {
+	// 勞工退休金條例 §12(1) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030020): 每滿一年
+	// 發給二分之一個月之平均工資，未滿一年者，以比例計給；最高以發給六個月平均工資為限. 勞基法 §17(1)
+	// (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17): 每滿一年發給相當於一個月
+	// 平均工資之資遣費；剩餘月數…以比例計給之。未滿一個月者以一個月計 — and no ceiling. 勞退條例 §11(2)
+	// keeps the pre-election seniority under §17. 平均工資 (§2(4)) is read from six earlier payslips at
+	// the wage, so a month of it is that wage.
+	//  - CAP: 1 Feb 2010 – 31 Jan 2026, sixteen years all new-system: 0.5 × 16 = 8 → capped at 6 ×
+	//    50,000 = 300,000.
+	//  - MIXED: 1 Feb 1999 – 31 Jan 2026 is 324 months; 76.5 retained old-system months (to 30 June
+	//    2005, a part month at the end) count as 77 under §17: 77/12 months; the remaining 247.5 new
+	//    months give 0.5 × 247.5 / 12 = 10.3125 → capped at 6. 50,000 × (77/12 + 6) = 620,833.33 →
+	//    620,833. Full 30-day §16 notice given, so no notice pay. 115年度 退職所得 exempt to 206,000 ×
+	//    27 = 5,562,000: nothing withheld.
+	//  - OLD-ONLY: stayed on the old system (not registered for 勞退), 1 Mar 2003 – 31 Jan 2026 is 275
+	//    months, all §17: 40,000 × 275/12 = 916,666.67 → 916,667, above what the §12 cap would allow.
+	const people = [
+		{ key: 'TW-SEV-CAP', wage: 50_000, hire: '2010-02-01', facts: {} },
+		{
+			key: 'TW-SEV-MIXED',
+			wage: 50_000,
+			hire: '1999-02-01',
+			facts: {
+				lsa_termination_ground: 'ARTICLE_11',
+				notice_days_given: 30,
+				old_system_service_months: 76.5
+			}
+		},
+		{
+			key: 'TW-SEV-OLD-ONLY',
+			wage: 40_000,
+			hire: '2003-03-01',
+			facts: { old_system_service_months: 275 },
+			old: true
+		}
+	];
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			companyFacts: { pension_reserve_rate: 6 },
+			people: people.map((person) => ({
+				key: person.key,
+				wage: person.wage,
+				citizenship: 'CITIZEN',
+				hire_date: person.hire,
+				exit_date: '2026-01-31',
+				exit_reason: 'REDUNDANCY',
+				...(person.old ? { registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } } } : {})
+			}))
+		},
+		(world) => {
+			const catalogue = world.adhoc_catalogue!.find(
+				(row) => row.code === 'SEVERANCE_PAY' && row.settings_id === TW_2026
+			)!;
+			for (const [index, person] of people.entries()) {
+				const employment = world.employments[index]! as { exit_facts?: unknown; id: string };
+				employment.exit_facts = {
+					...((employment.exit_facts as object | undefined) ?? {}),
+					...person.facts
+				};
+				priorWages(world, person.key, monthsAt('2025-07', '2025-12', person.wage));
+				world.adhoc_requests!.push({
+					id: `d7000000-0000-4000-8000-0000000000${String(index).padStart(2, '0')}`,
+					employment_id: employment.id,
+					catalogue_id: catalogue.id,
+					amount: 0,
+					event_date: '2026-01-31',
+					pay_period: '2026-01',
+					payslip_id: null,
+					reason: 'SEVERANCE_PAY',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		}
+	);
+	const paid = (key: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === 'SEVERANCE_PAY')?.amount;
+	assert.equal(paid('TW-SEV-CAP'), 300_000);
+	assert.equal(paid('TW-SEV-MIXED'), 620_833);
+	assert.deepEqual(charge(slips.get('TW-SEV-MIXED')!, 'SEVERANCE_TAX'), [620_833, 0, 0]);
+	assert.equal(paid('TW-SEV-OLD-ONLY'), 916_667);
+});
+
+test('Taiwan — 舊制退休金: two bases a year for fifteen years, one after, 45 at most; a part year half or whole; +20% for a job-caused disability (勞基法 §53–§55)', () => {
+	// 勞基法 §55(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55): 按其
+	// 工作年資，每滿一年給與兩個基數。但超過十五年之工作年資，每滿一年給與一個基數，最高總數以四十五個
+	// 基數為限。未滿半年者以半年計；滿半年者以一年計 — §55(1)(2) 加給百分之二十 for a §54(1)(2)
+	// forced retirement whose disability was caused by the job; §55(2) one base is a month's average
+	// wage at approved retirement. §53: 15 years at 55, 25 years, 10 years at 60; §54(1): 65, or
+	// disability. 勞退條例 §11(2) pays retained old-system seniority the same on a §53/§54 end. Six
+	// earlier payslips at the wage make a month's average wage that wage. All exit 31 Jan 2026.
+	//  - OLD-43: 1 Feb 1998, never left the old system, 336 months = 28 years: 30 + 13 = 43 bases ×
+	//    50,000 = 2,150,000; aged 60 with 28 years (§53). 115年度 exempt to 206,000 × 28: no tax.
+	//  - CAP: 1 Sep 1984 (after the Act applied, 1 Aug 1984), aged 65 (§54(1)(1)); 497 months = 41
+	//    years 5 months → 41.5: 15 + 41.5 = 56.5 → 45 bases × 200,000 = 9,000,000. 退職所得: 年資 41
+	//    years 5 months counts 41.5; exempt to 206,000 × 41.5 = 8,549,000, half taxable to 414,000 ×
+	//    41.5 = 17,181,000: (9,000,000 − 8,549,000) / 2 = 225,500 × 6% = 13,530.
+	//  - HALF: 1 Aug 2000, aged 50, 25 years 6 months' service (§53(2): 25 years at any age); 63
+	//    retained months = 5 years 3 months → 5.5: 11 bases × 50,000 = 550,000.
+	//  - DUTY: 1 Feb 2003, aged 45, 23 years — eligible only as a §54(1)(2) disability retirement;
+	//    29 retained months = 2 years 5 months → 2.5: 5 bases × 1.2 = 6 × 50,000 = 300,000.
+	//  - EARLY: 1 Feb 2004, aged 54, 22 years: no §53 or §54 ground, so no retirement pay.
+	const people = [
+		{
+			key: 'TW-RET-OLD-43',
+			wage: 50_000,
+			hire: '1998-02-01',
+			age: 60,
+			facts: { old_system_service_months: 336 },
+			old: true
+		},
+		{
+			key: 'TW-RET-CAP',
+			wage: 200_000,
+			hire: '1984-09-01',
+			age: 65,
+			facts: { old_system_service_months: 497 },
+			old: true
+		},
+		{
+			key: 'TW-RET-HALF',
+			wage: 50_000,
+			hire: '2000-08-01',
+			age: 50,
+			facts: { old_system_service_months: 63 }
+		},
+		{
+			key: 'TW-RET-DUTY',
+			wage: 50_000,
+			hire: '2003-02-01',
+			age: 45,
+			facts: {
+				old_system_service_months: 29,
+				retirement_disability: true,
+				retirement_disability_duty_caused: true
+			}
+		},
+		{
+			key: 'TW-RET-EARLY',
+			wage: 50_000,
+			hire: '2004-02-01',
+			age: 54,
+			facts: { old_system_service_months: 17 }
+		}
+	];
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			companyFacts: { pension_reserve_rate: 6 },
+			people: people.map((person) => ({
+				key: person.key,
+				wage: person.wage,
+				age: person.age,
+				citizenship: 'CITIZEN',
+				hire_date: person.hire,
+				exit_date: '2026-01-31',
+				exit_reason: 'RETIREMENT',
+				...(person.old ? { registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } } } : {})
+			}))
+		},
+		(world) => {
+			const catalogue = world.adhoc_catalogue!.find(
+				(row) => row.code === 'RETIREMENT_PAY' && row.settings_id === TW_2026
+			)!;
+			for (const [index, person] of people.entries()) {
+				const employment = world.employments[index]! as { exit_facts?: unknown; id: string };
+				employment.exit_facts = {
+					...((employment.exit_facts as object | undefined) ?? {}),
+					...person.facts
+				};
+				priorWages(world, person.key, monthsAt('2025-07', '2025-12', person.wage));
+				world.adhoc_requests!.push({
+					id: `d7100000-0000-4000-8000-0000000000${String(index).padStart(2, '0')}`,
+					employment_id: employment.id,
+					catalogue_id: catalogue.id,
+					amount: 0,
+					event_date: '2026-01-31',
+					pay_period: '2026-01',
+					payslip_id: null,
+					reason: 'RETIREMENT_PAY',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		}
+	);
+	const paid = (key: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === 'RETIREMENT_PAY')?.amount;
+	assert.equal(paid('TW-RET-OLD-43'), 2_150_000);
+	assert.deepEqual(charge(slips.get('TW-RET-OLD-43')!, 'SEVERANCE_TAX'), [2_150_000, 0, 0]);
+	assert.equal(paid('TW-RET-CAP'), 9_000_000);
+	assert.deepEqual(charge(slips.get('TW-RET-CAP')!, 'SEVERANCE_TAX'), [9_000_000, 13_530, 0]);
+	assert.equal(paid('TW-RET-HALF'), 550_000);
+	assert.equal(paid('TW-RET-DUTY'), 300_000);
+	assert.equal(paid('TW-RET-EARLY'), undefined);
+	// Outside the 薪資所得 withholding: the month's INCOME_TAX base is the wage alone.
+	const pension = slips
+		.get('TW-RET-HALF')!
+		.statutory.find((row) => row.scheme_code === 'LABOR_PENSION')!.employee_amount;
+	assert.equal(charge(slips.get('TW-RET-HALF')!, 'INCOME_TAX')[0], 50_000 - pension);
+});
+
+test('Taiwan — §16 notice by cause and service: 10 / 20 / 30 days on §11, the §13 proviso and §20; none on §14, §12, §15 or a fixed-term expiry', () => {
+	// 勞基法 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001, last amended 113-07-31):
+	// §16(1) 雇主依第十一條或第十三條但書規定終止勞動契約者 — 繼續工作三個月以上一年未滿者，於十日前預告;
+	// 一年以上三年未滿者，於二十日前; 三年以上者，於三十日前. §16(3) 未依第一項規定期間預告而終止契約者，
+	// 應給付預告期間之工資. §20 改組或轉讓: 其餘勞工應依第十六條規定期間預告終止契約，並應依第十七條
+	// 規定發給勞工資遣費 — so §20 owes the notice too. §14 is the worker leaving 不經預告 (§14(4) applies
+	// §17 severance only); §18: nothing on §12, §15 or 定期勞動契約期滿. The day wage is the higher of
+	// monthly ÷ 30 and the average daily wage (勞動部 109年10月29日勞動關2字第1090128292A號令). New-system
+	// severance (勞退條例 §12(1)): ½ month a year, pro rata, 30 × the average daily wage a month.
+	// All NT$30,000 monthly (day wage 1,000), average daily wage declared 1,000, exit 31 Jan 2026:
+	//  - §11, 2 months:  no notice owed;                    severance 30,000 × ½ × 2/12  =  2,500.
+	//  - §11, 3 months:  10 days = 10,000 (三個月以上 includes 3); 30,000 × ½ × 3/12 = 3,750 → 13,750.
+	//  - §11, 11 months: 10 days = 10,000;                  30,000 × ½ × 11/12 = 13,750 → 23,750.
+	//  - §11, 12 months: 20 days = 20,000;                  30,000 × ½       = 15,000 → 35,000.
+	//  - §11, 35 months: 20 days = 20,000;                  30,000 × ½ × 35/12 = 43,750 → 63,750.
+	//  - §11, 36 months, 12 days' notice given, average daily wage 1,100 (above 1,000): 18 × 1,100 =
+	//    19,800; 33,000 × ½ × 3 = 49,500 → 69,300.
+	//  - §13 proviso, 36 months: 30 × 1,000 + 45,000 = 75,000.
+	//  - §20, 36 months:         30 × 1,000 + 45,000 = 75,000.
+	//  - §14, 36 months:         45,000 severance, no notice pay.
+	//  - OTHER (a §12 dismissal or a §15 resignation) and END_OF_CONTRACT: no line.
+	const people = [
+		{ key: 'TW-N-2M', hire: '2025-12-01', ground: 'ARTICLE_11', reason: 'REDUNDANCY', paid: 2_500 },
+		{
+			key: 'TW-N-3M',
+			hire: '2025-11-01',
+			ground: 'ARTICLE_11',
+			reason: 'REDUNDANCY',
+			paid: 13_750
+		},
+		{
+			key: 'TW-N-11M',
+			hire: '2025-03-01',
+			ground: 'ARTICLE_11',
+			reason: 'REDUNDANCY',
+			paid: 23_750
+		},
+		{
+			key: 'TW-N-12M',
+			hire: '2025-02-01',
+			ground: 'ARTICLE_11',
+			reason: 'REDUNDANCY',
+			paid: 35_000
+		},
+		{
+			key: 'TW-N-35M',
+			hire: '2023-03-01',
+			ground: 'ARTICLE_11',
+			reason: 'REDUNDANCY',
+			paid: 63_750
+		},
+		{
+			key: 'TW-N-36M-PART',
+			hire: '2023-02-01',
+			ground: 'ARTICLE_11',
+			reason: 'REDUNDANCY',
+			given: 12,
+			adw: 1_100,
+			paid: 69_300
+		},
+		{
+			key: 'TW-N-13P',
+			hire: '2023-02-01',
+			ground: 'ARTICLE_13_PROVISO',
+			reason: 'UNILATERAL',
+			paid: 75_000
+		},
+		{
+			key: 'TW-N-20',
+			hire: '2023-02-01',
+			ground: 'ARTICLE_20',
+			reason: 'UNILATERAL',
+			paid: 75_000
+		},
+		{
+			key: 'TW-N-14',
+			hire: '2023-02-01',
+			ground: 'ARTICLE_14',
+			reason: 'RESIGNATION',
+			paid: 45_000
+		},
+		{ key: 'TW-N-12', hire: '2023-02-01', ground: 'OTHER', reason: 'DISMISSAL', paid: undefined },
+		// §15(2): a worker on an indefinite contract resigns on the §16 notice periods; §18(1) owes no
+		// notice pay and no severance on §15, exactly as on §12, so OTHER carries both.
+		{ key: 'TW-N-15', hire: '2023-02-01', ground: 'OTHER', reason: 'RESIGNATION', paid: undefined },
+		{
+			key: 'TW-N-FIXED',
+			hire: '2023-02-01',
+			ground: undefined,
+			reason: 'END_OF_CONTRACT',
+			paid: undefined
+		}
+	];
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: people.map((person) => ({
+				key: person.key,
+				wage: 30_000,
+				citizenship: 'CITIZEN',
+				hire_date: person.hire,
+				exit_date: '2026-01-31',
+				exit_reason: person.reason
+			}))
+		},
+		(world) => {
+			const catalogue = world.adhoc_catalogue!.find(
+				(row) => row.code === 'SEVERANCE_PAY' && row.settings_id === TW_2026
+			)!;
+			for (const [index, person] of people.entries()) {
+				const employment = world.employments[index]! as { exit_facts?: unknown; id: string };
+				employment.exit_facts = {
+					...((employment.exit_facts as object | undefined) ?? {}),
+					...(person.ground ? { lsa_termination_ground: person.ground } : {}),
+					notice_days_given: person.given ?? 0,
+					average_daily_wage: person.adw ?? 1_000,
+					old_system_service_months: 0
+				};
+				world.adhoc_requests!.push({
+					id: `d7100000-0000-4000-8000-0000000000${String(index).padStart(2, '0')}`,
+					employment_id: employment.id,
+					catalogue_id: catalogue.id,
+					amount: 0,
+					event_date: '2026-01-31',
+					pay_period: '2026-01',
+					payslip_id: null,
+					reason: 'SEVERANCE_PAY',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		}
+	);
+	for (const person of people)
+		assert.equal(
+			slips.get(person.key)!.adjustments.find((row) => row.component_code === 'SEVERANCE_PAY')
+				?.amount,
+			person.paid,
+			person.key
+		);
+});
+
+test('Taiwan — §13: no §11 or §20 termination inside the §59 medical period; the proviso still severs (勞基法 §13, §16, §17)', () => {
+	// 勞基法 §13 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=13): 勞工在第五十條
+	// 規定之停止工作期間或第五十九條規定之醫療期間，雇主不得終止契約。但雇主因天災、事變或其他不可抗力致
+	// 事業不能繼續，經報主管機關核定者，不在此限. 公傷病假 (勞工請假規則 §6) is the §59 medical period, its
+	// entry's own dates. NT$30,000 monthly, hired 1 Feb 2023, 公傷病假 26–31 Jan 2026, last day 31 Jan:
+	//  - §11 (REDUNDANCY) on that day is refused: the departure names §13.
+	//  - REDUNDANCY with no ground is not read as §11 there: the ground is required, and the request is
+	//    skipped as incomplete.
+	//  - §13 proviso: 36 months, no notice given, average daily wage 1,000: §16 30 days = 30,000;
+	//    勞退條例 §12(1) ½ × 3 years × 30,000 = 45,000 → 75,000 (as in the §16 golden above).
+	//  - §14 (the worker's own termination) is outside §13, which binds the employer: 45,000.
+	const injury = leaveCatalogue('TW').find(
+		(row) => row.code === 'OCCUPATIONAL_INJURY_LEAVE' && row.settings_id === TW_2026
+	)!;
+	const run = (ground: string | undefined, reason: string) =>
+		buildStatutory(
+			{
+				code: 'TW',
+				period: '2026-01',
+				riskClass: '1',
+				people: [
+					{
+						key: 'TW-S13',
+						wage: 30_000,
+						citizenship: 'CITIZEN',
+						hire_date: '2023-02-01',
+						exit_date: '2026-01-31',
+						exit_reason: reason
+					}
+				]
+			},
+			(world) => {
+				world.leave_catalogue.push({ ...injury, approval_id: null } as never);
+				const employment = world.employments[0]! as { exit_facts?: unknown; id: string };
+				const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+				employment.exit_facts = {
+					...((employment.exit_facts as object | undefined) ?? {}),
+					...(ground ? { lsa_termination_ground: ground } : {}),
+					notice_days_given: 0,
+					average_daily_wage: 1_000,
+					old_system_service_months: 0
+				};
+				const days = [26, 27, 28, 29, 30].map((day) => `2026-01-${day}`);
+				world.leave_entries.push({
+					id: 'e1000000-0000-4000-8000-0000000s1301',
+					employment_id: employment.id,
+					catalogue_id: injury.id,
+					leave_code: injury.code,
+					reference: 'INJ-S13',
+					from_date: '2026-01-26',
+					to_date: '2026-01-31',
+					half_day_start: false,
+					half_day_end: false,
+					days: days.length,
+					effective_on: '2026-01-26',
+					reason: '職業災害',
+					allocations: [],
+					charges: days.map((date) => ({
+						date,
+						days: 1,
+						catalogue_id: injury.id,
+						employment_term_id: term.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					})),
+					approval_id: null
+				} as never);
+				world.adhoc_requests!.push({
+					id: 'd7200000-0000-4000-8000-000000000001',
+					employment_id: employment.id,
+					catalogue_id: world.adhoc_catalogue!.find(
+						(row) => row.code === 'SEVERANCE_PAY' && row.settings_id === TW_2026
+					)!.id,
+					amount: 0,
+					event_date: '2026-01-31',
+					pay_period: '2026-01',
+					payslip_id: null,
+					reason: 'SEVERANCE_PAY',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		);
+	const severance = (result: ReturnType<typeof run>) =>
+		result.slips.get('TW-S13')!.adjustments.find((row) => row.component_code === 'SEVERANCE_PAY')
+			?.amount;
+	assert.throws(() => run('ARTICLE_11', 'REDUNDANCY'), /§13/);
+	assert.throws(() => run('ARTICLE_20', 'UNILATERAL'), /§13/);
+	const unstated = run(undefined, 'REDUNDANCY');
+	assert.equal(severance(unstated), undefined);
+	assert.ok(unstated.warnings.some((warning) => /termination ground is required/.test(warning)));
+	assert.equal(severance(run('ARTICLE_13_PROVISO', 'UNILATERAL')), 75_000);
+	assert.equal(severance(run('ARTICLE_14', 'RESIGNATION')), 45_000);
+});
+
+test('Taiwan — a foreign professional is on the new pension system from 2026; one who elected the old system accrues the reserve (外國專業人才延攬及僱用法 §24)', () => {
+	// BLI 2026 notice (https://www.bli.gov.tw/0109916.html, updated 2026-08-06): 外國專業人才及外國
+	// 特定專業人才，無論是否取得永久居留身分，自115年1月1日起適用勞退新制; one employed before may keep
+	// the old system by electing in writing by 30 June 2026, 屆期未選擇者一律適用勞退新制.
+	//  - NEW: a non-PR professional (EMPLOYMENT_PASS) on 40,000, grade 40,100: employer 6% = 2,406.
+	//  - ELECTED-OLD: the same, hired 2020, elected the old system (not registered for 勞退): no 6%;
+	//    the entity's declared 6% 勞基法 §56(1) reserve on the month's wages, 40,000 × 6% = 2,400.
+	// Neither is EI-covered (就業保險法 §5: nationals, spouses and qualifying PR only).
+	const { slips } = buildStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		companyFacts: { pension_reserve_rate: 6 },
+		people: [
+			{
+				key: 'TW-FP-NEW',
+				wage: 40_000,
+				citizenship: 'FOREIGNER',
+				pass_type: 'EMPLOYMENT_PASS',
+				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+			},
+			{
+				key: 'TW-FP-OLD',
+				wage: 40_000,
+				citizenship: 'FOREIGNER',
+				pass_type: 'EMPLOYMENT_PASS',
+				hire_date: '2020-01-01',
+				registrations: {
+					EI: { kind: 'NOT_REGISTERED' },
+					LABOR_PENSION: { kind: 'NOT_REGISTERED' }
+				}
+			}
+		]
+	});
+	assert.deepEqual(charge(slips.get('TW-FP-NEW')!, 'LABOR_PENSION'), [40_100, 0, 2406]);
+	assert.equal(
+		slips.get('TW-FP-NEW')!.statutory.find((row) => row.scheme_code === 'LABOR_PENSION_RESERVE')
+			?.employer_amount ?? 0,
+		0
+	);
+	assert.deepEqual(charge(slips.get('TW-FP-OLD')!, 'LABOR_PENSION_RESERVE'), [40_000, 0, 2400]);
+	assert.equal(
+		slips.get('TW-FP-OLD')!.statutory.find((row) => row.scheme_code === 'LABOR_PENSION')
+			?.employer_amount ?? 0,
+		0
+	);
+});
+
+for (const period of ['2025-12', '2026-01', '2027-01'])
+	test(`Taiwan ${period} — employment insurance stops on the 65th birthday itself (BLI 就業保險 FAQ 承保業務 Q4)`, () => {
+		// 就業保險法 §5(1): 年滿十五歲以上，六十五歲以下. BLI (https://www.bli.gov.tw/0017586.html,
+		// updated 2024-05-30): 本局會主動自其滿65歲當日將其改列為不適用就業保險身分 — the birthday is the
+		// first uncovered day. Born on the 15th: days 1–14 insured on the 30-day month (勞保施行細則
+		// §28-1). 40,100 × 1% × 14/30 = 187.13 → 20% = 37.43 → 37; 70% = 130.99 → 131. The 1% rate
+		// and the 40,100 grade stand in each of the three sealed versions.
+		const [year, month] = period.split('-');
+		const book = assessStatutory({
+			code: 'TW',
+			period,
+			riskClass: '1',
+			people: [
+				{
+					key: 'TW-65-MID',
+					wage: 40_000,
+					birth_date: `${Number(year) - 65}-${month}-15`,
+					citizenship: 'CITIZEN'
+				}
+			]
+		});
+		expectStatutory(book, 'TW-65-MID', 'EI', 37, 131);
+	});
+
+test('Taiwan — a leaver: final wages are due on the last day (勞基法施行細則 §9), and the month’s 5% withholding runs on what is paid', () => {
+	// 施行細則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=9): 勞雇雙方
+	// 終止勞動契約時，勞工應領之工資，雇主應即結清給付 — a month-end run paying a 15 January leaver is
+	// late, and the run says so, naming the rule and the day.
+	// 100,000 on the 5% election, last day 15 January 2026: 100,000 × 15/30 = 50,000 (民法 §123(2)).
+	// No voluntary pension. 5% = 2,500, over §13's 2,000 → withheld 2,500.
+	const { slips, warnings } = buildStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		people: [
+			{
+				key: 'TW-LEAVER-TAX',
+				wage: 100_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2020-01-01',
+				exit_date: '2026-01-15',
+				exit_reason: 'RESIGNATION',
+				registrations: {
+					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+				}
+			}
+		]
+	});
+	const slip = slips.get('TW-LEAVER-TAX')!;
+	assert.equal(slip.gross, 50_000);
+	assert.deepEqual(charge(slip, 'INCOME_TAX'), [50_000, 2500, 0]);
+	const late = warnings.find((warning) => warning.includes('FINAL_PAY_LATE'));
+	assert.ok(late, `expected a final-pay warning, got ${JSON.stringify(warnings)}`);
+	assert.match(late, /art\.9/);
+	assert.match(late, /2026-01-15/);
+});
+
+// TW-TAX-06. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023;
+// https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得
+// to 職工每人每月…最高以新臺幣三千元為限, and 其超過部分…應轉列員工之薪資所得. The 伙食津貼 stays 工資
+// (勞基法施行細則 §10 does not exclude it), so only the 薪資所得 bases subtract the first 3,000.
+test('Taiwan — a monthly 伙食代金 is outside 薪資所得 to NT$3,000 (查核準則 §88)', () => {
+	const five = {
+		INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
+	};
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-01',
+			riskClass: '1',
+			people: [
+				{ key: 'TW-MEAL-3500', wage: 40_000, citizenship: 'CITIZEN', registrations: five },
+				{ key: 'TW-MEAL-2000', wage: 40_000, citizenship: 'CITIZEN', registrations: five },
+				{
+					key: 'TW-MEAL-NR',
+					wage: 40_000,
+					citizenship: 'CITIZEN',
+					tax_residency: 'NON_RESIDENT'
+				}
+			]
+		},
+		(world) => {
+			const meal = world.allowance_catalogue.find(
+				(row) => row.code === 'MEAL_ALLOWANCE' && row.settings_id === TW_2026
+			)!;
+			for (const [index, employment] of world.employments.entries())
+				assignAllowance(world, {
+					id: `d0000000-0000-4000-8000-${String(index + 100).padStart(12, '0')}`,
+					employment_id: employment.id,
+					catalogue_id: meal.id,
+					amount: employment.employee_number === 'TW-MEAL-2000' ? 2000 : 3500,
+					effective_from: '2026-01-01',
+					effective_to: null,
+					reason: '',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			for (const employment of world.employments)
+				declareInsuredAmount(world, employment.employee_number, 43900);
+		}
+	);
+	// 40,000 + 3,500 = 43,500 paid; 薪資所得 40,000 + (3,500 − 3,000) = 40,500. 5% = 2,025, over
+	// §13's 2,000, so withheld whole.
+	const over = slips.get('TW-MEAL-3500')!;
+	assert.equal(over.gross, 43_500);
+	assert.deepEqual(charge(over, 'INCOME_TAX'), [40_500, 2025, 0]);
+	// 2,000 is inside the cap: 薪資所得 40,000, 5% = 2,000, not over §13's 2,000 — nothing withheld.
+	assert.deepEqual(charge(slips.get('TW-MEAL-2000')!, 'INCOME_TAX'), [40_000, 0, 0]);
+	// Non-resident: 各類所得扣繳率標準 §3(1)(1) — 6% where the month's salary is at most 1.5 × the
+	// 29,500 minimum wage (44,250): floor(40,500 × 6%) = 2,430.
+	assert.deepEqual(charge(slips.get('TW-MEAL-NR')!, 'INCOME_TAX_NON_RESIDENT'), [40_500, 2430, 0]);
+});
+
+test('Taiwan — an elected §59 offset comes off net pay and leaves the 原領工資, gross and every statutory base whole (勞基法 §59 但書, 施行細則 §10(7))', () => {
+	// 勞基法 §59 但書 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59): 如同一事故，依勞工保險
+	// 條例或其他法令規定，已由雇主支付費用補償者，雇主得予以抵充之. The benefit offset is the one the worker drew for
+	// the same accident — 災保法 §42 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=42) 傷病給付
+	// from the fourth day off work; the figure is the insurer's, entered by HR (8,470 here, fixture input).
+	// 施行細則 §10(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=10): 職業災害補償費 is not
+	// 工資, so the offset reduces no wage or insured base (Owner rule 2026-09-28): same gross, same statutory
+	// rows, net lower by exactly 8,470. NT$36,000 a month, ten 公傷病假 weekdays 6–17 April 2026.
+	const injury = leaveCatalogue('TW').find(
+		(row) => row.code === 'OCCUPATIONAL_INJURY_LEAVE' && row.settings_id === TW_2026
+	)!;
+	const days = [6, 13].flatMap((monday) =>
+		[0, 1, 2, 3, 4].map((offset) => `2026-04-${String(monday + offset).padStart(2, '0')}`)
+	);
+	const run = (offset: number) =>
+		buildStatutory(
+			{
+				code: 'TW',
+				period: '2026-04',
+				riskClass: '1',
+				people: [{ key: 'TW-OFFSET', wage: 36_000, citizenship: 'CITIZEN' }]
+			},
+			(world) => {
+				world.leave_catalogue.push({ ...injury, approval_id: null } as never);
+				const employment = world.employments[0]!;
+				const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+				world.leave_entries.push({
+					id: 'e1000000-0000-4000-8000-0000000inj02',
+					employment_id: employment.id,
+					catalogue_id: injury.id,
+					leave_code: injury.code,
+					reference: 'INJ-2',
+					from_date: days[0]!,
+					to_date: days.at(-1)!,
+					half_day_start: false,
+					half_day_end: false,
+					days: days.length,
+					effective_on: days[0]!,
+					reason: '職業災害',
+					allocations: [],
+					charges: days.map((date) => ({
+						date,
+						days: 1,
+						catalogue_id: injury.id,
+						employment_term_id: term.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					})),
+					approval_id: null
+				} as never);
+				if (offset === 0) return;
+				const catalogue = world.adhoc_catalogue!.find(
+					(row) => row.code === 'OCC_INJURY_OFFSET' && row.settings_id === TW_2026
+				)!;
+				world.adhoc_requests!.push({
+					id: 'd4000000-0000-4000-8000-000000000059',
+					employment_id: employment.id,
+					catalogue_id: catalogue.id,
+					amount: offset,
+					event_date: '2026-04-06',
+					pay_period: null,
+					payslip_id: null,
+					reason: '勞基法 §59 但書 抵充: 災保 傷病給付',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		).slips.get('TW-OFFSET')!;
+	const whole = run(0);
+	const offset = run(8_470);
+	assert.equal(whole.gross, 36_000);
+	assert.equal(offset.gross, 36_000);
+	assert.deepEqual(offset.statutory, whole.statutory);
+	assert.equal(offset.net, whole.net - 8_470);
+});
+
+test('Taiwan — 公傷病假 keeps the 原領工資 whole in a thirty- and a thirty-one-day month, and no insurer benefit is offset (勞基法 §59(2), 施行細則 §31)', () => {
+	// 勞基法 §59(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59): 勞工在醫療中不能
+	// 工作時，雇主應按其原領工資數額予以補償. 施行細則 §31(1) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030002):
+	// 其為計月者，以遭遇職業災害前最近一個月正常工作時間所得之工資除以三十所得之金額，為其一日之工資.
+	// NT$36,000 a month (unchanged the month before): 原領工資 is 36,000 ÷ 30 = 1,200 a day. Ten weekdays of
+	// 公傷病假 in April 2026 (thirty days, so the calendar-day proration also values a day at 1,200) owe
+	// 10 × 1,200 = 12,000 for those days, and the twenty other days are paid as worked: 36,000 in all.
+	// §59 但書 lets the employer offset (得予以抵充) what it has already paid for the same accident under
+	// labour or occupational-accident insurance — permissive, so paying the whole wage with no offset is
+	// lawful (owner rule 2026-09-28: the offset is recorded, never computed); no line takes it off.
+	// March 2026 has thirty-one days: TW `work_rules.proration` is calendar days over a flat 30, so a
+	// day is still 36,000 ÷ 30 = 1,200, and ten 公傷病假 weekdays owe 12,000 beside 36,000 − 12,000
+	// worked — 36,000 again, never 12,000 + 21/31 × 36,000 (the ÷ 31 a calendar-month divisor would give).
+	const injury = leaveCatalogue('TW').find(
+		(row) => row.code === 'OCCUPATIONAL_INJURY_LEAVE' && row.settings_id === TW_2026
+	)!;
+	for (const [period, first] of [
+		['2026-04', [6, 13]],
+		['2026-03', [9, 16]]
+	] as const) {
+		const days = first.flatMap((monday) =>
+			[0, 1, 2, 3, 4].map((offset) => `${period}-${String(monday + offset).padStart(2, '0')}`)
+		);
+		const { slips } = buildStatutory(
+			{
+				code: 'TW',
+				period,
+				riskClass: '1',
+				people: [{ key: 'TW-INJURY', wage: 36_000, citizenship: 'CITIZEN' }]
+			},
+			(world) => {
+				world.leave_catalogue.push({ ...injury, approval_id: null } as never);
+				const employment = world.employments.find((row) => row.employee_number === 'TW-INJURY')!;
+				const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+				world.leave_entries.push({
+					id: 'e1000000-0000-4000-8000-0000000inj01',
+					employment_id: employment.id,
+					catalogue_id: injury.id,
+					leave_code: injury.code,
+					reference: 'INJ-1',
+					from_date: days[0]!,
+					to_date: days.at(-1)!,
+					half_day_start: false,
+					half_day_end: false,
+					days: days.length,
+					effective_on: days[0]!,
+					reason: '職業災害',
+					allocations: [],
+					charges: days.map((date) => ({
+						date,
+						days: 1,
+						catalogue_id: injury.id,
+						employment_term_id: term.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					})),
+					approval_id: null
+				} as never);
+			}
+		);
+		const slip = slips.get('TW-INJURY')!;
+		assert.equal(
+			slip.adjustments.filter((row) => row.family === 'LEAVE' && row.amount !== 0).length,
+			0,
+			`no leave line takes the 原領工資 off in ${period}`
+		);
+		assert.equal(slip.gross, 36_000, period);
+	}
 });

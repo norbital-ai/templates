@@ -5,7 +5,7 @@ import { calendarDay } from '../iso-day.js';
 /**
  * Region → monthly minimum wage, in the version's currency. A company names its
  * region; a scheme's `FLOOR:MINIMUM_WAGE` and `CAP:MINIMUM_WAGE_X:<n>` rules read the wage of that
- * region through `minimum_wage(region)`.
+ * region through `minimum_wage(region)`. A key may be a `province/locality` (see `placeWage`).
  */
 export const wagesValueSchema = Schema.Struct({
 	by_region: Schema.Record(Schema.String, Schema.Finite.check(Schema.isGreaterThan(0))).check(
@@ -49,6 +49,47 @@ export const wagesValueSchema = Schema.Struct({
 		)
 	),
 	/**
+	 * Worksite → daily minimum wage, where the order fixes a day's rate by place (TH Notice 14).
+	 * A key is a province or `province/district`; a district key overrides its province, and a
+	 * worksite in a province with district keys must name its district. Each normal working day
+	 * of a daily- or hourly-paid contract is held to the rate of the worksite its terms record that
+	 * day, a shortened normal day to the whole rate (Notice 14 cl.19).
+	 */
+	daily_by_worksite: Schema.optionalKey(
+		Schema.NullOr(Schema.Record(Schema.String, Schema.Finite.check(Schema.isGreaterThan(0))))
+	),
+	/**
+	 * `by_region` names workplaces: a person's monthly floor is read at the worksite their terms
+	 * record (`terms.worksite`), the company's region where none is (ID UU 13/2003 art.88C as
+	 * amended by UU 6/2023: the UMK binds in its regency or city, the UMP elsewhere in the province).
+	 */
+	workplace_keyed: Schema.optionalKey(Schema.Boolean),
+	/**
+	 * Sector minimum wages by place (ID PP 36/2021 as amended by PP 49/2025 art.35D; DKI Kep.33/2026,
+	 * Jawa Tengah Kep.100.3.3.1/505/2025): a row binds a covered person whose worksite is at or
+	 * inside `place`, whose `terms.worksite_sector` is one of `kbli` and for whom `when` holds. The
+	 * monthly floor is the higher of the place's and every binding row's; `wage_floor` stays the
+	 * place's (Perpres 82/2018 art.32(2)–(3) floors Kesehatan at the UMK or UMP, never a sector's).
+	 */
+	monthly_by_sector: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Array(
+				Schema.Struct({
+					place: Schema.String.check(Schema.isMinLength(1)),
+					kbli: Schema.Array(Schema.String.check(Schema.isPattern(/^[0-9]{5}$/))).check(
+						Schema.isMinLength(1)
+					),
+					when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+					amount: Schema.Finite.check(Schema.isGreaterThan(0))
+				})
+			)
+		)
+	),
+	/** Worksite sector → daily minimum wage (TH Notice 14 cl.2(1)–(2)); the higher of it and the place binds. */
+	daily_by_sector: Schema.optionalKey(
+		Schema.NullOr(Schema.Record(Schema.String, Schema.Finite.check(Schema.isGreaterThan(0))))
+	),
+	/**
 	 * Who the wages order covers: a boolean over the person, empty for everyone. A person it
 	 * excludes — an intern on industrial training, an apprentice before the order reached them, a
 	 * domestic servant — reads `wage_floor` as 0 in scheme rules, so a base floored at the minimum
@@ -70,6 +111,12 @@ export const wagesValueSchema = Schema.Struct({
 	 * the run the same way.
 	 */
 	terms_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * Scheme codes whose employee share the monthly floor is net of: the contract less the month's
+	 * employee charges of these schemes must meet it (CN-SH 沪人社规〔2025〕10号 item 4 excludes the
+	 * employee's statutory social insurance and housing fund). Absent compares the contract gross.
+	 */
+	net_of_employee_schemes: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.String))),
 	/** A covered under-floor contract that must prevent a payroll run, over the person. */
 	block_below_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** The wage order this table transcribes, in the operator's words; the engine never reads it. */
@@ -77,6 +124,13 @@ export const wagesValueSchema = Schema.Struct({
 }).check(
 	Schema.makeFilter((wages) => {
 		const fault =
+			(wages.monthly_by_sector ?? [])
+				.map((row) =>
+					row.when == null || row.when.trim() === ''
+						? null
+						: compileExpression({ expression: row.when, site: 'person', type: 'boolean' })
+				)
+				.find((fault) => fault != null) ??
 			compileExpression({
 				expression: wages.applies_when,
 				site: 'person',
@@ -100,6 +154,32 @@ export const wagesValueSchema = Schema.Struct({
 );
 
 export type Wages = Schema.Schema.Type<typeof wagesValueSchema>;
+
+/**
+ * The full place a worksite or region names: a `province/locality` as written, a bare locality the
+ * one key ending in it names (a regency or city name is unique nationally), anything else trimmed.
+ */
+export function canonicalPlace(table: Readonly<Record<string, number>>, place: string): string {
+	const site = place.trim();
+	if (site === '' || site.includes('/') || table[site] != null) return site;
+	const named = Object.keys(table).filter((key) => key.endsWith(`/${site}`));
+	return named.length === 1 ? named[0]! : site;
+}
+
+/**
+ * The monthly floor a place owes under `table`, or null where it names none. A locality key
+ * overrides its province; a locality without its own key owes the province's; a bare province
+ * whose localities carry their own keys names no floor, since it does not say which one binds. A
+ * table of one key (TW `Taiwan`) binds a place that names nothing.
+ */
+export function placeWage(table: Readonly<Record<string, number>>, place: string): number | null {
+	const site = canonicalPlace(table, place);
+	const keys = Object.keys(table);
+	if (site === '') return keys.length === 1 ? table[keys[0]!]! : null;
+	if (site.includes('/')) return table[site] ?? table[site.split('/')[0]!.trim()] ?? null;
+	if (keys.some((key) => key.startsWith(`${site}/`))) return null;
+	return table[site] ?? null;
+}
 
 /** The value's Standard Schema view: the check `+definition.ts` runs on every write. */
 export const standard = Schema.toStandardSchemaV1(wagesValueSchema, {

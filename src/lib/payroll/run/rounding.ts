@@ -30,7 +30,7 @@ export const fromMinorUnits = (minor: bigint, currency: string): number =>
  * `up_to_unit`); `roundMoney` is their shared implementation, called by `cents` and the overtime
  * floor too.
  */
-type RoundingMethod =
+export type RoundingMethod =
 	'NEAREST_CENT' | 'TRUNCATE_CENT' | 'UP_5_CENTS' | 'NEAREST_UNIT' | 'FLOOR_UNIT' | 'UP_TO_UNIT';
 
 function epsilon(value: number): number {

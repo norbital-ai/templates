@@ -26,8 +26,13 @@ const f = customField({
 				of: { kind: 'object', fields: { eligibility: { kind: 'text' }, days: { kind: 'json' } } },
 				optional: true
 			},
+			child_years: { kind: 'bool', optional: true },
 			rolling_months: { kind: 'int', min: 1, optional: true },
-			rounding: { kind: 'enum', values: ['HALF_DAY', 'WHOLE_DAY', 'EXACT'], optional: true },
+			rounding: {
+				kind: 'enum',
+				values: ['HALF_DAY', 'WHOLE_DAY', 'WHOLE_DAY_DOWN', 'EXACT'],
+				optional: true
+			},
 			minimum_days: { kind: 'number', min: 0, optional: true },
 			qualifies_window: { kind: 'bool', optional: true },
 			encash_on_exit_when: { kind: 'text', optional: true },

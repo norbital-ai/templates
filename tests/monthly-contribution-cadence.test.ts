@@ -58,10 +58,11 @@ for (const cutoff of ['FIRST', 'SPLIT', 'LAST'])
 			scheme_code: string;
 			employer_amount: number;
 		}[];
-		// 60,000 × 15/31 = 29,032.26 paid; no month-end NHI enrolment. 2.11% rounds to 613.
+		// 60,000 × 15/30 = 30,000 paid (TW prorates on a 30-day month); no month-end NHI
+		// enrolment. 2.11% = 633.
 		assert.equal(
 			company.find((row) => row.scheme_code === 'NHI_SUPPLEMENT_EMPLOYER')?.employer_amount,
-			613
+			633
 		);
 	});
 
@@ -268,7 +269,7 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 			const monthly = createStatutoryWorld({
 				code,
 				period: '2026-01',
-				region: code === 'ID' ? 'DKI Jakarta' : code === 'TW' ? 'Taiwan' : 'I',
+				region: code === 'ID' ? 'Provinsi DKI Jakarta' : code === 'TW' ? 'Taiwan' : 'I',
 				riskClass: code === 'TW' ? '1' : 'II',
 				people: [
 					{
@@ -295,7 +296,7 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 				code,
 				period: '2026-01-1',
 				payFrequency: 'SEMI_MONTHLY',
-				region: code === 'ID' ? 'DKI Jakarta' : code === 'TW' ? 'Taiwan' : 'I',
+				region: code === 'ID' ? 'Provinsi DKI Jakarta' : code === 'TW' ? 'Taiwan' : 'I',
 				riskClass: code === 'TW' ? '1' : 'II',
 				people: [
 					{

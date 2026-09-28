@@ -74,6 +74,7 @@ type PayrollRunGraph = {
 		readonly scheme_code: string;
 		readonly month: string;
 		readonly currency: string;
+		readonly remittance_rounding: 'NONE' | 'FLOOR_MAJOR_UNIT';
 		readonly accrued_amount: number;
 		readonly payable_amount: number;
 	}[];
@@ -162,6 +163,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			configuration,
 			bundles: gathered.bundles,
 			measured: measuredContracts.map(({ measured }) => measured),
+			charges: chargesByEmployment,
 			asOf: window.salary.end
 		}),
 		...finalPayIssues({ configuration, bundles: gathered.bundles, payDate: window.payDate })
@@ -278,28 +280,43 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		: configuration.contributions.flatMap(({ row }) => {
 				if (row.remittance_rounding !== 'FLOOR_MAJOR_UNIT') return [];
 				const currency = configuration.jurisdiction.payroll.currency;
-				const prior = gathered.companyMonthPrior?.produced.get(row.code)?.employer ?? 0;
-				const current = graph.reduce(
-					(sum, slip) =>
-						sum +
-						slip.statutory
-							.filter((charge) => charge.scheme_code === row.code)
-							.reduce((charges, charge) => charges + charge.employer_amount, 0),
-					0
-				);
-				const accrued = cents(prior + current, currency);
-				if (accrued === 0) return [];
-				if (accrued < 0)
-					refuse(`${row.code}: a negative employer-month balance requires refund reconciliation.`);
-				return [
-					{
-						scheme_code: row.code,
-						month: period.slice(0, 7),
-						currency,
-						accrued_amount: accrued,
-						payable_amount: roundMoney(accrued, 'FLOOR_UNIT')
-					}
-				];
+				// Each part of the month apart: the charges the scheme rounds (SG SDL for local
+				// employees, paid with CPF) floored, the rest remitted as they are (SWDA SDL FAQ F.7).
+				const unroundedPrior = gathered.companyMonthPrior?.unrounded.get(row.code) ?? 0;
+				const prior = {
+					FLOOR_MAJOR_UNIT:
+						(gathered.companyMonthPrior?.produced.get(row.code)?.employer ?? 0) - unroundedPrior,
+					NONE: unroundedPrior
+				};
+				return (['FLOOR_MAJOR_UNIT', 'NONE'] as const).flatMap((rounding) => {
+					const current = graph.reduce(
+						(sum, slip) =>
+							sum +
+							slip.statutory
+								.filter(
+									(charge) =>
+										charge.scheme_code === row.code && charge.remittance_rounding === rounding
+								)
+								.reduce((charges, charge) => charges + charge.employer_amount, 0),
+						0
+					);
+					const accrued = cents(prior[rounding] + current, currency);
+					if (accrued === 0) return [];
+					if (accrued < 0)
+						refuse(
+							`${row.code}: a negative employer-month balance requires refund reconciliation.`
+						);
+					return [
+						{
+							scheme_code: row.code,
+							month: period.slice(0, 7),
+							currency,
+							remittance_rounding: rounding,
+							accrued_amount: accrued,
+							payable_amount: rounding === 'NONE' ? accrued : roundMoney(accrued, 'FLOOR_UNIT')
+						}
+					];
+				});
 			});
 	return {
 		payslip_payroll_run: graph,

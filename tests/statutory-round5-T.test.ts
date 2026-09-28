@@ -367,8 +367,10 @@ test('D15 MY, MY-nihon, SG: every declared election and fact names its requireme
 	// Keys whose absence is itself the statutory state are listed with the reason: SG
 	// `shg_monthly_amount` (absent = the Schedule amount; presence is read by key), MY `wages_12m`
 	// (read only for months no payslip covers, refused where neither exists), and the PCB
-	// approval/levy keys already carrying `required_when`.
-	const absenceIsTheLaw = new Set(['shg_monthly_amount', 'wages_12m']);
+	// approval/levy keys already carrying `required_when`. SG exit `departure_on`: Form IR21 states
+	// the departure from Singapore where known (ITA 1947 s.68(5)–(6)); the notice is due a month
+	// before cessation, often before a departure date exists, so absent = not yet known.
+	const absenceIsTheLaw = new Set(['shg_monthly_amount', 'wages_12m', 'departure_on']);
 	const unsettled: string[] = [];
 	const check = (where: string, field: Record<string, unknown>) => {
 		if (

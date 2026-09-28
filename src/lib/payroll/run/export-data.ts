@@ -41,6 +41,8 @@ import {
 import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
 import { derivedBreakMinutes } from '../../../lib/scheduling/rest-break.js';
 import { decodeNumber } from '../../wire.js';
+import { dateKey } from '../../iso-day.js';
+import * as Predicate from 'effect/Predicate';
 import { payerAccountSchema, type PayerAccount } from './bank-formats.js';
 
 type RunExport = {
@@ -313,6 +315,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 			const exitDate =
 				range?.end == null ? null : requiredDateKey(range.end, 'employments.effective_range');
 			const employmentTerms = termsByEmployment.get(payslip.employment_id) ?? [];
+			const departure = employment?.exit_facts?.departure_on;
 			// A leaver's terms end on their last day, and their wages arrive after it. Reading the
 			// terms at the pay date therefore found nothing for exactly the people whose final
 			// payslip is checked hardest, and their designation, department and payroll group came
@@ -486,6 +489,13 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 				identityNumber: employee?.identity_number ?? null,
 				hireDate: hireDate ?? '',
 				lastDay: exitDate,
+				person: {
+					employeeId: employment?.employee_id ?? payslip.employment_id,
+					dateOfBirth: dateKey(employee?.date_of_birth) || null,
+					gender: employee?.gender ?? null,
+					nationality: employee?.nationality ?? null,
+					departureOn: Predicate.isString(departure) ? dateKey(departure) || null : null
+				},
 				attendance: {
 					normalHours: scheduled.reduce(
 						(total, day) =>

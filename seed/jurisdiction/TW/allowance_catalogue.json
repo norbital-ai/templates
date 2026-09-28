@@ -1,0 +1,408 @@
+[
+	{
+		"id": "640c05df-176d-5d43-9401-9a68ebbdbc77",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "19c8f867-193d-5bff-88e2-2bfe2c89c301",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "e0445412-753d-5fbd-b722-600442834a6f",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "1674057c-88b7-51e5-8596-d7706919e081",
+		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "18698263-d010-54c9-a783-8238e5316954",
+		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "2b44181f-781f-5a7b-a1e8-9a313234d028",
+		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "ba07c48c-0557-56f7-8f57-b426ddcb6129",
+		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "6a3ca739-5468-5883-817d-04545490542f",
+		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "55d3e3a4-b137-5155-8937-56fccd5a18f5",
+		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "dc7509bb-2254-5ad3-aa10-fa0ca31f2657",
+		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "88f4e2c7-6dc2-5328-add3-2e9512ea0c85",
+		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "16a30752-a30d-51a9-b436-cb16dd628049",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "350043f3-a62c-5d86-a5f3-3c51f1279649",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	},
+	{
+		"id": "a87a02e2-de49-5cc1-950f-ba194f670a3b",
+		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
+		"code": "MEAL_ALLOWANCE",
+		"name": "伙食津貼 (meal allowance)",
+		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		]
+	}
+]

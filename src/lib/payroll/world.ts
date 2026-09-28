@@ -9,6 +9,7 @@ import type { WorkspaceRow } from '../rows.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { addDays, monthBounds, monthKey, shiftPeriod } from '../../lib/payroll/run/dates.js';
 import { periodGrammarFault, resolveWindow } from '../../lib/payroll/run/period.js';
+import { decodeNumber } from '../../lib/wire.js';
 
 type PayrollCollection =
 	| 'companies'
@@ -214,9 +215,14 @@ async function wave2(
 		readAll<WorkspaceRow<'adhoc_catalogue'>>(db, 'adhoc_catalogue', under),
 		readAll<WorkspaceRow<'allowance_catalogue'>>(db, 'allowance_catalogue', under),
 		readAll<WorkspaceRow<'loan_catalogue'>>(db, 'loan_catalogue', under),
+		// Whole calendar years: a THR ceiling counts the worker's religious holidays across the year
+		// (ID Permenaker 6/2016 art.5(2)); the configuration narrows the rest to the window.
 		readAll<WorkspaceRow<'jurisdiction_holidays'>>(db, 'jurisdiction_holidays', {
 			company_id: { eq: companyId },
-			date: { gte: spanFrom, lt: spanTo },
+			date: {
+				gte: `${spanFrom.slice(0, 4)}-01-01`,
+				lt: `${decodeNumber(spanTo.slice(0, 4)) + 1}-01-01`
+			},
 			published_at: { isNull: false },
 			...APPROVED
 		}),

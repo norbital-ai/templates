@@ -22,11 +22,16 @@ import {
 	COMPANY_ID,
 	expectStatutory,
 	expectStatutorySkipped,
+	expectStatutoryBase,
 	assertEveryVersionPriced,
 	chargeOf,
 	type BuiltPayslip,
-	settingsVersions
+	settingsVersions,
+	settingsIdOn,
+	leaveCatalogue,
+	rowIn
 } from './fixtures/statutory-world.ts';
+import { resolveWindow } from '../src/lib/payroll/run/period.ts';
 import { monthsAt, priorWages } from './fixtures/prior-wages.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
@@ -1047,7 +1052,7 @@ test('MY overtime uses the salary on the worked day across a mid-month pay rise'
 				currency: 'MYR',
 				effective_range: { start: '2026-01-10', end: null }
 			});
-			old.effective_range = { start: '2015-01-01', end: '2026-01-09T23:59:59.999Z' };
+			old.effective_range = { start: '2015-01-01', end: '2026-01-09' };
 			punch(world, 'M-DATED', '2026-01-05', '09:00', '20:00');
 			punch(world, 'M-DATED', '2026-01-12', '09:00', '20:00');
 		}
@@ -1579,62 +1584,63 @@ test('Malaysia — a non-citizen is Part F whatever the registration says (EPF A
 	expectStatutory(book, 'MY-F40', 'EPF_NON_CITIZEN', 60, 60);
 });
 
-test('Malaysia — the termination benefit counts a part year to the nearest month (Termination and Lay-Off Benefits Regulations 1980 reg. 6(1))', () => {
-	// Hired 15 May 2023, made redundant on 31 January 2026 at RM3,000: 993 days of service is
-	// 32.6 months, the nearest month 33 — two years and nine months, inside the fifteen-day tier
-	// (two years or more, under five). A day's wages is twelve months' wages ÷ 365 (JTKSM's
-	// published reg. 6 formula): 3,000 × 12 ÷ 365 = 98.6301; 15 × 33/12 × 98.6301 = 4,068.49.
-	const { slips } = buildStatutory(
-		{
-			code: 'MY',
-			period: '2026-01',
-			people: [
-				{
-					key: 'MY-REDUNDANT',
-					wage: 3000,
-					citizenship: 'CITIZEN',
-					registrations: MY_LOCAL,
-					hire_date: '2023-05-15',
-					exit_date: '2026-01-31',
-					exit_reason: 'REDUNDANCY'
-				}
-			]
-		},
-		(world) => {
-			const benefit = world.adhoc_catalogue!.find(
-				(row) =>
-					row.code === 'TERMINATION_BENEFIT' &&
-					row.settings_id ===
-						settingsVersions('MY').find(
-							(v) =>
-								String(v.effective_range.start) <= '2026-01-31' &&
-								(v.effective_range.end == null || String(v.effective_range.end) > '2026-01-31')
-						)!.id
-			)!;
-			const employment = world.employments.find((row) => row.employee_number === 'MY-REDUNDANT')!;
-			// reg.6(2) reads the wages paid: twelve earlier payslips at the RM3,000 wage.
-			priorWages(world, 'MY-REDUNDANT', monthsAt('2025-01', '2025-12', 3000));
-			world.adhoc_requests!.push({
-				id: 'd0000000-0000-4000-8000-00000000ad21',
-				employment_id: employment.id,
-				catalogue_id: benefit.id,
-				amount: 0,
-				event_date: '2026-01-31',
-				pay_period: '2026-01',
-				payslip_id: null,
-				reason: 'termination benefit',
-				evidence_file: null,
-				as_adjustment_entry: false,
-				approval_id: null
-			});
-		}
-	);
-	const slip = slips.get('MY-REDUNDANT')!;
-	assert.equal(
-		slip.adjustments.find((row) => row.component_code === 'TERMINATION_BENEFIT')?.amount,
-		4068.49
-	);
-});
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — the termination benefit counts a part year to the nearest month (Termination and Lay-Off Benefits Regulations 1980 reg. 6(1))`, () => {
+		// Hired 15 May 2023, made redundant on 31 January 2026 at RM3,000: 993 days of service is
+		// 32.6 months, the nearest month 33 — two years and nine months, inside the fifteen-day tier
+		// (two years or more, under five). A day's wages is twelve months' wages ÷ 365 (JTKSM's
+		// published reg. 6 formula): 3,000 × 12 ÷ 365 = 98.6301; 15 × 33/12 × 98.6301 = 4,068.49.
+		const { slips } = buildStatutory(
+			{
+				code,
+				period: '2026-01',
+				people: [
+					{
+						key: 'MY-REDUNDANT',
+						wage: 3000,
+						citizenship: 'CITIZEN',
+						registrations: MY_LOCAL,
+						hire_date: '2023-05-15',
+						exit_date: '2026-01-31',
+						exit_reason: 'REDUNDANCY'
+					}
+				]
+			},
+			(world) => {
+				const benefit = world.adhoc_catalogue!.find(
+					(row) =>
+						row.code === 'TERMINATION_BENEFIT' &&
+						row.settings_id ===
+							settingsVersions(code).find(
+								(v) =>
+									String(v.effective_range.start) <= '2026-01-31' &&
+									(v.effective_range.end == null || String(v.effective_range.end) > '2026-01-31')
+							)!.id
+				)!;
+				const employment = world.employments.find((row) => row.employee_number === 'MY-REDUNDANT')!;
+				// reg.6(2) reads the wages paid: twelve earlier payslips at the RM3,000 wage.
+				priorWages(world, 'MY-REDUNDANT', monthsAt('2025-01', '2025-12', 3000));
+				world.adhoc_requests!.push({
+					id: 'd0000000-0000-4000-8000-00000000ad21',
+					employment_id: employment.id,
+					catalogue_id: benefit.id,
+					amount: 0,
+					event_date: '2026-01-31',
+					pay_period: '2026-01',
+					payslip_id: null,
+					reason: 'termination benefit',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		);
+		const slip = slips.get('MY-REDUNDANT')!;
+		assert.equal(
+			slip.adjustments.find((row) => row.component_code === 'TERMINATION_BENEFIT')?.amount,
+			4068.49
+		);
+	});
 
 test('Malaysia — the 45-hour week pays nothing from the clock; its excess is paid only where it was planned (s.60A(1)(d))', () => {
 	// A six-day, 8-hour pattern is a 48-hour week: three hours beyond s.60A(1)(d) every week. Since
@@ -1765,3 +1771,702 @@ test('MY-nihon — a roster that mixes 7.5-hour and 9-hour shifts owes no overti
 		[['2026-01-20', 'WORKDAY-OT-1.5X', 1]]
 	);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Scenario sweep, 28 September 2026. Every expected figure is derived from the instrument named
+// beside it; the engine's output is compared, never copied.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+/** The sealed catalogue rows of the version in force on `day`, planted in the world. */
+const plantLeaveCatalogue = (world: PayrollWorld, code: 'MY' | 'MY-nihon', day: string) => {
+	const settingsId = settingsIdOn(code, day);
+	world.leave_catalogue.push(
+		...leaveCatalogue(code)
+			.filter((row) => row.settings_id === settingsId)
+			.map((row) => ({ ...row, approval_id: null }))
+	);
+	return (leaveCode: string) =>
+		world.leave_catalogue.find((row) => row.settings_id === settingsId && row.code === leaveCode)!;
+};
+const epfOf = (slip: BuiltPayslip) =>
+	slip.statutory
+		.filter((row) => row.scheme_code === 'EPF')
+		.map((row) => [row.base_amount, row.employee_amount, row.employer_amount]);
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — a mid-month leaver: s.18A(b) days, s.60E(3A) untaken leave at the s.60I(1A) ordinary rate, EPF on both`, () => {
+		// Hired 1 January 2015 (five years or more: s.60E(1)(c), sixteen days), resigns effective 15
+		// June 2026 on RM3,100 a month. s.60E(1): the terminating year's entitlement is in direct
+		// proportion to completed months — January to May, five: 16 × 5 ÷ 12 = 6.67, and the first
+		// proviso deems a fraction of one-half or more one day → 7. None taken, so s.60E(3A) pays 7 days
+		// at the ordinary rate, s.60I(1A) monthly ÷ 26: 7 × 3,100 ÷ 26 = 834.615… → 834.62.
+		// s.18A(b): 3,100 × 15 ÷ 30 = 1,550.00. (Act 265 reprint as at 1 August 2023, ss.18A, 60E, 60I.)
+		const { slips } = buildStatutory(
+			{
+				code,
+				period: '2026-06',
+				people: [
+					{
+						key: 'MY-LEAVER',
+						wage: 3100,
+						citizenship: 'CITIZEN',
+						hire_date: '2015-01-01',
+						exit_date: '2026-06-15',
+						exit_reason: 'RESIGNATION',
+						registrations: MY_LOCAL
+					}
+				]
+			},
+			(world) => {
+				const annual = plantLeaveCatalogue(world, code, '2026-06-15')('ANNUAL_LEAVE');
+				const employment = world.employments[0]!;
+				world.leave_entries.push({
+					id: 'e2000000-0000-4000-8000-000000000001',
+					employment_id: employment.id,
+					catalogue_id: annual.id,
+					leave_code: 'ANNUAL_LEAVE',
+					reference: `exit:${employment.id}:ANNUAL_LEAVE`,
+					from_date: '2026-01-01',
+					to_date: '2026-06-15',
+					days: 7,
+					encash_days: 7,
+					effective_on: '2026-06-15',
+					due_on: '2026-06-15',
+					charges: [],
+					allocations: [],
+					approval_id: null,
+					payslip_id: null,
+					as_adjustment_entry: false
+				} as never);
+			}
+		);
+		const slip = slips.get('MY-LEAVER')!;
+		assert.deepEqual(
+			slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+			[[15, 30, 1550]]
+		);
+		assert.equal(
+			slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')?.amount,
+			834.62
+		);
+		assert.equal(slip.gross, 2384.62);
+		// KWSP employer FAQ 8 ("Components of Wage"): payment in respect of unutilised annual leave is
+		// wages for EPF. 2,384.62 → the "2,380.01 – 2,400.00" row: 11% / 13% of 2,400 = 264 / 312.
+		assert.deepEqual(epfOf(slip), [[2384.62, 264, 312]]);
+		// Act 4 s.2(24) (PERKESO BM reprint as at 1 July 2021, p.17) and Act 800 s.2 (PERKESO text,
+		// "wages") both define wages as all remuneration payable in money "including any payment in
+		// respect of leave"; the payment for untaken leave is not the excluded gratuity on discharge
+		// ((d)). PERKESO FAQ Q6 lists "annual leave emoluments". So the SOCSO/EIS/SKBBK base is the
+		// whole 2,384.62: Act A1788 Third Schedule Part I row 28 ("exceeding RM2,300 but not RM2,400",
+		// First Category): employer 11.75 invalidity + 29.40 injury = 41.15; employee 11.75
+		// invalidity; employee 17.65 non-employment injury (SKBBK, in force 1 June 2026). Act 800
+		// Second Schedule row 28: 4.70 / 4.70.
+		const charge = (scheme: string) => {
+			const row = slip.statutory.find((entry) => entry.scheme_code === scheme)!;
+			return [row.base_amount, row.employee_amount, row.employer_amount];
+		};
+		assert.deepEqual(charge('SOCSO'), [2384.62, 11.75, 41.15]);
+		assert.deepEqual(charge('EIS'), [2384.62, 4.7, 4.7]);
+		assert.deepEqual(charge('SKBBK'), [2384.62, 17.65, 0]);
+		// Act 612 s.2 "wages" (AGC reprint 2017) "includes any leave pay", and HRD Corp's Levy
+		// Calculation Guideline repeats "includes any leave pay and arrears of wages"; the payment for
+		// untaken leave is not the (d) gratuity on discharge nor any listed exempt element: the levy
+		// base is the whole 2,384.62 (the rate turns on the employer's class, priced above).
+		assert.equal(charge('HRDF')[0], 2384.62);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — approved unpaid leave is s.18A(c) days off the calendar month`, () => {
+		// Three unpaid working days (5–7 January 2026) on RM3,100: 3,100 × (31 − 3) ÷ 31 = 2,800.00.
+		// EPF "2,780.01 – 2,800.00": 11% / 13% of 2,800 = 308 / 364. Act 4 Third Schedule "exceeding
+		// RM2,700 not exceeding RM2,800": employee 13.75, employer 48.15; Act 800 Second Schedule
+		// same row 5.50 / 5.50.
+		const { slips } = buildStatutory(
+			{
+				code,
+				period: '2026-01',
+				people: [{ key: 'MY-NPL', wage: 3100, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+			},
+			(world) => {
+				const unpaid = plantLeaveCatalogue(world, code, '2026-01-05')('UNPAID_LEAVE');
+				for (const day of ['05', '06', '07']) {
+					const date = `2026-01-${day}`;
+					world.leave_entries.push({
+						id: `e2100000-0000-4000-8000-0000000000${day}`,
+						employment_id: world.employments[0]!.id,
+						catalogue_id: unpaid.id,
+						leave_code: 'UNPAID_LEAVE',
+						reference: `NPL-${day}`,
+						from_date: date,
+						to_date: date,
+						half_day_start: false,
+						half_day_end: false,
+						days: 1,
+						effective_on: date,
+						reason: 'Unpaid day',
+						allocations: [],
+						charges: [
+							{
+								date,
+								days: 1,
+								catalogue_id: unpaid.id,
+								employment_term_id: world.employment_terms[0]!.id,
+								holiday_id: null,
+								shift_definition_id: null,
+								work_day_id: null
+							}
+						],
+						approval_id: null,
+						payslip_id: null
+					} as never);
+				}
+			}
+		);
+		const slip = slips.get('MY-NPL')!;
+		assert.equal(slip.gross, 2800);
+		assert.deepEqual(epfOf(slip), [[2800, 308, 364]]);
+		const charge = (scheme: string) => {
+			const row = slip.statutory.find((entry) => entry.scheme_code === scheme)!;
+			return [row.employee_amount, row.employer_amount];
+		};
+		assert.deepEqual(charge('SOCSO'), [13.75, 48.15]);
+		assert.deepEqual(charge('EIS'), [5.5, 5.5]);
+	});
+
+test('MY — a mid-month salary change is each rate over its own calendar days (s.18A method)', () => {
+	// No Malaysian instrument prescribes a formula for a rate change inside a month; s.18A's
+	// "monthly wages × days eligible ÷ days of the wage period" is applied to each rate over the
+	// days it was in force: 2,600 × 9 ÷ 31 = 754.84 (1–9 January) + 3,100 × 22 ÷ 31 = 2,200.00.
+	// EPF "2,940.01 – 2,960.00": 11% × 2,960 = 325.60 → 326; 13% × 2,960 = 384.80 → 385.
+	const { slips } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-01',
+			people: [{ key: 'MY-RAISE', wage: 2600, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+		},
+		(world) => {
+			const old = world.employment_terms[0]!;
+			world.employment_terms.push({
+				...old,
+				id: 'b0000000-0000-4000-8000-000000005678',
+				base_salary: 3100,
+				effective_range: { start: '2026-01-10', end: null }
+			});
+			old.effective_range = { start: '2015-01-01', end: '2026-01-09' };
+		}
+	);
+	const slip = slips.get('MY-RAISE')!;
+	assert.deepEqual(
+		slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		[
+			[9, 31, 754.84],
+			[22, 31, 2200]
+		]
+	);
+	assert.equal(slip.gross, 2954.84);
+	assert.deepEqual(epfOf(slip), [[2954.84, 326, 385]]);
+});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — floors, ceilings and the cent either side of a band seam`, () => {
+		const book = assessStatutory({
+			code,
+			period: '2026-01',
+			people: [
+				{ key: 'W-10', wage: 10, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+				{ key: 'W-30', wage: 30, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+				{ key: 'W-30.01', wage: 30.01, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+				{ key: 'W-5000', wage: 5000, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+				{ key: 'W-6000', wage: 6000, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+				{ key: 'W-20000', wage: 20_000, citizenship: 'CITIZEN', registrations: MY_LOCAL }
+			]
+		});
+		// EPF Third Schedule Part A (1 October 2025): "up to RM10" is nil.
+		expectStatutory(book, 'W-10', 'EPF', 0, 0);
+		// The ceiling-inclusive seam: RM5,000.00 is the "4,980.01 – 5,000.00" row, 11% / 13% of
+		// 5,000 = 550 / 650 (the 12% employer rate starts one cent above).
+		expectStatutory(book, 'W-5000', 'EPF', 550, 650);
+		// RM20,000.00 is still the table's last row "19,900.01 – 20,000.00": 2,200 / 2,400; the exact
+		// percentage applies only to wages exceeding RM20,000 (KWSP mandatory-contribution note 2).
+		expectStatutory(book, 'W-20000', 'EPF', 2200, 2400);
+		// Act 4 Third Schedule first two rows: "wages up to RM30" 0.10 / 0.40; "exceeding RM30 but not
+		// exceeding RM50" 0.20 / 0.70. Act 800 Second Schedule: 0.05 / 0.05 and 0.10 / 0.10.
+		expectStatutory(book, 'W-30', 'SOCSO', 0.1, 0.4);
+		expectStatutory(book, 'W-30', 'EIS', 0.05, 0.05);
+		expectStatutory(book, 'W-30.01', 'SOCSO', 0.2, 0.7);
+		expectStatutory(book, 'W-30.01', 'EIS', 0.1, 0.1);
+		// "exceeding RM4,900 but not exceeding RM5,000": 24.75 / 86.65; EIS 9.90 / 9.90.
+		expectStatutory(book, 'W-5000', 'SOCSO', 24.75, 86.65);
+		expectStatutory(book, 'W-5000', 'EIS', 9.9, 9.9);
+		// RM6,000.00 exactly is the ceiling row (PERKESO, ceiling RM6,000 from 1 October 2024):
+		// 29.75 / 104.15; EIS 11.90 / 11.90 — the same as RM6,000.01 above.
+		expectStatutory(book, 'W-6000', 'SOCSO', 29.75, 104.15);
+		expectStatutory(book, 'W-6000', 'EIS', 11.9, 11.9);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — a bonus month: resident additional-remuneration difference, non-resident flat 30% on the whole`, () => {
+		const settingsId = settingsIdOn(code, '2026-01-15');
+		const book = assessStatutory(
+			{
+				code,
+				period: '2026-01',
+				people: [
+					{ key: 'R-BONUS', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+					{
+						key: 'NR-BONUS',
+						wage: 5001,
+						citizenship: 'FOREIGNER',
+						tax_residency: 'NON_RESIDENT',
+						registrations: MY_FOREIGN
+					}
+				]
+			},
+			(world) => {
+				const adj = rowIn(world.adhoc_catalogue!, settingsId, 'ADJ');
+				for (const [index, employment] of world.employments.entries())
+					world.adhoc_requests!.push({
+						id: `d0000000-0000-4000-8000-0000000ad3${index}0`,
+						employment_id: employment.id,
+						catalogue_id: adj,
+						amount: 12_000,
+						event_date: '2026-01-01',
+						pay_period: null,
+						payslip_id: null,
+						reason: 'bonus',
+						evidence_file: null,
+						as_adjustment_entry: false,
+						approval_id: null
+					});
+			}
+		);
+		// Resident: the derivation of the MY-only bonus golden above — 1,278.40.
+		expectStatutory(book, 'R-BONUS', 'PCB', 1278.4, 0);
+		// LHDN MTD 2026 D(a): a non-resident's MTD is 30% of the remuneration, bonus included, with no
+		// reliefs: 30% × (5,001 + 12,000) = 5,100.30.
+		expectStatutory(book, 'NR-BONUS', 'PCB', 5100.3, 0);
+		// EPF Part F on the whole month's wages (bonus is EPF wages, KWSP FAQ 8): 2% × 17,001 = 340.02
+		// → 341 each (each share rounded up, KWSP foreign-worker FAQ).
+		expectStatutory(book, 'NR-BONUS', 'EPF_NON_CITIZEN', 341, 341);
+	});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Round 2, 28 September 2026: joiner, leaver-month tax, final-pay deadlines, annual bonus.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — a joiner on the 11th is s.18A(a) days of the calendar month, every scheme on what was paid`, () => {
+		// Employment Act 1955 s.18A(a) (AGC reprint as at 1 August 2023): 3,100 × 21 ÷ 31 = 2,100.00.
+		// EPF Third Schedule Part A "2,080.01 – 2,100.00": 11% / 13% of 2,100 = 231 / 273.
+		// Act 4 Third Schedule (PERKESO BM reprint as at 1 July 2021) row 25 "exceeding RM2,000 not
+		// exceeding RM2,100": employer 35.85, employee 10.25. Act 800 Second Schedule row 25: 4.10 / 4.10.
+		const { slips } = buildStatutory({
+			code,
+			period: '2026-01',
+			people: [
+				{
+					key: 'JOINER',
+					wage: 3100,
+					hire_date: '2026-01-11',
+					citizenship: 'CITIZEN',
+					registrations: MY_LOCAL
+				}
+			]
+		});
+		const slip = slips.get('JOINER')!;
+		assert.deepEqual(
+			slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+			[[21, 31, 2100]]
+		);
+		assert.equal(slip.gross, 2100);
+		const charge = (scheme: string) => {
+			const row = slip.statutory.find((entry) => entry.scheme_code === scheme)!;
+			return [row.base_amount, row.employee_amount, row.employer_amount];
+		};
+		assert.deepEqual(charge('EPF'), [2100, 231, 273]);
+		assert.deepEqual(charge('SOCSO'), [2100, 10.25, 35.85]);
+		assert.deepEqual(charge('EIS'), [2100, 4.1, 4.1]);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — the leaver's last month: MTD projects the month's own normal remuneration over the rest of the year`, () => {
+		// LHDN Specification for MTD Calculations Using Computerised Calculation for 2026, D(b)(1):
+		// Y1 is the current month's gross normal remuneration, Y2 is "estimated remuneration as Y1
+		// for the subsequent months", n + 1 the balance of months in the year including the current
+		// one. The specification has no leaver branch: the final month is annualised like any other.
+		// Resigns effective 15 January 2026 on RM20,000: s.18A(b) 20,000 × 15 ÷ 31 = 9,677.419 →
+		// 9,677.42 = Y1 = Y2, n = 11.
+		// EPF Part A "9,600.01 – 9,700.00": employee 11% × 9,700 = 1,067 = K1. K2 = the lower of K1
+		// and (4,000 − 1,067) ÷ 11 = 266.636 → 266.63 (E(1): two decimals, later figures omitted).
+		// SOCSO + EIS at the RM6,000 ceiling: 29.75 + 11.90 = 41.65 (LP1). Personal relief 9,000.
+		// P = (9,677.42 − 1,067) + 11 × (9,677.42 − 266.63) − 9,000 − 41.65 = 103,087.46.
+		// Table 1 "100,001 – 400,000": (P − 100,000) × 25% + 9,400 = 10,171.865; ÷ 12 = 847.655
+		// → 847.65 (E(1)) → 847.65 (E(2), already a five-cent multiple). Had the cap been met
+		// exactly (K2 × 11 = 2,933) P would be 103,087.39 and the MTD the same 847.65.
+		const { slips } = buildStatutory({
+			code,
+			period: '2026-01',
+			people: [
+				{
+					key: 'LEAVER-20K',
+					wage: 20_000,
+					citizenship: 'CITIZEN',
+					hire_date: '2015-01-01',
+					exit_date: '2026-01-15',
+					exit_reason: 'RESIGNATION',
+					registrations: MY_LOCAL
+				}
+			]
+		});
+		const slip = slips.get('LEAVER-20K')!;
+		assert.equal(slip.gross, 9677.42);
+		const pcb = slip.statutory.find((row) => row.scheme_code === 'PCB')!;
+		assert.equal(pcb.employee_amount, 847.65);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — final wages are due on the last day, or the third day after a walk-out (EA ss.20, 21(1), 21(2))`, () => {
+		// Employment Act 1955 (AGC reprint as at 1 August 2023): s.20 — a contract ending under
+		// s.11(1) or by s.12 notice is paid "not later than the day on which such contract of service
+		// so terminates"; s.21(1) — the employer terminating without notice under s.13(1) or s.14(1)(a)
+		// pays on that day too; s.21(2) — an employee terminating without notice under s.13(1)/(2) or
+		// s.14(3) is paid "not later than the third day after". The month's run pays on its last day,
+		// 31 January 2026.
+		//   NOTICE    resigned with notice, last day 27 Jan → due 27 Jan → 31 Jan is late (s.20).
+		//   WALKOUT   left without notice 27 Jan → due 30 Jan → late (s.21(2)).
+		//   WALKOUT29 left without notice 29 Jan → due 1 Feb → on time.
+		//   DISMISSED dismissed for misconduct after inquiry 27 Jan (s.14(1)(a)) → due 27 Jan → late.
+		//   MONTH-END resigned with notice, last day 31 Jan → due 31 Jan → on time.
+		const people = [
+			{ key: 'NOTICE', exit_date: '2026-01-27', exit_reason: 'RESIGNATION' },
+			{ key: 'WALKOUT', exit_date: '2026-01-27', exit_reason: 'RESIGNATION' },
+			{ key: 'WALKOUT29', exit_date: '2026-01-29', exit_reason: 'RESIGNATION' },
+			{ key: 'DISMISSED', exit_date: '2026-01-27', exit_reason: 'DISMISSAL' },
+			{ key: 'MONTH-END', exit_date: '2026-01-31', exit_reason: 'RESIGNATION' }
+		].map((row) => ({ ...row, wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }));
+		const { warnings } = buildStatutory({ code, period: '2026-01', people }, (world) => {
+			for (const row of world.employments) {
+				if (row.employee_number === 'WALKOUT' || row.employee_number === 'WALKOUT29')
+					row.exit_facts = { ...(row.exit_facts ?? {}), terminated_without_notice: true };
+				if (row.employee_number === 'DISMISSED')
+					row.exit_facts = { ...(row.exit_facts ?? {}), misconduct_dismissal: true };
+			}
+		});
+		const late = (key: string) =>
+			warnings.find((line) => line.startsWith('FINAL_PAY_LATE') && line.includes(`${key} left`));
+		assert.match(late('NOTICE') ?? '', /by 2026-01-27.*s\.20/);
+		assert.match(late('WALKOUT') ?? '', /by 2026-01-30.*s\.21\(2\)/);
+		assert.equal(late('WALKOUT29'), undefined);
+		assert.match(late('DISMISSED') ?? '', /by 2026-01-27.*s\.21\(1\)/);
+		assert.equal(late('MONTH-END'), undefined);
+	});
+
+// Act 4 s.2(24)(e) "bonus tahunan" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2
+// "wages" (e) "any annual bonus" exclude an annual bonus from the SOCSO, EIS and SKBBK wage; Act 612
+// s.2 "wages" (e) excludes "any bonus or commission" (AGC reprint 2017). EPF Act 452 s.2 "wages"
+// includes "any bonus" (AGC online text as at 1 July 2022), and the bonus is PCB additional
+// remuneration (LHDN MTD Specification 2026 D(b)(2)).
+for (const code of ['MY', 'MY-nihon'] as const)
+	for (const period of ['2026-01', '2026-07'] as const)
+		test(`${code} ${period} — an annual bonus is EPF wages and additional remuneration, but not SOCSO/EIS/SKBBK/HRD wages`, () => {
+			const settingsId = settingsIdOn(code, `${period}-15`);
+			const book = assessStatutory(
+				{
+					code,
+					period,
+					people: [{ key: 'B', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+				},
+				(world) => {
+					world.adhoc_requests!.push({
+						id: 'd0000000-0000-4000-8000-0000000b0e10',
+						employment_id: world.employments[0]!.id,
+						catalogue_id: rowIn(world.adhoc_catalogue!, settingsId, 'BONUS'),
+						amount: 12_000,
+						event_date: `${period}-01`,
+						pay_period: null,
+						payslip_id: null,
+						reason: 'annual bonus',
+						evidence_file: null,
+						as_adjustment_entry: false,
+						approval_id: null
+					});
+				}
+			);
+			// Act 4 Third Schedule row "exceeding RM2,900 but not exceeding RM3,000": employer 51.65,
+			// employee 14.75 (1.75% / 0.5% of the 2,950 midpoint); Act 800 Second Schedule same row
+			// 5.90 / 5.90 — on the 3,000 wage alone, not the RM6,000 ceiling.
+			expectStatutoryBase(book, 'B', 'SOCSO', 3000);
+			expectStatutory(book, 'B', 'SOCSO', 14.75, 51.65);
+			expectStatutoryBase(book, 'B', 'EIS', 3000);
+			expectStatutory(book, 'B', 'EIS', 5.9, 5.9);
+			// A1788 (SKBBK from 1 June 2026) reads the same s.2(24) wage.
+			if (period === '2026-07') expectStatutoryBase(book, 'B', 'SKBBK', 3000);
+			// Act 612 s.2 "wages" (e): HRD levy on the 3,000 wage only.
+			expectStatutoryBase(book, 'B', 'HRDF', 3000);
+			// EPF Third Schedule Part A "14,900.01 – 15,000.00": employee 11% × 15,000 = 1,650. The
+			// note under the RM5,000 row: a bonus lifting a monthly wage of RM5,000 and below above
+			// RM5,000 keeps the employer at 13% of the month's wages: 13% × 15,000 = 1,950.
+			expectStatutoryBase(book, 'B', 'EPF', 15_000);
+			expectStatutory(book, 'B', 'EPF', 1650, 1950);
+		});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Round 3, 28 September 2026: EA s.19 wage deadlines, Schedule 6 para 21.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — wages by the seventh day after the wage period, overtime by the last day of the next (EA s.19(1)–(2))`, () => {
+		// Employment Act 1955 s.19 (AGC reprint as at 1 August 2023): (1) the wages earned during a
+		// wage period are paid "not later than the seventh day after the last day" of it; (2) wages for
+		// rest-day, s.60D(1)(a)/(b) holiday and s.60A overtime work "not later than the last day of the
+		// next wage period"; (3) only the Director General may extend either. The world's monthly
+		// company cuts attendance on the 21st. The January run pays on 31 January — inside 7 February —
+		// and prices the calendar month's salary; the February run pays on 28 February.
+		const company = { pay_frequency: 'MONTHLY', pay_cutoff_day: 21 };
+		assert.equal(resolveWindow('2026-01', company).payDate, '2026-01-31');
+		assert.equal(resolveWindow('2026-02', company).payDate, '2026-02-28');
+		// Two hours of overtime on Monday 19 and Monday 26 January (its price is the profile's own
+		// ordinary hour, golden above; only the paying run is asserted here). The 19th is inside January's attendance window: paid 31 January. The
+		// 26th is past the cutoff: paid in February's run on 28 February, the last day of the next
+		// wage period — on time, the s.19(2) day itself.
+		const run = (period: string) =>
+			buildStatutory(
+				{
+					code,
+					period,
+					people: [{ key: 'OT', wage: 2600, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+				},
+				(world) => {
+					for (const date of ['2026-01-19', '2026-01-26'])
+						punch(world, 'OT', date, '09:00', '20:00');
+				}
+			).slips.get('OT')!;
+		const paid = (period: string) =>
+			workLines(run(period)).map(([date, label, hours]) => [date, label, hours]);
+		assert.deepEqual(paid('2026-01'), [['2026-01-19', 'WORKDAY-OT-1.5X', 2]]);
+		assert.deepEqual(paid('2026-02'), [['2026-01-26', 'WORKDAY-OT-1.5X', 2]]);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — a non-resident's employment of sixty days or fewer is exempt (ITA Schedule 6 para 21)`, () => {
+		// Income Tax Act 1967 Schedule 6 para 21 (AGC online text as at 1 January 2026) exempts a
+		// non-resident's income from an employment exercised in Malaysia for not more than sixty days;
+		// para 22 removes it beyond sixty days and for a public entertainer. The days are the
+		// employer's declared fact (`pcb_sch6_para21`). Declared: exempt income is excluded from MTD
+		// remuneration (LHDN MTD Specification 2026 D(a)), so nothing is withheld. Undeclared: D(a)'s
+		// 30% × 5,001 = 1,500.30.
+		const foreign = (para21: boolean) => ({
+			...MY_FOREIGN,
+			PCB: { kind: 'REGISTERED', elections: { pcb_sch6_para21: para21 } }
+		});
+		const book = assessStatutory({
+			code,
+			period: '2026-01',
+			people: [
+				{
+					key: 'NR-60',
+					wage: 5001,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					registrations: foreign(true)
+				},
+				{
+					key: 'NR-61',
+					wage: 5001,
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					registrations: foreign(false)
+				}
+			]
+		});
+		expectStatutory(book, 'NR-60', 'PCB', 0, 0);
+		expectStatutory(book, 'NR-61', 'PCB', 1500.3, 0);
+	});
+
+test('Malaysia — a PCB rule tells a 181-day contract from a 182-day one (MTD spec 2026 D(a) note)', () => {
+	// LHDN Specification for MTD Calculations Using Computerised Calculation 2026, D(a) note: from
+	// August 2017 resident MTD applies to a foreign worker "with an employment contract of or more
+	// than 182 days". Counted first day to last inclusive: 1 Jan – 30 Jun 2026 is 31+28+31+30+31+30
+	// = 181 days, 1 Jan – 1 Jul 2026 is 182; both are six whole months, so `contract_months` alone
+	// cannot draw the line. An open-ended contract states no length: 0, with `open_ended` true.
+	const people = [
+		{ key: 'C-181', exit_date: '2026-06-30' },
+		{ key: 'C-182', exit_date: '2026-07-01' },
+		{ key: 'C-OPEN' }
+	].map((row) => ({
+		...row,
+		wage: 5001,
+		citizenship: 'FOREIGNER',
+		hire_date: '2026-01-01',
+		registrations: MY_FOREIGN
+	}));
+	const book = assessStatutory({ code: 'MY', period: '2026-06', people }, (world) => {
+		// A probe rule ahead of the seeded ones: employee share = the contract's days, employer
+		// share = whether the note's threshold is met.
+		for (const row of world.statutory_contributions.filter((r) => r.code === 'PCB'))
+			row.rules = [
+				{
+					when: 'true',
+					employee: 'person.employment.contract_days * 1.0',
+					employer:
+						'person.employment.contract_days >= 182 && person.employment.contract_months == 6 ? 1.0 : 0.0'
+				},
+				...row.rules
+			];
+	});
+	expectStatutory(book, 'C-181', 'PCB', 181, 0);
+	expectStatutory(book, 'C-182', 'PCB', 182, 1);
+	expectStatutory(book, 'C-OPEN', 'PCB', 0, 0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Round 4, 28 September 2026: the 182-day foreign contract, para 22 recovery, para 25C award.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — a foreign worker on a 182-day contract is withheld at resident MTD, on 181 days at 30% (MTD spec 2026 D(a) note)`, () => {
+		// LHDN MTD Specification 2026 D(a) note (p.9): "With effect from August 2017, MTD for resident
+		// on foreign workers is applicable to employees with an employment contract of or more than 182
+		// days". 1 Jan – 30 Jun 2026 is 181 days, 1 Jan – 1 Jul 182 (first day to last inclusive).
+		// Owner rule 2026-09-28: an open-ended contract states no length, so the recorded residency
+		// governs; a PERMANENT_RESIDENT is not a foreign worker.
+		const people = [
+			{ key: 'C-181', exit_date: '2026-06-30' },
+			{ key: 'C-182', exit_date: '2026-07-01' },
+			{ key: 'C-182-NR', exit_date: '2026-07-01', tax_residency: 'NON_RESIDENT' },
+			{ key: 'C-OPEN' }
+		].map((row) => ({
+			// Not known to be resident, unless the row records otherwise.
+			tax_residency: null,
+			wage: 5001,
+			citizenship: 'FOREIGNER',
+			hire_date: '2026-01-01',
+			registrations: MY_FOREIGN,
+			...row
+		}));
+		const book = assessStatutory({ code, period: '2026-01', people });
+		// 181 days, and open-ended: D(a)'s 30% × 5,001 = 1,500.30.
+		expectStatutory(book, 'C-181', 'PCB', 1500.3, 0);
+		expectStatutory(book, 'C-OPEN', 'PCB', 1500.3, 0);
+		// 182 days, whatever the recorded status: D(b)(1) normal remuneration. Y1 = Y2 = 5,001, n = 11.
+		// K1 = EPF Part F employee 2% × 5,001 = 100.02 → 101 (KWSP foreign-worker FAQ, each share up);
+		// K2 = lower of 101 and (4,000 − 101) ÷ 11 = 354.45 → 101. EIS: none for a non-citizen
+		// (Act 800 s.2). LP1 = SOCSO First Category employee share, Act 4 Third Schedule "exceeding
+		// 5,000, not exceeding 5,100" = 25.25. Personal relief 9,000.
+		// P = (5,001 − 101) × 12 − 9,000 − 25.25 = 49,774.75. Table 1 "35,001 – 50,000": 600 +
+		// 14,774.75 × 6% = 1,486.485; ÷ 12 = 123.873 → 123.87 (E(1)) → 123.90 (E(2)).
+		expectStatutory(book, 'C-182', 'PCB', 123.9, 0);
+		expectStatutory(book, 'C-182-NR', 'PCB', 123.9, 0);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — past sixty days the exempt months are recovered at 30% (ITA Schedule 6 para 22)`, () => {
+		// Schedule 6 para 22 (AGC online text as at 1 January 2026) removes the para 21 exemption once
+		// the employment in Malaysia exceeds sixty days. Owner rule 2026-09-28 (law silent on timing):
+		// the declaring month withholds 30% of the year's base less the MTD already charged.
+		const people = (elections: Record<string, boolean>) => [
+			{
+				key: 'NR',
+				wage: 5001,
+				citizenship: 'FOREIGNER',
+				tax_residency: 'NON_RESIDENT',
+				registrations: { ...MY_FOREIGN, PCB: { kind: 'REGISTERED', elections } }
+			}
+		];
+		const january = buildStatutory({
+			code,
+			period: '2026-01',
+			people: people({ pcb_sch6_para21: true })
+		}).slips.get('NR')!;
+		assert.equal(january.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 0);
+		const february = (elections: Record<string, boolean>) =>
+			assessStatutory({ code, period: '2026-02', people: people(elections) }, (world) => {
+				world.payroll_runs.push({ id: 'paid-january', company_id: COMPANY_ID, period: '2026-01' });
+				world.payslips.push({
+					...january,
+					id: 'para21-january-slip',
+					payroll_run_id: 'paid-january',
+					status: 'PAID',
+					paid_at: '2026-01-31'
+				});
+			});
+		// Crossed and declared: 30% × (5,001 + 5,001) = 3,000.60, less the nil January = 3,000.60.
+		expectStatutory(february({ pcb_sch6_para22_recover: true }), 'NR', 'PCB', 3000.6, 0);
+		// Not declared: February alone, 30% × 5,001 = 1,500.30.
+		expectStatutory(february({}), 'NR', 'PCB', 1500.3, 0);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — a long service award: RM2,000 tax-exempt after ten years, SOCSO/EIS wages, outside EPF and HRD (ITA Sch.6 para 25C)`, () => {
+		const settingsId = settingsIdOn(code, '2026-01-15');
+		const book = assessStatutory(
+			{
+				code,
+				period: '2026-01',
+				people: [
+					// Eleven years with the same employer: "more than 10 years".
+					{
+						key: 'LS-11',
+						wage: 5001,
+						hire_date: '2015-01-01',
+						citizenship: 'CITIZEN',
+						registrations: MY_LOCAL
+					},
+					// Nine years: no exemption.
+					{
+						key: 'LS-9',
+						wage: 5001,
+						hire_date: '2017-01-01',
+						citizenship: 'CITIZEN',
+						registrations: MY_LOCAL
+					}
+				]
+			},
+			(world) => {
+				for (const [index, employment] of world.employments.entries())
+					world.adhoc_requests!.push({
+						id: `d0000000-0000-4000-8000-0000000a5a${index}0`,
+						employment_id: employment.id,
+						catalogue_id: rowIn(world.adhoc_catalogue!, settingsId, 'LONG_SERVICE_AWARD'),
+						amount: 3000,
+						event_date: '2026-01-01',
+						pay_period: null,
+						payslip_id: null,
+						reason: 'long service award',
+						evidence_file: null,
+						as_adjustment_entry: false,
+						approval_id: null
+					});
+			}
+		);
+		for (const key of ['LS-11', 'LS-9']) {
+			// EPF Act s.2 "wages" (c) "any gratuity" (owner rule 2026-09-28): the 5,001 wage alone.
+			// Third Schedule Part A bracket 5,100: 11% = 561, 12% (wage above RM5,000) = 612.
+			expectStatutoryBase(book, key, 'EPF', 5001);
+			expectStatutory(book, key, 'EPF', 561, 612);
+			// Act 4 s.2(24): not a gratuity on discharge/retirement, not an annual bonus — wages.
+			// 8,001 is above the RM6,000 ceiling: Third Schedule last row 29.75 / 104.15 (5,001 alone
+			// would be the "5,000 – 5,100" row, 25.25 / 88.35); Act 800 Second Schedule 11.90 / 11.90.
+			expectStatutoryBase(book, key, 'SOCSO', 8001);
+			expectStatutory(book, key, 'SOCSO', 29.75, 104.15);
+			expectStatutory(book, key, 'EIS', 11.9, 11.9);
+			// Act 612 s.2: not basic salary, fixed allowance, leave pay or arrears.
+			expectStatutoryBase(book, key, 'HRDF', 5001);
+		}
+		// PCB base: para 25C takes RM2,000 out after more than ten years: 5,001 + 3,000 − 2,000.
+		expectStatutoryBase(book, 'LS-11', 'PCB', 6001);
+		expectStatutoryBase(book, 'LS-9', 'PCB', 8001);
+		// MTD 2026 D(b)(1)–(2). Normal: Y1 = Y2 = 5,001, n = 11; K1 = 561; K2 = lower of 561 and
+		// (4,000 − 561) ÷ 11 = 312.636 → 312.63 (E(1)); LP1 = 29.75 + 11.90 = 41.65; personal 9,000.
+		// P = 4,440 + 11 × 4,688.37 − 9,041.65 = 46,970.42. Table 1 "35,001 – 50,000": 600 +
+		// 11,970.42 × 6% = 1,318.2252; ÷ 12 = 109.852 → 109.85 → 109.85.
+		// Additional: Kt = 0 (no EPF on the award, and the RM4,000 is already used). Tax on P + Yt,
+		// less 12 × 109.85 = 1,318.20:
+		// LS-11: Yt = 1,000 → 600 + 12,970.42 × 6% = 1,378.2252 − 1,318.20 = 60.025 → 60.02 → 60.05;
+		// 109.85 + 60.05 = 169.90.
+		// LS-9: Yt = 3,000 → 600 + 14,970.42 × 6% = 1,498.2252 − 1,318.20 = 180.025 → 180.05;
+		// 109.85 + 180.05 = 289.90. (Table 1 B at 20,001–35,000 is −250, the s.6A RM400 rebate; a
+		// RM3,000 wage would withhold nothing either way, so the probe sits above RM35,000.)
+		expectStatutory(book, 'LS-11', 'PCB', 169.9, 0);
+		expectStatutory(book, 'LS-9', 'PCB', 289.9, 0);
+	});

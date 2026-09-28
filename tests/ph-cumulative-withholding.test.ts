@@ -134,9 +134,12 @@ test('PH cumulative: supplementary at least the taxable regular compensation', (
 			bonus(world, 140000);
 		}
 	);
-	// Six 27,550 + July 77,550 = 242,850; / 7 = 34,692.86; table 2,146.97;
-	// 2,146.97 × 7 − 6,045.30 = 8,983.49.
-	expectStatutory(book, 'CUM', 'WTAX', 8983.49, 0);
+	// The bonus is SSS compensation (SSS IRR Rule 12 s.6(iii), register PH-SS06), so July's MSC is
+	// the ₱35,000 ceiling (SSS Circular 2024-006, from January 2025): SS 5% × 20,000 = 1,000 and
+	// MPF 5% × 15,000 = 750, with PhilHealth 750 and Pag-IBIG 200 — July regular taxable
+	// 30,000 − 2,700 = 27,300. Six 27,550 + July 77,300 = 242,600; / 7 = 34,657.14;
+	// table 1,875 + 20% × 1,324.14 = 2,139.83; 2,139.83 × 7 − 6,045.30 = 8,933.51.
+	expectStatutory(book, 'CUM', 'WTAX', 8933.51, 0);
 });
 
 test('PH cumulative: the method persists after an earlier trigger and a salary increase', () => {

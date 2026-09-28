@@ -43,12 +43,13 @@ test('every fixture formula names a row of its own settings version, and no sche
 				assert.ok(formula, `${lineage} ${scheme.code}: no assessed_on`);
 				const mentions = assessedOnMentions(formula);
 				// A formula that reads the contract's own wage — Vietnam's insurance salary is the
-				// contractual salary, not the month's lines — charges something too.
+				// contractual salary, not the month's lines — charges something too, as does one reading
+				// a declared base (China's social insurance schemes share the pension's declared base).
 				assert.ok(
 					mentions.reserved.length > 0 ||
 						mentions.codes.length > 0 ||
 						mentions.words.length > 0 ||
-						/person\.terms\.(basic_salary|monthly_basic|monthly_wage|statutory_wages)|produced\.|scheme\.elections\./.test(
+						/person\.terms\.(basic_salary|monthly_basic|monthly_wage|statutory_wages)|produced\.|(scheme|person\.facts\.\w+)\.elections\./.test(
 							formula
 						),
 					`${lineage} ${scheme.code}: charges nothing`

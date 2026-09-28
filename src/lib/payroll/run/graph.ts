@@ -85,7 +85,10 @@ export function payrollRunGraph(options: {
 				employer_amount: charge.employer,
 				directed_amount: charge.directed,
 				rebate_amount: charge.rebate ?? 0,
-				rule_when: charge.ruleReference
+				rule_when: charge.ruleReference,
+				...(charge.remittanceRounding == null
+					? {}
+					: { remittance_rounding: charge.remittanceRounding })
 			})),
 			gross: payslip.settlement.gross,
 			total_deductions: payslip.settlement.totalDeductions,

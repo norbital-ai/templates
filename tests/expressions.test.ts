@@ -197,3 +197,10 @@ test('the AST literal walk reads the version-bound mentions', () => {
 	assert.deepEqual(mentions.words, ['ALLOWANCES', 'ORDINARY.CLAIMS', 'year.ADDITIONAL.ALLOWANCES']);
 	assert.deepEqual(mentions.yearEarned, ['THIRTEENTH_MONTH_PAY']);
 });
+
+test('leave.days(code) on the entry site reads the settled window’s charged days', () => {
+	const engine = runtimeExpressionEngine({});
+	const context = { leave: { charged: { MATERNITY_LEAVE: 14 } } };
+	assert.equal(evaluateNumber(engine, 'leave.days("MATERNITY_LEAVE")', context), 14);
+	assert.equal(evaluateNumber(engine, 'leave.days("ANNUAL_LEAVE")', context), 0);
+});

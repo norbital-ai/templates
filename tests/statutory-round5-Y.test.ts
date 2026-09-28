@@ -31,7 +31,7 @@ function rate(
 		code,
 		period: '2026-06',
 		riskClass: code === 'ID' ? 'I' : '1',
-		region: code === 'VN' ? 'I' : code === 'ID' ? 'DKI Jakarta' : null,
+		region: code === 'VN' ? 'I' : code === 'ID' ? 'Provinsi DKI Jakarta' : null,
 		people: [{ key: 'LEAVE', wage: 10_000_000 }]
 	});
 	const terms = world.employment_terms[0]!;

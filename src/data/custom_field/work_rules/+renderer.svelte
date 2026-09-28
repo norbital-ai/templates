@@ -291,7 +291,7 @@
 			id: String(index),
 			when: arm.when,
 			by: arm.basis.by,
-			days: arm.basis.by === 'FIXED_DAYS' ? arm.basis.days : 0
+			days: arm.basis.by === 'WORKING_DAYS' ? 0 : (arm.basis.days ?? 0)
 		}));
 	let armRows = $state<ProrationArmRow[]>([]);
 	watch(
@@ -332,7 +332,9 @@
 						? { by: 'FIXED_DAYS' as const, days: row.days }
 						: row.by === 'WORKING_DAYS'
 							? { by: 'WORKING_DAYS' as const }
-							: { by: 'CALENDAR_DAYS' as const }
+							: row.days > 0
+								? { by: 'CALENDAR_DAYS' as const, days: row.days }
+								: { by: 'CALENDAR_DAYS' as const }
 			}))
 		});
 	}

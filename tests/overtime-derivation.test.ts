@@ -399,21 +399,30 @@ test('the minute is the payable unit for clock-derived premium, and float error 
 		assert.equal(roundMinute(minutes / 60), minutes / 60, `${minutes} minutes is itself`);
 });
 
-test('on a day with no shift the first normal hours of night work are ordinary, the rest overtime', () => {
-	// A rest day worked 20:00 to 06:00 across midnight: eight hours fall in the 22:00–06:00 window;
-	// the first eight worked hours run to 04:00, so six of the night hours are the day's ordinary
-	// ones and two are beyond the normal day (PH art.93: 130% then 169%, the night add on each).
+test("night hours are overtime only inside the day's last overtime hours", () => {
+	// A rest day worked 20:00 to 06:00 across midnight: eight hours fall in the 22:00–06:00 window.
+	// With two hours beyond the normal eight, the overtime is 04:00–06:00, so six night hours are
+	// ordinary and two overtime (PH art.93: 130% then 169%, the night add on each).
 	const day = entry({
 		worked_intervals: [{ start: at('2026-03-10', '20:00'), end: at('2026-03-11', '06:00') }],
 		break_minutes: 0
 	});
-	assert.deepEqual(nightWindowHours(day, { from: '22:00', to: '06:00' }, null, 8 * 60, 8), {
+	assert.deepEqual(nightWindowHours(day, { from: '22:00', to: '06:00' }, null, 8 * 60, 2), {
 		ordinary: 6,
 		overtime: 2
 	});
-	// Without a normal day stated, every night hour on a shiftless day is overtime, as before.
-	assert.deepEqual(nightWindowHours(day, { from: '22:00', to: '06:00' }, null), {
-		ordinary: 0,
-		overtime: 8
+	// No overtime: every night hour is ordinary (art.86 on its own).
+	assert.deepEqual(nightWindowHours(day, { from: '22:00', to: '06:00' }, null, 8 * 60), {
+		ordinary: 8,
+		overtime: 0
+	});
+	// A 22:00–06:00 punch with an unpaid hour: the break can only have been taken at night.
+	const nightOnly = entry({
+		worked_intervals: [{ start: at('2026-03-10', '22:00'), end: at('2026-03-11', '06:00') }],
+		break_minutes: 60
+	});
+	assert.deepEqual(nightWindowHours(nightOnly, { from: '22:00', to: '06:00' }, null, 8 * 60), {
+		ordinary: 7,
+		overtime: 0
 	});
 });

@@ -296,6 +296,8 @@ export type MonthPrior = {
 /** Earlier company payments and levies in the month, including employees absent from this run. */
 export type CompanyMonthPrior = MonthPrior & {
 	readonly produced: MonthPrior['charged'];
+	/** scheme code → the employer amounts earlier slips remit unrounded (`remittance_rounding` NONE). */
+	readonly unrounded: ReadonlyMap<string, number>;
 };
 
 type SettledLine = {
