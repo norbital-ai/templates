@@ -30,6 +30,8 @@ export default policy({
 				previous: { or: [{ sha256: { eq: '' } }, { scene_embedding: { isNull: true } }] },
 				fields: [
 					'sha256',
+					'inspection_failed_at',
+					'inspection_failure_reason',
 					'perceptual_embedding',
 					'scene_embedding',
 					'flags',

@@ -3,7 +3,8 @@ import { model } from '@norbital-ai/bolt';
 /**
  * One photo filed against exactly one job assignment or variation request, with its integrity facts. A photo is born
  * uninspected (`sha256` empty, a zero `perceptual_embedding`); the suspicion review fills the facts from
- * `ctx.files.image`. Flags and similarity are evidence for a judgement, never a verdict.
+ * `ctx.files.image`, or, when the host cannot read it, records the failure and judges the rest. Flags and similarity
+ * are evidence for a judgement, never a verdict.
  */
 export default model({
 	description:
@@ -20,6 +21,10 @@ export default model({
 		source_key: { kind: 'text', unique: true, hidden: true },
 		source: { kind: 'custom', of: 'photo_source' },
 		sha256: { kind: 'text', hidden: true },
+		/** Set when the host refuses to read the photo: a failed photo is never re-inspected or waited for. */
+		inspection_failed_at: { kind: 'instant', optional: true, hidden: true },
+		/** The host's bounded refusal reason, kept beside the marker. */
+		inspection_failure_reason: { kind: 'text', optional: true, hidden: true },
 		/** Meta PDQ as a 256-dim 0/1 vector: L2 distance is √Hamming. */
 		perceptual_embedding: { kind: 'vector', dim: 256, metric: 'l2', hidden: true },
 		/** The scene (`ctx.ai.embed` of the photo), for cross-assignment reuse the pixel hash cannot see (crops, re-photographs). */

@@ -24,6 +24,8 @@ const photo_evidence = collection('photo_evidence', {
 				'source',
 				'source_key',
 				'sha256',
+				'inspection_failed_at',
+				'inspection_failure_reason',
 				'perceptual_embedding',
 				'scene_embedding',
 				'flags',
