@@ -9,6 +9,7 @@ export default envoy({
 	channel: 'sales_desk',
 	audience: 'public',
 	policies: ['accounts_read', 'products_read', 'commercial_shared', 'sales_rep'],
+	name: 'Norbital',
 	groupMessages: 'disabled',
 	delegation: 'enabled',
 	task: 'Answer questions about quotes and accounts for this customer.'
